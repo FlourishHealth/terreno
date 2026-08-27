@@ -25,6 +25,7 @@
     "api/src/realtime/realtime.test.ts": 137,
     "api/src/realtime/sessionRevalidation.test.ts": 22,
     "api/src/realtime/socketAuth.test.ts": 11,
+    "api/src/schemaMetadata.ts": 2,
     "api/src/sync/mutationHandler.test.ts": 8,
     "api/src/sync/sessionRevalidationIntegration.test.ts": 10,
     "api/src/sync/sync.test.ts": 9,
@@ -62,7 +63,7 @@
   "byPackage": {
     "admin-backend": 2,
     "admin-frontend": 6,
-    "api": 773,
+    "api": 775,
     "demo": 2,
     "example-backend": 23,
     "example-frontend": 3,
@@ -72,20 +73,20 @@
     "ui": 33
   },
   "byRemediationStatus": {
-    "fully-documented": 909,
+    "fully-documented": 911,
     "file-blanket": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     "violation": 0
   },
   "fileBlanketFiles": 0,
-  "generatedAt": "2026-08-26T17:01:13.981Z",
+  "generatedAt": "2026-08-27T04:57:30.419Z",
   "ratchet": {
     "undocumented": 0,
     "violations": 0,
-    "totalUsages": 909
+    "totalUsages": 911
   },
-  "totalFiles": 58,
-  "totalUsages": 909,
+  "totalFiles": 59,
+  "totalUsages": 911,
   "version": 2
 }

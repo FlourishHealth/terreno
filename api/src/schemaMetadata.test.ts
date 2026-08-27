@@ -48,6 +48,8 @@ const FixtureModel =
 
 const mapSchema = new Schema({
   attributes: {description: "Untyped map values", type: Map},
+  checkboxValues: {description: "Boolean map", of: Boolean, type: Map},
+  lastEatenWith: {description: "Date map", of: Date, type: Map},
   typedMap: {description: "String map", of: String, type: Map},
 });
 
@@ -126,7 +128,7 @@ describe("describeModel", () => {
     );
   });
 
-  it("describes map fields with mixed values when no caster is provided", () => {
+  it("describes map fields from Map of/caster kinds, not a date fallback", () => {
     const description = describeModel(MapModel);
 
     expect(description.fields.attributes).toEqual(
@@ -135,6 +137,41 @@ describe("describeModel", () => {
         kind: "map",
       })
     );
+    expect(description.fields.typedMap).toEqual(
+      expect.objectContaining({
+        item: expect.objectContaining({kind: "string"}),
+        kind: "map",
+      })
+    );
+    expect(description.fields.checkboxValues).toEqual(
+      expect.objectContaining({
+        item: expect.objectContaining({kind: "boolean"}),
+        kind: "map",
+      })
+    );
+    expect(description.fields.lastEatenWith).toEqual(
+      expect.objectContaining({
+        item: expect.objectContaining({kind: "date"}),
+        kind: "map",
+      })
+    );
+    expect(Object.keys(description.fields).some((path) => path.includes("$*"))).toBe(false);
+
+    expect(fieldDescriptionToOpenApiProperty(description.fields.lastEatenWith)).toEqual({
+      additionalProperties: {format: "date-time", type: "string"},
+      description: "Date map",
+      type: "object",
+    });
+    expect(fieldDescriptionToOpenApiProperty(description.fields.checkboxValues)).toEqual({
+      additionalProperties: {type: "boolean"},
+      description: "Boolean map",
+      type: "object",
+    });
+    expect(fieldDescriptionToOpenApiProperty(description.fields.typedMap)).toEqual({
+      additionalProperties: {type: "string"},
+      description: "String map",
+      type: "object",
+    });
   });
 
   it("merges extraProperties into the field graph", () => {

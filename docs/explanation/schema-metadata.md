@@ -39,7 +39,7 @@ const routerDescription = describeModelForRouter(Todo, {
 | `objectId` | ObjectId | Carries `ref` model name |
 | `embedded` | Subdocument / array of subdocuments | Nested `fields` |
 | `mixed` | Mixed | Accepts any value in OpenAPI |
-| `map` | Map | `additionalProperties` in OpenAPI |
+| `map` | Map | `item` follows Map `of` (omitted `of` is `mixed`); OpenAPI `additionalProperties` |
 
 System paths (`_id`, `__v`, `created`, `updated`, `deleted`) are marked with `system: true`.
 

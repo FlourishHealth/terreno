@@ -1205,7 +1205,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "array",
                           },
                           "content": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "type": "string",
+                            },
                             "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                             "type": "object",
                           },
@@ -1403,7 +1405,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "array",
                   },
                   "content": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "type": "string",
+                    },
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                     "type": "object",
                   },
@@ -1525,7 +1529,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "type": "string",
+                      },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -1882,7 +1888,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "type": "string",
+                      },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -2073,7 +2081,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "array",
                   },
                   "content": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "type": "string",
+                    },
                     "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                     "type": "object",
                   },
@@ -2195,7 +2205,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "array",
                     },
                     "content": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "type": "string",
+                      },
                       "description": "Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\\n..."})",
                       "type": "object",
                     },
@@ -2511,7 +2523,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "checkboxValues": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "type": "boolean",
+                            },
                             "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                             "type": "object",
                           },
@@ -2815,7 +2829,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "checkboxValues": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "type": "boolean",
+                      },
                       "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
                       "type": "object",
                     },

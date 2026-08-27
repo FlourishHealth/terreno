@@ -49,6 +49,7 @@ export interface DescribeModelForRouterOptions extends DescribeModelOptions {
 }
 
 interface MongooseSchemaPath {
+  $__schemaType?: MongooseSchemaPath;
   caster?: MongooseSchemaPath;
   enumValues?: string[];
   getEmbeddedSchemaType?: () => MongooseSchemaPath | undefined;
@@ -58,6 +59,7 @@ interface MongooseSchemaPath {
     default?: unknown;
     description?: string;
     enum?: string[];
+    of?: unknown;
     ref?: string;
     type?: unknown;
   };
@@ -67,6 +69,8 @@ interface MongooseSchemaPath {
 }
 
 const isSystemField = (path: string): boolean => SYSTEM_FIELD_PATHS.has(path);
+
+const isMapWildcardPath = (path: string): boolean => path === "$*" || path.endsWith(".$*");
 
 const normalizeKind = (instance: string | undefined): FieldKind => {
   switch (instance) {
@@ -95,11 +99,16 @@ const normalizeKind = (instance: string | undefined): FieldKind => {
   }
 };
 
-const getArrayItemSchemaPath = (schemaPath: MongooseSchemaPath): MongooseSchemaPath | undefined => {
+const getNestedValueSchemaPath = (
+  schemaPath: MongooseSchemaPath
+): MongooseSchemaPath | undefined => {
   if (typeof schemaPath.getEmbeddedSchemaType === "function") {
-    return schemaPath.getEmbeddedSchemaType();
+    const embedded = schemaPath.getEmbeddedSchemaType();
+    if (embedded) {
+      return embedded;
+    }
   }
-  return schemaPath.caster;
+  return schemaPath.$__schemaType ?? schemaPath.caster;
 };
 
 const describeEmbeddedSchema = (
@@ -111,6 +120,9 @@ const describeEmbeddedSchema = (
 
   const fields: Record<string, FieldDescription> = {};
   for (const [path, rawSchemaPath] of Object.entries(embeddedSchema.paths)) {
+    if (isMapWildcardPath(path)) {
+      continue;
+    }
     fields[path] = describeSchemaPath(path, rawSchemaPath as MongooseSchemaPath);
   }
   return nestDottedFieldDescriptions(fields);
@@ -161,7 +173,7 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
       };
     }
 
-    const itemSchemaPath = getArrayItemSchemaPath(schemaPath);
+    const itemSchemaPath = getNestedValueSchemaPath(schemaPath);
     if (itemSchemaPath) {
       const item = describeCaster(itemSchemaPath);
       return {
@@ -190,11 +202,10 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
   }
 
   if (schemaPath.instance === "Map") {
+    const valueSchemaPath = getNestedValueSchemaPath(schemaPath);
     return {
       ...base,
-      item: schemaPath.caster
-        ? describeCaster(schemaPath.caster)
-        : {kind: "mixed", required: false},
+      item: valueSchemaPath ? describeCaster(valueSchemaPath) : {kind: "mixed", required: false},
       kind: "map",
     };
   }
@@ -312,6 +323,9 @@ export const describeModel = (
   const fields: Record<string, FieldDescription> = {};
 
   for (const [path, rawSchemaPath] of Object.entries(model.schema.paths)) {
+    if (isMapWildcardPath(path)) {
+      continue;
+    }
     fields[path] = describeSchemaPath(path, rawSchemaPath as unknown as MongooseSchemaPath);
   }
 

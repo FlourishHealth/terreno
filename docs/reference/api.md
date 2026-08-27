@@ -656,7 +656,7 @@ const adminFields = modelDescriptionToAdminFields(description);
 | `objectId` | ObjectId with optional `ref` |
 | `embedded` | Subdocument or array of subdocuments |
 | `mixed` | Schema.Types.Mixed |
-| `map` | Map type |
+| `map` | Map type (`item` is the `of` kind; omitted `of` is `mixed`) |
 
 Each field includes `required`, optional `description`, `isArray`, nested `item` / `fields`, and `system` for `_id`, `__v`, `created`, `updated`, `deleted`.
 

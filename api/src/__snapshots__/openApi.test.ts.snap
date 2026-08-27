@@ -281,7 +281,10 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "boolean",
                           },
                           "lastEatenWith": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "format": "date-time",
+                              "type": "string",
+                            },
                             "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
@@ -615,7 +618,10 @@ exports[`openApi gets the openapi.json 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -878,7 +884,10 @@ exports[`openApi gets the openapi.json 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1271,7 +1280,10 @@ exports[`openApi gets the openapi.json 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -1598,7 +1610,10 @@ exports[`openApi gets the openapi.json 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -1861,7 +1876,10 @@ exports[`openApi gets the openapi.json 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -2331,7 +2349,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "boolean",
                           },
                           "lastEatenWith": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "format": "date-time",
+                              "type": "string",
+                            },
                             "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
@@ -2665,7 +2686,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -2928,7 +2952,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -3321,7 +3348,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -3648,7 +3678,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -3911,7 +3944,10 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -4332,7 +4368,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "type": "boolean",
                           },
                           "lastEatenWith": {
-                            "additionalProperties": {},
+                            "additionalProperties": {
+                              "format": "date-time",
+                              "type": "string",
+                            },
                             "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
@@ -4543,7 +4582,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -4683,7 +4725,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -4953,7 +4998,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
@@ -5157,7 +5205,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                     "type": "boolean",
                   },
                   "lastEatenWith": {
-                    "additionalProperties": {},
+                    "additionalProperties": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
@@ -5297,7 +5348,10 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                       "type": "boolean",
                     },
                     "lastEatenWith": {
-                      "additionalProperties": {},
+                      "additionalProperties": {
+                        "format": "date-time",
+                        "type": "string",
+                      },
                       "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
