@@ -646,6 +646,7 @@ export interface BoxPropsBase extends WithTestID {
   smDirection?: "row" | "column";
   mdDirection?: "row" | "column";
   lgDirection?: "row" | "column";
+  xlDirection?: "row" | "column";
   display?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   smDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   mdDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
