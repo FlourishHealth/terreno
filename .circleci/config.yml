@@ -155,6 +155,7 @@ workflows:
             scripts/planning/.* run-repo-policies true
             plugins/.* run-repo-policies true
             .cursor-plugin/.* run-repo-policies true
+            \.claude-plugin/.* run-repo-policies true
             .rulesync/skills/.* run-repo-policies true
             skills/.* run-repo-policies true
             skills\.sh\.json run-repo-policies true
@@ -170,6 +171,8 @@ workflows:
             docs/explanation/no-barrel-imports\.md run-repo-policies true
             docs/explanation/explicit-any-policy\.md run-repo-policies true
             docs/explanation/source-rules\.md run-repo-policies true
+            docs/reference/lifecycle-plugin\.md run-repo-policies true
+            docs/how-to/install-agent-skills\.md run-repo-policies true
             example-frontend/app/.* run-e2e true
             example-frontend/constants/.* run-e2e true
             example-frontend/hooks/.* run-e2e true

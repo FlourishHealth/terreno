@@ -54,8 +54,29 @@ Install the published skill set (lifecycle stages plus repo and package skills):
 npx skills add FlourishHealth/terreno
 ```
 
-Regenerate the committed `skills/` tree with `bun run skills:sync`. Package skills under
-`<package>/.ai/skills/` overlay the repo copies.
+Or install the same five stages as a host plugin:
+
+| Host | Plugin | Stage names | Invoke Grow |
+| --- | --- | --- | --- |
+| Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+| Claude Code | `terreno` | `1-grow` … `5-taste` | `/terreno:1-grow` |
+| `npx skills` | — | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+
+Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Claude Code:
+
+```text
+/plugin marketplace add FlourishHealth/terreno
+/plugin install terreno@terreno-plugins
+```
+
+Claude Code resolves a plugin skill's command from the frontmatter `name`, so the short
+names ship as a generated Claude-only copy at
+[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
+Stage procedure, contracts, and references are identical to the canonical
+`plugins/terreno-planning/skills/` tree.
+
+Regenerate the committed `skills/` tree and the Claude plugin with `bun run skills:sync`.
+Package skills under `<package>/.ai/skills/` overlay the repo copies.
 
 Exact commands and domain conventions are supplied by repository-local skills discovered
 at stage start; they are not bundled into the lifecycle plugin.

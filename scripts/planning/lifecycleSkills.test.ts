@@ -3,6 +3,7 @@ import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
+  validateClaudePluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
   validateLifecyclePlugin,
@@ -20,6 +21,33 @@ const readStage = (directory: string): string =>
 describe("lifecycle skill architecture", (): void => {
   it("validates the real plugin lifecycle", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
+  });
+
+  it("validates the Claude Code plugin host", (): void => {
+    assert.deepEqual(validateClaudePluginHost({rootDirectory: ROOT_DIRECTORY}), []);
+    const claudeMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".claude-plugin/marketplace.json"), "utf8")
+    ) as {name: string; plugins: Array<{name: string}>};
+    assert.equal(claudeMarketplace.name, "terreno-plugins");
+    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno");
+    assert.notEqual(claudeMarketplace.name, claudeMarketplace.plugins[0]?.name);
+  });
+
+  it("keeps canonical stage names for Cursor and npx skills", (): void => {
+    const cursorPlugin = JSON.parse(
+      readFileSync(
+        resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
+        "utf8"
+      )
+    ) as {name: string};
+    const cursorMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".cursor-plugin/marketplace.json"), "utf8")
+    ) as {plugins: Array<{name: string; source: string}>};
+
+    assert.equal(cursorPlugin.name, "terreno-planning");
+    assert.equal(cursorMarketplace.plugins[0]?.name, "terreno-planning");
+    assert.equal(cursorMarketplace.plugins[0]?.source, "terreno-planning");
+    assert.include(readStage("terreno-1-grow"), "name: terreno-1-grow");
   });
 
   it("rejects an unbounded Taste wait loop", (): void => {
