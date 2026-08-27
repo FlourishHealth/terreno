@@ -15,6 +15,14 @@ The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
 Stages never own the full orchestration.
 
+Two additional skills are **outer loops**, not stages. They invoke the five transitions
+and persist state:
+
+| Skill | Loop |
+| --- | --- |
+| **Planning loop** (`terreno-planning-loop`) | Walk the approved task list. Default Grow once, then Pick and Roast each remaining task. Pass `phases=grow,roast` (or any of `grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
+| **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
+
 ## Composition
 
 ```text
@@ -46,8 +54,8 @@ Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details t
 chat and on the PR. Humans read `status`, `next`, and `action`.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
-one fresh Pick invocation per frontier task. It is an outer-loop recipe, not a sixth
-lifecycle stage.
+one fresh Pick invocation per frontier task. `terreno-planning-loop` is that recipe as an
+invocable skill. It is not a sixth lifecycle stage.
 
 ## State machine
 
@@ -107,4 +115,5 @@ Deprecated repo-local routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/che
 are removed; invoke the canonical stages directly.
 
 Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json),
-then invoke a canonical stage such as `/terreno-1-grow`.
+then invoke a canonical stage such as `/terreno-1-grow`, or an outer loop such as
+`/terreno-planning-loop` or `/terreno-taste-sweep`.

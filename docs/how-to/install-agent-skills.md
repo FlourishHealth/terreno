@@ -8,13 +8,14 @@ npx skills add FlourishHealth/terreno --skill terreno-1-grow
 ```
 
 That copies the committed `skills/` tree: lifecycle stages (Grow, Pick, Roast, Brew,
-Taste), repository skills, and published package skills.
+Taste), outer loops (`terreno-planning-loop`, `terreno-taste-sweep`), repository
+skills, and published package skills.
 
 ## What you get
 
 | Group | Skills |
 | --- | --- |
-| Lifecycle | `terreno-1-grow` … `terreno-5-taste` |
+| Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-planning-loop`, `terreno-taste-sweep` |
 | Terreno apps | backend, UI, data, schema, SDK |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
 | GitHub | commit, PR, review, verify, release, deploy |

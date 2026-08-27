@@ -4,13 +4,15 @@
   "groupings": [
     {
       "title": "Lifecycle",
-      "description": "Bounded Grow → Pick → Roast → Brew → Taste transitions. Brew/Taste wait for review bots.",
+      "description": "Bounded Grow → Pick → Roast → Brew → Taste stages, plus planning-loop and taste-sweep outer loops.",
       "skills": [
         "terreno-1-grow",
         "terreno-2-pick",
         "terreno-3-roast",
         "terreno-4-brew",
-        "terreno-5-taste"
+        "terreno-5-taste",
+        "terreno-planning-loop",
+        "terreno-taste-sweep"
       ]
     },
     {

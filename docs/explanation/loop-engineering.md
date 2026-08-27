@@ -46,6 +46,11 @@ The outer loop decides **when, who, what next, when to retry, when to wait on pr
 CI, and when to escalate**. Stages decide how to perform one transition correctly. Brew
 and Taste additionally sleep while async review bots are running.
 
+Invocable outer loops in the plugin: `/terreno-planning-loop` walks the task list
+(default Grow once, then Pick and Roast each remaining task; pass `phases=` to
+restrict). `/terreno-taste-sweep` drives the author's broken open PRs by reinvoking
+Taste. Neither is a sixth stage.
+
 ## The five transitions
 
 | Stage | Question | Primary evidence |

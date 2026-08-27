@@ -20,6 +20,13 @@ YAML is loop/skill data; keep it collapsed for humans. Brew and Taste themselves
 until async review bots on the current head have reported; the loop does not need to
 reinvoke for that wait.
 
+Two invocable outer-loop skills ship beside the five stages. They are not stages:
+
+| Skill | Loop |
+| --- | --- |
+| `terreno-planning-loop` | Walk the approved task list. Default Grow once, then Pick and Roast each remaining task. Pass `phases=` (`grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
+| `terreno-taste-sweep` | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
+
 ## Invocation packet
 
 Give each fresh agent:
