@@ -46,7 +46,8 @@ a second driver.
 The outer loop decides **when, who, what next, when to retry, when to wait on product
 CI, and when to escalate**. Stages decide how to perform one transition correctly. Pick
 continues the inner loop until the approved task list is done. Roast never invokes Pick.
-Brew and Taste additionally sleep while async review bots are running.
+Brew and Taste additionally wait while async review bots are running, preferring
+provider CLI watch hooks or harness event subscriptions over timer polling.
 
 Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
 (Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
@@ -61,12 +62,19 @@ Taste. Neither is a sixth stage.
 | Pick | Was this slice implemented carefully? | red/green tests, checks, internal reviews; then Roast |
 | Roast | Does this task actually satisfy its criteria? | independent requirement→evidence verdict; emit next Pick or Brew |
 | Brew | Is the verified result correctly submitted? | final checks, commit/head, PR, artifacts |
-| Taste | What is actionable on the current PR head now? | CI, mergeability, reviews, bounded fixes |
+| Taste | What is actionable on the current PR head now? | CI on every discovered host, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
-acceptance criteria. Taste is not a resident watcher of product CI. It sleeps until
-async review bots (Bugbot, CodeQL, and similar) on the current head have reported, then
-observes, acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
+acceptance criteria. Taste is not a resident watcher of product CI. It waits until async
+review bots (Bugbot, CodeQL, and similar) on the current head have reported, preferring
+targeted hooks such as `gh run watch <run-id>`, then observes jobs on every discovered CI
+host (GitHub Actions, CircleCI, Buildkite, and similar), acts, emits `PASS`, `FAIL`,
+`BLOCKED`, or `PENDING`, and exits.
+
+An outer loop may watch all product checks. Brew/Taste review-bot waits use only hooks
+targeted to the matched bot so ordinary CI cannot extend the in-stage wait. A host with
+a documented path/config reason not to run is terminal `skipped`; an unexplained missing
+run is never green.
 
 ## Portable plugin, local knowledge
 
@@ -119,13 +127,15 @@ contain chain-of-thought or transcripts.
   driver continues after each Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
-- Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot
-  timeout, then invoke fresh Taste against current state.
-- Brew and Taste sleep in-process while Bugbot, CodeQL, or similar review bots are
-  running, then continue so they can react without a loop reinvocation.
+- Taste `PENDING` lets the outer loop wait on remaining product CI (any discovered host)
+  or a review-bot timeout, then invoke fresh Taste against current state. The loop uses
+  native provider watch hooks or harness subscriptions where available and a timer only
+  as fallback.
+- Brew and Taste wait in-process while Bugbot, CodeQL, or similar review bots are
+  running, preferring native hooks, then continue without a loop reinvocation.
 - Human decisions are `BLOCKED`, never arbitrary retries.
-- Taste `PASS` requires all current-head checks terminal/non-failing, no conflicts, and
-  no actionable review findings.
+- Taste `PASS` requires all current-head jobs on every discovered CI host
+  terminal/non-failing, no conflicts, and no actionable review findings.
 
 The detailed contract, schemas, and three execution scenarios live under
 [`plugins/terreno-planning/references/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning/references).

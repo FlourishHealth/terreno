@@ -11,8 +11,8 @@ it as `terreno-planning`; Claude Code installs the generated `terreno-claude/` c
 | 1 | **Grow** (`terreno-1-grow`) | Research, clarify, shape, and approve the IP/tasks |
 | 2 | **Pick** (`terreno-2-pick`) | Build one slice, roast it, then pick the next until the list is done |
 | 3 | **Roast** (`terreno-3-roast`) | Prove the current task, then continue the pick-roast inner loop |
-| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, wait for review bots, then exit |
-| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, one current-head CI/mergeability/review reaction, then exit |
+| 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, confirm product CI on every discovered host, wait for review bots, then exit |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, one current-head reaction to every discovered CI host, mergeability, and reviews, then exit |
 
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
 Grow, Brew, and Taste never own the full orchestration. Pick and Roast own the inner
@@ -49,6 +49,7 @@ The shared result/state format and outer state machine live in:
 - [`references/pick-roast-loop.md`](terreno-planning/references/pick-roast-loop.md)
 - [`references/documentation-contract.md`](terreno-planning/references/documentation-contract.md)
 - [`references/async-review-bots.md`](terreno-planning/references/async-review-bots.md)
+- [`references/product-ci.md`](terreno-planning/references/product-ci.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
 - [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
@@ -71,15 +72,18 @@ Grow PASS → Pick/Roast inner loop → Brew PASS → Taste
               Roast PASS + remaining tasks → Pick (next frontier task)
               Roast PASS + no remaining tasks → Brew
 Brew PENDING (review-bot timeout) → outer loop waits → Taste
-Taste PENDING (product CI / bot timeout / new push) → outer loop waits → fresh Taste
+Taste PENDING (product CI on any host / bot timeout / new push) → outer loop waits → fresh Taste
 Taste PASS → merge-ready
 Any BLOCKED → named human/external gate
 ```
 
 Brew does not execute Taste. Pick never skips Roast. Roast never invokes Pick. Exactly
-one driver continues after each current-task Roast. Brew and Taste sleep until Bugbot,
-CodeQL, and similar review bots on the current head have reported, then continue. They
-do not wait for ordinary product CI. The loop owns persistence, product-CI waiting,
+one driver continues after each current-task Roast. Brew and Taste wait until Bugbot,
+CodeQL, and similar review bots on the current head have reported, preferring provider
+CLI watch hooks or harness event subscriptions over sleep polling, then continue. They
+do not wait for ordinary product CI. Taste observes jobs on every discovered CI host
+(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. Outer loops
+use the same native hooks during bounded product-CI waits. The loop owns persistence,
 retry, stop, and escalation. It does not reinvoke Pick between roasted tasks.
 
 ## Repository integration

@@ -11,7 +11,7 @@ Grow PASS → Pick/Roast inner loop → Brew PASS → Taste
               Roast PASS + remaining tasks → Pick (next frontier task)
               Roast PASS + no remaining tasks → Brew
 Brew PENDING (review-bot timeout) ───→ outer loop waits → Taste
-Taste PENDING (product CI / bot timeout / new push) ───→ outer loop waits → fresh Taste
+Taste PENDING (product CI on any host / bot timeout / new push) ───→ outer loop waits → fresh Taste
 Taste waits in-process for Bugbot/CodeQL ───→ same invocation reacts
 Taste PASS ────────────→ merge-ready
 Any BLOCKED ───────────→ human/external gate
@@ -22,8 +22,9 @@ Pick or Roast entry, and for Brew/Taste, honors `next`, waits on `PENDING` (`wai
 seconds), and stops on `PASS` or `BLOCKED` according to policy. It must not turn a human
 decision into retries. It must not reinvoke Pick or Roast between tasks while the inner
 loop can continue. Stage YAML is loop/skill data; keep it collapsed for humans. Brew and
-Taste themselves sleep until async review bots on the current head have reported; the
-loop does not need to reinvoke for that wait.
+Taste themselves wait until async review bots on the current head have reported,
+preferring provider CLI watch hooks or harness subscriptions; the loop does not need to
+reinvoke for that wait.
 
 Two invocable outer-loop skills ship beside the five stages. They are not stages:
 
@@ -74,8 +75,8 @@ per-task results in execution state, and continues to the next frontier task.
   regressions before the next task starts.
 - Brew submits only after every in-scope task has Roast `PASS`.
 - Taste reacts to the current CI/review state until the loop receives `PASS`. Before
-  exiting, it sleeps until Bugbot, CodeQL, and similar review bots on this head have
-  reported, then acts on those results.
+  exiting, it waits until Bugbot, CodeQL, and similar review bots on this head have
+  reported, preferring native watch/subscription hooks, then acts on those results.
 
 ## UI scenario
 
@@ -89,13 +90,16 @@ per-task results in execution state, and continues to the next frontier task.
 
 ## CI/review scenario
 
-1. Brew pushes the PR, sleeps until Bugbot/CodeQL (if running) are terminal, records
-   outcomes, and exits with `next: taste` without implementing fixes.
+1. Brew pushes the PR, uses native watch/subscription hooks where available until
+   Bugbot/CodeQL (if running) are terminal, records outcomes, and exits with
+   `next: taste` without implementing fixes.
 2. Taste waits if those bots are still running, then sees a branch-caused CI failure on
-   SHA A, fixes and verifies it, pushes SHA B, waits again for review bots on B, and
+   SHA A (from GitHub Actions, CircleCI, Buildkite, or any other discovered host), fixes
+   and verifies it, pushes SHA B, waits again for review bots on B, and
    acts once on those results. A further push emits `PENDING` and exits.
-3. The outer loop waits (product CI or bot timeout) and invokes fresh Taste. It sees
-   green checks plus an actionable human review comment, fixes it, waits for review
-   bots on the new head, and emits `PENDING` or `PASS`.
-4. When all checks are terminal/pass, no conflicts, and no actionable comments remain,
-   Taste emits `PASS`.
+3. The outer loop uses the provider's native watch hook or a harness subscription for
+   product CI on any remaining host (falling back to the requested timer), then invokes
+   fresh Taste. It sees green jobs plus an actionable human review comment, fixes it,
+   waits for review bots on the new head, and emits `PENDING` or `PASS`.
+4. When all jobs on every discovered host are terminal/pass, no conflicts, and no
+   actionable comments remain, Taste emits `PASS`.

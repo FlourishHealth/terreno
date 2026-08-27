@@ -46,7 +46,8 @@ second outer-loop pass.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 [`loop engineering`](../../references/loop-engineering.md), and
-[`pick-roast inner loop`](../../references/pick-roast-loop.md). Then:
+[`pick-roast inner loop`](../../references/pick-roast-loop.md). When Brew or Taste is
+selected, also read [`product CI`](../../references/product-ci.md). Then:
 
 1. `plugins/README.md` — Hosts and stage skills
 2. Each selected stage skill under `plugins/terreno-planning/skills/`
@@ -109,8 +110,8 @@ field and continue with that stage in the same invocation:
 - `next: pick` — invoke `terreno-2-pick` (which will Roast again as part of
   its inner loop)
 - `next: roast` — invoke `terreno-3-roast` (only when Pick is not driving)
-- `next: brew` — invoke `terreno-4-brew` again after the wait (CI still
-  running; honor `wait`)
+- `next: brew` — invoke `terreno-4-brew` again for a submission-only retry; honor
+  `wait` when provided
 
 Keep following Brew `FAIL` → `next` until Brew emits `PASS` or `FAIL` with
 no recoverable `next`, or a non-Brew stage emits `FAIL`. Then stop.
@@ -124,7 +125,9 @@ after the last selected earlier stage if Brew was omitted). Taste reacts
 to review on the current PR; it does not walk the task list.
 
 If Taste emits `FAIL` or `PASS`, stop. If Taste emits `PENDING`, honor
-`wait` / `next`.
+`wait` / `next`. During that bound, prefer the product-CI provider's native watch hook
+or a harness event subscription; use a timer only when no hook applies. Invoke fresh
+Taste as soon as the hook returns.
 
 ## Isolation and hosts
 
@@ -152,4 +155,4 @@ action: Planning loop finished selected phases.
 Set `stage` to the last stage skill you invoked (`grow` | `pick` |
 `roast` | `brew` | `taste`). Required keys are `v`, `stage`, `status`,
 `next`, and `action`. Omit `wait` unless the last stage asked you to
-sleep (`wait` is a positive integer).
+wait (`wait` is a positive integer).
