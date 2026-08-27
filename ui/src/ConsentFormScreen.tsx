@@ -64,20 +64,23 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
   const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
-  // Auto-satisfy scroll requirement when content fits within the viewport
+  // Auto-satisfy scroll when content fits. If later layout grows (lazy markdown),
+  // require scrolling again so a spinner-sized first layout cannot unlock Agree.
   const handleContentSizeChange = (_w: number, h: number) => {
     setContentHeight(h);
-    if (!hasScrolledToBottom && h > 0 && layoutHeight > 0 && h <= layoutHeight) {
-      setHasScrolledToBottom(true);
+    if (!form.requireScrollToBottom || layoutHeight <= 0 || h <= 0) {
+      return;
     }
+    setHasScrolledToBottom(h <= layoutHeight);
   };
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const h = event.nativeEvent.layout.height;
     setLayoutHeight(h);
-    if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
-      setHasScrolledToBottom(true);
+    if (!form.requireScrollToBottom || contentHeight <= 0 || h <= 0) {
+      return;
     }
+    setHasScrolledToBottom(contentHeight <= h);
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

@@ -306,6 +306,25 @@ describe("ConsentFormScreen", () => {
     expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
   });
 
+  it("re-requires scroll when lazy content grows past the viewport", () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const scroll = getByTestId("consent-form-scroll-view");
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 80);
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 2000);
+    });
+    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
+  });
+
   it("handleScroll returns early when already scrolled to bottom", () => {
     const form = {...baseForm, requireScrollToBottom: false};
     const {getByTestId} = renderWithTheme(
