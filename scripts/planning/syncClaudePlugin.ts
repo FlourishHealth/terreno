@@ -185,15 +185,15 @@ export const syncClaudePlugin = ({
 
 if (import.meta.main) {
   const rootDirectory = resolve(import.meta.dir, "../..");
-  const errors = syncClaudePlugin({
-    check: process.argv.includes("--check"),
-    rootDirectory,
-  });
+  const check = process.argv.includes("--check");
+  const errors = syncClaudePlugin({check, rootDirectory});
   if (errors.length > 0) {
     for (const error of errors) {
       console.error(`- ${error}`);
     }
     process.exit(1);
   }
-  console.info(`Wrote ${CLAUDE_PLUGIN_DIRECTORY}/.`);
+  console.info(
+    check ? `${CLAUDE_PLUGIN_DIRECTORY}/ is in sync.` : `Wrote ${CLAUDE_PLUGIN_DIRECTORY}/.`
+  );
 }
