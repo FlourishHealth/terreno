@@ -66,7 +66,7 @@ Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](http
 
 ```text
 /plugin marketplace add FlourishHealth/terreno
-/plugin install terreno@terreno
+/plugin install terreno@terreno-plugins
 ```
 
 Claude Code resolves a plugin skill's command from the frontmatter `name`, so the short

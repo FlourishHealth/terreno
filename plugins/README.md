@@ -125,8 +125,11 @@ Claude Code install:
 
 ```text
 /plugin marketplace add FlourishHealth/terreno
-/plugin install terreno@terreno
+/plugin install terreno@terreno-plugins
 ```
+
+Claude Code's installer collides when the marketplace `name` matches the plugin `name`.
+The marketplace is `terreno-plugins`; the plugin stays `terreno` so Grow is `/terreno:1-grow`.
 
 `terreno-planning/` is canonical and keeps the `terreno-<n>-<stage>` skill names used by
 Cursor and `npx skills`. Claude Code resolves a plugin skill's command from the

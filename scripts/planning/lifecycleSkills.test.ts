@@ -25,6 +25,12 @@ describe("lifecycle skill architecture", (): void => {
 
   it("validates the Claude Code plugin host", (): void => {
     assert.deepEqual(validateClaudePluginHost({rootDirectory: ROOT_DIRECTORY}), []);
+    const claudeMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".claude-plugin/marketplace.json"), "utf8")
+    ) as {name: string; plugins: Array<{name: string}>};
+    assert.equal(claudeMarketplace.name, "terreno-plugins");
+    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno");
+    assert.notEqual(claudeMarketplace.name, claudeMarketplace.plugins[0]?.name);
   });
 
   it("keeps canonical stage names for Cursor and npx skills", (): void => {

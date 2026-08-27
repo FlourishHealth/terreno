@@ -331,7 +331,7 @@ export const validateClaudePluginHost = ({
   ) as {description?: string; version?: string};
   const claudeMarketplace = JSON.parse(
     readFileSync(join(rootDirectory, ".claude-plugin/marketplace.json"), "utf8")
-  ) as {plugins?: Array<{name?: string; source?: string}>};
+  ) as {name?: string; plugins?: Array<{name?: string; source?: string}>};
 
   if (claudeManifest.name !== "terreno") {
     errors.push("Claude plugin name must be terreno so stages resolve as /terreno:<stage>");
@@ -344,6 +344,12 @@ export const validateClaudePluginHost = ({
   }
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
+  }
+
+  if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {
+    errors.push(
+      "Claude marketplace name must differ from plugin name terreno (Claude Code cache collision)"
+    );
   }
 
   const [claudeEntry] = claudeMarketplace.plugins ?? [];
@@ -478,6 +484,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!pluginReadme.includes("/plugin marketplace add FlourishHealth/terreno")) {
     errors.push("plugins/README.md must document Claude Code marketplace install");
+  }
+  if (!pluginReadme.includes("/plugin install terreno@terreno-plugins")) {
+    errors.push("plugins/README.md must document Claude Code install as terreno@terreno-plugins");
   }
 
   const pullRequestTemplate = readFileSync(

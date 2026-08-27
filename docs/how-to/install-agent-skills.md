@@ -28,7 +28,7 @@ Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://gith
 
 ```text
 /plugin marketplace add FlourishHealth/terreno
-/plugin install terreno@terreno
+/plugin install terreno@terreno-plugins
 /terreno:1-grow
 ```
 
