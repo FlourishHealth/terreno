@@ -20,7 +20,7 @@ remains available in CircleCI.
 2. Default branch: `master`.
 3. Enable **dynamic config** / setup workflows for the project (required for
    `.circleci/config.yml` `setup: true`).
-4. Create the contexts below before merging the CD cutover.
+4. Create and verify the contexts below before enabling automatic CD path mappings.
 5. Build forked PRs if you want DCO + rulesync on forks.
 
 Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
@@ -76,7 +76,8 @@ the review script so a PR cannot rewrite the reviewer.
 Do not restore automatic production path mappings until a manual
 `run-demo-deploy` and `run-cd` pipeline both pass. The Netlify deploy helper
 validates its context before building, and the docs target disables Docusaurus
-minification to remain within the available 8 GB CircleCI executor.
+minification for preview and production builds to remain within the available
+8 GB CircleCI executor.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id`, `circleci_project_id`, and
