@@ -38,7 +38,7 @@ class MockClient {
     if (connectError !== undefined) {
       throw connectError;
     }
-    if (connectGate) {
+    if (connectGate !== undefined) {
       await connectGate;
     }
   });
@@ -97,7 +97,7 @@ describe("useMCPTools", () => {
     expect(result.current.tools).toEqual(availableTools);
     expect(result.current.error).toBeNull();
     expect(transports[0]?.url.toString()).toBe("https://tools.example.com/mcp");
-    expect(transports[0]?.options.authProvider?.token()).resolves.toBe("test-token");
+    await expect(transports[0]?.options.authProvider?.token()).resolves.toBe("test-token");
     expect(clients[0]?.close).toHaveBeenCalled();
   });
 
