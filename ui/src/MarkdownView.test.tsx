@@ -1,4 +1,4 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
 import assert from "node:assert";
 import {waitFor} from "@testing-library/react-native";
 
@@ -107,5 +107,16 @@ describe("MarkdownView", () => {
       expect(JSON.stringify(toJSON())).toContain("inline code");
     });
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("invokes onLoad after markdown content mounts", async () => {
+    const onLoad = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <MarkdownView onLoad={onLoad}>Loaded markdown</MarkdownView>
+    );
+    await waitFor(() => {
+      expect(getByText("Loaded markdown")).toBeTruthy();
+    });
+    expect(onLoad).toHaveBeenCalled();
   });
 });

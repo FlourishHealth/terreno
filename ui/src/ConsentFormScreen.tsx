@@ -44,6 +44,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
+  const [isMarkdownLoaded, setIsMarkdownLoaded] = useState(false);
   const lastContentHeightRef = useRef(0);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
@@ -65,14 +66,20 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
   const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
-  // Auto-satisfy scroll when content fits. Reset only when content grows past the
-  // viewport (lazy markdown), not when it shrinks after the in-list hint unmounts.
+  const handleMarkdownLoad = useCallback((): void => {
+    lastContentHeightRef.current = 0;
+    setContentHeight(0);
+    setIsMarkdownLoaded(true);
+  }, []);
+
+  // Auto-satisfy only after markdown exists. Empty Spinner fallback (300ms delay) must not
+  // unlock Agree. Reset only when content grows past the viewport, not when the hint unmounts.
   const handleContentSizeChange = useCallback(
     (_w: number, h: number): void => {
       const previousContentH = lastContentHeightRef.current;
       lastContentHeightRef.current = h;
       setContentHeight(h);
-      if (!form.requireScrollToBottom || layoutHeight <= 0 || h <= 0) {
+      if (!form.requireScrollToBottom || !isMarkdownLoaded || layoutHeight <= 0 || h <= 0) {
         return;
       }
       if (h <= layoutHeight) {
@@ -83,21 +90,21 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         setHasScrolledToBottom(false);
       }
     },
-    [form.requireScrollToBottom, layoutHeight]
+    [form.requireScrollToBottom, isMarkdownLoaded, layoutHeight]
   );
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent): void => {
       const h = event.nativeEvent.layout.height;
       setLayoutHeight(h);
-      if (!form.requireScrollToBottom || contentHeight <= 0 || h <= 0) {
+      if (!form.requireScrollToBottom || !isMarkdownLoaded || contentHeight <= 0 || h <= 0) {
         return;
       }
       if (contentHeight <= h) {
         setHasScrolledToBottom(true);
       }
     },
-    [contentHeight, form.requireScrollToBottom]
+    [contentHeight, form.requireScrollToBottom, isMarkdownLoaded]
   );
 
   const handleScroll = useCallback(
@@ -218,7 +225,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         testID="consent-form-scroll-view"
       >
         <Box direction="column" gap={3} paddingY={2}>
-          <MarkdownView>{content}</MarkdownView>
+          <MarkdownView onLoad={handleMarkdownLoad}>{content}</MarkdownView>
 
           {form.checkboxes.length > 0 && (
             <Box direction="column" gap={2} testID="consent-form-checkboxes">

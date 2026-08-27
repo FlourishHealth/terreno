@@ -1,4 +1,4 @@
-import React, {lazy, Suspense, useMemo} from "react";
+import React, {lazy, Suspense, useEffect, useMemo} from "react";
 import {Platform} from "react-native";
 import type Markdown from "react-native-markdown-display";
 
@@ -23,11 +23,22 @@ const MONO_FONT = IS_WEB ? "monospace" : Platform.select({android: "monospace", 
 const TEXT_FONT_SIZE = IS_WEB ? 16 : 14;
 const TEXT_LINE_HEIGHT = IS_WEB ? 24 : 20;
 
+interface MarkdownViewProps {
+  children: React.ReactNode;
+  inverted?: boolean;
+  onLoad?: () => void;
+}
+
+const MarkdownLoadNotifier: React.FC<{onLoad?: () => void}> = ({onLoad}) => {
+  // Fire after react-native-markdown-display has resolved so callers can ignore spinner height.
+  useEffect(() => {
+    onLoad?.();
+  }, [onLoad]);
+  return null;
+};
+
 // Takes markdown and renders it with our theme. We should open source this component.
-const MarkdownViewComponent: React.FC<{children: React.ReactNode; inverted?: boolean}> = ({
-  children,
-  inverted,
-}) => {
+const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted, onLoad}) => {
   const {theme} = useTheme();
   useTerrenoFontsLoaded();
   const textColor = inverted ? theme.text.inverted : theme.text.primary;
@@ -139,6 +150,7 @@ const MarkdownViewComponent: React.FC<{children: React.ReactNode; inverted?: boo
 
   return (
     <Suspense fallback={<Spinner />}>
+      <MarkdownLoadNotifier onLoad={onLoad} />
       <LazyMarkdown style={markdownStyle}>{children}</LazyMarkdown>
     </Suspense>
   );
