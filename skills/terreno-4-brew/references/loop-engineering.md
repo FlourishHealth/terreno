@@ -29,7 +29,7 @@ Two invocable outer-loop skills ship beside the five stages. They are not stages
 
 | Skill | Loop |
 | --- | --- |
-| `terreno-planning-loop` | Walk the approved task list. Default Grow once, then Pick and Roast each remaining task. Pass `phases=` (`grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
+| `terreno-planning-loop` | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns the pick-roast inner loop). Pass `phases=` (`grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
 | `terreno-taste-sweep` | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
 
 ## Invocation packet
