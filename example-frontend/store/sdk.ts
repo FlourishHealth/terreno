@@ -238,6 +238,16 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      postCommsDevTestPush: builder.mutation<
+        {accepted: number; results: unknown[]; tokenCount: number},
+        {body?: string; title?: string} | undefined
+      >({
+        query: (body) => ({
+          body: body ?? {},
+          method: "POST",
+          url: "/comms/dev/testPush",
+        }),
+      }),
       postGptHistories: builder.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
         invalidatesTags: [{id: "LIST", type: "gptHistories"}],
         query: ({body}) => ({
@@ -290,6 +300,7 @@ export const {
   useGetMeQuery,
   usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
+  usePostCommsDevTestPushMutation,
   useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
   usePostGptHistoriesMutation,

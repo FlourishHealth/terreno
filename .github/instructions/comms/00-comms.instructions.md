@@ -61,6 +61,21 @@ new CommsApp({
 Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
 fast when the key is missing. Errors return classified `SendResult` values and never throw.
 
+### Expo push (`@terreno/comms/adapters/expoPush`)
+
+```typescript
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new CommsApp({
+  push: new ExpoPushProvider(),
+});
+```
+
+Requires optional peer `expo-server-sdk`. `EXPO_ACCESS_TOKEN` is optional. Invalid tokens
+are rejected before the SDK (`errorCode: expo-invalid-token`). Ticket/receipt
+`DeviceNotRegistered` is `errorClass: permanent`; wire `onDeadToken` to
+`getCommsService().deactivatePushToken` so later receipts prune tokens.
+
 ## Runtime behavior
 
 - Unconfigured channels use privacy-safe console providers outside production.

@@ -19,7 +19,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
@@ -45,7 +45,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -78,7 +78,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -128,7 +128,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "catalog:",
@@ -163,7 +163,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@modelcontextprotocol/node": "catalog:",
@@ -180,7 +180,6 @@
         "better-auth": "catalog:",
         "cors": "^2.8.5",
         "cron": "^4.3.4",
-        "expo-server-sdk": "^6.0.0",
         "express": "catalog:",
         "generaterr": "^1.5.0",
         "http-errors": "^2.0.0",
@@ -241,7 +240,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
@@ -257,7 +256,7 @@
     },
     "comms": {
       "name": "@terreno/comms",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "luxon": "catalog:",
@@ -275,10 +274,12 @@
       },
       "peerDependencies": {
         "@sendgrid/mail": "^8.0.0",
+        "expo-server-sdk": "^6.0.0",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
       "optionalPeers": [
         "@sendgrid/mail",
+        "expo-server-sdk",
       ],
     },
     "demo": {
@@ -386,6 +387,7 @@
         "@terreno/feature-flags": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
+        "expo-server-sdk": "^6.0.0",
         "express": "catalog:",
         "ioredis": "^5.11.0",
         "lodash": "catalog:",
@@ -471,7 +473,7 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@openfeature/server-sdk": "catalog:",
         "@terreno/api": "workspace:*",
@@ -495,7 +497,7 @@
     },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -519,7 +521,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@ai-sdk/react": "^3.0.118",
         "@better-auth/expo": "^1.6.25",
@@ -566,7 +568,7 @@
     },
     "syncdb": {
       "name": "@terreno/syncdb",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "bin": {
         "terreno-syncdb-codegen": "./src/codegen/cli.ts",
       },
@@ -600,7 +602,7 @@
     },
     "test": {
       "name": "@terreno/test",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "express": "catalog:",
         "lodash": "catalog:",
@@ -627,7 +629,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "57.1.0",
+      "version": "57.2.0",
       "dependencies": {
         "@expo-google-fonts/caveat": "^0.4.2",
         "@expo-google-fonts/dancing-script": "^0.4.2",

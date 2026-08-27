@@ -30,6 +30,7 @@ import {
 } from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {PushTokenRegistrar} from "@/components/PushTokenRegistrar";
 import {SyncConflictsProvider} from "@/components/SyncConflictsController";
 import {SyncHealthToast} from "@/components/SyncHealthToast";
 import {SyncLabRuntime} from "@/components/SyncLabRuntime";
@@ -304,6 +305,7 @@ const RootLayoutNav = (): React.ReactElement => {
       {syncDbStartErrorBanner}
       {userId ? (
         <SyncDbProvider client={syncDb}>
+          <PushTokenRegistrar />
           <SyncLabRuntime />
           <SyncHealthToast
             collectionLabels={{todos: "Todos"}}

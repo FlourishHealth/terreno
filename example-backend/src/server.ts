@@ -25,10 +25,11 @@ import {HealthApp} from "@terreno/api-health";
 import {
   CommsApp,
   ConsoleMailProvider,
-  ConsolePushProvider,
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
+  getCommsService,
 } from "@terreno/comms";
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import express from "express";
@@ -37,6 +38,7 @@ import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
@@ -182,6 +184,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(usersRouter)
@@ -247,6 +250,15 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : isDeployed
           ? undefined
           : new ConsoleMailProvider();
+      const pushProvider = new ExpoPushProvider({
+        accessToken: process.env.EXPO_ACCESS_TOKEN,
+        onDeadToken: async (token: string): Promise<void> => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event): Promise<void> => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      });
 
       terraApp.register(
         new CommsApp(
@@ -254,11 +266,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                push: pushProvider,
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
-                push: new ConsolePushProvider(),
+                push: pushProvider,
                 sms: new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),
               }
