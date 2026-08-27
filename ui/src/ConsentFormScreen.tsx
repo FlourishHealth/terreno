@@ -46,6 +46,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [layoutHeight, setLayoutHeight] = useState(0);
   const [isMarkdownLoaded, setIsMarkdownLoaded] = useState(false);
   const lastContentHeightRef = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
   const content = variables
@@ -71,6 +72,22 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     setContentHeight(0);
     setHasScrolledToBottom(!form.requireScrollToBottom);
     setIsMarkdownLoaded(true);
+    if (!form.requireScrollToBottom || Platform.OS !== "web") {
+      return;
+    }
+    requestAnimationFrame(() => {
+      const scrollNode = scrollViewRef.current?.getScrollableNode() as unknown as {
+        clientHeight?: number;
+        scrollHeight?: number;
+      };
+      if (
+        typeof scrollNode?.clientHeight !== "number" ||
+        typeof scrollNode.scrollHeight !== "number"
+      ) {
+        return;
+      }
+      setHasScrolledToBottom(scrollNode.scrollHeight <= scrollNode.clientHeight);
+    });
   }, [form.requireScrollToBottom]);
 
   // Auto-satisfy only after markdown exists. Empty Spinner fallback (300ms delay) must not
@@ -220,6 +237,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
         onScroll={handleScroll}
+        ref={scrollViewRef}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
         style={{alignSelf: "center", flex: 1, maxWidth: 800, width: "100%"}}
