@@ -273,6 +273,76 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   return errors;
 };
 
+/**
+ * The Claude Code plugin is a generated copy with shortened stage names, because
+ * Claude Code resolves a plugin skill's command from the frontmatter `name`.
+ * Cursor and `npx skills` keep the canonical `terreno-<n>-<stage>` names.
+ */
+export const validateClaudePluginHost = ({
+  rootDirectory,
+}: ValidateLifecyclePluginOptions): string[] => {
+  const errors: string[] = [];
+  const claudeDirectory = join(rootDirectory, "plugins/terreno-claude");
+  const claudeManifest = JSON.parse(
+    readFileSync(join(claudeDirectory, ".claude-plugin/plugin.json"), "utf8")
+  ) as {description?: string; name?: string; skills?: string; version?: string};
+  const cursorManifest = JSON.parse(
+    readFileSync(
+      join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
+      "utf8"
+    )
+  ) as {description?: string; version?: string};
+  const claudeMarketplace = JSON.parse(
+    readFileSync(join(rootDirectory, ".claude-plugin/marketplace.json"), "utf8")
+  ) as {plugins?: Array<{name?: string; source?: string}>};
+
+  if (claudeManifest.name !== "terreno") {
+    errors.push("Claude plugin name must be terreno so stages resolve as /terreno:<stage>");
+  }
+  if (claudeManifest.version !== cursorManifest.version) {
+    errors.push("Claude and Cursor plugin versions must match");
+  }
+  if (claudeManifest.description !== cursorManifest.description) {
+    errors.push("Claude and Cursor plugin descriptions must match");
+  }
+  if (claudeManifest.skills !== "./skills/") {
+    errors.push("Claude plugin skills path must be ./skills/");
+  }
+
+  const [claudeEntry] = claudeMarketplace.plugins ?? [];
+  if (claudeEntry?.name !== "terreno") {
+    errors.push("Claude marketplace must publish the plugin as terreno");
+  }
+  if (claudeEntry?.source !== "./plugins/terreno-claude") {
+    errors.push("Claude marketplace source must be ./plugins/terreno-claude");
+  }
+
+  const claudeStages = readdirSync(join(claudeDirectory, "skills"), {withFileTypes: true})
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  const expectedClaudeStages = STAGE_DEFINITIONS.map(({directory}) =>
+    directory.replace(/^terreno-/, "")
+  ).sort();
+  if (JSON.stringify(claudeStages) !== JSON.stringify(expectedClaudeStages)) {
+    errors.push(
+      `Claude plugin stages must be exactly ${expectedClaudeStages.join(", ")}; found ${claudeStages.join(", ")}`
+    );
+  }
+
+  for (const stageDirectory of claudeStages) {
+    const content = readFileSync(
+      join(claudeDirectory, "skills", stageDirectory, "SKILL.md"),
+      "utf8"
+    );
+    if (!content.includes(`name: ${stageDirectory}`)) {
+      errors.push(`Claude stage ${stageDirectory} frontmatter name must be ${stageDirectory}`);
+    }
+  }
+
+  return errors;
+};
+
 export const validateLifecyclePlugin = ({
   rootDirectory,
 }: ValidateLifecyclePluginOptions): string[] => {
@@ -351,31 +421,12 @@ export const validateLifecyclePlugin = ({
 
   const pluginFiles = [
     join(pluginDirectory, ".cursor-plugin/plugin.json"),
-    join(pluginDirectory, ".claude-plugin/plugin.json"),
     join(rootDirectory, ".cursor-plugin/marketplace.json"),
-    join(rootDirectory, ".claude-plugin/marketplace.json"),
     join(rootDirectory, "CONTRIBUTING.md"),
   ];
   const canonicalText = pluginFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 
-  const cursorPlugin = JSON.parse(
-    readFileSync(join(pluginDirectory, ".cursor-plugin/plugin.json"), "utf8")
-  ) as {name?: string; version?: string; description?: string};
-  const claudePlugin = JSON.parse(
-    readFileSync(join(pluginDirectory, ".claude-plugin/plugin.json"), "utf8")
-  ) as {name?: string; version?: string; description?: string; skills?: string};
-  if (cursorPlugin.name !== claudePlugin.name) {
-    errors.push("Cursor and Claude plugin.json name fields must match");
-  }
-  if (cursorPlugin.version !== claudePlugin.version) {
-    errors.push("Cursor and Claude plugin.json version fields must match");
-  }
-  if (cursorPlugin.description !== claudePlugin.description) {
-    errors.push("Cursor and Claude plugin.json description fields must match");
-  }
-  if (claudePlugin.skills !== "./skills/") {
-    errors.push("Claude plugin.json skills path must be ./skills/");
-  }
+  errors.push(...validateClaudePluginHost({rootDirectory}));
 
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (canonicalText.includes(retiredIdentifier)) {

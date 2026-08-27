@@ -51,15 +51,27 @@ npx skills add FlourishHealth/terreno
 
 Or install the same five stages as a host plugin:
 
-| Host | Command |
-| --- | --- |
-| Cursor | Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then `/terreno-1-grow` |
-| Claude Code | `/plugin marketplace add FlourishHealth/terreno` then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
+| Host | Plugin | Stage names | Invoke Grow |
+| --- | --- | --- | --- |
+| Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+| Claude Code | `terreno` | `1-grow` … `5-taste` | `/terreno:1-grow` |
+| `npx skills` | — | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
 
-Manifests: Cursor [`.cursor-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.cursor-plugin/plugin.json); Claude Code [`.claude-plugin/plugin.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/.claude-plugin/plugin.json). Both share `plugins/terreno-planning/skills/`.
+Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Claude Code:
 
-Regenerate the committed `skills/` tree with `bun run skills:sync`. Package skills under
-`<package>/.ai/skills/` overlay the repo copies.
+```text
+/plugin marketplace add FlourishHealth/terreno
+/plugin install terreno@terreno
+```
+
+Claude Code resolves a plugin skill's command from the frontmatter `name`, so the short
+names ship as a generated Claude-only copy at
+[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
+Stage procedure, contracts, and references are identical to the canonical
+`plugins/terreno-planning/skills/` tree.
+
+Regenerate the committed `skills/` tree and the Claude plugin with `bun run skills:sync`.
+Package skills under `<package>/.ai/skills/` overlay the repo copies.
 
 Exact commands and domain conventions are supplied by repository-local skills discovered
 at stage start; they are not bundled into the lifecycle plugin.

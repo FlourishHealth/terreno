@@ -1,6 +1,6 @@
 {
-  "name": "terreno-planning",
-  "displayName": "Terreno Planning",
+  "name": "terreno",
+  "displayName": "Terreno",
   "description": "Five bounded loop-engineering transitions: Grow shapes, Pick builds, Roast proves, Brew submits after a review-bot wait, and Taste reacts to current PR state after waiting for Bugbot/CodeQL.",
   "version": "2.2.0",
   "author": {
@@ -10,7 +10,14 @@
   "homepage": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
   "repository": "https://github.com/FlourishHealth/terreno",
   "license": "MIT",
-  "keywords": ["terreno", "planning", "sdlc", "implementation", "review", "tdd"],
+  "keywords": [
+    "terreno",
+    "planning",
+    "sdlc",
+    "implementation",
+    "review",
+    "tdd"
+  ],
   "skills": "./skills/",
   "metadata": {
     "compatibility": {

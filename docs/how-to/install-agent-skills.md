@@ -12,8 +12,13 @@ Taste), repository skills, and published package skills.
 
 ## Install as a host plugin
 
-The same lifecycle stages ship as `terreno-planning` for Cursor and Claude Code.
-Skills live once under `plugins/terreno-planning/skills/`.
+The same lifecycle stages ship as a host plugin. Stage names differ by host because
+Claude Code takes a plugin skill's command from the frontmatter `name`.
+
+| Host | Plugin | Invoke Grow |
+| --- | --- | --- |
+| Cursor | `terreno-planning` | `/terreno-1-grow` |
+| Claude Code | `terreno` | `/terreno:1-grow` |
 
 ### Cursor
 
@@ -23,12 +28,13 @@ Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://gith
 
 ```text
 /plugin marketplace add FlourishHealth/terreno
-/plugin install terreno-planning@terreno
-/terreno-planning:terreno-1-grow
+/plugin install terreno@terreno
+/terreno:1-grow
 ```
 
-Claude Code namespaces plugin skills as `/terreno-planning:<skill>`. Marketplace:
-[`.claude-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.claude-plugin/marketplace.json).
+Marketplace: [`.claude-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.claude-plugin/marketplace.json).
+Claude Code stages come from the generated copy at
+[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
 
 ## What you get
 
@@ -49,7 +55,9 @@ Canonical sources:
 2. `plugins/terreno-planning/skills/` — portable lifecycle stages
 3. `<package>/.ai/skills/` — published package skills; these overlay the repo copies
 
-Regenerate the installable tree:
+`plugins/terreno-claude/` is generated from source 2 with shortened stage names.
+
+Regenerate the installable tree and the Claude plugin:
 
 ```bash
 bun run skills:sync

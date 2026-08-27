@@ -2,7 +2,9 @@
 
 ## `terreno-planning` — loop-engineering lifecycle
 
-The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
+The reusable plugin exposes exactly five bounded lifecycle transitions. Cursor installs
+it as `terreno-planning`; Claude Code installs the generated `terreno-claude/` copy as
+`terreno` (see [Hosts](#hosts)):
 
 | # | Stage | Contract |
 | --- | --- | --- |
@@ -106,13 +108,24 @@ implementation-Roast name collides semantically with the new verification-Roast 
 Deprecated repo-local routers (`/ip`, `/implement`, `/submit`, `/autobot`, `/check-watcher`)
 are removed; invoke the canonical stages directly.
 
-Install `terreno-planning` from either host marketplace, then invoke a canonical
-stage:
+## Hosts
 
-| Host | Marketplace | Install |
-| --- | --- | --- |
-| Cursor | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | install `terreno-planning`, then `/terreno-1-grow` |
-| Claude Code | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/plugin marketplace add FlourishHealth/terreno`, then `/plugin install terreno-planning@terreno`, then `/terreno-planning:terreno-1-grow` |
+| Host | Plugin | Marketplace | Invoke Grow |
+| --- | --- | --- | --- |
+| Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-1-grow` |
+| Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:1-grow` |
 
-Both manifests point at the same `plugins/terreno-planning/skills/` tree. Claude Code
-namespaces plugin skills as `/terreno-planning:<skill>`.
+Claude Code install:
+
+```text
+/plugin marketplace add FlourishHealth/terreno
+/plugin install terreno@terreno
+```
+
+`terreno-planning/` is canonical and keeps the `terreno-<n>-<stage>` skill names used by
+Cursor and `npx skills`. Claude Code resolves a plugin skill's command from the
+frontmatter `name`, so its shortened names cannot live in the shared stage files.
+`terreno-claude/` is a **generated** Claude-only copy: same procedure, stage names
+shortened to `1-grow` … `5-taste`, published under the plugin name `terreno` so the
+namespaced command is `/terreno:1-grow`. Regenerate it with `bun run skills:sync`; never
+hand-edit it.

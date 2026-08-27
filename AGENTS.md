@@ -54,10 +54,11 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`. Install the same five stages as a Cursor plugin from
-`.cursor-plugin/marketplace.json`, or as a Claude Code plugin with
-`/plugin marketplace add FlourishHealth/terreno` then
-`/plugin install terreno-planning@terreno`.
+`bun run skills:sync`. The same five stages install as the Cursor plugin
+`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`), or
+as the Claude Code plugin `terreno` via `/plugin marketplace add FlourishHealth/terreno`
+then `/plugin install terreno@terreno` (invoke `/terreno:1-grow`). The Claude copy under
+`plugins/terreno-claude/` is generated; never hand-edit it.
 
 ## Development
 
