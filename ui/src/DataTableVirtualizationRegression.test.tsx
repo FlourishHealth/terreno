@@ -99,10 +99,14 @@ describe("DataTable virtualization regression coverage", () => {
     assert.exists(pinnedList);
 
     const bodyRef = (
-      bodyList as {props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>}}
+      bodyList as {
+        props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>};
+      }
     ).props.ref?.current;
     const pinnedRef = (
-      pinnedList as {props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>}}
+      pinnedList as {
+        props: {ref?: React.RefObject<{scrollToOffset?: (opts: {offset: number}) => void}>};
+      }
     ).props.ref?.current;
     assert.exists(bodyRef?.scrollToOffset);
     assert.exists(pinnedRef?.scrollToOffset);
@@ -130,6 +134,42 @@ describe("DataTable virtualization regression coverage", () => {
     assert.deepEqual(bodyScrollToOffsetCalls, []);
   });
 
+  it("applies the latest leader scroll offset after the vertical sync lock clears", async () => {
+    const data = buildLargeData(LARGE_ROW_COUNT);
+    const result = render(
+      <ThemeProvider>
+        <DataTable
+          columns={columns}
+          data={data}
+          getRowTestID={(_, rowIndex) => rowIndex}
+          pinnedColumns={1}
+          rowHeight={ROW_HEIGHT}
+          testIDs={{row: ROW_TEST_ID_BASE}}
+        />
+      </ThemeProvider>
+    );
+
+    const bodyList = result
+      .UNSAFE_getAllByType(FlatList)
+      .find((list) => list.props.showsVerticalScrollIndicator === true);
+    assert.exists(bodyList);
+
+    const firstScrollY = ROW_HEIGHT * 10;
+    const secondScrollY = ROW_HEIGHT * 200;
+    act((): void => {
+      bodyList!.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: firstScrollY}}});
+      bodyList!.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: secondScrollY}}});
+    });
+    assert.exists(result.getByText("Row 11"));
+    assert.throws(() => result.getByText("Row 201"));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    assert.exists(result.getByText("Row 201"));
+    assert.throws(() => result.getByText("Row 11"));
+  });
+
   it("aligns pinned list to body scroll offset when pinned columns mount", () => {
     const data = buildLargeData(LARGE_ROW_COUNT);
     const distantRowIndex = 500;
@@ -155,9 +195,9 @@ describe("DataTable virtualization regression coverage", () => {
     };
 
     const result = render(<TableProbe />);
-    const bodyList = result.UNSAFE_getAllByType(FlatList).find(
-      (list) => list.props.showsVerticalScrollIndicator === true
-    );
+    const bodyList = result
+      .UNSAFE_getAllByType(FlatList)
+      .find((list) => list.props.showsVerticalScrollIndicator === true);
     assert.exists(bodyList);
 
     act((): void => {

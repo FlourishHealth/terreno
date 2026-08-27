@@ -496,7 +496,15 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
   const moreListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
   const bodyScrollYRef = useRef(0);
   const isVerticalScrollSyncingRef = useRef(false);
+  const verticalScrollLeaderRef = useRef<"body" | "pinned" | "more" | null>(null);
+  const pendingVerticalScrollRef = useRef<{
+    scrollY: number;
+    source: "body" | "pinned" | "more";
+  } | null>(null);
   const verticalScrollSyncReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncVerticalScrollRef = useRef<
+    (scrollY: number, source: "body" | "pinned" | "more") => void
+  >(() => undefined);
 
   const moreColumnOffset = MoreContentContent ? 48 : 0;
   const scrollableWidth = useMemo(
@@ -550,16 +558,27 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
     }
     verticalScrollSyncReleaseTimeoutRef.current = setTimeout(() => {
       isVerticalScrollSyncingRef.current = false;
+      verticalScrollLeaderRef.current = null;
       verticalScrollSyncReleaseTimeoutRef.current = null;
+      const pendingVerticalScroll = pendingVerticalScrollRef.current;
+      if (!pendingVerticalScroll) {
+        return;
+      }
+      pendingVerticalScrollRef.current = null;
+      syncVerticalScrollRef.current(pendingVerticalScroll.scrollY, pendingVerticalScroll.source);
     }, DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS);
   }, []);
 
   const syncVerticalScroll = useCallback(
     (scrollY: number, source: "body" | "pinned" | "more"): void => {
       if (isVerticalScrollSyncingRef.current) {
+        if (source === verticalScrollLeaderRef.current) {
+          pendingVerticalScrollRef.current = {scrollY, source};
+        }
         return;
       }
       isVerticalScrollSyncingRef.current = true;
+      verticalScrollLeaderRef.current = source;
       if (source !== "body") {
         bodyListRef.current?.scrollToOffset({animated: false, offset: scrollY});
       }
@@ -573,22 +592,40 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
     },
     [scheduleVerticalScrollSyncRelease]
   );
+  syncVerticalScrollRef.current = syncVerticalScroll;
 
   const syncSatelliteListsToBodyOffset = useCallback((): void => {
     const scrollY = bodyScrollYRef.current;
     if (scrollY <= 0) {
       return;
     }
+    if (pinnedColumns === 0 && !MoreContentContent) {
+      return;
+    }
     isVerticalScrollSyncingRef.current = true;
-    pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
-    moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    verticalScrollLeaderRef.current = "body";
+    if (pinnedColumns > 0) {
+      pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    }
+    if (MoreContentContent) {
+      moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    }
     scheduleVerticalScrollSyncRelease();
-  }, [scheduleVerticalScrollSyncRelease]);
+  }, [MoreContentContent, pinnedColumns, scheduleVerticalScrollSyncRelease]);
 
   // Pinned/more FlatLists mount at offset 0; align them with the body list's current scroll position.
   useLayoutEffect(() => {
     syncSatelliteListsToBodyOffset();
-  }, [MoreContentContent, pinnedColumns, syncSatelliteListsToBodyOffset]);
+    return () => {
+      if (verticalScrollSyncReleaseTimeoutRef.current) {
+        clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
+        verticalScrollSyncReleaseTimeoutRef.current = null;
+      }
+      isVerticalScrollSyncingRef.current = false;
+      verticalScrollLeaderRef.current = null;
+      pendingVerticalScrollRef.current = null;
+    };
+  }, [syncSatelliteListsToBodyOffset]);
 
   const handleBodyVerticalScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>): void => {

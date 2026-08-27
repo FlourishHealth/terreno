@@ -99,7 +99,7 @@ pinned and unpinned workloads (`bun run performance:datatable-virtual`). Mounted
 Large `DataTable` bodies now virtualize with React Native `FlatList`, syncing pinned, more-column, and
 scrollable row lists while preserving horizontal header/body scroll sync, sorting, pagination, pinned
 columns, row-detail modals, custom cells, highlights, and row test ids. `DataTableVirtualizationRegression.test.tsx`
-covers viewport-bounded mounts and changed rows after scrolling.
+covers viewport-bounded mounts, queued vertical-scroll flush after the sync lock, and changed rows after scrolling.
 
 ## August 2026 P2 Button optimization results
 
