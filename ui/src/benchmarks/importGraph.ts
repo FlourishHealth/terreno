@@ -48,13 +48,7 @@ const collectSpecifiers = (source: string): string[] => {
   return specifiers;
 };
 
-const walkModuleGraph = ({
-  entryFile,
-  visited,
-}: {
-  entryFile: string;
-  visited: Set<string>;
-}): void => {
+const walkModuleGraph = ({entryFile, visited}: {entryFile: string; visited: Set<string>}): void => {
   if (visited.has(entryFile)) {
     return;
   }

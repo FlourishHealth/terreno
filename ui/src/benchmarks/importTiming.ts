@@ -9,6 +9,7 @@ export interface FreshImportTimingResult {
 }
 
 const UI_PACKAGE_ROOT = resolve(import.meta.dir, "../..");
+const PROBE_FILE = resolve(UI_PACKAGE_ROOT, "src/benchmarks/.fresh-import-probe.ts");
 
 export const compareBenchmarkSamples = (left: number, right: number): number => left - right;
 
@@ -27,37 +28,32 @@ describe("fresh import timing", () => {
   });
 });
 `;
-
-  const probeFile = resolve(UI_PACKAGE_ROOT, "benchmarks/.fresh-import-probe.test.ts");
-  writeFileSync(probeFile, probeSource, "utf8");
+  const childEnv = {...process.env, TZ: "America/New_York"};
+  delete childEnv.BUN_OPTIONS;
+  writeFileSync(PROBE_FILE, probeSource, "utf8");
 
   try {
     const result = spawnSync(
       "bun",
-      ["test", "--preload", "./src/bunSetup.ts", "./benchmarks/.fresh-import-probe.test.ts"],
+      ["test", "--preload", "./src/bunSetup.ts", "./src/benchmarks/.fresh-import-probe.ts"],
       {
         cwd: UI_PACKAGE_ROOT,
         encoding: "utf8",
-        env: {
-          ...process.env,
-          TZ: "America/New_York",
-        },
+        env: childEnv,
       }
     );
 
     const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
     const match = output.match(/UI_IMPORT_TIMING_RESULT=({.+})/);
     if (!match) {
-      throw new Error(
-        `Fresh import probe failed for ${importPath}\n${output.slice(0, 2000)}`
-      );
+      throw new Error(`Fresh import probe failed for ${importPath}\n${output.slice(0, 2000)}`);
     }
 
     const parsed = JSON.parse(match[1]) as {elapsedMs: number};
     return parsed.elapsedMs;
   } finally {
-    if (existsSync(probeFile)) {
-      unlinkSync(probeFile);
+    if (existsSync(PROBE_FILE)) {
+      unlinkSync(PROBE_FILE);
     }
   }
 };

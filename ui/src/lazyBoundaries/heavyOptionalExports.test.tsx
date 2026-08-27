@@ -19,8 +19,8 @@ describe("heavyOptionalExports", () => {
 
   it("keeps EmojiSelector defaultProps.category referentially equal to Categories.all", () => {
     expect(
-      (EmojiSelector as unknown as {defaultProps?: {category?: typeof Categories.all}})
-        .defaultProps?.category
+      (EmojiSelector as unknown as {defaultProps?: {category?: typeof Categories.all}}).defaultProps
+        ?.category
     ).toBe(Categories.all);
   });
 

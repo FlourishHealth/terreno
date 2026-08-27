@@ -40,6 +40,7 @@ import {
 } from "react-native";
 
 export {Categories} from "./emojiCategories";
+
 import {Categories} from "./emojiCategories";
 
 interface Emoji {

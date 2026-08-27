@@ -1,10 +1,6 @@
 import {describe, expect, it} from "bun:test";
 
-import {
-  diffImportGraphs,
-  measureImportGraph,
-  resolvePackageEntry,
-} from "./importGraph";
+import {diffImportGraphs, measureImportGraph, resolvePackageEntry} from "./importGraph";
 
 describe("importGraph", () => {
   it("resolves the root package entry", () => {

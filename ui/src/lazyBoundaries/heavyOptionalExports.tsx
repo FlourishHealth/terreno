@@ -6,12 +6,12 @@ import type {ConsentFormScreen as ConsentFormScreenComponent} from "../ConsentFo
 import type {ConsentNavigator as ConsentNavigatorComponent} from "../ConsentNavigator";
 import type {DraggableList as DraggableListComponent} from "../DraggableList";
 import type EmojiSelectorComponent from "../EmojiSelector";
+import {Categories} from "../emojiCategories";
 import type {GPTChat as GPTChatComponent} from "../GPTChat";
 import type {GPTMemoryModal as GPTMemoryModalComponent} from "../GPTMemoryModal";
 import type {MarkdownEditor as MarkdownEditorComponent} from "../MarkdownEditor";
 import type {MarkdownEditorField as MarkdownEditorFieldComponent} from "../MarkdownEditorField";
 import type {UpgradeRequiredScreen as UpgradeRequiredScreenComponent} from "../UpgradeRequiredScreen";
-import {Categories} from "../emojiCategories";
 import {createLazyComponentExport, createLazyNamedExport} from "./createLazyComponentExport";
 
 export const heavyOptionalModuleFactories = {
@@ -76,10 +76,9 @@ export const DraggableList = createLazyNamedExport(
   "DraggableList"
 ) as unknown as typeof DraggableListComponent;
 
-export const EmojiSelector = createLazyComponentExport(
-  heavyOptionalModuleFactories.EmojiSelector,
-  {defaultProps: EMOJI_SELECTOR_DEFAULT_PROPS}
-) as unknown as typeof EmojiSelectorComponent;
+export const EmojiSelector = createLazyComponentExport(heavyOptionalModuleFactories.EmojiSelector, {
+  defaultProps: EMOJI_SELECTOR_DEFAULT_PROPS,
+}) as unknown as typeof EmojiSelectorComponent;
 
 export const GPTChat = createLazyNamedExport(
   heavyOptionalModuleFactories.GPTChat,
