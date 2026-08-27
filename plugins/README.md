@@ -7,13 +7,14 @@ The reusable Cursor plugin exposes exactly five bounded lifecycle transitions:
 | # | Stage | Contract |
 | --- | --- | --- |
 | 1 | **Grow** (`terreno-1-grow`) | Research, clarify, shape, and approve the IP/tasks |
-| 2 | **Pick** (`terreno-2-pick`) | Build one approved slice with TDD and internal review |
-| 3 | **Roast** (`terreno-3-roast`) | Independently prove/disprove the IP criteria |
+| 2 | **Pick** (`terreno-2-pick`) | Build one slice, roast it, then pick the next until the list is done |
+| 3 | **Roast** (`terreno-3-roast`) | Prove the current task, then continue the pick-roast inner loop |
 | 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, wait for review bots, then exit |
 | 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, one current-head CI/mergeability/review reaction, then exit |
 
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
-Stages never own the full orchestration.
+Grow, Brew, and Taste never own the full orchestration. Pick and Roast own the inner
+loop that implements one task, roasts it, then picks the next until the list is done.
 
 ## Composition
 
@@ -35,6 +36,7 @@ description; no Terreno-specific skill name is a plugin dependency.
 The shared result/state format and outer state machine live in:
 
 - [`references/lifecycle-contract.md`](terreno-planning/references/lifecycle-contract.md)
+- [`references/pick-roast-loop.md`](terreno-planning/references/pick-roast-loop.md)
 - [`references/documentation-contract.md`](terreno-planning/references/documentation-contract.md)
 - [`references/async-review-bots.md`](terreno-planning/references/async-review-bots.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
@@ -46,24 +48,28 @@ Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details t
 chat and on the PR. Humans read `status`, `next`, and `action`.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
-one fresh Pick invocation per frontier task. It is an outer-loop recipe, not a sixth
+invoke Pick once; it pick-roasts each frontier task in sequence. It is not a sixth
 lifecycle stage.
 
 ## State machine
 
 ```text
-Grow PASS → Pick PASS → Roast PASS → Brew PASS → Taste
-                       ↘ Roast FAIL → Pick (exact evidence)
+Grow PASS → Pick/Roast inner loop → Brew PASS → Taste
+              Pick one task → Roast that task
+              Roast FAIL → Pick (same task, exact evidence)
+              Roast PASS + remaining tasks → Pick (next frontier task)
+              Roast PASS + no remaining tasks → Brew
 Brew PENDING (review-bot timeout) → outer loop waits → Taste
 Taste PENDING (product CI / bot timeout / new push) → outer loop waits → fresh Taste
 Taste PASS → merge-ready
 Any BLOCKED → named human/external gate
 ```
 
-Brew does not execute Taste. Brew and Taste sleep until Bugbot, CodeQL, and similar
-review bots on the current head have reported, then continue. They do not wait for
-ordinary product CI. The loop owns persistence, product-CI waiting, retry, stop, and
-escalation.
+Brew does not execute Taste. Pick never skips Roast. Roast never invokes Pick. Exactly
+one driver continues after each current-task Roast. Brew and Taste sleep until Bugbot,
+CodeQL, and similar review bots on the current head have reported, then continue. They
+do not wait for ordinary product CI. The loop owns persistence, product-CI waiting,
+retry, stop, and escalation. It does not reinvoke Pick between roasted tasks.
 
 ## Repository integration
 
