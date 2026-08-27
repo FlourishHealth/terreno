@@ -79,8 +79,8 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 11. **Emit and exit.** If step 8 pushed, do this only after its post-push review-bot
     wait and at most one follow-up act on those results. If step 8 did not push, emit
     after the initial observe/act path.
-   - All checks and native CI jobs terminal/non-failing, no conflicts, no actionable
-     reviews → `PASS`.
+   - Every host has terminal/non-failing jobs or a documented not-applicable skip, with
+     no conflicts and no actionable reviews → `PASS`.
    - No safe current action because of human/access/external/environment gate →
      `BLOCKED`.
    - Otherwise `PENDING` with `next: taste` and `wait`: review-bot timeout, leftover
@@ -110,8 +110,9 @@ safety policy.
 
 For the **current head**:
 
-- every reported job on every discovered CI host is terminal and non-failing (pass,
-  neutral/informational, or explicitly skipped)
+- every discovered CI host has terminal, non-failing jobs (pass,
+  neutral/informational, or explicitly skipped) **or** a documented path-filter/config
+  reason that the host is not applicable to this PR/head
 - no job is pending, failed, cancelled, timed out, or awaiting action
 - GitHub checks alone never satisfy `PASS` when another in-scope host still has
   incomplete or failing jobs

@@ -103,7 +103,8 @@ describe("lifecycle skill architecture", (): void => {
     const content = readStage("terreno-4-brew")
       .replace("../../references/product-ci.md", "missing-product-ci")
       .replaceAll("every discovered CI host", "GitHub Actions only")
-      .replaceAll("provider CLI watch hooks", "manual polling");
+      .replaceAll("provider CLI watch hooks", "manual polling")
+      .replaceAll("required host untriggered after grace", "untriggered hosts pass");
     const errors = validateStageContent({
       content,
       definition: {
@@ -116,13 +117,15 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
     assert.isTrue(errors.some((error) => error.includes("every discovered CI host")));
     assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {
     const content = readStage("terreno-5-taste")
       .replace("../../references/product-ci.md", "missing-product-ci")
       .replaceAll("not only GitHub checks", "from GitHub checks only")
-      .replaceAll("provider CLI watch hooks", "manual polling");
+      .replaceAll("provider CLI watch hooks", "manual polling")
+      .replaceAll("documented path-filter/config", "undocumented");
     const errors = validateStageContent({
       content,
       definition: {
@@ -135,6 +138,7 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
     assert.isTrue(errors.some((error) => error.includes("not only GitHub checks")));
     assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("non-applicable hosts")));
   });
 
   it("rejects same-invocation Brew to Taste execution", (): void => {
@@ -284,17 +288,21 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("bk build watch")));
     assert.isTrue(errors.some((error) => error.includes("final fallback")));
+    assert.isTrue(errors.some((error) => error.includes("untriggered hosts")));
+    assert.isTrue(errors.some((error) => error.includes("non-applicable hosts")));
   });
 
   it("rejects review-bot waits that watch every PR check", (): void => {
-    const errors = validateAsyncReviewBotsContract(
-      "Prefer `gh pr checks <pr> --watch --interval 30`."
+    const missingErrors = validateAsyncReviewBotsContract("");
+    const unsafeErrors = validateAsyncReviewBotsContract(
+      "Prefer `gh pr checks <pr> --watch --interval 30` or gh run watch <run-id> --exit-status."
     );
 
-    assert.isTrue(errors.some((error) => error.includes("targeted GitHub Actions")));
-    assert.isTrue(errors.some((error) => error.includes("unfiltered PR-check")));
-    assert.isTrue(errors.some((error) => error.includes("PR-event subscriptions")));
-    assert.isTrue(errors.some((error) => error.includes("all PR product checks")));
+    assert.isTrue(missingErrors.some((error) => error.includes("targeted GitHub Actions")));
+    assert.isTrue(missingErrors.some((error) => error.includes("unfiltered PR-check")));
+    assert.isTrue(missingErrors.some((error) => error.includes("PR-event subscriptions")));
+    assert.isTrue(unsafeErrors.some((error) => error.includes("all PR product checks")));
+    assert.isTrue(unsafeErrors.some((error) => error.includes("bot failure")));
   });
 
   it("rejects a stage that does not load the documentation contract", (): void => {

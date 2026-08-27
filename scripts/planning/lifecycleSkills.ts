@@ -242,6 +242,9 @@ export const validateStageContent = ({
     if (!content.includes("provider CLI watch hooks")) {
       errors.push(`${prefix}: Brew must prefer provider CLI watch hooks over sleep polling`);
     }
+    if (!content.includes("required host untriggered after grace")) {
+      errors.push(`${prefix}: Brew must fail when a required CI host remains untriggered`);
+    }
     if (!content.includes("Brew itself never executes Taste")) {
       errors.push(`${prefix}: must explicitly terminate without executing Taste`);
     }
@@ -268,6 +271,9 @@ export const validateStageContent = ({
     }
     if (!content.includes("provider CLI watch hooks")) {
       errors.push(`${prefix}: Taste must prefer provider CLI watch hooks over sleep polling`);
+    }
+    if (!content.includes("documented path-filter/config")) {
+      errors.push(`${prefix}: Taste must treat documented non-applicable hosts as skipped`);
     }
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
@@ -355,6 +361,12 @@ export const validateProductCiContract = (content: string): string[] => {
   if (!content.includes("These hooks belong to outer loops only")) {
     errors.push("product-CI procedure must reserve blocking watch hooks for outer loops");
   }
+  if (!content.includes("Never emit Brew `PASS`")) {
+    errors.push("product-CI procedure must reject unexplained untriggered hosts");
+  }
+  if (!content.includes("counts as terminal `skipped`")) {
+    errors.push("product-CI procedure must terminate documented non-applicable hosts");
+  }
   return errors;
 };
 
@@ -371,6 +383,9 @@ export const validateAsyncReviewBotsContract = (content: string): string[] => {
   }
   if (content.includes("`gh pr checks <pr> --watch")) {
     errors.push("review-bot procedure must not wait on all PR product checks");
+  }
+  if (content.includes("gh run watch <run-id> --exit-status")) {
+    errors.push("review-bot procedure must not turn a bot failure into Brew command failure");
   }
   return errors;
 };

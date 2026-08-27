@@ -29,13 +29,16 @@ matched bot queued, in progress, or still inside the startup grace.
 ## Procedure
 
 1. Record the current head SHA.
-2. **Startup grace (90 seconds).** Prefer a provider-native hook that can await a run for
-   this SHA. Otherwise use the harness event/subscription primitive. If neither can
-   detect new checks, reviews, and comments, sleep 30 seconds and re-fetch. Stop the
-   grace when a matched bot appears or 90 seconds elapse. If none appeared, continue.
+2. **Startup grace (90 seconds).** Use a provider-native hook only when it can await the
+   **matched bot**, not arbitrary checks for this SHA. GitHub CLI has no targeted
+   check-creation watch, so prefer the harness PR-event subscription. If no targeted
+   hook can detect new checks, reviews, and comments, sleep 30 seconds and re-fetch.
+   Stop the grace when a matched bot appears or 90 seconds elapse. If none appeared,
+   continue.
 3. **Completion wait.** Use a provider-native hook only when it targets the matched bot,
    not all PR checks. For a bot backed by a resolved GitHub Actions run, prefer
-   `gh run watch <run-id> --exit-status --interval 30`. Do **not** use unfiltered
+   `gh run watch <run-id> --interval 30`. Its exit code is a wait result, not a Brew
+   verdict; always re-fetch and classify the bot outcome. Do **not** use unfiltered
    `gh pr checks --watch`: it also waits for ordinary product CI. For check-run-only or
    review/comment bots, prefer a harness PR-event subscription. If no targeted hook is
    available, sleep 30 seconds and re-fetch the matched bot state. Continue until every

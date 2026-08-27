@@ -66,8 +66,10 @@ After push, for each in-scope host:
 2. A documented skip (path filter, skipped workflow, `on: pull_request` not matching)
    counts as triggered.
 3. If no run and no skip appear after the same 90-second startup grace used for review
-   bots, record that host as untriggered. Continue Brew's review-bot wait unless
-   repository policy requires a trigger (`FAIL` or `BLOCKED` with the missing host).
+   bots, record that host as untriggered. Continue Brew's review-bot wait, then emit
+   `FAIL` with `next: brew` for a required/retryable trigger or `BLOCKED` when access or
+   policy prevents a safe retry. Never emit Brew `PASS` with an unexplained untriggered
+   host.
 
 ## Observe jobs (Taste)
 
@@ -79,14 +81,21 @@ rows (same host + job name).
    job-level checks.
 2. **Native host query** when that host is in-scope and GitHub does not enumerate its
    jobs (pipeline-level status only, missing checks, or checks that lag the native UI):
-   - CircleCI: use `circleci run list --branch <branch> --json`, select the exact
-     `revision`, then `circleci run get <run-id> --json`. Token: `CIRCLE_TOKEN`.
+   - CircleCI: inspect `circleci run list --help`, list runs for `<branch>`, select the
+     exact `revision`, then get that run's workflows/jobs. Current CLI uses
+     `circleci run list --branch <branch> --json` and
+     `circleci run get <run-id> --json`; if the installed CLI's JSON syntax differs,
+     follow its help or use the REST API. Token: `CIRCLE_TOKEN`.
    - Buildkite: use `bk build list --commit <sha> --json`, then fetch the selected
      build's jobs. Token: `BUILDKITE_API_TOKEN`.
    - Other hosts: the native CLI or REST/GraphQL API the repository already uses.
 3. Treat a single green pipeline status as incomplete if native jobs are still running
    or failed. Pending is never passing. Green results from an older SHA never satisfy
    the current head.
+4. Carry forward Brew's per-host trigger outcome. A documented path-filter/config skip
+   or host that does not apply to this PR counts as terminal `skipped`; it does not
+   require an API query or job row. A host with no job and no documented skip is
+   unfinished, not passing.
 
 If a discovered host cannot be queried (missing token, CLI, or permission) **and** GitHub
 does not already show complete job-level results for it, emit `BLOCKED` (`access`)

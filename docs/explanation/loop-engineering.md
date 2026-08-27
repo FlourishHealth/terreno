@@ -67,9 +67,14 @@ Taste. Neither is a sixth stage.
 Roast is not another implementation review. It independently proves or disproves
 acceptance criteria. Taste is not a resident watcher of product CI. It waits until async
 review bots (Bugbot, CodeQL, and similar) on the current head have reported, preferring
-native hooks such as `gh pr checks --watch`, then observes jobs on every discovered CI
+targeted hooks such as `gh run watch <run-id>`, then observes jobs on every discovered CI
 host (GitHub Actions, CircleCI, Buildkite, and similar), acts, emits `PASS`, `FAIL`,
 `BLOCKED`, or `PENDING`, and exits.
+
+An outer loop may watch all product checks. Brew/Taste review-bot waits use only hooks
+targeted to the matched bot so ordinary CI cannot extend the in-stage wait. A host with
+a documented path/config reason not to run is terminal `skipped`; an unexplained missing
+run is never green.
 
 ## Portable plugin, local knowledge
 

@@ -48,7 +48,8 @@ until async review bots (Bugbot, CodeQL, and similar) on the current head have r
 preferring provider CLI watch hooks or harness event subscriptions over sleep polling,
 then continue; they do not wait for ordinary product CI. Taste observes product CI on
 every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), not only
-GitHub checks. Brew still does not execute Taste.
+GitHub checks. A documented not-applicable host counts as skipped; an unexplained
+untriggered host prevents Brew `PASS`. Brew still does not execute Taste.
 
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
 `Verification` are the only visible PR sections; optional detail is expandable; comments

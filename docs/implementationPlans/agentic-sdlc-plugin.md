@@ -61,9 +61,9 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
 | AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
-| AP12 | Brew and Taste wait until Bugbot, CodeQL, and similar review bots on the current head have reported, preferring provider CLI watch hooks or harness subscriptions over timer polling; they do not wait for ordinary product CI |
-| AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or skipped. GitHub checks alone never satisfy Taste `PASS` while another in-scope host is unfinished |
-| AP14 | Outer loops honor Taste `PENDING` with the provider's bounded native watch command (`gh … --watch`, `circleci run watch`, `bk build watch`) or a harness subscription where available, falling back to a timer only when no hook applies |
+| AP12 | Brew and Taste wait until Bugbot, CodeQL, and similar review bots on the current head have reported, preferring hooks targeted to the matched bot or harness subscriptions over timer polling; unfiltered PR-check watches are product-CI waits and stay in outer loops |
+| AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or documented a not-applicable skip. An unexplained untriggered host prevents Brew `PASS`; a documented skip is terminal for Taste |
+| AP14 | Outer loops honor Taste `PENDING` with the provider's bounded native watch command (`gh … --watch`, `circleci run watch`, `bk build watch`) or a harness subscription where available, falling back to a timer only when no hook applies. Watch exit codes trigger a fresh Taste classification rather than becoming stage verdicts directly |
 
 ## Architecture
 

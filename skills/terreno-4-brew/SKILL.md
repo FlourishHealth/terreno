@@ -72,6 +72,7 @@ must follow the [`GitHub attention contract`](references/github-attention-contra
     or in progress. Do not wait for ordinary product CI to finish.
 11. **Record and exit.** Update execution state and emit:
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
+    - required host untriggered after grace → `FAIL` with `next: brew`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
     Collapse per the lifecycle contract. Brew itself never executes Taste.
 
@@ -101,8 +102,9 @@ handling, and mandatory evidence gates.
 
 ## Failure conditions
 
-Failed final checks, **Brew's own independent-review findings** (step 4), push errors, or
-PR setup errors emit `FAIL` with evidence and the smallest corrective stage/action:
+Failed final checks, **Brew's own independent-review findings** (step 4), push errors,
+PR setup errors, or a required CI host still untriggered after grace emit `FAIL` with
+evidence and the smallest corrective stage/action:
 behavioral defects use `next: pick`, stale/missing proof uses `next: roast`,
 and submission-only retries use `next: brew`. Do not treat Bugbot, CodeQL, or similar
 async review-bot findings as Brew `FAIL`; record them and emit `PASS` with
