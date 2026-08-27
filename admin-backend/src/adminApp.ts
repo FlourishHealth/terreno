@@ -11,10 +11,11 @@ import {
   checkPermissions,
   createOpenApiBuilder,
   createScriptArgs,
-  getOpenApiSpecForModel,
+  describeModel,
   type JSONValue,
   logger,
   type ModelRouterOptions,
+  modelDescriptionToAdminFields,
   modelRouter,
   type OpenApiMiddleware,
   type PermissionMethod,
@@ -460,23 +461,6 @@ const auditActorId = (request: express.Request): string | undefined => {
   return String(user._id);
 };
 
-interface OpenApiProperty {
-  default?: unknown;
-  description?: string;
-  enum?: string[];
-  $ref?: string;
-  type?: string;
-  format?: string;
-  items?: {
-    properties?: Record<string, OpenApiProperty>;
-    required?: string[];
-    type?: string;
-    enum?: string[];
-    format?: string;
-    $ref?: string;
-  };
-}
-
 interface ArraySchemaTypeCompatibility {
   caster?: mongoose.SchemaType;
   getEmbeddedSchemaType?: () => mongoose.SchemaType | undefined;
@@ -492,49 +476,14 @@ export const getArrayEmbeddedSchemaType = (
   return compatiblePath.caster;
 };
 
-const extractFieldMeta = (
-  properties: Record<string, OpenApiProperty>,
-  required: string[]
+const extractFieldMetaFromDescription = (
+  model: Model<unknown>,
+  hiddenFields: string[]
 ): Record<string, AdminFieldMeta> => {
-  const fields: Record<string, AdminFieldMeta> = {};
-  for (const [key, prop] of Object.entries(properties)) {
-    const fieldType = prop.type ?? "string";
-    fields[key] = {
-      default: prop.default,
-      description: prop.description,
-      enum: prop.enum,
-      ref: prop.$ref ? prop.$ref.replace("#/components/schemas/", "") : undefined,
-      required: required.includes(key),
-      searchable: fieldType === "string" && !prop.enum,
-      type: fieldType,
-    };
-
-    // For array fields, extract item sub-field metadata
-    if (prop.type === "array" && prop.items?.properties) {
-      const itemRequired: string[] = prop.items.required ?? [];
-      fields[key].items = extractFieldMeta(
-        prop.items.properties as Record<string, OpenApiProperty>,
-        itemRequired
-      );
-    }
-
-    // For array fields of primitives, capture the item type and enum
-    if (prop.type === "array" && prop.items && !prop.items.properties) {
-      const itemProp = prop.items as OpenApiProperty;
-      if (itemProp.type) {
-        fields[key].itemType = itemProp.type;
-      }
-      if (itemProp.enum) {
-        fields[key].itemEnum = itemProp.enum;
-      }
-    }
-
-    // Check for ObjectId references in the raw property
-    if (!fields[key].ref && prop.type === "string" && prop.format === "objectid") {
-      // mongoose-to-swagger may not preserve ref directly; we'll handle this in register()
-    }
-  }
-  return fields;
+  const hiddenFieldSet = new Set(hiddenFields);
+  const description = describeModel(model);
+  const fields = modelDescriptionToAdminFields(description);
+  return Object.fromEntries(Object.entries(fields).filter(([key]) => !hiddenFieldSet.has(key)));
 };
 
 const asMiddlewareList = (
@@ -788,55 +737,8 @@ export class AdminApp {
       }))
     );
     const configModels: AdminModelMeta[] = modelConfigs.map((config, configIndex) => {
-      const {properties, required} = getOpenApiSpecForModel(config.model) as {
-        properties: Record<string, OpenApiProperty>;
-        required: string[];
-      };
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
-      const filteredProperties = Object.fromEntries(
-        Object.entries(properties).filter(([key]) => !hiddenFieldSet.has(key))
-      );
-      const filteredRequired = required.filter((key) => !hiddenFieldSet.has(key));
-
-      // Extract ref information directly from the Mongoose schema
-      const fields = extractFieldMeta(filteredProperties, filteredRequired);
-      for (const [key, field] of Object.entries(fields)) {
-        const schemaPath = config.model.schema.path(key);
-        if (schemaPath) {
-          const pathOptions = schemaPath.options;
-          if (pathOptions?.ref) {
-            field.ref = pathOptions.ref;
-          }
-          // Handle array of refs (legacy: also set ref for back-compat)
-          if (Array.isArray(pathOptions?.type) && pathOptions.type[0]?.ref) {
-            field.ref = pathOptions.type[0].ref;
-          }
-          // For arrays, use the public embedded schema type to infer the primitive item type/ref.
-          if (schemaPath.instance === "Array") {
-            const embeddedSchemaType = getArrayEmbeddedSchemaType(schemaPath);
-            if (embeddedSchemaType?.instance && !field.items) {
-              const instanceToType: Record<string, string> = {
-                Boolean: "boolean",
-                Number: "number",
-                ObjectID: "objectid",
-                ObjectId: "objectid",
-                SchemaObjectId: "objectid",
-                String: "string",
-              };
-              const mapped = instanceToType[embeddedSchemaType.instance];
-              if (mapped) {
-                field.itemType = mapped;
-              }
-              if (embeddedSchemaType.options?.ref) {
-                field.itemRef = embeddedSchemaType.options.ref;
-              }
-              if (Array.isArray(embeddedSchemaType.options?.enum)) {
-                field.itemEnum = embeddedSchemaType.options.enum;
-              }
-            }
-          }
-        }
-      }
+      const fields = extractFieldMetaFromDescription(config.model, [...hiddenFieldSet]);
 
       // Apply field overrides (e.g., widget: "markdown")
       if (config.fieldOverrides) {

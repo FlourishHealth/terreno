@@ -151,6 +151,22 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
+export {
+  type DescribeModelForRouterOptions,
+  type DescribeModelOptions,
+  describeModel,
+  describeModelForRouter,
+  type FieldDescription,
+  type FieldKind,
+  fieldDescriptionToAdminMeta,
+  fieldDescriptionToOpenApiProperty,
+  fieldDescriptionToZodType,
+  type ModelDescription,
+  modelDescriptionToAdminFields,
+  modelDescriptionToOpenApiSpec,
+  nestDottedFieldDescriptions,
+  SYSTEM_FIELD_PATHS,
+} from "./schemaMetadata";
 export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
