@@ -14,7 +14,7 @@
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew submits after a review-bot wait, and Taste reacts once after Bugbot/CodeQL finish."
+      "description": "Five bounded transitions (Grow, Pick/Roast inner loop, Brew, Taste) plus planning-loop and taste-sweep outer loops."
     }
   ]
 }

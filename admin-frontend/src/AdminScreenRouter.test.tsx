@@ -1,3 +1,4 @@
+// noExplicitAny: test harness doubles for AdminScreenRouter routing and config mocks
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "../../ui/src/test-utils";

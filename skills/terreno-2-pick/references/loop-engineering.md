@@ -25,6 +25,13 @@ loop can continue. Stage YAML is loop/skill data; keep it collapsed for humans. 
 Taste themselves sleep until async review bots on the current head have reported; the
 loop does not need to reinvoke for that wait.
 
+Two invocable outer-loop skills ship beside the five stages. They are not stages:
+
+| Skill | Loop |
+| --- | --- |
+| `terreno-planning-loop` | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns the pick-roast inner loop). Pass `phases=` (`grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
+| `terreno-taste-sweep` | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
+
 ## Invocation packet
 
 Give each fresh agent:

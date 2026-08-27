@@ -32,7 +32,7 @@ export interface TodoModel extends DefaultModel<TodoDocument> {
 
 ### 2. Create the schema with field descriptions
 
-**Important:** Every field **must** include a `description` property. This flows through to the OpenAPI spec and makes generated SDK documentation more useful.
+**Important:** Every field **must** include a `description` property. Terreno's `describeModel()` reads descriptions into the canonical field graph; that graph feeds the OpenAPI spec, admin `/admin/config` field metadata, and MCP tool schemas.
 
 ``````typescript
 // src/models/todo.ts

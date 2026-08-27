@@ -34,13 +34,15 @@ const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
 export const SKILL_GROUPS: SkillGroup[] = [
   {
     title: "Lifecycle",
-    description: "Bounded Grow → Pick/Roast inner loop → Brew → Taste transitions. Pick/Roast loop tasks; Brew/Taste wait for review bots.",
+    description: "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus planning-loop and taste-sweep outer loops.",
     skills: [
       "terreno-1-grow",
       "terreno-2-pick",
       "terreno-3-roast",
       "terreno-4-brew",
       "terreno-5-taste",
+      "terreno-planning-loop",
+      "terreno-taste-sweep",
     ],
   },
   {
@@ -131,7 +133,7 @@ This directory is generated. Canonical sources:
 
 | Source | Owns |
 | --- | --- |
-| \`plugins/terreno-planning/skills/\` | Grow, Pick, Roast, Brew, Taste |
+| \`plugins/terreno-planning/skills/\` | Grow, Pick, Roast, Brew, Taste, plus planning-loop and taste-sweep |
 | \`.rulesync/skills/\` | Repository and domain skills |
 | \`<package>/.ai/skills/\` | Published package skills (overlay the repo copies) |
 
