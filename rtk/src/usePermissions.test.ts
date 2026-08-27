@@ -126,6 +126,72 @@ describe("createPermissionSelectors", () => {
     assert.deepEqual(selectFromApi(store.getState() as never), {todo: ["write"]});
   });
 
+  it("skips cache entries without permissions payloads", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          "authMe(undefined)": {data: {}, endpointName: "authMe", status: "fulfilled"},
+          "getMe(1)": {endpointName: "getMe", status: "fulfilled"},
+        },
+      },
+    });
+    assert.isUndefined(selectFromApi(store.getState() as never));
+  });
+
+  it("reads permissions from an authMe endpoint with an unrelated cache key", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          "session-1": {
+            data: {permissions: {todo: ["read"]}},
+            endpointName: "authMe",
+            status: "fulfilled",
+          },
+        },
+      },
+    });
+    assert.deepEqual(selectFromApi(store.getState() as never), {todo: ["read"]});
+  });
+
+  it("returns undefined when no cache entry looks like a me query", () => {
+    const store = createStore({
+      auth: {userId: "u1"},
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          "getTodos(undefined)": {
+            data: {permissions: {todo: ["read"]}},
+            endpointName: "getTodos",
+            status: "fulfilled",
+          },
+        },
+      },
+    });
+    assert.isUndefined(selectFromApi(store.getState() as never));
+  });
+
+  it("reads permissions when the store has no auth slice", () => {
+    const store = createStore({
+      [DEFAULT_PERMISSION_API_REDUCER_PATH]: {
+        queries: {
+          "getMe(undefined)": {
+            data: {permissions: {admin: ["access"]}},
+            endpointName: "getMe",
+            status: "fulfilled",
+          },
+        },
+      },
+    });
+    assert.deepEqual(selectFromApi(store.getState() as never), {admin: ["access"]});
+  });
+
+  it("useCan returns false when the user has no permissions cached", () => {
+    const store = createStore({auth: {userId: "u1"}});
+    const {result} = renderHook(() => useCan(ADMIN_PAGE_PERMISSION), {wrapper: wrap(store)});
+    assert.isFalse(result.current);
+  });
+
   it("useSelectPermissions and useCan read from the store", () => {
     const store = createStore({
       auth: {userId: "u1"},

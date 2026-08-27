@@ -34,7 +34,7 @@ const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
 export const SKILL_GROUPS: SkillGroup[] = [
   {
     title: "Lifecycle",
-    description: "Bounded Grow → Pick → Roast → Brew → Taste transitions. Brew/Taste wait for review bots.",
+    description: "Bounded Grow → Pick/Roast inner loop → Brew → Taste transitions. Pick/Roast loop tasks; Brew/Taste wait for review bots.",
     skills: [
       "terreno-1-grow",
       "terreno-2-pick",

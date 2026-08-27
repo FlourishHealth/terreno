@@ -646,6 +646,7 @@ export interface BoxPropsBase extends WithTestID {
   smDirection?: "row" | "column";
   mdDirection?: "row" | "column";
   lgDirection?: "row" | "column";
+  xlDirection?: "row" | "column";
   display?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   smDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   mdDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
@@ -2162,24 +2163,31 @@ export interface HeightActionSheetProps {
   title?: string;
 }
 
+export interface LinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  text: string;
+  url: string;
+}
+
+export interface LinkifyItLike {
+  pretest: (text: string) => boolean;
+  test: (text: string) => boolean;
+  match: (text: string) => LinkifyMatch[] | null;
+}
+
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  // noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  linkify?: any;
-  // noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  linkStyle?: StyleProp<any>;
+  linkify?: LinkifyItLike;
+  linkStyle?: StyleProp<TextStyle>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
-  // noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  injectViewProps?: (url: string) => any;
+  injectViewProps?: (url: string) => Record<string, unknown>;
   children?: React.ReactNode;
-  // noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  style?: StyleProp<any>;
+  style?: StyleProp<ViewStyle | TextStyle>;
 }
 
 export interface IconButtonProps extends WithTestID {

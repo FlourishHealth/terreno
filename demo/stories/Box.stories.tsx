@@ -1,4 +1,5 @@
 import {Box, type SurfaceColor, Text} from "@terreno/ui";
+import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -80,6 +81,44 @@ export const BoxColors = () => {
           </Box>
         </Box>
       ))}
+    </StorybookContainer>
+  );
+};
+
+export const ResponsiveBoxLayout: React.FC = () => {
+  return (
+    <StorybookContainer>
+      <Box marginBottom={3}>
+        <Text bold>Resize the viewport</Text>
+        <Text>
+          Native: sm 320pt, md 375pt, lg 600pt, xl 1024pt. Web: sm 320pt, md 375pt, lg 1024pt, xl
+          1280pt.
+        </Text>
+      </Box>
+      <Box
+        direction="column"
+        gap={2}
+        lgDirection="row"
+        mdDirection="column"
+        smDirection="row"
+        testID="responsive-box-story"
+        xlDirection="column"
+      >
+        {["One", "Two", "Three"].map(
+          (label): React.ReactElement => (
+            <Box
+              alignItems="center"
+              color="secondaryLight"
+              justifyContent="center"
+              key={label}
+              padding={4}
+              rounding="rounded"
+            >
+              <Text bold>{label}</Text>
+            </Box>
+          )
+        )}
+      </Box>
     </StorybookContainer>
   );
 };

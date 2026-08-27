@@ -27,9 +27,11 @@ const RESYNC_SKIP_MESSAGES: Record<string, string> = {
 const RESOLVE_STRATEGIES: ConflictResolutionStrategy[] = ["useServer", "keepMine"];
 const RESOLVE_LABELS = ["Use the other version", "Keep my change"];
 
-/** Playwright chaos e2e dispatches this on window to restart the client after flaps.
- * Must stay mounted even when the visible Sync Lab panel is hidden (__DEV__ false). */
+/** Playwright chaos e2e: restart the sync client after connectivity flaps. */
 const E2E_FORCE_RECONNECT_EVENT = "syncdb-e2e-reconnect";
+
+/** Fired after stop()/start() finishes, success or failure. */
+const E2E_FORCE_RECONNECT_DONE_EVENT = "syncdb-e2e-reconnect-done";
 
 /**
  * Dev panel for exercising syncdb offline/reconnect/wipe flows and Sync Lab churn.
@@ -170,7 +172,9 @@ export const SyncDevPanel: React.FC = () => {
       return;
     }
     const onReconnect = (): void => {
-      void handleForceReconnect();
+      void handleForceReconnect().finally(() => {
+        window.dispatchEvent(new Event(E2E_FORCE_RECONNECT_DONE_EVENT));
+      });
     };
     window.addEventListener(E2E_FORCE_RECONNECT_EVENT, onReconnect);
     return () => {
