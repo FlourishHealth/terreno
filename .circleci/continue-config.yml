@@ -1014,7 +1014,8 @@ jobs:
           command: |
             set -euo pipefail
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb
+            sudo apt-get install -y --no-install-recommends \
+              openjdk-17-jre-headless xvfb xauth x11-utils
             # cimg browsers images do not ship a google-chrome binary.
             if ! command -v google-chrome > /dev/null 2>&1; then
               curl -fsSL -o /tmp/google-chrome.deb \
@@ -1160,6 +1161,24 @@ jobs:
               exit 1
             fi
       - run:
+          name: Start Xvfb display
+          background: true
+          command: Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp
+      - run:
+          name: Wait for Xvfb
+          command: |
+            set -euo pipefail
+            echo 'export DISPLAY=:99' >> "$BASH_ENV"
+            for i in $(seq 1 30); do
+              if xdpyinfo -display :99 > /dev/null 2>&1; then
+                echo "Xvfb ready after ${i}s"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "Xvfb did not start"
+            exit 1
+      - run:
           name: Run Maestro E2E tests
           no_output_timeout: 20m
           command: |
@@ -1167,9 +1186,9 @@ jobs:
             # shellcheck disable=SC1090
             source "$BASH_ENV"
             if [ "<< parameters.include-demo >>" = "true" ]; then
-              xvfb-run maestro test .maestro/flows/
+              maestro test .maestro/flows/
             else
-              xvfb-run maestro test \
+              maestro test \
                 .maestro/flows/login.yaml \
                 .maestro/flows/create-todo.yaml
             fi
