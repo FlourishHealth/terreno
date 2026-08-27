@@ -549,6 +549,11 @@ jobs:
             node .github/scripts/compile-workspace-deps.js api
             bun run --filter '@terreno/api' compile
       - run:
+          name: Compile UI coverage dependencies
+          command: |
+            node .github/scripts/compile-workspace-deps.js ui
+            bun run --filter '@terreno/ui' compile
+      - run:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
