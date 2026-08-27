@@ -63,6 +63,12 @@ parameters:
   run-new-file-coverage:
     type: boolean
     default: false
+  run-maestro:
+    type: boolean
+    default: false
+  run-maestro-demo:
+    type: boolean
+    default: false
   # Set only by setup continuation when the setup trigger `run-e2e-load` is true.
   # Different name from the setup parameter to avoid CircleCI continuation conflicts.
   e2e-load:
@@ -381,6 +387,17 @@ commands:
           command: |
             if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
               echo "Not a pull request build; skipping"
+              circleci step halt
+            fi
+
+  skip_if_fork_pull_request:
+    steps:
+      - run:
+          name: Skip fork pull requests
+          command: |
+            set -euo pipefail
+            if [ -n "${CIRCLE_PR_REPONAME:-}" ] || [ -n "${CIRCLE_PR_USERNAME:-}" ]; then
+              echo "Fork PR detected; skipping (secrets are not passed to forks)"
               circleci step halt
             fi
 
@@ -941,6 +958,212 @@ jobs:
               exit 1
             fi
 
+  # Trusted-base architectural review: checkout master (not the PR head) then
+  # fetch the PR via GitHub API. Matches GHA pull_request_target. Skip forks.
+  # Attach terreno-github-api + terreno-agentic once those contexts exist.
+  architectural-pr-review:
+    executor: node22
+    resource_class: medium
+    steps:
+      - skip_if_not_pull_request
+      - skip_if_fork_pull_request
+      - checkout
+      - run:
+          name: Reset to origin/master (trusted review scripts)
+          command: |
+            set -euo pipefail
+            git fetch origin master
+            git checkout --force origin/master
+      - install_bun_and_deps:
+          include-branch-in-cache-key: false
+      - run:
+          name: Install Cursor Agent CLI
+          command: |
+            set -euo pipefail
+            curl https://cursor.com/install -fsS | bash
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+      - run:
+          name: Run architectural review agent
+          no_output_timeout: 10m
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            if [ -z "${CURSOR_API_KEY:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
+              echo "CURSOR_API_KEY or GITHUB_TOKEN missing. Attach terreno-agentic and terreno-github-api to this job. Skipping."
+              circleci step halt
+            fi
+            bun .github/scripts/architectural-pr-review.ts || {
+              echo "Architectural review failed (non-blocking, matches GHA continue-on-error)"
+              exit 0
+            }
+
+  maestro-e2e:
+    executor: node22_browsers_mongo_rs
+    parameters:
+      include-demo:
+        type: boolean
+        default: false
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - init_mongo_replica
+      - resolve_e2e_secrets
+      - run:
+          name: Install Java 17 (Maestro)
+          command: |
+            set -euo pipefail
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb
+      - run:
+          name: Compile workspace
+          no_output_timeout: 15m
+          command: bun run compile
+      - when:
+          condition: << parameters.include-demo >>
+          steps:
+            - run:
+                name: Generate UI types
+                working_directory: ~/project/ui
+                command: bun run types
+            - run:
+                name: Export demo for web
+                working_directory: ~/project/demo
+                no_output_timeout: 15m
+                command: bun run export
+      - run:
+          name: Seed example-backend
+          working_directory: ~/project/example-backend
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            export AUTH_PROVIDER=better-auth
+            export BETTER_AUTH_URL=http://localhost:4000
+            export MONGO_URI="mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0"
+            export TOKEN_ISSUER=terreno-maestro-e2e
+            bun run seed
+      - run:
+          name: Start example-backend
+          working_directory: ~/project/example-backend
+          background: true
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            export AUTH_PROVIDER=better-auth
+            export BETTER_AUTH_URL=http://localhost:4000
+            export PORT=4000
+            export MONGO_URI="mongodb://127.0.0.1/terreno-maestro-e2e?replicaSet=rs0"
+            export TOKEN_ISSUER=terreno-maestro-e2e
+            export TOKEN_EXPIRES_IN=15m
+            export REFRESH_TOKEN_EXPIRES_IN=30d
+            bun run src/index.ts
+      - run:
+          name: Wait for backend health
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost:4000/health | grep -q '"healthy":true'; then
+                echo "backend healthy"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "backend failed to become healthy"
+            exit 1
+      - run:
+          name: Start example-frontend web
+          working_directory: ~/project/example-frontend
+          background: true
+          environment:
+            EXPO_PUBLIC_API_URL: http://localhost:4000
+            CI: "true"
+            EXPO_NO_TELEMETRY: "1"
+          command: bun expo start --web --port 8082
+      - run:
+          name: Wait for example-frontend
+          command: |
+            set -euo pipefail
+            for i in $(seq 1 90); do
+              if curl -sf http://localhost:8082 > /dev/null; then
+                curl -sf "http://localhost:8082/login" > /tmp/login.html 2>/dev/null || true
+                SIZE=$(wc -c < /tmp/login.html)
+                echo "Metro warm-up ${i}×3s — login HTML ${SIZE} bytes"
+                if [ "$SIZE" -gt 10000 ]; then
+                  echo "Example frontend bundle ready after ${i}×3s"
+                  exit 0
+                fi
+              fi
+              sleep 3
+            done
+            echo "Example frontend bundle did not become ready within 270s"
+            exit 1
+      - when:
+          condition: << parameters.include-demo >>
+          steps:
+            - run:
+                name: Serve demo static build
+                background: true
+                command: bunx serve demo/dist -l 8085
+            - run:
+                name: Wait for demo
+                command: |
+                  set -euo pipefail
+                  for i in $(seq 1 30); do
+                    curl -s http://localhost:8085/demo > /dev/null && exit 0
+                    sleep 2
+                  done
+                  echo "Demo failed to start"
+                  exit 1
+      - run:
+          name: Install Maestro
+          command: |
+            set -euo pipefail
+            curl -fsSL "https://get.maestro.mobile.dev" | bash
+            echo 'export PATH="$HOME/.maestro/bin:$PATH"' >> "$BASH_ENV"
+      - run:
+          name: Wrap Chrome for CI
+          command: |
+            set -euo pipefail
+            CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
+            sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
+            printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
+            sudo chmod 0755 "$CHROME_BIN"
+            "$CHROME_BIN" --version
+      - run:
+          name: Verify login API
+          command: |
+            set -euo pipefail
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/api/auth/sign-in/email \
+              -H "Content-Type: application/json" \
+              -d '{"email":"admin@example.com","password":"testpassword123"}')
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+            echo "HTTP Status: $HTTP_CODE"
+            echo "Response: $BODY"
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "Login API failed"
+              exit 1
+            fi
+      - run:
+          name: Run Maestro E2E tests
+          no_output_timeout: 20m
+          command: |
+            set -euo pipefail
+            # shellcheck disable=SC1090
+            source "$BASH_ENV"
+            if [ "<< parameters.include-demo >>" = "true" ]; then
+              xvfb-run maestro test .maestro/flows/
+            else
+              xvfb-run maestro test \
+                .maestro/flows/login.yaml \
+                .maestro/flows/create-todo.yaml
+            fi
+      - store_artifacts:
+          path: /home/circleci/.maestro/tests
+          destination: maestro-screenshots
+
   e2e-prepare:
     executor: node22
     resource_class: large
@@ -1292,17 +1515,20 @@ jobs:
               "$ZOOM_WEBHOOK_URL"
 
 workflows:
-  # Attach terreno-e2e / terreno-github-api in the CircleCI project once Phase 0
-  # contexts exist. Do not put GITHUB_TOKEN in project env vars (injected into
-  # every job). Missing named contexts fail the pipeline, so they are not
-  # hard-required in this file until created; then attach terreno-github-api
-  # only to dco:
+  # Attach terreno-e2e / terreno-github-api / terreno-agentic in the CircleCI
+  # project once Phase 0 contexts exist. Do not put GITHUB_TOKEN or
+  # CURSOR_API_KEY in project env vars (injected into every job). Missing named
+  # contexts fail the pipeline, so they are not hard-required in this file until
+  # created; then attach:
   #   - dco:
   #       context: [terreno-github-api]
+  #   - architectural-pr-review:
+  #       context: [terreno-github-api, terreno-agentic]
   always:
     jobs:
       - config-ok
       - dco
+      - architectural-pr-review
 
   rulesync:
     when: << pipeline.parameters.run-rulesync >>
@@ -1438,6 +1664,12 @@ workflows:
     when: << pipeline.parameters.run-admin-spa-integration >>
     jobs:
       - admin-spa-integration
+
+  maestro:
+    when: << pipeline.parameters.run-maestro >>
+    jobs:
+      - maestro-e2e:
+          include-demo: << pipeline.parameters.run-maestro-demo >>
 
   # Path-filter `run-circleci-config` is set for `.circleci/**`. On config-only
   # PRs, dual-run the documented representative slice (not every ported job).

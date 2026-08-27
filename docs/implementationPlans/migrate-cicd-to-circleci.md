@@ -199,10 +199,8 @@ are ported.
 
 ### Phase 8 — Mobile runners (post-v1 / still required for full cutover)
 
-- Maestro (`maestro-e2e`).
-- Appium Android on Linux VM.
-- Appium iOS on CircleCI macOS resource class (image pin parity with `macos-15` intent).
-- Then delete `demo-appium-ci.yml` / `maestro-e2e.yml`.
+- Maestro web/Chrome (`maestro-e2e`) is implemented on CircleCI Linux browsers + Mongo replica set. GHA `maestro-e2e.yml` is `on: []`.
+- Appium Android on Linux VM and Appium iOS on CircleCI macOS remain unported.
 
 ### Phase 9 — GitHub-native + agentic replacements (full cutover)
 
@@ -212,7 +210,8 @@ are ported.
 | `dependabot-auto-merge` | Keep Dependabot PRs on GitHub; auto-merge via CircleCI on Dependabot branches **or** Renovate on CircleCI |
 | `triage.yml` | CircleCI pipeline trigger on `issues` via GitHub Apps webhook → CircleCI API, or GitHub Action **stub** only if product accepts residual GHA (conflicts with CC1 — prefer webhook) |
 | `roadmap-generate` | Scheduled CircleCI job with `ROADMAP_PROJECT_TOKEN` |
-| `architectural-pr-review` | CircleCI job + `CURSOR_API_KEY` (lose `pull_request_target` free fork safety — use least privilege + fork policy) |
+| `architectural-pr-review` | Implemented: CircleCI job + `CURSOR_API_KEY` / `GITHUB_TOKEN`. Checks out `origin/master`, skips forks. GHA workflow is `on: []`. |
+| Cursor Approval / Security / Bugbot | **Cannot move.** Cursor GitHub App automations, not repo workflows. |
 | `agentics-maintenance` + `*.lock.yml` gh-aw | Re-home to CircleCI scheduled pipelines calling the same scripts **or** retire features; do not leave gh-aw as the only runner if CC1 holds |
 | `docs-audit` | Scheduled CircleCI job |
 

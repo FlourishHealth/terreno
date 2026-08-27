@@ -180,6 +180,15 @@ workflows:
             example-frontend/playwright\.config\.ts run-e2e true
             example-frontend/package\.json run-e2e true
             example-backend/src/.* run-e2e true
+            ui/.* run-maestro true
+            ui/.* run-maestro-demo true
+            demo/.* run-maestro true
+            demo/.* run-maestro-demo true
+            example-frontend/.* run-maestro true
+            example-backend/.* run-maestro true
+            rtk/.* run-maestro true
+            \.maestro/.* run-maestro true
+            \.maestro/flows/demo/.* run-maestro-demo true
             example-backend/src/.* run-admin-spa-integration true
             api/src/.* run-e2e true
             api/src/.* run-admin-spa-integration true

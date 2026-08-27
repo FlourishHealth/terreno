@@ -3,12 +3,14 @@
 CircleCI CI/CD source of truth. See
 [`docs/implementationPlans/migrate-cicd-to-circleci.md`](../implementationPlans/migrate-cicd-to-circleci.md).
 
-**Status:** CircleCI owns package CI, repo policies, Playwright e2e, Netlify
-production deploys, GCP production deploys, semver-tag npm releases, and manual
-preview/EAS/package operations. Matching GitHub workflows remain in-repo with
-`on: []` for rollback. GitHub-native security and repository automation remains
-enabled. EAS PR updates and the fingerprint gate are temporarily disabled;
-manual EAS development dispatch remains available in CircleCI.
+**Status:** CircleCI owns package CI, repo policies, Playwright e2e, Maestro web
+e2e, architectural PR review, Netlify production deploys, GCP production deploys,
+semver-tag npm releases, and manual preview/EAS/package operations. Matching
+GitHub workflows remain in-repo with `on: []` for rollback. GitHub-native
+security, Cursor GitHub App checks (Approval / Security / Bugbot), and
+repository automation remain enabled. EAS PR updates and the fingerprint gate
+are temporarily disabled; manual EAS development dispatch remains available in
+CircleCI.
 
 ## Project setup (maintainers)
 
@@ -54,17 +56,20 @@ restrict `terreno-release` and `terreno-npm` to tag/manual release pipelines.
 | `terreno-netlify` | `NETLIFY_AUTH_TOKEN`, three `NETLIFY_*_SITE_ID` values | Netlify deploys |
 | `terreno-expo` | `EXPO_TOKEN` | manual EAS workflows |
 | `terreno-gcp` | `GCP_WIF_PROVIDER_PROD`, `GCP_TF_ADMIN_SA_PROD`, `GCP_CD_DEPLOYER_SA_PROD`, optional `GCP_INFRA_MANAGER_LOCATION`, `MCP_SENTRY_DSN` | GCP CD + cleanup |
-| `terreno-e2e` | `E2E_TOKEN_SECRET`, `E2E_REFRESH_TOKEN_SECRET`, `E2E_SESSION_SECRET` | `e2e`, `admin-spa-integration` |
+| `terreno-e2e` | `E2E_TOKEN_SECRET`, `E2E_REFRESH_TOKEN_SECRET`, `E2E_SESSION_SECRET` | `e2e`, `admin-spa-integration`, `maestro-e2e` |
 | `terreno-release` | `REPO_ADMIN_TOKEN`, `ZOOM_WEBHOOK_URL`, `ZOOM_WEBHOOK_TOKEN` | stable version bump + release notification |
-| `terreno-agentic` | `CURSOR_API_KEY` | agentic replacements (deferred) |
-| `terreno-github-api` | PAT (`pull-requests`, `contents`, …) | `dco`, PR comments later |
+| `terreno-agentic` | `CURSOR_API_KEY`, optional `CURSOR_MODEL` | `architectural-pr-review` |
+| `terreno-github-api` | PAT (`pull-requests`, `contents`, …) | `dco`, `architectural-pr-review` |
 
 Until contexts exist, e2e jobs may use **project env vars for `E2E_*` secrets only**
 (or the in-job `ci-e2e-*-secret` fallbacks). **Do not** put `GITHUB_TOKEN` (or any
 GitHub PAT) in project env vars — those are injected into every job, including
 `bun` scripts from the PR. Create `terreno-github-api`, restrict it to this
 project, leave fork-PR secret passing off, and attach that context **only** to
-`dco` (and later comment jobs). DCO skips if `GITHUB_TOKEN` is unset.
+`dco` and `architectural-pr-review`. DCO skips if `GITHUB_TOKEN` is unset.
+`architectural-pr-review` also skips if `GITHUB_TOKEN` or `CURSOR_API_KEY` is
+unset, and it skips fork PRs. The job checks out `origin/master` before running
+the review script so a PR cannot rewrite the reviewer.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id` and `circleci_project_id` in
@@ -106,6 +111,8 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | _(new)_ CircleCI path-filter parity | `circleci-parity` |
 | _(smoke)_ | `config-ok` |
 | _(e2e compile+export once)_ | `e2e-prepare` |
+| Architectural PR review | `architectural-pr-review` (non-blocking; skip forks / missing secrets) |
+| Maestro E2E Tests | `maestro-e2e` (`include-demo` when ui/demo Maestro flows change) |
 | Changelog fragments | `changelog-fragments` |
 | New file coverage | `new-file-coverage` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
@@ -123,7 +130,7 @@ CD replacement map:
 | Preview cleanup (`preview-cleanup.yml`) | CircleCI manual `run-preview-cleanup` |
 | Netlify demo / frontend / docs deploys | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
 | Publish on tag (`publish-on-tag.yml`) | `publish-release` |
-| Appium / Maestro | `appium-android`, `appium-ios`, `maestro` (Phase 8) |
+| Appium Android / iOS | Not ported (Maestro web is `maestro-e2e`) |
 
 ## Manual pipelines
 
@@ -193,11 +200,24 @@ Migrated workflow files are retained with `on: []` for rollback. To roll one
 back, restore its original trigger block and disable the matching CircleCI
 workflow in the same change. Never enable both npm tag publishers.
 
+## Cursor GitHub App checks
+
+Do not try to run these on CircleCI. They are Cursor-hosted GitHub App
+automations (dashboard / GitHub App), not workflow files in this repo:
+
+| Check | Why it stays on GitHub |
+| --- | --- |
+| Cursor Approval Agent: Pull Request Approver | Cursor cloud agent; posts its own GitHub check |
+| Cursor Security Agent: Security Reviewer | Same Cursor GitHub App path |
+| Cursor Bugbot | Same Cursor GitHub App path |
+
+The in-repo architectural reviewer (`cursor-agent` CLI +
+`.github/scripts/architectural-pr-review.ts`) is the job that *can* move, and it
+now runs on CircleCI.
+
 ## Not in this phase
 
-- Appium / Maestro
-- CodeQL, Dependabot auto-merge, triage, gh-aw agentics
-- EAS PR updates and fingerprint acknowledgement (still GitHub-native)
-
-Do not disable the remaining GitHub-native workflows until CircleCI replacements
-exist.
+- Appium (Android emulator / iOS simulator)
+- CodeQL, Dependabot auto-merge, triage, gh-aw lockfile agentics
+- EAS PR updates and fingerprint acknowledgement
+- Cursor Approval / Security / Bugbot GitHub App checks
