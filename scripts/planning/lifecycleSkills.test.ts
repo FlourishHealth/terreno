@@ -44,15 +44,16 @@ describe("lifecycle skill architecture", (): void => {
     assert.equal(cursorPlugin.description, claudePlugin.description);
     assert.equal(claudePlugin.skills, "./skills/");
     assert.equal(claudeMarketplace.name, "terreno");
-    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno-planning");
+    assert.equal(claudePlugin.name, "terreno");
+    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno");
     assert.equal(claudeMarketplace.plugins[0]?.source, "./plugins/terreno-planning");
   });
 
   it("rejects an unbounded Taste wait loop", (): void => {
     const errors = validateStageContent({
-      content: `${readStage("terreno-5-taste")}\nKeep the loop active until all CI is green.`,
+      content: `${readStage("5-taste")}\nKeep the loop active until all CI is green.`,
       definition: {
-        directory: "terreno-5-taste",
+        directory: "5-taste",
         nextMarkers: ["next: taste", "next: null"],
         stage: "taste",
       },
@@ -63,12 +64,12 @@ describe("lifecycle skill architecture", (): void => {
 
   it("rejects Taste without a no-push emit path", (): void => {
     const errors = validateStageContent({
-      content: readStage("terreno-5-taste").replace(
+      content: readStage("5-taste").replace(
         "If step 8 did not push",
         "After step 8 pushed"
       ),
       definition: {
-        directory: "terreno-5-taste",
+        directory: "5-taste",
         nextMarkers: ["next: taste", "next: null"],
         stage: "taste",
       },
@@ -78,13 +79,13 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects Brew that exits while review bots are running", (): void => {
-    const content = readStage("terreno-4-brew")
+    const content = readStage("4-brew")
       .replace("../../references/async-review-bots.md", "missing-bots")
       .replaceAll("Do not exit while", "Exit immediately while");
     const errors = validateStageContent({
       content,
       definition: {
-        directory: "terreno-4-brew",
+        directory: "4-brew",
         nextMarkers: ["next: taste"],
         stage: "brew",
       },
@@ -96,9 +97,9 @@ describe("lifecycle skill architecture", (): void => {
 
   it("rejects same-invocation Brew to Taste execution", (): void => {
     const errors = validateStageContent({
-      content: `${readStage("terreno-4-brew")}\nExecute Taste procedure now.`,
+      content: `${readStage("4-brew")}\nExecute Taste procedure now.`,
       definition: {
-        directory: "terreno-4-brew",
+        directory: "4-brew",
         nextMarkers: ["next: taste"],
         stage: "brew",
       },
@@ -109,9 +110,9 @@ describe("lifecycle skill architecture", (): void => {
 
   it("rejects repository-specific commands in portable stages", (): void => {
     const errors = validateStageContent({
-      content: `${readStage("terreno-2-pick")}\nRun bun run lint.`,
+      content: `${readStage("2-pick")}\nRun bun run lint.`,
       definition: {
-        directory: "terreno-2-pick",
+        directory: "2-pick",
         nextMarkers: ["next: roast"],
         stage: "pick",
       },
@@ -121,14 +122,14 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects a missing non-pass transition marker", (): void => {
-    const content = readStage("terreno-1-grow").replace(
+    const content = readStage("1-grow").replace(
       "next: grow",
       "missing-grow-retry"
     );
     const errors = validateStageContent({
       content,
       definition: {
-        directory: "terreno-1-grow",
+        directory: "1-grow",
         nextMarkers: ["next: pick", "next: grow"],
         stage: "grow",
       },
@@ -159,14 +160,14 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects a stage that does not load the documentation contract", (): void => {
-    const content = readStage("terreno-2-pick").replace(
+    const content = readStage("2-pick").replace(
       "../../references/documentation-contract.md",
       "missing-docs-contract"
     );
     const errors = validateStageContent({
       content,
       definition: {
-        directory: "terreno-2-pick",
+        directory: "2-pick",
         nextMarkers: ["next: roast"],
         stage: "pick",
       },
@@ -176,13 +177,13 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects Grow that skips grilling or the Decisions table", (): void => {
-    const content = readStage("terreno-1-grow")
+    const content = readStage("1-grow")
       .replace("references/grilling.md", "missing-grilling")
       .replace("Decisions table", "compressed one-liner");
     const errors = validateStageContent({
       content,
       definition: {
-        directory: "terreno-1-grow",
+        directory: "1-grow",
         nextMarkers: ["next: pick", "next: grow", "next: null"],
         stage: "grow",
       },

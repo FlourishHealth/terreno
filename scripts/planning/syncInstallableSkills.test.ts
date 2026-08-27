@@ -33,7 +33,7 @@ describe("installable skills sync", (): void => {
         "from-rulesync\n"
       );
       writeFile(
-        join(fixtureRoot, "plugins/terreno-planning/skills/terreno-1-grow/SKILL.md"),
+        join(fixtureRoot, "plugins/terreno-planning/skills/1-grow/SKILL.md"),
         "Read [lifecycle](../../references/lifecycle-contract.md)\n"
       );
       writeFile(
@@ -53,12 +53,12 @@ describe("installable skills sync", (): void => {
         "from-package\n"
       );
       assert.equal(
-        readFileSync(join(destination, "terreno-1-grow/SKILL.md"), "utf8"),
+        readFileSync(join(destination, "1-grow/SKILL.md"), "utf8"),
         "Read [lifecycle](references/lifecycle-contract.md)\n"
       );
       assert.equal(
         readFileSync(
-          join(destination, "terreno-1-grow/references/lifecycle-contract.md"),
+          join(destination, "1-grow/references/lifecycle-contract.md"),
           "utf8"
         ),
         "lifecycle\n"
@@ -73,7 +73,7 @@ describe("installable skills sync", (): void => {
   });
 
   it("rejects an ungrouped installable skill", (): void => {
-    const errors = validateSkillGroupings(["terreno-1-grow", "mystery-skill"]);
+    const errors = validateSkillGroupings(["1-grow", "mystery-skill"]);
     assert.isTrue(errors.some((error) => error.includes("mystery-skill")));
   });
 });

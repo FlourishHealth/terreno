@@ -1,5 +1,5 @@
 ---
-name: terreno-1-grow
+name: 1-grow
 description: Research, clarify, shape, and approve an implementation-ready IP and task list. Use for planning substantial work or revising an existing plan; not for implementation or PR operations.
 disable-model-invocation: true
 ---

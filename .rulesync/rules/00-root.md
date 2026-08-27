@@ -63,7 +63,8 @@ architectural change fails the slice. Install the published skill set with
 `bun run skills:sync`. Install the same five stages as a Cursor plugin from
 `.cursor-plugin/marketplace.json`, or as a Claude Code plugin with
 `/plugin marketplace add FlourishHealth/terreno` then
-`/plugin install terreno-planning@terreno`.
+`/plugin install terreno@terreno`. Invoke Grow with `/terreno:1-grow` (Claude Code)
+or `/1-grow` (Cursor).
 
 ## Development
 

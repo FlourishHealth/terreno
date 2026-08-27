@@ -4,7 +4,7 @@ Install Terreno's agent skills into another repo or agent with the skills CLI.
 
 ```bash
 npx skills add FlourishHealth/terreno
-npx skills add FlourishHealth/terreno --skill terreno-1-grow
+npx skills add FlourishHealth/terreno --skill 1-grow
 ```
 
 That copies the committed `skills/` tree: lifecycle stages (Grow, Pick, Roast, Brew,
@@ -12,29 +12,29 @@ Taste), repository skills, and published package skills.
 
 ## Install as a host plugin
 
-The same lifecycle stages ship as `terreno-planning` for Cursor and Claude Code.
+The same lifecycle stages ship as the `terreno` plugin for Cursor and Claude Code.
 Skills live once under `plugins/terreno-planning/skills/`.
 
 ### Cursor
 
-Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then invoke `/terreno-1-grow`.
+Install `terreno` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then invoke `/1-grow`.
 
 ### Claude Code
 
 ```text
 /plugin marketplace add FlourishHealth/terreno
-/plugin install terreno-planning@terreno
-/terreno-planning:terreno-1-grow
+/plugin install terreno@terreno
+/terreno:1-grow
 ```
 
-Claude Code namespaces plugin skills as `/terreno-planning:<skill>`. Marketplace:
+Claude Code namespaces plugin skills as `/terreno:<skill>`. Marketplace:
 [`.claude-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.claude-plugin/marketplace.json).
 
 ## What you get
 
 | Group | Skills |
 | --- | --- |
-| Lifecycle | `terreno-1-grow` … `terreno-5-taste` |
+| Lifecycle | `1-grow` … `5-taste` |
 | Terreno apps | backend, UI, data, schema, SDK |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
 | GitHub | commit, PR, review, verify, release, deploy |

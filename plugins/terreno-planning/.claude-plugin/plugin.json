@@ -1,8 +1,8 @@
 {
-  "name": "terreno-planning",
-  "displayName": "Terreno Planning",
+  "name": "terreno",
+  "displayName": "Terreno",
   "description": "Five bounded loop-engineering transitions: Grow shapes, Pick builds, Roast proves, Brew submits after a review-bot wait, and Taste reacts to current PR state after waiting for Bugbot/CodeQL.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"

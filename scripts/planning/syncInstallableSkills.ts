@@ -36,11 +36,11 @@ export const SKILL_GROUPS: SkillGroup[] = [
     title: "Lifecycle",
     description: "Bounded Grow → Pick → Roast → Brew → Taste transitions. Brew/Taste wait for review bots.",
     skills: [
-      "terreno-1-grow",
-      "terreno-2-pick",
-      "terreno-3-roast",
-      "terreno-4-brew",
-      "terreno-5-taste",
+      "1-grow",
+      "2-pick",
+      "3-roast",
+      "4-brew",
+      "5-taste",
     ],
   },
   {
@@ -124,7 +124,7 @@ Install from GitHub with the skills CLI:
 
 \`\`\`bash
 npx skills add FlourishHealth/terreno
-npx skills add FlourishHealth/terreno --skill terreno-1-grow
+npx skills add FlourishHealth/terreno --skill 1-grow
 \`\`\`
 
 This directory is generated. Canonical sources:
