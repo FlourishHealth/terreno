@@ -1,40 +1,32 @@
-import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
-import React from "react";
-
-let markdownOnLoad: (() => void) | undefined;
-
-mock.module("./MarkdownView", () => ({
-  MarkdownView: ({children, onLoad}: {children?: React.ReactNode; onLoad?: () => void}) => {
-    markdownOnLoad = onLoad;
-    return <>{children}</>;
-  },
-}));
+import {describe, it} from "bun:test";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {assert} from "chai";
 
 const {ConsentFormScreen} = await import("./ConsentFormScreen");
 const {renderWithTheme} = await import("./test-utils");
 
+const form = {
+  active: true,
+  agreeButtonText: "I agree",
+  allowDecline: false,
+  captureSignature: false,
+  checkboxes: [],
+  content: {en: "Consent body"},
+  declineButtonText: "Decline",
+  defaultLocale: "en",
+  id: "consent-1",
+  order: 0,
+  required: true,
+  requireScrollToBottom: true,
+  slug: "consent",
+  title: "Consent",
+  type: "tos" as const,
+  version: 1,
+};
+
 describe("ConsentFormScreen markdown load gate", () => {
-  it("does not auto-satisfy scroll while markdown onLoad has not fired", () => {
-    const form = {
-      active: true,
-      agreeButtonText: "I agree",
-      allowDecline: false,
-      captureSignature: false,
-      checkboxes: [],
-      content: {en: "Consent body"},
-      declineButtonText: "Decline",
-      defaultLocale: "en",
-      id: "consent-1",
-      order: 0,
-      required: true,
-      requireScrollToBottom: true,
-      slug: "consent",
-      title: "Consent",
-      type: "tos" as const,
-      version: 1,
-    };
-    const {getByTestId} = renderWithTheme(
+  it("keeps scrolling required through pre-load measurements and later content growth", async () => {
+    const {getByTestId, getByText} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
     const scroll = getByTestId("consent-form-scroll-view");
@@ -44,32 +36,8 @@ describe("ConsentFormScreen markdown load gate", () => {
     act(() => {
       fireEvent(scroll, "contentSizeChange", 0, 400);
     });
-    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
-  });
+    assert.isOk(getByTestId("consent-form-scroll-hint"));
 
-  it("ignores pre-load bottom scroll after markdown grows", () => {
-    const form = {
-      active: true,
-      agreeButtonText: "I agree",
-      allowDecline: false,
-      captureSignature: false,
-      checkboxes: [],
-      content: {en: "Consent body"},
-      declineButtonText: "Decline",
-      defaultLocale: "en",
-      id: "consent-1",
-      order: 0,
-      required: true,
-      requireScrollToBottom: true,
-      slug: "consent",
-      title: "Consent",
-      type: "tos" as const,
-      version: 1,
-    };
-    const {getByTestId} = renderWithTheme(
-      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
-    );
-    const scroll = getByTestId("consent-form-scroll-view");
     act(() => {
       fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
       fireEvent(scroll, "scroll", {
@@ -79,9 +47,13 @@ describe("ConsentFormScreen markdown load gate", () => {
           layoutMeasurement: {height: 500},
         },
       });
-      markdownOnLoad?.();
+    });
+    await waitFor(() => {
+      assert.isOk(getByText("Consent body"));
+    });
+    act(() => {
       fireEvent(scroll, "contentSizeChange", 0, 2000);
     });
-    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
+    assert.isOk(getByTestId("consent-form-scroll-hint"));
   });
 });
