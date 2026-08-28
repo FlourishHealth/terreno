@@ -55,7 +55,7 @@ const OpenFeatureBridge: FC<{
   return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
 };
 
-const PushTokenRegistrar: React.FC = () => {
+const PushTokenRegistrar: FC = () => {
   const [postToken] = usePostCommsPushTokensMutation();
 
   const register = useCallback(async (): Promise<void> => {
@@ -69,7 +69,7 @@ const PushTokenRegistrar: React.FC = () => {
   }, [postToken]);
 
   // Register the current device token once the session is available. Web has no Expo
-  // push token, so registerExpoPushToken no-ops there without hitting the API.
+  // push token, so registerExpoPushTokenSafely no-ops there without hitting the API.
   useEffect(() => {
     void register();
   }, [register]);

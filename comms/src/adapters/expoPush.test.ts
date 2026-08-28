@@ -315,6 +315,50 @@ describe("ExpoPushProvider", () => {
     assert.equal(result?.errorCode, "expo-send-throw");
     assert.equal(result?.error, "network down");
   });
+
+  it("accepts ExpoPushToken tokens via the default validator", async (): Promise<void> => {
+    const client = createMockClient({tickets: [{id: "ticket-expo", status: "ok"}]});
+    const [result] = await new ExpoPushProvider({client}).sendPush({
+      body: "Hello",
+      title: "Ping",
+      tokens: ["ExpoPushToken[native]"],
+    });
+    assert.isTrue(result?.accepted);
+    assert.equal(result?.providerMessageId, "ticket-expo");
+  });
+
+  it("loads expo-server-sdk or explains the missing peer when no client is injected", (): void => {
+    try {
+      const provider = new ExpoPushProvider({accessToken: "expo-test-token"});
+      assert.equal(provider.id, "expo");
+    } catch (error: unknown) {
+      assert.include(String(error), "expo-server-sdk");
+    }
+  });
+
+  it("schedules receipt polling with setTimeout when no scheduler is injected", async (): Promise<void> => {
+    const client = createMockClient({
+      receipts: {"ticket-timeout": {status: "ok"}},
+      tickets: [{id: "ticket-timeout", status: "ok"}],
+    });
+    const events: DeliveryEvent[] = [];
+    const provider = new ExpoPushProvider({
+      client,
+      onDeliveryEvent: async (event: DeliveryEvent): Promise<void> => {
+        events.push(event);
+      },
+      receiptPollDelayMs: 1,
+    });
+    await provider.sendPush({
+      body: "Hello",
+      title: "Ping",
+      tokens: [validToken("timeout")],
+    });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 25);
+    });
+    assert.equal(events[0]?.status, "delivered");
+  });
 });
 
 describe("ExpoPushProvider receipts", () => {
