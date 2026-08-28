@@ -3,6 +3,7 @@ import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, {type FC, type ReactNode, useCallback, useEffect, useState} from "react";
+import {Platform} from "react-native";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
@@ -30,15 +31,16 @@ import {
 } from "@terreno/ui";
 import {Provider, useSelector} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {PushTokenRegistrar} from "@/components/PushTokenRegistrar";
 import {SyncConflictsProvider} from "@/components/SyncConflictsController";
 import {SyncHealthToast} from "@/components/SyncHealthToast";
 import {SyncLabRuntime} from "@/components/SyncLabRuntime";
 import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store/index";
-import {terrenoApi, useGetMeQuery} from "@/store/sdk";
+import {registerExpoPushTokenSafely} from "@/store/registerExpoPushToken";
+import {terrenoApi, useGetMeQuery, usePostCommsPushTokensMutation} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
+import {getCurrentExpoToken} from "@/store/utils";
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
@@ -51,6 +53,28 @@ const OpenFeatureBridge: FC<{
     userId: bridgeUserId,
   });
   return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
+};
+
+const PushTokenRegistrar: React.FC = () => {
+  const [postToken] = usePostCommsPushTokensMutation();
+
+  const register = useCallback(async (): Promise<void> => {
+    await registerExpoPushTokenSafely({
+      getToken: getCurrentExpoToken,
+      platform: Platform.OS,
+      postToken: async (body) => {
+        await postToken(body).unwrap();
+      },
+    });
+  }, [postToken]);
+
+  // Register the current device token once the session is available. Web has no Expo
+  // push token, so registerExpoPushToken no-ops there without hitting the API.
+  useEffect(() => {
+    void register();
+  }, [register]);
+
+  return null;
 };
 
 export {ErrorBoundary} from "expo-router";

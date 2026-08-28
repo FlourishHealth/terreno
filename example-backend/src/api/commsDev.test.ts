@@ -1,5 +1,3 @@
-// noExplicitAny: test server/model bridging mirrors loadtest.test.ts and server.ts
-// biome-ignore-all lint/suspicious/noExplicitAny: test server/model bridging mirrors loadtest.test.ts
 import {beforeEach, describe, it} from "bun:test";
 import {
   generateTokens,
@@ -54,7 +52,7 @@ describe("dev comms test-push route", () => {
         }),
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as never,
     })
       .register(
         new CommsApp({
@@ -74,7 +72,7 @@ describe("dev comms test-push route", () => {
 
   const createUser = async (email: string): Promise<{_id: UserDocument["_id"]}> => {
     return UserModel.register(
-      {admin: false, email, name: email} as any,
+      {admin: false, email, name: email} as never,
       "password12345"
     ) as unknown as Promise<{
       _id: UserDocument["_id"];
@@ -82,7 +80,7 @@ describe("dev comms test-push route", () => {
   };
 
   const tokenFor = async (user: {_id: UserDocument["_id"]}): Promise<string> => {
-    const {token} = await generateTokens(user as any);
+    const {token} = await generateTokens(user as never);
     if (!token) {
       throw new Error("Failed to generate a token for test user");
     }

@@ -65,8 +65,7 @@ test.describe("Profile", () => {
   });
 
   test("feature flags card renders", async ({page}) => {
-    await expect(page.getByTestId("profile-test-push-card").first()).toBeVisible();
-    await expect(page.getByTestId("profile-test-push-button").first()).toBeVisible();
+    await expect(page.getByTestId("profile-feature-flags-card").first()).toBeVisible();
   });
 
   test("logout redirects to login", async ({page}) => {

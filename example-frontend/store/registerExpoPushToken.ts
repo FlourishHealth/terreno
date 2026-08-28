@@ -20,3 +20,14 @@ export const registerExpoPushToken = async ({
   await postToken({platform: mappedPlatform, token: token.data});
   return "registered";
 };
+
+export const registerExpoPushTokenSafely = async (
+  input: RegisterExpoPushTokenInput
+): Promise<"registered" | "skipped"> => {
+  try {
+    return await registerExpoPushToken(input);
+  } catch (error: unknown) {
+    console.warn("[comms] Failed to register Expo push token", error);
+    return "skipped";
+  }
+};

@@ -1,11 +1,13 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
+import {join} from "node:path";
 
 import {parseLcov} from "./check-coverage";
 import {
   bunTestFileArgs,
   coverageRunArgs,
   evaluateNewFileCoverage,
+  expandCoverageFileArgs,
   groupFilesByWorkspace,
   isCoverageSourceFile,
   parseNewFileCoverageArgs,
@@ -163,5 +165,23 @@ describe("coverageRunArgs", () => {
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1", "src"]
     );
+  });
+});
+
+describe("expandCoverageFileArgs", () => {
+  it("omits globs that match no files", () => {
+    const expanded = expandCoverageFileArgs(
+      ["./**/*.test.ts", "./**/*.test.tsx"],
+      join(import.meta.dir, "..", "example-frontend")
+    );
+    assert.include(expanded, "./store/registerExpoPushToken.test.ts");
+    assert.isFalse(expanded.some((path) => path.endsWith(".test.tsx")));
+  });
+
+  it("preserves bun flags and non-glob paths", () => {
+    assert.deepEqual(expandCoverageFileArgs(["--max-concurrency=1", "src"], import.meta.dir), [
+      "--max-concurrency=1",
+      "src",
+    ]);
   });
 });
