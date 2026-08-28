@@ -26,7 +26,7 @@ const form = {
 
 describe("ConsentFormScreen markdown load gate", () => {
   it("keeps scrolling required through pre-load measurements and later content growth", async () => {
-    const {getByTestId, getByText} = renderWithTheme(
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
     const scroll = getByTestId("consent-form-scroll-view");
@@ -48,9 +48,16 @@ describe("ConsentFormScreen markdown load gate", () => {
         },
       });
     });
+    assert.isOk(getByTestId("consent-form-scroll-hint"));
+
     await waitFor(() => {
       assert.isOk(getByText("Consent body"));
     });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 400);
+    });
+    assert.isNull(queryByTestId("consent-form-scroll-hint"));
+
     act(() => {
       fireEvent(scroll, "contentSizeChange", 0, 2000);
     });
