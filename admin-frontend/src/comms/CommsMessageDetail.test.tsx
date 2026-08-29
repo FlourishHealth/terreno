@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
@@ -16,13 +15,14 @@ mock.module("../AdminRefField", () => ({
 }));
 
 interface DetailState {
-  data?: {data: Record<string, unknown>};
+  /** Either the `{data}` envelope or the row Better Auth unwraps it into. */
+  data?: Record<string, unknown>;
   error?: unknown;
   isLoading: boolean;
 }
 
 const detailState: DetailState = {isLoading: false};
-const retryImpl = mock(async () => ({data: {_id: "new-row"}}));
+let retryImpl = mock(async () => ({data: {_id: "new-row"}}) as unknown);
 
 mock.module("./useCommsDashboardApi", () => ({
   useCommsDashboardApi: () => ({
@@ -39,7 +39,7 @@ describe("CommsMessageDetail", () => {
     detailState.error = undefined;
     detailState.isLoading = false;
     pushMock.mockClear();
-    retryImpl.mockClear();
+    retryImpl = mock(async () => ({data: {_id: "new-row"}}) as unknown);
   });
 
   it("renders loading and error states", () => {
@@ -94,12 +94,109 @@ describe("CommsMessageDetail", () => {
       retryable: true,
       status: "failed",
       to: "a***@example.com",
-    } as any;
+    };
     const {getByTestId} = renderWithTheme(
       <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
     );
     expect(getByTestId("comms-detail-retry")).toBeTruthy();
     expect(getByTestId("comms-attempt-0")).toBeTruthy();
+  });
+
+  it("reports a missing message rather than an empty shell", () => {
+    detailState.data = undefined;
+    const {getByTestId} = renderWithTheme(
+      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+    );
+    expect(getByTestId("comms-detail-empty")).toBeTruthy();
+  });
+
+  it("links the retry chain, the user, and the provider console", async () => {
+    detailState.data = {
+      _id: "m2",
+      attempts: [
+        {
+          at: "not-a-timestamp",
+          provider: "sendgrid",
+          providerMessageId: "sg-9",
+        },
+        {provider: "sendgrid"},
+      ],
+      channel: "mail",
+      metadata: {consoleUrl: "https://sendgrid.example/activity/sg-9"},
+      provider: "sendgrid",
+      retriedById: "m3",
+      retriedFromId: "m0",
+      retryable: false,
+      status: "bounced",
+      to: "a***@example.com",
+      userId: "user-1",
+    };
+    const {getByTestId} = renderWithTheme(
+      <CommsMessageDetail api={{} as AdminApi} messageId="m2" routeBase="/admin" />
+    );
+
+    // An unparseable attempt timestamp is shown verbatim instead of crashing the timeline.
+    expect(getByTestId("comms-attempt-0-console")).toBeTruthy();
+    expect(getByTestId("comms-detail-user")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-detail-retried-from"));
+    });
+    expect(String(pushMock.mock.calls.at(-1)?.[0])).toBe("/admin/comms/m0");
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-detail-retried-by"));
+    });
+    expect(String(pushMock.mock.calls.at(-1)?.[0])).toBe("/admin/comms/m3");
+  });
+
+  it("surfaces a rejected retry without navigating", async () => {
+    detailState.data = {
+      _id: "m1",
+      channel: "mail",
+      provider: "sendgrid",
+      retryable: true,
+      status: "failed",
+      to: "a***@example.com",
+    };
+    retryImpl = mock(async () => {
+      throw {status: 400, title: "Retained payload is missing or expired"};
+    });
+    const {getAllByText, getByTestId} = renderWithTheme(
+      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-detail-retry"));
+    });
+    await act(async () => {
+      const confirms = getAllByText("Confirm");
+      fireEvent.press(confirms[confirms.length - 1]);
+    });
+    expect(retryImpl).toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("treats a retry response without a row as a failure", async () => {
+    detailState.data = {
+      _id: "m1",
+      channel: "mail",
+      provider: "sendgrid",
+      retryable: true,
+      status: "failed",
+      to: "a***@example.com",
+    };
+    retryImpl = mock(async () => ({}) as unknown);
+    const {getAllByText, getByTestId} = renderWithTheme(
+      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-detail-retry"));
+    });
+    await act(async () => {
+      const confirms = getAllByText("Confirm");
+      fireEvent.press(confirms[confirms.length - 1]);
+    });
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it("navigates to the new row after a confirmed retry", async () => {

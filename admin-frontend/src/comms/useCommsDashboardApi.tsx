@@ -2,38 +2,9 @@ import {useMemo} from "react";
 import {asDynamicHookApi} from "../dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "../types";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
+import type {CommsMessageRow} from "./commsMessagePayload";
 
-export interface CommsMessageRow {
-  _id?: string;
-  id?: string;
-  attempts?: Array<{
-    at?: string;
-    error?: string;
-    errorClass?: string;
-    errorCode?: string;
-    provider?: string;
-    providerMessageId?: string;
-  }>;
-  attemptCount?: number;
-  channel: string;
-  created?: string;
-  error?: string;
-  errorClass?: string;
-  errorCode?: string;
-  metadata?: Record<string, unknown>;
-  payload?: unknown;
-  provider: string;
-  retriedById?: string;
-  retriedFromId?: string;
-  retryDisabledReason?: string;
-  retryable?: boolean;
-  retries?: CommsMessageRow[];
-  status: string;
-  subject?: string;
-  templateId?: string;
-  to: string;
-  userId?: string;
-}
+export type {CommsMessageAttempt, CommsMessageRow} from "./commsMessagePayload";
 
 export interface CommsListResponse {
   data: CommsMessageRow[];
@@ -75,30 +46,6 @@ const DETAIL_KEY = "commsDashboardDetail";
 const STATS_KEY = "commsDashboardStats";
 const RETRY_KEY = "commsDashboardRetry";
 const RETRY_MANY_KEY = "commsDashboardRetryMany";
-
-/**
- * Better Auth `fetchBaseQuery` unwraps `{data}` envelopes unless `more` is present.
- * Detail and retry therefore yield the row itself; list keeps `{data, more, page, total}`.
- */
-export const unwrapCommsMessage = (payload: unknown): CommsMessageRow | undefined => {
-  if (!payload || typeof payload !== "object") {
-    return undefined;
-  }
-  const record = payload as Record<string, unknown>;
-  if (record.data && typeof record.data === "object" && !Array.isArray(record.data)) {
-    return unwrapCommsMessage(record.data);
-  }
-  const raw = record._id ?? record.id;
-  const id = typeof raw === "string" ? raw : raw != null ? String(raw) : "";
-  if (typeof id !== "string" || id.length === 0) {
-    return undefined;
-  }
-  return {...record, _id: id} as CommsMessageRow;
-};
-
-export const commsMessageId = (row: CommsMessageRow): string => {
-  return row._id ?? row.id ?? "";
-};
 
 export const useCommsDashboardApi = (api: AdminApi) => {
   const enhancedApi = useMemo(

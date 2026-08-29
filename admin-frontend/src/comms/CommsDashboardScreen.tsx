@@ -23,14 +23,9 @@ import type {AdminApi} from "../types";
 import {CommsStatCard} from "./CommsStatCard";
 import {CommsStatusBadge} from "./CommsStatusBadge";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
+import {type CommsMessageRow, commsMessageId, unwrapCommsMessage} from "./commsMessagePayload";
 import {summarizeSkippedReasons} from "./commsRetrySummary";
-import {
-  type CommsMessageRow,
-  type CommsStatsResponse,
-  commsMessageId,
-  unwrapCommsMessage,
-  useCommsDashboardApi,
-} from "./useCommsDashboardApi";
+import {type CommsStatsResponse, useCommsDashboardApi} from "./useCommsDashboardApi";
 
 const LIST_LIMIT = 20;
 const RETRY_MANY_CAP = 100;
@@ -186,14 +181,16 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
   );
   const confirmationCount = Math.min(RETRY_MANY_CAP, total);
 
-  const setFilter = useCallback(
-    (key: keyof CommsDashboardFilters, value: string): void => {
-      onFiltersChange({
-        ...filters,
-        page: 1,
-        [key]: value || undefined,
-      });
-    },
+  /** One handler shape for every filter control; changing a filter resets to page 1. */
+  const filterSetter = useCallback(
+    (key: keyof CommsDashboardFilters) =>
+      (value: string): void => {
+        onFiltersChange({
+          ...filters,
+          page: 1,
+          [key]: value || undefined,
+        });
+      },
     [filters, onFiltersChange]
   );
 
@@ -254,7 +251,8 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
       {
         value: {
           onOpen: () => openMessage(commsMessageId(row)),
-          onRetry: row.retryable ? () => handleRetry(commsMessageId(row)) : undefined,
+          // Always supplied; `disabled` is what stops a non-retryable row from firing it.
+          onRetry: () => handleRetry(commsMessageId(row)),
           retryable: row.retryable === true,
           retryDisabledReason: row.retryDisabledReason,
         },
@@ -267,7 +265,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
       commsActions: ({cellData}: {cellData: DataTableCellData}) => {
         const value = cellData.value as {
           onOpen: () => void;
-          onRetry?: () => void;
+          onRetry: () => void;
           retryDisabledReason?: string;
           retryable: boolean;
         };
@@ -286,7 +284,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
               }
               disabled={!value.retryable}
               iconName="rotate"
-              onClick={value.onRetry ?? ((): void => undefined)}
+              onClick={value.onRetry}
               testID="comms-row-retry"
               tooltipText={value.retryable ? "Retry" : value.retryDisabledReason}
               variant="muted"
@@ -310,7 +308,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
           <Box direction="row" gap={3} wrap>
             <Box width={160}>
               <SelectField
-                onChange={(value) => setFilter("channel", value)}
+                onChange={filterSetter("channel")}
                 options={CHANNEL_OPTIONS}
                 testID="comms-filter-channel"
                 title="Channel"
@@ -319,7 +317,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             </Box>
             <Box width={160}>
               <TextField
-                onChange={(value) => setFilter("provider", value)}
+                onChange={filterSetter("provider")}
                 testID="comms-filter-provider"
                 title="Provider"
                 value={filters.provider ?? ""}
@@ -327,7 +325,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             </Box>
             <Box width={160}>
               <SelectField
-                onChange={(value) => setFilter("status", value)}
+                onChange={filterSetter("status")}
                 options={STATUS_OPTIONS}
                 testID="comms-filter-status"
                 title="Status"
@@ -336,7 +334,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             </Box>
             <Box width={160}>
               <SelectField
-                onChange={(value) => setFilter("errorClass", value)}
+                onChange={filterSetter("errorClass")}
                 options={ERROR_CLASS_OPTIONS}
                 testID="comms-filter-error-class"
                 title="Error class"
@@ -346,7 +344,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             <Box width={200}>
               <TextField
                 iconName="magnifying-glass"
-                onChange={(value) => setFilter("q", value)}
+                onChange={filterSetter("q")}
                 testID="comms-filter-q"
                 title="Search"
                 value={filters.q ?? ""}
@@ -354,7 +352,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             </Box>
             <Box width={180}>
               <DateTimeField
-                onChange={(value) => setFilter("startDate", value)}
+                onChange={filterSetter("startDate")}
                 testID="comms-filter-start"
                 title="Start"
                 type="datetime"
@@ -363,7 +361,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
             </Box>
             <Box width={180}>
               <DateTimeField
-                onChange={(value) => setFilter("endDate", value)}
+                onChange={filterSetter("endDate")}
                 testID="comms-filter-end"
                 title="End"
                 type="datetime"

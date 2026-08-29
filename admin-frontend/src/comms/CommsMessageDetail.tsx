@@ -18,12 +18,8 @@ import React, {useCallback, useMemo} from "react";
 import {AdminRefField} from "../AdminRefField";
 import type {AdminApi} from "../types";
 import {CommsStatusBadge} from "./CommsStatusBadge";
-import {
-  type CommsMessageRow,
-  commsMessageId,
-  unwrapCommsMessage,
-  useCommsDashboardApi,
-} from "./useCommsDashboardApi";
+import {type CommsMessageRow, commsMessageId, unwrapCommsMessage} from "./commsMessagePayload";
+import {useCommsDashboardApi} from "./useCommsDashboardApi";
 
 export interface CommsMessageDetailProps {
   api: AdminApi;

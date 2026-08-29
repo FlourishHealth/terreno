@@ -1,6 +1,5 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
+import {act, fireEvent, within} from "@testing-library/react-native";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import type {AdminApi} from "../types";
@@ -24,17 +23,36 @@ interface ListState {
 
 const listState: ListState = {isLoading: false};
 const statsState: {data?: unknown} = {};
-const retryImpl = mock(async () => ({data: {_id: "retry-1"}}));
-const retryManyImpl = mock(async () => ({retried: [{_id: "n1"}], skipped: []}));
+let retryImpl = mock(async () => ({data: {_id: "retry-1"}}) as unknown);
+let retryManyImpl = mock(async () => ({retried: [{_id: "n1"}], skipped: []}) as unknown);
+const retryManyBodies: unknown[] = [];
 
 mock.module("./useCommsDashboardApi", () => ({
   useCommsDashboardApi: () => ({
     useListQuery: () => listState,
-    useRetryManyMutation: () => [() => ({unwrap: retryManyImpl}), {isLoading: false}],
+    useRetryManyMutation: () => [
+      (body: unknown) => {
+        retryManyBodies.push(body);
+        return {unwrap: retryManyImpl};
+      },
+      {isLoading: false},
+    ],
     useRetryMutation: () => [() => ({unwrap: retryImpl}), {isLoading: false}],
     useStatsQuery: () => statsState,
   }),
 }));
+
+const failedRow = {
+  _id: "m1",
+  channel: "mail",
+  created: "2026-08-20T00:00:00.000Z",
+  errorCode: "timeout",
+  provider: "sendgrid",
+  retryable: true,
+  status: "failed",
+  subject: "Hi",
+  to: "a***@example.com",
+};
 
 import {CommsDashboardScreen} from "./CommsDashboardScreen";
 
@@ -56,8 +74,9 @@ describe("CommsDashboardScreen", () => {
       },
     };
     pushMock.mockClear();
-    retryImpl.mockClear();
-    retryManyImpl.mockClear();
+    retryManyBodies.length = 0;
+    retryImpl = mock(async () => ({data: {_id: "retry-1"}}) as unknown);
+    retryManyImpl = mock(async () => ({retried: [{_id: "n1"}], skipped: []}) as unknown);
   });
 
   it("renders the loading state", () => {
@@ -156,5 +175,174 @@ describe("CommsDashboardScreen", () => {
       fireEvent.press(getByTestId("comms-retry-many"));
     });
     expect(getByText("Retry 42 matching messages (cap 100)?")).toBeTruthy();
+  });
+
+  it("opens a row and navigates to the retry it creates", async () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 1};
+    const {getAllByText, getByTestId} = renderWithTheme(
+      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-row-open"));
+    });
+    expect(String(pushMock.mock.calls[0]?.[0])).toBe("/admin/comms/m1");
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-row-retry"));
+    });
+    await act(async () => {
+      const confirms = getAllByText("Confirm");
+      fireEvent.press(confirms[confirms.length - 1]);
+    });
+    expect(String(pushMock.mock.calls.at(-1)?.[0])).toBe("/admin/comms/retry-1");
+  });
+
+  it("stays on the list when an inline retry is rejected", async () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 1};
+    retryImpl = mock(async () => {
+      throw {status: 400, title: "Permanent failures cannot be retried"};
+    });
+    const {getAllByText, getByTestId} = renderWithTheme(
+      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-row-retry"));
+    });
+    await act(async () => {
+      const confirms = getAllByText("Confirm");
+      fireEvent.press(confirms[confirms.length - 1]);
+    });
+    expect(retryImpl).toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("sends the active filters and the cap with a bulk retry", async () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 3};
+    retryManyImpl = mock(
+      async () =>
+        ({
+          retried: [{_id: "n1"}, {_id: "n2"}],
+          skipped: [{id: "s1", reason: "Permanent failures cannot be retried"}],
+        }) as unknown
+    );
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <CommsDashboardScreen
+        api={{} as AdminApi}
+        filters={{channel: "mail", status: "failed"}}
+        onFiltersChange={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many-modal.primary"));
+    });
+
+    expect(retryManyBodies[0]).toMatchObject({channel: "mail", limit: 100, status: "failed"});
+    // A resolved bulk retry closes the confirmation.
+    expect(queryByTestId("comms-retry-many-count")).toBeNull();
+  });
+
+  it("keeps the confirmation open when a bulk retry is rejected", async () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 3};
+    retryManyImpl = mock(async () => {
+      throw {status: 500, title: "boom"};
+    });
+    const {getByTestId} = renderWithTheme(
+      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many-modal.primary"));
+    });
+    expect(retryManyImpl).toHaveBeenCalled();
+    expect(getByTestId("comms-retry-many-count")).toBeTruthy();
+  });
+
+  it("dismisses the bulk retry confirmation without sending anything", async () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 3};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-retry-many-modal.secondary"));
+    });
+    expect(retryManyBodies).toHaveLength(0);
+    expect(queryByTestId("comms-retry-many-count")).toBeNull();
+  });
+
+  it("pages through results without dropping the active filters", async () => {
+    listState.data = {data: [failedRow], more: true, page: 1, total: 60};
+    const onFiltersChange = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <CommsDashboardScreen
+        api={{} as AdminApi}
+        filters={{status: "failed"}}
+        onFiltersChange={onFiltersChange}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(
+        within(getByTestId("comms-dashboard-table.pagination")).getAllByA11yHint(
+          "Click to go to page 2"
+        )[0]
+      );
+    });
+    expect(onFiltersChange.mock.calls[0]?.[0]).toEqual({page: 2, status: "failed"});
+  });
+
+  it("flags the failure-rate and provider tiles once the rate clears the alert threshold", () => {
+    listState.data = {data: [failedRow], more: false, page: 1, total: 1};
+    statsState.data = {
+      byProvider: [
+        {
+          bounced: 0,
+          delivered: 0,
+          failed: 1,
+          failureRate: 1,
+          provider: "sendgrid",
+          sent: 0,
+          total: 1,
+        },
+        {
+          bounced: 0,
+          delivered: 9,
+          failed: 0,
+          failureRate: 0,
+          provider: "twilio",
+          sent: 9,
+          total: 9,
+        },
+      ],
+      totals: {
+        bounced: 0,
+        cancelled: 0,
+        delivered: 9,
+        failed: 1,
+        failureRate: 0.1,
+        sent: 9,
+        total: 10,
+      },
+    };
+    const {getByTestId, getByText} = renderWithTheme(
+      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+    );
+    expect(getByTestId("comms-stat-failure-rate")).toBeTruthy();
+    expect(getByText("10%")).toBeTruthy();
+    expect(getByText("1 of 10 messages")).toBeTruthy();
+    expect(getByTestId("comms-stat-provider-sendgrid")).toBeTruthy();
+    expect(getByTestId("comms-stat-provider-twilio")).toBeTruthy();
+    expect(getByText("Failure rate by provider")).toBeTruthy();
   });
 });
