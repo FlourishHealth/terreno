@@ -1506,16 +1506,32 @@ export default HomeScreen;
 };
 
 const generateFrontendTabsProfile = (): string => {
-  return `import {Box, Button, Heading, Page, Text} from "@terreno/ui";
+  return `import {Box, Button, Card, Heading, Page, Spinner, TapToEdit, Text} from "@terreno/ui";
 import type React from "react";
-import {useCallback} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {signOut} from "@/lib/betterAuth";
 import {logout, syncBetterAuthSession, useAppDispatch} from "@/store/index";
-import {useGetMeQuery} from "@/store/sdk";
+import {useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const {data: profile, isLoading} = useGetMeQuery();
+  const [updateProfile] = usePatchMeMutation();
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const user = profile?.data;
+
+  // Seed local fields when the server profile loads or changes.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    setName(user.name || "");
+    setEmail(user.email || "");
+  }, [user?.email, user?.name]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
     await signOut();
@@ -1523,30 +1539,92 @@ const ProfileScreen: React.FC = () => {
     await syncBetterAuthSession(dispatch);
   }, [dispatch]);
 
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      try {
+        await updateProfile({name: value}).unwrap();
+      } catch (err) {
+        console.error("Error updating name:", err);
+        setSaveError("Failed to update name");
+      }
+    },
+    [updateProfile]
+  );
+
+  const handleSaveEmail = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      try {
+        await updateProfile({email: value}).unwrap();
+      } catch (err) {
+        console.error("Error updating email:", err);
+        setSaveError("Failed to update email");
+      }
+    },
+    [updateProfile]
+  );
+
+  const handleSavePassword = useCallback(
+    async (value: string): Promise<void> => {
+      if (!value) {
+        return;
+      }
+      setSaveError(null);
+      try {
+        await updateProfile({password: value}).unwrap();
+        setPassword("");
+      } catch (err) {
+        console.error("Error updating password:", err);
+        setSaveError("Failed to update password");
+      }
+    },
+    [updateProfile]
+  );
+
   if (isLoading) {
     return (
       <Page navigation={undefined} title="Profile">
-        <Box padding={4}>
-          <Text>Loading...</Text>
+        <Box alignItems="center" flex="grow" justifyContent="center" padding={4}>
+          <Spinner />
         </Box>
       </Page>
     );
   }
 
   return (
-    <Page navigation={undefined} title="Profile">
-      <Box padding={4} gap={4}>
+    <Page navigation={undefined} scroll title="Profile">
+      <Box gap={4} padding={4}>
         <Heading>Profile</Heading>
-        <Box gap={2}>
-          <Text weight="bold">Name</Text>
-          <Text>{profile?.data?.name || "Not set"}</Text>
-        </Box>
-        <Box gap={2}>
-          <Text weight="bold">Email</Text>
-          <Text>{profile?.data?.email || "Not set"}</Text>
-        </Box>
+        <Card>
+          <Box gap={4}>
+            <TapToEdit
+              onSave={handleSaveName}
+              setValue={setName}
+              title="Name"
+              type="text"
+              value={name}
+            />
+            <TapToEdit
+              onSave={handleSaveEmail}
+              setValue={setEmail}
+              title="Email"
+              type="email"
+              value={email}
+            />
+            <TapToEdit
+              helperText="Leave blank to keep your current password"
+              onSave={handleSavePassword}
+              setValue={setPassword}
+              title="New Password"
+              type="password"
+              value={password}
+            />
+            {saveError && <Text color="error">{saveError}</Text>}
+          </Box>
+        </Card>
         <Box marginTop={4}>
-          <Button onClick={handleLogout} text="Logout" variant="outline" fullWidth />
+          <Button fullWidth onClick={handleLogout} text="Logout" variant="outline" />
         </Box>
       </Box>
     </Page>

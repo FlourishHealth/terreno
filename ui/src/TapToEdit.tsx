@@ -272,6 +272,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   initialValueRef.current = value;
                   setEditing(true);
                 }}
+                testID={fieldProps.testID ? `${String(fieldProps.testID)}-edit` : undefined}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />

@@ -28,6 +28,20 @@ describe("TapToEdit", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("forwards testID to the edit control", () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} testID="profile-name-input" title="Name" value="Jane" />
+    );
+    expect(getByTestId("profile-name-input-edit-clickable")).toBeTruthy();
+  });
+
+  it("forwards testID to the edit control", () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} testID="profile-name-input" title="Name" value="Jane" />
+    );
+    expect(getByTestId("profile-name-input-edit-clickable")).toBeTruthy();
+  });
+
   it("renders edit icon when editable", () => {
     const {toJSON} = renderWithTheme(
       <TapToEdit editable setValue={() => {}} title="Editable Field" value="Click to edit" />

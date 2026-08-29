@@ -188,6 +188,9 @@ describe("bootstrap", () => {
       expect(text).toContain("TabLayout");
       expect(text).toContain("HomeScreen");
       expect(text).toContain("ProfileScreen");
+      expect(text).toContain("TapToEdit");
+      expect(text).toContain("usePatchMeMutation");
+      expect(text).toContain("handleSaveName");
       expect(text).toContain("BetterAuthApp");
       expect(text).toContain("SyncApp");
       expect(text).toContain("RealtimeApp");

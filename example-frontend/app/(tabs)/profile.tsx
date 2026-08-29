@@ -8,6 +8,7 @@ import {
   Heading,
   Page,
   Spinner,
+  TapToEdit,
   Text,
   TextField,
   useStoredState,
@@ -55,7 +56,6 @@ const ProfileScreen: React.FC = () => {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [testPushMessage, setTestPushMessage] = useState<string | null>(null);
@@ -82,48 +82,68 @@ const ProfileScreen: React.FC = () => {
     }
   }, [geminiApiKey]);
 
-  // Track changes
-  useEffect(() => {
-    if (!profile) {
-      return;
-    }
-    const nameChanged = name !== (profile.name || "");
-    const emailChanged = email !== (profile.email || "");
-    const passwordChanged = password.length > 0;
-    setHasChanges(nameChanged || emailChanged || passwordChanged);
-  }, [name, email, password, profile]);
+  const showSaveSuccess = useCallback((): void => {
+    setSaveSuccess(true);
+    refetch();
+    setTimeout(() => {
+      setSaveSuccess(false);
+    }, 3000);
+  }, [refetch]);
 
-  const handleSave = useCallback(async (): Promise<void> => {
-    setSaveError(null);
-    setSaveSuccess(false);
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({name: value}).unwrap();
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating name:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update name"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
-    const updates: {name?: string; email?: string; password?: string} = {};
+  const handleSaveEmail = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({email: value}).unwrap();
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating email:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update email"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
-    if (name !== profile?.name) {
-      updates.name = name;
-    }
-    if (email !== profile?.email) {
-      updates.email = email;
-    }
-    if (password) {
-      updates.password = password;
-    }
-
-    try {
-      await updateProfile(updates).unwrap();
-      setSaveSuccess(true);
-      setPassword("");
-      refetch();
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setSaveError(
-        (err as {data?: {message?: string}})?.data?.message || "Failed to update profile"
-      );
-    }
-  }, [name, email, password, profile, updateProfile, refetch]);
+  const handleSavePassword = useCallback(
+    async (value: string): Promise<void> => {
+      if (!value) {
+        return;
+      }
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({password: value}).unwrap();
+        setPassword("");
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating password:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update password"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
   const handleLogout = useCallback((): void => {
     dispatch(logout());
@@ -198,30 +218,34 @@ const ProfileScreen: React.FC = () => {
           <Box gap={4}>
             <Heading size="lg">Account Details</Heading>
 
-            <TextField
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setName}
-              placeholder="Your name"
+              editable={!isUpdating}
+              onSave={handleSaveName}
+              setValue={setName}
               testID="profile-name-input"
               title="Name"
+              type="text"
               value={name}
             />
 
-            <TextField
-              autoComplete="off"
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setEmail}
-              placeholder="your@email.com"
+              editable={!isUpdating}
+              onSave={handleSaveEmail}
+              setValue={setEmail}
               testID="profile-email-input"
               title="Email"
               type="email"
               value={email}
             />
 
-            <TextField
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setPassword}
-              placeholder="Leave blank to keep current password"
+              editable={!isUpdating}
+              helperText="Leave blank to keep current password"
+              onSave={handleSavePassword}
+              setValue={setPassword}
               testID="profile-password-input"
               title="New Password"
               type="password"
@@ -239,17 +263,6 @@ const ProfileScreen: React.FC = () => {
                 <Text color="error">{saveError}</Text>
               </Box>
             )}
-
-            <Box marginTop={2}>
-              <Button
-                disabled={!hasChanges || isUpdating}
-                iconName="check"
-                loading={isUpdating}
-                onClick={handleSave}
-                testID="profile-save-button"
-                text="Save Changes"
-              />
-            </Box>
           </Box>
         </Card>
 
