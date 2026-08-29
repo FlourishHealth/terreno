@@ -427,6 +427,7 @@ describe("TapToEdit - additional function coverage", () => {
       fireEvent.press(getByTestId("profile.name.edit-clickable"));
     });
 
+    expect(getByTestId("profile.name")).toBeTruthy();
     expect(getByTestId("profile.name.cancel")).toBeTruthy();
     expect(getByTestId("profile.name.clear")).toBeTruthy();
     expect(getByTestId("profile.name.save")).toBeTruthy();

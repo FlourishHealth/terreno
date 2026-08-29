@@ -2927,8 +2927,10 @@ export type TapToEditProps =
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   /**
    * Root test id. Forwards to the Field input and suffixes action controls for e2e:
-   * `{testID}.edit`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
-   * The edit control is a pressable Box, so its test id is `{testID}.edit-clickable`.
+   * `{testID}.edit-clickable`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
+   * The edit control is a pressable Box (`-clickable` is appended by Box).
+   * Cancel/Clear/Save only render when the user opened edit from inside the
+   * component, not when `isEditing` is true.
    */
   testID?: string;
   title: string;
