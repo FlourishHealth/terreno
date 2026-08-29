@@ -82,6 +82,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   const [editing, setEditing] = useState(false);
   const initialValueRef = useRef<unknown>(undefined);
   const helperText: string | undefined = propsHelperText;
+  const fieldTestID = (fieldProps as {testID?: string}).testID;
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
   interface FocusableInput {
@@ -272,7 +273,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   initialValueRef.current = value;
                   setEditing(true);
                 }}
-                testID={fieldProps.testID ? `${String(fieldProps.testID)}-edit` : undefined}
+                testID={fieldTestID ? `${fieldTestID}-edit` : undefined}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />
