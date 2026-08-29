@@ -60,6 +60,7 @@ export const TapStory = (): ReactElement => {
             setText(value);
           }}
           setValue={setText}
+          testID="tap-to-edit-text"
           title="Text"
           type="text"
           value={text}
