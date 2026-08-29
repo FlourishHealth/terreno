@@ -18,7 +18,12 @@ import React, {useCallback, useMemo} from "react";
 import {AdminRefField} from "../AdminRefField";
 import type {AdminApi} from "../types";
 import {CommsStatusBadge} from "./CommsStatusBadge";
-import {type CommsMessageRow, useCommsDashboardApi} from "./useCommsDashboardApi";
+import {
+  type CommsMessageRow,
+  commsMessageId,
+  unwrapCommsMessage,
+  useCommsDashboardApi,
+} from "./useCommsDashboardApi";
 
 export interface CommsMessageDetailProps {
   api: AdminApi;
@@ -57,7 +62,7 @@ export const CommsMessageDetail: React.FC<CommsMessageDetailProps> = ({
   const {useDetailQuery, useRetryMutation} = useCommsDashboardApi(api);
   const {data, error, isLoading} = useDetailQuery(messageId);
   const [retryMessage, retryState] = useRetryMutation();
-  const message = data?.data;
+  const message = unwrapCommsMessage(data);
 
   const openMessage = useCallback(
     (id: string): void => {
@@ -69,7 +74,11 @@ export const CommsMessageDetail: React.FC<CommsMessageDetailProps> = ({
   const handleRetry = useCallback(async (): Promise<void> => {
     try {
       const result = await retryMessage(messageId).unwrap();
-      openMessage(result.data._id);
+      const created = unwrapCommsMessage(result);
+      if (!created) {
+        throw new Error("Retry did not return a message");
+      }
+      openMessage(commsMessageId(created));
     } catch (retryError: unknown) {
       toast.catch(retryError, "Retry failed");
     }

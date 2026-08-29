@@ -4,6 +4,7 @@ import {
   serializeCommsDashboardSearchParams,
 } from "./commsDashboardParams";
 import {summarizeSkippedReasons} from "./commsRetrySummary";
+import {unwrapCommsMessage} from "./useCommsDashboardApi";
 
 describe("commsDashboardParams", () => {
   it("round-trips filters through the URL query object", () => {
@@ -47,6 +48,13 @@ describe("commsDashboardParams", () => {
       startDate: undefined,
       status: undefined,
     });
+  });
+});
+
+describe("unwrapCommsMessage", () => {
+  it("accepts both Better Auth unwrapped rows and {data} envelopes", () => {
+    expect(unwrapCommsMessage({_id: "a", channel: "mail"})?._id).toBe("a");
+    expect(unwrapCommsMessage({data: {channel: "sms", id: "b"}})?._id).toBe("b");
   });
 });
 

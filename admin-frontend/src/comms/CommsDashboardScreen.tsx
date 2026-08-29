@@ -27,6 +27,8 @@ import {summarizeSkippedReasons} from "./commsRetrySummary";
 import {
   type CommsMessageRow,
   type CommsStatsResponse,
+  commsMessageId,
+  unwrapCommsMessage,
   useCommsDashboardApi,
 } from "./useCommsDashboardApi";
 
@@ -193,7 +195,11 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
     async (id: string): Promise<void> => {
       try {
         const result = await retryMessage(id).unwrap();
-        openMessage(result.data._id);
+        const created = unwrapCommsMessage(result);
+        if (!created) {
+          throw new Error("Retry did not return a message");
+        }
+        openMessage(commsMessageId(created));
       } catch (retryError: unknown) {
         toast.catch(retryError, "Retry failed");
       }
@@ -234,8 +240,8 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
       {value: row.attemptCount ?? 0},
       {
         value: {
-          onOpen: () => openMessage(row._id),
-          onRetry: row.retryable ? () => handleRetry(row._id) : undefined,
+          onOpen: () => openMessage(commsMessageId(row)),
+          onRetry: row.retryable ? () => handleRetry(commsMessageId(row)) : undefined,
           retryable: row.retryable === true,
           retryDisabledReason: row.retryDisabledReason,
         },

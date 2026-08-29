@@ -85,6 +85,23 @@ describe("CommsMessageDetail", () => {
     expect(getByTestId("comms-detail-payload")).toBeTruthy();
   });
 
+  it("renders an unwrapped Better Auth detail payload", () => {
+    detailState.data = {
+      _id: "m1",
+      attempts: [{at: "2026-08-20T00:00:00.000Z", provider: "sendgrid"}],
+      channel: "mail",
+      provider: "sendgrid",
+      retryable: true,
+      status: "failed",
+      to: "a***@example.com",
+    } as any;
+    const {getByTestId} = renderWithTheme(
+      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+    );
+    expect(getByTestId("comms-detail-retry")).toBeTruthy();
+    expect(getByTestId("comms-attempt-0")).toBeTruthy();
+  });
+
   it("navigates to the new row after a confirmed retry", async () => {
     detailState.data = {
       data: {
