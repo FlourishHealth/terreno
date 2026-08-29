@@ -58,7 +58,9 @@ are reserved for blocked decisions or non-obvious review resolutions.
 Every stage follows the
 [documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):
 read architecture docs before acting, update them in the same slice, and fail the slice
-when user-visible or architectural behavior ships without matching docs.
+when user-visible or architectural behavior ships without matching docs. Brew and Taste
+observe product CI per
+[product-ci.md](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/product-ci.md).
 
 Install the published skill set (lifecycle stages, outer loops, plus repo and package skills):
 

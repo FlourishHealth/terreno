@@ -1,6 +1,6 @@
 # Implementation Plan: Comms adapter — Expo push notifications
 
-**Status:** Approved
+**Status:** In progress
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1019
 **Priority:** High
 **Effort:** Small batch
@@ -96,12 +96,12 @@ See [docs/tasks/comms-adapter-expo-push.md](../tasks/comms-adapter-expo-push.md)
 
 ## Acceptance Criteria
 
-- [ ] With a mocked Expo client, `sendPush` returns one `SendResult` per token across chunk
+- [x] With a mocked Expo client, `sendPush` returns one `SendResult` per token across chunk
       boundaries.
-- [ ] A `DeviceNotRegistered` receipt deactivates the corresponding `PushToken` via core
+- [x] A `DeviceNotRegistered` receipt deactivates the corresponding `PushToken` via core
       pruning.
-- [ ] Invalid tokens are rejected before hitting the SDK and logged as failed
+- [x] Invalid tokens are rejected before hitting the SDK and logged as failed
       `CommsMessage` rows.
-- [ ] `@terreno/api` no longer lists `expo-server-sdk`; apps not using the adapter install
+- [x] `@terreno/api` no longer lists `expo-server-sdk`; apps not using the adapter install
       nothing new.
-- [ ] example-frontend registers its token after login on a physical device build.
+- [x] example-frontend registers its token after login on a physical device build.

@@ -26,9 +26,11 @@ const getExpoPushTokenAsync = mock(async ({projectId}: {projectId?: string}) => 
   data: `token-${projectId ?? "none"}`,
   type: "expo",
 }));
+const requestPermissionsAsync = mock(async () => ({status: "granted"}));
 
 mock.module("expo-notifications", () => ({
   getExpoPushTokenAsync,
+  requestPermissionsAsync,
 }));
 
 const {buildVersionInfo, getCurrentExpoToken, versionInfo} = await import("./utils");
@@ -94,6 +96,8 @@ describe("versionInfo", () => {
 describe("getCurrentExpoToken", () => {
   beforeEach(() => {
     getExpoPushTokenAsync.mockClear();
+    requestPermissionsAsync.mockClear();
+    requestPermissionsAsync.mockImplementation(async () => ({status: "granted"}));
     platform.OS = "web";
     (globalThis as {__DEV__?: boolean}).__DEV__ = false;
   });
@@ -101,6 +105,16 @@ describe("getCurrentExpoToken", () => {
   it("returns an empty expo token on web", async () => {
     const token = await getCurrentExpoToken();
     expect(token).toEqual({data: "", type: "expo"});
+    expect(getExpoPushTokenAsync).not.toHaveBeenCalled();
+    expect(requestPermissionsAsync).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch a push token when notification permission is denied", async () => {
+    platform.OS = "ios";
+    requestPermissionsAsync.mockImplementation(async () => ({status: "denied"}));
+    const token = await getCurrentExpoToken();
+    expect(token).toEqual({data: "", type: "expo"});
+    expect(requestPermissionsAsync).toHaveBeenCalled();
     expect(getExpoPushTokenAsync).not.toHaveBeenCalled();
   });
 

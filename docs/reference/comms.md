@@ -132,6 +132,48 @@ row.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
 
+### Expo push adapter
+
+```bash
+bun add expo-server-sdk
+```
+
+```typescript
+import {CommsApp, getCommsService} from "@terreno/comms";
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      push: new ExpoPushProvider({
+        // accessToken defaults to process.env.EXPO_ACCESS_TOKEN (optional)
+        onDeadToken: async (token) => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event) => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      }),
+    })
+  )
+  .start();
+```
+
+`ExpoPushProvider` validates tokens with `Expo.isExpoPushToken`, chunks with
+`chunkPushNotifications`, and returns one `SendResult` per input token. Invalid tokens
+never hit the Expo API (`errorCode: expo-invalid-token`, `errorClass: permanent`).
+Ticket `DeviceNotRegistered` is a permanent failure so `sendPushToUser` deactivates the
+`PushToken`. `MessageTooBig` is `errorClass: config`: the send fails and is not retried,
+but the token stays active. Successful tickets schedule one receipt poll (default 15
+minutes, `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered`
+receipt calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
+
+example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
+`POST /comms/pushTokens` after login. Denied permission and web skip registration (empty
+token). Physical-device gating via `expo-device` is deferred until the native baseline
+lands. The profile **Send test push** card is `__DEV__` only, so production web exports
+(CircleCI Playwright) do not render it.
+
 ## Configuration
 
 ```typescript

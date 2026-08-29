@@ -6714,6 +6714,106 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/comms/dev/testPush": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "body": {
+                    "type": "string",
+                  },
+                  "title": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "accepted": {
+                          "type": "number",
+                        },
+                        "results": {
+                          "items": {
+                            "type": "object",
+                          },
+                          "type": "array",
+                        },
+                        "tokenCount": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Send a development test push to the caller's registered devices",
+        "tags": [
+          "comms",
+        ],
+      },
+    },
     "/comms/messages": {
       "get": {
         "parameters": [

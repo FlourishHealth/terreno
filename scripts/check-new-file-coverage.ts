@@ -3,6 +3,7 @@ import {execFileSync, spawn} from "node:child_process";
 import {existsSync, mkdtempSync, readFileSync, rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, relative, resolve, sep} from "node:path";
+import {Glob} from "bun";
 
 import {
   type CoverageSummary,
@@ -142,6 +143,20 @@ export const groupFilesByWorkspace = ({
     .sort((left, right) => left.packageName.localeCompare(right.packageName));
 };
 
+export const expandCoverageFileArgs = (args: readonly string[], cwd: string): string[] => {
+  const expanded: string[] = [];
+  for (const arg of args) {
+    if (arg.startsWith("-") || !arg.includes("*")) {
+      expanded.push(arg);
+      continue;
+    }
+    const pattern = arg.startsWith("./") ? arg.slice(2) : arg;
+    const matches = [...new Glob(pattern).scanSync({cwd, onlyFiles: true})].sort();
+    expanded.push(...matches.map((path) => `./${path}`));
+  }
+  return expanded;
+};
+
 export const bunTestFileArgs = (testScript: string | undefined): string[] => {
   if (!testScript) {
     return [];
@@ -198,11 +213,14 @@ const runPackageCoverage = async ({
   packageName: string;
   packageRoot: string;
 }): Promise<number> => {
-  const coverageArgs = coverageRunArgs({
-    hasSrcDir: existsSync(join(packageRoot, "src")),
-    packageName,
-    testScript: readPackageTestScript(packageRoot),
-  });
+  const coverageArgs = expandCoverageFileArgs(
+    coverageRunArgs({
+      hasSrcDir: existsSync(join(packageRoot, "src")),
+      packageName,
+      testScript: readPackageTestScript(packageRoot),
+    }),
+    packageRoot
+  );
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(
       "bun",

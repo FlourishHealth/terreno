@@ -81,11 +81,18 @@ rows (same host + job name).
    job-level checks.
 2. **Native host query** when that host is in-scope and GitHub does not enumerate its
    jobs (pipeline-level status only, missing checks, or checks that lag the native UI):
-   - CircleCI: inspect `circleci run list --help`, list runs for `<branch>`, select the
-     exact `revision`, then get that run's workflows/jobs. Current CLI uses
+   - CircleCI: token is `CIRCLE_TOKEN` or `CIRCLECI_TOKEN` (Cloud Agent secret name).
+     Header: `Circle-Token`. GitHub App orgs use a `circleci/<org>/<project>` slug;
+     `gh/<owner>/<repo>` often 404s. Discover the slug from
+     `GET https://circleci.com/api/v2/me/collaborations` (`vcs_type: circleci`) plus a
+     workflow's `project_slug`, or from the repository CircleCI how-to. List pipelines
+     with `GET /api/v2/project/<slug>/pipeline?branch=<branch>`, then workflows and jobs.
+     Pipeline `vcs.revision` may be empty; confirm the SHA from v1.1
+     `all_commit_details`. Failed step logs: `GET /api/v1.1/project/<slug>/<job_number>`
+     then each failed action's `output_url`. If the CLI is installed, inspect
+     `circleci run list --help`; current CLI uses
      `circleci run list --branch <branch> --json` and
-     `circleci run get <run-id> --json`; if the installed CLI's JSON syntax differs,
-     follow its help or use the REST API. Token: `CIRCLE_TOKEN`.
+     `circleci run get <run-id> --json`. Select the exact `revision`.
    - Buildkite: use `bk build list --commit <sha> --json`, then fetch the selected
      build's jobs. Token: `BUILDKITE_API_TOKEN`.
    - Other hosts: the native CLI or REST/GraphQL API the repository already uses.

@@ -22,7 +22,8 @@ Roast never invokes Pick. Roast proves the current task and returns. Brew and Ta
 include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
 exit, so they can react to those results. Taste observes product CI with
-[`product CI`](product-ci.md) on every discovered host.
+[`product-ci.md`](product-ci.md) on every discovered host. Hosts and tokens
+are on that page.
 
 ## Discover supporting skills
 
