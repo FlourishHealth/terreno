@@ -403,4 +403,48 @@ describe("TapToEdit - additional function coverage", () => {
     expect(getByText("Bio")).toBeTruthy();
     expect(getByText("A long bio text")).toBeTruthy();
   });
+
+  it("forwards testID to the edit control", () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} testID="profile.name" title="Name" value="Jane" />
+    );
+    expect(getByTestId("profile.name.edit-clickable")).toBeTruthy();
+  });
+
+  it("forwards testID to cancel, clear, and save buttons while editing", async () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit
+        onSave={async () => {}}
+        setValue={() => {}}
+        showClearButton
+        testID="profile.name"
+        title="Name"
+        value="Jane"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("profile.name.edit-clickable"));
+    });
+
+    expect(getByTestId("profile.name.cancel")).toBeTruthy();
+    expect(getByTestId("profile.name.clear")).toBeTruthy();
+    expect(getByTestId("profile.name.save")).toBeTruthy();
+  });
+
+  it("does not set action testIDs when testID is omitted", async () => {
+    const {getByLabelText, queryByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} showClearButton title="Name" value="Jane" />
+    );
+
+    expect(queryByTestId("undefined.edit-clickable")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+
+    expect(queryByTestId("undefined.cancel")).toBeNull();
+    expect(queryByTestId("undefined.clear")).toBeNull();
+    expect(queryByTestId("undefined.save")).toBeNull();
+  });
 });

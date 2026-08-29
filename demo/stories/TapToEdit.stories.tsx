@@ -8,6 +8,7 @@ export const TapDemo = (): ReactElement => {
       helperText="This is a some helper text to help you understand what you are editing."
       onSave={(): void => {}}
       setValue={setValue}
+      testID="tap-to-edit-name"
       title="Name"
       type="text"
       value={value}

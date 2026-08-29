@@ -2925,6 +2925,12 @@ export type TapToEditProps =
       });
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
+  /**
+   * Root test id. Forwards to the Field input and suffixes action controls for e2e:
+   * `{testID}.edit`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
+   * The edit control is a pressable Box, so its test id is `{testID}.edit-clickable`.
+   */
+  testID?: string;
   title: string;
   // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)

@@ -8,6 +8,7 @@ import {Field} from "./Field";
 import {Icon} from "./Icon";
 // import {useOpenAPISpec} from "./OpenAPIContext";
 import {Text} from "./Text";
+import {resolveTestID} from "./testing/resolveTestId";
 
 const TapToEditTitle: FC<{
   onlyShowHelperTextWhileEditing?: boolean;
@@ -77,6 +78,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   helperText: propsHelperText,
   onlyShowHelperTextWhileEditing = true,
   showClearButton = false,
+  testID,
   ...fieldProps
 }) => {
   const [editing, setEditing] = useState(false);
@@ -114,6 +116,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
       row: fieldProps?.type === "textarea" ? 5 : undefined,
       value,
       ...fieldProps,
+      testID,
       type: (fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>,
     } as unknown as FieldProps;
 
@@ -133,6 +136,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   }
                   setEditing(false);
                 }}
+                testID={resolveTestID(testID, "cancel")}
                 text="Cancel"
                 variant="muted"
               />
@@ -147,6 +151,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  testID={resolveTestID(testID, "clear")}
                   text="Clear"
                   variant="muted"
                 />
@@ -163,6 +168,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  testID={resolveTestID(testID, "save")}
                   text="Save"
                   withConfirmation={withConfirmation}
                 />
@@ -272,6 +278,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   initialValueRef.current = value;
                   setEditing(true);
                 }}
+                testID={resolveTestID(testID, "edit")}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />
