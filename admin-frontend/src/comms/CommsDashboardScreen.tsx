@@ -6,7 +6,6 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   DateTimeField,
-  Heading,
   IconButton,
   Modal,
   Page,
@@ -21,6 +20,7 @@ import {router} from "expo-router";
 import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useState} from "react";
 import type {AdminApi} from "../types";
+import {CommsStatCard} from "./CommsStatCard";
 import {CommsStatusBadge} from "./CommsStatusBadge";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
 import {summarizeSkippedReasons} from "./commsRetrySummary";
@@ -84,46 +84,59 @@ const percent = (rate: number): string => `${Math.round(rate * 1000) / 10}%`;
 
 const StatsCards: React.FC<{stats?: CommsStatsResponse}> = ({stats}) => {
   const totals = stats?.totals;
-  const highFailure = (totals?.failureRate ?? 0) > FAILURE_RATE_ALERT;
+  const providers = stats?.byProvider ?? [];
+  const failed = totals?.failed ?? 0;
+  const bounced = totals?.bounced ?? 0;
+  const failureRate = totals?.failureRate ?? 0;
+  const highFailure = failureRate > FAILURE_RATE_ALERT;
   return (
-    <Box direction="row" gap={3} testID="comms-dashboard-stats" wrap>
-      <Card padding={3} testID="comms-stat-sent">
-        <Text color="secondaryDark" size="sm">
-          Sent
-        </Text>
-        <Heading size="md">{String(totals?.sent ?? 0)}</Heading>
-      </Card>
-      <Card padding={3} testID="comms-stat-delivered">
-        <Text color="secondaryDark" size="sm">
-          Delivered
-        </Text>
-        <Heading size="md">{String(totals?.delivered ?? 0)}</Heading>
-      </Card>
-      <Card color={highFailure ? "error" : "base"} padding={3} testID="comms-stat-failed">
-        <Text color="secondaryDark" size="sm">
-          Failed
-        </Text>
-        <Heading size="md">{String(totals?.failed ?? 0)}</Heading>
-      </Card>
-      <Card padding={3} testID="comms-stat-bounced">
-        <Text color="secondaryDark" size="sm">
-          Bounced
-        </Text>
-        <Heading size="md">{String(totals?.bounced ?? 0)}</Heading>
-      </Card>
-      {(stats?.byProvider ?? []).map((row) => (
-        <Card
-          color={row.failureRate > FAILURE_RATE_ALERT ? "error" : "base"}
-          key={row.provider}
-          padding={3}
-          testID={`comms-stat-provider-${row.provider}`}
-        >
+    <Box gap={3} testID="comms-dashboard-stats">
+      <Box alignItems="stretch" direction="row" gap={3} wrap>
+        <CommsStatCard label="Sent" testID="comms-stat-sent" value={String(totals?.sent ?? 0)} />
+        <CommsStatCard
+          label="Delivered"
+          testID="comms-stat-delivered"
+          value={String(totals?.delivered ?? 0)}
+        />
+        <CommsStatCard
+          label="Failed"
+          testID="comms-stat-failed"
+          tone={failed > 0 ? "alert" : "neutral"}
+          value={String(failed)}
+        />
+        <CommsStatCard
+          label="Bounced"
+          testID="comms-stat-bounced"
+          tone={bounced > 0 ? "alert" : "neutral"}
+          value={String(bounced)}
+        />
+        <CommsStatCard
+          caption={`${failed + bounced} of ${totals?.total ?? 0} messages`}
+          label="Failure rate"
+          testID="comms-stat-failure-rate"
+          tone={highFailure ? "alert" : "neutral"}
+          value={percent(failureRate)}
+        />
+      </Box>
+      {providers.length > 0 ? (
+        <Box gap={2}>
           <Text color="secondaryDark" size="sm">
-            {row.provider}
+            Failure rate by provider
           </Text>
-          <Heading size="md">{percent(row.failureRate)}</Heading>
-        </Card>
-      ))}
+          <Box alignItems="stretch" direction="row" gap={3} wrap>
+            {providers.map((row) => (
+              <CommsStatCard
+                caption={`${row.failed + row.bounced} of ${row.total} messages`}
+                key={row.provider}
+                label={row.provider}
+                testID={`comms-stat-provider-${row.provider}`}
+                tone={row.failureRate > FAILURE_RATE_ALERT ? "alert" : "neutral"}
+                value={percent(row.failureRate)}
+              />
+            ))}
+          </Box>
+        </Box>
+      ) : null}
     </Box>
   );
 };

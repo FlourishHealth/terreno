@@ -43,6 +43,7 @@ export {
   CommsDashboardScreenWidget,
 } from "./comms/CommsDashboardScreenWidget";
 export {CommsMessageDetail, type CommsMessageDetailProps} from "./comms/CommsMessageDetail";
+export {CommsStatCard, type CommsStatCardProps} from "./comms/CommsStatCard";
 export {CommsStatusBadge} from "./comms/CommsStatusBadge";
 export {
   type CommsDashboardFilters,
