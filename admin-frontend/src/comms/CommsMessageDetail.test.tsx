@@ -9,11 +9,6 @@ mock.module("expo-router", () => ({
   router: {push: pushMock, replace: mock(() => {})},
 }));
 
-mock.module("../AdminRefField", () => ({
-  AdminRefField: ({value}: {value: string}) =>
-    React.createElement("Text", {testID: "comms-detail-user"}, value),
-}));
-
 interface DetailState {
   /** Either the `{data}` envelope or the row Better Auth unwraps it into. */
   data?: Record<string, unknown>;
@@ -24,12 +19,27 @@ interface DetailState {
 const detailState: DetailState = {isLoading: false};
 let retryImpl = mock(async () => ({data: {_id: "new-row"}}) as unknown);
 
-mock.module("./useCommsDashboardApi", () => ({
-  useCommsDashboardApi: () => ({
-    useDetailQuery: () => detailState,
-    useRetryMutation: () => [() => ({unwrap: retryImpl}), {isLoading: false}],
-  }),
-}));
+/**
+ * Stands in for the host RTK Query API so the real `useCommsDashboardApi` runs.
+ * Mocking that module instead would leak process-wide and make the suite order-dependent.
+ */
+const createCommsApi = (): AdminApi => {
+  const commsHooks: Record<string, unknown> = {
+    useCommsDashboardDetailQuery: () => detailState,
+    useCommsDashboardRetryMutation: () => [() => ({unwrap: retryImpl}), {isLoading: false}],
+  };
+  // The detail screen also mounts AdminRefField, which injects its own endpoints; answer any
+  // other hook name with an idle query so the picker renders without a second module mock.
+  const hooks = new Proxy(commsHooks, {
+    get: (target, key: string) =>
+      target[key] ?? (() => ({data: undefined, isLoading: false, isSuccess: true})),
+  });
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => hooks,
+  };
+  return api as unknown as AdminApi;
+};
 
 import {CommsMessageDetail} from "./CommsMessageDetail";
 
@@ -44,12 +54,12 @@ describe("CommsMessageDetail", () => {
 
   it("renders loading and error states", () => {
     detailState.isLoading = true;
-    const loading = renderWithTheme(<CommsMessageDetail api={{} as AdminApi} messageId="m1" />);
+    const loading = renderWithTheme(<CommsMessageDetail api={createCommsApi()} messageId="m1" />);
     expect(loading.getByTestId("comms-detail-loading")).toBeTruthy();
 
     detailState.isLoading = false;
     detailState.error = {status: 500};
-    const errored = renderWithTheme(<CommsMessageDetail api={{} as AdminApi} messageId="m1" />);
+    const errored = renderWithTheme(<CommsMessageDetail api={createCommsApi()} messageId="m1" />);
     expect(errored.getByTestId("comms-detail-error")).toBeTruthy();
   });
 
@@ -78,7 +88,7 @@ describe("CommsMessageDetail", () => {
       },
     };
     const {getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     expect(getByTestId("comms-detail-retry").props.accessibilityState?.disabled).toBe(true);
     expect(getByTestId("comms-attempt-0")).toBeTruthy();
@@ -96,7 +106,7 @@ describe("CommsMessageDetail", () => {
       to: "a***@example.com",
     };
     const {getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     expect(getByTestId("comms-detail-retry")).toBeTruthy();
     expect(getByTestId("comms-attempt-0")).toBeTruthy();
@@ -105,7 +115,7 @@ describe("CommsMessageDetail", () => {
   it("reports a missing message rather than an empty shell", () => {
     detailState.data = undefined;
     const {getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     expect(getByTestId("comms-detail-empty")).toBeTruthy();
   });
@@ -132,12 +142,12 @@ describe("CommsMessageDetail", () => {
       userId: "user-1",
     };
     const {getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m2" routeBase="/admin" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m2" routeBase="/admin" />
     );
 
     // An unparseable attempt timestamp is shown verbatim instead of crashing the timeline.
     expect(getByTestId("comms-attempt-0-console")).toBeTruthy();
-    expect(getByTestId("comms-detail-user")).toBeTruthy();
+    expect(getByTestId("comms-detail-user-card")).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(getByTestId("comms-detail-retried-from"));
@@ -163,7 +173,7 @@ describe("CommsMessageDetail", () => {
       throw {status: 400, title: "Retained payload is missing or expired"};
     });
     const {getAllByText, getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     await act(async () => {
       fireEvent.press(getByTestId("comms-detail-retry"));
@@ -187,7 +197,7 @@ describe("CommsMessageDetail", () => {
     };
     retryImpl = mock(async () => ({}) as unknown);
     const {getAllByText, getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     await act(async () => {
       fireEvent.press(getByTestId("comms-detail-retry"));
@@ -211,7 +221,7 @@ describe("CommsMessageDetail", () => {
       },
     };
     const {getAllByText, getByTestId} = renderWithTheme(
-      <CommsMessageDetail api={{} as AdminApi} messageId="m1" />
+      <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     await act(async () => {
       fireEvent.press(getByTestId("comms-detail-retry"));

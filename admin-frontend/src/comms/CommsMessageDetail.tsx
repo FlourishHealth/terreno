@@ -164,7 +164,7 @@ const MessageBody: React.FC<MessageBodyProps> = ({
         />
       </Box>
       {message.userId ? (
-        <Card padding={3}>
+        <Card padding={3} testID="comms-detail-user-card">
           <AdminRefField
             api={api}
             onChange={noopChange}

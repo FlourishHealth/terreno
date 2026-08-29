@@ -27,20 +27,29 @@ let retryImpl = mock(async () => ({data: {_id: "retry-1"}}) as unknown);
 let retryManyImpl = mock(async () => ({retried: [{_id: "n1"}], skipped: []}) as unknown);
 const retryManyBodies: unknown[] = [];
 
-mock.module("./useCommsDashboardApi", () => ({
-  useCommsDashboardApi: () => ({
-    useListQuery: () => listState,
-    useRetryManyMutation: () => [
-      (body: unknown) => {
-        retryManyBodies.push(body);
-        return {unwrap: retryManyImpl};
-      },
-      {isLoading: false},
-    ],
-    useRetryMutation: () => [() => ({unwrap: retryImpl}), {isLoading: false}],
-    useStatsQuery: () => statsState,
-  }),
-}));
+/**
+ * Stands in for the host RTK Query API so the real `useCommsDashboardApi` runs.
+ * Mocking that module instead would leak process-wide and make the suite order-dependent.
+ */
+const createCommsApi = (): AdminApi => {
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => ({
+      useCommsDashboardDetailQuery: () => ({isLoading: false}),
+      useCommsDashboardListQuery: () => listState,
+      useCommsDashboardRetryManyMutation: () => [
+        (body: unknown) => {
+          retryManyBodies.push(body);
+          return {unwrap: retryManyImpl};
+        },
+        {isLoading: false},
+      ],
+      useCommsDashboardRetryMutation: () => [() => ({unwrap: retryImpl}), {isLoading: false}],
+      useCommsDashboardStatsQuery: () => statsState,
+    }),
+  };
+  return api as unknown as AdminApi;
+};
 
 const failedRow = {
   _id: "m1",
@@ -82,7 +91,7 @@ describe("CommsDashboardScreen", () => {
   it("renders the loading state", () => {
     listState.isLoading = true;
     const {getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-loading")).toBeTruthy();
   });
@@ -90,7 +99,7 @@ describe("CommsDashboardScreen", () => {
   it("renders the error state", () => {
     listState.error = {status: 500};
     const {getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-error")).toBeTruthy();
   });
@@ -98,7 +107,7 @@ describe("CommsDashboardScreen", () => {
   it("renders the empty state", () => {
     listState.data = {data: [], more: false, page: 1, total: 0};
     const {getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-empty")).toBeTruthy();
   });
@@ -108,7 +117,7 @@ describe("CommsDashboardScreen", () => {
     const onFiltersChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <CommsDashboardScreen
-        api={{} as AdminApi}
+        api={createCommsApi()}
         filters={{channel: "mail", page: 2}}
         onFiltersChange={onFiltersChange}
       />
@@ -141,7 +150,7 @@ describe("CommsDashboardScreen", () => {
       total: 1,
     };
     const {getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     const retryButton = getByTestId("comms-row-retry");
     expect(retryButton.props["aria-label"]).toBe("Permanent failures cannot be retried");
@@ -166,7 +175,7 @@ describe("CommsDashboardScreen", () => {
     };
     const {getByTestId, getByText} = renderWithTheme(
       <CommsDashboardScreen
-        api={{} as AdminApi}
+        api={createCommsApi()}
         filters={{status: "failed"}}
         onFiltersChange={() => undefined}
       />
@@ -180,7 +189,7 @@ describe("CommsDashboardScreen", () => {
   it("opens a row and navigates to the retry it creates", async () => {
     listState.data = {data: [failedRow], more: false, page: 1, total: 1};
     const {getAllByText, getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
 
     await act(async () => {
@@ -204,7 +213,7 @@ describe("CommsDashboardScreen", () => {
       throw {status: 400, title: "Permanent failures cannot be retried"};
     });
     const {getAllByText, getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
 
     await act(async () => {
@@ -229,7 +238,7 @@ describe("CommsDashboardScreen", () => {
     );
     const {getByTestId, queryByTestId} = renderWithTheme(
       <CommsDashboardScreen
-        api={{} as AdminApi}
+        api={createCommsApi()}
         filters={{channel: "mail", status: "failed"}}
         onFiltersChange={() => undefined}
       />
@@ -253,7 +262,7 @@ describe("CommsDashboardScreen", () => {
       throw {status: 500, title: "boom"};
     });
     const {getByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
 
     await act(async () => {
@@ -269,7 +278,7 @@ describe("CommsDashboardScreen", () => {
   it("dismisses the bulk retry confirmation without sending anything", async () => {
     listState.data = {data: [failedRow], more: false, page: 1, total: 3};
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
 
     await act(async () => {
@@ -287,7 +296,7 @@ describe("CommsDashboardScreen", () => {
     const onFiltersChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <CommsDashboardScreen
-        api={{} as AdminApi}
+        api={createCommsApi()}
         filters={{status: "failed"}}
         onFiltersChange={onFiltersChange}
       />
@@ -336,7 +345,7 @@ describe("CommsDashboardScreen", () => {
       },
     };
     const {getByTestId, getByText} = renderWithTheme(
-      <CommsDashboardScreen api={{} as AdminApi} filters={{}} onFiltersChange={() => undefined} />
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-stat-failure-rate")).toBeTruthy();
     expect(getByText("10%")).toBeTruthy();

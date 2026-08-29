@@ -11,17 +11,32 @@ mock.module("expo-router", () => ({
   useLocalSearchParams: () => searchParams,
 }));
 
-mock.module("./useCommsDashboardApi", () => ({
-  useCommsDashboardApi: () => ({
-    useListQuery: () => ({
-      data: {data: [], more: false, page: 1, total: 0},
-      isLoading: false,
+/**
+ * Stands in for the host RTK Query API so the real `useCommsDashboardApi` runs.
+ * Mocking that module instead would leak process-wide and make the suite order-dependent.
+ */
+const createCommsApi = (): AdminApi => {
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => ({
+      useCommsDashboardDetailQuery: () => ({isLoading: false}),
+      useCommsDashboardListQuery: () => ({
+        data: {data: [], more: false, page: 1, total: 0},
+        isLoading: false,
+      }),
+      useCommsDashboardRetryManyMutation: () => [
+        () => ({unwrap: async () => ({retried: [], skipped: []})}),
+        {isLoading: false},
+      ],
+      useCommsDashboardRetryMutation: () => [
+        () => ({unwrap: async () => ({data: {_id: "x"}})}),
+        {isLoading: false},
+      ],
+      useCommsDashboardStatsQuery: () => ({isLoading: false}),
     }),
-    useRetryManyMutation: () => [() => ({unwrap: async () => ({retried: [], skipped: []})}), {}],
-    useRetryMutation: () => [() => ({unwrap: async () => ({data: {_id: "x"}})}), {}],
-    useStatsQuery: () => ({data: undefined}),
-  }),
-}));
+  };
+  return api as unknown as AdminApi;
+};
 
 import {COMMS_ADMIN_WIDGETS, CommsDashboardScreenWidget} from "./CommsDashboardScreenWidget";
 
@@ -35,7 +50,7 @@ describe("CommsDashboardScreenWidget", () => {
   it("reads URL filters into the dashboard", () => {
     const {getByTestId} = renderWithTheme(
       <CommsDashboardScreenWidget
-        api={{} as AdminApi}
+        api={createCommsApi()}
         config={emptyConfig}
         routeBase="/admin"
         screenName="comms"
