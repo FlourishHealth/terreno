@@ -1044,6 +1044,19 @@ jobs:
                 working_directory: ~/project/demo
                 no_output_timeout: 15m
                 command: bun run export
+      # Exported before the backend starts: this executor shares its memory with the mongo
+      # service container, and bundling alongside a running backend gets the export
+      # OOM-killed. The export is static, so it only bakes in EXPO_PUBLIC_API_URL.
+      - run:
+          name: Export example-frontend web
+          working_directory: ~/project/example-frontend
+          no_output_timeout: 15m
+          environment:
+            CI: "true"
+            EXPO_NO_TELEMETRY: "1"
+            EXPO_PUBLIC_API_URL: http://localhost:4000
+            NODE_OPTIONS: "--max-old-space-size=3072"
+          command: bun expo export --platform web
       - run:
           name: Seed example-backend
           working_directory: ~/project/example-backend
@@ -1085,16 +1098,6 @@ jobs:
             done
             echo "backend failed to become healthy"
             exit 1
-      - run:
-          name: Export example-frontend web
-          working_directory: ~/project/example-frontend
-          no_output_timeout: 15m
-          environment:
-            CI: "true"
-            EXPO_NO_TELEMETRY: "1"
-            EXPO_PUBLIC_API_URL: http://localhost:4000
-            NODE_OPTIONS: "--max-old-space-size=3072"
-          command: bun expo export --platform web
       - run:
           name: Serve exported example-frontend
           working_directory: ~/project/example-frontend
