@@ -37,6 +37,18 @@ export {ConsentFormList} from "./ConsentFormList";
 export {ConsentHistory} from "./ConsentHistory";
 export {ConsentResponseViewer} from "./ConsentResponseViewer";
 export {ADMIN_FILTER_MOBILE_BREAKPOINT, ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
+export {CommsDashboardScreen, type CommsDashboardScreenProps} from "./comms/CommsDashboardScreen";
+export {
+  COMMS_ADMIN_WIDGETS,
+  CommsDashboardScreenWidget,
+} from "./comms/CommsDashboardScreenWidget";
+export {CommsMessageDetail, type CommsMessageDetailProps} from "./comms/CommsMessageDetail";
+export {CommsStatusBadge} from "./comms/CommsStatusBadge";
+export {
+  type CommsDashboardFilters,
+  parseCommsDashboardSearchParams,
+  serializeCommsDashboardSearchParams,
+} from "./comms/commsDashboardParams";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
 export {generateConsentHistoryPdf} from "./generateConsentHistoryPdf";
 export {LocaleContentEditor} from "./LocaleContentEditor";

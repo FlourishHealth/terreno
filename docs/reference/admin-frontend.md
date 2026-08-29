@@ -223,3 +223,23 @@ Expects backend to provide:
 When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
 `platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
 renders model or custom-screen links returned by the server.
+
+### Comms dashboard
+
+`COMMS_ADMIN_WIDGETS.comms` is registered in the built-in screen registry. `CommsApp` contributes
+custom screen `name: "comms"`. Hosts should also add message detail routes so `/comms/:id` is not
+handled as a generic model form:
+
+```typescript
+import {CommsDashboardScreenWidget, CommsMessageDetail} from "@terreno/admin-frontend";
+
+// list: /admin/comms
+<CommsDashboardScreenWidget api={api} config={config} routeBase="/admin" screenName="comms" />
+
+// detail: /admin/comms/[id]
+<CommsMessageDetail api={api} messageId={id} routeBase="/admin" />
+```
+
+The list screen persists filters in the URL (`channel`, `provider`, `status`, `errorClass`, `q`,
+`startDate`, `endDate`, `page`) and calls `/comms/messages`, `/comms/stats`, and
+`/comms/messages/retryMany`.
