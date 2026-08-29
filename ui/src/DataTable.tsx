@@ -1,15 +1,14 @@
 import {FontAwesome6} from "@expo/vector-icons";
 import type React from "react";
-import {type FC, memo, useCallback, useMemo, useRef, useState} from "react";
+import {type FC, memo, useCallback, useLayoutEffect, useMemo, useRef, useState} from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
+  type FlatList as RNFlatList,
   ScrollView,
   View,
 } from "react-native";
-import Markdown from "react-native-markdown-display";
-
 import {Box} from "./Box";
 import type {
   ColumnSortInterface,
@@ -20,6 +19,8 @@ import type {
   DataTableProps,
   SurfaceColor,
 } from "./Common";
+import {DataTableHeaderInfoMarkdown} from "./DataTableHeaderInfoMarkdown";
+import {FlatList} from "./FlatList";
 import {Icon} from "./Icon";
 import {InfoModalIcon} from "./InfoModalIcon";
 import {Modal} from "./Modal";
@@ -35,6 +36,11 @@ import {
 
 // TODO: Add permanent horizontal scroll bar so users with only a mouse can scroll left/right
 // easily.
+
+const DATA_TABLE_INITIAL_NUM_TO_RENDER = 15;
+const DATA_TABLE_MAX_TO_RENDER_PER_BATCH = 10;
+const DATA_TABLE_WINDOW_SIZE = 5;
+const DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS = 50;
 
 const TextCell: FC<{
   cellData: DataTableCellData;
@@ -191,6 +197,8 @@ const DataTableRowComponent: FC<DataTableRowProps> = ({
   );
 };
 
+DataTableRowComponent.displayName = "DataTableRow";
+
 const DataTableRow = memo(DataTableRowComponent);
 
 interface MoreButtonCellProps {
@@ -299,7 +307,11 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
         ) : null,
         <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
           {column.infoModalText && (
-            <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
+            <InfoModalIcon
+              infoModalChildren={
+                <DataTableHeaderInfoMarkdown>{column.infoModalText}</DataTableHeaderInfoMarkdown>
+              }
+            />
           )}
           {column.sortable && (
             <Pressable hitSlop={16} onPress={() => onSort(index)}>
@@ -482,110 +494,325 @@ const DataTableContentComponent: FC<DataTableContentProps> = ({
 }) => {
   const [modalRow, setModalRow] = useState<number | null>(null);
   const {theme} = useTheme();
+  const bodyListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
+  const pinnedListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
+  const moreListRef = useRef<RNFlatList<DataTableCellData[]>>(null);
+  const bodyScrollYRef = useRef(0);
+  const isVerticalScrollSyncingRef = useRef(false);
+  const verticalScrollLeaderRef = useRef<"body" | "pinned" | "more" | null>(null);
+  const verticalScrollSyncReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const resolveRowTestId = (row: DataTableCellData[], rowIndex: number): string | undefined => {
-    const rowKey = getRowTestID ? getRowTestID(row, rowIndex) : rowIndex;
-    return resolveDataTableRowTestID(rowTestIdBase, rowKey);
-  };
+  const moreColumnOffset = MoreContentContent ? 48 : 0;
+  const scrollableWidth = useMemo(
+    () => columns.slice(pinnedColumns).reduce((sum, column) => sum + column.width, 0),
+    [columns, pinnedColumns]
+  );
+
+  const resolveRowTestId = useCallback(
+    (row: DataTableCellData[], rowIndex: number): string | undefined => {
+      const rowKey = getRowTestID ? getRowTestID(row, rowIndex) : rowIndex;
+      return resolveDataTableRowTestID(rowTestIdBase, rowKey);
+    },
+    [getRowTestID, rowTestIdBase]
+  );
+
+  const getRowItemLayout = useCallback(
+    (_: ArrayLike<DataTableCellData[]> | null | undefined, index: number) => ({
+      index,
+      length: rowHeight,
+      offset: rowHeight * index,
+    }),
+    [rowHeight]
+  );
+
+  const keyExtractor = useCallback((_: DataTableCellData[], index: number) => String(index), []);
+
+  const listExtraData = useMemo(
+    () => ({
+      alternateRowBackground,
+      columns,
+      customColumnComponentMap,
+      defaultTextSize,
+      pinnedColumns,
+      pinnedLeftOffsets,
+      rowHeight,
+    }),
+    [
+      alternateRowBackground,
+      columns,
+      customColumnComponentMap,
+      defaultTextSize,
+      pinnedColumns,
+      pinnedLeftOffsets,
+      rowHeight,
+    ]
+  );
+
+  const applyVerticalScrollToFollowers = useCallback(
+    (scrollY: number, source: "body" | "pinned" | "more"): void => {
+      if (source !== "body") {
+        bodyListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+      if (source !== "pinned") {
+        pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+      if (source !== "more") {
+        moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+      }
+    },
+    []
+  );
+
+  const scheduleVerticalScrollSyncRelease = useCallback((): void => {
+    if (verticalScrollSyncReleaseTimeoutRef.current) {
+      clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
+    }
+    verticalScrollSyncReleaseTimeoutRef.current = setTimeout(() => {
+      isVerticalScrollSyncingRef.current = false;
+      verticalScrollLeaderRef.current = null;
+      verticalScrollSyncReleaseTimeoutRef.current = null;
+    }, DATA_TABLE_VERTICAL_SCROLL_SYNC_RELEASE_MS);
+  }, []);
+
+  const syncVerticalScroll = useCallback(
+    (scrollY: number, source: "body" | "pinned" | "more"): void => {
+      if (isVerticalScrollSyncingRef.current) {
+        if (source !== verticalScrollLeaderRef.current) {
+          return;
+        }
+        applyVerticalScrollToFollowers(scrollY, source);
+        scheduleVerticalScrollSyncRelease();
+        return;
+      }
+      isVerticalScrollSyncingRef.current = true;
+      verticalScrollLeaderRef.current = source;
+      applyVerticalScrollToFollowers(scrollY, source);
+      scheduleVerticalScrollSyncRelease();
+    },
+    [applyVerticalScrollToFollowers, scheduleVerticalScrollSyncRelease]
+  );
+
+  const syncSatelliteListsToBodyOffset = useCallback((): void => {
+    const scrollY = bodyScrollYRef.current;
+    if (scrollY <= 0) {
+      return;
+    }
+    if (pinnedColumns === 0 && !MoreContentContent) {
+      return;
+    }
+    isVerticalScrollSyncingRef.current = true;
+    verticalScrollLeaderRef.current = "body";
+    if (pinnedColumns > 0) {
+      pinnedListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    }
+    if (MoreContentContent) {
+      moreListRef.current?.scrollToOffset({animated: false, offset: scrollY});
+    }
+    scheduleVerticalScrollSyncRelease();
+  }, [MoreContentContent, pinnedColumns, scheduleVerticalScrollSyncRelease]);
+
+  // Pinned/more FlatLists mount at offset 0; align them with the body list's current scroll position.
+  useLayoutEffect(() => {
+    syncSatelliteListsToBodyOffset();
+    return () => {
+      if (verticalScrollSyncReleaseTimeoutRef.current) {
+        clearTimeout(verticalScrollSyncReleaseTimeoutRef.current);
+        verticalScrollSyncReleaseTimeoutRef.current = null;
+      }
+      isVerticalScrollSyncingRef.current = false;
+      verticalScrollLeaderRef.current = null;
+    };
+  }, [syncSatelliteListsToBodyOffset]);
+
+  const handleBodyVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "body");
+    },
+    [syncVerticalScroll]
+  );
+
+  const handlePinnedVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "pinned");
+    },
+    [syncVerticalScroll]
+  );
+
+  const handleMoreVerticalScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      const scrollY = event.nativeEvent.contentOffset.y;
+      bodyScrollYRef.current = scrollY;
+      syncVerticalScroll(scrollY, "more");
+    },
+    [syncVerticalScroll]
+  );
+
+  const renderMoreRow = useCallback(
+    ({index}: {index: number}) => (
+      <MoreButtonCell
+        alternateRowBackground={alternateRowBackground}
+        column={columns[0]}
+        onClick={setModalRow}
+        rowHeight={rowHeight}
+        rowIndex={index}
+      />
+    ),
+    [alternateRowBackground, columns, rowHeight]
+  );
+
+  const renderPinnedRow = useCallback(
+    ({index, item}: {index: number; item: DataTableCellData[]}) => (
+      <DataTableRow
+        alternateRowBackground={alternateRowBackground}
+        columnEnd={pinnedColumns}
+        columnStart={0}
+        columns={columns}
+        customColumnComponentMap={customColumnComponentMap}
+        defaultTextSize={defaultTextSize}
+        pinnedColumns={pinnedColumns}
+        pinnedLeftOffsets={pinnedLeftOffsets}
+        rowData={item}
+        rowHeight={rowHeight}
+        rowIndex={index}
+        testID={pinnedColumns > 0 ? resolveRowTestId(item, index) : undefined}
+      />
+    ),
+    [
+      alternateRowBackground,
+      columns,
+      customColumnComponentMap,
+      defaultTextSize,
+      pinnedColumns,
+      pinnedLeftOffsets,
+      resolveRowTestId,
+      rowHeight,
+    ]
+  );
+
+  const renderScrollableRow = useCallback(
+    ({index, item}: {index: number; item: DataTableCellData[]}) => (
+      <DataTableRow
+        alternateRowBackground={alternateRowBackground}
+        columnEnd={columns.length}
+        columnStart={pinnedColumns}
+        columns={columns}
+        customColumnComponentMap={customColumnComponentMap}
+        defaultTextSize={defaultTextSize}
+        pinnedColumns={0}
+        pinnedLeftOffsets={pinnedLeftOffsets}
+        rowData={item}
+        rowHeight={rowHeight}
+        rowIndex={index}
+        testID={pinnedColumns === 0 ? resolveRowTestId(item, index) : undefined}
+      />
+    ),
+    [
+      alternateRowBackground,
+      columns,
+      customColumnComponentMap,
+      defaultTextSize,
+      pinnedColumns,
+      pinnedLeftOffsets,
+      resolveRowTestId,
+      rowHeight,
+    ]
+  );
 
   return (
     <>
-      <ScrollView style={{flex: 1}}>
-        <View
-          style={{
-            flexDirection: "row",
-            position: "relative",
-          }}
-        >
-          {/* Fixed-width container for "more" content button if present */}
-          {Boolean(MoreContentContent) && (
-            <View
-              style={{
-                backgroundColor: theme.surface.base,
-                left: 0,
-                position: "absolute",
-                top: 0,
-                width: 48,
-                zIndex: 1,
-              }}
-            >
-              {data.map((_, rowIndex) => (
-                <MoreButtonCell
-                  alternateRowBackground={alternateRowBackground}
-                  column={columns[0]}
-                  key={`expand-${rowIndex}`}
-                  onClick={setModalRow}
-                  rowHeight={rowHeight}
-                  rowIndex={rowIndex}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* Container for pinned rows - stays fixed during horizontal scroll */}
-          {pinnedColumns > 0 && (
-            <View
-              style={{
-                left: MoreContentContent ? 48 : 0,
-                position: "absolute",
-                top: 0,
-                zIndex: 10,
-              }}
-            >
-              {data.map((row, rowIndex) => (
-                <DataTableRow
-                  alternateRowBackground={alternateRowBackground}
-                  columnEnd={pinnedColumns}
-                  columnStart={0}
-                  columns={columns}
-                  customColumnComponentMap={customColumnComponentMap}
-                  defaultTextSize={defaultTextSize}
-                  key={`pinned-${rowIndex}`}
-                  pinnedColumns={pinnedColumns}
-                  pinnedLeftOffsets={pinnedLeftOffsets}
-                  rowData={row}
-                  rowHeight={rowHeight}
-                  rowIndex={rowIndex}
-                  testID={pinnedColumns > 0 ? resolveRowTestId(row, rowIndex) : undefined}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* Scrollable container for non-pinned rows */}
-          <ScrollView
-            horizontal
-            onScroll={(e) => onScroll(e, false)}
-            ref={bodyScrollRef}
-            scrollEventThrottle={16}
-            showsHorizontalScrollIndicator
+      <View style={{flex: 1, flexDirection: "row", position: "relative"}}>
+        {Boolean(MoreContentContent) && (
+          <View
             style={{
-              flex: 1,
-              marginLeft: pinnedWidth + (MoreContentContent ? 48 : 0),
+              backgroundColor: theme.surface.base,
+              bottom: 0,
+              left: 0,
+              position: "absolute",
+              top: 0,
+              width: 48,
+              zIndex: 1,
             }}
           >
-            <View>
-              {data.map((row, rowIndex) => (
-                <DataTableRow
-                  alternateRowBackground={alternateRowBackground}
-                  columnEnd={columns.length}
-                  columnStart={pinnedColumns}
-                  columns={columns}
-                  customColumnComponentMap={customColumnComponentMap}
-                  defaultTextSize={defaultTextSize}
-                  key={`scrollable-${rowIndex}`}
-                  pinnedColumns={0}
-                  pinnedLeftOffsets={pinnedLeftOffsets}
-                  rowData={row}
-                  rowHeight={rowHeight}
-                  rowIndex={rowIndex}
-                  testID={pinnedColumns === 0 ? resolveRowTestId(row, rowIndex) : undefined}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      </ScrollView>
+            <FlatList
+              data={data}
+              extraData={listExtraData}
+              getItemLayout={getRowItemLayout}
+              initialNumToRender={DATA_TABLE_INITIAL_NUM_TO_RENDER}
+              keyExtractor={keyExtractor}
+              maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
+              onScroll={handleMoreVerticalScroll}
+              ref={moreListRef}
+              renderItem={renderMoreRow}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
+              windowSize={DATA_TABLE_WINDOW_SIZE}
+            />
+          </View>
+        )}
+
+        {pinnedColumns > 0 && (
+          <View
+            style={{
+              bottom: 0,
+              left: moreColumnOffset,
+              position: "absolute",
+              top: 0,
+              width: pinnedWidth,
+              zIndex: 10,
+            }}
+          >
+            <FlatList
+              data={data}
+              extraData={listExtraData}
+              getItemLayout={getRowItemLayout}
+              initialNumToRender={DATA_TABLE_INITIAL_NUM_TO_RENDER}
+              keyExtractor={keyExtractor}
+              maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
+              onScroll={handlePinnedVerticalScroll}
+              ref={pinnedListRef}
+              renderItem={renderPinnedRow}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
+              windowSize={DATA_TABLE_WINDOW_SIZE}
+            />
+          </View>
+        )}
+
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          onScroll={(event) => onScroll(event, false)}
+          ref={bodyScrollRef}
+          scrollEventThrottle={16}
+          showsHorizontalScrollIndicator
+          style={{
+            flex: 1,
+            marginLeft: pinnedWidth + moreColumnOffset,
+          }}
+        >
+          <View style={{width: scrollableWidth}}>
+            <FlatList
+              data={data}
+              extraData={listExtraData}
+              getItemLayout={getRowItemLayout}
+              initialNumToRender={DATA_TABLE_INITIAL_NUM_TO_RENDER}
+              keyExtractor={keyExtractor}
+              maxToRenderPerBatch={DATA_TABLE_MAX_TO_RENDER_PER_BATCH}
+              nestedScrollEnabled
+              onScroll={handleBodyVerticalScroll}
+              ref={bodyListRef}
+              renderItem={renderScrollableRow}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator
+              windowSize={DATA_TABLE_WINDOW_SIZE}
+            />
+          </View>
+        </ScrollView>
+      </View>
 
       {MoreContentContent && (
         <Modal

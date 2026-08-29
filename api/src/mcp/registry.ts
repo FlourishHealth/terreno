@@ -23,20 +23,13 @@ const mcpCustomTools: MCPCustomTool[] = [];
 const findCollectionByModelName = (modelName: string) =>
   listCollections().find((record) => record.model.modelName === modelName);
 
-const mcpRoutePathForModel = (
-  // noExplicitAny: Mongoose invariant generics
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose invariant generics
-  model: Model<any>
-): string => findCollectionByModelName(model.modelName)?.routePath ?? `/_mcp/${model.modelName}`;
+const mcpRoutePathForModel = <T>(model: Model<T>): string =>
+  findCollectionByModelName(model.modelName)?.routePath ?? `/_mcp/${model.modelName}`;
 
-export const registerMCPModel = (
-  // noExplicitAny: Mongoose invariant generics
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose invariant generics
-  model: Model<any>,
+export const registerMCPModel = <T>(
+  model: Model<T>,
   config: MCPConfig,
-  // noExplicitAny: consumer document type
-  // biome-ignore lint/suspicious/noExplicitAny: consumer document type
-  options: ModelRouterOptions<any>
+  options: ModelRouterOptions<T>
 ): void => {
   registerCollection({
     model,
@@ -72,7 +65,7 @@ export const getMCPRegistry = (): MCPRegistryEntry[] => {
       config: record.options.mcp as MCPConfig,
       model: record.model,
       modelName: record.model.modelName,
-      options: record.options as MCPRegistryEntry["options"],
+      options: record.options,
     }));
 };
 

@@ -1,8 +1,8 @@
 {
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
-  "description": "Five bounded loop-engineering transitions: Grow shapes, Pick and Roast loop one task at a time until the list is done, Brew submits after a review-bot wait, and Taste reacts to current PR state after waiting for Bugbot/CodeQL.",
-  "version": "2.3.0",
+  "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, and Brew/Taste prefer native CI watch hooks while reacting to review bots and product CI. Outer loops: planning-loop and taste-sweep.",
+  "version": "2.4.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"

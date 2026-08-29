@@ -210,30 +210,9 @@ workflows:
             feature-flags/src/.* run-admin-spa-integration true
             syncdb/.* run-e2e true
             syncdb/.* run-syncdb true
-            demo/.* run-deploy-demo true
-            ui/.* run-deploy-demo true
-            example-frontend/.* run-deploy-frontend true
-            ui/.* run-deploy-frontend true
-            rtk/.* run-deploy-frontend true
-            ai/.* run-deploy-frontend true
-            admin-frontend/.* run-deploy-frontend true
-            bun\.lock run-deploy-frontend true
-            docs/.* run-deploy-docs true
-            website/.* run-deploy-docs true
-            api/src/.* run-deploy-docs true
-            rtk/src/.* run-deploy-docs true
-            demo/demoConfig\.tsx run-deploy-docs true
-            demo/story-config/.* run-deploy-docs true
-            ui/src/.* run-deploy-docs true
-            netlify\.toml run-deploy-docs true
-            terraform/.* run-cd-terraform true
-            example-backend/.* run-cd-backend true
-            api/.* run-cd-backend true
-            api-health/.* run-cd-backend true
-            admin-backend/.* run-cd-backend true
-            ai/.* run-cd-backend true
-            mcp-server/.* run-cd-mcp true
-            ui/.* run-cd-mcp true
+            # Production deploy path filters stay paused until the documented
+            # Netlify contexts and GCP OIDC bootstrap are populated. Manual
+            # deploy parameters remain available for verification.
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
   # Continuation uses a differently named parameter so CircleCI does not treat

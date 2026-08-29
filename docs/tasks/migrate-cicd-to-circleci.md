@@ -103,6 +103,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.3
   - Acceptance: preview deploy URL posted or visible; prod deploy on master path filter.
+  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the `terreno-netlify` context passes manual verification.
 
 - [ ] **Task 4.2**: Preview cleanup port
   - Description: On PR close, clean Netlify/GCP preview resources from CircleCI (webhook or GitHub App → pipeline). Prefer OIDC over `GCP_SA_KEY`.
@@ -149,6 +150,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 6.1
   - Acceptance: terraform preview on PR; apply+deploy on master for a safe test path; GitHub Deployment records optional but documented.
+  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the CircleCI OIDC bootstrap passes manual verification.
 
 - [ ] **Task 6.3**: Dual-run cutover for CD
   - Description: Single deployer: disable GHA `cd.yml` when CircleCI CD is required; remove GitHub OIDC provider only after GHA CD is gone (or keep read-only if other repos need it — document).

@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew submits after a review-bot wait, and Taste reacts once after Bugbot/CodeQL finish."
+      "description": "Five bounded transitions plus outer loops; Brew and Taste observe every CI host and prefer native watch hooks over timer polling."
     }
   ]
 }

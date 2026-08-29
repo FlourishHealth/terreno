@@ -546,6 +546,11 @@ jobs:
       - compile_packages:
           packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa
       - run:
+          name: Compile UI coverage dependencies
+          command: |
+            node .github/scripts/compile-workspace-deps.js ui
+            bun run --filter '@terreno/ui' compile
+      - run:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"

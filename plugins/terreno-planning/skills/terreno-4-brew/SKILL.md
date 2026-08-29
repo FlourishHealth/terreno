@@ -1,6 +1,6 @@
 ---
 name: terreno-4-brew
-description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, and an in-process wait for async review bots (Bugbot, CodeQL) before exit.
+description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit.
 disable-model-invocation: true
 ---
 
@@ -61,13 +61,18 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
 9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
    or evidence already present in the body. A top-level comment is allowed only for one
    blocking human action that cannot live in an existing review thread.
-10. **Wait for review bots.** Resolve the PR number/URL and pushed head SHA; confirm CI
-    was triggered. Follow the async-review-bots procedure: sleep and re-fetch until
-    Bugbot, CodeQL, and similar review bots on this head are terminal, never appeared
-    after the startup grace, or hit the 20-minute timeout. Do not exit while those bots
-    are queued or in progress. Do not wait for ordinary product CI to finish.
+10. **Confirm product CI, then wait for review bots.** Resolve the PR number/URL and
+    pushed head SHA. Follow the product-CI procedure: discover every CI host on this
+    branch (GitHub Actions, CircleCI, Buildkite, and similar) and confirm each triggered
+    or documented a skip for this SHA on every discovered CI host. Then follow the
+    async-review-bots procedure: prefer provider CLI watch hooks or harness event
+    subscriptions; use bounded sleep/re-fetch only as a fallback. Wait until Bugbot,
+    CodeQL, and similar review bots on this head are terminal, never appeared after the
+    startup grace, or hit the 20-minute timeout. Do not exit while those bots are queued
+    or in progress. Do not wait for ordinary product CI to finish.
 11. **Record and exit.** Update execution state and emit:
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
+    - required host untriggered after grace → `FAIL` with `next: brew`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
     Collapse per the lifecycle contract. Brew itself never executes Taste.
 
@@ -83,20 +88,23 @@ handling, and mandatory evidence gates.
 - Commit and pushed head SHA
 - PR URL/number and preserved template/body state
 - Attached artifact references and sensitive-data check
+- Discovered product-CI hosts and trigger/skip outcome per host
 - Async review-bot names, statuses, and posted findings
 - Updated execution state and structured Brew result
 
 ## Success conditions
 
 - Verified implementation is committed/pushed and the PR accurately represents it.
-- CI is triggered for the recorded current head.
+- Product CI on every discovered CI host is triggered (or documented skipped) for the
+  recorded current head.
 - Async review bots on this head are terminal or did not appear after the startup grace.
 - Emit `PASS` with `next: taste`, then exit.
 
 ## Failure conditions
 
-Failed final checks, **Brew's own independent-review findings** (step 4), push errors, or
-PR setup errors emit `FAIL` with evidence and the smallest corrective stage/action:
+Failed final checks, **Brew's own independent-review findings** (step 4), push errors,
+PR setup errors, or a required CI host still untriggered after grace emit `FAIL` with
+evidence and the smallest corrective stage/action:
 behavioral defects use `next: pick`, stale/missing proof uses `next: roast`,
 and submission-only retries use `next: brew`. Do not treat Bugbot, CodeQL, or similar
 async review-bot findings as Brew `FAIL`; record them and emit `PASS` with
@@ -116,4 +124,4 @@ submission capability, or sensitive-data risk emits `BLOCKED` with
 - `BLOCKED` → outer loop routes the named gate
 
 For standalone compatibility, a human/runner may invoke Taste immediately after Brew
-returns. Brew itself never executes Taste and does not wait for product CI.
+returns. Brew itself never executes Taste and does not wait for product CI to finish.

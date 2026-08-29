@@ -90,7 +90,9 @@ rows (same host + job name).
      Pipeline `vcs.revision` may be empty; confirm the SHA from v1.1
      `all_commit_details`. Failed step logs: `GET /api/v1.1/project/<slug>/<job_number>`
      then each failed action's `output_url`. If the CLI is installed, inspect
-     `circleci run list --help`.
+     `circleci run list --help`; current CLI uses
+     `circleci run list --branch <branch> --json` and
+     `circleci run get <run-id> --json`. Select the exact `revision`.
    - Buildkite: use `bk build list --commit <sha> --json`, then fetch the selected
      build's jobs. Token: `BUILDKITE_API_TOKEN`.
    - Other hosts: the native CLI or REST/GraphQL API the repository already uses.

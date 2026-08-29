@@ -1,4 +1,4 @@
-import {readFileSync, readdirSync} from "node:fs";
+import {existsSync, readFileSync, readdirSync} from "node:fs";
 import {join} from "node:path";
 
 export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
@@ -79,6 +79,8 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
     stage: "taste",
   },
 ];
+
+const OUTER_LOOP_DIRECTORIES = ["terreno-planning-loop", "terreno-taste-sweep"] as const;
 
 const REQUIRED_SECTIONS = [
   "## Preconditions",
@@ -228,8 +230,20 @@ export const validateStageContent = ({
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
+    if (!content.includes("../../references/product-ci.md")) {
+      errors.push(`${prefix}: Brew must load the product-CI procedure`);
+    }
+    if (!content.includes("every discovered CI host")) {
+      errors.push(`${prefix}: Brew must confirm product CI on every discovered CI host`);
+    }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Brew must wait in-process for running review bots`);
+    }
+    if (!content.includes("provider CLI watch hooks")) {
+      errors.push(`${prefix}: Brew must prefer provider CLI watch hooks over sleep polling`);
+    }
+    if (!content.includes("required host untriggered after grace")) {
+      errors.push(`${prefix}: Brew must fail when a required CI host remains untriggered`);
     }
     if (!content.includes("Brew itself never executes Taste")) {
       errors.push(`${prefix}: must explicitly terminate without executing Taste`);
@@ -246,8 +260,20 @@ export const validateStageContent = ({
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Taste must load the async review-bot wait procedure`);
     }
+    if (!content.includes("../../references/product-ci.md")) {
+      errors.push(`${prefix}: Taste must load the product-CI procedure`);
+    }
+    if (!content.includes("not only GitHub checks")) {
+      errors.push(`${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`);
+    }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Taste must wait in-process for running review bots`);
+    }
+    if (!content.includes("provider CLI watch hooks")) {
+      errors.push(`${prefix}: Taste must prefer provider CLI watch hooks over sleep polling`);
+    }
+    if (!content.includes("documented path-filter/config")) {
+      errors.push(`${prefix}: Taste must treat documented non-applicable hosts as skipped`);
     }
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
@@ -307,6 +333,80 @@ export const validateGithubAttentionContract = (content: string): string[] => {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
   }
 
+  return errors;
+};
+
+export const validateProductCiContract = (content: string): string[] => {
+  const errors: string[] = [];
+  for (const nativeWait of [
+    "gh pr checks <pr> --watch",
+    "circleci run watch --sha <sha>",
+    "bk build watch <build-number>",
+  ]) {
+    if (!content.includes(nativeWait)) {
+      errors.push(`product-CI procedure is missing native wait hook: ${nativeWait}`);
+    }
+  }
+  if (!content.includes("Only then fall back to bounded")) {
+    errors.push("product-CI procedure must make sleep polling the final fallback");
+  }
+  for (const nonBlockingQuery of [
+    "circleci run list --branch <branch> --json",
+    "bk build list --commit <sha> --json",
+  ]) {
+    if (!content.includes(nonBlockingQuery)) {
+      errors.push(`product-CI procedure is missing non-blocking stage query: ${nonBlockingQuery}`);
+    }
+  }
+  if (!content.includes("These hooks belong to outer loops only")) {
+    errors.push("product-CI procedure must reserve blocking watch hooks for outer loops");
+  }
+  if (!content.includes("Never emit Brew `PASS`")) {
+    errors.push("product-CI procedure must reject unexplained untriggered hosts");
+  }
+  if (!content.includes("counts as terminal `skipped`")) {
+    errors.push("product-CI procedure must terminate documented non-applicable hosts");
+  }
+  return errors;
+};
+
+export const validateAsyncReviewBotsContract = (content: string): string[] => {
+  const errors: string[] = [];
+  if (!content.includes("gh run watch <run-id>")) {
+    errors.push("review-bot procedure must use targeted GitHub Actions run watching");
+  }
+  if (!content.includes("Do **not** use unfiltered")) {
+    errors.push("review-bot procedure must forbid unfiltered PR-check watching");
+  }
+  if (!content.includes("harness PR-event subscription")) {
+    errors.push("review-bot procedure must prefer harness PR-event subscriptions");
+  }
+  if (content.includes("`gh pr checks <pr> --watch")) {
+    errors.push("review-bot procedure must not wait on all PR product checks");
+  }
+  if (content.includes("gh run watch <run-id> --exit-status")) {
+    errors.push("review-bot procedure must not turn a bot failure into Brew command failure");
+  }
+  return errors;
+};
+
+export const validateOuterLoopContent = ({
+  content,
+  directory,
+}: {
+  content: string;
+  directory: string;
+}): string[] => {
+  const errors: string[] = [];
+  if (!content.includes("../../references/product-ci.md")) {
+    errors.push(`${directory}: outer loop must load the product-CI procedure`);
+  }
+  if (!content.includes("native watch hook")) {
+    errors.push(`${directory}: outer loop must prefer native watch hooks for PENDING`);
+  }
+  if (!content.includes("only when no hook applies")) {
+    errors.push(`${directory}: outer loop must make timer waiting the fallback`);
+  }
   return errors;
 };
 
@@ -440,6 +540,16 @@ export const validateLifecyclePlugin = ({
     );
   }
 
+  for (const directory of OUTER_LOOP_DIRECTORIES) {
+    const skillPath = join(skillsDirectory, directory, "SKILL.md");
+    if (!existsSync(skillPath)) {
+      errors.push(`plugin outer-loop skill is missing: ${directory}`);
+      continue;
+    }
+    const content = readFileSync(skillPath, "utf8");
+    errors.push(...validateOuterLoopContent({content, directory}));
+  }
+
   for (const definition of STAGE_DEFINITIONS) {
     const skillPath = join(skillsDirectory, definition.directory, "SKILL.md");
     const content = readFileSync(skillPath, "utf8");
@@ -469,12 +579,27 @@ export const validateLifecyclePlugin = ({
   );
   errors.push(...validateDocumentationContract(documentationContract));
 
+  const productCi = readFileSync(
+    join(pluginDirectory, "references/product-ci.md"),
+    "utf8"
+  );
+  errors.push(...validateProductCiContract(productCi));
+
+  const asyncReviewBots = readFileSync(
+    join(pluginDirectory, "references/async-review-bots.md"),
+    "utf8"
+  );
+  errors.push(...validateAsyncReviewBotsContract(asyncReviewBots));
+
   const pluginReadme = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   if (!pluginReadme.includes("documentation-contract.md")) {
     errors.push("plugins/README.md must document the documentation contract");
   }
   if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
     errors.push("plugins/README.md must document npx skills installation");
+  }
+  if (!pluginReadme.includes("product-ci.md")) {
+    errors.push("plugins/README.md must document the product-CI procedure");
   }
   if (!pluginReadme.includes("pick-roast-loop.md")) {
     errors.push("plugins/README.md must document the pick-roast inner loop");
