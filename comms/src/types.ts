@@ -129,6 +129,17 @@ export interface CommsOptions {
   verification?: VerificationProvider;
 }
 
+export interface CommsSendOptions {
+  extraMetadata?: Record<string, unknown>;
+  isRetry?: boolean;
+  retriedFromId?: string;
+}
+
+export interface RetryMessageOptions {
+  messageId: string;
+  retriedByUserId?: string;
+}
+
 export interface SendPushToUserMessage extends Omit<PushMessage, "tokens"> {
   userId: mongoose.Types.ObjectId | string;
 }
