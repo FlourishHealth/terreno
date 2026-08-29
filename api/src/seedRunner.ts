@@ -1,0 +1,387 @@
+import isEqual from "lodash/isEqual";
+import type {Document, FilterQuery, Model} from "mongoose";
+
+import type {UserModel} from "./auth";
+import type {BetterAuthUser} from "./betterAuth";
+import {type BetterAuthInstance, syncBetterAuthUser} from "./betterAuthSetup";
+import {APIError, errorMessage} from "./errors";
+import {logger, type ScopedLogger} from "./logger";
+
+export type SeedMode = "reset" | "sync";
+export type SeedChange = "created" | "deleted" | "unchanged" | "updated";
+
+export interface SeedChangeResult {
+  change: SeedChange;
+  count: number;
+  key: string;
+  model: string;
+}
+
+export interface SeedContext {
+  dryRun: boolean;
+  mode: SeedMode;
+  changes: SeedChangeResult[];
+  deleteMany: <T extends Document>(
+    model: Model<T>,
+    filter?: FilterQuery<T>
+  ) => Promise<SeedChangeResult>;
+  upsert: <T extends Document>(
+    model: Model<T>,
+    key: FilterQuery<T>,
+    values: Record<string, unknown>
+  ) => Promise<SeedChangeResult>;
+}
+
+export interface SeedStep {
+  name: string;
+  description?: string;
+  dependsOn?: string[];
+  reset?: (context: SeedContext) => Promise<void>;
+  run: (context: SeedContext) => Promise<void>;
+}
+
+export interface SeedRunOptions {
+  name: string;
+  steps: SeedStep[];
+  mode?: SeedMode;
+  dryRun?: boolean;
+  only?: string[];
+  force?: boolean;
+  allowProductionReset?: boolean | (() => boolean | Promise<boolean>);
+  connect?: () => Promise<void>;
+  disconnect?: () => Promise<void>;
+  log?: ScopedLogger;
+}
+
+export interface SeedRunResult {
+  changes: SeedChangeResult[];
+  dryRun: boolean;
+  mode: SeedMode;
+  name: string;
+  steps: string[];
+  summary: Record<SeedChange, number>;
+  success: boolean;
+}
+
+export interface SeedCliOptions extends Omit<SeedRunOptions, "dryRun" | "force" | "mode" | "only"> {
+  argv?: string[];
+}
+
+export interface SeedCliResult {
+  exitCode: number;
+  help?: string;
+  result?: SeedRunResult;
+}
+
+export interface BetterAuthSeedUser {
+  email: string;
+  name: string;
+  password: string;
+}
+
+const EMPTY_SUMMARY: Record<SeedChange, number> = {
+  created: 0,
+  deleted: 0,
+  unchanged: 0,
+  updated: 0,
+};
+
+const formatKey = (key: Record<string, unknown>): string => {
+  return JSON.stringify(key);
+};
+
+/**
+ * Create a Better Auth credential user when missing, verify existing credentials,
+ * and reconcile the corresponding application user document.
+ */
+export const seedBetterAuthUser = async ({
+  auth,
+  user,
+  userModel,
+}: {
+  auth: BetterAuthInstance;
+  user: BetterAuthSeedUser;
+  userModel: UserModel;
+}): Promise<Awaited<ReturnType<typeof syncBetterAuthUser>>> => {
+  let authUser: BetterAuthUser | undefined;
+  try {
+    const result = await auth.api.signUpEmail({body: user});
+    authUser = result.user as BetterAuthUser;
+  } catch {
+    const result = await auth.api.signInEmail({
+      body: {email: user.email, password: user.password},
+    });
+    authUser = result.user as BetterAuthUser;
+  }
+  if (!authUser) {
+    throw new APIError({
+      detail: user.email,
+      status: 500,
+      title: "Better Auth seed returned no user",
+    });
+  }
+  return syncBetterAuthUser(userModel, authUser);
+};
+
+const selectSteps = (steps: SeedStep[], only?: string[]): SeedStep[] => {
+  const stepByName = new Map(steps.map((step) => [step.name, step]));
+  if (stepByName.size !== steps.length) {
+    throw new APIError({status: 500, title: "Seed step names must be unique"});
+  }
+  if (!only || only.length === 0) {
+    return steps;
+  }
+
+  const selectedNames = new Set<string>();
+  const include = (name: string, ancestry: string[] = []): void => {
+    const step = stepByName.get(name);
+    if (!step) {
+      throw new APIError({
+        detail: `Unknown seed step "${name}". Available steps: ${steps.map((item) => item.name).join(", ")}`,
+        status: 400,
+        title: "Unknown seed step",
+      });
+    }
+    if (ancestry.includes(name)) {
+      throw new APIError({
+        detail: [...ancestry, name].join(" -> "),
+        status: 500,
+        title: "Seed step dependency cycle",
+      });
+    }
+    if (selectedNames.has(name)) {
+      return;
+    }
+    for (const dependency of step.dependsOn ?? []) {
+      include(dependency, [...ancestry, name]);
+    }
+    selectedNames.add(name);
+  };
+
+  for (const name of only) {
+    include(name);
+  }
+  return steps.filter((step) => selectedNames.has(step.name));
+};
+
+const isProductionResetAllowed = async ({
+  allowProductionReset,
+  force,
+}: Pick<SeedRunOptions, "allowProductionReset" | "force">): Promise<boolean> => {
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+  if (!force || allowProductionReset === undefined) {
+    return false;
+  }
+  return typeof allowProductionReset === "function"
+    ? await allowProductionReset()
+    : allowProductionReset;
+};
+
+const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedContext => {
+  const changes: SeedChangeResult[] = [];
+  const record = (change: SeedChangeResult): SeedChangeResult => {
+    changes.push(change);
+    return change;
+  };
+
+  return {
+    changes,
+    dryRun,
+    mode,
+    deleteMany: async <T extends Document>(
+      model: Model<T>,
+      filter: FilterQuery<T> = {}
+    ): Promise<SeedChangeResult> => {
+      const count = await model.countDocuments(filter);
+      if (!dryRun && count > 0) {
+        await model.deleteMany(filter);
+      }
+      return record({
+        change: count > 0 ? "deleted" : "unchanged",
+        count,
+        key: formatKey(filter as Record<string, unknown>),
+        model: model.modelName,
+      });
+    },
+    upsert: async <T extends Document>(
+      model: Model<T>,
+      key: FilterQuery<T>,
+      values: Record<string, unknown>
+    ): Promise<SeedChangeResult> => {
+      const documents = await model.find(key).limit(2);
+      if (documents.length > 1) {
+        throw new APIError({
+          detail: `${model.modelName} seed key matched ${documents.length} documents: ${formatKey(key as Record<string, unknown>)}`,
+          status: 500,
+          title: "Seed key matched multiple documents",
+        });
+      }
+
+      const document = documents[0];
+      if (!document) {
+        if (!dryRun) {
+          await model.create({...key, ...values});
+        }
+        return record({
+          change: "created",
+          count: 1,
+          key: formatKey(key as Record<string, unknown>),
+          model: model.modelName,
+        });
+      }
+
+      const currentValues = Object.fromEntries(
+        Object.keys(values).map((field) => [field, document.get(field)])
+      );
+      if (isEqual(currentValues, values)) {
+        return record({
+          change: "unchanged",
+          count: 1,
+          key: formatKey(key as Record<string, unknown>),
+          model: model.modelName,
+        });
+      }
+      if (!dryRun) {
+        document.set(values);
+        await document.save();
+      }
+      return record({
+        change: "updated",
+        count: 1,
+        key: formatKey(key as Record<string, unknown>),
+        model: model.modelName,
+      });
+    },
+  };
+};
+
+const summarizeChanges = (changes: SeedChangeResult[]): Record<SeedChange, number> => {
+  return changes.reduce<Record<SeedChange, number>>(
+    (summary, item) => ({...summary, [item.change]: summary[item.change] + item.count}),
+    {...EMPTY_SUMMARY}
+  );
+};
+
+/** Run an ordered, idempotent seed plan in sync or reset-and-reseed mode. */
+export const runSeeds = async (options: SeedRunOptions): Promise<SeedRunResult> => {
+  const mode = options.mode ?? "sync";
+  const dryRun = options.dryRun ?? false;
+  const log = options.log ?? logger;
+  const steps = selectSteps(options.steps, options.only);
+  if (
+    mode === "reset" &&
+    !(await isProductionResetAllowed({
+      allowProductionReset: options.allowProductionReset,
+      force: options.force,
+    }))
+  ) {
+    throw new APIError({
+      detail:
+        "Production resets require force: true and allowProductionReset: true (or an approving callback).",
+      status: 403,
+      title: "Production seed reset is disabled",
+    });
+  }
+
+  const context = makeContext({dryRun, mode});
+  await options.connect?.();
+  try {
+    log.info(
+      `${dryRun ? "Previewing" : "Running"} ${options.name} seeds in ${mode} mode (${steps.length} step(s))`
+    );
+    if (mode === "reset") {
+      for (const step of [...steps].reverse()) {
+        await step.reset?.(context);
+      }
+    }
+    for (const step of steps) {
+      log.info(`Seed step: ${step.name}`);
+      await step.run(context);
+    }
+    const summary = summarizeChanges(context.changes);
+    log.info(
+      `Seed complete: created=${summary.created} updated=${summary.updated} deleted=${summary.deleted} unchanged=${summary.unchanged}`
+    );
+    return {
+      changes: context.changes,
+      dryRun,
+      mode,
+      name: options.name,
+      steps: steps.map((step) => step.name),
+      summary,
+      success: true,
+    };
+  } finally {
+    await options.disconnect?.();
+  }
+};
+
+const seedHelp = (name: string, steps: SeedStep[]): string => {
+  return [
+    `Usage: ${name} [--reset] [--dry-run] [--only <step>] [--force]`,
+    "",
+    "Modes:",
+    "  (default)  Sync code-defined seed data into the database",
+    "  --reset    Run step reset handlers in reverse order, then reseed",
+    "",
+    "Options:",
+    "  --dry-run  Report changes without writing",
+    "  --only     Run one step plus its dependencies; may be repeated",
+    "  --force    Required with an explicitly allowed production reset",
+    "  --help     Show this help",
+    "",
+    `Steps: ${steps.map((step) => step.name).join(", ")}`,
+  ].join("\n");
+};
+
+const readRepeatedOption = (argv: string[], name: string): string[] => {
+  const values: string[] = [];
+  for (let index = 0; index < argv.length; index++) {
+    const token = argv[index];
+    if (token === `--${name}` && argv[index + 1]) {
+      values.push(argv[index + 1]);
+      index++;
+      continue;
+    }
+    if (token.startsWith(`--${name}=`)) {
+      values.push(token.slice(name.length + 3));
+    }
+  }
+  return values;
+};
+
+/** CLI adapter for runSeeds. It returns an exit code and never terminates the process. */
+export const runSeedCli = async (options: SeedCliOptions): Promise<SeedCliResult> => {
+  const argv = options.argv ?? process.argv.slice(2);
+  const help = seedHelp(options.name, options.steps);
+  if (argv.includes("--help") || argv.includes("-h")) {
+    return {exitCode: 0, help};
+  }
+  const knownOptions = new Set(["--dry-run", "--force", "--help", "-h", "--reset"]);
+  const unknown = argv.filter(
+    (token, index) =>
+      token.startsWith("-") &&
+      !knownOptions.has(token) &&
+      !token.startsWith("--only=") &&
+      argv[index - 1] !== "--only"
+  );
+  if (unknown.length > 0) {
+    return {exitCode: 2, help: `Unknown option(s): ${unknown.join(", ")}\n\n${help}`};
+  }
+
+  try {
+    const result = await runSeeds({
+      ...options,
+      dryRun: argv.includes("--dry-run"),
+      force: argv.includes("--force"),
+      mode: argv.includes("--reset") ? "reset" : "sync",
+      only: readRepeatedOption(argv, "only"),
+    });
+    return {exitCode: 0, result};
+  } catch (error: unknown) {
+    (options.log ?? logger).error(`Seed failed: ${errorMessage(error)}`);
+    return {exitCode: 1};
+  }
+};

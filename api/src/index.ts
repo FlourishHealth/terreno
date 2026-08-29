@@ -167,8 +167,9 @@ export {
   nestDottedFieldDescriptions,
   SYSTEM_FIELD_PATHS,
 } from "./schemaMetadata";
-export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
+export * from "./scriptRunner";
+export * from "./seedRunner";
 export * from "./secretProviders";
 export * from "./sync/executors";
 export * from "./sync/models";

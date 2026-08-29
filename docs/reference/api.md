@@ -26,6 +26,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
+- Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
@@ -1181,6 +1182,23 @@ for (let i = 0; i < 3; i++) {
 
 ## Script Helpers
 
+### runSeeds and runSeedCli
+
+Define ordered `SeedStep` entries and run them in the default `sync` mode or in
+`reset` mode. The `SeedContext` provides:
+
+- `upsert(model, key, values)` — creates, updates, or reports unchanged data
+- `deleteMany(model, filter?)` — reset helper with dry-run support
+- `mode`, `dryRun`, and structured `changes`
+
+`runSeedCli` adds `--dry-run`, `--reset`, repeatable `--only`, `--force`, and
+`--help`. It returns an exit code instead of terminating the process. Production
+resets require both `--force` and an approving `allowProductionReset` option.
+See [Seed a database](../how-to/seed-a-database.md).
+
+`seedBetterAuthUser` provisions a credential account and reconciles the
+application user model without requiring a running HTTP server.
+
 ### wrapScript
 
 Error handling wrapper for scripts and cron jobs.
@@ -1191,7 +1209,7 @@ import {wrapScript} from "@terreno/api";
 wrapScript(async () => {
   // Your script logic
   await processData();
-  console.log("Script completed successfully");
+  logger.info("Script completed successfully");
 });
 ``````
 

@@ -283,6 +283,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         lint: "biome check .",
         "lint:fix": "biome check --write .",
         "lint:unsafefix": "biome check --write . --unsafe",
+        seed: "bun run src/scripts/seed.ts",
         start: "bun run src/index.ts",
         test: "bun test",
       },
@@ -536,6 +537,104 @@ export const connectToMongoDB = async (): Promise<void> => {
     logger.warn("MongoDB disconnected");
   });
 };
+`;
+};
+
+const generateBackendSeed = (): string => {
+  return `import {
+  createBetterAuth,
+  getMongoClientFromMongoose,
+  logger,
+  runSeedCli,
+  seedBetterAuthUser,
+  type SeedStep,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
+import mongoose from "mongoose";
+
+import {User} from "../models/user";
+import {buildBetterAuthConfig} from "../utils/betterAuthConfig";
+import {connectToMongoDB} from "../utils/database";
+
+const SEED_USERS = [
+  {
+    admin: false,
+    email: "test@example.com",
+    name: "Test User",
+    password: "testpassword123",
+  },
+  {
+    admin: true,
+    email: "admin@example.com",
+    name: "Admin User",
+    password: "testpassword123",
+  },
+];
+
+const seedSteps: SeedStep[] = [
+  {
+    description: "Create login-ready development users and reconcile profile fields",
+    name: "users",
+    run: async (context) => {
+      if (context.dryRun) {
+        for (const user of SEED_USERS) {
+          const existing = await User.findByEmail(user.email);
+          context.changes.push({
+            change: existing ? "updated" : "created",
+            count: 1,
+            key: JSON.stringify({email: user.email}),
+            model: User.modelName,
+          });
+        }
+        return;
+      }
+
+      const config = buildBetterAuthConfig();
+      if (!config) {
+        throw new Error("Seed users require Better Auth to be enabled");
+      }
+      const auth = createBetterAuth({
+        config,
+        mongoClient: getMongoClientFromMongoose(),
+        userModel: User as unknown as TerrenoAuthUserModel,
+      });
+      for (const definition of SEED_USERS) {
+        const user = await seedBetterAuthUser({
+          auth,
+          user: definition,
+          userModel: User as unknown as TerrenoAuthUserModel,
+        });
+        const appUser = user as unknown as {
+          admin: boolean;
+          save: () => Promise<unknown>;
+        };
+        appUser.admin = definition.admin;
+        await appUser.save();
+      }
+    },
+  },
+];
+
+const main = async (): Promise<void> => {
+  const cli = await runSeedCli({
+    allowProductionReset: () => process.env.ALLOW_SEED_RESET === "true",
+    connect: connectToMongoDB,
+    disconnect: async () => {
+      await mongoose.disconnect();
+    },
+    name: "bun run seed",
+    steps: seedSteps,
+  });
+  if (cli.help) {
+    logger.info(cli.help);
+  }
+  process.exitCode = cli.exitCode;
+};
+
+main().catch((error: unknown) => {
+  logger.error(\`Seed failed: \${error}\`);
+  process.exitCode = 1;
+});
 `;
 };
 
@@ -2635,6 +2734,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
+    {content: generateBackendSeed(), path: `${backendDir}/src/scripts/seed.ts`},
     {
       content: generateBackendBetterAuthConfig(args),
       path: `${backendDir}/src/utils/betterAuthConfig.ts`,
@@ -2777,14 +2877,20 @@ ${fileList}
    cd backend && bun run dev
    \`\`\`
 
-7. **In a new terminal, regenerate and start the frontend:**
+7. **In a new terminal, seed login-ready development users:**
+   \`\`\`bash
+   cd backend && bun run seed
+   # Re-run safely after seed definitions change, or use --reset to reset managed data.
+   \`\`\`
+
+8. **In a new terminal, regenerate and start the frontend:**
    \`\`\`bash
    cd frontend
    bun run sdk  # Generate SDK from backend
    bun run web  # Start web frontend
    \`\`\`
 
-8. **Open http://localhost:8082** in your browser
+9. **Open http://localhost:8082** and sign in as \`test@example.com\` / \`testpassword123\`
 
 ## MCP Integration
 

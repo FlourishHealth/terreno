@@ -80,6 +80,7 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/biome.jsonc");
       expect(text).toContain("backend/src/index.ts");
       expect(text).toContain("backend/src/server.ts");
+      expect(text).toContain("backend/src/scripts/seed.ts");
       expect(text).toContain("backend/src/utils/betterAuthConfig.ts");
       expect(text).toContain("backend/.env");
       expect(text).toContain("backend/src/models/modelPlugins.ts");
@@ -137,6 +138,8 @@ describe("bootstrap", () => {
       expect(text).toContain("replSet rs0");
       expect(text).toContain("SpaceMono");
       expect(text).toContain("bun run dev");
+      expect(text).toContain("bun run seed");
+      expect(text).toContain("--reset");
       expect(text).toContain("bun run sdk");
       expect(text).toContain("http://localhost:8082");
     });
