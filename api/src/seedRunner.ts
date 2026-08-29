@@ -1,5 +1,4 @@
 import isEqual from "lodash/isEqual";
-import type {Document, FilterQuery, Model} from "mongoose";
 
 import type {UserModel} from "./auth";
 import type {BetterAuthUser} from "./betterAuth";
@@ -9,6 +8,23 @@ import {logger, type ScopedLogger} from "./logger";
 
 export type SeedMode = "reset" | "sync";
 export type SeedChange = "created" | "deleted" | "unchanged" | "updated";
+
+interface SeedDocument {
+  get: (path: string) => unknown;
+  save: () => Promise<unknown>;
+  set: (pathOrValues: object, value?: unknown) => unknown;
+}
+
+/** The small structural subset of a Mongoose model used by seed helpers. */
+export interface SeedModel {
+  new (): SeedDocument;
+  modelName: string;
+  countDocuments: (filter: Record<string, unknown>) => PromiseLike<number>;
+  deleteMany: (filter: Record<string, unknown>) => PromiseLike<unknown>;
+  find: (filter: Record<string, unknown>) => {
+    limit: (limit: number) => PromiseLike<SeedDocument[]>;
+  };
+}
 
 export interface SeedChangeResult {
   change: SeedChange;
@@ -21,14 +37,11 @@ export interface SeedContext {
   dryRun: boolean;
   mode: SeedMode;
   changes: SeedChangeResult[];
-  deleteMany: <T extends Document>(
-    model: Model<T>,
-    filter?: FilterQuery<T>
-  ) => Promise<SeedChangeResult>;
-  upsert: <T extends Document>(
-    model: Model<T>,
-    key: FilterQuery<T>,
-    values: Record<string, unknown>
+  deleteMany: (model: SeedModel, filter?: Record<string, unknown>) => Promise<SeedChangeResult>;
+  upsert: <TValues extends object>(
+    model: SeedModel,
+    key: Record<string, unknown>,
+    values: TValues
   ) => Promise<SeedChangeResult>;
 }
 
@@ -188,11 +201,9 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
 
   return {
     changes,
-    dryRun,
-    mode,
-    deleteMany: async <T extends Document>(
-      model: Model<T>,
-      filter: FilterQuery<T> = {}
+    deleteMany: async (
+      model: SeedModel,
+      filter: Record<string, unknown> = {}
     ): Promise<SeedChangeResult> => {
       const count = await model.countDocuments(filter);
       if (!dryRun && count > 0) {
@@ -201,19 +212,21 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
       return record({
         change: count > 0 ? "deleted" : "unchanged",
         count,
-        key: formatKey(filter as Record<string, unknown>),
+        key: formatKey(filter),
         model: model.modelName,
       });
     },
-    upsert: async <T extends Document>(
-      model: Model<T>,
-      key: FilterQuery<T>,
-      values: Record<string, unknown>
+    dryRun,
+    mode,
+    upsert: async <TValues extends object>(
+      model: SeedModel,
+      key: Record<string, unknown>,
+      values: TValues
     ): Promise<SeedChangeResult> => {
       const documents = await model.find(key).limit(2);
       if (documents.length > 1) {
         throw new APIError({
-          detail: `${model.modelName} seed key matched ${documents.length} documents: ${formatKey(key as Record<string, unknown>)}`,
+          detail: `${model.modelName} seed key matched ${documents.length} documents: ${formatKey(key)}`,
           status: 500,
           title: "Seed key matched multiple documents",
         });
@@ -222,12 +235,15 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
       const document = documents[0];
       if (!document) {
         if (!dryRun) {
-          await model.create({...key, ...values});
+          const createdDocument = new model();
+          createdDocument.set(key);
+          createdDocument.set(values);
+          await createdDocument.save();
         }
         return record({
           change: "created",
           count: 1,
-          key: formatKey(key as Record<string, unknown>),
+          key: formatKey(key),
           model: model.modelName,
         });
       }
@@ -239,7 +255,7 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
         return record({
           change: "unchanged",
           count: 1,
-          key: formatKey(key as Record<string, unknown>),
+          key: formatKey(key),
           model: model.modelName,
         });
       }
@@ -250,7 +266,7 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
       return record({
         change: "updated",
         count: 1,
-        key: formatKey(key as Record<string, unknown>),
+        key: formatKey(key),
         model: model.modelName,
       });
     },
@@ -258,10 +274,11 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
 };
 
 const summarizeChanges = (changes: SeedChangeResult[]): Record<SeedChange, number> => {
-  return changes.reduce<Record<SeedChange, number>>(
-    (summary, item) => ({...summary, [item.change]: summary[item.change] + item.count}),
-    {...EMPTY_SUMMARY}
-  );
+  const summary = {...EMPTY_SUMMARY};
+  for (const item of changes) {
+    summary[item.change] += item.count;
+  }
+  return summary;
 };
 
 /** Run an ordered, idempotent seed plan in sync or reset-and-reseed mode. */
@@ -310,8 +327,8 @@ export const runSeeds = async (options: SeedRunOptions): Promise<SeedRunResult> 
       mode,
       name: options.name,
       steps: steps.map((step) => step.name),
-      summary,
       success: true,
+      summary,
     };
   } finally {
     await options.disconnect?.();
@@ -359,7 +376,7 @@ export const runSeedCli = async (options: SeedCliOptions): Promise<SeedCliResult
   if (argv.includes("--help") || argv.includes("-h")) {
     return {exitCode: 0, help};
   }
-  const knownOptions = new Set(["--dry-run", "--force", "--help", "-h", "--reset"]);
+  const knownOptions = new Set(["--dry-run", "--force", "--help", "-h", "--only", "--reset"]);
   const unknown = argv.filter(
     (token, index) =>
       token.startsWith("-") &&

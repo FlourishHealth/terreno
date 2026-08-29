@@ -1,10 +1,10 @@
 import {afterEach, describe, it} from "bun:test";
 import {assert} from "chai";
-import mongoose, {type Document, Schema} from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 import {runSeedCli, runSeeds, type SeedStep} from "./seedRunner";
 
-interface SeedWidgetDocument extends Document {
+interface SeedWidgetDocument {
   key: string;
   label: string;
 }
@@ -101,10 +101,13 @@ describe("runSeeds", () => {
   it("blocks production resets unless forced and explicitly allowed", async () => {
     process.env.NODE_ENV = "production";
 
-    await assert.isRejected(
-      runSeeds({force: true, mode: "reset", name: "test", steps: []}),
-      /Production seed reset is disabled/
-    );
+    let resetError: unknown;
+    try {
+      await runSeeds({force: true, mode: "reset", name: "test", steps: []});
+    } catch (error: unknown) {
+      resetError = error;
+    }
+    assert.match(String(resetError), /Production seed reset is disabled/);
     const result = await runSeeds({
       allowProductionReset: true,
       force: true,
