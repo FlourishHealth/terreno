@@ -21,7 +21,13 @@ CircleCI.
 4. Create the contexts below before merging the CD cutover.
 5. Build forked PRs if you want DCO + rulesync on forks.
 
-Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
+GitHub App org/project slug (API and CLI):
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.
+
+Do not query `gh/FlourishHealth/terreno` — that slug returns `404 Project not found`.
+Cloud agents use `CIRCLECI_TOKEN` (accepted alias of CircleCI's `CIRCLE_TOKEN`). Send
+it as the `Circle-Token` header. Confirm with `GET https://circleci.com/api/v2/me`, then
+list pipelines on the slug above.
 
 ## Config layout
 

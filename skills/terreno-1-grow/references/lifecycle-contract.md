@@ -19,7 +19,8 @@ task) until the approved list is done, a `FAIL` that cannot continue, or `BLOCKE
 Roast never invokes Pick. Roast proves the current task and returns. Brew and Taste
 include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
-exit, so they can react to those results.
+exit, so they can react to those results. Product CI hosts and tokens are in
+[`product-ci.md`](product-ci.md).
 
 ## Discover supporting skills
 

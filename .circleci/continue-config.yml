@@ -543,11 +543,8 @@ jobs:
       - run:
           name: Fetch coverage base
           command: git fetch origin master
-      - run:
-          name: Compile API coverage dependencies
-          command: |
-            node .github/scripts/compile-workspace-deps.js api
-            bun run --filter '@terreno/api' compile
+      - compile_packages:
+          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa
       - run:
           name: Check new source file coverage
           command: |

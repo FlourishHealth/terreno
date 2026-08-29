@@ -12,6 +12,7 @@ persistence. It waits in-process only for async review bots.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`product CI`](references/product-ci.md),
 [`async review bots`](references/async-review-bots.md), and
 [`GitHub attention contract`](references/github-attention-contract.md).
 

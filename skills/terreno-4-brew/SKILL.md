@@ -12,6 +12,7 @@ records bot outcomes but does not implement fixes.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`product CI`](references/product-ci.md),
 [`async review bots`](references/async-review-bots.md), and
 [`independent review procedure`](references/independent-review.md). All GitHub text
 must follow the [`GitHub attention contract`](references/github-attention-contract.md).

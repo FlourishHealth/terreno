@@ -505,6 +505,13 @@ When present, these are injected as environment variables holding GCP service-ac
 
 When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
 
+### CircleCI API access
+
+When present, `CIRCLECI_TOKEN` is a CircleCI personal API token (`CIRCLE_TOKEN` is the
+CLI name). Use it to list jobs and fetch logs for Taste. Project slug:
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs` (not `gh/FlourishHealth/terreno`).
+See [`docs/how-to/circleci.md`](../../docs/how-to/circleci.md).
+
 ### Gotchas
 
 - **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.

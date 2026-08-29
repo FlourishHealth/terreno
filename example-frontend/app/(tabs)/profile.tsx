@@ -66,13 +66,14 @@ const ProfileScreen: React.FC = () => {
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
 
-  // Initialize form with profile data when loaded
+  // Seed the form from server name/email, not from a new profile object identity.
   useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setEmail(profile.email || "");
+    if (!profile) {
+      return;
     }
-  }, [profile]);
+    setName(profile.name || "");
+    setEmail(profile.email || "");
+  }, [profile?.name, profile?.email]);
 
   // Sync API key input with stored value
   useEffect(() => {
