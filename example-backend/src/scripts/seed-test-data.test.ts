@@ -43,9 +43,10 @@ describe("seedDefaultData", () => {
       }),
       2
     );
-    const oldestSeededMessage = await CommsMessage.findOneOrNone({
-      "metadata.demoSeed": true,
-    }).sort({created: 1});
+    const oldestSeededMessages = await CommsMessage.find({"metadata.demoSeed": true})
+      .sort({created: 1})
+      .limit(1);
+    const oldestSeededMessage = oldestSeededMessages[0];
     assert.exists(oldestSeededMessage);
     assert.isTrue(
       DateTime.fromJSDate(oldestSeededMessage?.created ?? DateTime.utc().minus({days: 2}).toJSDate())

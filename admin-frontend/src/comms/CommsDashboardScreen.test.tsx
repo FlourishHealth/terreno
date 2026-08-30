@@ -131,7 +131,7 @@ describe("CommsDashboardScreen", () => {
     expect(next.page).toBe(1);
   });
 
-  it("clears every active filter and returns to the first page", () => {
+  it("clears every active filter and returns to the first page", async () => {
     listState.data = {data: [], more: false, page: 3, total: 0};
     const onFiltersChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
@@ -142,7 +142,9 @@ describe("CommsDashboardScreen", () => {
       />
     );
 
-    fireEvent.press(getByTestId("comms-clear-filters"));
+    await act(async () => {
+      fireEvent.press(getByTestId("comms-clear-filters"));
+    });
 
     assert.deepEqual(onFiltersChange.mock.calls[0]?.[0], {page: 1});
   });
