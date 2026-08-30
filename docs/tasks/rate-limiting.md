@@ -7,7 +7,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
 
 ## Phase 1 — Tracer (memory, TerrenoApp)
 
-- [ ] **Task 1.1**: Rate-limit module + TerrenoApp mount
+- [x] **Task 1.1**: Rate-limit module + TerrenoApp mount
   - Delivers: `rateLimit: {}` on `TerrenoApp` limits HTTP; omitted option is a no-op; `POST /auth/login` uses the auth bucket (20 / 15 min); modelRouter list uses `api` (600 / 15 min); skip `/health` and `/openapi.json`; 429 `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and IETF `RateLimit` / `RateLimit-Policy`; memory store; `trust proxy` default `1` when enabled
   - Files: `api/src/rateLimit/types.ts`, `api/src/rateLimit/store.ts`, `api/src/rateLimit/memoryStore.ts`, `api/src/rateLimit/policies.ts`, `api/src/rateLimit/middleware.ts`, `api/src/rateLimit/rateLimit.test.ts`, `api/src/terrenoApp.ts`, `api/src/index.ts`, `api/src/api.ts` (remove `TODO add rate limit`)
   - Blocked by: none
