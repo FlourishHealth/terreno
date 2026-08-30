@@ -249,7 +249,7 @@ authenticated user on the same device may register it.
 
 ## Admin dashboard
 
-`CommsApp.adminContribution()` registers a custom screen named `comms`. `@terreno/admin-frontend` ships `COMMS_ADMIN_WIDGETS` (`CommsDashboardScreen`, `CommsMessageDetail`) and hosts wire:
+`CommsApp.adminContribution()` registers a custom screen named `comms` with the sidebar label **Comms Dashboard**. `@terreno/admin-frontend` ships `COMMS_ADMIN_WIDGETS` (`CommsDashboardScreen`, `CommsMessageDetail`) and hosts wire:
 
 - example-frontend: `/admin/comms` and `/admin/comms/[id]`
 - admin-spa: `/comms` and `/comms/[id]`

@@ -55,6 +55,13 @@ describe("CommsApp", () => {
     assert.strictEqual(getCommsService(), plugin.service);
   });
 
+  it("labels the admin sidebar screen as Comms Dashboard", (): void => {
+    const contribution = new CommsApp().adminContribution();
+
+    assert.equal(contribution.customScreens?.[0]?.displayName, "Comms Dashboard");
+    assert.equal(contribution.customScreens?.[0]?.name, "comms");
+  });
+
   it("upserts push tokens and isolates list and delete operations by owner", async (): Promise<void> => {
     const app = buildApp();
     const owner = await authAsUser(app, "notAdmin");

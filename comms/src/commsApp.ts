@@ -50,7 +50,7 @@ export class CommsApp implements TerrenoPlugin {
     return {
       customScreens: [
         {
-          displayName: "Comms",
+          displayName: "Comms Dashboard",
           icon: "paper-plane",
           name: "comms",
         },
