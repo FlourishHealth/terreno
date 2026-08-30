@@ -330,6 +330,8 @@ exports[`Page renders with back button 1`] = `
                           "flexDirection": "row",
                           "justifyContent": "center",
                           "paddingBottom": 12,
+                          "paddingLeft": 8,
+                          "paddingRight": 8,
                           "paddingTop": 12,
                           "position": "relative",
                           "zIndex": 1,
