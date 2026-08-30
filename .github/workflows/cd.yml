@@ -1,7 +1,30 @@
 name: CD
 
-# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
-on: []
+# Dual-run with CircleCI until `terreno-gcp` has WIF/OIDC values.
+# Do not leave both applying terraform once CircleCI GCP deploys succeed.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "example-backend/**"
+      - "api/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - "ai/**"
+      - "comms/**"
+      - "mcp-server/**"
+      - "ui/**"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch:
+    inputs:
+      run_terraform:
+        description: "Force-run terraform jobs even if terraform/ unchanged"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -49,6 +72,7 @@ jobs:
               - 'api-health/**'
               - 'admin-backend/**'
               - 'ai/**'
+              - 'comms/**'
               - '.github/workflows/cd.yml'
             tasks:
               - 'example-backend/**'
@@ -56,6 +80,7 @@ jobs:
               - 'api-health/**'
               - 'admin-backend/**'
               - 'ai/**'
+              - 'comms/**'
               - '.github/workflows/cd.yml'
             mcp:
               - 'mcp-server/**'

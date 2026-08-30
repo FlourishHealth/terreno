@@ -1,7 +1,9 @@
 name: Preview Cleanup
 
-# Disabled after migration to CircleCI `run-preview-cleanup`; retained for rollback.
-on: []
+# GitHub still receives pull_request.closed; CircleCI cleanup stays manual.
+on:
+  pull_request:
+    types: [closed]
 
 env:
   GCP_PROJECT_ID: flourish-terreno

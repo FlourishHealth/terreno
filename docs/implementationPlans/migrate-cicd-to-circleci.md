@@ -164,10 +164,12 @@ Port and dual-run:
 - Recreate preview aliases + optional GitHub Deployments via API.
 - `preview-cleanup` equivalent for Netlify/GCP previews as applicable.
 
-Implemented: production jobs run on `master` from path filters; PR preview
-jobs (`deploy-*-preview`, `gcp-cd-preview`) run on open PRs from this
-repository. Matching GHA triggers stay `on: []`. Preview cleanup on PR close
-remains a manual pipeline parameter.
+Implemented: production and PR preview jobs exist on CircleCI. GitHub Actions
+is the live Netlify/GCP writer until `terreno-netlify` / `terreno-gcp` are
+populated; CircleCI deploy scripts skip (exit 0) when those variables are
+missing. After a successful CircleCI deploy, set GHA deploy workflows back to
+`on: []` in the same change. Preview cleanup on PR close is GHA
+`preview-cleanup.yml` plus the manual CircleCI parameter.
 
 ### Phase 5 — EAS + fingerprint (v1)
 
@@ -185,9 +187,9 @@ is implemented.
 - Port `preview-cleanup` onto OIDC (eliminate `GCP_SA_KEY`).
 - Dual-run CD carefully (concurrency: one deployer).
 
-Implemented as a single CircleCI writer with a CircleCI OIDC Terraform module.
-Path filters start `gcp-cd-prod` on `master` and `gcp-cd-preview` on PRs.
-Manual `run-cd` / `deploy-preview-pr` / `run-preview-cleanup` parameters remain.
+Implemented as CircleCI jobs plus GHA dual-run until CircleCI OIDC/context
+values exist. Path filters start `gcp-cd-prod` / `gcp-cd-preview`. CircleCI
+skips apply when `terreno-gcp` is empty so terraform is not double-applied.
 
 ### Phase 7 — npm publish (v1)
 
