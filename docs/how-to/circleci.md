@@ -78,9 +78,20 @@ Until `terreno-netlify` is populated, GitHub Actions `docs-deploy` /
 PR aliases). CircleCI `deploy-*-preview` jobs still start from path filters
 and skip when `NETLIFY_AUTH_TOKEN` or the site id is missing. The same skip
 applies to `gcp-cd-*` when `terreno-gcp` lacks WIF or SA emails, so GitHub
+<<<<<<< HEAD
 `cd.yml` remains the live GCP writer. After filling a context, confirm a
 CircleCI deploy URL, then set the matching GHA workflows to `on: []`. Turn
 off Netlify's GitHub auto-build so only one system publishes.
+=======
+`cd.yml` remains the live GCP writer. GitHub `terraform-preview` and
+`backend-deploy-preview` run only when
+`github.event.pull_request.head.repo.full_name == github.repository`. Fork
+PRs still present `repository: FlourishHealth/terreno` on the OIDC token, so
+WIF would accept them if those jobs ran. Netlify GHA jobs fail closed on
+forks (secrets withheld). After filling a context, confirm a CircleCI deploy
+URL, then set the matching GHA workflows to `on: []`. Turn off Netlify's
+GitHub auto-build so only one system publishes.
+>>>>>>> origin/master
 
 ## Contexts (create empty shells, then fill)
 
