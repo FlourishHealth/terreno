@@ -66,7 +66,9 @@ declared values differ. Nested arrays are compared without generated subdocument
 `Map` values (for example consent-form `content`) compare as plain key/value
 objects so stored documents are not rewritten on every sync.
 If `isDeletedPlugin` hid a matching row, `upsert` restores that document instead
-of inserting a duplicate. Use `context.deleteMany()` only inside reset handlers.
+of inserting a duplicate. If more than one document already shares the key,
+`upsert` keeps the first match, tombstones or deletes the extras, then syncs
+the survivor. Use `context.deleteMany()` only inside reset handlers.
 Custom writes must check `context.dryRun` themselves.
 
 For Better Auth credentials, call `seedBetterAuthUser({auth, user, userModel})`.

@@ -1187,7 +1187,7 @@ for (let i = 0; i < 3; i++) {
 Define ordered `SeedStep` entries and run them in the default `sync` mode or in
 `reset` mode. The `SeedContext` provides:
 
-- `upsert(model, key, values)` — creates, updates, or reports unchanged data. Nested values ignore generated `_id`s. `Map` payloads compare as plain objects. Soft-deleted matches are restored instead of duplicated.
+- `upsert(model, key, values)` — creates, updates, or reports unchanged data. Nested values ignore generated `_id`s. `Map` payloads compare as plain objects. Soft-deleted matches are restored instead of duplicated. Duplicate key matches keep the first document and remove the extras.
 - `deleteMany(model, filter?)` — reset helper with dry-run support
 - `mode`, `dryRun`, and structured `changes`
 

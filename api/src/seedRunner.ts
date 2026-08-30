@@ -261,15 +261,33 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
       key: Record<string, unknown>,
       values: TValues
     ): Promise<SeedChangeResult> => {
-      let documents = await model.find(key).limit(2);
+      const findByKey = async (filter: Record<string, unknown>): Promise<SeedDocument[]> => {
+        return [...(await model.find(filter).limit(100))];
+      };
+
+      let documents = await findByKey(key);
       if (documents.length === 0) {
-        documents = await model.find({...key, deleted: true}).limit(2);
+        documents = await findByKey({...key, deleted: true});
       }
-      if (documents.length > 1) {
-        throw new APIError({
-          detail: `${model.modelName} seed key matched ${documents.length} documents: ${formatKey(key)}`,
-          status: 500,
-          title: "Seed key matched multiple documents",
+
+      const extras = documents.slice(1);
+      if (extras.length > 0) {
+        if (!dryRun) {
+          for (const extra of extras) {
+            const extraDeleted = extra.get("deleted");
+            if (extraDeleted === true || extraDeleted === false) {
+              extra.set({deleted: true});
+              await extra.save();
+            } else {
+              await model.deleteMany({_id: extra.get("_id")});
+            }
+          }
+        }
+        record({
+          change: "deleted",
+          count: extras.length,
+          key: formatKey(key),
+          model: model.modelName,
         });
       }
 

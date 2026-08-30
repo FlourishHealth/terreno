@@ -192,6 +192,30 @@ describe("runSeeds", () => {
     assert.equal(unchanged.summary.updated, 0);
   });
 
+  it("collapses duplicate live documents for the same seed key", async () => {
+    await SeedSoftWidget.create({key: "primary", label: "First"});
+    await SeedSoftWidget.create({key: "primary", label: "Second"});
+
+    const result = await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.upsert(SeedSoftWidget, {key: "primary"}, {label: "Canonical"});
+          },
+        },
+      ],
+    });
+
+    assert.equal(result.summary.deleted, 1);
+    assert.equal(result.summary.updated, 1);
+    assert.equal((await SeedSoftWidget.find({key: "primary"})).length, 1);
+    const kept = await SeedSoftWidget.findOne({key: "primary"});
+    assert.equal(kept?.label, "Canonical");
+    assert.equal((await SeedSoftWidget.find({key: "primary", deleted: true})).length, 1);
+  });
+
   it("treats Map seed values as unchanged after Mongoose stores them", async () => {
     const content = new Map([["en", "Hello"]]);
     const step: SeedStep = {
