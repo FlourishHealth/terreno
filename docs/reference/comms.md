@@ -256,6 +256,8 @@ authenticated user on the same device may register it.
 
 Filters persist in the URL. Stats cards come from `/comms/stats`. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
 
+Run `bun run backend:seed` from the repository root to populate the example dashboard with 10 current, idempotent delivery logs across mail, SMS, push, and verification. The sample includes delivered, sent, failed, bounced, and cancelled states so stats, provider breakdowns, filters, and retry controls are visible immediately.
+
 ## Templates
 
 `renderTemplate()` replaces top-level `{{variable}}` placeholders in `subject`, `text`, and `html`.

@@ -1,6 +1,8 @@
 import {describe, it} from "bun:test";
 import {ConsentForm} from "@terreno/api";
+import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
+import {DateTime} from "luxon";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
@@ -33,5 +35,22 @@ describe("seedDefaultData", () => {
     assert.equal(await Project.countDocuments({organizationId: "org-example"}), 2);
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
     assert.equal(await ConsentForm.countDocuments({}), 3);
+    assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
+    assert.equal(
+      await CommsMessage.countDocuments({
+        "metadata.demoSeed": true,
+        status: {$in: ["bounced", "failed"]},
+      }),
+      2
+    );
+    const oldestSeededMessage = await CommsMessage.findOneOrNone({
+      "metadata.demoSeed": true,
+    }).sort({created: 1});
+    assert.exists(oldestSeededMessage);
+    assert.isTrue(
+      DateTime.fromJSDate(oldestSeededMessage?.created ?? DateTime.utc().minus({days: 2}).toJSDate())
+        .diffNow("days")
+        .days > -1
+    );
   });
 });
