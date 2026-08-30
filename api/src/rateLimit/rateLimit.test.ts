@@ -126,6 +126,7 @@ describe("HTTP rate limiting", () => {
     const authPaths = [
       "/auth/login",
       "/auth/login/",
+      "/Auth/login",
       "/auth/signup",
       "/auth/refresh_token",
       "/auth/github",

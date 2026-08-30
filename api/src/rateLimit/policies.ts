@@ -12,10 +12,11 @@ const stripQuery = (url: string): string => {
 /** Strip query and a trailing slash so `/auth/login/` matches `/auth/login`. */
 export const normalizeRequestPath = (url: string): string => {
   const withoutQuery = stripQuery(url);
-  if (withoutQuery.length > 1 && withoutQuery.endsWith("/")) {
-    return withoutQuery.slice(0, -1);
-  }
-  return withoutQuery;
+  const withoutSlash =
+    withoutQuery.length > 1 && withoutQuery.endsWith("/")
+      ? withoutQuery.slice(0, -1)
+      : withoutQuery;
+  return withoutSlash.toLowerCase();
 };
 
 export const requestPath = (req: Request): string => {
@@ -69,7 +70,8 @@ const AUTH_EXACT = new Set([
 const AUTH_PREFIXES = ["/auth/github/"];
 
 const betterAuthAuthPrefixes = (basePath: string): string[] => {
-  const base = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  const trimmed = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  const base = trimmed.toLowerCase();
   return [
     `${base}/sign-in`,
     `${base}/sign-up`,
