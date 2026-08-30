@@ -1,11 +1,16 @@
 import {assert} from "chai";
 import {describe, it} from "bun:test";
-import {AREA_BY_PACKAGE, parsePackageAreaFromIssueBody} from "./issueAreaLabels.ts";
+import {AREA_BY_PACKAGE, KIND_BY_VALUE, parseKindTypeFromIssueBody, parsePackageAreaFromIssueBody} from "./issueAreaLabels.ts";
 
 describe("parsePackageAreaFromIssueBody", () => {
   it("maps bug report package values to area labels", (): void => {
     const body = "### Affected package\n\n@terreno/ui\n\n### Version";
     assert.equal(parsePackageAreaFromIssueBody(body), "area:ui");
+  });
+
+  it("maps plugins to area:dx", (): void => {
+    const body = "### Affected package\n\nplugins\n\n### Kind";
+    assert.equal(parsePackageAreaFromIssueBody(body), "area:dx");
   });
 
   it("returns null when package section is missing", (): void => {
@@ -31,6 +36,35 @@ describe("parsePackageAreaFromIssueBody", () => {
   });
 });
 
+describe("parseKindTypeFromIssueBody", () => {
+  it("maps Kind dropdown values to type labels", (): void => {
+    const body = "### Kind\n\nBug\n\n### Problem";
+    assert.equal(parseKindTypeFromIssueBody(body), "type:bug");
+  });
+
+  it("returns null when Kind is missing", (): void => {
+    assert.isNull(parseKindTypeFromIssueBody("### Affected package\n\n@terreno/ui\n"));
+  });
+
+  it("returns null for an unknown Kind", (): void => {
+    assert.isNull(parseKindTypeFromIssueBody("### Kind\n\nRFC\n"));
+  });
+
+  it("maps every Kind value to a label the taxonomy defines", async (): Promise<void> => {
+    const labelsYaml = await Bun.file(".github/labels.yml").text();
+    const definedNames = new Set(
+      (Bun.YAML.parse(labelsYaml) as {name: string}[]).map((label) => label.name)
+    );
+
+    for (const typeLabel of Object.values(KIND_BY_VALUE)) {
+      assert.isTrue(
+        definedNames.has(typeLabel),
+        `${typeLabel} is not defined in .github/labels.yml`
+      );
+    }
+  });
+});
+
 describe("dropdown coverage", (): void => {
   // The mapping silently returned "no area" for @terreno/comms for as long as
   // that option existed, because nothing asserted the two lists agree.
@@ -51,10 +85,46 @@ describe("dropdown coverage", (): void => {
     assert.deepEqual(unmapped, [], `unmapped package options: ${unmapped.join(", ")}`);
   });
 
+  it("maps every package option in work_item.yml", async (): Promise<void> => {
+    const template = await Bun.file(".github/ISSUE_TEMPLATE/work_item.yml").text();
+    const parsed = Bun.YAML.parse(template) as {
+      body?: {attributes?: {label?: string; options?: string[]}; type?: string}[];
+    };
+
+    const packageDropdown = parsed.body?.find(
+      (block) => block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
+    );
+    assert.ok(packageDropdown !== undefined, "work_item.yml has no Affected package dropdown");
+
+    const unmapped = (packageDropdown?.attributes?.options ?? []).filter(
+      (option) => AREA_BY_PACKAGE[option] === undefined
+    );
+    assert.deepEqual(unmapped, [], `unmapped work_item package options: ${unmapped.join(", ")}`);
+  });
+
+  it("maps every Kind option in work_item.yml", async (): Promise<void> => {
+    const template = await Bun.file(".github/ISSUE_TEMPLATE/work_item.yml").text();
+    const parsed = Bun.YAML.parse(template) as {
+      body?: {attributes?: {label?: string; options?: string[]}; type?: string}[];
+    };
+
+    const kindDropdown = parsed.body?.find(
+      (block) => block.type === "dropdown" && /^kind$/i.test(block.attributes?.label ?? "")
+    );
+    assert.ok(kindDropdown !== undefined, "work_item.yml has no Kind dropdown");
+
+    const unmapped = (kindDropdown?.attributes?.options ?? []).filter(
+      (option) => KIND_BY_VALUE[option] === undefined
+    );
+    assert.deepEqual(unmapped, [], `unmapped work_item Kind options: ${unmapped.join(", ")}`);
+  });
+
   it("only maps to labels that exist in labels.yml", async (): Promise<void> => {
     const labels = Bun.YAML.parse(await Bun.file(".github/labels.yml").text()) as {name: string}[];
     const known = new Set(labels.map((label) => label.name));
-    const unknown = [...new Set(Object.values(AREA_BY_PACKAGE))].filter((label) => !known.has(label));
-    assert.deepEqual(unknown, [], `labels missing from labels.yml: ${unknown.join(", ")}`);
+    const unknownAreas = [...new Set(Object.values(AREA_BY_PACKAGE))].filter((label) => !known.has(label));
+    assert.deepEqual(unknownAreas, [], `area labels missing from labels.yml: ${unknownAreas.join(", ")}`);
+    const unknownTypes = [...new Set(Object.values(KIND_BY_VALUE))].filter((label) => !known.has(label));
+    assert.deepEqual(unknownTypes, [], `type labels missing from labels.yml: ${unknownTypes.join(", ")}`);
   });
 });

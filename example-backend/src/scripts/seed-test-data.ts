@@ -4,13 +4,25 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {APIError, ConsentForm, type ConsentFormType, ConsentResponse, logger} from "@terreno/api";
+import {
+  APIError,
+  ConsentForm,
+  type ConsentFormType,
+  ConsentResponse,
+  logger,
+  runSeedCli,
+  runSeeds,
+  type SeedContext,
+  type SeedRunResult,
+  type SeedStep,
+} from "@terreno/api";
 import {
   type CommsChannel,
   type CommsErrorClass,
   CommsMessage,
   type CommsMessageStatus,
 } from "@terreno/comms";
+import {FeatureFlag} from "@terreno/feature-flags";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
@@ -26,6 +38,7 @@ import type {UserDocument} from "../types/models/userTypes";
 import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
+import {seedFeatureFlags} from "./seed-feature-flags";
 
 interface SeedUser {
   admin?: boolean;
@@ -386,74 +399,59 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   return user as UserDocument;
 };
 
-const seedProjects = async (): Promise<void> => {
+const seedProjects = async (context: SeedContext): Promise<void> => {
   for (const project of SEED_PROJECTS) {
-    const existing = await Project.findOneOrNone({
-      organizationId: project.organizationId,
-      title: project.title,
-    });
-    if (existing) {
-      logger.info(`Project already exists: ${project.title}`);
-      continue;
-    }
-    const created = await Project.create(project);
-    logger.info(`Project created: ${created.title} (id: ${created._id})`);
+    await context.upsert(
+      Project,
+      {organizationId: project.organizationId, title: project.title},
+      project
+    );
   }
 };
 
-const seedTodos = async (owner: UserDocument): Promise<void> => {
+const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<void> => {
   for (const title of SEED_TODOS) {
-    const existing = await Todo.findOneOrNone({ownerId: owner._id, title});
-    if (existing) {
-      logger.info(`Todo already exists: ${title}`);
-      continue;
-    }
-    const created = await Todo.create({ownerId: owner._id, title});
-    logger.info(`Todo created: ${created.title} (id: ${created._id})`);
+    await context.upsert(Todo, {ownerId: owner._id, title}, {ownerId: owner._id, title});
   }
 };
 
 /** Seed current, representative delivery logs so the comms dashboard is useful after setup. */
-const seedCommsMessages = async (admin: UserDocument): Promise<void> => {
+const seedCommsMessages = async (context: SeedContext, admin: UserDocument): Promise<void> => {
   const seededAt = DateTime.utc();
   for (const [index, message] of SEED_COMMS_MESSAGES.entries()) {
     const attemptAt = seededAt.minus({minutes: index * 18}).toJSDate();
     const providerMessageId = `demo-${message.key}`;
-    const fields = {
-      attemptCount: 1,
-      attempts: [
-        {
-          at: attemptAt,
-          error: message.error,
-          errorClass: message.errorClass,
-          errorCode: message.errorCode,
-          provider: message.provider,
-          providerMessageId,
-        },
-      ],
-      channel: message.channel,
-      created: attemptAt,
-      error: message.error,
-      errorClass: message.errorClass,
-      errorCode: message.errorCode,
-      lastAttemptAt: attemptAt,
-      metadata: {demoSeed: true, seedKey: message.key},
-      payload: message.payload,
-      payloadExpiresAt: seededAt.plus({days: 30}).toJSDate(),
-      provider: message.provider,
-      providerMessageId,
-      status: message.status,
-      subject: message.subject,
-      to: message.to,
-      userId: admin._id,
-    };
-    const existing = await CommsMessage.findOneOrNone({providerMessageId});
-    if (existing) {
-      existing.set(fields);
-      await existing.save();
-      continue;
-    }
-    await CommsMessage.create(fields);
+    await context.upsert(
+      CommsMessage,
+      {providerMessageId},
+      {
+        attemptCount: 1,
+        attempts: [
+          {
+            at: attemptAt,
+            error: message.error,
+            errorClass: message.errorClass,
+            errorCode: message.errorCode,
+            provider: message.provider,
+            providerMessageId,
+          },
+        ],
+        channel: message.channel,
+        created: attemptAt,
+        error: message.error,
+        errorClass: message.errorClass,
+        errorCode: message.errorCode,
+        lastAttemptAt: attemptAt,
+        metadata: {demoSeed: true, seedKey: message.key},
+        payload: message.payload,
+        payloadExpiresAt: seededAt.plus({days: 30}).toJSDate(),
+        provider: message.provider,
+        status: message.status,
+        subject: message.subject,
+        to: message.to,
+        userId: admin._id,
+      }
+    );
   }
   logger.info(`Seeded ${SEED_COMMS_MESSAGES.length} current comms delivery logs`);
 };
@@ -494,70 +492,152 @@ const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> =
   }
 };
 
-const seedConsentForms = async (): Promise<void> => {
-  const slugs = CONSENT_FORMS.map((f) => f.slug);
-  const existing = await ConsentForm.find({slug: {$in: slugs}});
-  const existingSlugs = new Set(existing.map((f) => f.slug));
-
-  const toCreate = CONSENT_FORMS.filter((f) => !existingSlugs.has(f.slug));
-
-  if (toCreate.length === 0) {
-    logger.info(`All ${slugs.length} consent forms already exist`);
-    return;
+const seedConsentForms = async (context: SeedContext): Promise<void> => {
+  for (const form of CONSENT_FORMS) {
+    await context.upsert(ConsentForm, {slug: form.slug}, form);
   }
-
-  await ConsentForm.create(toCreate);
-  logger.info(
-    `Seeded ${toCreate.length} consent form(s): ${toCreate.map((f) => f.slug).join(", ")}`
-  );
 };
 
+const softDeleteAll = async (
+  context: SeedContext,
+  documents: Array<{deleted: boolean; save: () => Promise<unknown>}>,
+  model: string
+): Promise<void> => {
+  context.changes.push({
+    change: documents.length > 0 ? "deleted" : "unchanged",
+    count: documents.length,
+    key: "{}",
+    model,
+  });
+  if (context.dryRun) {
+    return;
+  }
+  for (const document of documents) {
+    document.deleted = true;
+    await document.save();
+  }
+};
+
+const seededUsers: UserDocument[] = [];
+
+export const seedSteps: SeedStep[] = [
+  {
+    name: "users",
+    run: async (context) => {
+      seededUsers.length = 0;
+      for (const testUser of TEST_USERS) {
+        if (context.dryRun) {
+          const existingUser = await User.findByEmail(testUser.email);
+          context.changes.push({
+            change: existingUser ? "updated" : "created",
+            count: 1,
+            key: JSON.stringify({email: testUser.email}),
+            model: User.modelName,
+          });
+          seededUsers.push(
+            existingUser ??
+              ({
+                _id: new mongoose.Types.ObjectId(),
+                email: testUser.email,
+              } as UserDocument)
+          );
+          continue;
+        }
+        seededUsers.push(await seedUser(testUser));
+      }
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "projects",
+    reset: async (context) => {
+      await softDeleteAll(context, await Project.find({}), Project.modelName);
+    },
+    run: seedProjects,
+  },
+  {
+    dependsOn: ["users"],
+    name: "todos",
+    reset: async (context) => {
+      await softDeleteAll(context, await Todo.find({}), Todo.modelName);
+    },
+    run: async (context) => {
+      if (seededUsers[0]) {
+        await seedTodos(context, seededUsers[0]);
+      }
+    },
+  },
+  {
+    name: "consentForms",
+    reset: async (context) => {
+      await context.deleteMany(ConsentForm);
+    },
+    run: seedConsentForms,
+  },
+  {
+    dependsOn: ["users", "consentForms"],
+    name: "consentResponses",
+    reset: async (context) => {
+      await context.deleteMany(ConsentResponse);
+    },
+    run: async (context) => {
+      if (context.dryRun) {
+        return;
+      }
+      for (const user of seededUsers) {
+        await acceptPendingConsentsForUser(user);
+      }
+    },
+  },
+  {
+    name: "featureFlags",
+    reset: async (context) => {
+      await context.deleteMany(FeatureFlag);
+    },
+    run: async (context) => {
+      await seedFeatureFlags(context);
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "commsMessages",
+    reset: async (context) => {
+      await context.deleteMany(CommsMessage, {"metadata.demoSeed": true});
+    },
+    run: async (context) => {
+      const adminUser = seededUsers.find((user) => user.email === "admin@example.com");
+      if (adminUser) {
+        await seedCommsMessages(context, adminUser);
+      }
+    },
+  },
+];
+
 /** Seed the idempotent example users and records into the active MongoDB database. */
-export const seedDefaultData = async (): Promise<void> => {
-  const seededUsers: UserDocument[] = [];
-  for (const testUser of TEST_USERS) {
-    seededUsers.push(await seedUser(testUser));
-  }
-
-  await seedProjects();
-  // A couple of todos for the non-admin test user (owner-scoped sync stream).
-  if (seededUsers[0]) {
-    await seedTodos(seededUsers[0]);
-  }
-  const adminUser = seededUsers.find((user) => user.email === "admin@example.com");
-  if (adminUser) {
-    await seedCommsMessages(adminUser);
-  }
-
-  await seedConsentForms();
-
-  for (const user of seededUsers) {
-    await acceptPendingConsentsForUser(user);
-  }
+export const seedDefaultData = async (): Promise<SeedRunResult> => {
+  return runSeeds({name: "example-backend", steps: seedSteps});
 };
 
 const main = async (): Promise<void> => {
-  try {
-    logger.info("Connecting to MongoDB...");
-    await connectToMongoDB();
-    await seedDefaultData();
-
-    await Configuration.shutdown();
-    await mongoose.disconnect();
-    logger.info("Done.");
-  } catch (error: unknown) {
-    logger.error(`Error seeding test data: ${error}`);
-    process.exit(1);
+  const cli = await runSeedCli({
+    allowProductionReset: () => process.env.ALLOW_SEED_RESET === "true",
+    connect: connectToMongoDB,
+    disconnect: async () => {
+      await Configuration.shutdown();
+      await mongoose.disconnect();
+    },
+    name: "bun run seed",
+    steps: seedSteps,
+  });
+  if (cli.help) {
+    logger.info(cli.help);
   }
+  process.exit(cli.exitCode);
 };
 
 if (import.meta.main) {
-  main()
-    .then(() => {
-      process.exit(0);
-    })
-    .catch((error: unknown) => {
-      logger.error(`Unhandled error: ${error}`);
-      process.exit(1);
-    });
+  main().catch((error: unknown) => {
+    logger.error(`Unhandled error: ${error}`);
+    process.exit(1);
+  });
 }

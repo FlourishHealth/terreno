@@ -1,12 +1,12 @@
 import {describe, it} from "bun:test";
-import {ConsentForm} from "@terreno/api";
+import {ConsentForm, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
-import {seedDefaultData} from "./seed-test-data";
+import {seedDefaultData, seedSteps} from "./seed-test-data";
 
 describe("seedDefaultData", () => {
   it("idempotently seeds the default users and example records", async () => {
@@ -53,5 +53,18 @@ describe("seedDefaultData", () => {
         oldestSeededMessage?.created ?? DateTime.utc().minus({days: 2}).toJSDate()
       ).diffNow("days").days > -1
     );
+  });
+
+  it("previews todo creates on a first-time dry-run", async () => {
+    await User.deleteMany({});
+
+    const preview = await runSeeds({
+      dryRun: true,
+      name: "example-backend",
+      steps: seedSteps,
+    });
+
+    assert.isAtLeast(preview.summary.created, 2);
+    assert.equal(await User.countDocuments({}), 0);
   });
 });

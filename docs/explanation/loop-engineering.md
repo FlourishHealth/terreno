@@ -103,6 +103,7 @@ agents. The current high-value composition points include:
 | UI/app | `terreno-ui`, `building-terreno-apps`, `building-native-ui`, `verify-ui-changes` |
 | AI/prompts | `ai-prompt-governance` |
 | Docs/submission | `update-docs`, `commit`, `create-pr`, `fix-conflicts` |
+| GitHub issues | `create-github-issue`, `work-github-issues` (Pick plan comment is the Roast contract) |
 | Deployment/runtime | `deploy-gcp`, Expo deployment/workflow skills |
 
 This inventory is descriptive, not a plugin dependency list. Stages inspect the actual

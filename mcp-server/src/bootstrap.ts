@@ -283,6 +283,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         lint: "biome check .",
         "lint:fix": "biome check --write .",
         "lint:unsafefix": "biome check --write . --unsafe",
+        seed: "bun run src/scripts/seed.ts",
         start: "bun run src/index.ts",
         test: "bun test",
       },
@@ -536,6 +537,108 @@ export const connectToMongoDB = async (): Promise<void> => {
     logger.warn("MongoDB disconnected");
   });
 };
+`;
+};
+
+const generateBackendSeed = (): string => {
+  return `import {
+  APIError,
+  createBetterAuth,
+  getMongoClientFromMongoose,
+  logger,
+  runSeedCli,
+  seedBetterAuthUser,
+  type SeedStep,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
+import mongoose from "mongoose";
+
+import {User} from "../models/user";
+import {buildBetterAuthConfig} from "../utils/betterAuthConfig";
+import {connectToMongoDB} from "../utils/database";
+
+const SEED_USERS = [
+  {
+    admin: false,
+    email: "test@example.com",
+    name: "Test User",
+    password: "testpassword123",
+  },
+  {
+    admin: true,
+    email: "admin@example.com",
+    name: "Admin User",
+    password: "testpassword123",
+  },
+];
+
+const seedSteps: SeedStep[] = [
+  {
+    description: "Create login-ready development users and reconcile profile fields",
+    name: "users",
+    run: async (context) => {
+      if (context.dryRun) {
+        for (const user of SEED_USERS) {
+          const existing = await User.findByEmail(user.email);
+          context.changes.push({
+            change: existing ? "updated" : "created",
+            count: 1,
+            key: JSON.stringify({email: user.email}),
+            model: User.modelName,
+          });
+        }
+        return;
+      }
+
+      const config = buildBetterAuthConfig();
+      if (!config) {
+        throw new APIError({
+          status: 500,
+          title: "Seed users require Better Auth to be enabled",
+        });
+      }
+      const auth = createBetterAuth({
+        config,
+        mongoClient: getMongoClientFromMongoose(),
+        userModel: User as unknown as TerrenoAuthUserModel,
+      });
+      for (const definition of SEED_USERS) {
+        const user = await seedBetterAuthUser({
+          auth,
+          user: definition,
+          userModel: User as unknown as TerrenoAuthUserModel,
+        });
+        const appUser = user as unknown as {
+          admin: boolean;
+          save: () => Promise<unknown>;
+        };
+        appUser.admin = definition.admin;
+        await appUser.save();
+      }
+    },
+  },
+];
+
+const main = async (): Promise<void> => {
+  const cli = await runSeedCli({
+    allowProductionReset: () => process.env.ALLOW_SEED_RESET === "true",
+    connect: connectToMongoDB,
+    disconnect: async () => {
+      await mongoose.disconnect();
+    },
+    name: "bun run seed",
+    steps: seedSteps,
+  });
+  if (cli.help) {
+    logger.info(cli.help);
+  }
+  process.exit(cli.exitCode);
+};
+
+main().catch((error: unknown) => {
+  logger.error(\`Seed failed: \${error}\`);
+  process.exit(1);
+});
 `;
 };
 
@@ -1407,16 +1510,39 @@ export default HomeScreen;
 };
 
 const generateFrontendTabsProfile = (): string => {
-  return `import {Box, Button, Heading, Page, Text} from "@terreno/ui";
+  return `import {Box, Button, Card, Heading, Page, Spinner, TapToEdit, Text} from "@terreno/ui";
 import type React from "react";
-import {useCallback} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {signOut} from "@/lib/betterAuth";
 import {logout, syncBetterAuthSession, useAppDispatch} from "@/store/index";
-import {useGetMeQuery} from "@/store/sdk";
+import {useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
 
 const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const {data: profile, isLoading} = useGetMeQuery();
+  const [updateProfile] = usePatchMeMutation();
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const user = profile?.data;
+
+  // Copy the server name into local state without resetting an in-progress email edit.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    setName(user.name || "");
+  }, [user?.name]);
+
+  // Copy the server email into local state without resetting an in-progress name edit.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    setEmail(user.email || "");
+  }, [user?.email]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
     await signOut();
@@ -1424,30 +1550,92 @@ const ProfileScreen: React.FC = () => {
     await syncBetterAuthSession(dispatch);
   }, [dispatch]);
 
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      try {
+        await updateProfile({name: value}).unwrap();
+      } catch (err) {
+        console.error("Error updating name:", err);
+        setSaveError("Failed to update name");
+      }
+    },
+    [updateProfile]
+  );
+
+  const handleSaveEmail = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      try {
+        await updateProfile({email: value}).unwrap();
+      } catch (err) {
+        console.error("Error updating email:", err);
+        setSaveError("Failed to update email");
+      }
+    },
+    [updateProfile]
+  );
+
+  const handleSavePassword = useCallback(
+    async (value: string): Promise<void> => {
+      if (!value) {
+        return;
+      }
+      setSaveError(null);
+      try {
+        await updateProfile({password: value}).unwrap();
+        setPassword("");
+      } catch (err) {
+        console.error("Error updating password:", err);
+        setSaveError("Failed to update password");
+      }
+    },
+    [updateProfile]
+  );
+
   if (isLoading) {
     return (
       <Page navigation={undefined} title="Profile">
-        <Box padding={4}>
-          <Text>Loading...</Text>
+        <Box alignItems="center" flex="grow" justifyContent="center" padding={4}>
+          <Spinner />
         </Box>
       </Page>
     );
   }
 
   return (
-    <Page navigation={undefined} title="Profile">
-      <Box padding={4} gap={4}>
+    <Page navigation={undefined} scroll title="Profile">
+      <Box gap={4} padding={4}>
         <Heading>Profile</Heading>
-        <Box gap={2}>
-          <Text weight="bold">Name</Text>
-          <Text>{profile?.data?.name || "Not set"}</Text>
-        </Box>
-        <Box gap={2}>
-          <Text weight="bold">Email</Text>
-          <Text>{profile?.data?.email || "Not set"}</Text>
-        </Box>
+        <Card>
+          <Box gap={4}>
+            <TapToEdit
+              onSave={handleSaveName}
+              setValue={setName}
+              title="Name"
+              type="text"
+              value={name}
+            />
+            <TapToEdit
+              onSave={handleSaveEmail}
+              setValue={setEmail}
+              title="Email"
+              type="email"
+              value={email}
+            />
+            <TapToEdit
+              helperText="Leave blank to keep your current password"
+              onSave={handleSavePassword}
+              setValue={setPassword}
+              title="New Password"
+              type="password"
+              value={password}
+            />
+            {saveError && <Text color="error">{saveError}</Text>}
+          </Box>
+        </Card>
         <Box marginTop={4}>
-          <Button onClick={handleLogout} text="Logout" variant="outline" fullWidth />
+          <Button fullWidth onClick={handleLogout} text="Logout" variant="outline" />
         </Box>
       </Box>
     </Page>
@@ -2635,6 +2823,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
+    {content: generateBackendSeed(), path: `${backendDir}/src/scripts/seed.ts`},
     {
       content: generateBackendBetterAuthConfig(args),
       path: `${backendDir}/src/utils/betterAuthConfig.ts`,
@@ -2777,14 +2966,20 @@ ${fileList}
    cd backend && bun run dev
    \`\`\`
 
-7. **In a new terminal, regenerate and start the frontend:**
+7. **In a new terminal, seed login-ready development users:**
+   \`\`\`bash
+   cd backend && bun run seed
+   # Re-run safely after seed definitions change, or use --reset to reset managed data.
+   \`\`\`
+
+8. **In a new terminal, regenerate and start the frontend:**
    \`\`\`bash
    cd frontend
    bun run sdk  # Generate SDK from backend
    bun run web  # Start web frontend
    \`\`\`
 
-8. **Open http://localhost:8082** in your browser
+9. **Open http://localhost:8082** and sign in as \`test@example.com\` / \`testpassword123\`
 
 ## MCP Integration
 
