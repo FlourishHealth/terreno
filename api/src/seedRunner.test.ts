@@ -213,7 +213,7 @@ describe("runSeeds", () => {
     assert.equal((await SeedSoftWidget.find({key: "primary"})).length, 1);
     const kept = await SeedSoftWidget.findOne({key: "primary"});
     assert.equal(kept?.label, "Canonical");
-    assert.equal((await SeedSoftWidget.find({key: "primary", deleted: true})).length, 1);
+    assert.equal((await SeedSoftWidget.find({deleted: true, key: "primary"})).length, 1);
   });
 
   it("treats Map seed values as unchanged after Mongoose stores them", async () => {
