@@ -8,6 +8,8 @@ export interface SendResult {
   errorClass?: CommsErrorClass;
   errorCode?: string;
   isPermanentFailure?: boolean;
+  /** Id of the CommsMessage row written for this send, when logging is on. */
+  loggedMessageId?: string;
   metadata?: Record<string, unknown>;
   providerMessageId?: string;
 }

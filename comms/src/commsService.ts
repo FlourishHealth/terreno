@@ -486,7 +486,21 @@ export class CommsService {
     }
     await this.notifyOutcomeHooks(context, retried.result, hookErrors);
     await this.patchHookErrors(finalLogged, hookErrors);
-    return retried.result;
+    return this.withLoggedId(retried.result, finalLogged);
+  }
+
+  private withLoggedId(result: SendResult, logged: CommsMessageDocument | null): SendResult {
+    if (!logged) {
+      return result;
+    }
+    return {...result, loggedMessageId: String(logged._id)};
+  }
+
+  private loggedIdFromSend(result: SendResult | SendResult[]): string | undefined {
+    if (Array.isArray(result)) {
+      return result.map((row) => row.loggedMessageId).find((id) => Boolean(id));
+    }
+    return result.loggedMessageId;
   }
 
   private cancelledResult(): SendResult {
@@ -623,7 +637,7 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await this.logResult({
+      const logged = await this.logResult({
         attempts: [this.attemptFromResult(provider.id, result)],
         channel: "mail",
         context,
@@ -637,7 +651,7 @@ export class CommsService {
         templateId: activeMessage.templateId,
         to: activeMessage.to,
       });
-      return result;
+      return this.withLoggedId(result, logged);
     }
 
     const first = await this.sendMailOnce(provider, activeMessage);
@@ -673,7 +687,7 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await this.logResult({
+      const logged = await this.logResult({
         attempts: [this.attemptFromResult(provider.id, result)],
         channel: "sms",
         context,
@@ -685,7 +699,7 @@ export class CommsService {
         status: "cancelled",
         to: activeMessage.to,
       });
-      return result;
+      return this.withLoggedId(result, logged);
     }
 
     const first = await this.sendSmsOnce(provider, activeMessage);
@@ -860,7 +874,12 @@ export class CommsService {
       })
     );
 
-    return sendTokens.map((tokenValue) => finalByToken.get(tokenValue) as SendResult);
+    return sendTokens.map((tokenValue) =>
+      this.withLoggedId(
+        finalByToken.get(tokenValue) as SendResult,
+        loggedByToken.get(tokenValue) ?? null
+      )
+    );
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
@@ -980,9 +999,10 @@ export class CommsService {
       retriedFromId: String(original._id),
     };
     const payload = original.payload as Record<string, unknown>;
+    let sendResult: SendResult | SendResult[] | undefined;
 
     if (original.channel === "mail") {
-      await this.sendMail(
+      sendResult = await this.sendMail(
         {
           dynamicTemplateData: payload.dynamicTemplateData as Record<string, unknown> | undefined,
           from: payload.from as string | undefined,
@@ -996,7 +1016,7 @@ export class CommsService {
         sendOptions
       );
     } else if (original.channel === "sms") {
-      await this.sendSms(
+      sendResult = await this.sendSms(
         {
           body: String(payload.body ?? ""),
           to: String(payload.to ?? original.to),
@@ -1004,7 +1024,7 @@ export class CommsService {
         sendOptions
       );
     } else if (original.userId) {
-      await this.sendPushToUser(
+      sendResult = await this.sendPushToUser(
         {
           badge: payload.badge as number | undefined,
           body: String(payload.body ?? ""),
@@ -1022,10 +1042,11 @@ export class CommsService {
       });
     }
 
-    const created = await CommsMessage.find({retriedFromId: original._id})
-      .sort("-created")
-      .limit(1);
-    const retried = created[0];
+    const loggedId = this.loggedIdFromSend(sendResult ?? []);
+    if (!loggedId) {
+      throw new APIError({status: 500, title: "Retry did not create a communication log"});
+    }
+    const retried = await CommsMessage.findOneOrNone({_id: loggedId});
     if (!retried) {
       throw new APIError({status: 500, title: "Retry did not create a communication log"});
     }

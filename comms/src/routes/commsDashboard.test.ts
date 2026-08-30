@@ -11,7 +11,6 @@ import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
-import supertest from "supertest";
 
 import {CommsApp} from "../commsApp";
 import {CommsMessage} from "../models/commsMessage";
@@ -188,6 +187,27 @@ describe("comms retry and stats", () => {
     const reloaded = await CommsMessage.findExactlyOne({_id: original._id});
     assert.equal(String(reloaded.retriedById), response.body.data._id);
     assert.match(String(response.body.data.metadata.retriedByUserId), /^[a-f0-9]{24}$/);
+  });
+
+  it("does not return an earlier retry when this send created no log", async (): Promise<void> => {
+    const mail: MailProvider = {
+      id: "memory-mail",
+      sendMail: async (): Promise<SendResult> => ({accepted: true, providerMessageId: "ok"}),
+    };
+    const loggingApp = buildApp(new CommsApp({mail}));
+    const admin = await authAsUser(loggingApp, "admin");
+    const original = await seedMessage({status: "failed"});
+    const first = await admin.post(`/comms/messages/${String(original._id)}/retry`).expect(200);
+    const firstRetryId = first.body.data._id as string;
+
+    const silentApp = buildApp(new CommsApp({logMessages: false, mail}));
+    const silentAdmin = await authAsUser(silentApp, "admin");
+    const second = await silentAdmin
+      .post(`/comms/messages/${String(original._id)}/retry`)
+      .expect(500);
+    assert.equal(second.body.title, "Retry did not create a communication log");
+    const newest = await CommsMessage.find({retriedFromId: original._id}).sort("-created").limit(1);
+    assert.equal(String(newest[0]?._id), firstRetryId);
   });
 
   it("returns stable codes for each non-retryable reason", async (): Promise<void> => {
