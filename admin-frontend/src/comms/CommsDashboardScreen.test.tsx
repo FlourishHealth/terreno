@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, within} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import type {AdminApi} from "../types";
@@ -128,6 +129,22 @@ describe("CommsDashboardScreen", () => {
     expect(next.q).toBe("timeout");
     expect(next.channel).toBe("mail");
     expect(next.page).toBe(1);
+  });
+
+  it("clears every active filter and returns to the first page", () => {
+    listState.data = {data: [], more: false, page: 3, total: 0};
+    const onFiltersChange = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <CommsDashboardScreen
+        api={createCommsApi()}
+        filters={{channel: "mail", page: 3, q: "invoice", status: "failed"}}
+        onFiltersChange={onFiltersChange}
+      />
+    );
+
+    fireEvent.press(getByTestId("comms-clear-filters"));
+
+    assert.deepEqual(onFiltersChange.mock.calls[0]?.[0], {page: 1});
   });
 
   it("disables inline retry and exposes the reason", () => {

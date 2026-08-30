@@ -6,6 +6,7 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   DateTimeField,
+  Heading,
   IconButton,
   Modal,
   Page,
@@ -180,6 +181,15 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
     rows.filter((row) => row.retryable).length + (data?.more ? RETRY_MANY_CAP : 0)
   );
   const confirmationCount = Math.min(RETRY_MANY_CAP, total);
+  const hasActiveFilters = Boolean(
+    filters.channel ||
+      filters.endDate ||
+      filters.errorClass ||
+      filters.provider ||
+      filters.q ||
+      filters.startDate ||
+      filters.status
+  );
 
   /** One handler shape for every filter control; changing a filter resets to page 1. */
   const filterSetter = useCallback(
@@ -200,6 +210,10 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
     },
     [routeBase]
   );
+
+  const clearFilters = useCallback((): void => {
+    onFiltersChange({page: 1});
+  }, [onFiltersChange]);
 
   const handleRetry = useCallback(
     async (id: string): Promise<void> => {
@@ -304,81 +318,107 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
     <Page color="transparent" maxWidth="100%" padding={0} scroll title="Comms">
       <Box gap={4} padding={4} testID="comms-dashboard">
         <StatsCards stats={stats} />
-        <Card padding={3}>
-          <Box direction="row" gap={3} wrap>
-            <Box width={160}>
-              <SelectField
-                onChange={filterSetter("channel")}
-                options={CHANNEL_OPTIONS}
-                testID="comms-filter-channel"
-                title="Channel"
-                value={filters.channel ?? ""}
-              />
+        <Card padding={4}>
+          <Box gap={4}>
+            <Box alignItems="center" direction="row" gap={3} justifyContent="between" wrap>
+              <Box gap={1}>
+                <Heading size="sm">Filter delivery logs</Heading>
+                <Text color="secondaryDark" size="sm">
+                  Narrow results by delivery state, provider, recipient, or date.
+                </Text>
+              </Box>
+              {hasActiveFilters ? (
+                <Button
+                  onClick={clearFilters}
+                  testID="comms-clear-filters"
+                  text="Clear filters"
+                  variant="muted"
+                />
+              ) : null}
             </Box>
-            <Box width={160}>
-              <TextField
-                onChange={filterSetter("provider")}
-                testID="comms-filter-provider"
-                title="Provider"
-                value={filters.provider ?? ""}
-              />
+            <Box alignItems="stretch" direction="row" gap={3} wrap>
+              <Box flex="grow" minWidth={150}>
+                <SelectField
+                  onChange={filterSetter("channel")}
+                  options={CHANNEL_OPTIONS}
+                  testID="comms-filter-channel"
+                  title="Channel"
+                  value={filters.channel ?? ""}
+                />
+              </Box>
+              <Box flex="grow" minWidth={150}>
+                <TextField
+                  onChange={filterSetter("provider")}
+                  testID="comms-filter-provider"
+                  title="Provider"
+                  value={filters.provider ?? ""}
+                />
+              </Box>
+              <Box flex="grow" minWidth={150}>
+                <SelectField
+                  onChange={filterSetter("status")}
+                  options={STATUS_OPTIONS}
+                  testID="comms-filter-status"
+                  title="Status"
+                  value={filters.status ?? ""}
+                />
+              </Box>
+              <Box flex="grow" minWidth={150}>
+                <SelectField
+                  onChange={filterSetter("errorClass")}
+                  options={ERROR_CLASS_OPTIONS}
+                  testID="comms-filter-error-class"
+                  title="Error class"
+                  value={filters.errorClass ?? ""}
+                />
+              </Box>
+              <Box flex="grow" minWidth={220}>
+                <TextField
+                  iconName="magnifying-glass"
+                  onChange={filterSetter("q")}
+                  testID="comms-filter-q"
+                  title="Search"
+                  value={filters.q ?? ""}
+                />
+              </Box>
             </Box>
-            <Box width={160}>
-              <SelectField
-                onChange={filterSetter("status")}
-                options={STATUS_OPTIONS}
-                testID="comms-filter-status"
-                title="Status"
-                value={filters.status ?? ""}
-              />
-            </Box>
-            <Box width={160}>
-              <SelectField
-                onChange={filterSetter("errorClass")}
-                options={ERROR_CLASS_OPTIONS}
-                testID="comms-filter-error-class"
-                title="Error class"
-                value={filters.errorClass ?? ""}
-              />
-            </Box>
-            <Box width={200}>
-              <TextField
-                iconName="magnifying-glass"
-                onChange={filterSetter("q")}
-                testID="comms-filter-q"
-                title="Search"
-                value={filters.q ?? ""}
-              />
-            </Box>
-            <Box width={180}>
-              <DateTimeField
-                onChange={filterSetter("startDate")}
-                testID="comms-filter-start"
-                title="Start"
-                type="datetime"
-                value={filters.startDate ?? ""}
-              />
-            </Box>
-            <Box width={180}>
-              <DateTimeField
-                onChange={filterSetter("endDate")}
-                testID="comms-filter-end"
-                title="End"
-                type="datetime"
-                value={filters.endDate ?? ""}
-              />
-            </Box>
-            <Box justifyContent="end">
-              <Button
-                disabled={total === 0}
-                onClick={() => setConfirmRetryMany(true)}
-                testID="comms-retry-many"
-                text="Retry matching"
-                variant="secondary"
-              />
+            <Box alignItems="stretch" direction="row" gap={3} wrap>
+              <Box flex="grow" minWidth={280}>
+                <DateTimeField
+                  onChange={filterSetter("startDate")}
+                  testID="comms-filter-start"
+                  title="Start"
+                  type="datetime"
+                  value={filters.startDate ?? ""}
+                />
+              </Box>
+              <Box flex="grow" minWidth={280}>
+                <DateTimeField
+                  onChange={filterSetter("endDate")}
+                  testID="comms-filter-end"
+                  title="End"
+                  type="datetime"
+                  value={filters.endDate ?? ""}
+                />
+              </Box>
             </Box>
           </Box>
         </Card>
+        <Box alignItems="center" direction="row" gap={3} justifyContent="between" wrap>
+          <Box gap={1}>
+            <Heading size="sm">Delivery log</Heading>
+            <Text color="secondaryDark" size="sm" testID="comms-result-count">
+              {`${total} matching message${total === 1 ? "" : "s"}`}
+            </Text>
+          </Box>
+          <Button
+            disabled={total === 0}
+            onClick={() => setConfirmRetryMany(true)}
+            testID="comms-retry-many"
+            text="Retry matching"
+            variant="secondary"
+          />
+        </Box>
         {isLoading ? (
           <Box alignItems="center" padding={6} testID="comms-dashboard-loading">
             <Spinner />
@@ -390,7 +430,16 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
           </Text>
         ) : null}
         {!isLoading && !error && rows.length === 0 ? (
-          <Text testID="comms-dashboard-empty">No delivery logs match these filters.</Text>
+          <Card padding={6} testID="comms-dashboard-empty">
+            <Box alignItems="center" gap={2}>
+              <Heading size="sm">No delivery logs found</Heading>
+              <Text color="secondaryDark">
+                {hasActiveFilters
+                  ? "Clear or adjust the filters to see more messages."
+                  : "Delivery activity will appear here as messages are sent."}
+              </Text>
+            </Box>
+          </Card>
         ) : null}
         {!isLoading && !error && rows.length > 0 ? (
           <DataTable

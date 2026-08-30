@@ -31,8 +31,10 @@ export const CommsStatCard: React.FC<CommsStatCardProps> = ({
     <Card
       border={isAlert ? "error" : "default"}
       color={isAlert ? "errorLight" : "base"}
+      flex="grow"
+      minHeight={104}
       minWidth={CARD_MIN_WIDTH}
-      padding={3}
+      padding={4}
       testID={testID}
     >
       <Box gap={1}>
