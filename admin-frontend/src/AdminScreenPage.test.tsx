@@ -1,4 +1,5 @@
 import {describe, it, mock} from "bun:test";
+import {Page} from "@terreno/ui";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
@@ -10,16 +11,14 @@ mock.module("expo-router", () => ({
 
 describe("AdminScreenPage", () => {
   it("shows a back arrow by default", (): void => {
-    const {getByTestId} = renderWithTheme(<AdminScreenPage title="Example" />);
+    const {UNSAFE_root} = renderWithTheme(<AdminScreenPage title="Example" />);
 
-    assert.exists(getByTestId("icon-button-chevron-left"));
+    assert.isTrue(UNSAFE_root.findByType(Page).props.backButton);
   });
 
   it("allows hosts to disable the back arrow", (): void => {
-    const {queryByTestId} = renderWithTheme(
-      <AdminScreenPage backButton={false} title="Example" />
-    );
+    const {UNSAFE_root} = renderWithTheme(<AdminScreenPage backButton={false} title="Example" />);
 
-    assert.isNull(queryByTestId("icon-button-chevron-left"));
+    assert.isFalse(UNSAFE_root.findByType(Page).props.backButton);
   });
 });

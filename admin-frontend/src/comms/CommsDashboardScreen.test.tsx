@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {Page} from "@terreno/ui";
 import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -107,11 +108,11 @@ describe("CommsDashboardScreen", () => {
 
   it("renders the empty state", () => {
     listState.data = {data: [], more: false, page: 1, total: 0};
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
       <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-empty")).toBeTruthy();
-    assert.exists(getByTestId("icon-button-chevron-left"));
+    assert.isTrue(UNSAFE_root.findByType(Page).props.backButton);
   });
 
   it("writes filter changes through onFiltersChange for URL persistence", () => {
