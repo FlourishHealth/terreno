@@ -62,7 +62,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
   - Blocked by: 1.1
   - Acceptance: default example server still has no limiter; comment compiles if uncommented
 
-- [ ] **Task 4.3**: Roadmap seed + 58 upgrade stub
+- [x] **Task 4.3**: Roadmap seed + 58 upgrade stub
   - Delivers: `docs/explanation/roadmap-seed-issues.md` `rate-limiting` section points at IP/task GitHub URLs and `IP=rate-limiting`; how-to or `mcp-server/src/docs/upgrades/` notes that Terreno 58 defaults the limiter on
   - Files: `docs/explanation/roadmap-seed-issues.md`; upgrade note path named in how-to until 58 exists
   - Blocked by: 4.1
