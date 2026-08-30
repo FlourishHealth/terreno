@@ -2,7 +2,9 @@ import {afterEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import mongoose, {Schema} from "mongoose";
 
-import {runSeedCli, runSeeds, type SeedStep} from "./seedRunner";
+import {APIError} from "./errors";
+import {isDeletedPlugin} from "./plugins";
+import {runSeedCli, runSeeds, type SeedStep, seedBetterAuthUser} from "./seedRunner";
 
 interface SeedWidgetDocument {
   key: string;
@@ -27,8 +29,33 @@ const widgetStep = (label: string): SeedStep => ({
   },
 });
 
+interface SeedSoftWidgetDocument {
+  deleted?: boolean;
+  key: string;
+  label: string;
+  rules?: Array<{_id?: mongoose.Types.ObjectId; name: string}>;
+}
+
+const seedSoftWidgetSchema = new Schema<SeedSoftWidgetDocument>({
+  key: {description: "Stable seed key", required: true, type: String},
+  label: {description: "Seeded display label", required: true, type: String},
+  rules: {
+    description: "Nested seed payload",
+    type: [
+      {
+        name: {description: "Nested rule name", required: true, type: String},
+      },
+    ],
+  },
+});
+seedSoftWidgetSchema.plugin(isDeletedPlugin);
+const SeedSoftWidget =
+  (mongoose.models.SeedRunnerSoftWidget as mongoose.Model<SeedSoftWidgetDocument> | undefined) ??
+  mongoose.model<SeedSoftWidgetDocument>("SeedRunnerSoftWidget", seedSoftWidgetSchema);
+
 afterEach(async () => {
   await SeedWidget.deleteMany({});
+  await SeedSoftWidget.deleteMany({});
   process.env.NODE_ENV = "test";
 });
 
@@ -98,6 +125,67 @@ describe("runSeeds", () => {
     assert.deepEqual(calls, ["reset children", "reset parents", "seed parents", "seed children"]);
   });
 
+  it("revives a soft-deleted document instead of creating a duplicate", async () => {
+    const created = await SeedSoftWidget.create({key: "primary", label: "Old"});
+    created.deleted = true;
+    await created.save();
+
+    const result = await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.upsert(SeedSoftWidget, {key: "primary"}, {label: "Restored"});
+          },
+        },
+      ],
+    });
+
+    assert.equal(result.summary.created, 0);
+    assert.equal(result.summary.updated, 1);
+    assert.equal(await SeedSoftWidget.countDocuments({key: "primary"}), 1);
+    const revived = await SeedSoftWidget.findOne({key: "primary"});
+    assert.equal(revived?.label, "Restored");
+    assert.isNotTrue(revived?.deleted);
+  });
+
+  it("treats nested subdocuments as unchanged when only generated ids differ", async () => {
+    await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.upsert(
+              SeedSoftWidget,
+              {key: "flag"},
+              {label: "Flag", rules: [{name: "admin-users"}]}
+            );
+          },
+        },
+      ],
+    });
+    const unchanged = await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.upsert(
+              SeedSoftWidget,
+              {key: "flag"},
+              {label: "Flag", rules: [{name: "admin-users"}]}
+            );
+          },
+        },
+      ],
+    });
+
+    assert.equal(unchanged.summary.unchanged, 1);
+    assert.equal(unchanged.summary.updated, 0);
+  });
+
   it("blocks production resets unless forced and explicitly allowed", async () => {
     process.env.NODE_ENV = "production";
 
@@ -163,5 +251,96 @@ describe("runSeedCli", () => {
     assert.include(help.help ?? "", "--reset");
     assert.isFalse(didConnect);
     assert.equal(invalid.exitCode, 2);
+  });
+});
+
+interface SeedAuthUserDocument {
+  betterAuthId?: string;
+  email: string;
+  name?: string;
+}
+
+const seedAuthUserSchema = new Schema<SeedAuthUserDocument>({
+  betterAuthId: {description: "Better Auth id", type: String},
+  email: {description: "Email", required: true, type: String},
+  name: {description: "Name", type: String},
+});
+const SeedAuthUser =
+  (mongoose.models.SeedRunnerAuthUser as mongoose.Model<SeedAuthUserDocument> | undefined) ??
+  mongoose.model<SeedAuthUserDocument>("SeedRunnerAuthUser", seedAuthUserSchema);
+
+describe("seedBetterAuthUser", () => {
+  const seedUser = {email: "seed@example.com", name: "Seed User", password: "testpassword123"};
+
+  afterEach(async () => {
+    await SeedAuthUser.deleteMany({});
+  });
+
+  it("creates an application user from a successful sign-up", async () => {
+    const authId = new mongoose.Types.ObjectId().toString();
+    const auth = {
+      api: {
+        signUpEmail: async () => ({
+          user: {email: seedUser.email, id: authId, name: seedUser.name},
+        }),
+      },
+    };
+
+    const user = await seedBetterAuthUser({
+      auth: auth as never,
+      user: seedUser,
+      userModel: SeedAuthUser as never,
+    });
+
+    assert.equal(user.email, seedUser.email);
+    assert.equal((user as {betterAuthId?: string}).betterAuthId, authId);
+  });
+
+  it("falls back to sign-in when sign-up fails", async () => {
+    const authId = new mongoose.Types.ObjectId().toString();
+    const auth = {
+      api: {
+        signInEmail: async () => ({
+          user: {email: seedUser.email, id: authId, name: seedUser.name},
+        }),
+        signUpEmail: async () => {
+          throw new Error("already exists");
+        },
+      },
+    };
+
+    const user = await seedBetterAuthUser({
+      auth: auth as never,
+      user: seedUser,
+      userModel: SeedAuthUser as never,
+    });
+
+    assert.equal(user.email, seedUser.email);
+    assert.equal((user as {betterAuthId?: string}).betterAuthId, authId);
+  });
+
+  it("throws APIError when Better Auth returns no user", async () => {
+    const auth = {
+      api: {
+        signInEmail: async () => ({user: undefined}),
+        signUpEmail: async () => {
+          throw new Error("already exists");
+        },
+      },
+    };
+
+    let thrown: unknown;
+    try {
+      await seedBetterAuthUser({
+        auth: auth as never,
+        user: seedUser,
+        userModel: SeedAuthUser as never,
+      });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    assert.instanceOf(thrown, APIError);
+    assert.equal((thrown as APIError).title, "Better Auth seed returned no user");
   });
 });

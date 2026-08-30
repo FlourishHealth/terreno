@@ -1187,13 +1187,15 @@ for (let i = 0; i < 3; i++) {
 Define ordered `SeedStep` entries and run them in the default `sync` mode or in
 `reset` mode. The `SeedContext` provides:
 
-- `upsert(model, key, values)` — creates, updates, or reports unchanged data
+- `upsert(model, key, values)` — creates, updates, or reports unchanged data. Nested values ignore generated `_id`s. Soft-deleted matches are restored instead of duplicated.
 - `deleteMany(model, filter?)` — reset helper with dry-run support
 - `mode`, `dryRun`, and structured `changes`
 
 `runSeedCli` adds `--dry-run`, `--reset`, repeatable `--only`, `--force`, and
-`--help`. It returns an exit code instead of terminating the process. Production
-resets require both `--force` and an approving `allowProductionReset` option.
+`--help`. It returns an exit code instead of terminating the process; seed CLIs
+should `process.exit` after `disconnect` so leftover Better Auth handles cannot
+keep the event loop open. Production resets require both `--force` and an
+approving `allowProductionReset` option.
 See [Seed a database](../how-to/seed-a-database.md).
 
 `seedBetterAuthUser` provisions a credential account and reconciles the

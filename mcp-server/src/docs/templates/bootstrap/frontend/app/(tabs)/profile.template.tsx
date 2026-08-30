@@ -16,14 +16,21 @@ const ProfileScreen: React.FC = () => {
 
   const user = profile?.data;
 
-  // Seed local fields when the server profile loads or changes.
+  // Copy the server name into local state without resetting an in-progress email edit.
   useEffect(() => {
     if (!user) {
       return;
     }
     setName(user.name || "");
+  }, [user?.name]);
+
+  // Copy the server email into local state without resetting an in-progress name edit.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
     setEmail(user.email || "");
-  }, [user?.email, user?.name]);
+  }, [user?.email]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
     await signOut();

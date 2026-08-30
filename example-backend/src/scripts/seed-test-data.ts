@@ -375,9 +375,13 @@ export const seedSteps: SeedStep[] = [
             key: JSON.stringify({email: testUser.email}),
             model: User.modelName,
           });
-          if (existingUser) {
-            seededUsers.push(existingUser);
-          }
+          seededUsers.push(
+            existingUser ??
+              ({
+                _id: new mongoose.Types.ObjectId(),
+                email: testUser.email,
+              } as UserDocument)
+          );
           continue;
         }
         seededUsers.push(await seedUser(testUser));
@@ -456,12 +460,12 @@ const main = async (): Promise<void> => {
   if (cli.help) {
     logger.info(cli.help);
   }
-  process.exitCode = cli.exitCode;
+  process.exit(cli.exitCode);
 };
 
 if (import.meta.main) {
   main().catch((error: unknown) => {
     logger.error(`Unhandled error: ${error}`);
-    process.exitCode = 1;
+    process.exit(1);
   });
 }

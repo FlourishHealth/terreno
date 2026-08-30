@@ -103,6 +103,33 @@ const formatKey = (key: Record<string, unknown>): string => {
   return JSON.stringify(key);
 };
 
+const toComparableSeedValue = (value: unknown): unknown => {
+  if (value == null) {
+    return value;
+  }
+  if (typeof (value as {toObject?: () => unknown}).toObject === "function") {
+    return toComparableSeedValue((value as {toObject: () => unknown}).toObject());
+  }
+  if (Array.isArray(value)) {
+    return value.map(toComparableSeedValue);
+  }
+  if (typeof value === "object") {
+    const next: Record<string, unknown> = {};
+    for (const [field, nested] of Object.entries(value as Record<string, unknown>)) {
+      if (field === "_id") {
+        continue;
+      }
+      next[field] = toComparableSeedValue(nested);
+    }
+    return next;
+  }
+  return value;
+};
+
+const seedValuesEqual = (currentValues: unknown, nextValues: unknown): boolean => {
+  return isEqual(toComparableSeedValue(currentValues), toComparableSeedValue(nextValues));
+};
+
 /**
  * Create a Better Auth credential user when missing, verify existing credentials,
  * and reconcile the corresponding application user document.
@@ -223,7 +250,10 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
       key: Record<string, unknown>,
       values: TValues
     ): Promise<SeedChangeResult> => {
-      const documents = await model.find(key).limit(2);
+      let documents = await model.find(key).limit(2);
+      if (documents.length === 0) {
+        documents = await model.find({...key, deleted: true}).limit(2);
+      }
       if (documents.length > 1) {
         throw new APIError({
           detail: `${model.modelName} seed key matched ${documents.length} documents: ${formatKey(key)}`,
@@ -248,10 +278,11 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
         });
       }
 
+      const isDeleted = document.get("deleted") === true;
       const currentValues = Object.fromEntries(
         Object.keys(values).map((field) => [field, document.get(field)])
       );
-      if (isEqual(currentValues, values)) {
+      if (!isDeleted && seedValuesEqual(currentValues, values)) {
         return record({
           change: "unchanged",
           count: 1,
@@ -260,7 +291,7 @@ const makeContext = ({dryRun, mode}: {dryRun: boolean; mode: SeedMode}): SeedCon
         });
       }
       if (!dryRun) {
-        document.set(values);
+        document.set(isDeleted ? {...values, deleted: false} : values);
         await document.save();
       }
       return record({

@@ -35,7 +35,7 @@ const result = await runSeedCli({
   steps,
 });
 
-process.exitCode = result.exitCode;
+process.exit(result.exitCode);
 ```
 
 Add the package command:
@@ -61,7 +61,10 @@ order so dependent records are removed before their parents.
 
 Use `context.upsert(model, key, values)` with a stable, unique business key.
 The helper reports `created`, `updated`, or `unchanged` and writes only when the
-declared values differ. Use `context.deleteMany()` only inside reset handlers.
+declared values differ. Nested arrays are compared without generated subdocument
+`_id`s, so feature-flag rules and similar payloads stay unchanged across syncs.
+If `isDeletedPlugin` hid a matching row, `upsert` restores that document instead
+of inserting a duplicate. Use `context.deleteMany()` only inside reset handlers.
 Custom writes must check `context.dryRun` themselves.
 
 For Better Auth credentials, call `seedBetterAuthUser({auth, user, userModel})`.

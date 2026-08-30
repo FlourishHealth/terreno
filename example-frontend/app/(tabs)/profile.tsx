@@ -66,14 +66,21 @@ const ProfileScreen: React.FC = () => {
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
 
-  // Seed the form from server name/email, not from a new profile object identity.
+  // Copy the server name into local state without resetting an in-progress email edit.
   useEffect(() => {
     if (!profile) {
       return;
     }
     setName(profile.name || "");
+  }, [profile?.name]);
+
+  // Copy the server email into local state without resetting an in-progress name edit.
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
     setEmail(profile.email || "");
-  }, [profile?.name, profile?.email]);
+  }, [profile?.email]);
 
   // Sync API key input with stored value
   useEffect(() => {

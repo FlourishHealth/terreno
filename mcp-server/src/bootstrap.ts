@@ -542,6 +542,7 @@ export const connectToMongoDB = async (): Promise<void> => {
 
 const generateBackendSeed = (): string => {
   return `import {
+  APIError,
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
@@ -591,7 +592,10 @@ const seedSteps: SeedStep[] = [
 
       const config = buildBetterAuthConfig();
       if (!config) {
-        throw new Error("Seed users require Better Auth to be enabled");
+        throw new APIError({
+          status: 500,
+          title: "Seed users require Better Auth to be enabled",
+        });
       }
       const auth = createBetterAuth({
         config,
@@ -628,12 +632,12 @@ const main = async (): Promise<void> => {
   if (cli.help) {
     logger.info(cli.help);
   }
-  process.exitCode = cli.exitCode;
+  process.exit(cli.exitCode);
 };
 
 main().catch((error: unknown) => {
   logger.error(\`Seed failed: \${error}\`);
-  process.exitCode = 1;
+  process.exit(1);
 });
 `;
 };
@@ -1524,14 +1528,21 @@ const ProfileScreen: React.FC = () => {
 
   const user = profile?.data;
 
-  // Seed local fields when the server profile loads or changes.
+  // Copy the server name into local state without resetting an in-progress email edit.
   useEffect(() => {
     if (!user) {
       return;
     }
     setName(user.name || "");
+  }, [user?.name]);
+
+  // Copy the server email into local state without resetting an in-progress name edit.
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
     setEmail(user.email || "");
-  }, [user?.email, user?.name]);
+  }, [user?.email]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
     await signOut();

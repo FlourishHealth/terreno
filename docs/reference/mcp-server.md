@@ -352,7 +352,7 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 
 **Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
 
-The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`).
+The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
 
 ### terreno_bootstrap_ai_rules
 

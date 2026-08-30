@@ -64,7 +64,7 @@ const ProfileScreen: React.FC = () => {
   const [updateProfile] = usePatchMeMutation();
   const [name, setName] = useState<string>("");
 
-  // Seed local fields when the server profile loads or changes.
+  // Seed only this field from the server so saving another TapToEdit does not wipe the draft.
   useEffect(() => {
     if (!profile) {
       return;
