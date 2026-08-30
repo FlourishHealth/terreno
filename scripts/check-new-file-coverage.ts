@@ -3,6 +3,7 @@ import {execFileSync, spawn} from "node:child_process";
 import {existsSync, mkdtempSync, readFileSync, rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, relative, resolve, sep} from "node:path";
+import {Glob} from "bun";
 
 import {
   type CoverageSummary,
@@ -153,6 +154,20 @@ export const groupFilesByWorkspace = ({
   return [...grouped.entries()]
     .map(([packageName, packageFiles]) => ({files: packageFiles.sort(), packageName}))
     .sort((left, right) => left.packageName.localeCompare(right.packageName));
+};
+
+export const expandCoverageFileArgs = (args: readonly string[], cwd: string): string[] => {
+  const expanded: string[] = [];
+  for (const arg of args) {
+    if (arg.startsWith("-") || !arg.includes("*")) {
+      expanded.push(arg);
+      continue;
+    }
+    const pattern = arg.startsWith("./") ? arg.slice(2) : arg;
+    const matches = [...new Glob(pattern).scanSync({cwd, onlyFiles: true})].sort();
+    expanded.push(...matches.map((path) => `./${path}`));
+  }
+  return expanded;
 };
 
 export const bunTestFileArgs = (testScript: string | undefined): string[] => {

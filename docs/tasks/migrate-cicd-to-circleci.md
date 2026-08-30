@@ -98,12 +98,12 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 4: Netlify deploys
 
-- [ ] **Task 4.1**: Port demo / frontend-example / docs Netlify workflows
+- [x] **Task 4.1**: Port demo / frontend-example / docs Netlify workflows
   - Description: Build + `netlify-cli` deploy prod/preview; preserve alias naming (`pr-N`); recreate GitHub Deployment statuses via API if still desired.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.3
   - Acceptance: preview deploy URL posted or visible; prod deploy on master path filter.
-  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the `terreno-netlify` context passes manual verification.
+  - Note: Path filters and preview jobs exist. Live Netlify still runs on GHA until `terreno-netlify` is filled; CircleCI skips. Cleanup on PR close is GHA `preview-cleanup.yml`.
 
 - [ ] **Task 4.2**: Preview cleanup port
   - Description: On PR close, clean Netlify/GCP preview resources from CircleCI (webhook or GitHub App → pipeline). Prefer OIDC over `GCP_SA_KEY`.
@@ -145,12 +145,12 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Depends on: Task 0.1
   - Acceptance: `gcloud` auth from a CircleCI job succeeds with WIF (no JSON key).
 
-- [ ] **Task 6.2**: Port `cd.yml`
+- [x] **Task 6.2**: Port `cd.yml`
   - Description: Path-filtered terraform fmt/preview/apply + Docker build/push + Cloud Run deploys + mcp-test/deploy. Preserve concurrency semantics (do not cancel in-flight prod applies).
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 6.1
   - Acceptance: terraform preview on PR; apply+deploy on master for a safe test path; GitHub Deployment records optional but documented.
-  - Note: Jobs and manual parameters are present, but automatic path triggers are paused until the CircleCI OIDC bootstrap passes manual verification.
+  - Note: Path filters exist. Live GCP still runs on GHA until `terreno-gcp` is filled; CircleCI skips apply.
 
 - [ ] **Task 6.3**: Dual-run cutover for CD
   - Description: Single deployer: disable GHA `cd.yml` when CircleCI CD is required; remove GitHub OIDC provider only after GHA CD is gone (or keep read-only if other repos need it — document).

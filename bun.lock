@@ -180,7 +180,6 @@
         "better-auth": "catalog:",
         "cors": "^2.8.5",
         "cron": "^4.3.4",
-        "expo-server-sdk": "^6.0.0",
         "express": "catalog:",
         "generaterr": "^1.5.0",
         "http-errors": "^2.0.0",
@@ -275,10 +274,12 @@
       },
       "peerDependencies": {
         "@sendgrid/mail": "^8.0.0",
+        "expo-server-sdk": "^6.0.0",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
       "optionalPeers": [
         "@sendgrid/mail",
+        "expo-server-sdk",
       ],
     },
     "demo": {
@@ -386,6 +387,7 @@
         "@terreno/feature-flags": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
+        "expo-server-sdk": "^6.0.0",
         "express": "catalog:",
         "ioredis": "^5.11.0",
         "lodash": "catalog:",

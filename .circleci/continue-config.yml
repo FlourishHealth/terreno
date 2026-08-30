@@ -169,6 +169,22 @@ commands:
           include-branch-in-cache-key: << parameters.include-branch-in-cache-key >>
           cache-version: v1
 
+  resolve_preview_pr_number:
+    description: Export PR_NUMBER for preview deploys; halt on forks or non-PR builds
+    steps:
+      - run:
+          name: Resolve preview PR number
+          command: |
+            set -euo pipefail
+            result="$(scripts/ci/resolve-preview-pr.sh)"
+            if [ "$result" = "skip-fork" ] || [ "$result" = "skip-missing" ]; then
+              echo "Skipping preview deploy ($result)"
+              circleci-agent step halt
+              exit 0
+            fi
+            echo "export PR_NUMBER=$result" >> "$BASH_ENV"
+            echo "PR_NUMBER=$result"
+
   compile_packages:
     description: Compile workspace packages in dependency order
     parameters:
@@ -543,11 +559,8 @@ jobs:
       - run:
           name: Fetch coverage base
           command: git fetch origin master
-      - run:
-          name: Compile API coverage dependencies
-          command: |
-            node .github/scripts/compile-workspace-deps.js api
-            bun run --filter '@terreno/api' compile
+      - compile_packages:
+          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa
       - run:
           name: Compile UI coverage dependencies
           command: |
@@ -1419,6 +1432,71 @@ jobs:
                 name: Deploy MCP service
                 command: scripts/ci/gcp-deploy.sh mcp-prod
 
+  deploy-demo-preview:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - resolve_preview_pr_number
+      - run:
+          name: Deploy demo preview to Netlify
+          command: scripts/ci/netlify-deploy.sh demo preview "pr-${PR_NUMBER}"
+
+  deploy-frontend-preview:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - resolve_preview_pr_number
+      - run:
+          name: Deploy example frontend preview to Netlify
+          command: |
+            set -euo pipefail
+            prod_url="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            if [ "<< pipeline.parameters.run-cd-backend >>" = "true" ]; then
+              export EXPO_PUBLIC_API_URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            else
+              export EXPO_PUBLIC_API_URL="$prod_url"
+            fi
+            scripts/ci/netlify-deploy.sh frontend preview "pr-${PR_NUMBER}"
+
+  deploy-docs-preview:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - resolve_preview_pr_number
+      - run:
+          name: Deploy docs preview to Netlify
+          command: scripts/ci/netlify-deploy.sh docs preview "docs-pr-${PR_NUMBER}"
+
+  gcp-cd-preview:
+    executor: node22
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - install_terraform
+      - gcp-cli/install
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - resolve_preview_pr_number
+      - when:
+          condition: << pipeline.parameters.run-cd-terraform >>
+          steps:
+            - run:
+                name: Terraform preview
+                command: scripts/ci/gcp-deploy.sh terraform-preview
+      - when:
+          condition: << pipeline.parameters.run-cd-backend >>
+          steps:
+            - run:
+                name: Deploy backend preview
+                command: scripts/ci/gcp-deploy.sh backend-preview
+
   deploy-preview-manual:
     executor: node22
     resource_class: large
@@ -1759,7 +1837,10 @@ workflows:
                 - login
 
   deploy-demo-production:
-    when: << pipeline.parameters.run-deploy-demo >>
+    when:
+      and:
+        - << pipeline.parameters.run-deploy-demo >>
+        - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-demo:
           context: [terreno-netlify]
@@ -1770,7 +1851,10 @@ workflows:
               ignore: /.*/
 
   deploy-frontend-production:
-    when: << pipeline.parameters.run-deploy-frontend >>
+    when:
+      and:
+        - << pipeline.parameters.run-deploy-frontend >>
+        - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-frontend:
           context: [terreno-netlify]
@@ -1781,7 +1865,10 @@ workflows:
               ignore: /.*/
 
   deploy-docs-production:
-    when: << pipeline.parameters.run-deploy-docs >>
+    when:
+      and:
+        - << pipeline.parameters.run-deploy-docs >>
+        - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-docs:
           context: [terreno-netlify]
@@ -1793,17 +1880,66 @@ workflows:
 
   gcp-production:
     when:
-      or:
-        - << pipeline.parameters.run-cd-terraform >>
-        - << pipeline.parameters.run-cd-backend >>
-        - << pipeline.parameters.run-cd-mcp >>
-        - << pipeline.parameters.force-cd >>
+      and:
+        - equal: [master, << pipeline.git.branch >>]
+        - or:
+            - << pipeline.parameters.run-cd-terraform >>
+            - << pipeline.parameters.run-cd-backend >>
+            - << pipeline.parameters.run-cd-mcp >>
+            - << pipeline.parameters.force-cd >>
     jobs:
       - gcp-cd-prod:
           context: [terreno-gcp]
           filters:
             branches:
               only: master
+            tags:
+              ignore: /.*/
+
+  deploy-demo-preview:
+    when: << pipeline.parameters.run-deploy-demo >>
+    jobs:
+      - deploy-demo-preview:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+
+  deploy-frontend-preview:
+    when: << pipeline.parameters.run-deploy-frontend >>
+    jobs:
+      - deploy-frontend-preview:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+
+  deploy-docs-preview:
+    when: << pipeline.parameters.run-deploy-docs >>
+    jobs:
+      - deploy-docs-preview:
+          context: [terreno-netlify]
+          filters:
+            branches:
+              ignore: master
+            tags:
+              ignore: /.*/
+
+  gcp-preview:
+    when:
+      or:
+        - << pipeline.parameters.run-cd-terraform >>
+        - << pipeline.parameters.run-cd-backend >>
+    jobs:
+      - gcp-cd-preview:
+          context: [terreno-gcp]
+          filters:
+            branches:
+              ignore: master
             tags:
               ignore: /.*/
 

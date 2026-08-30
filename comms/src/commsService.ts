@@ -108,6 +108,19 @@ export class CommsService {
     await this.invokeHook(onOptOut ? (): Promise<void> => onOptOut(event) : undefined, "onOptOut");
   }
 
+  async deactivatePushToken(token: string): Promise<void> {
+    try {
+      const tokenDoc = await PushToken.findOneOrNone({token});
+      if (!tokenDoc || tokenDoc.active === false) {
+        return;
+      }
+      tokenDoc.active = false;
+      await tokenDoc.save();
+    } catch (error: unknown) {
+      logger.warn(`[comms] Failed to deactivate push token: ${String(error)}`);
+    }
+  }
+
   async clearExpiredPayloads(): Promise<number> {
     return CommsMessage.clearExpiredPayloads();
   }
@@ -702,7 +715,6 @@ export class CommsService {
       return [];
     }
 
-    const tokenDocs = new Map(tokens.map((token) => [token.token, token]));
     const providerMessage: PushMessage = {
       badge: message.badge,
       body: message.body,
@@ -842,10 +854,8 @@ export class CommsService {
           tokenHookErrors
         );
         await this.patchHookErrors(logged, tokenHookErrors);
-        const tokenDoc = tokenDocs.get(tokenValue);
-        if (tokenDoc && !result.accepted && isPermanentPushFailure(result)) {
-          tokenDoc.active = false;
-          await tokenDoc.save();
+        if (!result.accepted && isPermanentPushFailure(result)) {
+          await this.deactivatePushToken(tokenValue);
         }
       })
     );

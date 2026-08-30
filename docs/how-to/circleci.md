@@ -4,15 +4,17 @@ CircleCI CI/CD source of truth. See
 [`docs/implementationPlans/migrate-cicd-to-circleci.md`](../implementationPlans/migrate-cicd-to-circleci.md).
 
 **Status:** CircleCI owns package CI, repo policies, Playwright e2e, Maestro web
-e2e, architectural PR review, semver-tag npm releases, and manual
-preview/EAS/package operations. Automatic Netlify and GCP production path
-triggers are paused until the contexts and GCP OIDC bootstrap below are
-populated and verified; their manual pipeline parameters remain available for
-that verification. Matching GitHub workflows remain in-repo with `on: []` for
-rollback. GitHub-native security, Cursor GitHub App checks (Approval / Security
-/ Bugbot), and repository automation remain enabled. EAS PR updates and the
-fingerprint gate are temporarily disabled; manual EAS development dispatch
-remains available in CircleCI.
+e2e, architectural PR review, and semver-tag npm releases. Path filters start
+CircleCI Netlify and GCP production/preview jobs, but those jobs **skip green**
+until `terreno-netlify` and `terreno-gcp` are filled. GitHub Actions still
+owns live Netlify/GCP deploys in this window. Do not leave both applying
+terraform once CircleCI GCP deploys succeed — set the GHA deploy workflows
+back to `on: []` in the same change. GitHub-native security, Cursor GitHub App
+checks (Approval / Security / Bugbot), and repository automation remain
+enabled. EAS PR updates and the fingerprint gate are temporarily disabled;
+manual EAS development dispatch remains available in CircleCI. Preview
+**cleanup** on PR close is GitHub `preview-cleanup.yml` plus the manual
+CircleCI `run-preview-cleanup` parameter.
 
 ## Project setup (maintainers)
 
@@ -20,10 +22,19 @@ remains available in CircleCI.
 2. Default branch: `master`.
 3. Enable **dynamic config** / setup workflows for the project (required for
    `.circleci/config.yml` `setup: true`).
-4. Create and verify the contexts below before enabling automatic CD path mappings.
+4. Create the contexts below (`terreno-netlify`, `terreno-gcp`, and the rest).
+   Copy Netlify and GCP values from GitHub Actions secrets/vars. Until they
+   are set, CircleCI deploy jobs skip with exit 0 and GHA remains the live
+   deployer.
 5. Build forked PRs if you want DCO + rulesync on forks.
 
-Org/project slug: _(record after Phase 0.1 — e.g. `flourishhealth/terreno`)_.
+GitHub App org/project slug (API and CLI):
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.
+
+Do not query `gh/FlourishHealth/terreno` — that slug returns `404 Project not found`.
+Cloud agents use `CIRCLECI_TOKEN` (accepted alias of CircleCI's `CIRCLE_TOKEN`). Send
+it as the `Circle-Token` header. Confirm with `GET https://circleci.com/api/v2/me`, then
+list pipelines on the slug above.
 
 ## Config layout
 
@@ -46,6 +57,30 @@ matching the GitHub Actions twins.
 The example-backend Docker job runs only when its image recipe changes
 (`Dockerfile`, `.dockerignore`, package manifests, or `bun.lock`). API/source
 changes are covered by preview CD builds and do not start a duplicate image job.
+
+## Automatic deploys
+
+Path filters set `run-deploy-*` and `run-cd-*`. Production jobs run only on
+`master`. Preview jobs run on PRs from this repository and skip forks and
+non-PR branch builds.
+
+| Path (examples) | Parameter | PR job | `master` job |
+| --- | --- | --- | --- |
+| `demo/**`, `ui/**` | `run-deploy-demo` | `deploy-demo-preview` | `deploy-demo` |
+| `example-frontend/**`, `admin-frontend/**`, `rtk/**` | `run-deploy-frontend` | `deploy-frontend-preview` | `deploy-frontend` |
+| `docs/**`, `website/**` | `run-deploy-docs` | `deploy-docs-preview` | `deploy-docs` |
+| `example-backend/**`, `api/**`, `comms/**` | `run-cd-backend` | `gcp-cd-preview` | `gcp-cd-prod` |
+| `terraform/**` | `run-cd-terraform` | `gcp-cd-preview` | `gcp-cd-prod` |
+| `mcp-server/**` | `run-cd-mcp` | _(none)_ | `gcp-cd-prod` |
+
+Until `terreno-netlify` is populated, GitHub Actions `docs-deploy` /
+`demo-deploy` / `frontend-example-deploy` publish the live sites (including
+PR aliases). CircleCI `deploy-*-preview` jobs still start from path filters
+and skip when `NETLIFY_AUTH_TOKEN` or the site id is missing. The same skip
+applies to `gcp-cd-*` when `terreno-gcp` lacks WIF or SA emails, so GitHub
+`cd.yml` remains the live GCP writer. After filling a context, confirm a
+CircleCI deploy URL, then set the matching GHA workflows to `on: []`. Turn
+off Netlify's GitHub auto-build so only one system publishes.
 
 ## Contexts (create empty shells, then fill)
 
@@ -73,11 +108,9 @@ project, leave fork-PR secret passing off, and attach that context **only** to
 unset, and it skips fork PRs. The job checks out `origin/master` before running
 the review script so a PR cannot rewrite the reviewer.
 
-Do not restore automatic production path mappings until a manual
-`run-demo-deploy` and `run-cd` pipeline both pass. The Netlify deploy helper
-validates its context before building, and the docs target disables Docusaurus
-minification for preview and production builds to remain within the available
-8 GB CircleCI executor.
+The Netlify deploy helper validates its context before building, and the docs
+target disables Docusaurus minification for preview and production builds to
+remain within the available 8 GB CircleCI executor.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id`, `circleci_project_id`, and
@@ -126,7 +159,9 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Changelog fragments | `changelog-fragments` |
 | New file coverage | `new-file-coverage` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
+| Netlify PR preview | `deploy-demo-preview`, `deploy-frontend-preview`, `deploy-docs-preview` |
 | GCP production | `gcp-cd-prod` |
+| GCP PR preview | `gcp-cd-preview` |
 | npm semver tag | `publish-release` |
 
 CD replacement map:
@@ -136,20 +171,21 @@ CD replacement map:
 | Fingerprint gate (`fingerprint-gate.yml`) | Temporarily disabled; no CircleCI automatic gate |
 | EAS PR update/build (`eas-pr.yml`) | Temporarily disabled; use manual EAS dispatch |
 | EAS dev build (`eas-dev-build.yml`) | CircleCI manual `eas-dev-target` |
-| CD terraform / Cloud Run (`cd.yml`) | `gcp-cd-prod` |
+| CD terraform / Cloud Run (`cd.yml`) | `gcp-cd-prod` (master) and `gcp-cd-preview` (PRs) |
 | Preview cleanup (`preview-cleanup.yml`) | CircleCI manual `run-preview-cleanup` |
-| Netlify demo / frontend / docs deploys | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
+| Netlify demo / frontend / docs deploys | production + `*-preview` jobs |
 | Publish on tag (`publish-on-tag.yml`) | `publish-release` |
 | Appium Android / iOS | Not ported (Maestro web is `maestro-e2e`) |
 
 ## Manual pipelines
 
 Trigger a pipeline from the CircleCI UI/API on the ref containing the code to
-operate. Set exactly one operation per pipeline:
+operate. Set exactly one operation per pipeline.
 
-Netlify and GCP operations require the contexts in the table above. Use these
-manual pipelines to verify those contexts before restoring automatic production
-path mappings in `.circleci/config.yml`.
+Netlify and GCP operations require the contexts in the table above. Path filters
+start production deploys on `master` and PR previews on other branches
+automatically. Use the manual parameters to force a deploy or to clean up after
+a closed PR.
 
 | Operation | Pipeline parameters |
 |-----------|---------------------|
@@ -168,16 +204,20 @@ Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
 `{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
 demo site.
 
-PR previews and cleanup are manual because CircleCI does not receive GitHub
-`pull_request.closed` events directly. Configure a GitHub App/webhook to call
-these pipeline parameters if automatic lifecycle cleanup is required.
+PR preview **cleanup** is manual because CircleCI does not receive GitHub
+`pull_request.closed` events. Configure a GitHub App/webhook to call
+`run-preview-cleanup` if automatic lifecycle cleanup is required. Path-filtered
+preview **deploys** run on open PRs from this repository; fork PRs are skipped.
+If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
+up the open PR for `CIRCLE_BRANCH` via the GitHub API.
 
 ## Path-filter parity guard
 
-`bun run check:circleci-parity` guards active GitHub/CircleCI twins. Disabled
-GitHub workflows have `on: []`, so new CircleCI-only path rules must be added
-directly to `.circleci/config.yml` and covered by config tests. The checker
-prefers live `config.yml` when `setup: true`.
+`bun run check:circleci-parity` guards active GitHub/CircleCI twins. Deploy
+workflows are dual-run until CircleCI contexts are filled; they are not in
+the parity mapping. New CircleCI-only path rules still belong in
+`.circleci/config.yml` and config tests. The checker prefers live `config.yml`
+when `setup: true`.
 
 ## Config-only changes
 
@@ -218,9 +258,12 @@ circleci config validate .circleci/continue-config.yml
 
 ## Disabled GitHub workflows
 
-Migrated workflow files are retained with `on: []` for rollback. To roll one
-back, restore its original trigger block and disable the matching CircleCI
-workflow in the same change. Never enable both npm tag publishers.
+Package CI, e2e, and npm tag workflows stay `on: []`. Netlify/GCP deploy
+workflows are **re-enabled** until CircleCI contexts have the same secrets.
+After a successful CircleCI production or preview deploy, set
+`docs-deploy.yml`, `demo-deploy.yml`, `frontend-example-deploy.yml`, `cd.yml`,
+and `preview-cleanup.yml` back to `on: []` in the same PR. Never enable both
+npm tag publishers. Never leave both GCP terraform applies enabled.
 
 ## Cursor GitHub App checks
 
