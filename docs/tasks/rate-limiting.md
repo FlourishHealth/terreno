@@ -17,7 +17,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
 
 ## Phase 2 — Shared stores
 
-- [ ] **Task 2.1**: Redis store
+- [x] **Task 2.1**: Redis store
   - Delivers: `store: "redis"` uses `VALKEY_URL` then `REDIS_URL`; missing URL fails startup with a clear `APIError`; consume contract matches memory
   - Files: `api/src/rateLimit/redisStore.ts`, tests with a fake client; optional skip-if-no-redis integration
   - Blocked by: 1.1

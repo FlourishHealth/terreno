@@ -1,5 +1,6 @@
 import {APIError} from "../errors";
 import {createMemoryRateLimitStore} from "./memoryStore";
+import {createMongoRateLimitStore} from "./mongoStore";
 import {createRedisRateLimitStore} from "./redisStore";
 import type {RateLimitOptions, RateLimitStore} from "./types";
 
@@ -13,6 +14,9 @@ export const createRateLimitStore = (options: RateLimitOptions): RateLimitStore 
   }
   if (kind === "redis") {
     return createRedisRateLimitStore(options);
+  }
+  if (kind === "mongo") {
+    return createMongoRateLimitStore();
   }
   throw new APIError({
     status: 500,

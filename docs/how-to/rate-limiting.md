@@ -40,5 +40,12 @@ new TerrenoApp({
 | --- | --- | --- |
 | `memory` (default) | Single process | none |
 | `redis` | Shared bucket across replicas | `VALKEY_URL` then `REDIS_URL` |
+| `mongo` | Shared bucket without Redis | Open mongoose connection; collection `rateLimitHits` with TTL on `expiresAt` |
+
+## Mongo
+
+Pass `{store: "mongo"}`. Hits live in `rateLimitHits` on the same mongoose connection as the app. A TTL index on `expiresAt` expires windows. This collection is not a `modelRouter` resource.
 
 Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy` defaults to `1` unless you set `rateLimit.trustProxy`.
+
+
