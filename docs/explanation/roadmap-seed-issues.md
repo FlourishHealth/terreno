@@ -843,6 +843,8 @@ Adds opt-in HTTP rate limiting to `@terreno/api`: per-user or per-IP keys, stric
 auth/OTP buckets (including login), memory Redis or Mongo stores, and 429 rate-limit
 headers. Default is off until Terreno 58. Sync mutation nacks stay a separate limiter.
 
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1187.
+
 - **Implementation plan:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rate-limiting.md)
 - **Tasks:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/rate-limiting.md)
 - **RTK flag:** None
