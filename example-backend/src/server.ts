@@ -314,12 +314,6 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           accessControl: access,
           customScreens: [
             {
-              adminAccess: {action: "showcase", resource: "adminScreen"},
-              description: "How this example wires Terreno admin UI v2",
-              displayName: "Admin UI v2 map",
-              name: "showcase",
-            },
-            {
               adminAccess: {action: "syncLab", resource: "adminScreen"},
               description: "Stress-test the local-first sync layer",
               displayName: "SyncDB Load Lab",
