@@ -9,6 +9,7 @@ export const AREA_BY_PACKAGE: Record<string, string> = {
   docs: "area:docs",
   examples: "area:examples",
   mcp: "area:mcp",
+  plugins: "area:dx",
   "@terreno/admin-backend": "area:admin",
   "@terreno/admin-frontend": "area:admin",
   "@terreno/admin-spa": "area:admin",

@@ -8,6 +8,11 @@ describe("parsePackageAreaFromIssueBody", () => {
     assert.equal(parsePackageAreaFromIssueBody(body), "area:ui");
   });
 
+  it("maps plugins to area:dx", (): void => {
+    const body = "### Affected package\n\nplugins\n\n### Kind";
+    assert.equal(parsePackageAreaFromIssueBody(body), "area:dx");
+  });
+
   it("returns null when package section is missing", (): void => {
     assert.isNull(parsePackageAreaFromIssueBody("No package here"));
   });
@@ -49,6 +54,23 @@ describe("dropdown coverage", (): void => {
       (option) => AREA_BY_PACKAGE[option] === undefined
     );
     assert.deepEqual(unmapped, [], `unmapped package options: ${unmapped.join(", ")}`);
+  });
+
+  it("maps every package option in work_item.yml", async (): Promise<void> => {
+    const template = await Bun.file(".github/ISSUE_TEMPLATE/work_item.yml").text();
+    const parsed = Bun.YAML.parse(template) as {
+      body?: {attributes?: {label?: string; options?: string[]}; type?: string}[];
+    };
+
+    const packageDropdown = parsed.body?.find(
+      (block) => block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
+    );
+    assert.ok(packageDropdown !== undefined, "work_item.yml has no Affected package dropdown");
+
+    const unmapped = (packageDropdown?.attributes?.options ?? []).filter(
+      (option) => AREA_BY_PACKAGE[option] === undefined
+    );
+    assert.deepEqual(unmapped, [], `unmapped work_item package options: ${unmapped.join(", ")}`);
   });
 
   it("only maps to labels that exist in labels.yml", async (): Promise<void> => {

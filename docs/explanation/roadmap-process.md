@@ -10,6 +10,9 @@ both.
 - **IPs** — approved design docs before substantial cross-package work
 
 See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
+Issue-sized work that is not a public roadmap item uses
+[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) (`create-github-issue` →
+`work-github-issues`) instead of an IP.
 
 ## How work flows (IP ↔ roadmap)
 

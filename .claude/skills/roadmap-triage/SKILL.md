@@ -26,6 +26,8 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 - Creating a roadmap item for an approved IP — use `roadmap-item`
 - Board-wide hygiene passes — use `roadmap-review`
 - Writing the implementation plan itself — use `ip`
+- Filing a pick-ready implementation issue — use `create-github-issue`
+- Selecting recent issues to Pick/Roast — use `work-github-issues`
 
 ## Hard rules
 

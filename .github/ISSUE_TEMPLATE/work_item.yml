@@ -1,0 +1,101 @@
+name: Lifecycle work item
+description: File work with enough context for Pick/Roast (problem, outcome, acceptance)
+title: ""
+labels:
+  - status:needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when an agent (or you) will implement the issue with `/work-github-issues`.
+        The body is context. The executable task list is posted later as a Pick plan comment.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Which package or area? Auto-triage maps this to an area:* label.
+      options:
+        - "@terreno/api"
+        - "@terreno/test"
+        - "@terreno/ui"
+        - "@terreno/rtk"
+        - "@terreno/syncdb"
+        - "@terreno/admin-backend"
+        - "@terreno/admin-frontend"
+        - "@terreno/admin-spa"
+        - "@terreno/ai"
+        - "@terreno/api-health"
+        - "@terreno/comms"
+        - "@terreno/feature-flags"
+        - "@terreno/mcp"
+        - docs
+        - examples
+        - mcp
+        - plugins
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Bug
+        - Feature
+        - Docs
+        - Chore
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is broken or missing, who it hits, and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: Observable state when this is done. Not an implementation list.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What happens today. For bugs, include a minimal numbered reproduction.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_scope
+    attributes:
+      label: Non-scope
+      description: What this issue will not change.
+      placeholder: |
+        - Not changing public API X
+        - Not migrating consumers
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: Observable criteria a Roast can pass or fail without chat history.
+      placeholder: |
+        - Given …, the API returns …
+        - The docs page … states …
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Links to docs, related issues/PRs, or screenshots. Put long logs in a details block.
