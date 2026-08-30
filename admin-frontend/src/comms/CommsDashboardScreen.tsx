@@ -22,7 +22,7 @@ import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {CommsStatCard} from "./CommsStatCard";
 import {CommsStatusBadge} from "./CommsStatusBadge";
-import type {CommsDashboardFilters} from "./commsDashboardParams";
+import {type CommsDashboardFilters, withDefaultCommsDashboardDates} from "./commsDashboardParams";
 import {
   type CommsMessageRow,
   commsMessageId,
@@ -82,7 +82,10 @@ export interface CommsDashboardScreenProps {
 
 const percent = (rate: number): string => `${Math.round(rate * 1000) / 10}%`;
 
-const StatsCards: React.FC<{stats?: CommsStatsResponse}> = ({stats}) => {
+const StatsCards: React.FC<{stats?: CommsStatsResponse; usingDefaultDateRange: boolean}> = ({
+  stats,
+  usingDefaultDateRange,
+}) => {
   const totals = stats?.totals;
   const providers = stats?.byProvider ?? [];
   const failed = totals?.failed ?? 0;
@@ -91,6 +94,11 @@ const StatsCards: React.FC<{stats?: CommsStatsResponse}> = ({stats}) => {
   const highFailure = failureRate > FAILURE_RATE_ALERT;
   return (
     <Box gap={3} testID="comms-dashboard-stats">
+      {usingDefaultDateRange ? (
+        <Text color="secondaryDark" size="sm" testID="comms-stats-range-label">
+          Last 7 days
+        </Text>
+      ) : null}
       <Box alignItems="stretch" direction="row" gap={3} wrap>
         <CommsStatCard label="Sent" testID="comms-stat-sent" value={String(totals?.sent ?? 0)} />
         <CommsStatCard
@@ -152,29 +160,31 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
   const {useListQuery, useRetryManyMutation, useRetryMutation, useStatsQuery} =
     useCommsDashboardApi(api);
   const page = filters.page ?? 1;
+  const queryFilters = useMemo(() => withDefaultCommsDashboardDates(filters), [filters]);
+  const usingDefaultDateRange = !filters.startDate && !filters.endDate;
   const listParams = useMemo(
     () => ({
-      channel: filters.channel,
-      endDate: filters.endDate,
-      errorClass: filters.errorClass,
+      channel: queryFilters.channel,
+      endDate: queryFilters.endDate,
+      errorClass: queryFilters.errorClass,
       limit: LIST_LIMIT,
       page,
-      provider: filters.provider,
-      q: filters.q,
-      startDate: filters.startDate,
-      status: filters.status,
+      provider: queryFilters.provider,
+      q: queryFilters.q,
+      startDate: queryFilters.startDate,
+      status: queryFilters.status,
     }),
-    [filters, page]
+    [page, queryFilters]
   );
   const {data, error, isLoading} = useListQuery(listParams);
   const {data: stats} = useStatsQuery({
-    channel: filters.channel,
-    endDate: filters.endDate,
-    errorClass: filters.errorClass,
-    provider: filters.provider,
-    q: filters.q,
-    startDate: filters.startDate,
-    status: filters.status,
+    channel: queryFilters.channel,
+    endDate: queryFilters.endDate,
+    errorClass: queryFilters.errorClass,
+    provider: queryFilters.provider,
+    q: queryFilters.q,
+    startDate: queryFilters.startDate,
+    status: queryFilters.status,
   });
   const [retryMessage] = useRetryMutation();
   const [retryMany, retryManyState] = useRetryManyMutation();
@@ -238,14 +248,14 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
   const handleRetryMany = useCallback(async (): Promise<void> => {
     try {
       const result = await retryMany({
-        channel: filters.channel,
-        endDate: filters.endDate,
-        errorClass: filters.errorClass,
+        channel: queryFilters.channel,
+        endDate: queryFilters.endDate,
+        errorClass: queryFilters.errorClass,
         limit: RETRY_MANY_CAP,
-        provider: filters.provider,
-        q: filters.q,
-        startDate: filters.startDate,
-        status: filters.status,
+        provider: queryFilters.provider,
+        q: queryFilters.q,
+        startDate: queryFilters.startDate,
+        status: queryFilters.status,
       }).unwrap();
       setConfirmRetryMany(false);
       toast.success(
@@ -254,7 +264,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
     } catch (retryError: unknown) {
       toast.catch(retryError, "Bulk retry failed");
     }
-  }, [filters, retryMany, toast]);
+  }, [queryFilters, retryMany, toast]);
 
   const tableData = useMemo((): DataTableCellData[][] => {
     return rows.map((row: CommsMessageRow) => [
@@ -328,7 +338,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
       title="Comms"
     >
       <Box gap={4} padding={4} testID="comms-dashboard">
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} usingDefaultDateRange={usingDefaultDateRange} />
         <Card padding={4}>
           <Box gap={4}>
             <Box alignItems="center" direction="row" gap={3} justifyContent="between" wrap>
@@ -400,7 +410,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
                   testID="comms-filter-start"
                   title="Start"
                   type="datetime"
-                  value={filters.startDate ?? ""}
+                  value={queryFilters.startDate ?? ""}
                 />
               </Box>
               <Box flex="grow" minWidth={280}>
@@ -409,7 +419,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
                   testID="comms-filter-end"
                   title="End"
                   type="datetime"
-                  value={filters.endDate ?? ""}
+                  value={queryFilters.endDate ?? ""}
                 />
               </Box>
             </Box>

@@ -113,6 +113,7 @@ describe("CommsDashboardScreen", () => {
       <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-empty")).toBeTruthy();
+    expect(getByTestId("comms-stats-range-label")).toBeTruthy();
     assert.isTrue(UNSAFE_root.findByType(Page).props.backButton);
   });
 

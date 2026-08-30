@@ -2,6 +2,7 @@ import {describe, expect, it} from "bun:test";
 import {
   parseCommsDashboardSearchParams,
   serializeCommsDashboardSearchParams,
+  withDefaultCommsDashboardDates,
 } from "./commsDashboardParams";
 import {summarizeSkippedReasons} from "./commsRetrySummary";
 
@@ -19,6 +20,16 @@ describe("commsDashboardParams", () => {
     };
     const serialized = serializeCommsDashboardSearchParams(filters);
     expect(parseCommsDashboardSearchParams(serialized)).toEqual(filters);
+  });
+
+  it("fills a trailing seven-day range when both dates are omitted", () => {
+    const withDefaults = withDefaultCommsDashboardDates({status: "failed"});
+    expect(withDefaults.status).toBe("failed");
+    expect(withDefaults.startDate).toBeTruthy();
+    expect(withDefaults.endDate).toBeTruthy();
+    expect(withDefaultCommsDashboardDates({startDate: "2026-08-01T00:00:00.000Z"}).startDate).toBe(
+      "2026-08-01T00:00:00.000Z"
+    );
   });
 
   it("drops empty values and page 1 from the URL", () => {

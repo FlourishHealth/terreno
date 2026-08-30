@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 export interface CommsDashboardFilters {
   channel?: string;
   endDate?: string;
@@ -66,4 +68,24 @@ export const serializeCommsDashboardSearchParams = (
     params.page = String(filters.page);
   }
   return params;
+};
+
+const DEFAULT_STATS_DAYS = 7;
+
+export const defaultCommsDashboardDateRange = (): {endDate: string; startDate: string} => {
+  const endDate = DateTime.utc();
+  const startDate = endDate.minus({days: DEFAULT_STATS_DAYS});
+  return {
+    endDate: endDate.toISO() ?? "",
+    startDate: startDate.toISO() ?? "",
+  };
+};
+
+export const withDefaultCommsDashboardDates = (
+  filters: CommsDashboardFilters
+): CommsDashboardFilters => {
+  if (filters.startDate || filters.endDate) {
+    return filters;
+  }
+  return {...filters, ...defaultCommsDashboardDateRange()};
 };
