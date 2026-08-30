@@ -1,5 +1,5 @@
 ---
-category: Security
+category: Fixed
 ---
 
 GitHub `cd.yml` GCP preview jobs (`terraform-preview`,
