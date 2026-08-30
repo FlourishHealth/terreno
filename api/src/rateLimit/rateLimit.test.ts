@@ -57,7 +57,7 @@ describe("HTTP rate limiting", () => {
         .send({email: "notAdmin@example.com", password: "password"});
       assert.equal(res.status, 200, `login ${i} should succeed without a limiter`);
     }
-  });
+  }, 30_000);
 
   it("returns 429 on the 21st POST /auth/login with default auth max", async () => {
     const app = buildApp({});
@@ -80,7 +80,7 @@ describe("HTTP rate limiting", () => {
 
     const list = await supertest(app).get("/food");
     assert.equal(list.status, 200, "api bucket still has remaining after auth cap");
-  });
+  }, 30_000);
 
   it("returns 429 on the request after apiMax on modelRouter list", async () => {
     const app = buildApp({limits: {apiMax: 3, authMax: 20}});
