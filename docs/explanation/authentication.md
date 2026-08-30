@@ -260,6 +260,7 @@ modelRouter(Model, {
 - Validate token issuer (`TOKEN_ISSUER`)
 - Set appropriate token expiration times
 - Enable `TerrenoApp` `rateLimit` so login/signup/refresh use the stricter `auth` bucket (20 / 15 min). See [Rate limiting](../how-to/rate-limiting.md).
+- Keep login/signup/refresh reachable when the client still sends an expired access JWT. Those three routes skip JWT verification; `/auth/me` and other APIs still 401.
 - Log authentication failures
 
 ❌ **Don't:**

@@ -68,6 +68,10 @@ export class BetterAuthApp implements TerrenoPlugin {
     logger.info("Better Auth initialized via BetterAuthApp plugin");
   }
 
+  getBetterAuthBasePath(): string {
+    return this.options.config.basePath ?? "/api/auth";
+  }
+
   getAuth(): BetterAuthInstance | undefined {
     return this.auth;
   }

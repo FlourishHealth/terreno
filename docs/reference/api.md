@@ -91,11 +91,12 @@ new TerrenoApp({
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `store` | `"memory"` | `"memory"` \| `"redis"` \| `"mongo"` |
-| `limits.authMax` | 20 / 15 min | login, signup, refresh, OTP, GitHub OAuth, Better Auth sign-in |
+| `limits.authMax` | 20 / 15 min | login, signup, refresh, OTP, GitHub OAuth, Better Auth sign-in / sign-up / password reset / OAuth callback |
+| `betterAuthBasePath` | `BetterAuthApp` `config.basePath` or `/api/auth` | Prefix used to classify Better Auth credential routes |
 | `limits.apiMax` | 600 / 15 min | modelRouter and other HTTP |
 | `trustProxy` | `1` when enabled | Express `trust proxy`; unauthenticated key is `req.ip` |
 
-Skip: `GET /health`, `/healthz`, `/openapi.json`, `/swagger`. 429 is `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and `RateLimit` / `RateLimit-Policy`. Operator guide: [Rate limiting](../how-to/rate-limiting.md).
+Skip: `GET /health`, `/healthz`, `/openapi.json`, `/swagger` (trailing slashes ignored). 429 is `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and `RateLimit` / `RateLimit-Policy`. JWT login/signup/refresh ignore a stale access token. Operator guide: [Rate limiting](../how-to/rate-limiting.md).
 
 ### setupServer (Legacy)
 

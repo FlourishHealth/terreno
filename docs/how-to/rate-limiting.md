@@ -58,11 +58,17 @@ Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy`
 | --- | --- |
 | `POST /auth/login`, `/auth/signup`, `/auth/refresh_token` | auth (20 / 15 min) |
 | `GET /auth/github`, `/auth/github/callback` | auth |
-| `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password` | auth |
+| `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password`, `reset-password`, `callback/*` | auth |
+| Trailing slash on those paths (`/auth/login/`) | same bucket as the unsuffixed path |
 | `GET`/`PATCH /auth/me` | api (600 / 15 min) |
 | modelRouter, admin, AI HTTP, `POST /mcp`, `POST /sync/mutate` | api |
 | `GET /health`, `/healthz`, `/openapi.json`, `/swagger` | skip |
 
-`rateLimit.skip` adds extra skips. Health/openapi/swagger always skip.
+`rateLimit.skip` adds extra skips. Health/openapi/swagger always skip. Paths are compared without a trailing slash.
+
+JWT `POST /auth/login`, `/auth/signup`, and `/auth/refresh_token` skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT.
+
+When `BetterAuthApp` is registered, TerrenoApp copies its `config.basePath` into the limiter unless you set `rateLimit.betterAuthBasePath`.
+
 
 

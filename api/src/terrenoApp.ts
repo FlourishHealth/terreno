@@ -45,6 +45,7 @@ interface BetterAuthProvider {
   getAuth: () => BetterAuthInstance | undefined;
   ensureAuth?: () => BetterAuthInstance;
   markSessionMiddlewareMounted?: () => void;
+  getBetterAuthBasePath?: () => string;
 }
 
 type CorsOrigin =
@@ -373,9 +374,15 @@ export class TerrenoApp {
     }
 
     if (options.rateLimit) {
-      applyRateLimitTrustProxy(app, options.rateLimit);
-      const store = createRateLimitStore(options.rateLimit);
-      app.use(createRateLimitMiddleware(store, options.rateLimit));
+      const betterAuthBasePath =
+        options.rateLimit.betterAuthBasePath ?? betterAuthForLimiter?.getBetterAuthBasePath?.();
+      const rateLimit = {
+        ...options.rateLimit,
+        ...(betterAuthBasePath ? {betterAuthBasePath} : {}),
+      };
+      applyRateLimitTrustProxy(app, rateLimit);
+      const store = createRateLimitStore(rateLimit);
+      app.use(createRateLimitMiddleware(store, rateLimit));
     }
 
     addAuthRoutes(app, options.userModel, options.authOptions);

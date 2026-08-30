@@ -1,4 +1,5 @@
 import type {NextFunction, Request, Response} from "express";
+import {DateTime} from "luxon";
 
 import {APIError} from "../errors";
 import {classifyRateLimitPolicy, rateLimitKey, shouldSkipRateLimit} from "./policies";
@@ -39,7 +40,7 @@ export const createRateLimitMiddleware = (
   const authMax = options.limits?.authMax ?? DEFAULT_AUTH_MAX;
   const apiMax = options.limits?.apiMax ?? DEFAULT_API_MAX;
   const betterAuthBasePath = options.betterAuthBasePath;
-  const nowFn = options.now ?? Date.now;
+  const nowFn = options.now ?? ((): number => DateTime.now().toMillis());
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (shouldSkipRateLimit(req, options.skip)) {

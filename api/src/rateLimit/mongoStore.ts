@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 import {APIError} from "../errors";
@@ -32,8 +33,8 @@ export const createMongoRateLimitStore = (): RateLimitStore => {
       indexed = true;
     }
 
-    const nowDate = new Date(now);
-    const resetAtDate = new Date(now + windowMs);
+    const nowDate = DateTime.fromMillis(now).toJSDate();
+    const resetAtDate = DateTime.fromMillis(now + windowMs).toJSDate();
     const updated = await collection.findOneAndUpdate(
       {key},
       [
@@ -61,8 +62,9 @@ export const createMongoRateLimitStore = (): RateLimitStore => {
     );
 
     const hits = Number(updated?.hits ?? 1);
+    const expiresAt = updated?.expiresAt;
     const resetAt =
-      updated?.expiresAt instanceof Date ? updated.expiresAt.getTime() : now + windowMs;
+      expiresAt != null ? DateTime.fromJSDate(expiresAt as Date).toMillis() : now + windowMs;
     return {
       allowed: hits <= max,
       remaining: Math.max(0, max - hits),

@@ -2,6 +2,8 @@ import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type {Application} from "express";
 import express from "express";
+import jwt from "jsonwebtoken";
+import {DateTime} from "luxon";
 import supertest from "supertest";
 
 import {modelRouter} from "../api";
@@ -123,6 +125,7 @@ describe("HTTP rate limiting", () => {
   it("classifies login as auth and /auth/me as api", () => {
     const authPaths = [
       "/auth/login",
+      "/auth/login/",
       "/auth/signup",
       "/auth/refresh_token",
       "/auth/github",
@@ -131,6 +134,8 @@ describe("HTTP rate limiting", () => {
       "/api/auth/sign-in/email",
       "/api/auth/sign-up/email",
       "/api/auth/forget-password",
+      "/api/auth/reset-password",
+      "/api/auth/callback/github",
     ];
     for (const originalUrl of authPaths) {
       assert.equal(
@@ -155,6 +160,7 @@ describe("HTTP rate limiting", () => {
       ),
       "auth"
     );
+    assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/health/"} as never));
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/openapi.json"} as never));
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/swagger"} as never));
     assert.isTrue(
@@ -191,6 +197,33 @@ describe("HTTP rate limiting", () => {
     assert.equal(first.status, 200);
     const spoofed = await supertest(app).get("/food").set("X-Forwarded-For", "198.51.100.20");
     assert.equal(spoofed.status, 429);
+  });
+
+  it("logs in and refreshes when the access JWT is expired", async () => {
+    const app = buildApp({});
+    const secret = process.env.TOKEN_SECRET;
+    assert.ok(secret);
+    const expired = jwt.sign(
+      {
+        exp: Math.floor(DateTime.now().minus({hours: 1}).toSeconds()),
+        id: "stale",
+      },
+      secret,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    const login = await supertest(app)
+      .post("/auth/login")
+      .set("Authorization", `Bearer ${expired}`)
+      .send({email: "notAdmin@example.com", password: "password"});
+    assert.equal(login.status, 200);
+    assert.isString(login.body.data.refreshToken);
+    const refresh = await supertest(app)
+      .post("/auth/refresh_token")
+      .set("Authorization", `Bearer ${expired}`)
+      .send({refreshToken: login.body.data.refreshToken});
+    assert.equal(refresh.status, 200);
+    const me = await supertest(app).get("/auth/me").set("Authorization", `Bearer ${expired}`);
+    assert.equal(me.status, 401);
   });
 
   it("keys authenticated JWT traffic by user, not shared IP", async () => {
@@ -237,6 +270,16 @@ describe("memory rate limit store", () => {
     assert.isTrue(b1.allowed);
     const after = await store.consume({key: "a", max: 2, now: t0 + 1001, windowMs: 1000});
     assert.isTrue(after.allowed);
+  });
+
+  it("prunes expired windows when the map grows past 10_000 keys", async () => {
+    const store = createMemoryRateLimitStore();
+    const now = 1_000;
+    for (let i = 0; i < 10_001; i++) {
+      await store.consume({key: `k${i}`, max: 1, now, windowMs: 1});
+    }
+    const next = await store.consume({key: "fresh", max: 1, now: now + 10, windowMs: 1000});
+    assert.isTrue(next.allowed);
   });
 });
 

@@ -9,9 +9,32 @@ const stripQuery = (url: string): string => {
   return q === -1 ? url : url.slice(0, q);
 };
 
+/** Strip query and a trailing slash so `/auth/login/` matches `/auth/login`. */
+export const normalizeRequestPath = (url: string): string => {
+  const withoutQuery = stripQuery(url);
+  if (withoutQuery.length > 1 && withoutQuery.endsWith("/")) {
+    return withoutQuery.slice(0, -1);
+  }
+  return withoutQuery;
+};
+
 export const requestPath = (req: Request): string => {
   const raw = req.originalUrl || req.url || req.path || "";
-  return stripQuery(raw);
+  return normalizeRequestPath(raw);
+};
+
+const JWT_CREDENTIAL_EXCHANGE_EXACT = new Set([
+  "/auth/login",
+  "/auth/signup",
+  "/auth/refresh_token",
+]);
+
+/**
+ * JWT login, signup, and refresh must not 401 on a stale access token.
+ * `setupAuth` runs before those routes so the client can still exchange credentials.
+ */
+export const isJwtCredentialExchangePath = (req: Request): boolean => {
+  return JWT_CREDENTIAL_EXCHANGE_EXACT.has(requestPath(req));
 };
 
 export const shouldSkipRateLimit = (
@@ -47,7 +70,13 @@ const AUTH_PREFIXES = ["/auth/github/"];
 
 const betterAuthAuthPrefixes = (basePath: string): string[] => {
   const base = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
-  return [`${base}/sign-in`, `${base}/sign-up`, `${base}/forget-password`];
+  return [
+    `${base}/sign-in`,
+    `${base}/sign-up`,
+    `${base}/forget-password`,
+    `${base}/reset-password`,
+    `${base}/callback`,
+  ];
 };
 
 export const classifyRateLimitPolicy = (

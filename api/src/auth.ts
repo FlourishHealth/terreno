@@ -16,6 +16,7 @@ import {Strategy as LocalStrategy} from "passport-local";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {isJwtCredentialExchangePath} from "./rateLimit/policies";
 import {
   getSessionIdFromJwtPayload,
   type JwtSessionPayload,
@@ -472,6 +473,12 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     next: express.NextFunction
   ) => {
     if (!process.env.TOKEN_SECRET) {
+      return next();
+    }
+
+    // Login, signup, and refresh exchange credentials. A stale access JWT in
+    // Authorization / the jwt cookie must not 401 before those handlers run.
+    if (isJwtCredentialExchangePath(req)) {
       return next();
     }
 

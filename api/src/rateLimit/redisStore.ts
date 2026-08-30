@@ -11,9 +11,19 @@ export const redisUrlFromEnv = (): string | undefined => {
   return process.env.VALKEY_URL || process.env.REDIS_URL;
 };
 
+interface IoredisClient {
+  incr: (key: string) => Promise<number>;
+  pexpire: (key: string, milliseconds: number) => Promise<number>;
+  pttl: (key: string) => Promise<number>;
+}
+
+interface IoredisModule {
+  default: new (url: string) => IoredisClient;
+}
+
 const connectIoredis = async (url: string): Promise<RateLimitRedisClient> => {
-  const loaded = await import("ioredis").catch(() => null);
-  if (!loaded) {
+  const loaded = (await import("ioredis").catch(() => null)) as IoredisModule | null;
+  if (!loaded?.default) {
     throw new APIError({
       status: 500,
       title: "Redis rate limit store requires the ioredis package",

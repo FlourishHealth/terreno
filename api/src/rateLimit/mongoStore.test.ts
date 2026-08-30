@@ -47,6 +47,27 @@ describe("mongo rate limit store", () => {
     assert.equal(ttl.expireAfterSeconds, 0);
   });
 
+  it("throws APIError when mongoose has no open db", async () => {
+    const store = createMongoRateLimitStore();
+    const connection = mongoose.connection as {db?: unknown};
+    const previous = connection.db;
+    Object.defineProperty(mongoose.connection, "db", {
+      configurable: true,
+      value: undefined,
+    });
+    try {
+      await store.consume({key: "none", max: 1, now: 1, windowMs: 1000});
+      assert.fail("expected missing mongoose db to throw");
+    } catch (error) {
+      assert.include(String(error), "open mongoose connection");
+    } finally {
+      Object.defineProperty(mongoose.connection, "db", {
+        configurable: true,
+        value: previous,
+      });
+    }
+  });
+
   it("does not allow more than max under concurrent consumes", async () => {
     const store = createMongoRateLimitStore();
     const now = 9_000_000;

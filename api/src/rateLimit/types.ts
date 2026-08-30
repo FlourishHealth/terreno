@@ -21,8 +21,9 @@ export interface RateLimitOptions {
   trustProxy?: boolean | number | string | string[];
   skip?: (req: Request) => boolean;
   /**
-   * Better Auth `basePath` (default `/api/auth`). Used to classify sign-in routes
-   * as the auth bucket.
+   * Better Auth `basePath` (default `/api/auth`). Used to classify sign-in,
+   * sign-up, password reset, and OAuth callback routes as the auth bucket.
+   * When omitted, TerrenoApp copies `BetterAuthApp` config.basePath if that plugin is registered.
    */
   betterAuthBasePath?: string;
   /** Test-only clock. */
