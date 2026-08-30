@@ -32,29 +32,41 @@ export const createMongoRateLimitStore = (): RateLimitStore => {
       indexed = true;
     }
 
-    const existing = await collection.findOne({key});
-    const expiresAtMs =
-      existing?.expiresAt instanceof Date ? existing.expiresAt.getTime() : undefined;
-    if (!existing || expiresAtMs === undefined || expiresAtMs <= now) {
-      const resetAt = now + windowMs;
-      await collection.replaceOne(
-        {key},
-        {expiresAt: new Date(resetAt), hits: 1, key},
-        {upsert: true}
-      );
-      return {allowed: true, remaining: Math.max(0, max - 1), resetAt};
-    }
-
+    const nowDate = new Date(now);
+    const resetAtDate = new Date(now + windowMs);
     const updated = await collection.findOneAndUpdate(
       {key},
-      {$inc: {hits: 1}},
-      {returnDocument: "after"}
+      [
+        {
+          $set: {
+            expiresAt: {
+              $cond: [
+                {$and: [{$ne: ["$expiresAt", null]}, {$gt: ["$expiresAt", nowDate]}]},
+                "$expiresAt",
+                resetAtDate,
+              ],
+            },
+            hits: {
+              $cond: [
+                {$and: [{$ne: ["$expiresAt", null]}, {$gt: ["$expiresAt", nowDate]}]},
+                {$add: [{$ifNull: ["$hits", 0]}, 1]},
+                1,
+              ],
+            },
+            key,
+          },
+        },
+      ],
+      {returnDocument: "after", upsert: true}
     );
-    const hits = Number(updated?.hits ?? 0);
+
+    const hits = Number(updated?.hits ?? 1);
+    const resetAt =
+      updated?.expiresAt instanceof Date ? updated.expiresAt.getTime() : now + windowMs;
     return {
       allowed: hits <= max,
       remaining: Math.max(0, max - hits),
-      resetAt: expiresAtMs,
+      resetAt,
     };
   };
 

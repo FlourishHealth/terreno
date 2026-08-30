@@ -46,4 +46,14 @@ describe("mongo rate limit store", () => {
     assert.ok(ttl);
     assert.equal(ttl.expireAfterSeconds, 0);
   });
+
+  it("does not allow more than max under concurrent consumes", async () => {
+    const store = createMongoRateLimitStore();
+    const now = 9_000_000;
+    const results = await Promise.all(
+      Array.from({length: 20}, () => store.consume({key: "burst", max: 5, now, windowMs: 60_000}))
+    );
+    const allowed = results.filter((result) => result.allowed).length;
+    assert.equal(allowed, 5);
+  });
 });

@@ -193,6 +193,26 @@ describe("HTTP rate limiting", () => {
     assert.equal(spoofed.status, 429);
   });
 
+  it("keys authenticated JWT traffic by user, not shared IP", async () => {
+    const app = buildApp({limits: {apiMax: 1, authMax: 20}});
+    const userLogin = await supertest(app)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"});
+    assert.equal(userLogin.status, 200);
+    const adminLogin = await supertest(app)
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"});
+    assert.equal(adminLogin.status, 200);
+    const userList = await supertest(app)
+      .get("/food")
+      .set("Authorization", `Bearer ${userLogin.body.data.token}`);
+    assert.equal(userList.status, 200);
+    const adminList = await supertest(app)
+      .get("/food")
+      .set("Authorization", `Bearer ${adminLogin.body.data.token}`);
+    assert.equal(adminList.status, 200, "second user should have a separate api bucket");
+  });
+
   it("rejects an unknown store name at create time", () => {
     try {
       createRateLimitStore({store: "disk" as never});

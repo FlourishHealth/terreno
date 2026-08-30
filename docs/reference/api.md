@@ -112,7 +112,7 @@ setupServer({
 });
 ``````
 
-Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI). HTTP rate limiting is a `TerrenoApp` option only — migrate from `setupServer` to `TerrenoApp` to enable it.
 
 ## Collection catalog
 

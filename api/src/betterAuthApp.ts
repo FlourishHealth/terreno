@@ -27,28 +27,42 @@ export interface BetterAuthAppOptions {
 export class BetterAuthApp implements TerrenoPlugin {
   private auth: BetterAuthInstance | undefined;
   private options: BetterAuthAppOptions;
+  private sessionMiddlewareMounted = false;
 
   constructor(options: BetterAuthAppOptions) {
     this.options = options;
   }
 
-  register(app: express.Application): void {
+  ensureAuth(): BetterAuthInstance {
+    if (this.auth) {
+      return this.auth;
+    }
     const {config, userModel} = this.options;
-
-    const mongoClient = getMongoClientFromMongoose();
     this.auth = createBetterAuth({
       config,
-      mongoClient,
+      mongoClient: getMongoClientFromMongoose(),
       userModel,
     });
-
-    const basePath = config.basePath ?? "/api/auth";
-    mountBetterAuthRoutes(app, this.auth, basePath);
-
-    app.use(createBetterAuthSessionMiddleware(this.auth, userModel));
-
     if (userModel) {
       setupBetterAuthUserSync(this.auth, userModel);
+    }
+    return this.auth;
+  }
+
+  markSessionMiddlewareMounted(): void {
+    this.sessionMiddlewareMounted = true;
+  }
+
+  register(app: express.Application): void {
+    const {config, userModel} = this.options;
+    const auth = this.ensureAuth();
+
+    const basePath = config.basePath ?? "/api/auth";
+    mountBetterAuthRoutes(app, auth, basePath);
+
+    if (!this.sessionMiddlewareMounted) {
+      app.use(createBetterAuthSessionMiddleware(auth, userModel));
+      this.sessionMiddlewareMounted = true;
     }
 
     logger.info("Better Auth initialized via BetterAuthApp plugin");

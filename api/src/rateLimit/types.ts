@@ -1,6 +1,6 @@
 import type {Request} from "express";
 
-/** Default sliding window: 15 minutes. */
+/** Default fixed window: 15 minutes. */
 export const DEFAULT_WINDOW_MS = 15 * 60 * 1000;
 
 /** Stricter bucket for login, signup, refresh, OTP, GitHub OAuth, Better Auth sign-in. */

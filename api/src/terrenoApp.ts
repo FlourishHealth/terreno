@@ -7,7 +7,7 @@ import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import type {BetterAuthInstance} from "./betterAuthSetup";
+import {type BetterAuthInstance, createBetterAuthSessionMiddleware} from "./betterAuthSetup";
 import {
   ConfigurationApp,
   type ConfigurationAppOptions,
@@ -43,6 +43,8 @@ import openapi from "./vendor/wesleytodd-openapi/index";
 /** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
 interface BetterAuthProvider {
   getAuth: () => BetterAuthInstance | undefined;
+  ensureAuth?: () => BetterAuthInstance;
+  markSessionMiddlewareMounted?: () => void;
 }
 
 type CorsOrigin =
@@ -297,8 +299,9 @@ export class TerrenoApp {
    * Build the Express application without starting the server.
    *
    * Configures the complete middleware stack including:
-   * - CORS, JSON parsing, authentication, logging, Sentry, OpenAPI
-   * - All registered model routers and plugins
+   * - CORS, JSON parsing, JWT decode, optional HTTP rate limiting, auth routes
+   * - Better Auth session (when BetterAuthApp is registered) before the limiter
+   * - Logging, Sentry, OpenAPI, model routers and plugins
    * - Error handling middleware
    *
    * Use this method when you need the Express app instance for testing
@@ -357,6 +360,17 @@ export class TerrenoApp {
       updateRequestContextFromRequest(req, res);
       next();
     });
+
+    const betterAuthForLimiter = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    if (betterAuthForLimiter?.ensureAuth) {
+      const auth = betterAuthForLimiter.ensureAuth();
+      app.use(createBetterAuthSessionMiddleware(auth, options.userModel));
+      betterAuthForLimiter.markSessionMiddlewareMounted?.();
+    }
 
     if (options.rateLimit) {
       applyRateLimitTrustProxy(app, options.rateLimit);
