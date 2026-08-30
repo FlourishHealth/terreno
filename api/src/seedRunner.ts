@@ -107,6 +107,17 @@ const toComparableSeedValue = (value: unknown): unknown => {
   if (value == null) {
     return value;
   }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (value instanceof Map) {
+    return Object.fromEntries(
+      [...value.entries()].map(([entryKey, nested]) => [
+        String(entryKey),
+        toComparableSeedValue(nested),
+      ])
+    );
+  }
   if (typeof (value as {toObject?: () => unknown}).toObject === "function") {
     return toComparableSeedValue((value as {toObject: () => unknown}).toObject());
   }

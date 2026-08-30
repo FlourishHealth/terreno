@@ -63,6 +63,8 @@ Use `context.upsert(model, key, values)` with a stable, unique business key.
 The helper reports `created`, `updated`, or `unchanged` and writes only when the
 declared values differ. Nested arrays are compared without generated subdocument
 `_id`s, so feature-flag rules and similar payloads stay unchanged across syncs.
+`Map` values (for example consent-form `content`) compare as plain key/value
+objects so stored documents are not rewritten on every sync.
 If `isDeletedPlugin` hid a matching row, `upsert` restores that document instead
 of inserting a duplicate. Use `context.deleteMany()` only inside reset handlers.
 Custom writes must check `context.dryRun` themselves.

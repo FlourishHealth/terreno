@@ -30,6 +30,7 @@ const widgetStep = (label: string): SeedStep => ({
 });
 
 interface SeedSoftWidgetDocument {
+  content?: Map<string, string>;
   deleted?: boolean;
   key: string;
   label: string;
@@ -37,6 +38,11 @@ interface SeedSoftWidgetDocument {
 }
 
 const seedSoftWidgetSchema = new Schema<SeedSoftWidgetDocument>({
+  content: {
+    description: "Localized seed content",
+    of: {description: "Localized string", type: String},
+    type: Map,
+  },
   key: {description: "Stable seed key", required: true, type: String},
   label: {description: "Seeded display label", required: true, type: String},
   rules: {
@@ -181,6 +187,21 @@ describe("runSeeds", () => {
         },
       ],
     });
+
+    assert.equal(unchanged.summary.unchanged, 1);
+    assert.equal(unchanged.summary.updated, 0);
+  });
+
+  it("treats Map seed values as unchanged after Mongoose stores them", async () => {
+    const content = new Map([["en", "Hello"]]);
+    const step: SeedStep = {
+      name: "widgets",
+      run: async (context) => {
+        await context.upsert(SeedSoftWidget, {key: "form"}, {content, label: "Form"});
+      },
+    };
+    await runSeeds({name: "test", steps: [step]});
+    const unchanged = await runSeeds({name: "test", steps: [step]});
 
     assert.equal(unchanged.summary.unchanged, 1);
     assert.equal(unchanged.summary.updated, 0);
