@@ -1,13 +1,13 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
-import {join} from "node:path";
+import {join, resolve} from "node:path";
 
 import {parseLcov} from "./check-coverage";
 import {
   bunTestFileArgs,
   coverageRunArgs,
   evaluateNewFileCoverage,
-  expandCoverageFileArgs,
+  expandCoverageRunArgs,
   groupFilesByWorkspace,
   isCoverageSourceFile,
   parseNewFileCoverageArgs,
@@ -40,6 +40,16 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("ui/src/NewComponent.stories.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
+  });
+
+  it("excludes Expo Router route-structural entry files but keeps other app modules", () => {
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/admin/comms/index.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/admin/comms/[id].tsx"));
+    assert.isFalse(isCoverageSourceFile("admin-spa/app/comms/index.tsx"));
+    assert.isFalse(isCoverageSourceFile("admin-spa/app/[model]/_layout.tsx"));
+    assert.isFalse(isCoverageSourceFile("admin-spa/app/+not-found.tsx"));
+    assert.isTrue(isCoverageSourceFile("example-frontend/app/admin/SyncLabScreen.tsx"));
+    assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
   });
 });
 
@@ -168,20 +178,29 @@ describe("coverageRunArgs", () => {
   });
 });
 
-describe("expandCoverageFileArgs", () => {
-  it("omits globs that match no files", () => {
-    const expanded = expandCoverageFileArgs(
-      ["./**/*.test.ts", "./**/*.test.tsx"],
-      join(import.meta.dir, "..", "example-frontend")
+describe("expandCoverageRunArgs", () => {
+  const repoRoot = resolve(import.meta.dir, "..");
+
+  it("passes through flags and plain directories untouched", () => {
+    assert.deepEqual(
+      expandCoverageRunArgs({
+        args: ["--max-concurrency=1", "src"],
+        packageRoot: join(repoRoot, "api"),
+      }),
+      ["--max-concurrency=1", "src"]
     );
-    assert.include(expanded, "./store/registerExpoPushToken.test.ts");
-    assert.isFalse(expanded.some((path) => path.endsWith(".test.tsx")));
   });
 
-  it("preserves bun flags and non-glob paths", () => {
-    assert.deepEqual(expandCoverageFileArgs(["--max-concurrency=1", "src"], import.meta.dir), [
-      "--max-concurrency=1",
-      "src",
-    ]);
+  it("expands shell globs into real files so a direct bun spawn matches them", () => {
+    const expanded = expandCoverageRunArgs({
+      args: ["./**/*.test.ts"],
+      packageRoot: join(repoRoot, "example-frontend"),
+    });
+    assert.isTrue(expanded.length > 0, "expected example-frontend unit tests to be found");
+    assert.include(expanded, "store/errors.test.ts");
+    for (const path of expanded) {
+      assert.notInclude(path, "*");
+      assert.notInclude(path, "node_modules");
+    }
   });
 });

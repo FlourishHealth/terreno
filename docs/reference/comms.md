@@ -238,10 +238,25 @@ The default `basePath` is `/comms`.
 | `GET` | `/comms/pushTokens` | Authenticated owner | List the current user's tokens |
 | `GET` | `/comms/pushTokens/:id` | Owner | Read one token |
 | `DELETE` | `/comms/pushTokens/:id` | Owner | Deactivate a token |
-| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log |
+| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log. Query: `channel`, `provider`, `status`, `errorClass`, `errorCode`, `userId`, `to`, `templateId`, `retriedFromId`, `startDate`, `endDate`, free-text `q`, `page`, `limit` |
+| `GET` | `/comms/messages/:id` | Admin | Full row: attempts, metadata, retained payload, retry links, `retryable` / `retryDisabledReason` |
+| `POST` | `/comms/messages/:id/retry` | Admin | Re-send through the facade. Creates a linked row. 400 codes: `comms-retry-not-retryable`, `comms-retry-payload-expired`, `comms-retry-channel-unconfigured` |
+| `POST` | `/comms/messages/retryMany` | Admin | Same filters as list plus `limit` (cap 100). Returns `{retried, skipped: [{id, reason}]}` |
+| `GET` | `/comms/stats` | Admin | Counts by channel × provider × status with day buckets. Default range 7d. Includes per-provider failure rate |
 
 An active token cannot be claimed by another user. After its owner deactivates it, another
 authenticated user on the same device may register it.
+
+## Admin dashboard
+
+`CommsApp.adminContribution()` registers a custom screen named `comms` with the sidebar label **Comms Dashboard**. `@terreno/admin-frontend` ships `COMMS_ADMIN_WIDGETS` (`CommsDashboardScreen`, `CommsMessageDetail`) and hosts wire:
+
+- example-frontend: `/admin/comms` and `/admin/comms/[id]`
+- admin-spa: `/comms` and `/comms/[id]`
+
+Filters persist in the URL. List, stats, and bulk retry use the same match: when no dates are set, both the table and the cards use the trailing 7 days (labeled **Last 7 days**). Editing any filter while those dates are still implicit writes both bounds into the URL so the other bound is not dropped. `beforeSend` cancel on push attaches `loggedMessageId` the same way mail and SMS do. Created and attempt times print in the operator's locale (`DateTime.DATETIME_MED`), not UTC ISO. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
+
+Run `bun run backend:seed` from the repository root to populate the example dashboard with 10 current, idempotent delivery logs across mail, SMS, push, and verification. The sample includes delivered, sent, failed, bounced, and cancelled states so stats, provider breakdowns, filters, and retry controls are visible immediately.
 
 ## Templates
 

@@ -1,5 +1,6 @@
 import {APIError, logger} from "@terreno/api";
 import {DateTime} from "luxon";
+import mongoose from "mongoose";
 
 import {
   ConsoleMailProvider,
@@ -7,6 +8,7 @@ import {
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
 } from "./adapters/console";
+import {evaluateRetryBlock, throwRetryBlock} from "./commsRetry";
 import {CommsMessage} from "./models/commsMessage";
 import {PushToken} from "./models/pushToken";
 import type {CommsMessageAttempt, CommsMessageDocument} from "./modelTypes";
@@ -17,12 +19,14 @@ import type {
   CommsHookMessage,
   CommsMessageStatus,
   CommsOptions,
+  CommsSendOptions,
   DeliveryEvent,
   MailMessage,
   MailProvider,
   OptOutEvent,
   PushMessage,
   PushProvider,
+  RetryMessageOptions,
   SendPushToUserMessage,
   SendResult,
   SmsMessage,
@@ -284,6 +288,7 @@ export class CommsService {
     omitPayload,
     provider,
     result,
+    retriedFromId,
     status,
     subject,
     templateId,
@@ -298,6 +303,7 @@ export class CommsService {
     omitPayload?: boolean;
     provider: string;
     result: SendResult;
+    retriedFromId?: string;
     status: CommsMessageStatus;
     subject?: string;
     templateId?: string;
@@ -329,6 +335,7 @@ export class CommsService {
       payloadExpiresAt: payload === undefined ? undefined : this.payloadExpiresAt(),
       provider,
       providerMessageId: result.providerMessageId,
+      retriedFromId,
       status,
       subject,
       templateId,
@@ -447,6 +454,7 @@ export class CommsService {
     logFields: {
       channel: CommsChannel;
       metadata?: Record<string, unknown>;
+      retriedFromId?: string;
       subject?: string;
       templateId?: string;
       to: string | string[];
@@ -463,6 +471,7 @@ export class CommsService {
       metadata: logFields.metadata,
       provider,
       result: first,
+      retriedFromId: logFields.retriedFromId,
       status: first.accepted ? "sent" : "failed",
       subject: logFields.subject,
       templateId: logFields.templateId,
@@ -477,7 +486,21 @@ export class CommsService {
     }
     await this.notifyOutcomeHooks(context, retried.result, hookErrors);
     await this.patchHookErrors(finalLogged, hookErrors);
-    return retried.result;
+    return this.withLoggedId(retried.result, finalLogged);
+  }
+
+  private withLoggedId(result: SendResult, logged: CommsMessageDocument | null): SendResult {
+    if (!logged) {
+      return result;
+    }
+    return {...result, loggedMessageId: String(logged._id)};
+  }
+
+  private loggedIdFromSend(result: SendResult | SendResult[]): string | undefined {
+    if (Array.isArray(result)) {
+      return result.map((row) => row.loggedMessageId).find((id) => Boolean(id));
+    }
+    return result.loggedMessageId;
   }
 
   private cancelledResult(): SendResult {
@@ -522,6 +545,17 @@ export class CommsService {
     } catch (error: unknown) {
       return providerThrowResult(error);
     }
+  }
+
+  private mergeSendMetadata(
+    result: SendResult,
+    sendOptions?: CommsSendOptions
+  ): Record<string, unknown> | undefined {
+    const extra = sendOptions?.extraMetadata;
+    if (!result.metadata && !extra) {
+      return result.metadata;
+    }
+    return {...result.metadata, ...extra};
   }
 
   private mailProvider(): MailProvider {
@@ -575,13 +609,26 @@ export class CommsService {
     };
   }
 
-  async sendMail(message: MailMessage): Promise<SendResult> {
+  isChannelConfigured(channel: CommsChannel): boolean {
+    if (channel === "mail") {
+      return Boolean(this.options.mail) || !isProduction();
+    }
+    if (channel === "sms") {
+      return Boolean(this.options.sms) || !isProduction();
+    }
+    if (channel === "push") {
+      return Boolean(this.options.push) || !isProduction();
+    }
+    return Boolean(this.options.verification) || !isProduction();
+  }
+
+  async sendMail(message: MailMessage, sendOptions?: CommsSendOptions): Promise<SendResult> {
     const provider = this.mailProvider();
     const hookErrors: Record<string, string[]> = {};
     const context: CommsHookContext = {
       attempt: 1,
       channel: "mail",
-      isRetry: false,
+      isRetry: sendOptions?.isRetry === true,
       message: this.applyMailDefaults(message),
       provider: provider.id,
     };
@@ -590,19 +637,21 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await this.logResult({
+      const logged = await this.logResult({
         attempts: [this.attemptFromResult(provider.id, result)],
         channel: "mail",
         context,
         hookErrors,
+        metadata: sendOptions?.extraMetadata,
         provider: provider.id,
         result,
+        retriedFromId: sendOptions?.retriedFromId,
         status: "cancelled",
         subject: activeMessage.subject,
         templateId: activeMessage.templateId,
         to: activeMessage.to,
       });
-      return result;
+      return this.withLoggedId(result, logged);
     }
 
     const first = await this.sendMailOnce(provider, activeMessage);
@@ -612,7 +661,8 @@ export class CommsService {
       hookErrors,
       logFields: {
         channel: "mail",
-        metadata: first.metadata,
+        metadata: this.mergeSendMetadata(first, sendOptions),
+        retriedFromId: sendOptions?.retriedFromId,
         subject: activeMessage.subject,
         templateId: activeMessage.templateId,
         to: activeMessage.to,
@@ -622,13 +672,13 @@ export class CommsService {
     });
   }
 
-  async sendSms(message: SmsMessage): Promise<SendResult> {
+  async sendSms(message: SmsMessage, sendOptions?: CommsSendOptions): Promise<SendResult> {
     const provider = this.smsProvider();
     const hookErrors: Record<string, string[]> = {};
     const context: CommsHookContext = {
       attempt: 1,
       channel: "sms",
-      isRetry: false,
+      isRetry: sendOptions?.isRetry === true,
       message,
       provider: provider.id,
     };
@@ -637,17 +687,19 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await this.logResult({
+      const logged = await this.logResult({
         attempts: [this.attemptFromResult(provider.id, result)],
         channel: "sms",
         context,
         hookErrors,
+        metadata: sendOptions?.extraMetadata,
         provider: provider.id,
         result,
+        retriedFromId: sendOptions?.retriedFromId,
         status: "cancelled",
         to: activeMessage.to,
       });
-      return result;
+      return this.withLoggedId(result, logged);
     }
 
     const first = await this.sendSmsOnce(provider, activeMessage);
@@ -657,6 +709,8 @@ export class CommsService {
       hookErrors,
       logFields: {
         channel: "sms",
+        metadata: this.mergeSendMetadata(first, sendOptions),
+        retriedFromId: sendOptions?.retriedFromId,
         to: activeMessage.to,
       },
       provider: provider.id,
@@ -664,7 +718,10 @@ export class CommsService {
     });
   }
 
-  async sendPushToUser(message: SendPushToUserMessage): Promise<SendResult[]> {
+  async sendPushToUser(
+    message: SendPushToUserMessage,
+    sendOptions?: CommsSendOptions
+  ): Promise<SendResult[]> {
     const provider = this.pushProvider();
     const hookErrors: Record<string, string[]> = {};
     const tokens = await PushToken.find({active: true, userId: message.userId});
@@ -683,7 +740,7 @@ export class CommsService {
     const context: CommsHookContext = {
       attempt: 1,
       channel: "push",
-      isRetry: false,
+      isRetry: sendOptions?.isRetry === true,
       message: providerMessage,
       provider: provider.id,
       userId: String(message.userId),
@@ -693,7 +750,7 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await Promise.all(
+      const loggedRows = await Promise.all(
         tokens.map(
           (token): Promise<CommsMessageDocument | null> =>
             this.logResult({
@@ -701,15 +758,17 @@ export class CommsService {
               channel: "push",
               context: this.cloneContext(context),
               hookErrors,
+              metadata: sendOptions?.extraMetadata,
               provider: provider.id,
               result,
+              retriedFromId: sendOptions?.retriedFromId,
               status: "cancelled",
               to: token.token,
               userId: String(message.userId),
             })
         )
       );
-      return tokens.map(() => result);
+      return tokens.map((_, index) => this.withLoggedId(result, loggedRows[index] ?? null));
     }
 
     const sendTokens = activeMessage.tokens;
@@ -731,8 +790,10 @@ export class CommsService {
           channel: "push",
           context: tokenContext,
           hookErrors,
+          metadata: this.mergeSendMetadata(result, sendOptions),
           provider: provider.id,
           result,
+          retriedFromId: sendOptions?.retriedFromId,
           status: result.accepted ? "sent" : "failed",
           to: tokenValue,
           userId: String(message.userId),
@@ -813,7 +874,12 @@ export class CommsService {
       })
     );
 
-    return sendTokens.map((tokenValue) => finalByToken.get(tokenValue) as SendResult);
+    return sendTokens.map((tokenValue) =>
+      this.withLoggedId(
+        finalByToken.get(tokenValue) as SendResult,
+        loggedByToken.get(tokenValue) ?? null
+      )
+    );
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
@@ -907,5 +973,85 @@ export class CommsService {
       await this.patchHookErrors(logged, hookErrors);
       return {error: loggedResult.error, valid: false};
     }
+  }
+
+  async retryMessage(options: RetryMessageOptions): Promise<CommsMessageDocument> {
+    if (!mongoose.isValidObjectId(options.messageId)) {
+      throw new APIError({status: 404, title: "Comms message not found"});
+    }
+    const original = await CommsMessage.findOneOrNone({_id: options.messageId});
+    if (!original) {
+      throw new APIError({status: 404, title: "Comms message not found"});
+    }
+    const block = evaluateRetryBlock({
+      isChannelConfigured: (channel) => this.isChannelConfigured(channel),
+      message: original,
+    });
+    if (block) {
+      throwRetryBlock(block);
+    }
+
+    const sendOptions: CommsSendOptions = {
+      extraMetadata: options.retriedByUserId
+        ? {retriedByUserId: options.retriedByUserId}
+        : undefined,
+      isRetry: true,
+      retriedFromId: String(original._id),
+    };
+    const payload = original.payload as Record<string, unknown>;
+    let sendResult: SendResult | SendResult[] | undefined;
+
+    if (original.channel === "mail") {
+      sendResult = await this.sendMail(
+        {
+          dynamicTemplateData: payload.dynamicTemplateData as Record<string, unknown> | undefined,
+          from: payload.from as string | undefined,
+          html: payload.html as string | undefined,
+          replyTo: payload.replyTo as string | undefined,
+          subject: String(payload.subject ?? original.subject ?? ""),
+          templateId: (payload.templateId as string | undefined) ?? original.templateId,
+          text: payload.text as string | undefined,
+          to: (payload.to as string | string[]) ?? original.to,
+        },
+        sendOptions
+      );
+    } else if (original.channel === "sms") {
+      sendResult = await this.sendSms(
+        {
+          body: String(payload.body ?? ""),
+          to: String(payload.to ?? original.to),
+        },
+        sendOptions
+      );
+    } else if (original.userId) {
+      sendResult = await this.sendPushToUser(
+        {
+          badge: payload.badge as number | undefined,
+          body: String(payload.body ?? ""),
+          data: payload.data as Record<string, unknown> | undefined,
+          sound: payload.sound as string | null | undefined,
+          title: String(payload.title ?? ""),
+          userId: original.userId,
+        },
+        sendOptions
+      );
+    } else {
+      throwRetryBlock({
+        code: "comms-retry-not-retryable",
+        title: "Push retries require a linked user",
+      });
+    }
+
+    const loggedId = this.loggedIdFromSend(sendResult ?? []);
+    if (!loggedId) {
+      throw new APIError({status: 500, title: "Retry did not create a communication log"});
+    }
+    const retried = await CommsMessage.findOneOrNone({_id: loggedId});
+    if (!retried) {
+      throw new APIError({status: 500, title: "Retry did not create a communication log"});
+    }
+    original.retriedById = retried._id;
+    await original.save();
+    return retried;
   }
 }

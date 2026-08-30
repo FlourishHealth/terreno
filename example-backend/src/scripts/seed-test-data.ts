@@ -16,6 +16,12 @@ import {
   type SeedRunResult,
   type SeedStep,
 } from "@terreno/api";
+import {
+  type CommsChannel,
+  type CommsErrorClass,
+  CommsMessage,
+  type CommsMessageStatus,
+} from "@terreno/comms";
 import {FeatureFlag} from "@terreno/feature-flags";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
@@ -57,6 +63,19 @@ interface SeedConsentForm {
   version: number;
 }
 
+interface SeedCommsMessage {
+  channel: CommsChannel;
+  error?: string;
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
+  key: string;
+  payload: Record<string, unknown>;
+  provider: string;
+  status: CommsMessageStatus;
+  subject?: string;
+  to: string;
+}
+
 // Shared organization so both seeded users demonstrate tenant-scoped project sync.
 const EXAMPLE_ORGANIZATION_ID = "org-example";
 
@@ -89,6 +108,105 @@ const SEED_PROJECTS = [
 ];
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
+
+const SEED_COMMS_MESSAGES: SeedCommsMessage[] = [
+  {
+    channel: "mail",
+    key: "welcome-delivered",
+    payload: {subject: "Welcome to Terreno", text: "Your account is ready."},
+    provider: "sendgrid",
+    status: "delivered",
+    subject: "Welcome to Terreno",
+    to: "a***@example.com",
+  },
+  {
+    channel: "mail",
+    key: "password-reset-sent",
+    payload: {subject: "Reset your password", text: "Use the secure reset link."},
+    provider: "sendgrid",
+    status: "sent",
+    subject: "Reset your password",
+    to: "b***@example.com",
+  },
+  {
+    channel: "push",
+    key: "weekly-digest-delivered",
+    payload: {body: "You completed 4 tasks this week.", title: "Weekly digest"},
+    provider: "expo",
+    status: "delivered",
+    subject: "Weekly digest",
+    to: "ExpoPushToken[…7C2]",
+  },
+  {
+    channel: "sms",
+    key: "appointment-reminder-sent",
+    payload: {body: "Reminder: your appointment starts in 30 minutes."},
+    provider: "twilio",
+    status: "sent",
+    to: "***-***-0142",
+  },
+  {
+    channel: "mail",
+    error: "Provider request timed out",
+    errorClass: "transient",
+    errorCode: "ETIMEDOUT",
+    key: "invoice-failed",
+    payload: {subject: "Your invoice is ready", text: "Invoice #1042 is ready to view."},
+    provider: "sendgrid",
+    status: "failed",
+    subject: "Your invoice is ready",
+    to: "c***@example.com",
+  },
+  {
+    channel: "mail",
+    error: "Recipient mailbox is unavailable",
+    errorClass: "permanent",
+    errorCode: "bounce-550",
+    key: "invite-bounced",
+    payload: {subject: "You have been invited", text: "Join the example workspace."},
+    provider: "sendgrid",
+    status: "bounced",
+    subject: "You have been invited",
+    to: "d***@example.com",
+  },
+  {
+    channel: "mail",
+    key: "receipt-delivered",
+    payload: {subject: "Payment receipt", text: "Thanks for your payment."},
+    provider: "sendgrid",
+    status: "delivered",
+    subject: "Payment receipt",
+    to: "e***@example.com",
+  },
+  {
+    channel: "verification",
+    error: "Cancelled by beforeSend",
+    errorClass: "permanent",
+    errorCode: "before-send-cancel",
+    key: "verification-cancelled",
+    payload: {channel: "sms"},
+    provider: "console",
+    status: "cancelled",
+    to: "***-***-0199",
+  },
+  {
+    channel: "sms",
+    key: "security-code-delivered",
+    payload: {body: "Your security code was delivered."},
+    provider: "console",
+    status: "delivered",
+    to: "***-***-0175",
+  },
+  {
+    channel: "push",
+    key: "project-update-sent",
+    payload: {body: "Sync Rollout was updated.", title: "Project update"},
+    provider: "expo",
+    status: "sent",
+    subject: "Project update",
+    to: "ExpoPushToken[…9A4]",
+  },
+];
 
 const CONSENT_FORMS: SeedConsentForm[] = [
   {
@@ -297,6 +415,47 @@ const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<voi
   }
 };
 
+/** Seed current, representative delivery logs so the comms dashboard is useful after setup. */
+const seedCommsMessages = async (context: SeedContext, admin: UserDocument): Promise<void> => {
+  const seededAt = DateTime.utc();
+  for (const [index, message] of SEED_COMMS_MESSAGES.entries()) {
+    const attemptAt = seededAt.minus({minutes: index * 18}).toJSDate();
+    const providerMessageId = `demo-${message.key}`;
+    await context.upsert(
+      CommsMessage,
+      {providerMessageId},
+      {
+        attemptCount: 1,
+        attempts: [
+          {
+            at: attemptAt,
+            error: message.error,
+            errorClass: message.errorClass,
+            errorCode: message.errorCode,
+            provider: message.provider,
+            providerMessageId,
+          },
+        ],
+        channel: message.channel,
+        created: attemptAt,
+        error: message.error,
+        errorClass: message.errorClass,
+        errorCode: message.errorCode,
+        lastAttemptAt: attemptAt,
+        metadata: {demoSeed: true, seedKey: message.key},
+        payload: message.payload,
+        payloadExpiresAt: seededAt.plus({days: 30}).toJSDate(),
+        provider: message.provider,
+        status: message.status,
+        subject: message.subject,
+        to: message.to,
+        userId: admin._id,
+      }
+    );
+  }
+  logger.info(`Seeded ${SEED_COMMS_MESSAGES.length} current comms delivery logs`);
+};
+
 /** Accept active consent forms so Maestro/Playwright logins land on the app shell. */
 const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> => {
   const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
@@ -437,6 +596,19 @@ export const seedSteps: SeedStep[] = [
     },
     run: async (context) => {
       await seedFeatureFlags(context);
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "commsMessages",
+    reset: async (context) => {
+      await context.deleteMany(CommsMessage, {"metadata.demoSeed": true});
+    },
+    run: async (context) => {
+      const adminUser = seededUsers.find((user) => user.email === "admin@example.com");
+      if (adminUser) {
+        await seedCommsMessages(context, adminUser);
+      }
     },
   },
 ];

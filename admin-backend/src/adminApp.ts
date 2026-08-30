@@ -807,15 +807,7 @@ export class AdminApp {
       name: script.name,
     }));
 
-    const defaultScreens: AdminCustomScreenConfig[] = [
-      {
-        adminAccess: {action: "read", resource: "configuration"},
-        displayName: "Version Config",
-        name: "version-config",
-      },
-    ];
     const mergedScreens: AdminCustomScreenConfig[] = [
-      ...defaultScreens,
       ...aggregated.customScreens,
       ...(this.options.customScreens ?? []),
     ];
