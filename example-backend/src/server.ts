@@ -32,6 +32,7 @@ import {
 import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
+import {Expo} from "expo-server-sdk";
 import express from "express";
 import mongoose from "mongoose";
 import {access} from "./access";
@@ -250,8 +251,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : isDeployed
           ? undefined
           : new ConsoleMailProvider();
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `expo-server-sdk`. `ExpoPushProvider`'s default path uses createRequire
+      // and is missing from the compiled binary.
+      const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
       const pushProvider = new ExpoPushProvider({
-        accessToken: process.env.EXPO_ACCESS_TOKEN,
+        accessToken: expoAccessToken,
+        client: new Expo(expoAccessToken ? {accessToken: expoAccessToken} : {}),
+        isExpoPushToken: (token: string): boolean => Expo.isExpoPushToken(token),
         onDeadToken: async (token: string): Promise<void> => {
           await getCommsService().deactivatePushToken(token);
         },

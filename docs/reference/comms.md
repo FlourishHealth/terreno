@@ -168,6 +168,10 @@ but the token stays active. Successful tickets schedule one receipt poll (defaul
 minutes, `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered`
 receipt calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
 
+Apps that ship `bun build --compile` (the example Cloud Run image) must inject
+an `Expo` client (static `import {Expo} from "expo-server-sdk"`). The adapter's
+default `createRequire("expo-server-sdk")` is not bundled into that binary.
+
 example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
 `POST /comms/pushTokens` after login. Denied permission and web skip registration (empty
 token). Physical-device gating via `expo-device` is deferred until the native baseline

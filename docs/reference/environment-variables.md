@@ -146,8 +146,9 @@ console mail provider; production leaves mail unconfigured until a provider is w
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
 Sender identity must be verified in SendGrid before real delivery works.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
-`ExpoPushProvider` when comms is enabled. Without a token, Expo still accepts
-sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+`ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
+client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
+token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
 for authenticated test sends.
 
 ## Observability
