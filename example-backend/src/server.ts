@@ -29,7 +29,7 @@ import {
   ConsoleVerificationProvider,
   getCommsService,
 } from "@terreno/comms";
-import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import {Expo} from "expo-server-sdk";
@@ -257,7 +257,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
       const pushProvider = new ExpoPushProvider({
         accessToken: expoAccessToken,
-        client: new Expo(expoAccessToken ? {accessToken: expoAccessToken} : {}),
+        client: new Expo(
+          expoAccessToken ? {accessToken: expoAccessToken} : {}
+        ) as unknown as ExpoPushClient,
         isExpoPushToken: (token: string): boolean => Expo.isExpoPushToken(token),
         onDeadToken: async (token: string): Promise<void> => {
           await getCommsService().deactivatePushToken(token);
