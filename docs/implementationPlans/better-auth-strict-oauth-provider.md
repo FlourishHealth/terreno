@@ -1,6 +1,6 @@
 # Implementation plan: Better Auth sync omits unset `oauthProvider`
 
-**Status:** Draft  
+**Status:** Approved  
 **Issue:** https://github.com/FlourishHealth/terreno/issues/1218  
 **Branch:** `cursor/better-auth-strict-oauth-provider-3b37`  
 **Created:** 2026-08-30  
