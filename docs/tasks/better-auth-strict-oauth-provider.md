@@ -23,7 +23,7 @@
 
 ### Phase 1: Fix lazy User create
 
-- [ ] **Task 1.1**: Omit unset `oauthProvider` on Better Auth User create
+- [x] **Task 1.1**: Omit unset `oauthProvider` on Better Auth User create
   - Delivers: email/password sign-up then first authenticated API call works on a bootstrap-like User schema (`strict: "throw"`, `betterAuthId`, no `oauthProvider`).
   - Files: `api/src/betterAuthSetup.ts`, `api/src/betterAuthSetup.test.ts`, `docs/how-to/configure-better-auth.md`, `docs/explanation/authentication.md`, `.rulesync/rules/api/00-api.md` (regenerate agent copies with `bun run rules` and `bun run skills:sync`), `changelog/unreleased/better-auth-strict-oauth-provider.md`
   - Blocked by: none
@@ -38,4 +38,4 @@
 
 ## Plan vs Actual
 
-(Pick appends after each task.)
+- Task 1.1: `syncBetterAuthUser` create spreads `oauthProvider` only when truthy. Strict-throw schema without the field is green; create with `"google"` still persists. Docs dropped the non-existent `betterAuthUserPlugin` example.

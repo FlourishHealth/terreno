@@ -22,6 +22,7 @@ import {
 let conn: mongoose.Connection;
 let mongod: MongoMemoryServer;
 let TestUser: any;
+let StrictUser: any;
 
 // Simple user schema for testing
 const testUserSchema = new Schema({
@@ -32,12 +33,23 @@ const testUserSchema = new Schema({
   oauthProvider: {type: String},
 });
 
+const strictUserSchema = new Schema(
+  {
+    admin: {default: false, type: Boolean},
+    betterAuthId: {type: String},
+    email: {required: true, type: String},
+    name: {type: String},
+  },
+  {strict: "throw"}
+);
+
 // Start memory server and create connection before tests run
 const setup = (async () => {
   mongod = await MongoMemoryServer.create();
   conn = mongoose.createConnection(mongod.getUri());
   await conn.asPromise();
   TestUser = conn.model("BetterAuthTestUser", testUserSchema);
+  StrictUser = conn.model("BetterAuthStrictUser", strictUserSchema);
 })();
 
 // Helper to get the mongo client from our separate connection
@@ -51,6 +63,7 @@ afterAll(async () => {
 afterEach(async () => {
   await setup;
   await TestUser.deleteMany({});
+  await StrictUser.deleteMany({});
 });
 
 describe("createBetterAuth", () => {
@@ -201,6 +214,28 @@ describe("syncBetterAuthUser", () => {
     expect(result.name).toBe("Test User");
     expect(result.betterAuthId).toBe("ba-user-123");
     expect(result.admin).toBe(false);
+  });
+
+  it("creates a user on a strict-throw schema that omits oauthProvider", async () => {
+    await setup;
+    const baUser = makeBetterAuthUser({email: "strict@example.com"});
+    const result = await syncBetterAuthUser(StrictUser as UserModel, baUser);
+
+    assert.equal(result.email, "strict@example.com");
+    assert.equal(result.betterAuthId, "ba-user-123");
+    const saved = await StrictUser.findOne({email: "strict@example.com"}).lean();
+    assert.isOk(saved);
+    assert.notProperty(saved, "oauthProvider");
+  });
+
+  it("sets oauthProvider on create when a provider is passed", async () => {
+    await setup;
+    const baUser = makeBetterAuthUser({email: "oauth-create@example.com"});
+    const result = await syncBetterAuthUser(TestUser as UserModel, baUser, "google");
+
+    assert.equal(result.oauthProvider, "google");
+    const saved = await TestUser.findOne({email: "oauth-create@example.com"}).lean();
+    assert.equal(saved.oauthProvider, "google");
   });
 
   it("updates an existing user matched by betterAuthId", async () => {

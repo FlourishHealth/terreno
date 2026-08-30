@@ -1,6 +1,6 @@
 # Implementation plan: Better Auth sync omits unset `oauthProvider`
 
-**Status:** Approved  
+**Status:** In progress  
 **Issue:** https://github.com/FlourishHealth/terreno/issues/1218  
 **Branch:** `cursor/better-auth-strict-oauth-provider-3b37`  
 **Created:** 2026-08-30  
@@ -73,8 +73,8 @@ None. Existing documents that already stored `oauthProvider: null` are unchanged
 
 ## Acceptance Criteria
 
-- [ ] `syncBetterAuthUser` without a provider creates a user on `strict: "throw"` with no `oauthProvider` path
-- [ ] `syncBetterAuthUser(..., "google")` still sets `oauthProvider` when the schema declares the field
-- [ ] Existing `syncBetterAuthUser` tests stay green
-- [ ] How-to and explanation docs state when the field is required
-- [ ] Agent rule copy matches after `bun run rules`
+- [x] `syncBetterAuthUser` without a provider creates a user on `strict: "throw"` with no `oauthProvider` path
+- [x] `syncBetterAuthUser(..., "google")` still sets `oauthProvider` when the schema declares the field
+- [x] Existing `syncBetterAuthUser` tests stay green
+- [x] How-to and explanation docs state when the field is required
+- [x] Agent rule copy matches after `bun run rules`

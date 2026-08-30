@@ -245,7 +245,7 @@ export const syncBetterAuthUser = async (
       betterAuthId: betterAuthUser.id,
       email: betterAuthUser.email,
       name: betterAuthUser.name || betterAuthUser.email.split("@")[0],
-      oauthProvider: oauthProvider || null,
+      ...(oauthProvider ? {oauthProvider} : {}),
     });
     await newUser.save();
     logger.info(`Created new user from Better Auth: ${newUser.id}`);
