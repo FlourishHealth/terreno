@@ -97,7 +97,9 @@ describe("CommsMessageDetail", () => {
     expect(
       getByText(`Created ${formatCommsTimestamp({empty: "—", value: "2026-08-20T00:00:00.000Z"})}`)
     ).toBeTruthy();
-    expect(getByText(formatCommsTimestamp({empty: "—", value: "2026-08-20T00:00:00.000Z"}))).toBeTruthy();
+    expect(
+      getByText(formatCommsTimestamp({empty: "—", value: "2026-08-20T00:00:00.000Z"}))
+    ).toBeTruthy();
   });
 
   it("renders an unwrapped Better Auth detail payload", () => {
