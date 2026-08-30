@@ -352,6 +352,25 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 
 **Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
 
+The generated app is expected to install and boot with no manual follow-up, so the
+scaffold deliberately ships no binary assets and no references to files it does not
+create:
+
+- **Fonts** come from `@terreno/ui`. `TerrenoProvider` wraps children in
+  `TerrenoFontProvider`, which loads Nunito and Titillium Web from
+  `@expo-google-fonts/*`. The generated `app/_layout.tsx` calls no `useFonts` of its own.
+- **Icon, splash, and favicon** are left unset in `app.json` so Expo uses its built-in
+  defaults. Point them at real files once the app has branding.
+- **`metro.config.js`** pins every `jspdf` request to `jspdf/dist/jspdf.es.min.js` on web
+  and drops it on native. `@terreno/admin-frontend` pulls jspdf in for consent-PDF export,
+  and jspdf's CommonJS and Node builds contain an AMD-style `require(["html2canvas"], cb)`
+  call that Metro's static transform cannot parse — without the override it fails the whole
+  bundle, including Expo Router's static web render.
+- **Auth-gated routes** use `<Stack.Protected guard={...}>`. Wrapping `Stack.Screen`
+  children in a conditional or fragment instead crashes the navigator.
+- **`tsconfig.json`** sets no `baseUrl`; it is deprecated in TypeScript 6 and makes `tsc`
+  abort with TS5101 before checking a single file. `paths` resolve relative to the tsconfig.
+
 ### terreno_bootstrap_ai_rules
 
 Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).

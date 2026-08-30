@@ -7,6 +7,33 @@ import {
   PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
 
+/**
+ * Pull a single generated file's body out of the markdown blob the bootstrap tool returns,
+ * so assertions can target one file instead of matching anywhere in the whole response.
+ * Only safe for files whose own content has no fenced code blocks (JSON, TS/JS, YAML).
+ */
+const getGeneratedFile = (text: string, filePath: string): string => {
+  const header = `### \`${filePath}\`\n\n\`\`\``;
+  const headerIndex = text.indexOf(header);
+  if (headerIndex === -1) {
+    throw new Error(`Generated file not found in bootstrap output: ${filePath}`);
+  }
+  const bodyStart = text.indexOf("\n", headerIndex + header.length) + 1;
+  const bodyEnd = text.indexOf("\n```", bodyStart);
+  if (bodyEnd === -1) {
+    throw new Error(`Unterminated code fence for generated file: ${filePath}`);
+  }
+  return text.slice(bodyStart, bodyEnd);
+};
+
+const bootstrapApp = (): string => {
+  const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+    appDisplayName: "Boot App",
+    appName: "boot-app",
+  });
+  return result.content[0].text;
+};
+
 describe("bootstrap", () => {
   describe("bootstrapTools", () => {
     test("should export terreno_bootstrap_app and terreno_bootstrap_ai_rules", () => {
@@ -135,7 +162,6 @@ describe("bootstrap", () => {
       expect(text).toContain("cd test-app");
       expect(text).toContain("bun install");
       expect(text).toContain("replSet rs0");
-      expect(text).toContain("SpaceMono");
       expect(text).toContain("bun run dev");
       expect(text).toContain("bun run sdk");
       expect(text).toContain("http://localhost:8082");
@@ -223,6 +249,126 @@ describe("bootstrap", () => {
       const text = result.content[0].text;
       expect(text).toContain("Backend CI");
       expect(text).toContain("Frontend CI");
+    });
+  });
+
+  // The generated app has to boot from a clean checkout: every module it imports must be a
+  // declared dependency, every asset it references must exist, and every script CI runs must
+  // be defined. See https://github.com/FlourishHealth/terreno/issues/1216.
+  describe("handleBootstrapToolCall - generated frontend boots", () => {
+    test("no generated file references an assets/ path", () => {
+      const text = bootstrapApp();
+      for (const filePath of [
+        "frontend/app.json",
+        "frontend/app/_layout.tsx",
+        "frontend/package.json",
+      ]) {
+        expect(getGeneratedFile(text, filePath)).not.toContain("assets/");
+      }
+    });
+
+    test("root layout imports only declared dependencies", () => {
+      const text = bootstrapApp();
+      const layout = getGeneratedFile(text, "frontend/app/_layout.tsx");
+      const packageJson = JSON.parse(getGeneratedFile(text, "frontend/package.json")) as {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      const declared = new Set([
+        ...Object.keys(packageJson.dependencies),
+        ...Object.keys(packageJson.devDependencies),
+      ]);
+      // Transitive packages the Expo/Redux stack always installs alongside the deps above.
+      const transitive = new Set(["react-native-reanimated", "redux-persist"]);
+
+      const imported = [...layout.matchAll(/^import\s+(?:.+?\s+from\s+)?"([^"]+)"/gm)].map(
+        (match) => match[1]
+      );
+      expect(imported.length).toBeGreaterThan(0);
+
+      for (const specifier of imported) {
+        if (specifier.startsWith("@/") || specifier.startsWith(".")) {
+          continue;
+        }
+        const packageName = specifier.startsWith("@")
+          ? specifier.split("/").slice(0, 2).join("/")
+          : specifier.split("/")[0];
+        expect(
+          declared.has(packageName) || transitive.has(packageName),
+          `${packageName} is imported by app/_layout.tsx but not installed`
+        ).toBe(true);
+      }
+    });
+
+    test("root layout gates auth routes with Stack.Protected", () => {
+      const layout = getGeneratedFile(bootstrapApp(), "frontend/app/_layout.tsx");
+
+      expect(layout).toContain("<Stack.Protected guard={!userId}>");
+      expect(layout).toContain("<Stack.Protected guard={Boolean(userId)}>");
+      // Conditional Stack.Screen children crash the navigator with
+      // "Cannot convert a Symbol value to a string".
+      expect(layout).not.toContain("{!userId ? (");
+    });
+
+    test("app.json leaves branding assets unset so Expo defaults apply", () => {
+      const appJson = JSON.parse(getGeneratedFile(bootstrapApp(), "frontend/app.json")) as {
+        expo: Record<string, unknown> & {web: Record<string, unknown>};
+      };
+
+      expect(appJson.expo.icon).toBeUndefined();
+      expect(appJson.expo.splash).toBeUndefined();
+      expect(appJson.expo.android).toBeUndefined();
+      expect(appJson.expo.web.favicon).toBeUndefined();
+      expect(appJson.expo.web.bundler).toBe("metro");
+    });
+
+    test("metro config pins jspdf away from its unparseable Node build", () => {
+      const text = bootstrapApp();
+      expect(text).toContain("frontend/metro.config.js");
+      const metroConfig = getGeneratedFile(text, "frontend/metro.config.js");
+
+      expect(metroConfig).toContain("config.resolver.resolveRequest");
+      expect(metroConfig).toContain('moduleName === "jspdf"');
+      expect(metroConfig).toContain("jspdf/dist/jspdf.node");
+      expect(metroConfig).toContain("jspdf.es.min.js");
+      expect(metroConfig).toContain("module.exports = config;");
+    });
+
+    test("tsconfig omits the deprecated baseUrl that aborts tsc", () => {
+      const tsConfig = JSON.parse(getGeneratedFile(bootstrapApp(), "frontend/tsconfig.json")) as {
+        compilerOptions: Record<string, unknown> & {paths: Record<string, string[]>};
+      };
+
+      // TypeScript 6 fails with TS5101 on baseUrl before checking any file.
+      expect(tsConfig.compilerOptions.baseUrl).toBeUndefined();
+      // paths still resolve; they are relative to the tsconfig without baseUrl.
+      expect(tsConfig.compilerOptions.paths["@/*"]).toEqual(["./*"]);
+    });
+
+    test("every script the CI workflows run is defined in its package.json", () => {
+      const text = bootstrapApp();
+      const cases = [
+        {ciPath: ".github/workflows/frontend-ci.yml", packagePath: "frontend/package.json"},
+        {ciPath: ".github/workflows/backend-ci.yml", packagePath: "backend/package.json"},
+      ];
+
+      for (const {ciPath, packagePath} of cases) {
+        const workflow = getGeneratedFile(text, ciPath);
+        const packageJson = JSON.parse(getGeneratedFile(text, packagePath)) as {
+          scripts: Record<string, string>;
+        };
+        const scriptsRun = [...workflow.matchAll(/run: bun run ([\w:-]+)/g)].map(
+          (match) => match[1]
+        );
+        expect(scriptsRun.length).toBeGreaterThan(0);
+
+        for (const script of scriptsRun) {
+          expect(
+            packageJson.scripts[script],
+            `${ciPath} runs "bun run ${script}" but ${packagePath} does not define it`
+          ).toBeDefined();
+        }
+      }
     });
   });
 
