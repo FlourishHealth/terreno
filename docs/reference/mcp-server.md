@@ -352,6 +352,8 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 
 **Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
 
+The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
+
 The generated app is expected to install and boot with no manual follow-up, so the
 scaffold deliberately ships no binary assets and no references to files it does not
 create:
@@ -370,6 +372,9 @@ create:
   children in a conditional or fragment instead crashes the navigator.
 - **`tsconfig.json`** sets no `baseUrl`; it is deprecated in TypeScript 6 and makes `tsc`
   abort with TS5101 before checking a single file. `paths` resolve relative to the tsconfig.
+- **Declared dependencies** include every package generated frontend source imports
+  (`react-native-reanimated`, `redux-persist`, `@reduxjs/toolkit`, `@expo/vector-icons`,
+  `lodash`, `luxon`, and the rest). Do not rely on transitive installs for those.
 
 ### terreno_bootstrap_ai_rules
 

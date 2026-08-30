@@ -20,14 +20,28 @@ export class Page extends React.Component<PageProps, {}> {
       return null;
     }
     return (
-      <Box direction="row" display="flex" width="100%">
+      <Box direction="row" display="flex" position="relative" width="100%">
         {this.props.backButton && (
-          <Box alignItems="center" display="block" justifyContent="center" paddingY={3}>
+          <Box
+            alignItems="center"
+            display="block"
+            justifyContent="center"
+            paddingX={4}
+            paddingY={3}
+            position="relative"
+            zIndex={1}
+          >
             <IconButton
               accessibilityHint="Navigate back"
-              accessibilityLabel=""
+              accessibilityLabel="Back"
               iconName="chevron-left"
-              onClick={() => router.back()}
+              onClick={() => {
+                if (this.props.onBack) {
+                  this.props.onBack();
+                  return;
+                }
+                router.back();
+              }}
             />
           </Box>
         )}
@@ -42,7 +56,13 @@ export class Page extends React.Component<PageProps, {}> {
           </Box>
         )}
         {Boolean(this.props.title) && (
-          <Box direction="column" display="flex" flex="grow" justifyContent="center">
+          <Box
+            dangerouslySetInlineStyle={{__style: {pointerEvents: "box-none"}}}
+            direction="column"
+            display="flex"
+            flex="grow"
+            justifyContent="center"
+          >
             <Heading align="center">{this.props.title}</Heading>
           </Box>
         )}

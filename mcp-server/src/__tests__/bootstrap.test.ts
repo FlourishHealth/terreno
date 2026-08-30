@@ -107,6 +107,7 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/biome.jsonc");
       expect(text).toContain("backend/src/index.ts");
       expect(text).toContain("backend/src/server.ts");
+      expect(text).toContain("backend/src/scripts/seed.ts");
       expect(text).toContain("backend/src/utils/betterAuthConfig.ts");
       expect(text).toContain("backend/.env");
       expect(text).toContain("backend/src/models/modelPlugins.ts");
@@ -120,6 +121,7 @@ describe("bootstrap", () => {
       // Frontend files
       expect(text).toContain("frontend/package.json");
       expect(text).toContain("frontend/app.json");
+      expect(text).toContain("frontend/metro.config.js");
       expect(text).toContain("frontend/tsconfig.json");
       expect(text).toContain("frontend/tsconfig.codegen.json");
       expect(text).toContain("frontend/biome.jsonc");
@@ -163,6 +165,8 @@ describe("bootstrap", () => {
       expect(text).toContain("bun install");
       expect(text).toContain("replSet rs0");
       expect(text).toContain("bun run dev");
+      expect(text).toContain("bun run seed");
+      expect(text).toContain("--reset");
       expect(text).toContain("bun run sdk");
       expect(text).toContain("http://localhost:8082");
     });
@@ -211,6 +215,9 @@ describe("bootstrap", () => {
       expect(text).toContain("TabLayout");
       expect(text).toContain("HomeScreen");
       expect(text).toContain("ProfileScreen");
+      expect(text).toContain("TapToEdit");
+      expect(text).toContain("usePatchMeMutation");
+      expect(text).toContain("handleSaveName");
       expect(text).toContain("BetterAuthApp");
       expect(text).toContain("SyncApp");
       expect(text).toContain("RealtimeApp");
@@ -267,9 +274,8 @@ describe("bootstrap", () => {
       }
     });
 
-    test("root layout imports only declared dependencies", () => {
+    test("generated frontend source imports only declared dependencies", () => {
       const text = bootstrapApp();
-      const layout = getGeneratedFile(text, "frontend/app/_layout.tsx");
       const packageJson = JSON.parse(getGeneratedFile(text, "frontend/package.json")) as {
         dependencies: Record<string, string>;
         devDependencies: Record<string, string>;
@@ -278,25 +284,62 @@ describe("bootstrap", () => {
         ...Object.keys(packageJson.dependencies),
         ...Object.keys(packageJson.devDependencies),
       ]);
-      // Transitive packages the Expo/Redux stack always installs alongside the deps above.
-      const transitive = new Set(["react-native-reanimated", "redux-persist"]);
+      const fileHeaders = [...text.matchAll(/### `(frontend\/[^`]+)`/g)].map((match) => match[1]);
+      const sourcePaths = fileHeaders.filter((filePath) => /\.(?:ts|tsx|js)$/.test(filePath));
+      expect(sourcePaths.length).toBeGreaterThan(0);
 
-      const imported = [...layout.matchAll(/^import\s+(?:.+?\s+from\s+)?"([^"]+)"/gm)].map(
-        (match) => match[1]
-      );
-      expect(imported.length).toBeGreaterThan(0);
-
-      for (const specifier of imported) {
-        if (specifier.startsWith("@/") || specifier.startsWith(".")) {
-          continue;
+      const packageNameFromSpecifier = (specifier: string): string | undefined => {
+        if (
+          specifier.startsWith(".") ||
+          specifier.startsWith("@/") ||
+          specifier.startsWith("node:")
+        ) {
+          return undefined;
         }
-        const packageName = specifier.startsWith("@")
-          ? specifier.split("/").slice(0, 2).join("/")
-          : specifier.split("/")[0];
-        expect(
-          declared.has(packageName) || transitive.has(packageName),
-          `${packageName} is imported by app/_layout.tsx but not installed`
-        ).toBe(true);
+        if (specifier === "path" || specifier === "fs" || specifier === "fs/promises") {
+          return undefined;
+        }
+        if (specifier.startsWith("@")) {
+          return specifier.split("/").slice(0, 2).join("/");
+        }
+        return specifier.split("/")[0];
+      };
+
+      let importedCount = 0;
+      for (const filePath of sourcePaths) {
+        const source = getGeneratedFile(text, filePath);
+        const specifiers = [
+          ...source.matchAll(/^import\s+(?:type\s+)?(?:[\s\S]*?\sfrom\s+)?["']([^"']+)["']/gm),
+          ...source.matchAll(/^export\s+\{[^}]*\}\s+from\s+["']([^"']+)["']/gm),
+          ...source.matchAll(/require\(["']([^"']+)["']\)/g),
+        ].map((match) => match[1]);
+
+        for (const specifier of specifiers) {
+          const packageName = packageNameFromSpecifier(specifier);
+          if (!packageName) {
+            continue;
+          }
+          importedCount += 1;
+          expect(
+            declared.has(packageName),
+            `${packageName} is imported by ${filePath} but not declared in frontend/package.json`
+          ).toBe(true);
+        }
+      }
+      expect(importedCount).toBeGreaterThan(0);
+      for (const packageName of [
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "@reduxjs/toolkit",
+        "@rtk-query/codegen-openapi",
+        "lodash",
+        "luxon",
+        "react-native-reanimated",
+        "redux-persist",
+      ]) {
+        expect(declared.has(packageName), `${packageName} must be a declared dependency`).toBe(
+          true
+        );
       }
     });
 

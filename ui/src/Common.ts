@@ -2372,6 +2372,8 @@ export interface PageProps extends WithTestID {
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;
+  /** When set, invoked instead of `router.back()` for the header back arrow. */
+  onBack?: () => void;
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;

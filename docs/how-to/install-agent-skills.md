@@ -44,7 +44,7 @@ Claude Code stages come from the generated copy at
 | Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-planning-loop`, `terreno-taste-sweep` |
 | Terreno apps | backend, UI, data, schema, SDK |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
-| GitHub | commit, PR, review, verify, release, deploy |
+| GitHub | commit, issues, PR, review, verify, release, deploy |
 
 `skills.sh.json` at the repo root groups those names on [skills.sh](https://skills.sh).
 

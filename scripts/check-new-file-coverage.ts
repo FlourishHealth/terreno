@@ -17,6 +17,15 @@ const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
   /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+/**
+ * Expo Router route-structural entry files under `app/`: `index`, `_layout`, `+not-found`, and
+ * dynamic segments such as `[id]`. The router mounts these by file path, so they hold wiring
+ * rather than logic and cannot be imported without the router runtime. Screens they render are
+ * unit tested in their owning package and exercised end to end by Playwright. Ordinary modules
+ * under `app/` stay gated.
+ */
+const EXPO_ROUTER_ENTRY_PATTERN =
+  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\])\.tsx$/;
 
 export interface NewFileCoverageFailure {
   path: string;
@@ -50,7 +59,11 @@ export const parseNewFileCoverageArgs = (argv: readonly string[]): ParsedArgs =>
 };
 
 export const isCoverageSourceFile = (path: string): boolean => {
-  return SOURCE_FILE_PATTERN.test(path) && !EXCLUDED_SOURCE_PATTERN.test(path);
+  return (
+    SOURCE_FILE_PATTERN.test(path) &&
+    !EXCLUDED_SOURCE_PATTERN.test(path) &&
+    !EXPO_ROUTER_ENTRY_PATTERN.test(path)
+  );
 };
 
 const normalizePath = (path: string): string => path.split(sep).join("/");
@@ -193,6 +206,34 @@ export const coverageRunArgs = ({
   return args;
 };
 
+/**
+ * Package `test` scripts rely on the shell to expand globs such as `./**\/*.test.ts`.
+ * Coverage runs spawn `bun` directly, so expand the patterns here; an unexpanded pattern
+ * reaches bun as a literal filter, matches nothing, and exits non-zero.
+ */
+export const expandCoverageRunArgs = ({
+  args,
+  packageRoot,
+}: {
+  args: readonly string[];
+  packageRoot: string;
+}): string[] => {
+  return args.flatMap((arg) => {
+    if (!arg.includes("*")) {
+      return [arg];
+    }
+    const matches = [
+      ...new Bun.Glob(arg.replace(/^\.\//, "")).scanSync({
+        cwd: packageRoot,
+        onlyFiles: true,
+      }),
+    ]
+      .filter((match) => !normalizePath(match).split("/").includes("node_modules"))
+      .sort();
+    return matches;
+  });
+};
+
 const readPackageTestScript = (packageRoot: string): string | undefined => {
   const packageJsonPath = join(packageRoot, "package.json");
   if (!existsSync(packageJsonPath)) {
@@ -213,14 +254,14 @@ const runPackageCoverage = async ({
   packageName: string;
   packageRoot: string;
 }): Promise<number> => {
-  const coverageArgs = expandCoverageFileArgs(
-    coverageRunArgs({
+  const coverageArgs = expandCoverageRunArgs({
+    args: coverageRunArgs({
       hasSrcDir: existsSync(join(packageRoot, "src")),
       packageName,
       testScript: readPackageTestScript(packageRoot),
     }),
-    packageRoot
-  );
+    packageRoot,
+  });
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(
       "bun",

@@ -10,6 +10,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 - **Report a bug** — open a [bug report](.github/ISSUE_TEMPLATE/bug_report.yml) issue
 - **Suggest a feature** — open a [feature request](.github/ISSUE_TEMPLATE/feature_request.yml) issue or start a GitHub Discussion
 - **Fix documentation** — open a [docs issue](.github/ISSUE_TEMPLATE/docs_issue.yml) or send a PR with doc edits
+- **File pick-ready work** — open a [lifecycle work item](.github/ISSUE_TEMPLATE/work_item.yml) (see [GitHub issue lifecycle](docs/how-to/github-issue-lifecycle.md))
 - **Submit code** — fork, branch, test, and open a draft PR (see below)
 
 ## Development setup
