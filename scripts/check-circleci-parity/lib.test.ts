@@ -216,6 +216,25 @@ describe("collectParityGaps", () => {
     assert.isEmpty(collectParityGaps({repoRoot}));
   });
 
+  it("maps Netlify and GCP deploy paths", () => {
+    const mappings = readMappings({repoRoot: join(import.meta.dir, "..", "..")});
+    const cases: Array<{parameter: string; sample: string}> = [
+      {parameter: "run-deploy-demo", sample: "demo/app/_layout.tsx"},
+      {parameter: "run-deploy-frontend", sample: "example-frontend/app/index.tsx"},
+      {parameter: "run-deploy-docs", sample: "docs/how-to/circleci.md"},
+      {parameter: "run-cd-terraform", sample: "terraform/main.tf"},
+      {parameter: "run-cd-backend", sample: "example-backend/src/server.ts"},
+      {parameter: "run-cd-backend", sample: "comms/src/commsApp.ts"},
+      {parameter: "run-cd-mcp", sample: "mcp-server/src/index.ts"},
+    ];
+    for (const {parameter, sample} of cases) {
+      assert.isTrue(
+        isCovered({mappings, parameter, samples: [sample]}),
+        `${parameter} should match ${sample}`
+      );
+    }
+  });
+
   it("covers every ported workflow", () => {
     assert.isAbove(Object.keys(WORKFLOW_PARAMETERS).length, 10);
   });

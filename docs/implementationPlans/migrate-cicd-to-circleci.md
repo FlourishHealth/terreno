@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** In progress — CI, release, and manual operations landed; automatic Netlify/GCP CD paused pending context and OIDC verification; EAS PR/fingerprint temporarily disabled; GitHub-native maintenance remains  
+**Status:** In progress — CI, release, Netlify/GCP production path deploys, and PR previews landed; EAS PR/fingerprint temporarily disabled; GitHub-native maintenance remains  
 **Discussion:** _(none)_  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  
@@ -164,10 +164,10 @@ Port and dual-run:
 - Recreate preview aliases + optional GitHub Deployments via API.
 - `preview-cleanup` equivalent for Netlify/GCP previews as applicable.
 
-Implemented: production and preview deploy jobs are available as CircleCI
-parameters. Automatic `master` path triggers are paused until the
-`terreno-netlify` context passes manual verification. Matching GHA triggers are
-disabled.
+Implemented: production jobs run on `master` from path filters; PR preview
+jobs (`deploy-*-preview`, `gcp-cd-preview`) run on open PRs from this
+repository. Matching GHA triggers stay `on: []`. Preview cleanup on PR close
+remains a manual pipeline parameter.
 
 ### Phase 5 — EAS + fingerprint (v1)
 
@@ -185,9 +185,9 @@ is implemented.
 - Port `preview-cleanup` onto OIDC (eliminate `GCP_SA_KEY`).
 - Dual-run CD carefully (concurrency: one deployer).
 
-Implemented as a single CircleCI writer with a CircleCI OIDC Terraform module
-and manual production/preview/cleanup parameters. Automatic `master` path
-triggers are paused until the OIDC bootstrap passes manual verification.
+Implemented as a single CircleCI writer with a CircleCI OIDC Terraform module.
+Path filters start `gcp-cd-prod` on `master` and `gcp-cd-preview` on PRs.
+Manual `run-cd` / `deploy-preview-pr` / `run-preview-cleanup` parameters remain.
 
 ### Phase 7 — npm publish (v1)
 
