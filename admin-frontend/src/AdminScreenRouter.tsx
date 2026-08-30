@@ -1,7 +1,8 @@
-import {Box, Page, Spinner, Text} from "@terreno/ui";
+import {Box, Spinner, Text} from "@terreno/ui";
 import React, {useMemo} from "react";
 import {AdminModelTable} from "./AdminModelTable";
 import {useAdminWidgetRegistry} from "./AdminProvider";
+import {AdminScreenPage} from "./AdminScreenPage";
 import {AdminScriptList} from "./AdminScriptList";
 import type {AdminScreenProps} from "./types";
 import {resolveAdminBases} from "./types";
@@ -88,17 +89,22 @@ export const AdminScreenRouter: React.FC<AdminScreenRouterProps> = ({
 
   if (customScreen) {
     return (
-      <Page color="transparent" maxWidth="100%" padding={4} title={customScreen.displayName}>
+      <AdminScreenPage
+        color="transparent"
+        maxWidth="100%"
+        padding={4}
+        title={customScreen.displayName}
+      >
         <MissingWidget bucket="screens" widgetId={name} />
-      </Page>
+      </AdminScreenPage>
     );
   }
 
   return (
-    <Page color="transparent" maxWidth="100%" padding={4} title="Not found">
+    <AdminScreenPage color="transparent" maxWidth="100%" padding={4} title="Not found">
       <Box testID="admin-screen-not-found">
         <Text color="error">{`No admin screen or model registered for "${name}".`}</Text>
       </Box>
-    </Page>
+    </AdminScreenPage>
   );
 };

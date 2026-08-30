@@ -9,7 +9,6 @@ import {
   Heading,
   IconButton,
   Modal,
-  Page,
   SelectField,
   Spinner,
   Text,
@@ -20,6 +19,7 @@ import type {Href} from "expo-router";
 import {router} from "expo-router";
 import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useState} from "react";
+import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {CommsStatCard} from "./CommsStatCard";
 import {CommsStatusBadge} from "./CommsStatusBadge";
@@ -315,7 +315,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
   );
 
   return (
-    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Comms">
+    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} scroll title="Comms">
       <Box gap={4} padding={4} testID="comms-dashboard">
         <StatsCards stats={stats} />
         <Card padding={4}>
@@ -473,6 +473,6 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
           </Text>
         </Box>
       </Modal>
-    </Page>
+    </AdminScreenPage>
   );
 };

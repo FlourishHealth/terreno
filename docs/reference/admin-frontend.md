@@ -224,6 +224,18 @@ When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminSh
 `platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
 renders model or custom-screen links returned by the server.
 
+### Custom screen page chrome
+
+Wrap custom admin screen content in `AdminScreenPage`. It renders the standard `Page` header with a back arrow by default; pass `backButton={false}` only when the host supplies equivalent navigation.
+
+```typescript
+import {AdminScreenPage} from "@terreno/admin-frontend";
+
+<AdminScreenPage title="Operations" scroll>
+  <OperationsDashboard />
+</AdminScreenPage>
+```
+
 ### Comms dashboard
 
 `COMMS_ADMIN_WIDGETS.comms` is registered in the built-in screen registry. `CommsApp` contributes

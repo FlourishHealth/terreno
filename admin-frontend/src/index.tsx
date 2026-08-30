@@ -22,6 +22,7 @@ export {
 export {AdminRefField, type AdminRefFieldProps} from "./AdminRefField";
 export {AdminRolesField} from "./AdminRolesField";
 export {AdminRolesList} from "./AdminRolesList";
+export {AdminScreenPage, type AdminScreenPageProps} from "./AdminScreenPage";
 export {AdminScreenRouter, type AdminScreenRouterProps} from "./AdminScreenRouter";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";

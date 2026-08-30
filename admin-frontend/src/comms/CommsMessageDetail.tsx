@@ -6,7 +6,6 @@ import {
   Heading,
   Link,
   MarkdownView,
-  Page,
   Spinner,
   Text,
   useToast,
@@ -16,6 +15,7 @@ import {router} from "expo-router";
 import {DateTime} from "luxon";
 import React, {useCallback, useMemo} from "react";
 import {AdminRefField} from "../AdminRefField";
+import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {CommsStatusBadge} from "./CommsStatusBadge";
 import {type CommsMessageRow, commsMessageId, unwrapCommsMessage} from "./commsMessagePayload";
@@ -85,7 +85,7 @@ export const CommsMessageDetail: React.FC<CommsMessageDetailProps> = ({
   const consoleUrl = useMemo(() => consoleUrlFromMetadata(message?.metadata), [message?.metadata]);
 
   return (
-    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Comms message">
+    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} scroll title="Comms message">
       <Box gap={4} padding={4} testID="comms-message-detail">
         {isLoading ? (
           <Box alignItems="center" padding={6} testID="comms-detail-loading">
@@ -113,7 +113,7 @@ export const CommsMessageDetail: React.FC<CommsMessageDetailProps> = ({
           />
         ) : null}
       </Box>
-    </Page>
+    </AdminScreenPage>
   );
 };
 

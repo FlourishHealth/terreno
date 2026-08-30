@@ -1,6 +1,7 @@
-import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
+import {Box, Button, NumberField, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {AdminScreenPage} from "./AdminScreenPage";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 
@@ -146,11 +147,11 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
       );
     }
     return (
-      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
+      <AdminScreenPage color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
-      </Page>
+      </AdminScreenPage>
     );
   }
 
@@ -165,12 +166,12 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
       );
     }
     return (
-      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
+      <AdminScreenPage color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" gap={4} justifyContent="center" padding={6}>
           <Text color="error">Failed to load version config. Please try again later.</Text>
           <Button onClick={handleBack} text="Back" variant="outline" />
         </Box>
-      </Page>
+      </AdminScreenPage>
     );
   }
 
@@ -281,10 +282,10 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   }
 
   return (
-    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Version Config">
+    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} scroll title="Version Config">
       <Box gap={4} padding={4}>
         {formInner}
       </Box>
-    </Page>
+    </AdminScreenPage>
   );
 };
