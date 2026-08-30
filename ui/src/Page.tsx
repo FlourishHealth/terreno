@@ -26,7 +26,7 @@ export class Page extends React.Component<PageProps, {}> {
             alignItems="center"
             display="block"
             justifyContent="center"
-            paddingX={2}
+            paddingX={4}
             paddingY={3}
             position="relative"
             zIndex={1}
