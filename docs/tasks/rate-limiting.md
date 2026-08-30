@@ -41,7 +41,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
   - Blocked by: 1.1
   - Acceptance: supertest (or middleware unit tests with req.url) for each classified prefix
 
-- [ ] **Task 3.2**: Trust-proxy keying
+- [x] **Task 3.2**: Trust-proxy keying
   - Delivers: with `trustProxy: 1`, `X-Forwarded-For` client IP is the unauthenticated key; `trustProxy: false` ignores spoofed forwarded-for; override hop count works
   - Files: `api/src/rateLimit/*.ts`, `api/src/terrenoApp.ts`, tests
   - Blocked by: 1.1

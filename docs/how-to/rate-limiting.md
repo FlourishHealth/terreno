@@ -4,6 +4,10 @@ Turn on HTTP rate limiting for `@terreno/api` by passing `rateLimit` on `Terreno
 
 Terreno 58 will default the limiter **on**. Until then, omit `rateLimit` to leave it off.
 
+## Terreno 58 (not this release)
+
+When Terreno 58 is cut, `TerrenoApp` will enable the limiter by default. Apps that must stay unlimited will pass an explicit off (documented in the 58 upgrade note). Until then, omitted `rateLimit` is unlimited.
+
 ## Enable (memory)
 
 ```typescript

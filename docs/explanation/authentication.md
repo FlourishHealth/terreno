@@ -259,7 +259,7 @@ modelRouter(Model, {
 - Use HTTPS in production
 - Validate token issuer (`TOKEN_ISSUER`)
 - Set appropriate token expiration times
-- Implement rate limiting on auth endpoints
+- Enable `TerrenoApp` `rateLimit` so login/signup/refresh use the stricter `auth` bucket (20 / 15 min). See [Rate limiting](../how-to/rate-limiting.md).
 - Log authentication failures
 
 ❌ **Don't:**
