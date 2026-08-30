@@ -847,6 +847,7 @@ Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1
 
 - **Implementation plan:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rate-limiting.md)
 - **Tasks:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/rate-limiting.md)
+- **How-to:** [rate-limiting.md](../how-to/rate-limiting.md)
 - **RTK flag:** None
 - **Depends on:** —
 

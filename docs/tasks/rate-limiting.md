@@ -56,7 +56,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
   - Skills: `update-docs`
   - Acceptance: a stranger can enable Redis on Cloud Run from the how-to; 58 default-on is explicit; `bun run website:build` if docs site is in the slice
 
-- [ ] **Task 4.2**: example-backend snippet (limiter stays off)
+- [x] **Task 4.2**: example-backend snippet (limiter stays off)
   - Delivers: commented `rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined` (or equivalent) showing app-owned env
   - Files: `example-backend/src/server.ts` (or `index`/`terrenoApp` bootstrap)
   - Blocked by: 1.1

@@ -6,7 +6,7 @@ Terreno 58 will default the limiter **on**. Until then, omit `rateLimit` to leav
 
 ## Terreno 58 (not this release)
 
-When Terreno 58 is cut, `TerrenoApp` will enable the limiter by default. Apps that must stay unlimited will pass an explicit off (documented in the 58 upgrade note). Until then, omitted `rateLimit` is unlimited.
+When Terreno 58 is cut, `TerrenoApp` will enable the limiter by default. Apps that must stay unlimited will pass an explicit off (documented in the 58 upgrade note). Until then, omitted `rateLimit` is unlimited. Stub: [`mcp-server/src/docs/upgrades/58.0.0.md`](../../mcp-server/src/docs/upgrades/58.0.0.md).
 
 ## Enable (memory)
 
