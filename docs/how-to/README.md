@@ -21,6 +21,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
 - [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
 - [Install agent skills](install-agent-skills.md) — `npx skills`, the Cursor plugin, or the Claude Code plugin
+- [GitHub issue lifecycle](github-issue-lifecycle.md) — Create pick-ready issues, post a Pick plan, Pick ⇄ Roast
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
