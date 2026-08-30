@@ -49,9 +49,9 @@ describe("seedDefaultData", () => {
     const oldestSeededMessage = oldestSeededMessages[0];
     assert.exists(oldestSeededMessage);
     assert.isTrue(
-      DateTime.fromJSDate(oldestSeededMessage?.created ?? DateTime.utc().minus({days: 2}).toJSDate())
-        .diffNow("days")
-        .days > -1
+      DateTime.fromJSDate(
+        oldestSeededMessage?.created ?? DateTime.utc().minus({days: 2}).toJSDate()
+      ).diffNow("days").days > -1
     );
   });
 });
