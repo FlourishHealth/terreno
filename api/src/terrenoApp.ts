@@ -25,6 +25,10 @@ import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
+import {createRateLimitStore} from "./rateLimit/createStore";
+import {createRateLimitMiddleware} from "./rateLimit/middleware";
+import type {RateLimitOptions} from "./rateLimit/types";
 import {RealtimeApp} from "./realtime/realtimeApp";
 import type {RealtimeAppOptions} from "./realtime/types";
 import {
@@ -97,6 +101,12 @@ export interface TerrenoAppOptions {
    * Receives the Express app and OpenAPI bundle for `modelRouter` / `createOpenApiBuilder` wiring.
    */
   configureApp?: AddRoutes;
+  /**
+   * Optional HTTP rate limiting. Omitted or `undefined` leaves the limiter off
+   * (Terreno 58 will default it on). Pass `{}` or `{store, limits, trustProxy}`
+   * to enable. See [Rate limiting](../how-to/rate-limiting.md).
+   */
+  rateLimit?: RateLimitOptions;
 }
 
 /**
@@ -340,13 +350,21 @@ export class TerrenoApp {
 
     app.use(express.json({limit: "50mb"}));
 
-    // Auth routes (login/signup/refresh_token) before JWT middleware
-    addAuthRoutes(app, options.userModel, options.authOptions);
+    // JWT decode before rate limiting so authenticated keys use userId.
+    // Auth routes mount after the limiter so login is in the auth bucket.
     setupAuth(app, options.userModel);
     app.use((req, res, next) => {
       updateRequestContextFromRequest(req, res);
       next();
     });
+
+    if (options.rateLimit) {
+      applyRateLimitTrustProxy(app, options.rateLimit);
+      const store = createRateLimitStore(options.rateLimit);
+      app.use(createRateLimitMiddleware(store, options.rateLimit));
+    }
+
+    addAuthRoutes(app, options.userModel, options.authOptions);
 
     if (options.logRequests !== false) {
       app.use(logRequests);

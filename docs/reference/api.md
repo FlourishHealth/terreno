@@ -77,6 +77,26 @@ const app = new TerrenoApp({userModel: User})
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
 
+### HTTP rate limiting
+
+Opt-in. Pass `rateLimit: {}` on `TerrenoApp` to enable (omitted = off; Terreno 58 defaults on).
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
+});
+```
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `store` | `"memory"` | `"memory"` \| `"redis"` \| `"mongo"` |
+| `limits.authMax` | 20 / 15 min | login, signup, refresh, OTP, GitHub OAuth, Better Auth sign-in |
+| `limits.apiMax` | 600 / 15 min | modelRouter and other HTTP |
+| `trustProxy` | `1` when enabled | Express `trust proxy`; unauthenticated key is `req.ip` |
+
+Skip: `GET /health`, `/healthz`, `/openapi.json`, `/swagger`. 429 is `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and `RateLimit` / `RateLimit-Policy`.
+
 ### setupServer (Legacy)
 
 Callback-based pattern:
