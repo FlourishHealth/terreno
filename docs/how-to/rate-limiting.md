@@ -48,4 +48,17 @@ Pass `{store: "mongo"}`. Hits live in `rateLimitHits` on the same mongoose conne
 
 Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy` defaults to `1` unless you set `rateLimit.trustProxy`.
 
+## Auth vs API buckets
+
+| Path | Bucket |
+| --- | --- |
+| `POST /auth/login`, `/auth/signup`, `/auth/refresh_token` | auth (20 / 15 min) |
+| `GET /auth/github`, `/auth/github/callback` | auth |
+| `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password` | auth |
+| `GET`/`PATCH /auth/me` | api (600 / 15 min) |
+| modelRouter, admin, AI HTTP, `POST /mcp`, `POST /sync/mutate` | api |
+| `GET /health`, `/healthz`, `/openapi.json`, `/swagger` | skip |
+
+`rateLimit.skip` adds extra skips. Health/openapi/swagger always skip.
+
 

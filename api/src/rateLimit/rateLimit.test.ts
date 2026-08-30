@@ -119,24 +119,58 @@ describe("HTTP rate limiting", () => {
   });
 
   it("classifies login as auth and /auth/me as api", () => {
-    assert.equal(
-      classifyRateLimitPolicy({method: "POST", originalUrl: "/auth/login"} as never),
-      "auth"
-    );
+    const authPaths = [
+      "/auth/login",
+      "/auth/signup",
+      "/auth/refresh_token",
+      "/auth/github",
+      "/auth/github/callback",
+      "/auth/github/failure",
+      "/api/auth/sign-in/email",
+      "/api/auth/sign-up/email",
+      "/api/auth/forget-password",
+    ];
+    for (const originalUrl of authPaths) {
+      assert.equal(
+        classifyRateLimitPolicy({method: "POST", originalUrl} as never),
+        "auth",
+        originalUrl
+      );
+    }
     assert.equal(classifyRateLimitPolicy({method: "GET", originalUrl: "/auth/me"} as never), "api");
     assert.equal(
-      classifyRateLimitPolicy({method: "GET", originalUrl: "/auth/github"} as never),
-      "auth"
+      classifyRateLimitPolicy({method: "PATCH", originalUrl: "/auth/me"} as never),
+      "api"
     );
     assert.equal(
-      classifyRateLimitPolicy({
-        method: "POST",
-        originalUrl: "/api/auth/sign-in/email",
-      } as never),
+      classifyRateLimitPolicy({method: "POST", originalUrl: "/sync/mutate"} as never),
+      "api"
+    );
+    assert.equal(
+      classifyRateLimitPolicy(
+        {method: "POST", originalUrl: "/custom/auth/sign-in"} as never,
+        "/custom/auth"
+      ),
       "auth"
     );
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/openapi.json"} as never));
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/swagger"} as never));
+    assert.isTrue(
+      shouldSkipRateLimit({method: "GET", originalUrl: "/food"} as never, (req) =>
+        req.originalUrl.startsWith("/food")
+      )
+    );
+  });
+
+  it("honors rateLimit.skip for extra paths", async () => {
+    const app = buildApp({
+      limits: {apiMax: 1, authMax: 1},
+      skip: (req) => req.path === "/food" || req.originalUrl.startsWith("/food"),
+    });
+    const first = await supertest(app).get("/food");
+    assert.equal(first.status, 200);
+    const second = await supertest(app).get("/food");
+    assert.equal(second.status, 200);
   });
 
   it("rejects an unknown store name at create time", () => {

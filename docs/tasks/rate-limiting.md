@@ -25,7 +25,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
   - Docs: store table in `docs/how-to/rate-limiting.md` (create page if 4.1 not started — Pick may write the Redis rows into the how-to started in 1.1/4.1)
   - Acceptance: unit tests against the store interface; startup failure without URL
 
-- [ ] **Task 2.2**: Mongo store
+- [x] **Task 2.2**: Mongo store
   - Delivers: `store: "mongo"` uses the process mongoose connection and `rateLimitHits` with TTL expiry; same consume contract
   - Files: `api/src/rateLimit/mongoStore.ts` (+ schema/types if a model is used), tests against in-memory Mongo via existing `@terreno/test` harness
   - Blocked by: 1.1
