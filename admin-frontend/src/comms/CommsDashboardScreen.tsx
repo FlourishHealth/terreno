@@ -315,7 +315,14 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
   );
 
   return (
-    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} scroll title="Comms">
+    <AdminScreenPage
+      backHref={routeBase}
+      color="transparent"
+      maxWidth="100%"
+      padding={0}
+      scroll
+      title="Comms"
+    >
       <Box gap={4} padding={4} testID="comms-dashboard">
         <StatsCards stats={stats} />
         <Card padding={4}>

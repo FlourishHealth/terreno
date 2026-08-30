@@ -42,6 +42,7 @@ const formatDate = (isoDate: string): string => {
 export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   api,
   basePath,
+  backHref,
   title = "Documents",
   allowDelete = true,
   allowUpload = true,
@@ -600,7 +601,13 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   };
 
   return (
-    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} title={title}>
+    <AdminScreenPage
+      backHref={backHref}
+      color="transparent"
+      maxWidth="100%"
+      padding={0}
+      title={title}
+    >
       {headerRow}
       {renderContent()}
 

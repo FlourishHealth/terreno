@@ -85,7 +85,14 @@ export const CommsMessageDetail: React.FC<CommsMessageDetailProps> = ({
   const consoleUrl = useMemo(() => consoleUrlFromMetadata(message?.metadata), [message?.metadata]);
 
   return (
-    <AdminScreenPage color="transparent" maxWidth="100%" padding={0} scroll title="Comms message">
+    <AdminScreenPage
+      backHref={`${routeBase}/comms`}
+      color="transparent"
+      maxWidth="100%"
+      padding={0}
+      scroll
+      title="Comms message"
+    >
       <Box gap={4} padding={4} testID="comms-message-detail">
         {isLoading ? (
           <Box alignItems="center" padding={6} testID="comms-detail-loading">

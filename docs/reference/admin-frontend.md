@@ -226,7 +226,7 @@ renders model or custom-screen links returned by the server.
 
 ### Custom screen page chrome
 
-Wrap custom admin screen content in `AdminScreenPage`. It renders the standard `Page` header with a back arrow by default; pass `backButton={false}` only when the host supplies equivalent navigation.
+Wrap custom admin screen content in `AdminScreenPage`. It renders the standard `Page` header with a back arrow by default; the arrow navigates to `/admin` via `router.push`, not `router.back()`, because sidebar navigation does not always leave a reliable history entry on web. Pass the host's `routeBase` as `backHref` when admin uses a different prefix; an empty standalone-admin base resolves to `/`. Detail screens can target their parent route (for example `/admin/comms`). Pass `backButton={false}` only when the host supplies equivalent navigation.
 
 ```typescript
 import {AdminScreenPage} from "@terreno/admin-frontend";

@@ -90,6 +90,7 @@ export const AdminScreenRouter: React.FC<AdminScreenRouterProps> = ({
   if (customScreen) {
     return (
       <AdminScreenPage
+        backHref={resolvedRouteBase}
         color="transparent"
         maxWidth="100%"
         padding={4}
@@ -101,7 +102,13 @@ export const AdminScreenRouter: React.FC<AdminScreenRouterProps> = ({
   }
 
   return (
-    <AdminScreenPage color="transparent" maxWidth="100%" padding={4} title="Not found">
+    <AdminScreenPage
+      backHref={resolvedRouteBase}
+      color="transparent"
+      maxWidth="100%"
+      padding={4}
+      title="Not found"
+    >
       <Box testID="admin-screen-not-found">
         <Text color="error">{`No admin screen or model registered for "${name}".`}</Text>
       </Box>

@@ -15,7 +15,7 @@ interface AIRequestsResponse {
   total: number;
 }
 
-export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) => {
+export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api, routeBase}) => {
   const [page, setPage] = useState(1);
   const [requestTypeFilter, setRequestTypeFilter] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -69,7 +69,7 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) 
   const total = data?.total ?? 0;
 
   return (
-    <AdminScreenPage maxWidth="100%" scroll title="AI Request Explorer">
+    <AdminScreenPage backHref={routeBase} maxWidth="100%" scroll title="AI Request Explorer">
       <AIRequestExplorer
         data={data?.data ?? []}
         endDate={endDate}
