@@ -10,6 +10,12 @@ action="$1"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+if [ -z "${GCP_WIF_PROVIDER_PROD:-}" ] || [ -z "${GCP_TF_ADMIN_SA_PROD:-}${GCP_CD_DEPLOYER_SA_PROD:-}" ]; then
+  echo "Skipping GCP ${action}: terreno-gcp is missing GCP_WIF_PROVIDER_PROD or deployer SA emails."
+  echo "GitHub Actions still owns live CD until that CircleCI context is populated."
+  exit 0
+fi
+
 export GCP_PROJECT_ID="${GCP_PROJECT_ID:-flourish-terreno}"
 export GCP_BACKEND_REGION="${GCP_BACKEND_REGION:-us-central1}"
 export GCP_BACKEND_SERVICE="${GCP_BACKEND_SERVICE:-terreno-backend-example}"

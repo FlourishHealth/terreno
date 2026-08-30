@@ -6,13 +6,13 @@ test.describe("Profile", () => {
   test.beforeEach(async ({page}) => {
     await loginAs(page);
     await page.goto("/profile");
-    await page.getByTestId("profile-name-input-edit-clickable").first().waitFor({state: "visible"});
+    await page.getByTestId("profile-name-input.edit-clickable").first().waitFor({state: "visible"});
   });
 
   test("profile screen renders correctly", async ({page}) => {
-    await expect(page.getByTestId("profile-name-input-edit-clickable").first()).toBeVisible();
-    await expect(page.getByTestId("profile-email-input-edit-clickable").first()).toBeVisible();
-    await expect(page.getByTestId("profile-password-input-edit-clickable").first()).toBeVisible();
+    await expect(page.getByTestId("profile-name-input.edit-clickable").first()).toBeVisible();
+    await expect(page.getByTestId("profile-email-input.edit-clickable").first()).toBeVisible();
+    await expect(page.getByTestId("profile-password-input.edit-clickable").first()).toBeVisible();
     await expect(page.getByTestId("profile-logout-button").first()).toBeVisible();
   });
 
@@ -24,22 +24,22 @@ test.describe("Profile", () => {
   });
 
   test("can edit name and save", async ({page}) => {
-    await page.getByTestId("profile-name-input-edit-clickable").first().click();
+    await page.getByTestId("profile-name-input.edit-clickable").first().click();
     const nameInput = page.getByTestId("profile-name-input").first();
     await nameInput.waitFor({state: "visible"});
     await nameInput.clear();
     await nameInput.fill("Updated E2E Name");
-    await page.getByRole("button", {name: "Save"}).first().click();
+    await page.getByTestId("profile-name-input.save").first().click();
 
     await page.getByTestId("profile-save-success").first().waitFor({state: "visible"});
     await expect(page.getByTestId("profile-save-success").first()).toBeVisible();
 
-    await page.getByTestId("profile-name-input-edit-clickable").first().click();
+    await page.getByTestId("profile-name-input.edit-clickable").first().click();
     const restoredInput = page.getByTestId("profile-name-input").first();
     await restoredInput.waitFor({state: "visible"});
     await restoredInput.clear();
     await restoredInput.fill(TEST_USER.name);
-    await page.getByRole("button", {name: "Save"}).first().click();
+    await page.getByTestId("profile-name-input.save").first().click();
     await page.getByTestId("profile-save-success").first().waitFor({state: "visible"});
   });
 

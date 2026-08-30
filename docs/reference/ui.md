@@ -187,6 +187,29 @@ describe("MyComponent", () => {
 
 **Why:** Most @terreno/ui components require ThemeProvider context to access theme values.
 
+### TapToEdit testIDs
+
+Pass `testID` on `TapToEdit`. The Field input uses that id. Action controls suffix it:
+
+| Control | test id |
+| --- | --- |
+| Edit (pencil) | `{testID}.edit-clickable` |
+| Cancel | `{testID}.cancel` |
+| Clear | `{testID}.clear` |
+| Save | `{testID}.save` |
+
+```typescript
+<TapToEdit
+  testID="profile.name"
+  setValue={setName}
+  onSave={saveName}
+  title="Name"
+  value={name}
+/>
+// Edit:  profile.name.edit-clickable
+// Cancel / Clear / Save: profile.name.cancel, .clear, .save
+```
+
 ### createCommonMocks
 
 Creates mock functions for common component callbacks.

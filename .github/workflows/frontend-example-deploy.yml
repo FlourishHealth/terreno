@@ -1,7 +1,28 @@
 name: Example Frontend Deploy
 
-# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
-on: []
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "example-frontend/**"
+      - "ui/**"
+      - "rtk/**"
+      - "ai/**"
+      - "admin-frontend/**"
+      - "bun.lock"
+      - ".github/workflows/frontend-example-deploy.yml"
+  pull_request:
+    paths:
+      - "example-frontend/**"
+      - "ui/**"
+      - "rtk/**"
+      - "ai/**"
+      - "admin-frontend/**"
+      - "bun.lock"
+      - ".github/workflows/frontend-example-deploy.yml"
+  workflow_dispatch:
 
 jobs:
   check-changes:

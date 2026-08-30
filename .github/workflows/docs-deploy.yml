@@ -1,7 +1,32 @@
 name: Docs Deploy
 
-# Disabled after migration to `.circleci/continue-config.yml`; retained for rollback.
-on: []
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
+# CircleCI skips Netlify jobs when those vars are unset.
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "website/**"
+      - "api/src/**"
+      - "rtk/src/**"
+      - "demo/demoConfig.tsx"
+      - "demo/story-config/**"
+      - "ui/src/**"
+      - ".github/workflows/docs-deploy.yml"
+      - "netlify.toml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "website/**"
+      - "api/src/**"
+      - "rtk/src/**"
+      - "demo/demoConfig.tsx"
+      - "demo/story-config/**"
+      - "ui/src/**"
+      - ".github/workflows/docs-deploy.yml"
+      - "netlify.toml"
 
 jobs:
   check-changes:
