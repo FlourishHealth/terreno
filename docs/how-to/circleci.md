@@ -200,6 +200,8 @@ PR preview **cleanup** is manual because CircleCI does not receive GitHub
 `pull_request.closed` events. Configure a GitHub App/webhook to call
 `run-preview-cleanup` if automatic lifecycle cleanup is required. Path-filtered
 preview **deploys** run on open PRs from this repository; fork PRs are skipped.
+If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
+up the open PR for `CIRCLE_BRANCH` via the GitHub API.
 
 ## Path-filter parity guard
 
