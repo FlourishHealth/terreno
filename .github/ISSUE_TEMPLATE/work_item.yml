@@ -9,6 +9,7 @@ body:
       value: |
         Use this when an agent (or you) will implement the issue with `/work-github-issues`.
         The body is context. The executable task list is posted later as a Pick plan comment.
+        Kind is applied as a `type:*` label by issue triage (forms cannot set labels from a dropdown).
 
   - type: dropdown
     id: package

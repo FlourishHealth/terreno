@@ -19,6 +19,7 @@ the body. The canonical heading list is in the
 [`create-github-issue` skill](https://github.com/FlourishHealth/terreno/blob/master/.rulesync/skills/create-github-issue/references/issue-format.md).
 
 `Affected package` must match a known value so issue triage can apply `area:*`.
+`Kind` on the lifecycle form is applied as `type:*` by the same triage job.
 
 ## Plan and implement
 
@@ -26,7 +27,9 @@ the body. The canonical heading list is in the
 2. The agent lists recent open issues, ranks a queue of at most five, and drafts a
    Pick plan for one recommended issue.
 3. Confirm the queue, answer clarifying questions, and approve the plan text.
-4. The agent posts a comment that starts with `<!-- terreno-pick-plan -->`.
+4. The agent posts a comment that starts with `<!-- terreno-pick-plan -->` and
+   **pins that comment URL**. Roast reloads that id. A later matching comment from
+   someone who is not `OWNER` / `MEMBER` / `COLLABORATOR` is ignored.
 5. Pick implements one task; Roast proves that comment; Pick continues until the list
    is done.
 

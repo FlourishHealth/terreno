@@ -56,7 +56,7 @@ Bug
 | Field | Rule |
 | --- | --- |
 | Affected package | Exact value from the package table (see below). Required. Auto-triage maps it to `area:*`. |
-| Kind | `Bug` / `Feature` / `Docs` / `Chore`. Maps to `type:*`. |
+| Kind | `Bug` / `Feature` / `Docs` / `Chore`. GitHub forms cannot set labels from a dropdown. Triage applies `type:*` from this heading. Agents using `gh issue create` still pass `--label type:…`. |
 | Problem | Symptom and impact. Not a solution dump. |
 | Outcome | Caller-visible result. One destination. |
 | Current behavior | Facts. For bugs: numbered reproduction. |
@@ -79,6 +79,8 @@ Use one of:
 
 Always include `status:needs-triage`. Add exactly one `type:*` from Kind and
 exactly one `area:*` from the package table (`bun run roadmap:check --labels …`).
+When using the Lifecycle work item form, triage applies those labels from Kind and
+Affected package; do not also run `gh issue create`.
 Do not invent labels.
 
 ## When this format is the wrong artifact
