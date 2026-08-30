@@ -1,6 +1,7 @@
 import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type {Application} from "express";
+import express from "express";
 import supertest from "supertest";
 
 import {modelRouter} from "../api";
@@ -8,6 +9,7 @@ import type {UserModel as AuthUserModel} from "../auth";
 import {Permissions} from "../permissions";
 import {TerrenoApp} from "../terrenoApp";
 import {FoodModel, setupTestData, UserModel} from "../tests";
+import {applyRateLimitTrustProxy} from "./applyTrustProxy";
 import {createRateLimitStore} from "./createStore";
 import {createMemoryRateLimitStore} from "./memoryStore";
 import {classifyRateLimitPolicy, shouldSkipRateLimit} from "./policies";
@@ -173,6 +175,24 @@ describe("HTTP rate limiting", () => {
     assert.equal(second.status, 200);
   });
 
+  it("keys unauthenticated traffic by X-Forwarded-For when trustProxy is 1", async () => {
+    const app = buildApp({limits: {apiMax: 1, authMax: 20}, trustProxy: 1});
+    const first = await supertest(app).get("/food").set("X-Forwarded-For", "203.0.113.10");
+    assert.equal(first.status, 200);
+    const sameClient = await supertest(app).get("/food").set("X-Forwarded-For", "203.0.113.10");
+    assert.equal(sameClient.status, 429);
+    const otherClient = await supertest(app).get("/food").set("X-Forwarded-For", "198.51.100.20");
+    assert.equal(otherClient.status, 200);
+  });
+
+  it("ignores spoofed X-Forwarded-For when trustProxy is false", async () => {
+    const app = buildApp({limits: {apiMax: 1, authMax: 20}, trustProxy: false});
+    const first = await supertest(app).get("/food").set("X-Forwarded-For", "203.0.113.10");
+    assert.equal(first.status, 200);
+    const spoofed = await supertest(app).get("/food").set("X-Forwarded-For", "198.51.100.20");
+    assert.equal(spoofed.status, 429);
+  });
+
   it("rejects an unknown store name at create time", () => {
     try {
       createRateLimitStore({store: "disk" as never});
@@ -197,5 +217,17 @@ describe("memory rate limit store", () => {
     assert.isTrue(b1.allowed);
     const after = await store.consume({key: "a", max: 2, now: t0 + 1001, windowMs: 1000});
     assert.isTrue(after.allowed);
+  });
+});
+
+describe("applyRateLimitTrustProxy", () => {
+  it("defaults to 1 and honors false or hop count", () => {
+    const app = express();
+    applyRateLimitTrustProxy(app, {});
+    assert.equal(app.get("trust proxy"), 1);
+    applyRateLimitTrustProxy(app, {trustProxy: false});
+    assert.equal(app.get("trust proxy"), false);
+    applyRateLimitTrustProxy(app, {trustProxy: 2});
+    assert.equal(app.get("trust proxy"), 2);
   });
 });

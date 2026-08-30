@@ -35,7 +35,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
 
 ## Phase 3 — Paths and proxy
 
-- [ ] **Task 3.1**: Auth path table + Better Auth / GitHub
+- [x] **Task 3.1**: Auth path table + Better Auth / GitHub
   - Delivers: GitHub OAuth start/callback on auth bucket; Better Auth `basePath` sign-in/sign-up/forget-password on auth; `/auth/me` on api; extra `skip` callback honored
   - Files: `api/src/rateLimit/policies.ts`, tests
   - Blocked by: 1.1

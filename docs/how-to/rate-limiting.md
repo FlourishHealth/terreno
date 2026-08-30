@@ -46,7 +46,7 @@ new TerrenoApp({
 
 Pass `{store: "mongo"}`. Hits live in `rateLimitHits` on the same mongoose connection as the app. A TTL index on `expiresAt` expires windows. This collection is not a `modelRouter` resource.
 
-Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy` defaults to `1` unless you set `rateLimit.trustProxy`.
+Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy` defaults to `1` unless you set `rateLimit.trustProxy`. `trustProxy: false` ignores `X-Forwarded-For` (tests and local sockets).
 
 ## Auth vs API buckets
 
