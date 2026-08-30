@@ -133,6 +133,22 @@ describe("CommsDashboardScreen", () => {
     expect(next.q).toBe("timeout");
     expect(next.channel).toBe("mail");
     expect(next.page).toBe(1);
+    expect(String(next.startDate)).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    expect(String(next.endDate)).toMatch(/^\d{4}-\d{2}-\d{2}/);
+  });
+
+  it("keeps both default date bounds when search changes with empty URL dates", () => {
+    listState.data = {data: [], more: false, page: 1, total: 0};
+    const onFiltersChange = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={onFiltersChange} />
+    );
+    fireEvent.changeText(getByTestId("comms-filter-q"), "hello");
+    const next = (onFiltersChange.mock.calls[0] as unknown as [Record<string, unknown>])[0];
+    expect(next.q).toBe("hello");
+    expect(next.page).toBe(1);
+    expect(String(next.startDate)).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    expect(String(next.endDate)).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
 
   it("clears every active filter and returns to the first page", async () => {

@@ -205,17 +205,18 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
       filters.status
   );
 
-  /** One handler shape for every filter control; changing a filter resets to page 1. */
+  /** One handler shape for every filter control; changing a filter resets to page 1.
+   * Spread applied query filters so implicit 7-day bounds stay when one field changes. */
   const filterSetter = useCallback(
     (key: keyof CommsDashboardFilters) =>
       (value: string): void => {
         onFiltersChange({
-          ...filters,
+          ...queryFilters,
           page: 1,
           [key]: value || undefined,
         });
       },
-    [filters, onFiltersChange]
+    [onFiltersChange, queryFilters]
   );
 
   const openMessage = useCallback(

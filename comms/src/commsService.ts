@@ -750,7 +750,7 @@ export class CommsService {
     context.message = activeMessage;
     if (before.cancel) {
       const result = this.cancelledResult();
-      await Promise.all(
+      const loggedRows = await Promise.all(
         tokens.map(
           (token): Promise<CommsMessageDocument | null> =>
             this.logResult({
@@ -768,7 +768,7 @@ export class CommsService {
             })
         )
       );
-      return tokens.map(() => result);
+      return tokens.map((_, index) => this.withLoggedId(result, loggedRows[index] ?? null));
     }
 
     const sendTokens = activeMessage.tokens;
