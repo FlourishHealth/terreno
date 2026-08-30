@@ -78,6 +78,16 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### Page Back Navigation
+
+Set `backButton` to render the standard header back arrow. By default it calls `router.back()`; provide `onBack` when the screen needs a deterministic destination instead of browser history.
+
+```typescript
+<Page backButton onBack={() => router.push("/admin")} title="Operations">
+  <OperationsDashboard />
+</Page>
+```
+
 ### Button Press Animation
 
 Buttons use a scale animation by default. Set `pressAnimation="opacity"` for an opacity response or

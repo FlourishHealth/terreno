@@ -312,7 +312,7 @@ exports[`Page renders with back button 1`] = `
                           ],
                           "props": {
                             "accessibilityHint": "Navigate back",
-                            "accessibilityLabel": "",
+                            "accessibilityLabel": "Back",
                             "onPress": [Function],
                             "testID": "icon-button-chevron-left",
                           },
