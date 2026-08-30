@@ -17,14 +17,18 @@ import {
 } from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
-import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {CommsStatCard} from "./CommsStatCard";
 import {CommsStatusBadge} from "./CommsStatusBadge";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
-import {type CommsMessageRow, commsMessageId, unwrapCommsMessage} from "./commsMessagePayload";
+import {
+  type CommsMessageRow,
+  commsMessageId,
+  formatCommsTimestamp,
+  unwrapCommsMessage,
+} from "./commsMessagePayload";
 import {summarizeSkippedReasons} from "./commsRetrySummary";
 import {type CommsStatsResponse, useCommsDashboardApi} from "./useCommsDashboardApi";
 
@@ -254,7 +258,7 @@ export const CommsDashboardScreen: React.FC<CommsDashboardScreenProps> = ({
 
   const tableData = useMemo((): DataTableCellData[][] => {
     return rows.map((row: CommsMessageRow) => [
-      {value: row.created ? DateTime.fromISO(row.created).toUTC().toISO() : ""},
+      {value: formatCommsTimestamp({value: row.created})},
       {value: row.channel},
       {value: row.provider},
       {value: row.to},

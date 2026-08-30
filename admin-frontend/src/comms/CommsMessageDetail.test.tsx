@@ -42,6 +42,7 @@ const createCommsApi = (): AdminApi => {
 };
 
 import {CommsMessageDetail} from "./CommsMessageDetail";
+import {formatCommsTimestamp} from "./commsMessagePayload";
 
 describe("CommsMessageDetail", () => {
   beforeEach(() => {
@@ -87,12 +88,16 @@ describe("CommsMessageDetail", () => {
         to: "a***@example.com",
       },
     };
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, getByText} = renderWithTheme(
       <CommsMessageDetail api={createCommsApi()} messageId="m1" />
     );
     expect(getByTestId("comms-detail-retry").props.accessibilityState?.disabled).toBe(true);
     expect(getByTestId("comms-attempt-0")).toBeTruthy();
     expect(getByTestId("comms-detail-payload")).toBeTruthy();
+    expect(
+      getByText(`Created ${formatCommsTimestamp({empty: "—", value: "2026-08-20T00:00:00.000Z"})}`)
+    ).toBeTruthy();
+    expect(getByText(formatCommsTimestamp({empty: "—", value: "2026-08-20T00:00:00.000Z"}))).toBeTruthy();
   });
 
   it("renders an unwrapped Better Auth detail payload", () => {

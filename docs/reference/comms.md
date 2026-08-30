@@ -254,7 +254,7 @@ authenticated user on the same device may register it.
 - example-frontend: `/admin/comms` and `/admin/comms/[id]`
 - admin-spa: `/comms` and `/comms/[id]`
 
-Filters persist in the URL. Stats cards come from `/comms/stats`. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
+Filters persist in the URL. Stats cards come from `/comms/stats`. Created and attempt times print in the operator's locale (`DateTime.DATETIME_MED`), not UTC ISO. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
 
 Run `bun run backend:seed` from the repository root to populate the example dashboard with 10 current, idempotent delivery logs across mail, SMS, push, and verification. The sample includes delivered, sent, failed, bounced, and cancelled states so stats, provider breakdowns, filters, and retry controls are visible immediately.
 

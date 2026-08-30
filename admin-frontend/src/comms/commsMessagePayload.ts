@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 export interface CommsMessageAttempt {
   at?: string;
   error?: string;
@@ -57,4 +59,25 @@ export const unwrapCommsMessage = (payload: unknown): CommsMessageRow | undefine
 
 export const commsMessageId = (row: CommsMessageRow): string => {
   return row._id ?? row.id ?? "";
+};
+
+/**
+ * Prints a comms timestamp for operators. Invalid or missing values stay as-is so a
+ * bad provider clock does not blank the cell.
+ */
+export const formatCommsTimestamp = ({
+  empty = "",
+  value,
+}: {
+  empty?: string;
+  value?: string;
+}): string => {
+  if (!value) {
+    return empty;
+  }
+  const parsed = DateTime.fromISO(value);
+  if (!parsed.isValid) {
+    return value;
+  }
+  return parsed.toLocal().toLocaleString(DateTime.DATETIME_MED);
 };

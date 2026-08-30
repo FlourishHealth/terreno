@@ -12,13 +12,17 @@ import {
 } from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
-import {DateTime} from "luxon";
 import React, {useCallback, useMemo} from "react";
 import {AdminRefField} from "../AdminRefField";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {CommsStatusBadge} from "./CommsStatusBadge";
-import {type CommsMessageRow, commsMessageId, unwrapCommsMessage} from "./commsMessagePayload";
+import {
+  type CommsMessageRow,
+  commsMessageId,
+  formatCommsTimestamp,
+  unwrapCommsMessage,
+} from "./commsMessagePayload";
 import {useCommsDashboardApi} from "./useCommsDashboardApi";
 
 export interface CommsMessageDetailProps {
@@ -29,17 +33,6 @@ export interface CommsMessageDetailProps {
 
 const toJsonMarkdown = (value: unknown): string => {
   return `\`\`\`json\n${JSON.stringify(value ?? null, null, 2)}\n\`\`\``;
-};
-
-const formatTimestamp = (value?: string): string => {
-  if (!value) {
-    return "—";
-  }
-  const parsed = DateTime.fromISO(value);
-  if (!parsed.isValid) {
-    return value;
-  }
-  return parsed.toUTC().toISO() ?? value;
 };
 
 const consoleUrlFromMetadata = (
@@ -156,7 +149,7 @@ const MessageBody: React.FC<MessageBodyProps> = ({
           <Text testID="comms-detail-channel">{`${message.channel} · ${message.provider}`}</Text>
           <Text testID="comms-detail-to">{`To ${message.to}`}</Text>
           <Text color="secondaryDark" size="sm">
-            {`Created ${formatTimestamp(message.created)}`}
+            {`Created ${formatCommsTimestamp({empty: "—", value: message.created})}`}
           </Text>
         </Box>
         <Button
@@ -214,7 +207,7 @@ const MessageBody: React.FC<MessageBodyProps> = ({
               testID={`comms-attempt-${index}`}
             >
               <Text bold size="sm">
-                {formatTimestamp(attempt.at)}
+                {formatCommsTimestamp({empty: "—", value: attempt.at})}
               </Text>
               <Text size="sm">{attempt.provider ?? message.provider}</Text>
               {attempt.providerMessageId && consoleUrl ? (

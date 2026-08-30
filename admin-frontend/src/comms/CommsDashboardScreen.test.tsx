@@ -66,6 +66,7 @@ const failedRow = {
 };
 
 import {CommsDashboardScreen} from "./CommsDashboardScreen";
+import {formatCommsTimestamp} from "./commsMessagePayload";
 
 describe("CommsDashboardScreen", () => {
   beforeEach(() => {
@@ -212,6 +213,7 @@ describe("CommsDashboardScreen", () => {
     const {getAllByText, getByTestId} = renderWithTheme(
       <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
+    expect(getAllByText(formatCommsTimestamp({value: failedRow.created}))).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(getByTestId("comms-row-open"));
