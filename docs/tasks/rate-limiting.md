@@ -49,7 +49,7 @@ IP: [rate-limiting.md](../implementationPlans/rate-limiting.md)
 
 ## Phase 4 — Docs and example
 
-- [ ] **Task 4.1**: Diátaxis + changelog + rules
+- [x] **Task 4.1**: Diátaxis + changelog + rules
   - Delivers: operator how-to, reference, auth explanation, env reference (no enable env), replace misleading `RATE_LIMIT_*` snippet in configuration-system, Terreno 58 default-on note, `.rulesync/rules/api/00-api.mdc`, `CHANGELOG.md` Added
   - Files: `docs/how-to/rate-limiting.md`, `docs/reference/api.md`, `docs/reference/environment-variables.md`, `docs/explanation/authentication.md`, `docs/explanation/configuration-system.md`, `.rulesync/rules/api/00-api.mdc`, `CHANGELOG.md`; `bun run rules` / `skills:sync` if required after rulesync
   - Blocked by: 1.1 (content can land with 2.x/3.x; must match shipped stores)
