@@ -107,11 +107,11 @@ describe("CommsDashboardScreen", () => {
 
   it("renders the empty state", () => {
     listState.data = {data: [], more: false, page: 1, total: 0};
-    const {getByA11yHint, getByTestId} = renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <CommsDashboardScreen api={createCommsApi()} filters={{}} onFiltersChange={() => undefined} />
     );
     expect(getByTestId("comms-dashboard-empty")).toBeTruthy();
-    assert.exists(getByA11yHint("Navigate back"));
+    assert.exists(getByTestId("icon-button-chevron-left"));
   });
 
   it("writes filter changes through onFiltersChange for URL persistence", () => {

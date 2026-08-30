@@ -10,16 +10,16 @@ mock.module("expo-router", () => ({
 
 describe("AdminScreenPage", () => {
   it("shows a back arrow by default", (): void => {
-    const {getByA11yHint} = renderWithTheme(<AdminScreenPage title="Example" />);
+    const {getByTestId} = renderWithTheme(<AdminScreenPage title="Example" />);
 
-    assert.exists(getByA11yHint("Navigate back"));
+    assert.exists(getByTestId("icon-button-chevron-left"));
   });
 
   it("allows hosts to disable the back arrow", (): void => {
-    const {queryByA11yHint} = renderWithTheme(
+    const {queryByTestId} = renderWithTheme(
       <AdminScreenPage backButton={false} title="Example" />
     );
 
-    assert.isNull(queryByA11yHint("Navigate back"));
+    assert.isNull(queryByTestId("icon-button-chevron-left"));
   });
 });
