@@ -38,7 +38,11 @@ if [ "$mode" != "production" ] && [ "$mode" != "preview" ]; then
 fi
 
 export NETLIFY_SITE_ID="$site_id"
-"$repo_root/scripts/ci/validate-env.sh" NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID
+if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] || [ -z "${NETLIFY_SITE_ID:-}" ]; then
+  echo "Skipping Netlify ${target} ${mode} deploy: terreno-netlify is missing NETLIFY_AUTH_TOKEN or the site id."
+  echo "GitHub Actions still owns live deploys until that CircleCI context is populated."
+  exit 0
+fi
 
 case "$target" in
   demo)
