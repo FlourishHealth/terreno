@@ -21,14 +21,14 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Acceptance: unit tests for local-only valid config, illegal mix, langfuse review queue, missing plugin for a primary
 
 - [ ] **Task 1.2**: In-memory sinks + `AIService` emit + production prompt resolve
-  - Delivers: every `generate*` exports a trace unless `skipTrace`; sink failures logged not thrown; `AIRequest` still written; `userId` / `sessionId` / `sensitive` / `promptRef` / `priceMap` on options; `promptName` + `promptLabel` resolves via `PromptRegistry` (stub registry acceptable here); `costUsd` omitted for unpriced models
+  - Delivers: `promptName` + `promptLabel` resolves via `PromptRegistry` **before the model call**, even when `skipTrace` is true or no trace sink is registered; missing registry/label/version returns 400 without a model call; resolved-version `sensitive` applies unless the generate option overrides it; every `generate*` exports a trace unless `skipTrace`; sink failures logged not thrown; `AIRequest` still written; `userId` / `sessionId` / `sensitive` / `promptRef` / `priceMap` on options; `costUsd` omitted for unpriced models
   - Files: `ai/src/observability/memorySinks.ts`, `ai/src/service/aiService.ts`, `ai/src/types/index.ts`, `ai/src/service/aiService.test.ts`
   - Blocked by: 1.1
   - Docs: `docs/reference/ai.md` — `skipTrace`, `promptName`, `promptLabel`, `sensitive`, usage/cost fields
-  - Acceptance: tests for emit, `skipTrace`, throwing sink, cost from price map, **no `costUsd` when the model is unpriced**, multi-step still logs `AIRequest`, missing production label → 400 with no model call
+  - Acceptance: tests for emit, `skipTrace`, throwing sink, cost from price map, **no `costUsd` when the model is unpriced**, multi-step still logs `AIRequest`, resolved prompt body reaches the model with `skipTrace`, and missing registry/production label → 400 with no model call
 
 - [ ] **Task 1.3**: GPT routes pass identity and sensitivity
-  - Delivers: `/gpt/prompt` sets `userId` from `req.user`, `sessionId` from body/header `x-ai-session-id`, and `sensitive` from the prompt version or request into `AIService`
+  - Delivers: `/gpt/prompt` sets `userId` from `req.user`, `sessionId` from body/header `x-ai-session-id`, and an explicit request `sensitive` override into `AIService`; `AIService` otherwise inherits `sensitive` from the resolved prompt version
   - Files: `ai/src/routes/gpt.ts`, route tests
   - Blocked by: 1.2
   - Docs: `docs/reference/ai.md` GPT section
@@ -37,7 +37,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
 ## 1B — Local store: prompts, traces, review
 
 - [ ] **Task 1.4**: Local Mongo models — prompts, versions, labels, traces, spans, scores
-  - Delivers: schemas with a description on every field, standard plugins, the indexes in the IP; models registered only when the local plugin constructs; `ObsPromptVersion` carries `variables[]` (`key`, `required`, `label?`, `reviewerNote?`), `inputSchema`, `outputSchema`, `outputFieldNotes`, `config`; `ObsPrompt` carries `folder` + `tags[]`; `ObsTrace` carries `sensitive`, `errorSummary`, `prompts[]`
+  - Delivers: schemas with a description on every field, standard plugins, the indexes in the IP; models registered only when the local plugin constructs; `ObsPromptVersion` carries `variables[]` (`key`, `required`, `label?`, `reviewerNote?`), `inputSchema`, `outputSchema`, `outputFieldNotes`, **`sensitive` (default false)**, `config`; `ObsPrompt` carries `folder` + `tags[]`; `ObsTrace` carries `sensitive`, `errorSummary`, `prompts[]`; `ObsSpan` carries `status` and optional short `error`
   - Files: `ai/src/observability/local/models/*.ts`, `ai/src/types/observability*.ts`, model tests
   - Blocked by: 1.1
   - Docs: `docs/reference/ai.md` model tables
@@ -51,7 +51,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Acceptance: v1 unchanged after v2; `get production` returns the labelled version; playground creates no version; usage rollup returns calls/cost for the last 7 days and `—` for a prompt with no production label
 
 - [ ] **Task 1.6**: Local `TraceSink` / `ScoreSink` + trace HTTP
-  - Delivers: persist the fan-in; list with time / prompt / status / user / session / `hasScore` / `sensitive` / `flaggedForDataset` filters and pagination; detail returns the span tree with kinds, offsets, durations, per-span I/O and cost; `errorSummary` derived from the first failed span; `prompts[]` length drives the `N prompts` display; `POST /traces/:id/scores`
+  - Delivers: persist the fan-in; list with time / prompt / status / user / session / `hasScore` / `sensitive` / `flaggedForDataset` filters and pagination; detail returns the span tree with kinds, offsets, durations, per-span I/O and cost; derive `errorSummary` from the first span where `status: "error"` using its `error`; `prompts[]` length drives the `N prompts` display; `POST /traces/:id/scores`
   - Files: `ai/src/observability/local/traceStore.ts`, `ai/src/observability/routes/traces.ts`, tests
   - Blocked by: 1.4, 1.2
   - Docs: `docs/reference/ai.md` routes

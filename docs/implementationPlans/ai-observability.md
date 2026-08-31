@@ -316,18 +316,26 @@ interface TraceFeedback {
 - Does **not** replace `LangfuseApp.register()`. The Langfuse **adapter** wraps the existing client from
   `LangfuseApp` / `getLangfuseClient()` and must not start a second OTel SDK.
 
-### `AIService` hook
+### `AIService` prompt resolution and trace hook
 
-After each generate path (same place as `logRequest`):
+Before every generate path:
 
-1. Skip if no `ObservabilityApp` or `options.skipTrace === true`.
+1. If `options.promptName` is set, resolve `PromptRegistry.get({name, label: options.promptLabel ?? "production"})`
+   **before calling the model**, independent of `skipTrace` and trace-sink registration. Use the resolved body and
+   retain its ref. Missing registry, missing label, or missing version → `APIError` 400 and no model call.
+2. Inherit `sensitive` from the resolved prompt version unless the generate option explicitly sets it.
+
+After each successful or failed generate path (same place as `logRequest`):
+
+1. Skip **trace export only** if no `ObservabilityApp` or `options.skipTrace === true`; prompt resolution above still ran.
 2. Build a root span (`CHAIN` or `LLM`) plus children for tool rounds when present.
-3. Attach `userId`, `sessionId`, `sensitive` from generate options (GPT routes copy from `req.user` / body).
-4. If `options.promptName` is set, **resolve** `PromptRegistry.get({name, label: options.promptLabel ?? "production"})`
-   and use that body. Attach the resolved ref to `trace.prompts`. Missing production label → `APIError` 400, no generate.
+3. Attach `userId`, `sessionId`, and resolved/effective `sensitive` from generate options.
+4. Attach the resolved ref to `trace.prompts`.
 5. Compute `costUsd` from `options.priceMap ?? observability.priceMap` keyed by `model`; leave undefined when absent.
-6. `Promise.allSettled` on each `TraceSink.export`; log rejections; **never throw**.
-7. Phase 2: for each evaluator with `liveSampleRate > 0` (capped by `AI_OBS_SAMPLE_RATE`), roll and enqueue a
+6. Set each span `status` and, for failures, its short `error` cause; derive trace `errorSummary` from the first failed
+   span in execution order.
+7. `Promise.allSettled` on each `TraceSink.export`; log rejections; **never throw**.
+8. Phase 2: for each evaluator with `liveSampleRate > 0` (capped by `AI_OBS_SAMPLE_RATE`), roll and enqueue a
    live eval on the same `BackgroundTask` path experiments use.
 
 `AIRequest` keeps `parentRequestId` / `subRequestIds`. Traces use `traceId` + `parentSpanId`. Multi-agent
@@ -342,10 +350,10 @@ the local plugin is absent.
 | Model | Phase | Role |
 | --- | --- | --- |
 | `ObsPrompt` | 1 | Named prompt (`name` unique). **`folder`**, `tags[]`. |
-| `ObsPromptVersion` | 1 | Immutable version: `type` text\|chat, `system`, `template`, `variables[]` (`{key, required, label?, reviewerNote?}`), `inputSchema`/`outputSchema` (JSON Schema), `outputFieldNotes` (Q49), `config` (temperature preset, model hint). |
+| `ObsPromptVersion` | 1 | Immutable version: `type` text\|chat, `system`, `template`, `variables[]` (`{key, required, label?, reviewerNote?}`), `inputSchema`/`outputSchema` (JSON Schema), `outputFieldNotes` (Q49), **`sensitive: boolean`** (default false, inherited by calls), `config` (temperature preset, model hint). |
 | `ObsPromptLabel` | 1 | Movable labels: `production`, `latest`, optional `staging`. Unique `(promptId, label)`. |
 | `ObsTrace` | 1 | Root trace: user, session, status, `errorSummary`, `sensitive`, usage, `prompts[]`, timestamps. |
-| `ObsSpan` | 1 | Nested spans: `traceId`, `parentSpanId`, OpenInference `kind`, input/output, model, tokens, cost, `sensitive`, `startOffsetMs`/`durationMs` for the waterfall. |
+| `ObsSpan` | 1 | Nested spans: `traceId`, `parentSpanId`, OpenInference `kind`, input/output, model, tokens, cost, `sensitive`, **`status` (`ok`\|`error`) and optional short `error`**, `startOffsetMs`/`durationMs` for the waterfall. |
 | `ObsScore` | 1 | Scores on trace/span. Many per trace — **no unique index**. |
 | `ObsEvaluator` | 1 (human) / 2 (judge, assert) | `type`, `target`, `dimensions[]`, `runModes`, judge/assertion/instructions, `confidenceAlertBelow`. |
 | `ObsReviewItem` | 1 | Queue: `status` pending\|in_progress\|done\|skipped, `evaluatorId`, `traceId`, `spanId?`, `datasetItemId?`, `assigneeId`, `reason` (`manual` \| `eval` \| `feedback` \| `dataset_candidate`), scores payload, `comment`, `enqueuedAt`. |
