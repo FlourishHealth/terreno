@@ -59,11 +59,32 @@ obsTraceSchema.plugin(createdUpdatedPlugin);
 obsTraceSchema.plugin(isDeletedPlugin);
 obsTraceSchema.plugin(findOneOrNone);
 obsTraceSchema.plugin(findExactlyOne);
-obsTraceSchema.index({created: -1, userId: 1});
-obsTraceSchema.index({created: -1, sessionId: 1});
-obsTraceSchema.index({created: -1, status: 1});
-obsTraceSchema.index({"prompts.name": 1, "prompts.version": 1});
-obsTraceSchema.index({created: -1, flaggedForDataset: 1});
+// Compound index field order is query-significant; do not alphabetize keys.
+const traceIndexSpecs: Array<Array<[string, -1 | 1]>> = [
+  [
+    ["created", -1],
+    ["userId", 1],
+  ],
+  [
+    ["sessionId", 1],
+    ["created", -1],
+  ],
+  [
+    ["status", 1],
+    ["created", -1],
+  ],
+  [
+    ["prompts.name", 1],
+    ["prompts.version", 1],
+  ],
+  [
+    ["flaggedForDataset", 1],
+    ["created", -1],
+  ],
+];
+for (const spec of traceIndexSpecs) {
+  obsTraceSchema.index(Object.fromEntries(spec));
+}
 
 export const registerObsTrace = (): ObsTraceModel => {
   if (mongoose.models.ObsTrace) {

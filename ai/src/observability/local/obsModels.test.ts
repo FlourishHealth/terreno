@@ -6,6 +6,7 @@ import {registerObsPrompt} from "./models/obsPrompt";
 import {registerObsPromptLabel} from "./models/obsPromptLabel";
 import {registerObsPromptVersion} from "./models/obsPromptVersion";
 import {registerObsScore} from "./models/obsScore";
+import {registerObsTrace} from "./models/obsTrace";
 
 describe("local observability models", () => {
   afterEach(() => {
@@ -97,5 +98,15 @@ describe("local observability models", () => {
       .indexes()
       .filter((entry) => Boolean((entry[1] as {unique?: boolean} | undefined)?.unique));
     expect(uniqueIndexes.length).toBe(0);
+  });
+
+  it("declares ObsTrace compound indexes in IP key order", () => {
+    const ObsTrace = registerObsTrace();
+    const serialized = ObsTrace.schema.indexes().map(([fields]) => JSON.stringify(fields));
+    expect(serialized).toContain('{"created":-1,"userId":1}');
+    expect(serialized).toContain('{"sessionId":1,"created":-1}');
+    expect(serialized).toContain('{"status":1,"created":-1}');
+    expect(serialized).toContain('{"prompts.name":1,"prompts.version":1}');
+    expect(serialized).toContain('{"flaggedForDataset":1,"created":-1}');
   });
 });
