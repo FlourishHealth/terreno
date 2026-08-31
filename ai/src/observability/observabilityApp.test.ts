@@ -1,6 +1,6 @@
-import {describe, expect, it} from "bun:test";
+import {afterEach, describe, expect, it} from "bun:test";
 
-import {ObservabilityApp} from "./observabilityApp";
+import {ObservabilityApp, resetObservabilityApp} from "./observabilityApp";
 import type {ObservabilityPlugin} from "./types";
 
 const LOCAL_CAPABILITIES = new Set([
@@ -38,6 +38,9 @@ const createLangfusePlugin = (): ObservabilityPlugin => {
 };
 
 describe("ObservabilityApp config", () => {
+  afterEach(() => {
+    resetObservabilityApp();
+  });
   it("accepts a local-only plugin with default primaries", () => {
     const app = new ObservabilityApp({plugins: [createLocalPlugin()]});
     expect(app.control).toEqual({

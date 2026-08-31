@@ -32,7 +32,12 @@ export {AIRequest} from "./models/aiRequest";
 export {FileAttachment} from "./models/fileAttachment";
 export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
-export {ObservabilityApp} from "./observability/observabilityApp";
+export {MemoryScoreSink, MemoryTraceSink} from "./observability/memorySinks";
+export {
+  getObservabilityApp,
+  ObservabilityApp,
+  resetObservabilityApp,
+} from "./observability/observabilityApp";
 export type {
   ControlPrimary,
   ObservabilityAppOptions,

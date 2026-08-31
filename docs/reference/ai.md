@@ -374,9 +374,22 @@ Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
 
 In-app prompt versions, nested traces, evaluators, datasets, experiments, review queue, and in-app feedback. Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). Register plugins: [Observe LLM calls](../how-to/observe-llm-calls.md). Why two planes: [AI observability](../explanation/ai-observability.md). Locked design: [implementation plan](../implementationPlans/ai-observability.md).
 
-Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`.
+Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`. Construction also registers the app as the process singleton (`getObservabilityApp()`). Call `resetObservabilityApp()` in tests.
 
-Planned routes live under `/ai/observability`. `AIService` will gain `promptName` / `promptLabel` (default `"production"`), `skipTrace`, `userId`, `sessionId`, and `promptRef` in later phase-1 tasks. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
+`AIService` generate methods:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `promptName` | unset | Resolve `PromptRegistry.get({name, label})` **before** the model call, even when `skipTrace` is true |
+| `promptLabel` | `"production"` | Label used with `promptName` |
+| `skipTrace` | `false` | Skip `TraceSink.export` only; prompt resolve and `AIRequest` still run |
+| `sensitive` | inherited | Explicit value wins; otherwise the resolved prompt version's `sensitive` |
+| `sessionId` / `userId` | unset | Copied onto the exported trace |
+| `priceMap` | app `priceMap` | Per-call override; `costUsd` is omitted when the model is unpriced |
+
+Missing registry, missing prompt, or missing label throws `APIError` 400 and does not call the model. Sink `export` failures are logged and never fail generate.
+
+Planned routes live under `/ai/observability`. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 
 ## Langfuse integration
 

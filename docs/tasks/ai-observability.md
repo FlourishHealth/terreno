@@ -20,7 +20,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/explanation/ai-observability.md` (two planes + config errors)
   - Acceptance: unit tests for local-only valid config, illegal mix, langfuse review queue, missing plugin for a primary
 
-- [ ] **Task 1.2**: In-memory sinks + `AIService` emit + production prompt resolve
+- [x] **Task 1.2**: In-memory sinks + `AIService` emit + production prompt resolve
   - Delivers: `promptName` + `promptLabel` resolves via `PromptRegistry` **before the model call**, even when `skipTrace` is true or no trace sink is registered; missing registry/label/version returns 400 without a model call; resolved-version `sensitive` applies unless the generate option overrides it; every `generate*` exports a trace unless `skipTrace`; sink failures logged not thrown; `AIRequest` still written; `userId` / `sessionId` / `sensitive` / `promptRef` / `priceMap` on options; `costUsd` omitted for unpriced models
   - Files: `ai/src/observability/memorySinks.ts`, `ai/src/service/aiService.ts`, `ai/src/types/index.ts`, `ai/src/service/aiService.test.ts`
   - Blocked by: 1.1

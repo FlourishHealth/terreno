@@ -40,6 +40,8 @@ describe("@terreno/ai public exports", () => {
     "normalizeVertexModelId",
     "parseAiJson",
     "preparePromptForAI",
+    "getObservabilityApp",
+    "resetObservabilityApp",
     "resolveObservabilityControl",
     "validateObservabilityConfig",
     "setCached",
@@ -58,6 +60,8 @@ describe("@terreno/ai public exports", () => {
     "LangfuseApp",
     "LangfuseCache",
     "MCPService",
+    "MemoryScoreSink",
+    "MemoryTraceSink",
     "ObservabilityApp",
     "Project",
   ] as const;
