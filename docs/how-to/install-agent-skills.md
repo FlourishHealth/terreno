@@ -19,11 +19,25 @@ Claude Code takes a plugin skill's command from the frontmatter `name`.
 | Host | Plugin | Invoke Grow |
 | --- | --- | --- |
 | Cursor | `terreno-planning` | `/terreno-1-grow` |
+| Codex | `terreno-planning` | `$terreno-1-grow` |
 | Claude Code | `terreno` | `/terreno:1-grow` |
 
 ### Cursor
 
 Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json), then invoke `/terreno-1-grow`.
+
+### Codex
+
+```text
+codex plugin marketplace add FlourishHealth/terreno
+codex plugin install terreno-planning --source terreno-plugins
+$terreno-1-grow
+```
+
+Marketplace: [`.agents/plugins/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.agents/plugins/marketplace.json).
+Codex installs the canonical plugin at
+[`plugins/terreno-planning/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning)
+(`.codex-plugin/plugin.json`). A clone of this repo already exposes that marketplace.
 
 ### Claude Code
 
@@ -57,6 +71,8 @@ Canonical sources:
 3. `<package>/.ai/skills/` — published package skills; these overlay the repo copies
 
 `plugins/terreno-claude/` is generated from source 2 with shortened stage names.
+Codex uses the canonical plugin plus committed `.codex-plugin/plugin.json` and
+`.agents/plugins/marketplace.json` — do not generate a third plugin tree.
 
 Regenerate the installable tree and the Claude plugin:
 
