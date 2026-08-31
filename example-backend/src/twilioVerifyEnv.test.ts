@@ -1,6 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
+import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 
 describe("resolveTwilioVerifyEnvConfig", () => {
@@ -47,5 +48,19 @@ describe("resolveTwilioVerifyEnvConfig", () => {
         verifyServiceSid: "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       }
     );
+  });
+
+  it("registers Verify without requiring an SMS sender", () => {
+    const env = {
+      TWILIO_ACCOUNT_SID: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      TWILIO_AUTH_TOKEN: "auth-token",
+      TWILIO_VERIFY_SERVICE_SID: "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    };
+    assert.isUndefined(resolveTwilioSmsEnvConfig(env));
+    assert.deepEqual(resolveTwilioVerifyEnvConfig(env), {
+      accountSid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      authToken: "auth-token",
+      verifyServiceSid: "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    });
   });
 });

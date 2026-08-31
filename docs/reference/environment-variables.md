@@ -152,9 +152,10 @@ console mail provider; production leaves mail unconfigured until a provider is w
 Sender identity must be verified in SendGrid before real delivery works.
 When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
 `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`, the example backend registers
-`TwilioSmsProvider` (optional peer `twilio`). Partial Twilio config throws at startup.
-Without Twilio env vars, non-production keeps the console SMS provider; production omits
-SMS until a provider is wired.
+`TwilioSmsProvider` (optional peer `twilio`). A sender var without those credentials
+throws at startup. Shared account credentials without a sender do not enable SMS — they
+can still enable Verify when `TWILIO_VERIFY_SERVICE_SID` is set. Without an SMS sender,
+non-production keeps the console SMS provider; production omits SMS until a sender is wired.
 When `TWILIO_VERIFY_SERVICE_SID` is set with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`,
 the example backend registers `TwilioVerifyProvider`. A verify service SID without those
 credentials throws at startup. Without `TWILIO_VERIFY_SERVICE_SID`, non-production keeps

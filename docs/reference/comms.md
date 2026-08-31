@@ -165,9 +165,11 @@ return `accepted: false` with Twilio `errorCode` / `errorClass` (`permanent` | `
 `providerMessageId` and `metadata.consoleUrl` for the Twilio SMS log.
 
 The example backend registers this adapter when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
-and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. Partial
-config throws at startup. Unconfigured environments keep the console SMS provider (or omit
-SMS in production). `twilio` is an optional peer — apps that do not send SMS do not install it.
+and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. A sender
+without credentials throws at startup. Account credentials without a sender skip SMS so
+Verify-only configs can share `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`. Unconfigured
+environments keep the console SMS provider (or omit SMS in production). `twilio` is an
+optional peer — apps that do not send SMS do not install it.
 
 ### Twilio Verify adapter
 

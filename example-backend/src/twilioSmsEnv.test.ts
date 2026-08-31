@@ -12,7 +12,7 @@ describe("resolveTwilioSmsEnvConfig", () => {
     );
   });
 
-  it("fails fast when credentials are incomplete", (): void => {
+  it("fails fast when a sender is set without complete credentials", (): void => {
     assert.throws((): void => {
       resolveTwilioSmsEnvConfig({
         TWILIO_ACCOUNT_SID: "ACtest",
@@ -21,13 +21,23 @@ describe("resolveTwilioSmsEnvConfig", () => {
     }, /TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER/);
   });
 
-  it("fails fast when credentials are present without a sender", (): void => {
-    assert.throws((): void => {
+  it("skips SMS when account credentials are present without a sender", (): void => {
+    assert.isUndefined(
       resolveTwilioSmsEnvConfig({
         TWILIO_ACCOUNT_SID: "ACtest",
         TWILIO_AUTH_TOKEN: "token",
-      });
-    }, /TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER/);
+      })
+    );
+  });
+
+  it("skips SMS for Verify-only env (shared creds, no sender)", (): void => {
+    assert.isUndefined(
+      resolveTwilioSmsEnvConfig({
+        TWILIO_ACCOUNT_SID: "ACtest",
+        TWILIO_AUTH_TOKEN: "token",
+        TWILIO_VERIFY_SERVICE_SID: "VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      })
+    );
   });
 
   it("prefers messaging service SID when both senders are set", (): void => {
