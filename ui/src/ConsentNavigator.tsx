@@ -10,9 +10,11 @@ import type {SubmitConsentBody} from "./useSubmitConsent";
 import {useSubmitConsent} from "./useSubmitConsent";
 
 interface ConsentNavigatorProps {
-  // noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
-  api: any;
+  /**
+   * Consumer RTK Query API. Typed as unknown because RTK's injectEndpoints return
+   * type is not structurally compatible with the consent hook stubs until runtime.
+   */
+  api: unknown;
   baseUrl?: string;
   children: React.ReactNode;
   extraScreens?: React.ReactNode[];
@@ -30,8 +32,14 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [extraScreenIndex, setExtraScreenIndex] = useState(0);
-  const {forms, isLoading, error, refetch} = useConsentForms(api, baseUrl);
-  const {submit, isSubmitting} = useSubmitConsent(api, baseUrl);
+  const {forms, isLoading, error, refetch} = useConsentForms(
+    api as Parameters<typeof useConsentForms>[0],
+    baseUrl
+  );
+  const {submit, isSubmitting} = useSubmitConsent(
+    api as Parameters<typeof useSubmitConsent>[0],
+    baseUrl
+  );
   const locale = detectLocale();
   const validExtraScreens = extraScreens ?? [];
 

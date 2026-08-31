@@ -1,9 +1,15 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+/**
+ * Isolated because the whole `react-native` module is replaced below. `mock.module` is
+ * process-wide and permanent, so running this alongside other files leaves every later
+ * suite on `Platform.OS === "web"`, where `@terreno/ui` `Modal` reaches for `document`.
+ */
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
-import {AdminFilterDrawer} from "./AdminFilterDrawer";
+import {renderWithTheme} from "../../../ui/src/test-utils";
+import {AdminFilterDrawer} from "../AdminFilterDrawer";
 
 let mockWindowWidth = 1200;
 

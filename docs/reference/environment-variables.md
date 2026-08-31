@@ -137,6 +137,7 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
+| `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
 When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvider`
@@ -144,6 +145,11 @@ When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvi
 console mail provider; production leaves mail unconfigured until a provider is wired.
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
 Sender identity must be verified in SendGrid before real delivery works.
+`EXPO_ACCESS_TOKEN` is optional; the example backend always registers
+`ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
+client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
+token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+for authenticated test sends.
 
 ## Observability
 

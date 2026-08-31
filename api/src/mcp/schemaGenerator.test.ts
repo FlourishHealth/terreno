@@ -14,6 +14,7 @@ const createTestModel = () => {
   const schema = new Schema({
     completed: {default: false, description: "Whether the item is complete", type: Boolean},
     count: {description: "A count", type: Number},
+    eatenBy: [{description: "Eaters", ref: "User", type: Schema.Types.ObjectId}],
     name: {description: "The name", required: true, type: String},
     ownerId: {description: "Owner", ref: "User", type: Schema.Types.ObjectId},
     secretField: {description: "A secret", type: String},
@@ -133,6 +134,13 @@ describe("generateToolDescription", () => {
   it("includes ref model name in create description", () => {
     const desc = generateToolDescription(model, "create", {});
     expect(desc).toContain("ownerId (ref: User)");
+  });
+
+  it("labels ObjectId array refs as arrays in create description", () => {
+    const desc = generateToolDescription(model, "create", {});
+    expect(desc).toContain("eatenBy (ref:User[])");
+    expect(desc).not.toContain("eatenBy (ObjectId)");
+    expect(desc).not.toContain("eatenBy (ref: User) ");
   });
 
   it("generates read description with the declared populate-able refs", () => {

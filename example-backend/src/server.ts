@@ -25,18 +25,21 @@ import {HealthApp} from "@terreno/api-health";
 import {
   CommsApp,
   ConsoleMailProvider,
-  ConsolePushProvider,
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
+  getCommsService,
 } from "@terreno/comms";
+import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
+import {Expo} from "expo-server-sdk";
 import express from "express";
 import mongoose from "mongoose";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
@@ -182,6 +185,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(usersRouter)
@@ -247,6 +251,23 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : isDeployed
           ? undefined
           : new ConsoleMailProvider();
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `expo-server-sdk`. `ExpoPushProvider`'s default path uses createRequire
+      // and is missing from the compiled binary.
+      const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
+      const pushProvider = new ExpoPushProvider({
+        accessToken: expoAccessToken,
+        client: new Expo(
+          expoAccessToken ? {accessToken: expoAccessToken} : {}
+        ) as unknown as ExpoPushClient,
+        isExpoPushToken: (token: string): boolean => Expo.isExpoPushToken(token),
+        onDeadToken: async (token: string): Promise<void> => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event): Promise<void> => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      });
 
       terraApp.register(
         new CommsApp(
@@ -254,11 +275,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                push: pushProvider,
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
-                push: new ConsolePushProvider(),
+                push: pushProvider,
                 sms: new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),
               }
@@ -291,12 +313,6 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         new AdminApp({
           accessControl: access,
           customScreens: [
-            {
-              adminAccess: {action: "showcase", resource: "adminScreen"},
-              description: "How this example wires Terreno admin UI v2",
-              displayName: "Admin UI v2 map",
-              name: "showcase",
-            },
             {
               adminAccess: {action: "syncLab", resource: "adminScreen"},
               description: "Stress-test the local-first sync layer",

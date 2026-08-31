@@ -19,7 +19,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 ## Legacy
 
-`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md).
+`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md). `modelRouter` `realtime` and the RTK cache-patching helpers are removed in Terreno 58.
 
 ## Configuration
 
@@ -31,5 +31,6 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [UI performance](ui-performance.md) — Component render benchmarks
 - [Lifecycle plugin](lifecycle-plugin.md) — Grow/Pick/Roast/Brew/Taste contracts, results, and transitions
 - [Install agent skills](../how-to/install-agent-skills.md) — Published `skills/` tree for `npx skills`
+- [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and Pick plan comments
 - Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog
 - Per-package `package.json` in each package directory — Commands and dependencies

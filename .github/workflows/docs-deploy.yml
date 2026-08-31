@@ -1,5 +1,7 @@
 name: Docs Deploy
 
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
+# CircleCI skips Netlify jobs when those vars are unset.
 on:
   push:
     branches:

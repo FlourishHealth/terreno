@@ -1,10 +1,13 @@
 # Lifecycle contract
 
 Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration loop.
+`terreno-planning-loop` and `terreno-taste-sweep` are invocable outer loops; they
+must not be recorded as `stage` values.
 
 | Owner | Responsibility |
 | --- | --- |
 | Outer loop | when to invoke, which agent, persistence, waiting, retry, stop, escalation |
+| Pick–Roast inner loop | one task Pick, Roast that task, next task, until the list is done |
 | Lifecycle stage | how to perform one stage correctly and emit evidence |
 | Repository skills | repository commands, architecture, safety rules, and domain conventions |
 | Roast | whether the implementation satisfies the approved IP |
@@ -12,9 +15,15 @@ Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration lo
 
 Every stage reads durable inputs, performs one bounded transition, writes the execution
 state, emits one result document, and exits. Never rely on conversational memory.
-Brew and Taste include one in-process wait for
+Pick is the exception that still stays bounded: it continues the
+[`pick-roast loop`](pick-roast-loop.md) in-process (one task, then Roast, then the next
+task) until the approved list is done, a `FAIL` that cannot continue, or `BLOCKED`.
+Roast never invokes Pick. Roast proves the current task and returns. Brew and Taste
+include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
-exit, so they can react to those results.
+exit, so they can react to those results. Taste observes product CI with
+[`product-ci.md`](product-ci.md) on every discovered host. Hosts and tokens
+are on that page.
 
 ## Discover supporting skills
 
@@ -101,7 +110,7 @@ transcripts.
 | `ask` | human questions: `q` / `rec` / optional `opts` |
 | `next` | recommended next stage or `null` |
 | `action` | concrete next action |
-| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI) |
+| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI on any discovered host) |
 
 ## Execution state
 
@@ -141,10 +150,11 @@ transport.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
 - `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
-  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI,
+  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI on
+  any discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
   for review-bot timeout, and after Taste's second post-fix push. Do not emit `PENDING`
-  while Bugbot, CodeQL, or similar review bots are still queued or in progress; sleep
-  per the async-review-bots procedure first.
+  while Bugbot, CodeQL, or similar review bots are still queued or in progress; wait
+  per the async-review-bots procedure first, preferring native watch/subscription hooks.
 - `PASS`: this stage's success conditions are proven for the recorded head.
 
 Human gates include unresolved product semantics, architecture/security/data ownership,
@@ -153,4 +163,5 @@ scope growth, and policy-required approval. Include options, tradeoffs, evidence
 recommended default when appropriate.
 
 Bounded engineering retries must be hypothesis-driven. Unbounded product-CI observation
-belongs to the outer loop. Brew and Taste wait in-process only for async review bots.
+on every discovered host belongs to the outer loop. Brew and Taste wait in-process only
+for async review bots.

@@ -19,7 +19,6 @@
     "better-auth": "catalog:",
     "cors": "^2.8.5",
     "cron": "^4.3.4",
-    "expo-server-sdk": "^6.0.0",
     "express": "catalog:",
     "generaterr": "^1.5.0",
     "http-errors": "^2.0.0",

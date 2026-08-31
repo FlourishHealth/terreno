@@ -1,5 +1,6 @@
 name: Demo Deploy
 
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
 on:
   push:
     branches:
@@ -13,8 +14,6 @@ on:
       - "demo/**"
       - "ui/**"
       - ".github/workflows/demo-deploy.yml"
-  # Allows publish-on-tag.yml to force a fresh production deploy after a release,
-  # so the public demo always reflects the latest published version.
   workflow_dispatch:
 
 jobs:

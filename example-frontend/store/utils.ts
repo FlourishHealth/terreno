@@ -54,6 +54,13 @@ export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
   // evaluate expo-notifications' DevicePushTokenAutoRegistration side effect,
   // which logs "Listening to push token changes is not yet fully supported on web".
   const Notifications = await import("expo-notifications");
+  // Native push registration fails on iOS and Android 13+ unless the user has granted
+  // notification permission. Request it before fetching the Expo token so denied
+  // permission skips registration instead of throwing.
+  const permission = await Notifications.requestPermissionsAsync();
+  if (permission.status !== "granted") {
+    return {data: "", type: "expo"};
+  }
   let tokenRes: ExpoPushToken;
   if (__DEV__) {
     const appConfig = require("../app.json");

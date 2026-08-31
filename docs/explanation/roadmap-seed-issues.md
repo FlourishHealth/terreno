@@ -347,7 +347,7 @@ roadmap item, so apps only install the SDKs they use.
 **Title:** `[Roadmap] Comms adapter — Expo push notifications`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`In progress`
 
 Implements the `@terreno/comms` push provider on Expo's push service using
 `expo-server-sdk` (already a dependency of `@terreno/api`, currently unused). Covers token

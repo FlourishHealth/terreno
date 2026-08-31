@@ -2,19 +2,8 @@
 # (GitHub Actions docs). PR CI uses `pull_request`; `push` is master-only.
 name: Syncdb CI
 
-on:
-  pull_request:
-    paths:
-      - "syncdb/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/syncdb-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "syncdb/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/syncdb-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   lint-and-test:

@@ -6,6 +6,13 @@ import {APIError} from "../errors";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {AnyTerrenoAccess} from "./types";
 
+const pathParam = (value: string | string[] | undefined, title: string): string => {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new APIError({status: 400, title});
+  }
+  return value;
+};
+
 export interface RbacRouterOptions {
   access: AnyTerrenoAccess;
   userModel: UserModel;
@@ -70,7 +77,7 @@ export const rbacRouter = ({
           const role = await access.roles.update({
             actor,
             changes: req.body,
-            roleName: req.params.name,
+            roleName: pathParam(req.params.name, "Role name is required"),
           });
           return res.json({data: role});
         })
@@ -85,7 +92,10 @@ export const rbacRouter = ({
           if (!actor) {
             throw new APIError({status: 401, title: "Unauthorized"});
           }
-          await access.roles.remove({actor, roleName: req.params.name});
+          await access.roles.remove({
+            actor,
+            roleName: pathParam(req.params.name, "Role name is required"),
+          });
           return res.status(204).send();
         })
       );
@@ -97,7 +107,7 @@ export const rbacRouter = ({
         asyncHandler(async (req, res) => {
           const diff = await access.roles.previewRoleChange({
             permissions: req.body.permissions,
-            roleName: req.params.name,
+            roleName: pathParam(req.params.name, "Role name is required"),
           });
           return res.json({data: diff});
         })
@@ -108,7 +118,7 @@ export const rbacRouter = ({
         authenticateMiddleware(),
         access.middleware({rbac: ["read"]}),
         asyncHandler(async (req, res) => {
-          const user = await userModel.findById(req.params.id);
+          const user = await userModel.findById(pathParam(req.params.id, "User id is required"));
           if (!user) {
             throw new APIError({status: 404, title: "User not found"});
           }
@@ -140,7 +150,7 @@ export const rbacRouter = ({
           await access.roles.assign({
             actor,
             roleNames: req.body.roleNames,
-            userId: req.params.id,
+            userId: pathParam(req.params.id, "User id is required"),
           });
           return res.json({data: {success: true}});
         })
@@ -158,7 +168,7 @@ export const rbacRouter = ({
           const diff = await access.roles.previewAssignment({
             actor,
             roleNames: req.body.roleNames,
-            userId: req.params.id,
+            userId: pathParam(req.params.id, "User id is required"),
           });
           return res.json({data: diff});
         })
