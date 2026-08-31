@@ -93,8 +93,8 @@ describe("lifecycle skill architecture", (): void => {
   it("rejects Taste without a no-push emit path", (): void => {
     const errors = validateStageContent({
       content: readStage("terreno-5-taste").replace(
-        "If step 8 did not push",
-        "After step 8 pushed"
+        "If step 9 did not push",
+        "After step 9 pushed"
       ),
       definition: {
         directory: "terreno-5-taste",
@@ -142,6 +142,37 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("every discovered CI host")));
     assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
+  });
+
+  it("rejects Taste that skips the fresh lint/test subagent or product-CI wait loop", (): void => {
+    const content = readStage("terreno-5-taste")
+      .replaceAll("fresh subagent", "same conversation")
+      .replaceAll("no parent conversation", "full parent context")
+      .replaceAll("bun lint", "repo lint")
+      .replaceAll("locally affected tests", "the full suite")
+      .replaceAll("latest `master`", "latest origin")
+      .replaceAll("Before any push, in this order", "Before any push, optionally")
+      .replaceAll("gh pr checks <pr> --watch", "poll GitHub later")
+      .replaceAll("circleci run watch --sha <sha>", "poll CircleCI later")
+      .replaceAll("watch → snapshot cycle in a loop", "one snapshot then exit");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("fresh subagent")));
+    assert.isTrue(errors.some((error) => error.includes("no parent conversation")));
+    assert.isTrue(errors.some((error) => error.includes("bun lint")));
+    assert.isTrue(errors.some((error) => error.includes("locally affected tests")));
+    assert.isTrue(errors.some((error) => error.includes("gh pr checks --watch")));
+    assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
+    assert.isTrue(errors.some((error) => error.includes("watch loop")));
+    assert.isTrue(errors.some((error) => error.includes("latest master")));
+    assert.isTrue(errors.some((error) => error.includes("pull, then lint, then watch")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {

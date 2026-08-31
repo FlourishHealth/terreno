@@ -47,12 +47,14 @@ The reusable planning plugin uses five bounded transitions:
 **Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
 **Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
-product-CI waiting, retry, stop, and escalation.
-Brew and Taste also wait until review bots such as Bugbot or CodeQL finish so they can
-react in the same invocation, preferring provider CLI watch hooks or harness event
-subscriptions over sleep polling. Taste observes product CI on every discovered host
-(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. See
-`plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+retry, stop, and escalation. Taste waits in-process for review bots and for product
+CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
+then spawns a no-context subagent to run `bun lint` in affected packages and locally
+affected tests, then pushes and watches CI. Brew also waits until
+review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
+Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
+Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
+`docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
 project commands and domain conventions belong there, not in the portable plugin.
