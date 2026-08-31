@@ -1,4 +1,4 @@
-import {describe, it, mock} from "bun:test";
+import {afterAll, describe, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -26,6 +26,11 @@ mock.module("./IconButton", () => ({
     testID?: string;
   }) => React.createElement(Pressable, {accessibilityLabel, disabled, onPress: onClick, testID}),
 }));
+
+// Module mocks are global, so restore the bunSetup stub for test files that run after this one.
+afterAll(() => {
+  mock.module("./IconButton", () => ({IconButton: mock(() => null)}));
+});
 
 // Box and IconButton presses run through an async haptic call, so state updates land in a
 // microtask after the event.
