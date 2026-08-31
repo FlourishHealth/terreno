@@ -32,6 +32,7 @@ import {
 import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
 import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import {Expo} from "expo-server-sdk";
 import express from "express";
@@ -55,6 +56,7 @@ import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
+import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
@@ -279,12 +281,20 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : undefined;
       const smsProvider = twilioSmsProvider ?? (isDeployed ? undefined : new ConsoleSmsProvider());
 
+      const twilioVerifyConfig = resolveTwilioVerifyEnvConfig();
+      const twilioVerifyProvider = twilioVerifyConfig
+        ? new TwilioVerifyProvider(twilioVerifyConfig)
+        : undefined;
+      const verificationProvider =
+        twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());
+
       terraApp.register(
         new CommsApp(
           isDeployed
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 ...(smsProvider ? {sms: smsProvider} : {}),
+                ...(verificationProvider ? {verification: verificationProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 push: pushProvider,
               }
@@ -293,7 +303,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 mail: mailProvider ?? new ConsoleMailProvider(),
                 push: pushProvider,
                 sms: smsProvider ?? new ConsoleSmsProvider(),
-                verification: new ConsoleVerificationProvider(),
+                verification: verificationProvider ?? new ConsoleVerificationProvider(),
               }
         )
       );

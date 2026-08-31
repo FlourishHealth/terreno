@@ -169,6 +169,42 @@ and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. P
 config throws at startup. Unconfigured environments keep the console SMS provider (or omit
 SMS in production). `twilio` is an optional peer — apps that do not send SMS do not install it.
 
+### Twilio Verify adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {CommsApp} from "@terreno/comms";
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      verification: new TwilioVerifyProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // verifyServiceSid defaults to TWILIO_VERIFY_SERVICE_SID
+      }),
+    })
+  )
+  .start();
+```
+
+`TwilioVerifyProvider` fails fast at construction when account SID, auth token, or
+`TWILIO_VERIFY_SERVICE_SID` is missing. `startVerification` supports `sms` and `email`.
+`checkVerification` returns `valid: true` only for Verify status `approved`; `pending`,
+`expired`, and max-attempt states return `valid: false` with those reasons. Start failures
+are classified (`config` / `transient` / `permanent`) and never throw through the facade.
+Verification `CommsMessage` rows redact the destination, never store the OTP, and are not
+retryable from admin. Accepted starts store `metadata.consoleUrl` for the Verify service.
+
+The example backend registers this adapter when `TWILIO_VERIFY_SERVICE_SID` is set together
+with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`. A verify service SID without those
+credentials throws at startup. Unconfigured environments keep the console verification
+provider (or omit verification in production). Verify's email channel needs a Twilio Verify
+email integration; that setup is not automated.
+
 ### Expo push adapter
 
 ```bash

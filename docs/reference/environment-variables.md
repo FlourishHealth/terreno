@@ -137,10 +137,11 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
-| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | Yes | server |
-| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms` | ❌ | — | Yes | server |
+| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
 | `TWILIO_MESSAGING_SERVICE_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
 | `TWILIO_FROM_NUMBER` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_VERIFY_SERVICE_SID` | `@terreno/comms/adapters/twilioVerify` | ❌ | — | No | server |
 | `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
@@ -154,6 +155,10 @@ When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
 `TwilioSmsProvider` (optional peer `twilio`). Partial Twilio config throws at startup.
 Without Twilio env vars, non-production keeps the console SMS provider; production omits
 SMS until a provider is wired.
+When `TWILIO_VERIFY_SERVICE_SID` is set with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`,
+the example backend registers `TwilioVerifyProvider`. A verify service SID without those
+credentials throws at startup. Without `TWILIO_VERIFY_SERVICE_SID`, non-production keeps
+the console verification provider; production omits verification until a provider is wired.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a

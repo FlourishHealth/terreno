@@ -25,6 +25,7 @@ registerSimpleMongoPreload({
     Reflect.deleteProperty(process.env, "TWILIO_AUTH_TOKEN");
     Reflect.deleteProperty(process.env, "TWILIO_FROM_NUMBER");
     Reflect.deleteProperty(process.env, "TWILIO_MESSAGING_SERVICE_SID");
+    Reflect.deleteProperty(process.env, "TWILIO_VERIFY_SERVICE_SID");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
   },

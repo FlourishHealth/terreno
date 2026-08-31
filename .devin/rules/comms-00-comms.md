@@ -75,6 +75,21 @@ Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` 
 (`TWILIO_MESSAGING_SERVICE_SID` preferred, else `TWILIO_FROM_NUMBER`). Invalid destinations
 throw 400 before the API. Send failures return classified `SendResult` values and never throw.
 
+### Twilio Verify (`@terreno/comms/adapters/twilioVerify`)
+
+```typescript
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new CommsApp({
+  verification: new TwilioVerifyProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and
+`TWILIO_VERIFY_SERVICE_SID`. Constructor fails fast when any of those is missing. Check
+results map `approved` to `valid: true`; `pending` / `expired` / `max-attempts` stay invalid.
+Verification rows never store OTP codes and are not retryable.
+
 ### Expo push (`@terreno/comms/adapters/expoPush`)
 
 ```typescript
