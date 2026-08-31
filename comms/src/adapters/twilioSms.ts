@@ -6,6 +6,10 @@ import type {CommsErrorClass, SendResult, SmsMessage, SmsProvider} from "../type
 
 const nodeRequire = createRequire(__filename);
 
+const TWILIO_SMS_CONSOLE_BASE = "https://console.twilio.com/us1/monitor/logs/sms";
+
+const twilioMessageConsoleUrl = (sid: string): string => `${TWILIO_SMS_CONSOLE_BASE}/${sid}`;
+
 const PERMANENT_CODES = new Set([21211, 21214, 21217, 21408, 21610, 30003, 30005, 30006, 30007]);
 const TRANSIENT_CODES = new Set([20429, 30001, 30002]);
 const CONFIG_CODES = new Set([20003, 20404]);
@@ -204,6 +208,7 @@ export class TwilioSmsProvider implements SmsProvider {
       });
       return {
         accepted: true,
+        metadata: {consoleUrl: twilioMessageConsoleUrl(created.sid)},
         providerMessageId: created.sid,
       };
     } catch (error: unknown) {

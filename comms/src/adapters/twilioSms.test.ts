@@ -185,6 +185,53 @@ describe("TwilioSmsProvider", () => {
     assert.equal(client.calls[0]?.params.to, "+14155552671");
   });
 
+  it("stores a Twilio console deep link for accepted sends", async (): Promise<void> => {
+    const client = createMockClient(async () => ({sid: "SMconsole1"}));
+    const provider = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+      client,
+      messagingServiceSid: "MGservice",
+    });
+
+    const result = await provider.sendSms({body: "Hello", to: "+14155552671"});
+
+    assert.isTrue(result.accepted);
+    assert.equal(result.providerMessageId, "SMconsole1");
+    assert.include(String(result.metadata?.consoleUrl), "SMconsole1");
+    assert.include(String(result.metadata?.consoleUrl), "console.twilio.com");
+  });
+
+  it("fires onError with the classified result when the send fails", async (): Promise<void> => {
+    const client = createMockClient(async () => {
+      throw twilioRestError({
+        code: 21610,
+        message: "Attempt to send to unsubscribed recipient",
+        status: 400,
+      });
+    });
+    const provider = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+      client,
+      messagingServiceSid: "MGservice",
+    });
+    const onErrorCalls: Array<{errorClass?: string; errorCode?: string}> = [];
+    const service = new CommsService({
+      onError: async (_context, result): Promise<void> => {
+        onErrorCalls.push(result);
+      },
+      sms: provider,
+    });
+
+    const result = await service.sendSms({body: "Hello", to: "+14155552671"});
+
+    assert.isFalse(result.accepted);
+    assert.equal(onErrorCalls.length, 1);
+    assert.equal(onErrorCalls[0]?.errorClass, "permanent");
+    assert.equal(onErrorCalls[0]?.errorCode, "21610");
+  });
+
   it("classifies 21610 as permanent and never retries", async (): Promise<void> => {
     let attempts = 0;
     const client = createMockClient(async () => {
