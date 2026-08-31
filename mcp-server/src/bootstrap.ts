@@ -913,6 +913,9 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       dependencies: {
+        "@expo/vector-icons": "^15.1.1",
+        "@react-native-async-storage/async-storage": "2.2.0",
+        "@reduxjs/toolkit": "^2.11.1",
         "@sentry/react": "^10.29.0",
         "@terreno/admin-frontend": "latest",
         "@terreno/rtk": "latest",
@@ -922,15 +925,23 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "expo-constants": "~18.0.13",
         "expo-router": "~57.0.14",
         "expo-sqlite": "~16.0.10",
+        lodash: "^4.18.1",
+        luxon: "^3.7.2",
         react: "19.2.3",
         "react-dom": "19.2.3",
         "react-native": "0.86.2",
+        "react-native-reanimated": "4.5.1",
         "react-redux": "^9.2.0",
+        "redux-persist": "^6.0.0",
       },
       devDependencies: {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
+        "@rtk-query/codegen-openapi": "^2.2.0",
+        "@types/lodash": "^4.17.17",
+        "@types/luxon": "^3.7.1",
         "@types/react": "~19.2.14",
+        tsx: "^4.23.12",
         typescript: "~6.0.3",
       },
       main: "expo-router/entry",
@@ -938,6 +949,7 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
       private: true,
       scripts: {
         android: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --android --port 8082",
+        compile: "tsc",
         ios: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --ios --port 8082",
         lint: "bun biome check .",
         "lint:fix": "bun biome check --write .",
@@ -958,17 +970,13 @@ const generateFrontendAppJson = (args: BootstrapArgs): string => {
   const {appDisplayName, appName} = args;
   return JSON.stringify(
     {
+      // No icon/splash/favicon keys: Expo falls back to its built-in defaults, so a freshly
+      // generated app bundles without any binary assets. Add your own branding later and
+      // point `icon`, `android.adaptiveIcon`, `splash`, and `web.favicon` at those files.
       expo: {
-        android: {
-          adaptiveIcon: {
-            backgroundColor: "#ffffff",
-            foregroundImage: "./assets/images/adaptive-icon.png",
-          },
-        },
         experiments: {
           typedRoutes: true,
         },
-        icon: "./assets/images/icon.png",
         ios: {
           supportsTablet: true,
         },
@@ -977,16 +985,10 @@ const generateFrontendAppJson = (args: BootstrapArgs): string => {
         plugins: ["expo-router"],
         scheme: appName,
         slug: appName,
-        splash: {
-          backgroundColor: "#ffffff",
-          image: "./assets/images/splash-icon.png",
-          resizeMode: "contain",
-        },
         userInterfaceStyle: "automatic",
         version: "1.0.0",
         web: {
           bundler: "metro",
-          favicon: "./assets/images/favicon.png",
           output: "static",
         },
       },
@@ -997,12 +999,13 @@ const generateFrontendAppJson = (args: BootstrapArgs): string => {
 };
 
 const generateFrontendTsConfig = (): string => {
+  // No `baseUrl`: it is deprecated as of TypeScript 6 and makes `tsc` abort with TS5101
+  // before checking a single file. `paths` entries are relative to this tsconfig instead.
   return JSON.stringify(
     {
       compilerOptions: {
         allowJs: true,
         allowSyntheticDefaultImports: true,
-        baseUrl: ".",
         esModuleInterop: true,
         jsx: "react-jsx",
         lib: ["DOM", "ESNext"],
@@ -1029,6 +1032,45 @@ const generateFrontendTsConfig = (): string => {
     null,
     2
   );
+};
+
+const generateFrontendMetroConfig = (): string => {
+  return `const {getDefaultConfig} = require("expo/metro-config");
+const path = require("path");
+
+const config = getDefaultConfig(__dirname);
+
+const defaultResolveRequest = config.resolver.resolveRequest;
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // @terreno/admin-frontend imports jspdf for its consent-PDF export. jspdf's CommonJS and
+  // Node builds wrap an AMD-style \`require(["html2canvas"], cb)\` call that Metro's static
+  // transform cannot parse, which fails the whole bundle — including Expo Router's static
+  // web render, which resolves under a "node" condition and would otherwise pick
+  // jspdf.node.min.js. Pin every jspdf request to the ESM browser build on web, and drop it
+  // on native, where PDF export is unavailable and jspdf's browser/Node APIs are missing.
+  if (moduleName === "jspdf" || moduleName.startsWith("jspdf/dist/jspdf.node")) {
+    if (platform !== "web") {
+      return {type: "empty"};
+    }
+    try {
+      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [__dirname]}));
+      return {
+        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+        type: "sourceFile",
+      };
+    } catch {
+      // jspdf is not installed — let Metro report the failure itself.
+    }
+  }
+
+  return defaultResolveRequest
+    ? defaultResolveRequest(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+};
+
+module.exports = config;
+`;
 };
 
 const generateFrontendTsConfigCodegen = (): string => {
@@ -1206,11 +1248,8 @@ exec(command, (error, _stdout, stderr) => {
 };
 
 const generateFrontendRootLayout = (_args: BootstrapArgs): string => {
-  return `import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DefaultTheme, ThemeProvider} from "expo-router/react-navigation";
-import {useFonts} from "expo-font";
+  return `import {DefaultTheme, ThemeProvider} from "expo-router/react-navigation";
 import {Stack} from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
 import {baseUrl, selectBetterAuthIsLoading, selectBetterAuthUserId} from "@terreno/rtk";
@@ -1227,32 +1266,9 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-SplashScreen.preventAutoHideAsync();
-
+// TerrenoProvider loads the Nunito/Titillium Web families @terreno/ui renders with, so this
+// app ships no font assets of its own. Add \`useFonts\` here only for extra custom faces.
 export default function RootLayout(): React.ReactElement | null {
-  const [loaded, error] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    ...FontAwesome.font,
-  });
-
-  // Handle font loading errors
-  useEffect(() => {
-    if (error) {
-      throw error;
-    }
-  }, [error]);
-
-  // Hide splash screen when fonts are loaded
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
@@ -1305,15 +1321,17 @@ function RootLayoutNav(): React.ReactElement {
   return (
     <SyncDbProvider client={syncDb}>
       <ThemeProvider value={DefaultTheme}>
+        {/* Stack.Protected is the supported way to gate routes on auth state. Rendering
+            Stack.Screen children behind a raw conditional (or a fragment) crashes the
+            navigator, because Stack reads its screen config off the child elements. */}
         <Stack>
-          {!userId ? (
-            <>
-              <Stack.Screen name="login" options={{headerShown: false}} />
-              <Stack.Screen name="signup" options={{headerShown: false}} />
-            </>
-          ) : (
+          <Stack.Protected guard={!userId}>
+            <Stack.Screen name="login" options={{headerShown: false}} />
+            <Stack.Screen name="signup" options={{headerShown: false}} />
+          </Stack.Protected>
+          <Stack.Protected guard={Boolean(userId)}>
             <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-          )}
+          </Stack.Protected>
         </Stack>
       </ThemeProvider>
     </SyncDbProvider>
@@ -2805,6 +2823,22 @@ interface GeneratedFile {
   content: string;
 }
 
+const getFenceLanguage = (filePath: string): string => {
+  if (filePath.endsWith(".json") || filePath.endsWith(".jsonc")) {
+    return "json";
+  }
+  if (filePath.endsWith(".js")) {
+    return "javascript";
+  }
+  if (filePath.endsWith(".yml") || filePath.endsWith(".yaml")) {
+    return "yaml";
+  }
+  if (filePath.endsWith(".md")) {
+    return "markdown";
+  }
+  return "typescript";
+};
+
 const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
   const frontendDir = `frontend`;
   const backendDir = `backend`;
@@ -2846,6 +2880,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendAppJson(args), path: `${frontendDir}/app.json`},
     {content: generateFrontendTsConfig(), path: `${frontendDir}/tsconfig.json`},
     {content: generateFrontendTsConfigCodegen(), path: `${frontendDir}/tsconfig.codegen.json`},
+    {content: generateFrontendMetroConfig(), path: `${frontendDir}/metro.config.js`},
     {content: generateFrontendBiomeJsonc(), path: `${frontendDir}/biome.jsonc`},
     {content: generateFrontendOpenApiConfig(), path: `${frontendDir}/openapi-config.ts`},
     {content: generateFrontendGenerateSdk(), path: `${frontendDir}/scripts/generate-sdk.ts`},
@@ -2928,40 +2963,25 @@ ${fileList}
 
 2. **Create all the files listed above.** Each file's content is provided below.
 
-3. **Create asset directories and download assets from Expo:**
-   \`\`\`bash
-   mkdir -p frontend/assets/fonts
-   mkdir -p frontend/assets/images
+   No \`assets/\` directory is needed: \`@terreno/ui\` ships the Nunito and Titillium Web
+   fonts it renders with, and \`app.json\` leaves \`icon\`/\`splash\`/\`favicon\` unset so Expo
+   uses its built-in defaults. Add your own branding assets whenever you're ready and
+   point \`app.json\` at them then.
 
-   # Download SpaceMono font
-   curl -L -o frontend/assets/fonts/SpaceMono-Regular.ttf \\
-     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/fonts/SpaceMono-Regular.ttf"
-
-   # Download Expo default images
-   curl -L -o frontend/assets/images/icon.png \\
-     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/icon.png"
-   curl -L -o frontend/assets/images/splash-icon.png \\
-     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/splash-icon.png"
-   curl -L -o frontend/assets/images/adaptive-icon.png \\
-     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/adaptive-icon.png"
-   curl -L -o frontend/assets/images/favicon.png \\
-     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/favicon.png"
-   \`\`\`
-
-4. **Install dependencies:**
+3. **Install dependencies:**
    \`\`\`bash
    cd backend && bun install
    cd ../frontend && bun install
    \`\`\`
 
-5. **Start MongoDB as a replica set** (required for realtime/sync):
+4. **Start MongoDB as a replica set** (required for realtime/sync):
    \`\`\`bash
    # Using Docker (single-node replica set):
    docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0
    docker exec mongo mongosh --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
    \`\`\`
 
-6. **Start the backend:**
+5. **Start the backend:**
    \`\`\`bash
    cd backend && bun run dev
    \`\`\`
@@ -2999,7 +3019,7 @@ This provides AI assistance with:
 
   const fileContents = files
     .map((f) => {
-      const lang = f.path.endsWith(".json") ? "json" : "typescript";
+      const lang = getFenceLanguage(f.path);
       return `### \`${f.path}\`
 
 \`\`\`${lang}
@@ -3073,13 +3093,12 @@ export const handleBootstrapPromptRequest = (
 Use the \`terreno_bootstrap_app\` tool to generate all the necessary files for the application.
 
 After generating the files:
-1. Create all directories and files as specified
-2. Download assets from Expo's GitHub using the provided curl commands
-3. Install dependencies with \`bun install\`
-4. Start MongoDB
-5. Start the backend with \`bun run dev\`
-6. Generate the SDK with \`bun run sdk\` in the frontend
-7. Start the frontend with \`bun run web\`
+1. Create all directories and files as specified (no \`assets/\` directory is required)
+2. Install dependencies with \`bun install\`
+3. Start MongoDB
+4. Start the backend with \`bun run dev\`
+5. Generate the SDK with \`bun run sdk\` in the frontend
+6. Start the frontend with \`bun run web\`
 
 The application should include:
 - Better Auth login (email/password via \`@terreno/ui\` LoginScreen)
