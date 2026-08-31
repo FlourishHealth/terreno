@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-08-30T23:30:29.964Z.
+> dates are promised. Last updated: 2026-08-31T02:58:15.557Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -11,7 +11,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### api
 
-- [API rate limiting](https://github.com/FlourishHealth/terreno/issues/1187) (Feature, In Progress)
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, Planned) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
