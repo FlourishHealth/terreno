@@ -15,6 +15,16 @@ That split is the two planes:
 
 `experiments.primary` must equal `datasets.primary`. Defaults are all `local`.
 
+`ObservabilityApp` fails boot (constructor throws) when:
+
+| Error | Cause |
+| --- | --- |
+| `experiments.primary must equal datasets.primary` | Mixed dataset/experiment writers |
+| `reviewQueue.primary must be local` | `reviewQueue` set to `langfuse` |
+| `<capability> primary "<id>" has no plugin` | No registered plugin with that `id`, capability, and store |
+
+Telemetry sinks still fan out even when a control primary is local-only.
+
 ## Why this shape for product work
 
 Flourish AI features follow an 8-step loop: gold dataset → labels → prompt versions → evaluators → experiments with gates → `production` label → live traces and in-app feedback → weak traces back into the dataset.

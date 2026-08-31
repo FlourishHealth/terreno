@@ -13,7 +13,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
 
 ## 1A — Contracts and tracer
 
-- [ ] **Task 1.1**: Observability types + `ObservabilityApp` config validation
+- [x] **Task 1.1**: Observability types + `ObservabilityApp` config validation
   - Delivers: `ObservabilityPlugin` / `TraceSink` / `ScoreSink` / `PromptRegistry` / `ReviewQueue` interfaces; `ObservabilityControlConfig`; boot throws on `experiments.primary !== datasets.primary`, on `reviewQueue !== "local"`, and on a primary whose plugin is missing
   - Files: `ai/src/observability/types.ts`, `ai/src/observability/observabilityApp.ts`, `ai/src/observability/observabilityApp.test.ts`, `ai/src/index.ts`
   - Blocked by: none

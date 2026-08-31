@@ -374,7 +374,9 @@ Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
 
 In-app prompt versions, nested traces, evaluators, datasets, experiments, review queue, and in-app feedback. Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). Register plugins: [Observe LLM calls](../how-to/observe-llm-calls.md). Why two planes: [AI observability](../explanation/ai-observability.md). Locked design: [implementation plan](../implementationPlans/ai-observability.md).
 
-Until `ObservabilityApp` ships, keep using `AIRequest` logging and optional `LangfuseApp`. Planned routes live under `/ai/observability`. `AIService` gains `promptName` / `promptLabel` (default `"production"`), `skipTrace`, `userId`, `sessionId`, and `promptRef`. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
+Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`.
+
+Planned routes live under `/ai/observability`. `AIService` will gain `promptName` / `promptLabel` (default `"production"`), `skipTrace`, `userId`, `sessionId`, and `promptRef` in later phase-1 tasks. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 
 ## Langfuse integration
 

@@ -32,6 +32,26 @@ export {AIRequest} from "./models/aiRequest";
 export {FileAttachment} from "./models/fileAttachment";
 export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
+export {ObservabilityApp} from "./observability/observabilityApp";
+export type {
+  ControlPrimary,
+  ObservabilityAppOptions,
+  ObservabilityCapability,
+  ObservabilityControlConfig,
+  ObservabilityPlugin,
+  PromptRegistry,
+  ReviewQueue,
+  ScoreRecord,
+  ScoreSink,
+  SpanRecord,
+  TraceRecord,
+  TraceSink,
+} from "./observability/types";
+export {
+  DEFAULT_OBSERVABILITY_CONTROL,
+  resolveObservabilityControl,
+  validateObservabilityConfig,
+} from "./observability/types";
 export {addAiRequestsExplorerRoutes} from "./routes/aiRequestsExplorer";
 export {addFileRoutes} from "./routes/files";
 export {addGptRoutes} from "./routes/gpt";
