@@ -31,6 +31,7 @@ import {
 } from "@terreno/comms";
 import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import {Expo} from "expo-server-sdk";
 import express from "express";
@@ -53,6 +54,7 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
+import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
@@ -271,11 +273,18 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         },
       });
 
+      const twilioSmsConfig = resolveTwilioSmsEnvConfig();
+      const twilioSmsProvider = twilioSmsConfig
+        ? new TwilioSmsProvider(twilioSmsConfig)
+        : undefined;
+      const smsProvider = twilioSmsProvider ?? (isDeployed ? undefined : new ConsoleSmsProvider());
+
       terraApp.register(
         new CommsApp(
           isDeployed
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
+                ...(smsProvider ? {sms: smsProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 push: pushProvider,
               }
@@ -283,7 +292,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
                 push: pushProvider,
-                sms: new ConsoleSmsProvider(),
+                sms: smsProvider ?? new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),
               }
         )

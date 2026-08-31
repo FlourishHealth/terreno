@@ -137,6 +137,10 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
+| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | Yes | server |
+| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms` | ❌ | — | Yes | server |
+| `TWILIO_MESSAGING_SERVICE_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_FROM_NUMBER` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
 | `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
@@ -145,6 +149,11 @@ When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvi
 console mail provider; production leaves mail unconfigured until a provider is wired.
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
 Sender identity must be verified in SendGrid before real delivery works.
+When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
+`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`, the example backend registers
+`TwilioSmsProvider` (optional peer `twilio`). Partial Twilio config throws at startup.
+Without Twilio env vars, non-production keeps the console SMS provider; production omits
+SMS until a provider is wired.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a

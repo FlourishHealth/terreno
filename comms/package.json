@@ -52,13 +52,17 @@
   "peerDependencies": {
     "@sendgrid/mail": "^8.0.0",
     "expo-server-sdk": "^6.0.0",
-    "mongoose": "^8.0.0 || ^9.0.0"
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "twilio": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@sendgrid/mail": {
       "optional": true
     },
     "expo-server-sdk": {
+      "optional": true
+    },
+    "twilio": {
       "optional": true
     }
   },

@@ -61,6 +61,20 @@ new CommsApp({
 Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
 fast when the key is missing. Errors return classified `SendResult` values and never throw.
 
+### Twilio SMS (`@terreno/comms/adapters/twilioSms`)
+
+```typescript
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+new CommsApp({
+  sms: new TwilioSmsProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and a sender
+(`TWILIO_MESSAGING_SERVICE_SID` preferred, else `TWILIO_FROM_NUMBER`). Invalid destinations
+throw 400 before the API. Send failures return classified `SendResult` values and never throw.
+
 ### Expo push (`@terreno/comms/adapters/expoPush`)
 
 ```typescript

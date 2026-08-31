@@ -132,6 +132,43 @@ row.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
 
+### Twilio SMS adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {CommsApp} from "@terreno/comms";
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      sms: new TwilioSmsProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // Prefer TWILIO_MESSAGING_SERVICE_SID; fall back to TWILIO_FROM_NUMBER
+      }),
+      onError: async (_context, result) => {
+        console.error("sms failed", result.errorCode, result.errorClass);
+      },
+    })
+  )
+  .start();
+```
+
+`TwilioSmsProvider` fails fast at construction when account SID or auth token is missing.
+Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers throw a 400
+`BadRequestError` before any Twilio call. Send failures never throw through `sendSms`; they
+return `accepted: false` with Twilio `errorCode` / `errorClass` (`permanent` | `transient` |
+`config`). Permanent codes (including 21610 STOP) are not retried. Accepted sends store
+`providerMessageId` and `metadata.consoleUrl` for the Twilio SMS log.
+
+The example backend registers this adapter when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. Partial
+config throws at startup. Unconfigured environments keep the console SMS provider (or omit
+SMS in production). `twilio` is an optional peer — apps that do not send SMS do not install it.
+
 ### Expo push adapter
 
 ```bash
