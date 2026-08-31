@@ -58,8 +58,8 @@ describe("OpenAPI spec generation", () => {
     assert.property(res.body.paths, "/comms/pushTokens");
     assert.property(res.body.paths["/comms/pushTokens"], "post");
     assert.property(res.body.paths["/comms/pushTokens"], "get");
-    assert.property(res.body.paths, "/comms/messages");
-    assert.property(res.body.paths["/comms/messages"], "get");
+    assert.property(res.body.paths, "/comms/dev/testPush");
+    assert.property(res.body.paths["/comms/dev/testPush"], "post");
 
     const tokenCollection = res.body.paths["/comms/pushTokens"];
     const messages = res.body.paths["/comms/messages"].get;

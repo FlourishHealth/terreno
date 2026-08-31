@@ -1,9 +1,9 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import {AdminFieldRendererCore} from "./AdminFieldRendererCore";
 import type {AdminApi, AdminFieldConfig, RefFieldRendererProps} from "./types";
@@ -467,6 +467,10 @@ describe("AdminFieldRenderer (main)", () => {
     expect(secondProps.value).toBe("user-2");
   });
 
+  // Asserted through the read-only branch, which renders nested items inline. The editable
+  // branch renders items inside `DraggableList`, whose gesture-driven children never mount
+  // under react-test-renderer; that path is covered in AdminNestedArrayField.isolated.tsx,
+  // which mocks the list.
   it("passes nested array item values into parentFormState for subfield renderers", () => {
     const CustomRenderer = mock((_props: RefFieldRendererProps) => (
       <></>
@@ -488,6 +492,7 @@ describe("AdminFieldRenderer (main)", () => {
         fieldKey="rules"
         modelConfigs={[{name: "User", routePath: "/admin/users"}]}
         parentFormState={{key: "flag-key"}}
+        readOnly
         refRenderers={{User: CustomRenderer}}
         value={[{field: "_id", operator: "in", value: ["user-1"]}]}
       />

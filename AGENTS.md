@@ -4,7 +4,22 @@ trigger: always_on
 ---
 # Terreno
 
-A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
+Terreno is Django/Rails for TypeScript — with universal app support.
+
+Terreno is Django/Rails for TypeScript — a batteries-included, full-stack
+framework where the undifferentiated 80% of an app is already written. On the
+backend you get Mongoose models, auto-generated REST APIs, permissions, an admin
+panel, authentication, and an AI service. On the frontend you get one universal
+app — a single React Native codebase that ships to iOS, Android, and web. It is
+built to be driven by AI coding agents from the first prompt to a production
+deploy.
+
+- Batteries included — auth, CRUD APIs, admin, permissions, AI, realtime,
+  feature flags, and consent are already built, so your code is business logic.
+- Universal by default — one React Native codebase ships to iOS, Android, and
+  web. Not a web framework with a mobile bolt-on.
+- AI-native — agents are a first-class client of the framework, not an
+  afterthought.
 
 ## Packages
 
@@ -23,11 +38,15 @@ A monorepo containing shared packages for building full-stack applications with 
 ## Agentic lifecycle
 
 The reusable planning plugin uses five bounded transitions:
-**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
-**Taste** (react once). The outer loop owns state persistence, product-CI waiting, retry,
-stop, and escalation. Brew and Taste also sleep until review bots such as Bugbot or
-CodeQL finish so they can react in the same invocation. See `plugins/README.md` and
-`docs/reference/lifecycle-plugin.md`.
+**Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
+**Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
+it, next task. Roast never invokes Pick. The outer loop owns state persistence,
+product-CI waiting, retry, stop, and escalation.
+Brew and Taste also wait until review bots such as Bugbot or CodeQL finish so they can
+react in the same invocation, preferring provider CLI watch hooks or harness event
+subscriptions over sleep polling. Taste observes product CI on every discovered host
+(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. See
+`plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
 project commands and domain conventions belong there, not in the portable plugin.
@@ -39,7 +58,11 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`.
+`bun run skills:sync`. The same five stages install as the Cursor plugin
+`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`), or
+as the Claude Code plugin `terreno` via `/plugin marketplace add FlourishHealth/terreno`
+then `/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
+`plugins/terreno-claude/` is generated; never hand-edit it.
 
 ## Development
 
@@ -104,7 +127,7 @@ The three core packages form a complete full-stack framework:
   - TerrenoProvider for theming
 ```
 
-> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md).
+> **Legacy:** `@terreno/rtk` RTK Query hooks for **collection CRUD** are deprecated — use syncdb. See [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md). `modelRouter` `realtime` and RTK `realtimeList` / `realtimeDocument` are removed in Terreno 58; `RealtimeApp` stays for sync sockets.
 
 ### Integration Flow
 
@@ -246,7 +269,7 @@ router.get("/yourRoute/:id", [
 
 ### @terreno/ui
 
-React Native component library with 88+ components:
+React Native UI component library (a large component library):
 
 - **Layout**: Box, Page, SplitPage, Card
 - **Forms**: TextField, SelectField, DateTimeField, CheckBox
@@ -507,6 +530,13 @@ When present, these are injected as environment variables holding GCP service-ac
 ### Sentry API access
 
 When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
+
+### CircleCI API access
+
+When present, `CIRCLECI_TOKEN` is a CircleCI personal API token (`CIRCLE_TOKEN` is the
+CLI name). Use it to list jobs and fetch logs for Taste. Project slug:
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs` (not `gh/FlourishHealth/terreno`).
+See [`docs/how-to/circleci.md`](docs/how-to/circleci.md).
 
 ### Gotchas
 

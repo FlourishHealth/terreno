@@ -50,6 +50,53 @@ const TodoListScreen: React.FC = () => {
 };
 ```
 
+## Profile screen
+
+Use `TapToEdit` for per-field profile edits. Save each field with `usePatchMeMutation` — do not collect every field behind one Save button.
+
+```tsx
+import {Box, Card, Page, TapToEdit} from "@terreno/ui";
+import {useCallback, useEffect, useState} from "react";
+import {useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
+
+const ProfileScreen: React.FC = () => {
+  const {data: profile} = useGetMeQuery();
+  const [updateProfile] = usePatchMeMutation();
+  const [name, setName] = useState<string>("");
+
+  // Seed only this field from the server so saving another TapToEdit does not wipe the draft.
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+    setName(profile.name || "");
+  }, [profile?.name]);
+
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      await updateProfile({name: value}).unwrap();
+    },
+    [updateProfile]
+  );
+
+  return (
+    <Page title="Profile" scroll>
+      <Box gap={4} padding={4}>
+        <Card>
+          <TapToEdit
+            onSave={handleSaveName}
+            setValue={setName}
+            title="Name"
+            type="text"
+            value={name}
+          />
+        </Card>
+      </Box>
+    </Page>
+  );
+};
+```
+
 ## Form screen
 
 ```tsx

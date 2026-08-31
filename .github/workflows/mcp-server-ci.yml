@@ -1,18 +1,7 @@
 name: MCP Server CI
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "mcp-server/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/mcp-server-ci.yml"
-  pull_request:
-    paths:
-      - "mcp-server/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/mcp-server-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:

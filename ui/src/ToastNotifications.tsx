@@ -56,6 +56,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import type {ToastProps as TerrenoToastPayload} from "./Common";
 
 // ============================================================================
 // useDimensions hook
@@ -175,11 +176,10 @@ export interface ToastOptions {
   onClose?(): void;
 
   /**
-   * Payload data for custom toasts. You can pass whatever you want
+   * Payload forwarded to {@link Toast} via TerrenoProvider's renderToast.
+   * Extra keys are allowed for custom renderToast implementations.
    */
-  // noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
-  // biome-ignore lint/suspicious/noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
-  data?: any;
+  data?: Partial<TerrenoToastPayload> & Record<string, unknown>;
 
   swipeEnabled?: boolean;
 }

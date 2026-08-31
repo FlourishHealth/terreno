@@ -1,6 +1,6 @@
 # Implementation Plan: Loop-Engineering Lifecycle Plugin
 
-**Status:** In Progress
+**Status:** Complete — shipped as `plugins/terreno-planning`
 **Approved:** 2026-08-22
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1006
 **Priority:** High
@@ -18,7 +18,8 @@ Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (rea
 ```
 
 The outer loop owns invocation, persistence, product-CI waiting, retry, stop, and
-escalation. Brew and Taste wait in-process for async review bots.
+escalation. Brew and Taste wait in-process for async review bots, preferring provider
+CLI watch hooks or harness event subscriptions over timer polling.
 Lifecycle skills own how one stage is performed. Repository skills own how this codebase
 works. Roast owns independent acceptance proof. State/evidence bridge fresh invocations.
 
@@ -60,7 +61,9 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
 | AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
-| AP12 | Brew and Taste sleep until Bugbot, CodeQL, and similar review bots on the current head have reported, then continue; they do not wait for ordinary product CI |
+| AP12 | Brew and Taste wait until Bugbot, CodeQL, and similar review bots on the current head have reported, preferring hooks targeted to the matched bot or harness subscriptions over timer polling; unfiltered PR-check watches are product-CI waits and stay in outer loops |
+| AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or documented a not-applicable skip. An unexplained untriggered host prevents Brew `PASS`; a documented skip is terminal for Taste |
+| AP14 | Outer loops honor Taste `PENDING` with the provider's bounded native watch command (`gh … --watch`, `circleci run watch`, `bk build watch`) or a harness subscription where available, falling back to a timer only when no hook applies. Watch exit codes trigger a fresh Taste classification rather than becoming stage verdicts directly |
 
 ## Architecture
 
@@ -147,14 +150,18 @@ returns exact expected/actual evidence to Pick.
 ### Brew
 
 Requires Roast proof, runs repository-defined final checks/review, commits/pushes, applies
-the PR template, attaches evidence, waits for async review bots (Bugbot, CodeQL, and
-similar) on the current head, records PR/current head, and exits. It does not wait for
-ordinary product CI or execute Taste.
+the PR template, attaches evidence, confirms product CI triggered on every discovered
+host, and waits for async review bots (Bugbot, CodeQL, and similar) on the current head.
+Waits prefer provider CLI watch hooks or harness subscriptions and use bounded polling
+only as fallback. Brew records PR/current head and exits; it does not wait for ordinary
+product CI or execute Taste.
 
 ### Taste
 
-Waits in-process if Bugbot, CodeQL, or similar review bots are still running, then reads
-current-head CI, mergeability, and unresolved review signals. It classifies, performs one
+Waits in-process if Bugbot, CodeQL, or similar review bots are still running, preferring
+provider CLI watch hooks or harness subscriptions, then reads current-head product CI on
+every discovered host (not only GitHub checks), mergeability, and unresolved review
+signals. It classifies, performs one
 bounded set of actionable fixes (plus one follow-up act after a post-fix review-bot wait),
 verifies/pushes if changed, emits `PASS`/`PENDING`/`BLOCKED`/`FAIL`, and exits. The outer
 loop schedules another invocation for remaining product CI.
@@ -174,7 +181,9 @@ code, tests, scripts, and analogous changes.
 
 Engineering retries are bounded and hypothesis-driven. Each attempt retains exact failure
 evidence and attempted approaches. Product CI may be observed indefinitely by repeated
-fresh Taste invocations. Brew and Taste wait internally only for async review bots.
+fresh Taste invocations. Outer loops use provider-native watch hooks or harness
+subscriptions during each bounded wait and timers only as fallback. Brew and Taste wait
+internally only for async review bots.
 
 Human gates include product semantics, architecture/security/data ownership, destructive
 or irreversible operations, permissions, public compatibility, major scope expansion,

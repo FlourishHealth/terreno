@@ -1,12 +1,7 @@
 name: Publish syncdb manually
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to publish (e.g. 57.0.0)"
-        required: true
-        type: string
+# Disabled after migration to CircleCI manual package publish; retained for rollback.
+on: []
 
 jobs:
   publish-syncdb:

@@ -1,18 +1,7 @@
 name: Example Frontend CI
 
-on:
-  pull_request:
-    paths:
-      - "example-frontend/**"
-      - "admin-frontend/**"
-      - ".github/workflows/example-frontend-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "example-frontend/**"
-      - "admin-frontend/**"
-      - ".github/workflows/example-frontend-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   lint-and-test:

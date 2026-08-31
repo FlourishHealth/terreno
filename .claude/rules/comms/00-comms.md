@@ -62,6 +62,24 @@ new CommsApp({
 Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
 fast when the key is missing. Errors return classified `SendResult` values and never throw.
 
+### Expo push (`@terreno/comms/adapters/expoPush`)
+
+```typescript
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new CommsApp({
+  push: new ExpoPushProvider(),
+});
+```
+
+Requires optional peer `expo-server-sdk`. `EXPO_ACCESS_TOKEN` is optional. Invalid tokens
+are rejected before the SDK (`errorCode: expo-invalid-token`). Ticket/receipt
+`DeviceNotRegistered` is `errorClass: permanent`; wire `onDeadToken` to
+`getCommsService().deactivatePushToken` so later receipts prune tokens. `MessageTooBig`
+is `errorClass: config` and does not deactivate the token. The example
+app requests notification permission before `getExpoPushTokenAsync`; denied permission
+and web skip `POST /comms/pushTokens`.
+
 ## Runtime behavior
 
 - Unconfigured channels use privacy-safe console providers outside production.
@@ -78,7 +96,12 @@ fast when the key is missing. Errors return classified `SendResult` values and n
 - `GET /comms/pushTokens`: authenticated, restricted to the current user's tokens.
 - `GET /comms/pushTokens/:id`: owner-only token read.
 - `DELETE /comms/pushTokens/:id`: owner-only token deactivation.
-- `GET /comms/messages`: admin-only, paginated delivery explorer.
+- `GET /comms/messages`: admin-only filtered delivery log (`q`, channel, provider, status, dates).
+- `GET /comms/messages/:id`: admin-only detail (attempts, metadata, payload, retry flags).
+- `POST /comms/messages/:id/retry`: admin-only re-send; linked row; stable 400 `code`s.
+- `POST /comms/messages/retryMany`: admin-only bulk retry, cap 100, `{retried, skipped}`.
+- `GET /comms/stats`: admin-only channel × provider × status aggregation (default 7d).
+- Admin UI: `COMMS_ADMIN_WIDGETS` in `@terreno/admin-frontend`; screen name `comms`.
 
 An active push token cannot transfer between users. Its owner must deactivate it before another
 user can register it.

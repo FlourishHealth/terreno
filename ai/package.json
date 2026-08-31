@@ -15,7 +15,7 @@
     "luxon": "catalog:",
     "multer": "catalog:"
   },
-  "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
+  "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@terreno/api": "workspace:*",
