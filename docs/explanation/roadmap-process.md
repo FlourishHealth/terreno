@@ -228,6 +228,19 @@ before applying a rewrite.
 
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
 
+Every issue on the board carries the **`roadmap`** label. That label — not a title prefix — is
+how roadmap work is filtered:
+
+```bash
+gh issue list --repo FlourishHealth/terreno --label roadmap --state all
+```
+
+`roadmap:sync` adds it to every issue it declares, so seed entries do not repeat it on their
+`**Labels:**` line. Tracking issues used to be titled `[Roadmap] <outcome>`; titles are now
+just the outcome, and `displayTitle` in
+[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+strips the legacy prefix wherever it survives.
+
 Apply or update labels with `gh` authenticated as a maintainer:
 
 ```bash
@@ -303,11 +316,12 @@ per-agent mirrors.
 The skills do not carry a copy of the taxonomy. They call:
 
 ```bash
-bun run roadmap:check --labels "area:api,type:feature" --status Planned --target Next --impact Feature --area api
+bun run roadmap:check --on-board --labels "roadmap,area:api,type:feature" --status Planned --target Next --impact Feature --area api
 ```
 
 Run it with no arguments to print every valid label and field option. It enforces exactly one
-`area:*` and one `type:*` label, rejects labels absent from
+`area:*` and one `type:*` label, requires the `roadmap` label under `--on-board` (omit the
+flag when triaging an issue that is not headed for the board), rejects labels absent from
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml),
 rejects Project values absent from
 [`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml),

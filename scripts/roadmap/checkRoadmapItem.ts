@@ -27,6 +27,13 @@ export interface ProposedRoadmapItem {
 export const LABELS_PATH = ".github/labels.yml";
 export const FIELDS_PATH = ".github/roadmap-fields.yml";
 
+/**
+ * Every roadmap tracking issue carries this label. It replaces the old
+ * `[Roadmap] ` title prefix: a label filters (`gh issue list --label roadmap`,
+ * `label:roadmap` in the GitHub UI) where a title prefix only decorates.
+ */
+export const ROADMAP_LABEL = "roadmap";
+
 export const parseLabelNames = (contents: string): string[] => {
   const parsed = Bun.YAML.parse(contents);
   if (!Array.isArray(parsed)) {
@@ -75,14 +82,23 @@ export const validateRoadmapItem = (args: {
   item: ProposedRoadmapItem;
   knownLabels: string[];
   options: RoadmapFieldOptions;
+  /**
+   * Require the `roadmap` label. On for anything headed to the board; off for
+   * plain triage, where most issues are labelled but never tracked publicly.
+   */
+  requireRoadmapLabel?: boolean;
 }): string[] => {
-  const {item, knownLabels, options} = args;
+  const {item, knownLabels, options, requireRoadmapLabel = false} = args;
   const problems: string[] = [];
 
   for (const label of item.labels) {
     if (!knownLabels.includes(label)) {
       problems.push(`Label "${label}" is not defined in ${LABELS_PATH}`);
     }
+  }
+
+  if (requireRoadmapLabel && !item.labels.includes(ROADMAP_LABEL)) {
+    problems.push(`Needs the "${ROADMAP_LABEL}" label so board items can be filtered in the issue list`);
   }
 
   const areaLabels = countPrefixed(item.labels, "area:");
@@ -133,6 +149,7 @@ export const main = async (): Promise<void> => {
       area: {default: "", type: "string"},
       impact: {default: "", type: "string"},
       labels: {default: "", type: "string"},
+      "on-board": {default: false, type: "boolean"},
       status: {default: "", type: "string"},
       target: {default: "", type: "string"},
     },
@@ -152,8 +169,10 @@ export const main = async (): Promise<void> => {
 
   if (labels.length === 0) {
     console.error(
-      'Usage: bun run roadmap:check --labels "area:api,type:feature" [--status Planned] [--target Next] [--impact Feature] [--area api]'
+      'Usage: bun run roadmap:check --labels "area:api,type:feature" [--on-board] [--status Planned] [--target Next] [--impact Feature] [--area api]'
     );
+    console.error("");
+    console.error("--on-board also requires the `roadmap` label, which every board item carries.");
     console.error("");
     console.error(`Areas:  ${options.areas.join(", ")}`);
     console.error(`Status: ${options.status.join(", ")}`);
@@ -172,6 +191,7 @@ export const main = async (): Promise<void> => {
     },
     knownLabels: labelNames,
     options,
+    requireRoadmapLabel: values["on-board"],
   });
 
   if (problems.length > 0) {
