@@ -2,7 +2,9 @@ import type {TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
 import {LocalPromptStore} from "./local/promptStore";
+import {LocalTraceSink} from "./local/traceStore";
 import {addObservabilityPromptRoutes} from "./routes/prompts";
+import {addObservabilityTraceRoutes} from "./routes/traces";
 import type {
   ObservabilityAppOptions,
   ObservabilityControlConfig,
@@ -60,18 +62,25 @@ export class ObservabilityApp implements TerrenoPlugin {
   }
 
   register(app: express.Application, openApi?: unknown): void {
-    if (this.control.prompts !== "local") {
-      return;
+    if (this.control.prompts === "local") {
+      const store = this.promptRegistry;
+      if (store instanceof LocalPromptStore) {
+        addObservabilityPromptRoutes(app, {
+          aiService: this.aiService,
+          openApi,
+          priceMap: this.priceMap,
+          store,
+        });
+      }
     }
-    const store = this.promptRegistry;
-    if (!(store instanceof LocalPromptStore)) {
-      return;
-    }
-    addObservabilityPromptRoutes(app, {
-      aiService: this.aiService,
-      openApi,
-      priceMap: this.priceMap,
-      store,
+    const localPlugin = this.plugins.find((plugin) => {
+      return plugin.id === "local";
     });
+    if (localPlugin?.traceSink instanceof LocalTraceSink) {
+      addObservabilityTraceRoutes(app, {
+        openApi,
+        store: localPlugin.traceSink.store,
+      });
+    }
   }
 }

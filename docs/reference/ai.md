@@ -411,7 +411,15 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 | POST | `/ai/observability/prompts/:name/labels` | Move `production` or `staging`; `outgoingVersion` is the previous pointer |
 | POST | `/ai/observability/prompts/:name/playground` | Compile `{{var}}` + one `AIService` call; returns compiled messages, output, latency, tokens, cost; creates no version |
 
-`PromptRegistry.get({name, label})` (default label `production`) reads the labelled local version. `createLocalObservabilityPlugin()` wires `LocalPromptStore` as that registry.
+`PromptRegistry.get({name, label})` (default label `production`) reads the labelled local version. `createLocalObservabilityPlugin()` wires `LocalPromptStore` as that registry and local `TraceSink` / `ScoreSink`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/traces` | Admin list. Query `from`, `to`, `prompt`, `status`, `userId`, `sessionId`, `hasScore`, `sensitive`, `flaggedForDataset`, `page`, `limit`. `prompts.length` is the `N prompts` count |
+| GET | `/ai/observability/traces/:id` | Span tree (kind, offsets, durations, I/O, cost) plus scores. `errorSummary` is the first span with `status: "error"` |
+| POST | `/ai/observability/traces/:id/scores` | Persist a score and fan out to every `ScoreSink` |
+
+Unpriced models omit `costUsd` on trace and span usage.
 
 Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 

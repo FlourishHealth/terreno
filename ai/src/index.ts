@@ -34,6 +34,7 @@ export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
 export {createLocalObservabilityPlugin} from "./observability/local/localPlugin";
 export {LocalPromptStore} from "./observability/local/promptStore";
+export {LocalScoreSink, LocalTraceSink, LocalTraceStore} from "./observability/local/traceStore";
 export {MemoryScoreSink, MemoryTraceSink} from "./observability/memorySinks";
 export {
   getObservabilityApp,

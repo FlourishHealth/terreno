@@ -50,7 +50,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/how-to/observe-llm-calls.md` — create a prompt and pin production
   - Acceptance: v1 unchanged after v2; `get production` returns the labelled version; playground creates no version; usage rollup returns calls/cost for the last 7 days and `—` for a prompt with no production label
 
-- [ ] **Task 1.6**: Local `TraceSink` / `ScoreSink` + trace HTTP
+- [x] **Task 1.6**: Local `TraceSink` / `ScoreSink` + trace HTTP
   - Delivers: persist the fan-in; list with time / prompt / status / user / session / `hasScore` / `sensitive` / `flaggedForDataset` filters and pagination; detail returns the span tree with kinds, offsets, durations, per-span I/O and cost; derive `errorSummary` from the first span where `status: "error"` using its `error`; `prompts[]` length drives the `N prompts` display; `POST /traces/:id/scores`
   - Files: `ai/src/observability/local/traceStore.ts`, `ai/src/observability/routes/traces.ts`, tests
   - Blocked by: 1.4, 1.2
