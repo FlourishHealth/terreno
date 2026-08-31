@@ -32,7 +32,7 @@ contributors or consumers.
 **Title:** `[Roadmap] Public roadmap on GitHub`
 
 **Labels:** `area:dx`, `type:feature`  
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Improvement`, IP=`public-roadmap-github`, Status=`In progress`
+**Project fields:** Area=`dx`, Target=`Released`, Impact=`Improvement`, IP=`public-roadmap-github`, Status=`Shipped`
 
 Runs Terreno's public roadmap on GitHub while keeping Linear as the internal execution
 tracker. It sets up GitHub Discussions categories, a Terreno Roadmap project board, label
@@ -72,7 +72,7 @@ session-affinity constraints that commonly break production Terreno deployments.
 **Title:** `[Roadmap] Agentic SDLC plugin (/terreno-*)`
 
 **Labels:** `area:dx`, `type:feature`  
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`agentic-sdlc-plugin`, Status=`In progress`
+**Project fields:** Area=`dx`, Target=`Released`, Impact=`Feature`, IP=`agentic-sdlc-plugin`, Status=`Shipped`
 
 Packages and documents Terreno's five-stage `/terreno-*` agentic SDLC pipeline as a portable,
 publicly installable Cursor plugin. The pipeline takes work from a raw request through
@@ -92,7 +92,7 @@ invisible and breaks in consumer apps.
 **Title:** `[Roadmap] RTK deprecation and syncdb migration docs`
 
 **Labels:** `area:syncdb`, `type:docs`, `deprecation`, `status:blocked`  
-**Project fields:** Area=`syncdb`, Target=`Next`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Shipped`
+**Project fields:** Area=`syncdb`, Target=`Released`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Shipped`
 
 > Blocked on PR #869. The Project **Status** field has no `Blocked` option, so gating is
 > tracked with the `status:blocked` issue label instead.
@@ -114,7 +114,7 @@ bootstrap output, and upgrade notes. Gates most Wave 1 launch documentation.
 **Title:** `[Roadmap] Positioning — Django/Rails for TypeScript`
 
 **Labels:** `area:docs`, `type:docs`  
-**Project fields:** Area=`docs`, Target=`Next`, Impact=`Improvement`, IP=`positioning-django-rails-universal`, Status=`Planned`
+**Project fields:** Area=`docs`, Target=`Released`, Impact=`Improvement`, IP=`positioning-django-rails-universal`, Status=`Shipped`
 
 Aligns Terreno's messaging across README, docs site, agent context files, and npm package
 metadata under one positioning statement: Django/Rails for TypeScript with universal app
@@ -132,7 +132,7 @@ support, organized around batteries included, universal by default, and AI-nativ
 **Title:** `[Roadmap] Reference documentation coverage`
 
 **Labels:** `area:docs`, `type:docs`  
-**Project fields:** Area=`docs`, Target=`Next`, Impact=`Improvement`, IP=`docs-reference-coverage`, Status=`Planned`
+**Project fields:** Area=`docs`, Target=`Next`, Impact=`Improvement`, IP=`docs-reference-coverage`, Status=`In progress`
 
 Gives every published Terreno package a real README and a public docs/reference page instead
 of stubs. Adds missing reference pages, de-stubs package READMEs, sanitizes internal
@@ -168,7 +168,7 @@ features, admin panel, and production deploy — all on syncdb + Better Auth.
 **Title:** `[Roadmap] Deployment foundation`
 
 **Labels:** `area:deploy`, `type:docs`  
-**Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`deployment-foundation`, Status=`Planned`
+**Project fields:** Area=`deploy`, Target=`Released`, Impact=`Improvement`, IP=`deployment-foundation`, Status=`Shipped`
 
 Defines the provider-agnostic deployment baseline every Terreno production app needs: core
 requirements, environment-variable reference, Expo web output modes, and a canonical
@@ -326,7 +326,7 @@ issue with `Status=Planned` and fill the IP field when the IP lands.
 **Title:** `[Roadmap] Pluggable communications layer (@terreno/comms)`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-abstraction`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`comms-abstraction`, Status=`Shipped`
 
 Terreno backends have no way to send email, SMS, or push notifications today. This adds a
 new `@terreno/comms` package with provider interfaces for mail, SMS, push, and OTP
@@ -347,7 +347,7 @@ roadmap item, so apps only install the SDKs they use.
 **Title:** `[Roadmap] Comms adapter — Expo push notifications`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`In progress`
 
 Implements the `@terreno/comms` push provider on Expo's push service using
 `expo-server-sdk` (already a dependency of `@terreno/api`, currently unused). Covers token
@@ -499,7 +499,7 @@ from this item.
 **Title:** `[Roadmap] Role-based access control`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Shipped`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Shipped`
 
 Replaces the binary `admin` flag + owner checks with a first-class RBAC module: a typed
 permission vocabulary on Better Auth's access-control engine, DB-backed roles editable in
@@ -886,6 +886,108 @@ ad-hoc backfill scripts.
 
 ---
 
+# API architecture
+
+Internal seams in `@terreno/api` that several roadmap items depend on. They ship no new
+product surface on their own; they remove the duplicated write, permission, registry, and
+schema-walking paths that every later API feature would otherwise have to fork.
+
+## unified-mutation-executors
+
+**Title:** `[Roadmap] Unified mutation executors (MCP to executors)`
+
+**Labels:** `area:api`, `type:chore`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Improvement`, IP=`unified-mutation-executors`, Status=`Shipped`
+
+Gives create, update, and delete a single write pipeline. REST and Sync already call
+`executeCreate` / `executeUpdate` / `executeDelete`; MCP's write handlers still run their own
+permissions, transformers, hooks, and saves. Pointing MCP at the shared executors means a
+permission, hook, field-view, or soft-delete fix lands once instead of twice.
+
+- **Implementation plan:** [unified-mutation-executors.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/unified-mutation-executors.md)
+- **Tasks:** [unified-mutation-executors.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/unified-mutation-executors.md)
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## collection-registry
+
+**Title:** `[Roadmap] One collection registry`
+
+**Labels:** `area:api`, `type:chore`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Improvement`, IP=`collection-registry`, Status=`Planned`
+
+Registers a `modelRouter` collection once. MCP, realtime, and Sync each keep a process-global
+array plus an `update*RegistryOptions` call today, so every RBAC or MCP change has to touch
+three registries. A single `CollectionRegistry` keyed by route path holds `{path, model,
+options, surfaces}` and the existing per-surface lookups become views over it.
+
+- **Implementation plan:** [collection-registry.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/collection-registry.md)
+- **Tasks:** [collection-registry.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/collection-registry.md)
+- **RTK flag:** None
+- **Depends on:** unified-mutation-executors
+
+---
+
+## can-as-permission-seam
+
+**Title:** `[Roadmap] can() as the permission seam`
+
+**Labels:** `area:api`, `type:chore`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Improvement`, IP=`can-as-permission-seam`, Status=`Planned`
+
+Finishes the RBAC work by making `accessControl.can()` the enforcement engine wherever a
+router declares `access`. Today RBAC roles and statements are compiled down into legacy
+`PermissionMethod[]` arrays and `checkPermissions` remains the real decision point, so apps
+must pass both `access` and `permissions` and the two can disagree.
+
+- **Implementation plan:** [can-as-permission-seam.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/can-as-permission-seam.md)
+- **Tasks:** [can-as-permission-seam.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/can-as-permission-seam.md)
+- **RTK flag:** None
+- **Depends on:** unified-mutation-executors, rbac-permissions
+
+---
+
+## describe-model-schema
+
+**Title:** `[Roadmap] describeModel() schema metadata`
+
+**Labels:** `area:api`, `type:chore`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Improvement`, IP=`describe-model-schema`, Status=`Planned`
+
+Walks each Mongoose schema once into a shared `ModelDescription`. OpenAPI generation, the
+admin field-widget extractor, and the MCP Zod tool generator each re-interpret `schema.paths`
+their own way today, so a field type that renders correctly in admin can still be wrong in
+MCP or the OpenAPI spec.
+
+- **Implementation plan:** [describe-model-schema.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/describe-model-schema.md)
+- **Tasks:** [describe-model-schema.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/describe-model-schema.md)
+- **RTK flag:** None
+- **Depends on:** —
+
+---
+
+## pluggable-database-sqlite
+
+**Title:** `[Roadmap] Pluggable database layer and SQLite adapter`
+
+**Labels:** `area:api`, `type:feature`
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=`pluggable-database-sqlite`, Status=`Planned`
+
+Extracts a `DatabaseAdapter` seam under `modelRouter`, keeps Mongoose/MongoDB as the default
+adapter behind it with no behavior change, and ships a SQLite adapter (`@terreno/db-sqlite`)
+covering CRUD, permissions, population, OpenAPI, and admin. Apps keep authoring models as
+Mongoose schemas on either database; Mongo-only capabilities (change streams, Atlas search)
+stay gated behind capability flags.
+
+- **Implementation plan:** [pluggable-database-sqlite.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/pluggable-database-sqlite.md)
+- **Tasks:** [pluggable-database-sqlite.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/pluggable-database-sqlite.md)
+- **RTK flag:** None
+- **Depends on:** describe-model-schema
+
+---
+
 # Shipped, umbrella, and declined IPs
 
 Tracking issues created for IPs that previously lacked a `**Roadmap issue:**` header.
@@ -913,12 +1015,12 @@ this table supplies only the issue number.
 | `ModularAPI` | https://github.com/FlourishHealth/terreno/issues/1084 | `Shipped` | `api` | `Released` | `Feature` | `type:feature` |
 | `mcp-boost-parity` | https://github.com/FlourishHealth/terreno/issues/1085 | `In progress` | `mcp` | `Next` | `Feature` | `type:feature` |
 | `docs-site-and-versioning` | https://github.com/FlourishHealth/terreno/issues/1086 | `Planned` | `docs` | `Next` | `Feature` | `type:docs` |
-| `syncdb-codegen` | https://github.com/FlourishHealth/terreno/issues/1110 | `In progress` | `syncdb` | `Next` | `Feature` | `type:feature` |
+| `syncdb-codegen` | https://github.com/FlourishHealth/terreno/issues/1110 | `Shipped` | `syncdb` | `Released` | `Feature` | `type:feature` |
 | `migrate-cicd-to-circleci` | https://github.com/FlourishHealth/terreno/issues/1088 | `In progress` | `dx` | `Next` | `Improvement` | `type:chore` |
-| `rbac-permissions` | https://github.com/FlourishHealth/terreno/issues/1089 | `Shipped` | `api` | `Next` | `Feature` | `type:feature` |
+| `rbac-permissions` | https://github.com/FlourishHealth/terreno/issues/1089 | `Shipped` | `api` | `Released` | `Feature` | `type:feature` |
 | `infra-mcp` | https://github.com/FlourishHealth/terreno/issues/1090 | `Planned` | `mcp` | `Future` | `Feature` | `type:feature` |
 | `comms-admin-dashboard` | https://github.com/FlourishHealth/terreno/issues/1091 | `Planned` | `admin` | `Next` | `Feature` | `type:feature` |
-| `model-router-mcp` | https://github.com/FlourishHealth/terreno/issues/1092 | `Planned` | `mcp` | `Next` | `Feature` | `type:feature` |
+| `model-router-mcp` | https://github.com/FlourishHealth/terreno/issues/1092 | `Shipped` | `mcp` | `Released` | `Feature` | `type:feature` |
 | `terreno-langfuse-integration` | https://github.com/FlourishHealth/terreno/issues/1093 | `Planned` | `ai` | `Future` | `Feature` | `type:feature` |
 | `oss-launch-program` | https://github.com/FlourishHealth/terreno/issues/1094 | `In progress` | `dx` | `Next` | `Improvement` | `type:chore` |
 | `b2b-platform-program` | https://github.com/FlourishHealth/terreno/issues/1095 | `Planned` | `api` | `Next` | `Feature` | `type:feature` |

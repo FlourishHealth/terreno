@@ -1,12 +1,7 @@
 name: Publish feature-flags manually
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (e.g. 0.7.1)'
-        required: true
-        type: string
+# Disabled after migration to CircleCI manual package publish; retained for rollback.
+on: []
 
 jobs:
   publish-feature-flags:

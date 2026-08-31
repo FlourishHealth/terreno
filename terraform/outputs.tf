@@ -3,6 +3,11 @@ output "workload_identity_provider" {
   description = "Pass to google-github-actions/auth as workload_identity_provider. Shared by both service accounts."
 }
 
+output "circleci_workload_identity_provider" {
+  value       = length(module.circleci_oidc) == 1 ? module.circleci_oidc[0].workload_identity_provider : null
+  description = "CircleCI context value for GCP_WIF_PROVIDER_PROD after circleci_org_id and circleci_project_id are configured."
+}
+
 output "terraform_admin_sa_email" {
   value       = module.github_oidc.service_account_emails["terraform-admin"]
   description = "Service account for terraform-apply.yml (project-admin scope). Repo var: GCP_TF_ADMIN_SA_PROD."

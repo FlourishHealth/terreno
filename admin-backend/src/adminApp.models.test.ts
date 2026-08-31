@@ -320,11 +320,9 @@ describe("AdminApp /admin/config", () => {
     expect(res.body.models[0].defaultSort).toBe("name");
   });
 
-  it("includes version-config custom screen", async () => {
+  it("does not inject version config into the custom screen navigation", async () => {
     const res = await adminAgent.get("/admin/config").expect(200);
-    expect(res.body.customScreens).toEqual([
-      {displayName: "Version Config", name: "version-config"},
-    ]);
+    expect(res.body.customScreens).toEqual([]);
   });
 
   it("normalizes home.slots so recentActivity is last in sidebar", async () => {

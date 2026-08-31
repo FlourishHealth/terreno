@@ -1,0 +1,227 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`AttachmentPreview renders an image preview for image mime types 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "source": {
+              "uri": "file:///tmp/photo.png",
+            },
+            "style": {
+              "borderRadius": 4,
+              "height": 40,
+              "width": 40,
+            },
+          },
+          "type": "Image",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "photo.png",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 10,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {},
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Removes this attachment",
+            "aria-label": "Remove photo.png",
+            "aria-role": "button",
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "height": 24.5,
+              "justifyContent": "center",
+              "width": 24.5,
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "alignItems": "center",
+          "borderColor": "#CDCDCD",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 4,
+          "padding": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "alignItems": "flex-start",
+      "display": "flex",
+      "flexDirection": "row",
+      "flexWrap": "wrap",
+      "gap": 8,
+      "padding": 8,
+      "testID": "attachment-preview",
+    },
+    "testID": "attachment-preview",
+  },
+  "type": "View",
+}
+`;
+
+exports[`AttachmentPreview renders a file icon for non-image mime types 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "padding": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "report.pdf",
+              ],
+              "props": {
+                "numberOfLines": 1,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 10,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {},
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Removes this attachment",
+            "aria-label": "Remove report.pdf",
+            "aria-role": "button",
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "height": 24.5,
+              "justifyContent": "center",
+              "width": 24.5,
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "alignItems": "center",
+          "borderColor": "#CDCDCD",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 4,
+          "padding": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "alignItems": "flex-start",
+      "display": "flex",
+      "flexDirection": "row",
+      "flexWrap": "wrap",
+      "gap": 8,
+      "padding": 8,
+      "testID": "attachment-preview",
+    },
+    "testID": "attachment-preview",
+  },
+  "type": "View",
+}
+`;

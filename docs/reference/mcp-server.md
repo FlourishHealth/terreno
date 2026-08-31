@@ -135,6 +135,19 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 }
 ``````
 
+### terreno_get_upgrade_guide
+
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages.
+
+**Parameters:**
+
+``````typescript
+{
+  fromVersion: string;      // Installed @terreno/* semver (e.g. 0.19.0)
+  toVersion: string;        // Target semver to upgrade to (e.g. 0.20.0)
+}
+``````
+
 ### terreno_generate_model
 
 Generate a Mongoose model with Terreno conventions (timestamps, soft delete, owner tracking, type definitions).
@@ -333,11 +346,35 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
   appName: string;           // kebab-case (e.g., "my-app")
   appDisplayName: string;    // Human-readable name
   description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
+  mcpServerUrl?: string;     // Default: https://mcp.terreno.app
 }
 ``````
 
 **Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
+
+The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
+
+The generated app is expected to install and boot with no manual follow-up, so the
+scaffold deliberately ships no binary assets and no references to files it does not
+create:
+
+- **Fonts** come from `@terreno/ui`. `TerrenoProvider` wraps children in
+  `TerrenoFontProvider`, which loads Nunito and Titillium Web from
+  `@expo-google-fonts/*`. The generated `app/_layout.tsx` calls no `useFonts` of its own.
+- **Icon, splash, and favicon** are left unset in `app.json` so Expo uses its built-in
+  defaults. Point them at real files once the app has branding.
+- **`metro.config.js`** pins every `jspdf` request to `jspdf/dist/jspdf.es.min.js` on web
+  and drops it on native. `@terreno/admin-frontend` pulls jspdf in for consent-PDF export,
+  and jspdf's CommonJS and Node builds contain an AMD-style `require(["html2canvas"], cb)`
+  call that Metro's static transform cannot parse — without the override it fails the whole
+  bundle, including Expo Router's static web render.
+- **Auth-gated routes** use `<Stack.Protected guard={...}>`. Wrapping `Stack.Screen`
+  children in a conditional or fragment instead crashes the navigator.
+- **`tsconfig.json`** sets no `baseUrl`; it is deprecated in TypeScript 6 and makes `tsc`
+  abort with TS5101 before checking a single file. `paths` resolve relative to the tsconfig.
+- **Declared dependencies** include every package generated frontend source imports
+  (`react-native-reanimated`, `redux-persist`, `@reduxjs/toolkit`, `@expo/vector-icons`,
+  `lodash`, `luxon`, and the rest). Do not rely on transitive installs for those.
 
 ### terreno_bootstrap_ai_rules
 
@@ -379,6 +416,12 @@ Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstr
 
 - `appName` (string) — Application name in kebab-case
 - `appDisplayName` (string) — Human-readable display name
+
+### terreno_upgrade
+
+Lockstep Terreno upgrade workflow: read bundled upgrade notes, bump `@terreno/*` packages, run tests, and delegate Expo SDK steps to the official upgrading-expo skill.
+
+**Arguments:** `targetVersion` (optional) — target `@terreno/*` semver; omit to mean latest stable.
 
 ### terreno_create_crud_feature
 

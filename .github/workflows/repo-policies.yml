@@ -1,64 +1,7 @@
 name: Repository policies
 
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/package.json"
-      - "LICENSE"
-      - "**/LICENSE"
-      - "biome/plugins/no-barrel-imports.grit"
-      - "scripts/no-barrel-imports/**"
-      - "scripts/check-explicit-any/**"
-      - "scripts/check-source-rules/**"
-      - "scripts/check-license-coverage/**"
-      - "scripts/changelog/**"
-      - "changelog/**"
-      - "CHANGELOG.md"
-      - "scripts/check-circleci-parity/**"
-      - "scripts/planning/**"
-      - "plugins/**"
-      - ".cursor-plugin/**"
-      - ".rulesync/skills/**"
-      - "skills/**"
-      - "skills.sh.json"
-      - "**/.ai/skills/**"
-      - "docs/explanation/no-barrel-imports.md"
-      - "docs/explanation/explicit-any-policy.md"
-      - "docs/explanation/source-rules.md"
-      - ".circleci/**"
-      - ".github/workflows/repo-policies.yml"
-  pull_request:
-    paths:
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/package.json"
-      - "LICENSE"
-      - "**/LICENSE"
-      - "biome/plugins/no-barrel-imports.grit"
-      - "scripts/no-barrel-imports/**"
-      - "scripts/check-explicit-any/**"
-      - "scripts/check-source-rules/**"
-      - "scripts/check-license-coverage/**"
-      - "scripts/changelog/**"
-      - "changelog/**"
-      - "CHANGELOG.md"
-      - "scripts/check-circleci-parity/**"
-      - "scripts/planning/**"
-      - "plugins/**"
-      - ".cursor-plugin/**"
-      - ".rulesync/skills/**"
-      - "skills/**"
-      - "skills.sh.json"
-      - "**/.ai/skills/**"
-      - "docs/explanation/no-barrel-imports.md"
-      - "docs/explanation/explicit-any-policy.md"
-      - "docs/explanation/source-rules.md"
-      - ".circleci/**"
-      - ".github/workflows/repo-policies.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   no-barrel-imports:
@@ -112,7 +55,7 @@ jobs:
         run: bun test scripts/check-source-rules/
 
   explicit-any:
-    name: Explicit any baseline
+    name: Explicit any per-file baseline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -135,6 +78,9 @@ jobs:
 
       - name: Check explicit any baseline
         run: bun run check:explicit-any:baseline
+
+      - name: Test explicit any policy
+        run: bun test scripts/check-explicit-any/
 
       - name: Write explicit any inventory artifact
         if: always()

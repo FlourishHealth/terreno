@@ -18,17 +18,8 @@ name: EAS PR
 # an already-known fingerprint via the `Trigger EAS Workflow` manual
 # dispatch — not from every PR.
 
-on:
-  pull_request:
-    branches: [master]
-    types: [opened, reopened, synchronize]
-    paths:
-      - example-frontend/**
-      - demo/**
-      - ui/**
-      - rtk/**
-      - package.json
-      - bun.lock
+# Disabled during the CircleCI cutover; manual EAS dispatch remains available.
+on: []
 
 permissions:
   contents: read

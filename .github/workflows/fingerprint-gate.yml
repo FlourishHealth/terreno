@@ -13,16 +13,8 @@ name: Fingerprint Gate
 # is required. The acknowledged hash pair is recorded in a hidden HTML marker
 # inside the sticky PR comment.
 
-on:
-  pull_request:
-    branches: [master]
-    types: [opened, reopened, synchronize, labeled, unlabeled]
-    paths:
-      - example-frontend/**
-      - ui/**
-      - rtk/**
-      - package.json
-      - bun.lock
+# Disabled during the CircleCI cutover; retained for rollback.
+on: []
 
 permissions:
   contents: read

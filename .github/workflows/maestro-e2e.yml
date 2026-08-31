@@ -1,30 +1,9 @@
 name: Maestro E2E Tests
 
-# Maestro runs against exported web builds in Chrome (xvfb). Replaces the former
-# demo-appium-ci workflow for demo smoke coverage; example-frontend flows remain.
-
-on:
-  pull_request:
-    paths:
-      - "ui/**"
-      - "demo/**"
-      - "example-frontend/**"
-      - "example-backend/**"
-      - "rtk/**"
-      - ".maestro/**"
-      - ".github/workflows/maestro-e2e.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "ui/**"
-      - "demo/**"
-      - "example-frontend/**"
-      - "example-backend/**"
-      - "rtk/**"
-      - ".maestro/**"
-      - ".github/workflows/maestro-e2e.yml"
-  workflow_dispatch:
+# Maestro runs against example-frontend web in Chrome (xvfb), plus demo
+# smokes when ui/demo flows change. CircleCI twin: maestro-e2e.
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 concurrency:
   group: maestro-e2e-${{ github.workflow }}-${{ github.ref }}

@@ -85,11 +85,7 @@ export interface MCPConfig {
 
 export interface MCPRegistryEntry {
   modelName: string;
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>;
+  model: Model<unknown>;
   config: MCPConfig;
-  // noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  options: ModelRouterOptions<any>;
+  options: ModelRouterOptions<unknown>;
 }

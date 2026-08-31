@@ -5,13 +5,13 @@ import {Dimensions, type ListRenderItemInfo, View} from "react-native";
 import {SwiperFlatList} from "react-native-swiper-flatlist";
 
 import {Box} from "./Box";
-import type {SplitPageProps} from "./Common";
+import type {SplitPageListItem, SplitPageProps} from "./Common";
 import {FlatList} from "./FlatList";
 import {IconButton} from "./IconButton";
 import {Spinner} from "./Spinner";
 import {Unifier} from "./Unifier";
 
-export const SplitPage = ({
+export const SplitPage = <TItem extends SplitPageListItem = SplitPageListItem>({
   children,
   loading = false,
   color,
@@ -24,7 +24,7 @@ export const SplitPage = ({
   listViewExtraData,
   bottomNavBarHeight,
   showItemList,
-}: SplitPageProps) => {
+}: SplitPageProps<TItem>) => {
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined);
 
   // flattenChildren is necessary to pull children from a React Fragment. Without this,
@@ -34,9 +34,7 @@ export const SplitPage = ({
   const {width} = Dimensions.get("window");
 
   const onItemSelect = useCallback(
-    // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-    // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-    async (item: ListRenderItemInfo<any>) => {
+    async (item: ListRenderItemInfo<TItem>): Promise<void> => {
       setSelectedId(item.index);
       await onSelectionChange(item);
     },
@@ -60,9 +58,7 @@ export const SplitPage = ({
     return null;
   }
 
-  // noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-  // biome-ignore lint/suspicious/noExplicitAny: SplitPage accepts heterogeneous list item shapes from consumers; the generic propagates from listViewData
-  const renderItem = (itemInfo: ListRenderItemInfo<any>) => {
+  const renderItem = (itemInfo: ListRenderItemInfo<TItem>) => {
     return (
       <Box
         accessibilityHint=""

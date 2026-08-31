@@ -10,6 +10,9 @@ both.
 - **IPs** — approved design docs before substantial cross-package work
 
 See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
+Issue-sized work that is not a public roadmap item uses
+[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) (`create-github-issue` →
+`work-github-issues`) instead of an IP.
 
 ## How work flows (IP ↔ roadmap)
 
@@ -130,7 +133,7 @@ When an answer repeats, maintainers turn it into a how-to doc via PR.
 MCP server setup, Cursor/Claude skills, and agent-driven workflows.
 
 - MCP package: [`mcp-server/`](https://github.com/FlourishHealth/terreno/tree/master/mcp-server) and hosted `terreno-mcp`.
-- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored to `.cursor/`, `.claude/`, etc.).
+- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored into editor-specific copies).
 - Terreno planning plugin: [`plugins/terreno-planning/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning).
 
 General feature ideas → **Ideas**. Doc typos → **Docs feedback** or a docs PR.
@@ -356,7 +359,7 @@ do not claim completion until done.
 
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
-| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
+| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
 | [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
 | [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
 | [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
@@ -414,6 +417,13 @@ shipped — so a backwards move is reported as a stale header for a human to res
 
 Only the leading phrase matters, so `Approved — decisions recorded (2026-07-29)` maps cleanly.
 A status the table cannot map is reported rather than guessed at.
+
+Two headers keep a plan out of that accounting:
+
+| Header | Effect |
+| ------ | ------ |
+| IP `**Parent IP:**` | The plan rides on another plan's roadmap entry, like a `-research` or `-design` sub-document, and needs no entry of its own. Empty or italic `*(optional)*` placeholders do not count — omit the header unless it names a real parent |
+| Task file `**Status:** Closed` | The checklist is history — the IP finished by another route, so its unchecked boxes are not outstanding work and never contradict a `Shipped` status |
 
 Triage resolves the `area:*` label with
 [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),

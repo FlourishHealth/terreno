@@ -1,19 +1,8 @@
 # RTK CI workflow with dependency caching
 name: RTK CI
 
-on:
-  pull_request:
-    paths:
-      - "rtk/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/rtk-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "rtk/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/rtk-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   lint-and-build:

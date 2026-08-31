@@ -55,6 +55,13 @@ describe("CommsApp", () => {
     assert.strictEqual(getCommsService(), plugin.service);
   });
 
+  it("labels the admin sidebar screen as Comms Dashboard", (): void => {
+    const contribution = new CommsApp().adminContribution();
+
+    assert.equal(contribution.customScreens?.[0]?.displayName, "Comms Dashboard");
+    assert.equal(contribution.customScreens?.[0]?.name, "comms");
+  });
+
   it("upserts push tokens and isolates list and delete operations by owner", async (): Promise<void> => {
     const app = buildApp();
     const owner = await authAsUser(app, "notAdmin");
@@ -433,6 +440,12 @@ describe("CommsApp", () => {
     assert.property(response.body.paths["/comms/pushTokens"], "post");
     assert.property(response.body.paths, "/comms/messages");
     assert.property(response.body.paths["/comms/messages"], "get");
+    assert.property(response.body.paths, "/comms/messages/{id}");
+    assert.property(response.body.paths["/comms/messages/{id}"], "get");
+    assert.property(response.body.paths, "/comms/messages/{id}/retry");
+    assert.property(response.body.paths["/comms/messages/{id}/retry"], "post");
+    assert.property(response.body.paths, "/comms/messages/retryMany");
+    assert.property(response.body.paths, "/comms/stats");
     assert.notProperty(response.body.paths, "/comms/pushTokens/");
 
     // A shared tag keeps generated SDK mutations invalidating the by-id read.

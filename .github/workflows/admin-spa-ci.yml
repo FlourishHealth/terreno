@@ -2,23 +2,8 @@
 # and run a backend-free smoke + Playwright e2e against the built bundle.
 name: Admin SPA CI
 
-on:
-  pull_request:
-    paths:
-      - "admin-spa/**"
-      - "admin-frontend/**"
-      - "rtk/**"
-      - "ui/**"
-      - ".github/workflows/admin-spa-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "admin-spa/**"
-      - "admin-frontend/**"
-      - "rtk/**"
-      - "ui/**"
-      - ".github/workflows/admin-spa-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   build-and-e2e:

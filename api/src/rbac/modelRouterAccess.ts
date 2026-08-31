@@ -35,7 +35,7 @@ const mergeFilters = (
   return {$and: [existing, scopeFilter]};
 };
 
-const resolveActionForMethod = (
+export const resolveActionForMethod = (
   method: RESTMethod,
   access: ModelRouterAccessOptions,
   statements: Record<string, readonly string[]>
