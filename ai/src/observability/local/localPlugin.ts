@@ -1,4 +1,5 @@
 import type {ObservabilityPlugin} from "../types";
+import {registerObsEvaluator} from "./models/obsEvaluator";
 import {registerObsPrompt} from "./models/obsPrompt";
 import {registerObsPromptLabel} from "./models/obsPromptLabel";
 import {registerObsPromptVersion} from "./models/obsPromptVersion";
@@ -15,6 +16,7 @@ export const registerLocalObservabilityModels = (): void => {
   registerObsTrace();
   registerObsSpan();
   registerObsScore();
+  registerObsEvaluator();
 };
 
 export const createLocalObservabilityPlugin = (): ObservabilityPlugin => {

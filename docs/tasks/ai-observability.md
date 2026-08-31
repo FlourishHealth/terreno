@@ -57,7 +57,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/reference/ai.md` routes
   - Acceptance: nested spans round-trip; every filter tested; a trace with two prompts reports both; unpriced model returns no `costUsd`
 
-- [ ] **Task 1.7**: Human evaluator model + templates
+- [x] **Task 1.7**: Human evaluator model + templates
   - Delivers: `ObsEvaluator` with `type`, `target`, typed `dimensions[]`, `runModes`, `instructions`, `confidenceAlertBelow`; CRUD routes; `GET /evaluators/templates` returning the seeded set; `human` + `liveSampleRate > 0` rejected on save
   - Files: `ai/src/observability/local/evaluatorStore.ts`, `ai/src/observability/evaluatorTemplates.ts`, `ai/src/observability/routes/evaluators.ts`, tests
   - Blocked by: 1.4

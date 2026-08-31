@@ -386,6 +386,7 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 | `ObsTrace` | Root trace: user, session, status, `errorSummary`, `sensitive`, `prompts[]`, usage |
 | `ObsSpan` | Nested span with `kind`, `status`, optional `error`, offsets, usage |
 | `ObsScore` | Scores on a trace/span; many per trace, **no unique index** |
+| `ObsEvaluator` | Human (phase 1) evaluator: `type`, `target`, `dimensions[]`, `runModes`, `instructions`, `confidenceAlertBelow` (default 0.7) |
 
 `AIService` generate methods:
 
@@ -419,7 +420,14 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 | GET | `/ai/observability/traces/:id` | Span tree (kind, offsets, durations, I/O, cost) plus scores. `errorSummary` is the first span with `status: "error"` |
 | POST | `/ai/observability/traces/:id/scores` | Persist a score and fan out to every `ScoreSink` |
 
-Unpriced models omit `costUsd` on trace and span usage.
+`createLocalObservabilityPlugin()` registers `ObsEvaluator` with the other local models.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/evaluators/templates` | Seeded human templates (`correctness`, `hallucination`, `helpfulness`, `toxicity`, `conciseness`) |
+| POST | `/ai/observability/evaluators/templates/:name` | Install a template by name as an immutable-named evaluator |
+| GET/POST | `/ai/observability/evaluators` | List / create. Phase 1 `type` is `human`. Human + `liveSampleRate > 0` → 400 |
+| GET/PATCH/DELETE | `/ai/observability/evaluators/:id` | Read / update / soft-delete |
 
 Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 

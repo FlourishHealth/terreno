@@ -1,8 +1,10 @@
 import type {TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
+import {LocalEvaluatorStore} from "./local/evaluatorStore";
 import {LocalPromptStore} from "./local/promptStore";
 import {LocalTraceSink} from "./local/traceStore";
+import {addObservabilityEvaluatorRoutes} from "./routes/evaluators";
 import {addObservabilityPromptRoutes} from "./routes/prompts";
 import {addObservabilityTraceRoutes} from "./routes/traces";
 import type {
@@ -80,6 +82,12 @@ export class ObservabilityApp implements TerrenoPlugin {
       addObservabilityTraceRoutes(app, {
         openApi,
         store: localPlugin.traceSink.store,
+      });
+    }
+    if (localPlugin) {
+      addObservabilityEvaluatorRoutes(app, {
+        openApi,
+        store: new LocalEvaluatorStore(),
       });
     }
   }

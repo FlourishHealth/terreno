@@ -37,15 +37,19 @@ Judge prompts for evaluators are named constants or registry prompts — never i
 
 ## 4. Set up evaluators
 
-**Evaluators** → **Create from template** (or custom):
+Phase 1 ships **human** evaluators for the review queue. Judge/assert types land in phase 2.
+
+**Evaluators** → **Create from template** (`POST /ai/observability/evaluators/templates/:name`) or custom (`POST /ai/observability/evaluators`):
 
 | Feature shape | Template | Score |
 | --- | --- | --- |
-| Boolean flags (urgent, etc.) | `correctness` | boolean, LLM-as-judge |
+| Boolean flags (urgent, etc.) | `correctness` | boolean `correct` (human) |
 | Open-ended text | `hallucination` | boolean `contains_hallucination` |
 | Open-ended text | `helpfulness` | numeric 0–1 |
 | Open-ended text | `toxicity` | boolean `is_toxic` |
 | Open-ended text (if useful) | `conciseness` | numeric 0–1 |
+
+A human evaluator with `runModes.liveSampleRate > 0` is rejected (400). Live sampling is for LLM judges in phase 2, capped by `AI_OBS_SAMPLE_RATE`.
 
 Add more dimensions with product/engineering. Attach them to the experiment in step 5.
 

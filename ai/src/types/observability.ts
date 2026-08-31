@@ -149,3 +149,40 @@ export interface ObsScoreStatics
     FindOneOrNonePlugin<ObsScoreDocument> {}
 
 export interface ObsScoreModel extends mongoose.Model<ObsScoreDocument>, ObsScoreStatics {}
+
+export interface EvaluatorDimension {
+  dataType: "boolean" | "categorical" | "numeric";
+  key: string;
+  range?: string;
+  required: boolean;
+}
+
+export interface EvaluatorRunModes {
+  allowManualRun: boolean;
+  availableInExperiments: boolean;
+  liveSampleRate: number;
+}
+
+export interface ObsEvaluatorDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  assertion?: {constraint: string; path: string};
+  confidenceAlertBelow: number;
+  created: Date;
+  deleted: boolean;
+  description?: string;
+  dimensions: EvaluatorDimension[];
+  instructions?: string;
+  judgePromptName?: string;
+  name: string;
+  runModes: EvaluatorRunModes;
+  target: "dataset item" | "full trace" | "generation span";
+  type: "human" | "json-assert" | "llm-judge";
+  updated: Date;
+}
+
+export interface ObsEvaluatorStatics
+  extends FindExactlyOnePlugin<ObsEvaluatorDocument>,
+    FindOneOrNonePlugin<ObsEvaluatorDocument> {}
+
+export interface ObsEvaluatorModel
+  extends mongoose.Model<ObsEvaluatorDocument>,
+    ObsEvaluatorStatics {}

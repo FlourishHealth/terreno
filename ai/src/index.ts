@@ -32,6 +32,7 @@ export {AIRequest} from "./models/aiRequest";
 export {FileAttachment} from "./models/fileAttachment";
 export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
+export {LocalEvaluatorStore} from "./observability/local/evaluatorStore";
 export {createLocalObservabilityPlugin} from "./observability/local/localPlugin";
 export {LocalPromptStore} from "./observability/local/promptStore";
 export {LocalScoreSink, LocalTraceSink, LocalTraceStore} from "./observability/local/traceStore";
