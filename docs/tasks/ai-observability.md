@@ -43,7 +43,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/reference/ai.md` model tables
   - Acceptance: version immutability; unique `(promptId, label)`; `findExactlyOne` / `findOneOrNone` only; no unique index on scores
 
-- [ ] **Task 1.5**: Local `PromptRegistry` + prompt HTTP + playground
+- [x] **Task 1.5**: Local `PromptRegistry` + prompt HTTP + playground
   - Delivers: create prompt in a folder; immutable `vN+1` create; move `production` / `staging` returning the outgoing version; `{{var}}` compile; `get({name, label})`; `POST /prompts/:name/playground` runs one `AIService` call and returns compiled messages, output, latency, tokens, cost without creating a version; list supports folder filter, search, and `include=usage7d`
   - Files: `ai/src/observability/local/promptStore.ts`, `ai/src/observability/routes/prompts.ts`, tests
   - Blocked by: 1.4, 1.1

@@ -5,6 +5,7 @@ import {registerObsPromptVersion} from "./models/obsPromptVersion";
 import {registerObsScore} from "./models/obsScore";
 import {registerObsSpan} from "./models/obsSpan";
 import {registerObsTrace} from "./models/obsTrace";
+import {LocalPromptStore} from "./promptStore";
 
 export const registerLocalObservabilityModels = (): void => {
   registerObsPrompt();
@@ -17,6 +18,7 @@ export const registerLocalObservabilityModels = (): void => {
 
 export const createLocalObservabilityPlugin = (): ObservabilityPlugin => {
   registerLocalObservabilityModels();
+  const store = new LocalPromptStore();
   return {
     capabilities: new Set([
       "datasets",
@@ -29,11 +31,7 @@ export const createLocalObservabilityPlugin = (): ObservabilityPlugin => {
     datasetStore: {},
     experimentRunner: {},
     id: "local",
-    promptRegistry: {
-      get: async () => {
-        return undefined;
-      },
-    },
+    promptRegistry: store,
     reviewQueue: {},
   };
 };

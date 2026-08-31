@@ -125,7 +125,18 @@ export interface ModelPrice {
   outputPerMTok: number;
 }
 
+export interface ObservabilityGenerateClient {
+  readonly modelId: string;
+  generateText: (options: {
+    prompt: string;
+    skipTrace?: boolean;
+    systemPrompt?: string;
+    userId?: import("mongoose").Types.ObjectId;
+  }) => Promise<string>;
+}
+
 export interface ObservabilityAppOptions {
+  aiService?: ObservabilityGenerateClient;
   control?: {
     datasets?: ControlPrimary;
     experiments?: ControlPrimary;

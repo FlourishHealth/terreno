@@ -1,9 +1,12 @@
 import type {TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
+import {LocalPromptStore} from "./local/promptStore";
+import {addObservabilityPromptRoutes} from "./routes/prompts";
 import type {
   ObservabilityAppOptions,
   ObservabilityControlConfig,
+  ObservabilityGenerateClient,
   ObservabilityPlugin,
   PromptRegistry,
   ScoreSink,
@@ -22,12 +25,14 @@ export const resetObservabilityApp = (): void => {
 };
 
 export class ObservabilityApp implements TerrenoPlugin {
+  readonly aiService?: ObservabilityGenerateClient;
   readonly control: ObservabilityControlConfig;
   readonly plugins: ReadonlyArray<ObservabilityPlugin>;
   readonly priceMap: ObservabilityAppOptions["priceMap"];
   readonly sampleRate: number;
 
   constructor(options: ObservabilityAppOptions) {
+    this.aiService = options.aiService;
     this.control = validateObservabilityConfig(options);
     this.plugins = options.plugins;
     this.priceMap = options.priceMap;
@@ -54,7 +59,19 @@ export class ObservabilityApp implements TerrenoPlugin {
     });
   }
 
-  register(_app: express.Application): void {
-    return;
+  register(app: express.Application, openApi?: unknown): void {
+    if (this.control.prompts !== "local") {
+      return;
+    }
+    const store = this.promptRegistry;
+    if (!(store instanceof LocalPromptStore)) {
+      return;
+    }
+    addObservabilityPromptRoutes(app, {
+      aiService: this.aiService,
+      openApi,
+      priceMap: this.priceMap,
+      store,
+    });
   }
 }

@@ -400,7 +400,20 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 
 Missing registry, missing prompt, or missing label throws `APIError` 400 and does not call the model. Sink `export` failures are logged and never fail generate.
 
-Planned routes live under `/ai/observability`. Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
+When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/prompts` | List. Query `folder`, `search`, `include=usage7d` (7-day calls/cost). `production` is `"—"` until a production label exists |
+| POST | `/ai/observability/prompts` | Create prompt in a folder as immutable v1 (`latest` label) |
+| GET | `/ai/observability/prompts/:name` | Prompt + versions + labels |
+| POST | `/ai/observability/prompts/:name/versions` | Create `vN+1`; never mutates an existing version |
+| POST | `/ai/observability/prompts/:name/labels` | Move `production` or `staging`; `outgoingVersion` is the previous pointer |
+| POST | `/ai/observability/prompts/:name/playground` | Compile `{{var}}` + one `AIService` call; returns compiled messages, output, latency, tokens, cost; creates no version |
+
+`PromptRegistry.get({name, label})` (default label `production`) reads the labelled local version. `createLocalObservabilityPlugin()` wires `LocalPromptStore` as that registry.
+
+Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 
 ## Langfuse integration
 

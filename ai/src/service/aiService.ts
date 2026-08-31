@@ -341,7 +341,11 @@ export class AIService {
     await this.logRequest({
       aiModel: getModelId(this.model),
       error: params.error,
-      metadata: params.metadata,
+      metadata: {
+        ...params.metadata,
+        ...(params.inputTokens === undefined ? {} : {inputTokens: params.inputTokens}),
+        ...(params.outputTokens === undefined ? {} : {outputTokens: params.outputTokens}),
+      },
       prompt: params.prompt,
       requestType: params.requestType,
       response: params.response,
