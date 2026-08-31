@@ -22,7 +22,7 @@ import {
 let conn: mongoose.Connection;
 let mongod: MongoMemoryServer;
 let TestUser: any;
-let StrictUser: any;
+let StrictUser: UserModel;
 
 // Simple user schema for testing
 const testUserSchema = new Schema({
@@ -49,7 +49,7 @@ const setup = (async () => {
   conn = mongoose.createConnection(mongod.getUri());
   await conn.asPromise();
   TestUser = conn.model("BetterAuthTestUser", testUserSchema);
-  StrictUser = conn.model("BetterAuthStrictUser", strictUserSchema);
+  StrictUser = conn.model("BetterAuthStrictUser", strictUserSchema) as UserModel;
 })();
 
 // Helper to get the mongo client from our separate connection
@@ -219,7 +219,7 @@ describe("syncBetterAuthUser", () => {
   it("creates a user on a strict-throw schema that omits oauthProvider", async () => {
     await setup;
     const baUser = makeBetterAuthUser({email: "strict@example.com"});
-    const result = await syncBetterAuthUser(StrictUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(StrictUser, baUser);
 
     assert.equal(result.email, "strict@example.com");
     assert.equal(result.betterAuthId, "ba-user-123");
