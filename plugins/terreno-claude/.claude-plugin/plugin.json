@@ -1,0 +1,28 @@
+{
+  "name": "terreno",
+  "displayName": "Terreno",
+  "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, and Brew/Taste prefer native CI watch hooks while reacting to review bots and product CI. Outer loops: planning-loop and taste-sweep.",
+  "version": "2.4.0",
+  "author": {
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
+  "repository": "https://github.com/FlourishHealth/terreno",
+  "license": "MIT",
+  "keywords": [
+    "terreno",
+    "planning",
+    "sdlc",
+    "implementation",
+    "review",
+    "tdd"
+  ],
+  "skills": "./skills/",
+  "metadata": {
+    "compatibility": {
+      "terreno": ">=1.0.0",
+      "expoSdk": "~57"
+    }
+  }
+}

@@ -4,13 +4,15 @@
   "groupings": [
     {
       "title": "Lifecycle",
-      "description": "Bounded Grow → Pick → Roast → Brew → Taste transitions.",
+      "description": "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus planning-loop and taste-sweep outer loops.",
       "skills": [
         "terreno-1-grow",
         "terreno-2-pick",
         "terreno-3-roast",
         "terreno-4-brew",
-        "terreno-5-taste"
+        "terreno-5-taste",
+        "terreno-planning-loop",
+        "terreno-taste-sweep"
       ]
     },
     {
@@ -45,9 +47,11 @@
       "description": "Commit, PR, review, verification, release, and deploy workflows.",
       "skills": [
         "commit",
+        "create-github-issue",
         "create-pr",
         "respond-to-review",
         "verify-ui-changes",
+        "work-github-issues",
         "fix-conflicts",
         "release",
         "deploy-gcp"

@@ -4,39 +4,8 @@ name: Example Backend Script Runner
 # example backend with a real MongoDB. This guards the CLI surface that lets AI
 # assistants run admin scripts directly from the project.
 
-on:
-  pull_request:
-    paths:
-      - "api/**"
-      - "ai/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "rtk/**"
-      - "ui/**"
-      - "example-backend/**"
-      - "bun.lock"
-      - ".github/workflows/example-backend-script-runner.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "api/**"
-      - "ai/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "rtk/**"
-      - "ui/**"
-      - "example-backend/**"
-      - "bun.lock"
-      - ".github/workflows/example-backend-script-runner.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   run-script-cli:
@@ -48,21 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        id: cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
@@ -70,17 +26,10 @@ jobs:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-image: mirror.gcr.io/library/mongo
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      # example-backend imports the compiled output of these workspace packages.
-      - name: Build dependencies
+      - name: Compile workspace dependencies
         run: |
-          for pkg in api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa; do
-            echo "::group::compile $pkg"
-            (cd "$pkg" && bun run compile)
-            echo "::endgroup::"
-          done
+          node .github/scripts/compile-workspace-deps.js example-backend
+          bun run --filter '@terreno/admin-spa' compile
 
       - name: Build example backend
         run: bun run compile

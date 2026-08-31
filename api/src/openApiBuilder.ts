@@ -41,6 +41,46 @@ import {
   validateQueryParams,
   validateRequestBody,
 } from "./openApiValidator";
+import {
+  get as getOpenApiLayerSchema,
+  set as setOpenApiLayerSchema,
+} from "./vendor/wesleytodd-openapi/lib/layer-schema";
+
+/**
+ * Run handlers in order as one Express middleware function.
+ *
+ * `@wesleytodd/openapi` stores path schemas on a Map keyed by the function
+ * Express registers. Copying the schema from the documentation handler onto
+ * the composed function keeps `/openapi.json` generation working.
+ */
+const composeRequestHandlers = (handlers: express.RequestHandler[]): express.RequestHandler => {
+  const composed: express.RequestHandler = (req, res, next): void => {
+    const run = (index: number): void => {
+      if (index >= handlers.length) {
+        next();
+        return;
+      }
+      handlers[index](req, res, (error?: unknown): void => {
+        if (error) {
+          next(error);
+          return;
+        }
+        run(index + 1);
+      });
+    };
+    run(0);
+  };
+
+  for (const handler of handlers) {
+    const schema = getOpenApiLayerSchema(handler);
+    if (schema) {
+      setOpenApiLayerSchema(composed, schema);
+      break;
+    }
+  }
+
+  return composed;
+};
 
 /**
  * Defines a property within an OpenAPI schema.
@@ -741,13 +781,14 @@ export class OpenApiMiddlewareBuilder {
    * that integrates with the OpenAPI documentation system. If no OpenAPI
    * path is configured in options, returns a no-op middleware.
    *
-   * If validation was enabled via `withValidation()`, returns an array
-   * of middleware: [openApiDocMiddleware, validationMiddleware].
+   * If validation was enabled via `withValidation()`, body and query
+   * validators are composed into the same RequestHandler (they still run
+   * in order: OpenAPI docs, then body, then query).
    *
    * Default error responses (400, 401, 403, 404, 405) are automatically
    * merged with the configured responses.
    *
-   * @returns Express middleware function(s) for OpenAPI documentation and optional validation
+   * @returns Express middleware for OpenAPI documentation and optional validation
    *
    * @example
    * ```typescript
@@ -759,9 +800,7 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
-  // noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
-  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config
-  build(): any {
+  build(): express.RequestHandler {
     const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware
@@ -808,13 +847,11 @@ export class OpenApiMiddlewareBuilder {
       validators.push(validateQueryParams(this.queryParamSchemas, {enabled: true}));
     }
 
-    // If only one middleware (the openApi one), return it directly
     if (validators.length === 1) {
       return openApiMiddleware;
     }
 
-    // Return array of middleware to be spread in route definition
-    return validators;
+    return composeRequestHandlers(validators);
   }
 }
 

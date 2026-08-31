@@ -35,7 +35,7 @@ const mergeFilters = (
   return {$and: [existing, scopeFilter]};
 };
 
-const resolveActionForMethod = (
+export const resolveActionForMethod = (
   method: RESTMethod,
   access: ModelRouterAccessOptions,
   statements: Record<string, readonly string[]>
@@ -299,7 +299,10 @@ export const resolveModelRouterAccess = <T>(options: {
 } => {
   if (!options.access || !options.accessControl) {
     if (!options.permissions) {
-      throw new Error("modelRouter requires permissions or access with accessControl");
+      throw new APIError({
+        status: 500,
+        title: "modelRouter requires permissions or access with accessControl",
+      });
     }
     return {
       permissions: options.permissions,

@@ -1,8 +1,9 @@
 import isArray from "lodash/isArray";
-import type {Document, Schema} from "mongoose";
+import type {Document, Model, Schema} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
 import {APIError} from "./errors";
+import {describeModel, modelDescriptionToOpenApiSpec} from "./schemaMetadata";
 
 const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
@@ -139,20 +140,22 @@ export const fixMixedFields = (schema: Schema | null, properties: Record<string,
   }
 };
 
-export const getOpenApiSpecForModel = (
-// noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
-  model: any,
+export const getOpenApiSpecForModel = <T>(
+  model: Model<T>,
   {
     populatePaths,
     extraModelProperties,
   }: {populatePaths?: PopulatePath[]; extraModelProperties?: Record<string, unknown>} = {}
 ): {properties: Record<string, unknown>; required: string[]} => {
-  const modelSwagger = m2s(model, {
-    props: ["required", "enum"],
-  });
+  const description = describeModel(model);
+  const {properties, required} = modelDescriptionToOpenApiSpec(description);
+  const modelProperties = properties as Record<string, OpenApiSchemaNode>;
+  const modelSwagger = {
+    properties: modelProperties,
+    required,
+  };
 
-  fixMixedFields(model.schema, modelSwagger.properties);
+  fixMixedFields(model.schema, modelProperties);
 
   if (populatePaths && isArray(populatePaths)) {
     for (const populatePath of populatePaths) {
@@ -190,7 +193,7 @@ export const getOpenApiSpecForModel = (
 
       // Navigate through the nested structure and set the schema
       const pathParts = openApiPath.split(".");
-      let currentSchema = modelSwagger.properties;
+      let currentSchema: Record<string, OpenApiSchemaNode> = modelSwagger.properties;
       for (let i = 0; i < pathParts.length; i++) {
         const part = pathParts[i];
         if (i === pathParts.length - 1) {
@@ -201,7 +204,7 @@ export const getOpenApiSpecForModel = (
               ...(schemaToSet.properties || {[part]: schemaToSet}),
             };
           } else {
-            currentSchema[part] = schemaToSet;
+            currentSchema[part] = schemaToSet as OpenApiSchemaNode;
           }
         } else {
           // We're still navigating, ensure the path exists
@@ -214,7 +217,8 @@ export const getOpenApiSpecForModel = (
               currentSchema[part] = {properties: {}, type: "object"};
             }
           }
-          currentSchema = currentSchema[part].properties || currentSchema[part];
+          const nextSchema = currentSchema[part].properties ?? currentSchema[part];
+          currentSchema = nextSchema as Record<string, OpenApiSchemaNode>;
         }
       }
     }
@@ -238,7 +242,11 @@ export const getOpenApiSpecForModel = (
         if (virtual === "id" || virtual === "__v") {
           continue;
         }
-        modelSwagger.properties[childSchema.model.path].properties[virtual] = {
+        const childPath = childSchema.model.path;
+        if (!childPath || !modelSwagger.properties[childPath]?.properties) {
+          continue;
+        }
+        modelSwagger.properties[childPath].properties[virtual] = {
           type: "any",
         };
       }
@@ -261,41 +269,44 @@ export const unpopulate = <T>(doc: Document<T>, path: string): Document<T> => {
   }
   const pathParts = path.split(".");
 
+  // Traversal treats documents as plain nested records: the populated shapes are only known
+  // at runtime, so each level is narrowed as it is visited.
+  type NestedRecord = Record<string, unknown>;
+  const asRecord = (value: unknown): NestedRecord => value as NestedRecord;
+  const idOf = (value: unknown): unknown => (value as {_id?: unknown} | null)?._id;
+
   // Recursive because we need to support nested paths.
-// noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
-  // biome-ignore lint/suspicious/noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
-  const recursiveUnpopulate = (current: any, parts: string[]): any => {
+  const recursiveUnpopulate = (current: NestedRecord, parts: string[]): NestedRecord => {
     const part = parts[0];
+    const value = current[part];
 
     // If the path doesn't exist, return the original doc
-    if (!current[part]) {
-      return doc;
+    if (!value) {
+      return asRecord(doc);
     }
 
     if (parts.length === 1) {
       // Base case: we've reached the last part of the path
-      if (Array.isArray(current[part])) {
+      if (Array.isArray(value)) {
         // If the field is an array, recursively unpopulate each element
-        current[part] = current[part].map((item) => {
-          return item?._id ? item._id : item;
-        });
-      } else if (current[part]?._id) {
+        current[part] = value.map((item) => idOf(item) ?? item);
+      } else if (idOf(value)) {
         // If the field is a populated document, revert to _id
-        current[part] = current[part]._id;
+        current[part] = idOf(value);
       }
     } else {
       // Recursive case: continue down the path
-      if (Array.isArray(current[part])) {
-        for (const item of current[part]) {
-          recursiveUnpopulate(item, parts.slice(1)); // Recursively handle each item in the array
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          recursiveUnpopulate(asRecord(item), parts.slice(1)); // Recursively handle each item in the array
         }
       } else {
-        recursiveUnpopulate(current[part], parts.slice(1)); // Recursively handle the next part
+        recursiveUnpopulate(asRecord(value), parts.slice(1)); // Recursively handle the next part
       }
     }
 
     return current;
   };
 
-  return recursiveUnpopulate(doc, pathParts);
+  return recursiveUnpopulate(asRecord(doc), pathParts) as unknown as Document<T>;
 };

@@ -26,6 +26,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
+- Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
@@ -37,6 +38,14 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Server Setup
 
 Two patterns for building Terreno APIs:
+
+### Deprecated: modelRouter `realtime`
+
+`modelRouter({ realtime })` (RTK cache-patching websocket events) is **deprecated** and **will be removed in Terreno 58**. Use `sync` with [`@terreno/syncdb`](syncdb.md). See [Migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).
+
+`RealtimeApp` is **not** deprecated. It still hosts Socket.io, change streams, and `sync:delta`.
+
+Keep `admin.realtime` when you want admin `admin:model.changed` events.
 
 ### TerrenoApp (Recommended)
 
@@ -86,6 +95,10 @@ setupServer({
 
 Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
 
+## Collection catalog
+
+`modelRouter("/path", Model, options)` writes one catalog record per route path. MCP, realtime, and sync surfaces read that record; TerrenoApp calls `replaceCollectionOptions` once when access control is injected. Test helpers `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the entire catalog.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
@@ -101,6 +114,8 @@ const todoRouter = modelRouter("/todos", Todo, {
 ```
 
 Cross-model tools use `registerMCPTool` (see the example backend's `users_todo_statuses`). How-to: [Expose MCP tools](../how-to/expose-mcp-tools.md). In-process Vercel AI SDK wrappers: `getMCPTools` from `@terreno/ai`.
+
+Create, update, and delete tools share REST permission, hook, and persistence semantics: they call the same `executeCreate` / `executeUpdate` / `executeDelete` pipeline. MCP error results use `APIError.title` (for example `Create not allowed`, `preCreate hook error`). User-role stripping for RBAC User writes happens in the executor after hooks; MCP supplies the registry `modelName` for that check. List and read stay MCP handlers. `excludeFields` and `mcpResponseHandler` still apply after the executor returns. Invalid ids on instance writes 404 only when the document `_id` cannot be cast, not when a populate ref fails.
 
 ## Authentication
 
@@ -491,6 +506,10 @@ router.use("/todos", modelRouter(Todo, {
 }));
 ``````
 
+### Builder validation
+
+Call `.withValidation()` before `.build()` so body and query checks run in the same handler that documents the route. `build()` still returns one Express `RequestHandler`, so callers can nest it in a middleware array. OpenAPI metadata stays on that handler, so the route remains in `/openapi.json`.
+
 ### Manual Validation
 
 For custom routes, use validation middleware directly:
@@ -607,6 +626,46 @@ router.post("/todos", [
 - Use in development/staging to catch API contract violations
 
 **Learn more:** See `api/src/openApiValidator.ts` for advanced usage and `api/src/api.ts` for modelRouter integration.
+
+## describeModel
+
+Walk a Mongoose model once and get a canonical field graph (`ModelDescription`). OpenAPI, admin config, and MCP Zod tools format that graph instead of re-walking `schema.paths`.
+
+``````typescript
+import {
+  describeModel,
+  describeModelForRouter,
+  modelDescriptionToOpenApiSpec,
+  modelDescriptionToAdminFields,
+  fieldDescriptionToZodType,
+} from "@terreno/api";
+
+const description = describeModel(Todo);
+const openApi = modelDescriptionToOpenApiSpec(description);
+const adminFields = modelDescriptionToAdminFields(description);
+``````
+
+### Field kinds
+
+| Kind | Description |
+|------|-------------|
+| `string` | String (optional `enum`) |
+| `number` | Number |
+| `boolean` | Boolean |
+| `date` | Date (OpenAPI `date-time`) |
+| `dateOnly` | Terreno DateOnly type |
+| `objectId` | ObjectId with optional `ref` |
+| `embedded` | Subdocument or array of subdocuments |
+| `mixed` | Schema.Types.Mixed |
+| `map` | Map type (`item` is the `of` kind; omitted `of` is `mixed`) |
+
+Each field includes `required`, optional `description`, `isArray`, nested `item` / `fields`, and `system` for `_id`, `__v`, `created`, `updated`, `deleted`.
+
+`describeModelForRouter(model, options)` adds `writableOnCreate` and `writableOnUpdate` using the same rules as MCP system-field exclusions and router validation / field views.
+
+`getOpenApiSpecForModel` builds HTTP body schemas from `ModelDescription`; populate merging for referenced models is unchanged.
+
+See [Schema metadata explanation](../explanation/schema-metadata.md).
 
 ## Middleware
 
@@ -1123,6 +1182,25 @@ for (let i = 0; i < 3; i++) {
 
 ## Script Helpers
 
+### runSeeds and runSeedCli
+
+Define ordered `SeedStep` entries and run them in the default `sync` mode or in
+`reset` mode. The `SeedContext` provides:
+
+- `upsert(model, key, values)` — creates, updates, or reports unchanged data. Nested values ignore generated `_id`s. `Map` payloads compare as plain objects. Soft-deleted matches are restored instead of duplicated. Duplicate key matches keep the first document and remove the extras.
+- `deleteMany(model, filter?)` — reset helper with dry-run support
+- `mode`, `dryRun`, and structured `changes`
+
+`runSeedCli` adds `--dry-run`, `--reset`, repeatable `--only`, `--force`, and
+`--help`. It returns an exit code instead of terminating the process; seed CLIs
+should `process.exit` after `disconnect` so leftover Better Auth handles cannot
+keep the event loop open. Production resets require both `--force` and an
+approving `allowProductionReset` option.
+See [Seed a database](../how-to/seed-a-database.md).
+
+`seedBetterAuthUser` provisions a credential account and reconciles the
+application user model without requiring a running HTTP server.
+
 ### wrapScript
 
 Error handling wrapper for scripts and cron jobs.
@@ -1133,7 +1211,7 @@ import {wrapScript} from "@terreno/api";
 wrapScript(async () => {
   // Your script logic
   await processData();
-  console.log("Script completed successfully");
+  logger.info("Script completed successfully");
 });
 ``````
 
@@ -1290,5 +1368,4 @@ SENTRY_DSN=https://...@sentry.io/...
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
-- [API package source](../../api/src/)
-- [AI assistant rules](./.cursor/rules/api/)
+- [API package source](https://github.com/flourishhealth/terreno/tree/master/api/src)

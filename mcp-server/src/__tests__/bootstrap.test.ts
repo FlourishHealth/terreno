@@ -7,6 +7,33 @@ import {
   PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
 
+/**
+ * Pull a single generated file's body out of the markdown blob the bootstrap tool returns,
+ * so assertions can target one file instead of matching anywhere in the whole response.
+ * Only safe for files whose own content has no fenced code blocks (JSON, TS/JS, YAML).
+ */
+const getGeneratedFile = (text: string, filePath: string): string => {
+  const header = `### \`${filePath}\`\n\n\`\`\``;
+  const headerIndex = text.indexOf(header);
+  if (headerIndex === -1) {
+    throw new Error(`Generated file not found in bootstrap output: ${filePath}`);
+  }
+  const bodyStart = text.indexOf("\n", headerIndex + header.length) + 1;
+  const bodyEnd = text.indexOf("\n```", bodyStart);
+  if (bodyEnd === -1) {
+    throw new Error(`Unterminated code fence for generated file: ${filePath}`);
+  }
+  return text.slice(bodyStart, bodyEnd);
+};
+
+const bootstrapApp = (): string => {
+  const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+    appDisplayName: "Boot App",
+    appName: "boot-app",
+  });
+  return result.content[0].text;
+};
+
 describe("bootstrap", () => {
   describe("bootstrapTools", () => {
     test("should export terreno_bootstrap_app and terreno_bootstrap_ai_rules", () => {
@@ -80,6 +107,7 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/biome.jsonc");
       expect(text).toContain("backend/src/index.ts");
       expect(text).toContain("backend/src/server.ts");
+      expect(text).toContain("backend/src/scripts/seed.ts");
       expect(text).toContain("backend/src/utils/betterAuthConfig.ts");
       expect(text).toContain("backend/.env");
       expect(text).toContain("backend/src/models/modelPlugins.ts");
@@ -93,6 +121,7 @@ describe("bootstrap", () => {
       // Frontend files
       expect(text).toContain("frontend/package.json");
       expect(text).toContain("frontend/app.json");
+      expect(text).toContain("frontend/metro.config.js");
       expect(text).toContain("frontend/tsconfig.json");
       expect(text).toContain("frontend/tsconfig.codegen.json");
       expect(text).toContain("frontend/biome.jsonc");
@@ -135,8 +164,9 @@ describe("bootstrap", () => {
       expect(text).toContain("cd test-app");
       expect(text).toContain("bun install");
       expect(text).toContain("replSet rs0");
-      expect(text).toContain("SpaceMono");
       expect(text).toContain("bun run dev");
+      expect(text).toContain("bun run seed");
+      expect(text).toContain("--reset");
       expect(text).toContain("bun run sdk");
       expect(text).toContain("http://localhost:8082");
     });
@@ -185,6 +215,9 @@ describe("bootstrap", () => {
       expect(text).toContain("TabLayout");
       expect(text).toContain("HomeScreen");
       expect(text).toContain("ProfileScreen");
+      expect(text).toContain("TapToEdit");
+      expect(text).toContain("usePatchMeMutation");
+      expect(text).toContain("handleSaveName");
       expect(text).toContain("BetterAuthApp");
       expect(text).toContain("SyncApp");
       expect(text).toContain("RealtimeApp");
@@ -223,6 +256,162 @@ describe("bootstrap", () => {
       const text = result.content[0].text;
       expect(text).toContain("Backend CI");
       expect(text).toContain("Frontend CI");
+    });
+  });
+
+  // The generated app has to boot from a clean checkout: every module it imports must be a
+  // declared dependency, every asset it references must exist, and every script CI runs must
+  // be defined. See https://github.com/FlourishHealth/terreno/issues/1216.
+  describe("handleBootstrapToolCall - generated frontend boots", () => {
+    test("no generated file references an assets/ path", () => {
+      const text = bootstrapApp();
+      for (const filePath of [
+        "frontend/app.json",
+        "frontend/app/_layout.tsx",
+        "frontend/package.json",
+      ]) {
+        expect(getGeneratedFile(text, filePath)).not.toContain("assets/");
+      }
+    });
+
+    test("generated frontend source imports only declared dependencies", () => {
+      const text = bootstrapApp();
+      const packageJson = JSON.parse(getGeneratedFile(text, "frontend/package.json")) as {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      const declared = new Set([
+        ...Object.keys(packageJson.dependencies),
+        ...Object.keys(packageJson.devDependencies),
+      ]);
+      const fileHeaders = [...text.matchAll(/### `(frontend\/[^`]+)`/g)].map((match) => match[1]);
+      const sourcePaths = fileHeaders.filter((filePath) => /\.(?:ts|tsx|js)$/.test(filePath));
+      expect(sourcePaths.length).toBeGreaterThan(0);
+
+      const packageNameFromSpecifier = (specifier: string): string | undefined => {
+        if (
+          specifier.startsWith(".") ||
+          specifier.startsWith("@/") ||
+          specifier.startsWith("node:")
+        ) {
+          return undefined;
+        }
+        if (specifier === "path" || specifier === "fs" || specifier === "fs/promises") {
+          return undefined;
+        }
+        if (specifier.startsWith("@")) {
+          return specifier.split("/").slice(0, 2).join("/");
+        }
+        return specifier.split("/")[0];
+      };
+
+      let importedCount = 0;
+      for (const filePath of sourcePaths) {
+        const source = getGeneratedFile(text, filePath);
+        const specifiers = [
+          ...source.matchAll(/^import\s+(?:type\s+)?(?:[\s\S]*?\sfrom\s+)?["']([^"']+)["']/gm),
+          ...source.matchAll(/^export\s+\{[^}]*\}\s+from\s+["']([^"']+)["']/gm),
+          ...source.matchAll(/require\(["']([^"']+)["']\)/g),
+        ].map((match) => match[1]);
+
+        for (const specifier of specifiers) {
+          const packageName = packageNameFromSpecifier(specifier);
+          if (!packageName) {
+            continue;
+          }
+          importedCount += 1;
+          expect(
+            declared.has(packageName),
+            `${packageName} is imported by ${filePath} but not declared in frontend/package.json`
+          ).toBe(true);
+        }
+      }
+      expect(importedCount).toBeGreaterThan(0);
+      for (const packageName of [
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "@reduxjs/toolkit",
+        "@rtk-query/codegen-openapi",
+        "lodash",
+        "luxon",
+        "react-native-reanimated",
+        "redux-persist",
+      ]) {
+        expect(declared.has(packageName), `${packageName} must be a declared dependency`).toBe(
+          true
+        );
+      }
+    });
+
+    test("root layout gates auth routes with Stack.Protected", () => {
+      const layout = getGeneratedFile(bootstrapApp(), "frontend/app/_layout.tsx");
+
+      expect(layout).toContain("<Stack.Protected guard={!userId}>");
+      expect(layout).toContain("<Stack.Protected guard={Boolean(userId)}>");
+      // Conditional Stack.Screen children crash the navigator with
+      // "Cannot convert a Symbol value to a string".
+      expect(layout).not.toContain("{!userId ? (");
+    });
+
+    test("app.json leaves branding assets unset so Expo defaults apply", () => {
+      const appJson = JSON.parse(getGeneratedFile(bootstrapApp(), "frontend/app.json")) as {
+        expo: Record<string, unknown> & {web: Record<string, unknown>};
+      };
+
+      expect(appJson.expo.icon).toBeUndefined();
+      expect(appJson.expo.splash).toBeUndefined();
+      expect(appJson.expo.android).toBeUndefined();
+      expect(appJson.expo.web.favicon).toBeUndefined();
+      expect(appJson.expo.web.bundler).toBe("metro");
+    });
+
+    test("metro config pins jspdf away from its unparseable Node build", () => {
+      const text = bootstrapApp();
+      expect(text).toContain("frontend/metro.config.js");
+      const metroConfig = getGeneratedFile(text, "frontend/metro.config.js");
+
+      expect(metroConfig).toContain("config.resolver.resolveRequest");
+      expect(metroConfig).toContain('moduleName === "jspdf"');
+      expect(metroConfig).toContain("jspdf/dist/jspdf.node");
+      expect(metroConfig).toContain("jspdf.es.min.js");
+      expect(metroConfig).toContain("module.exports = config;");
+    });
+
+    test("tsconfig omits the deprecated baseUrl that aborts tsc", () => {
+      const tsConfig = JSON.parse(getGeneratedFile(bootstrapApp(), "frontend/tsconfig.json")) as {
+        compilerOptions: Record<string, unknown> & {paths: Record<string, string[]>};
+      };
+
+      // TypeScript 6 fails with TS5101 on baseUrl before checking any file.
+      expect(tsConfig.compilerOptions.baseUrl).toBeUndefined();
+      // paths still resolve; they are relative to the tsconfig without baseUrl.
+      expect(tsConfig.compilerOptions.paths["@/*"]).toEqual(["./*"]);
+    });
+
+    test("every script the CI workflows run is defined in its package.json", () => {
+      const text = bootstrapApp();
+      const cases = [
+        {ciPath: ".github/workflows/frontend-ci.yml", packagePath: "frontend/package.json"},
+        {ciPath: ".github/workflows/backend-ci.yml", packagePath: "backend/package.json"},
+      ];
+
+      for (const {ciPath, packagePath} of cases) {
+        const workflow = getGeneratedFile(text, ciPath);
+        const packageJson = JSON.parse(getGeneratedFile(text, packagePath)) as {
+          scripts: Record<string, string>;
+        };
+        const scriptsRun = [...workflow.matchAll(/run: bun run ([\w:-]+)/g)].map(
+          (match) => match[1]
+        );
+        expect(scriptsRun.length).toBeGreaterThan(0);
+
+        for (const script of scriptsRun) {
+          expect(
+            packageJson.scripts[script],
+            `${ciPath} runs "bun run ${script}" but ${packagePath} does not define it`
+          ).toBeDefined();
+        }
+      }
     });
   });
 

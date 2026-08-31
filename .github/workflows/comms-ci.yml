@@ -1,24 +1,7 @@
 name: Comms CI
 
-on:
-  pull_request:
-    paths:
-      - "api/**"
-      - "comms/**"
-      - "test/**"
-      - "bun.lock"
-      - "package.json"
-      - ".github/workflows/comms-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "api/**"
-      - "comms/**"
-      - "test/**"
-      - "bun.lock"
-      - "package.json"
-      - ".github/workflows/comms-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:
@@ -34,7 +17,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         uses: actions/cache@v6

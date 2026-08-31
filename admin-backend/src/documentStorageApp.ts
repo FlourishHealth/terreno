@@ -192,9 +192,7 @@ export class DocumentStorageApp implements TerrenoPlugin {
     app.post(
       `${basePath}/`,
       ...adminGuard,
-      // noExplicitAny: multer's RequestHandler type is incompatible with Express 5's middleware signature.
-      // biome-ignore lint/suspicious/noExplicitAny: multer's RequestHandler type is incompatible with Express 5's middleware signature.
-      upload.single("file") as any,
+      upload.single("file") as unknown as express.RequestHandler,
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const file = (req as unknown as {file?: Express.Multer.File}).file;
         if (!file) {

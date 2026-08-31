@@ -44,7 +44,7 @@ Both apps use the same architecture pattern optimized for single-page applicatio
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    GCS Bucket (Origin)                       │
-│   (e.g., gs://flourish-terreno-terreno-demo)                │
+│   (e.g., gs://your-project-terreno-demo)                    │
 │                                                              │
 │   ├── index.html                                            │
 │   ├── _expo/                                                │

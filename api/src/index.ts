@@ -55,6 +55,7 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export * from "./rbac/access";
+export {assertAllowed} from "./rbac/assertAllowed";
 export {
   createRbacAuditModel,
   type RbacAuditDocument,
@@ -150,9 +151,26 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
+export {
+  type DescribeModelForRouterOptions,
+  type DescribeModelOptions,
+  describeModel,
+  describeModelForRouter,
+  type FieldDescription,
+  type FieldKind,
+  fieldDescriptionToAdminMeta,
+  fieldDescriptionToOpenApiProperty,
+  fieldDescriptionToZodType,
+  type ModelDescription,
+  modelDescriptionToAdminFields,
+  modelDescriptionToOpenApiSpec,
+  nestDottedFieldDescriptions,
+  SYSTEM_FIELD_PATHS,
+} from "./schemaMetadata";
 export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
+export * from "./seedRunner";
 export * from "./sync/executors";
 export * from "./sync/models";
 export * from "./sync/mutationHandler";

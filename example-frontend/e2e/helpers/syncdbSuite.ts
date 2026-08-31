@@ -59,7 +59,8 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow("rejected query");
   consoleGuard.allow("Error fetching OpenAPI spec");
   // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
-  // legitimately fails Better Auth's sign-out network call.
+  // legitimately fails Better Auth's session and sign-out network calls.
+  consoleGuard.allow("Better Auth: Error syncing session: TypeError: Failed to fetch");
   consoleGuard.allow("Better Auth: Error signing out");
   consoleGuard.allow(/sync needs attention/i);
   // Queueing mutations against a severed network is the point of these suites, so the
@@ -84,12 +85,6 @@ export const clickTodoControl = async (locator: Locator): Promise<void> => {
     node.scrollIntoView({block: "center", inline: "center"});
   });
   await locator.click({force: true});
-};
-
-export const forceSyncReconnect = async (page: Page): Promise<void> => {
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event("syncdb-e2e-reconnect"));
-  });
 };
 
 /**
@@ -259,8 +254,7 @@ export const installChaosControl = async (
 
   const stop = async (): Promise<void> => {
     chaosActive = false;
-    offline = false;
-    await page.unroute(`${API_URL}/**`);
+    await goOnline();
   };
 
   return {dropSocket, goOffline, goOnline, stop};

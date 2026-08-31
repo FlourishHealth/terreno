@@ -1,9 +1,7 @@
 name: Publish packages on tag
 
-on:
-  push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'  # Matches semver: 1.0.0, 2.3.4-beta.1, etc.
+# Disabled after migration to CircleCI semver-tag publishing; retained for rollback.
+on: []
 
 jobs:
   breaking-change-documentation:
@@ -15,7 +13,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Check release upgrade documentation
         run: bun run check:upgrade-docs "${{ github.ref_name }}"
@@ -70,7 +68,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -164,7 +162,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -243,7 +241,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -407,7 +405,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -574,7 +572,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -665,7 +663,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -778,7 +776,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -893,7 +891,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -993,7 +991,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -1087,7 +1085,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -1181,7 +1179,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -1281,7 +1279,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -1375,7 +1373,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Use Node.js 22
         uses: actions/setup-node@v7
@@ -1591,7 +1589,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Setup Git
         run: |

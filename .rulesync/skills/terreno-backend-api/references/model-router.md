@@ -41,10 +41,11 @@ modelRouter("/todos", Todo, {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],
   },
-  realtime: {
+  realtime: { // deprecated; removed in Terreno 58 — use `sync` instead
     methods: ["create", "update", "delete"],
     roomStrategy: "owner",
   },
+  sync: {scope: {type: "owner"}},
   collectionActions: {
     bulkComplete: {
       method: "POST",
