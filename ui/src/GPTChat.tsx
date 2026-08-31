@@ -990,9 +990,9 @@ export const GPTChat = ({
       {/* Chat Panel */}
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
-        <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout}>
+        <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
           <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
-            <Box gap={3} onLayout={handleContentLayout}>
+            <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
               {currentMessages.length === 0 && suggestedPrompts && suggestedPrompts.length > 0 && (
                 <Box alignItems="center" gap={2} paddingY={4}>
                   <Text color="secondaryDark" size="sm">

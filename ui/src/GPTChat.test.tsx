@@ -2,7 +2,7 @@ import {describe, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
-import {Pressable} from "react-native";
+import {Pressable, ScrollView} from "react-native";
 
 import type {GPTChatHistory, GPTChatMessage, GPTChatProps} from "./GPTChat";
 import {GPTChat} from "./GPTChat";
@@ -16,13 +16,15 @@ mock.module("expo-clipboard", () => ({setStringAsync}));
 mock.module("./IconButton", () => ({
   IconButton: ({
     accessibilityLabel,
+    disabled,
     onClick,
     testID,
   }: {
     accessibilityLabel?: string;
+    disabled?: boolean;
     onClick?: () => void;
     testID?: string;
-  }) => React.createElement(Pressable, {accessibilityLabel, onPress: onClick, testID}),
+  }) => React.createElement(Pressable, {accessibilityLabel, disabled, onPress: onClick, testID}),
 }));
 
 // Box and IconButton presses run through an async haptic call, so state updates land in a
@@ -453,28 +455,49 @@ describe("GPTChat", () => {
     assert.deepEqual(setStringAsync.mock.calls, [["Copy me"]]);
   });
 
-  it("disables input and hides attachments while streaming", () => {
-    const {getByTestId, queryByTestId} = renderChat({isStreaming: true});
+  it("disables input and the attachment picker while streaming", () => {
+    const {getByTestId} = renderChat({isStreaming: true, onAttachFiles: () => {}});
 
     assert.isTrue(getByTestId("gpt-input").props.readOnly);
+    assert.isTrue(getByTestId("gpt-attach-button").props.disabled);
+  });
+
+  it("keeps the attachment picker enabled when not streaming", () => {
+    const {getByTestId} = renderChat({onAttachFiles: () => {}});
+
+    assert.isNotTrue(getByTestId("gpt-attach-button").props.disabled);
+  });
+
+  it("hides the attachment picker without an attach handler", () => {
+    const {queryByTestId} = renderChat();
+
     assert.isNull(queryByTestId("gpt-attach-button"));
   });
 
-  it("shows the scroll to bottom button once scrolled away from the end", () => {
-    const {getByTestId, getByText, queryByText} = renderChat({
+  it("shows the scroll to bottom button once scrolled away from the end", async () => {
+    const {getByTestId, getByText, queryByText, UNSAFE_getByType} = renderChat({
       currentMessages: [{content: "Hello!", role: "assistant"}],
     });
 
     assert.isNull(queryByText("Scroll to bottom"));
 
-    const scrollable = getByTestId("gpt-chat");
-    fireEvent(scrollable, "layout", {nativeEvent: {layout: {height: 100, width: 100, x: 0, y: 0}}});
-    fireEvent.scroll(getByTestId("gpt-chat"), {
-      nativeEvent: {contentOffset: {x: 0, y: 0}},
+    fireEvent(getByTestId("gpt-viewport"), "layout", {
+      nativeEvent: {layout: {height: 200, width: 100, x: 0, y: 0}},
+    });
+    fireEvent(getByTestId("gpt-messages"), "layout", {
+      nativeEvent: {layout: {height: 600, width: 100, x: 0, y: 0}},
+    });
+    await act(async () => {
+      fireEvent.scroll(UNSAFE_getByType(ScrollView), {
+        nativeEvent: {contentOffset: {x: 0, y: 100}},
+      });
     });
 
+    assert.isOk(getByText("Scroll to bottom"));
+
+    await press(getByText("Scroll to bottom"));
+
     assert.isNull(queryByText("Scroll to bottom"));
-    assert.isOk(getByText("Hello!"));
   });
 
   it("renders attachments and the attach button", () => {
