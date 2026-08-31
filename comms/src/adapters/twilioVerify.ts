@@ -1,12 +1,19 @@
 import {createRequire} from "node:module";
+import {logger, withApiErrorHandling} from "@terreno/api";
 
 import type {
   CheckVerificationOptions,
+  CommsErrorClass,
   SendResult,
   StartVerificationOptions,
   VerificationProvider,
   VerificationResult,
 } from "../types";
+
+const PERMANENT_CODES = new Set([60200, 60202, 60203]);
+const TRANSIENT_CODES = new Set([20429]);
+const CONFIG_CODES = new Set([20003, 20404]);
+const TWILIO_VERIFY_CONSOLE_BASE = "https://console.twilio.com/us1/develop/verify/services";
 
 const nodeRequire = createRequire(__filename);
 
@@ -88,6 +95,82 @@ const checkErrorForStatus = (status: string): string | undefined => {
   return status;
 };
 
+interface TwilioErrorFields {
+  code?: number;
+  message: string;
+  payload: Record<string, unknown>;
+  status?: number;
+}
+
+const twilioErrorFields = (error: unknown): TwilioErrorFields => {
+  if (!error || typeof error !== "object") {
+    return {
+      message: error instanceof Error ? error.message : "Twilio Verify request failed",
+      payload: {error},
+    };
+  }
+  const raw = error as {code?: unknown; message?: unknown; moreInfo?: unknown; status?: unknown};
+  const code = typeof raw.code === "number" ? raw.code : undefined;
+  const status = typeof raw.status === "number" ? raw.status : undefined;
+  const message =
+    typeof raw.message === "string" && raw.message.length > 0
+      ? raw.message
+      : error instanceof Error
+        ? error.message
+        : "Twilio Verify request failed";
+  const payload: Record<string, unknown> = {message};
+  if (code !== undefined) {
+    payload.code = code;
+  }
+  if (status !== undefined) {
+    payload.status = status;
+  }
+  if (typeof raw.moreInfo === "string") {
+    payload.moreInfo = raw.moreInfo;
+  }
+  return {code, message, payload, status};
+};
+
+const classifyTwilioVerifyFailure = (
+  fields: TwilioErrorFields
+): {errorClass: CommsErrorClass; errorCode: string} => {
+  if (fields.code !== undefined && PERMANENT_CODES.has(fields.code)) {
+    return {errorClass: "permanent", errorCode: String(fields.code)};
+  }
+  if (fields.code !== undefined && CONFIG_CODES.has(fields.code)) {
+    return {errorClass: "config", errorCode: String(fields.code)};
+  }
+  if (fields.code !== undefined && TRANSIENT_CODES.has(fields.code)) {
+    return {errorClass: "transient", errorCode: String(fields.code)};
+  }
+  if (fields.status === 429 || (fields.status !== undefined && fields.status >= 500)) {
+    return {
+      errorClass: "transient",
+      errorCode: fields.code !== undefined ? String(fields.code) : `twilio-${fields.status}`,
+    };
+  }
+  if (fields.code !== undefined) {
+    return {errorClass: "transient", errorCode: String(fields.code)};
+  }
+  return {errorClass: "transient", errorCode: "twilio-network"};
+};
+
+const failedStartResult = (error: unknown): SendResult => {
+  const fields = twilioErrorFields(error);
+  const {errorClass, errorCode} = classifyTwilioVerifyFailure(fields);
+  if (errorClass === "config") {
+    logger.error(`[comms:twilio-verify] ${errorCode}: ${fields.message}`);
+  }
+  return {
+    accepted: false,
+    error: fields.message,
+    errorClass,
+    errorCode,
+    isPermanentFailure: errorClass === "permanent",
+    metadata: {twilioError: fields.payload},
+  };
+};
+
 export class TwilioVerifyProvider implements VerificationProvider {
   readonly id = "twilio-verify";
   private readonly client: TwilioVerifyClient;
@@ -104,23 +187,41 @@ export class TwilioVerifyProvider implements VerificationProvider {
   }
 
   async startVerification(options: StartVerificationOptions): Promise<SendResult> {
-    const created = await this.client.verify.v2
-      .services(this.verifyServiceSid)
-      .verifications.create({channel: options.channel, to: options.to});
-    return {
-      accepted: true,
-      providerMessageId: created.sid,
-    };
+    try {
+      const created = await withApiErrorHandling(
+        () =>
+          this.client.verify.v2
+            .services(this.verifyServiceSid)
+            .verifications.create({channel: options.channel, to: options.to}),
+        {apiName: "twilio-verify", operation: "startVerification"}
+      );
+      return {
+        accepted: true,
+        metadata: {consoleUrl: `${TWILIO_VERIFY_CONSOLE_BASE}/${this.verifyServiceSid}`},
+        providerMessageId: created.sid,
+      };
+    } catch (error: unknown) {
+      return failedStartResult(error);
+    }
   }
 
   async checkVerification(options: CheckVerificationOptions): Promise<VerificationResult> {
-    const checked = await this.client.verify.v2
-      .services(this.verifyServiceSid)
-      .verificationChecks.create({code: options.code, to: options.to});
-    const error = checkErrorForStatus(checked.status);
-    if (error === undefined) {
-      return {valid: true};
+    try {
+      const checked = await withApiErrorHandling(
+        () =>
+          this.client.verify.v2
+            .services(this.verifyServiceSid)
+            .verificationChecks.create({code: options.code, to: options.to}),
+        {apiName: "twilio-verify", operation: "checkVerification"}
+      );
+      const error = checkErrorForStatus(checked.status);
+      if (error === undefined) {
+        return {valid: true};
+      }
+      return {error, valid: false};
+    } catch (error: unknown) {
+      const fields = twilioErrorFields(error);
+      return {error: fields.message, valid: false};
     }
-    return {error, valid: false};
   }
 }

@@ -1,6 +1,8 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
-
+import {evaluateRetryBlock} from "../commsRetry";
+import {CommsService} from "../commsService";
+import {CommsMessage} from "../models/commsMessage";
 import {type TwilioVerifyClient, TwilioVerifyProvider} from "./twilioVerify";
 
 interface VerifyStartCall {
@@ -15,10 +17,12 @@ interface VerifyCheckCall {
 
 const createMockClient = ({
   checkStatus,
+  startError,
   startSid = "VE123",
   startStatus = "pending",
 }: {
   checkStatus?: string;
+  startError?: Error;
   startSid?: string;
   startStatus?: string;
 } = {}): TwilioVerifyClient & {checkCalls: VerifyCheckCall[]; startCalls: VerifyStartCall[]} => {
@@ -39,6 +43,9 @@ const createMockClient = ({
           verifications: {
             create: async (params: VerifyStartCall): Promise<{sid: string; status: string}> => {
               startCalls.push(params);
+              if (startError) {
+                throw startError;
+              }
               return {sid: startSid, status: startStatus};
             },
           },
@@ -141,5 +148,63 @@ describe("TwilioVerifyProvider", () => {
     assert.equal(expiredResult.error, "expired");
     assert.isFalse(maxResult.valid);
     assert.equal(maxResult.error, "max-attempts");
+  });
+
+  it("redacts destination and omits codes from verification log rows", async (): Promise<void> => {
+    const client = createMockClient({startSid: "VElog"});
+    const provider = new TwilioVerifyProvider(providerOptions(client));
+    const service = new CommsService({verification: provider});
+
+    const result = await service.startVerification({
+      channel: "sms",
+      to: "+14155552671",
+    });
+    await service.checkVerification({code: "999111", to: "+14155552671"});
+
+    const startRow = await CommsMessage.findExactlyOne({_id: result.loggedMessageId});
+    const checkRow = await CommsMessage.findExactlyOne({
+      channel: "verification",
+      providerMessageId: {$exists: false},
+      status: "sent",
+    });
+    const serialized = JSON.stringify([startRow.toJSON(), checkRow.toJSON()]);
+    assert.equal(startRow.to, "[redacted]");
+    assert.equal(startRow.channel, "verification");
+    assert.equal((startRow.metadata as {verificationChannel?: string}).verificationChannel, "sms");
+    assert.include(String(startRow.metadata?.consoleUrl), "VAservice");
+    assert.notInclude(serialized, "999111");
+    assert.notInclude(serialized, "+14155552671");
+  });
+
+  it("classifies start failures and fires onError without retrying verification", async (): Promise<void> => {
+    const startError = new Error("Authenticate") as Error & {code: number; status: number};
+    startError.code = 20003;
+    startError.status = 401;
+    const client = createMockClient({startError});
+    const provider = new TwilioVerifyProvider(providerOptions(client));
+    const onErrorCalls: Array<{errorClass?: string; errorCode?: string}> = [];
+    const service = new CommsService({
+      onError: async (_context, sendResult): Promise<void> => {
+        onErrorCalls.push(sendResult);
+      },
+      verification: provider,
+    });
+
+    const result = await service.startVerification({
+      channel: "sms",
+      to: "+14155552671",
+    });
+    const row = await CommsMessage.findExactlyOne({_id: result.loggedMessageId});
+    const block = evaluateRetryBlock({
+      isChannelConfigured: () => true,
+      message: row,
+    });
+
+    assert.isFalse(result.accepted);
+    assert.equal(result.errorClass, "config");
+    assert.equal(result.errorCode, "20003");
+    assert.equal(onErrorCalls.length, 1);
+    assert.equal(onErrorCalls[0]?.errorClass, "config");
+    assert.equal(block?.code, "comms-retry-not-retryable");
   });
 });
