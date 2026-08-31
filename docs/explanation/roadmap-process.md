@@ -252,9 +252,11 @@ Delete unused GitHub defaults after the new taxonomy is applied (`gh label list`
 The workflow's built-in `GITHUB_TOKEN` **cannot** be used here: it is repository-scoped and
 returns no `projectV2` data for an organization project. GitHub also reserves the name
 `GITHUB_TOKEN`, so a PAT cannot be supplied under that name — hence the separate
-`ROADMAP_PROJECT_TOKEN` secret. When the rendered file changes, the workflow uses the default
-token with `contents: write` and `pull-requests: write` to push a new branch and open a
-reviewable pull request; protected `master` is never pushed directly.
+`ROADMAP_PROJECT_TOKEN` secret. The same PAT also pushes the regenerated `ROADMAP.md`: the
+`master` ruleset requires a pull request and the default `GITHUB_TOKEN` is not a bypass actor
+on it, so the PAT needs `repo` scope and its owner must be listed as a ruleset bypass actor.
+[`.github/scripts/git-auth-roadmap-pat.sh`](https://github.com/FlourishHealth/terreno/blob/master/.github/scripts/git-auth-roadmap-pat.sh)
+applies that credential only for the fetch/push steps, so `bun install` never sees it.
 
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
 is the variable the generator reads.

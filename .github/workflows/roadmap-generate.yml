@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 # Shared with roadmap-sync and roadmap-reconcile: three workflows write the same
 # board, and interleaving them produces confusing partial states.
@@ -95,6 +94,8 @@ jobs:
           git switch -c "$ROADMAP_BRANCH"
           git add ROADMAP.md
           git commit -m "chore: regenerate ROADMAP.md from project board"
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
           git push --set-upstream origin "$ROADMAP_BRANCH"
           gh pr create \
             --base master \
