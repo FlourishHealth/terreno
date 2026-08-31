@@ -250,7 +250,7 @@ GPT project with persistent context and memories.
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId` |
+| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId`, `promptName`, `promptLabel`, `sensitive`, `sessionId`. Also reads `x-ai-session-id`. Passes `userId` from `req.user` into `AIService`; `sensitive` on the body overrides the resolved prompt version. |
 | `/gpt/remix` | POST | `IsAuthenticated` | Non-streaming text remix; body: `{text}` |
 | `/gpt/histories/:id/rating` | PATCH | `IsAuthenticated` | Rate a prompt; body: `{promptIndex, rating: "up" \| "down" \| null}` |
 | `/gpt/tools` | GET | `IsAuthenticated` | List builtin + MCP tools |

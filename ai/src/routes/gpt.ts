@@ -12,7 +12,6 @@ import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
-import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
@@ -40,6 +39,35 @@ const isGeneratedImageFile = (value: unknown): value is GeneratedImageFile =>
 
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
+
+const readSessionId = (req: express.Request): string | undefined => {
+  const fromBody = req.body?.sessionId;
+  if (typeof fromBody === "string" && fromBody.length > 0) {
+    return fromBody;
+  }
+  const header = req.headers["x-ai-session-id"];
+  if (typeof header === "string" && header.length > 0) {
+    return header;
+  }
+  if (Array.isArray(header) && typeof header[0] === "string" && header[0].length > 0) {
+    return header[0];
+  }
+  return undefined;
+};
+
+const readSensitiveOverride = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return undefined;
+};
+
+const readOptionalString = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  return undefined;
+};
 
 /** Send a canned SSE demo response when no AI service is available. */
 const sendDemoResponse = (res: express.Response, historyId?: string): void => {
@@ -101,6 +129,7 @@ const generateTitle = async (
     const conversationSnippet = `User: ${prompt}\nAssistant: ${response.substring(0, 500)}`;
     const title = await titleService.generateText({
       prompt: conversationSnippet,
+      skipTrace: true,
       systemPrompt: TITLE_GENERATION_PROMPT,
       temperature: 0.3,
     });
@@ -137,6 +166,10 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           model: {type: "string"},
           projectId: {type: "string"},
           prompt: {type: "string"},
+          promptLabel: {type: "string"},
+          promptName: {type: "string"},
+          sensitive: {type: "boolean"},
+          sessionId: {type: "string"},
           systemPrompt: {type: "string"},
         })
         .withResponse(200, {data: {type: "string"}})
@@ -154,8 +187,14 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           attachments,
           model: requestModel,
           projectId,
+          promptLabel,
+          promptName,
+          sensitive,
+          sessionId: bodySessionId,
         } = req.body;
         const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
+        const sessionId = readOptionalString(bodySessionId) ?? readSessionId(req);
+        const sensitiveOverride = readSensitiveOverride(sensitive);
 
         if (!prompt || typeof prompt !== "string") {
           throw new APIError({status: 400, title: "prompt is required"});
@@ -242,6 +281,15 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
             logger.debug(`Langfuse system prompt skipped: ${(err as Error).message}`);
           }
         }
+
+        const observability = await aiService.resolveGenerateObservability({
+          promptLabel: readOptionalString(promptLabel),
+          promptName: readOptionalString(promptName),
+          sensitive: sensitiveOverride,
+          sessionId,
+          systemPrompt: effectiveSystemPrompt,
+        });
+        effectiveSystemPrompt = observability.systemPrompt;
 
         // Build content parts from attachments
         const contentParts: MessageContentPart[] = [{text: prompt, type: "text"}];
@@ -530,12 +578,13 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           await history.save();
 
           try {
-            await AIRequest.logRequest({
-              aiModel: modelId ?? "unknown",
+            await aiService.recordGenerate({
+              observability,
               prompt,
               requestType: "general",
               response: fullResponse,
               responseTime: DateTime.now().toMillis() - startTime,
+              startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -578,12 +627,13 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           });
 
           try {
-            await AIRequest.logRequest({
-              aiModel: modelId ?? "unknown",
+            await aiService.recordGenerate({
               error: error instanceof Error ? error.message : String(error),
+              observability,
               prompt,
               requestType: "general",
               responseTime: DateTime.now().toMillis() - startTime,
+              startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -678,14 +728,19 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         .withTags(["gpt"])
         .withSummary("Remix text")
         .withRequestBody({
+          promptLabel: {type: "string"},
+          promptName: {type: "string"},
+          sensitive: {type: "boolean"},
+          sessionId: {type: "string"},
           text: {type: "string"},
         })
         .withResponse(200, {data: {type: "string"}})
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {text} = req.body;
+      const {text, promptLabel, promptName, sensitive} = req.body;
       const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
+      const sessionId = readSessionId(req);
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});
@@ -696,7 +751,14 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         return res.json({data: DEMO_RESPONSE});
       }
 
-      const result = await aiService.generateRemix({text, userId});
+      const result = await aiService.generateRemix({
+        promptLabel: readOptionalString(promptLabel),
+        promptName: readOptionalString(promptName),
+        sensitive: readSensitiveOverride(sensitive),
+        sessionId,
+        text,
+        userId,
+      });
       return res.json({data: result});
     })
   );

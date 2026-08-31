@@ -417,6 +417,29 @@ export class AIService {
     }
   }
 
+  async resolveGenerateObservability(
+    options: GenerateObservabilityOptions & {systemPrompt?: string}
+  ): Promise<ResolvedObservability> {
+    return this.resolveObservability(options);
+  }
+
+  async recordGenerate(params: {
+    error?: string;
+    inputTokens?: number;
+    metadata?: Record<string, unknown>;
+    observability: ResolvedObservability;
+    outputTokens?: number;
+    prompt: string;
+    requestType: AIRequestType;
+    response?: string;
+    responseTime: number;
+    startTime: number;
+    tokensUsed?: number;
+    userId?: mongoose.Types.ObjectId;
+  }): Promise<void> {
+    await this.logRequestAndTrace(params);
+  }
+
   async generateText(options: GenerateTextOptions): Promise<string> {
     const observability = await this.resolveObservability(options);
     const {prompt, temperature, maxOutputTokens, userId} = options;

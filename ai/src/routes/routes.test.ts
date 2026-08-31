@@ -9,6 +9,9 @@ import type supertest from "supertest";
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
+import {MemoryTraceSink} from "../observability/memorySinks";
+import {ObservabilityApp, resetObservabilityApp} from "../observability/observabilityApp";
+import type {ObservabilityPlugin} from "../observability/types";
 import {AIService} from "../service/aiService";
 import type {MCPService} from "../service/mcpService";
 import {authAsUser, ensureTestUsers, UserModel} from "../tests/helpers";
@@ -168,6 +171,7 @@ describe("AI Routes", () => {
 
   afterEach(async () => {
     streamTextOverride = undefined;
+    resetObservabilityApp();
     await AIRequest.deleteMany({});
     await GptHistory.deleteMany({});
   });
@@ -258,6 +262,41 @@ describe("AI Routes", () => {
 
       const histories = await GptHistory.find({});
       expect(histories.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("emits a memory-sink trace with userId and sessionId", async () => {
+      const sink = new MemoryTraceSink();
+      const plugin: ObservabilityPlugin = {
+        capabilities: new Set([
+          "datasets",
+          "experiments",
+          "prompts",
+          "reviewQueue",
+          "scores",
+          "traces",
+        ]),
+        datasetStore: {},
+        experimentRunner: {},
+        id: "local",
+        promptRegistry: {get: async () => undefined},
+        reviewQueue: {},
+        traceSink: sink,
+      };
+      new ObservabilityApp({plugins: [plugin]});
+
+      const agent = await authAsUser(app, "notAdmin");
+      const user = await UserModel.findOne({email: "notAdmin@example.com"});
+      const res = await agent
+        .post("/gpt/prompt")
+        .set("x-ai-session-id", "sess-gpt-1")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+
+      expect(res.status).toBe(200);
+      expect(sink.traces.length).toBe(1);
+      expect(sink.traces[0].sessionId).toBe("sess-gpt-1");
+      expect(sink.traces[0].userId).toBe(user?._id.toString());
     });
 
     it("sends demo response when no ai service configured", async () => {
