@@ -31,6 +31,10 @@
     "./adapters/sendgrid": {
       "types": "./dist/adapters/sendgrid.d.ts",
       "default": "./dist/adapters/sendgrid.js"
+    },
+    "./adapters/twilioSms": {
+      "types": "./dist/adapters/twilioSms.d.ts",
+      "default": "./dist/adapters/twilioSms.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
