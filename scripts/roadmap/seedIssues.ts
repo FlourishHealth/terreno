@@ -12,6 +12,8 @@
  *    already-open issue per IP slug together with its field values.
  */
 
+import {ROADMAP_LABEL} from "./checkRoadmapItem.ts";
+
 export interface SeedIssue {
   /** Board `Area` single-select value. */
   area: string;
@@ -36,6 +38,14 @@ export interface SeedIssue {
 export const SEED_ISSUES_PATH = "docs/explanation/roadmap-seed-issues.md";
 
 const METADATA_LINE = /^\*\*(?:Title|Labels|Project fields):\*\*/;
+
+/**
+ * The `roadmap` label is what makes the board's items filterable in the issue
+ * list, so it is added here rather than repeated on every `**Labels:**` line.
+ */
+const withRoadmapLabel = (labels: string[]): string[] => {
+  return labels.includes(ROADMAP_LABEL) ? labels : [...labels, ROADMAP_LABEL];
+};
 
 /** Pulls every `` `value` `` out of a metadata line. */
 const backtickValues = (line: string): string[] => {
@@ -84,7 +94,7 @@ const parseSection = (args: {body: string; slug: string}): SeedIssue | null => {
     impact: fields.Impact ?? "",
     ip: fields.IP ?? "",
     issueNumber: null,
-    labels: labelsLine === undefined ? [] : backtickValues(labelsLine),
+    labels: withRoadmapLabel(labelsLine === undefined ? [] : backtickValues(labelsLine)),
     slug: args.slug,
     status: fields.Status ?? "",
     target: fields.Target ?? "",
@@ -126,7 +136,9 @@ export const parseBackfillTable = (contents: string): SeedIssue[] => {
       impact: backtickValues(impactCell ?? "")[0] ?? "",
       ip: slug,
       issueNumber,
-      labels: [`area:${area}`, backtickValues(typeCell ?? "")[0] ?? ""].filter((label) => label !== ""),
+      labels: withRoadmapLabel(
+        [`area:${area}`, backtickValues(typeCell ?? "")[0] ?? ""].filter((label) => label !== "")
+      ),
       slug,
       status: backtickValues(statusCell ?? "")[0] ?? "",
       target: backtickValues(targetCell ?? "")[0] ?? "",

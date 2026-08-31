@@ -32,9 +32,9 @@ export const AREA_ORDER = [
 export const DECLINED_STATUS = "Declined";
 
 /**
- * Tracking issues are titled `[Roadmap] <thing>` so they stand out in the issue
- * list. That prefix is pure noise once every line in this file is a roadmap
- * item, so it is dropped from the rendered title only.
+ * Roadmap issues are marked with the `roadmap` label, not a title prefix. Older
+ * issues were titled `[Roadmap] <thing>`, so that legacy prefix is stripped
+ * here — both for rendering and for matching a board issue to a seed entry.
  */
 export const displayTitle = (title: string): string => {
   return title.replace(/^\s*\[Roadmap\]\s*/, "").trim() || title.trim();
