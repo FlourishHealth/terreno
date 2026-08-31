@@ -2,9 +2,9 @@
 
 ## `terreno-planning` — loop-engineering lifecycle
 
-The reusable plugin exposes exactly five bounded lifecycle transitions. Cursor installs
-it as `terreno-planning`; Claude Code installs the generated `terreno-claude/` copy as
-`terreno` (see [Hosts](#hosts)):
+The reusable plugin exposes exactly five bounded lifecycle transitions. Cursor and Codex
+install it as `terreno-planning`; Claude Code installs the generated `terreno-claude/`
+copy as `terreno` (see [Hosts](#hosts)):
 
 | # | Stage | Contract |
 | --- | --- | --- |
@@ -136,9 +136,10 @@ are removed; invoke the canonical stages directly.
 | Host | Plugin | Marketplace | Invoke Grow |
 | --- | --- | --- | --- |
 | Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-1-grow` |
+| Codex | `terreno-planning` | [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) | `$terreno-1-grow` |
 | Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:1-grow` |
 
-Cursor also ships outer loops `/terreno-planning-loop` and `/terreno-taste-sweep`.
+Cursor and Codex also ship outer loops `terreno-planning-loop` and `terreno-taste-sweep`.
 
 Claude Code install:
 
@@ -147,13 +148,20 @@ Claude Code install:
 /plugin install terreno@terreno-plugins
 ```
 
+Codex install:
+
+```text
+codex plugin marketplace add FlourishHealth/terreno
+codex plugin install terreno-planning --source terreno-plugins
+```
+
 Claude Code's installer collides when the marketplace `name` matches the plugin `name`.
 The marketplace is `terreno-plugins`; the plugin stays `terreno` so Grow is `/terreno:1-grow`.
 
 `terreno-planning/` is canonical and keeps the `terreno-<n>-<stage>` skill names used by
-Cursor and `npx skills`. Claude Code resolves a plugin skill's command from the
-frontmatter `name`, so its shortened names cannot live in the shared stage files.
-`terreno-claude/` is a **generated** Claude-only copy: same procedure, stage names
-shortened to `1-grow` … `5-taste`, published under the plugin name `terreno` so the
-namespaced command is `/terreno:1-grow`. Regenerate it with `bun run skills:sync`; never
-hand-edit it.
+Cursor, Codex, and `npx skills`. Codex reads `.codex-plugin/plugin.json` in that same
+directory. Claude Code resolves a plugin skill's command from the frontmatter `name`, so
+its shortened names cannot live in the shared stage files. `terreno-claude/` is a
+**generated** Claude-only copy: same procedure, stage names shortened to `1-grow` …
+`5-taste`, published under the plugin name `terreno` so the namespaced command is
+`/terreno:1-grow`. Regenerate it with `bun run skills:sync`; never hand-edit it.

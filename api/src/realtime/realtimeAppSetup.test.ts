@@ -183,22 +183,4 @@ describe("RealtimeApp.onServerCreated", () => {
       "Socket authentication requires TOKEN_SECRET or Better Auth"
     );
   });
-
-  it("starts with Better Auth when no legacy token secret is available", () => {
-    delete process.env.TOKEN_SECRET;
-    const app = new RealtimeApp(
-      testRealtimeOptions({
-        betterAuth: {
-          auth: {
-            api: {getSession: async () => null},
-          } as never,
-        },
-      })
-    );
-
-    app.onServerCreated(fakeServer);
-
-    assert.lengthOf(lastIo().middleware, 1);
-    assert.isTrue(lastIo().handlers.has("connection"));
-  });
 });

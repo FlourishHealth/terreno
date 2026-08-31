@@ -78,10 +78,19 @@ Or install the same five stages as a host plugin:
 | Host | Plugin | Stage names | Invoke Grow |
 | --- | --- | --- | --- |
 | Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+| Codex | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `$terreno-1-grow` |
 | Claude Code | `terreno` | `1-grow` … `5-taste` | `/terreno:1-grow` |
 | `npx skills` | — | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
 
-Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Claude Code:
+Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Codex:
+
+```text
+codex plugin marketplace add FlourishHealth/terreno
+codex plugin install terreno-planning --source terreno-plugins
+```
+
+Codex reads [`.agents/plugins/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.agents/plugins/marketplace.json)
+and `.codex-plugin/plugin.json` on the canonical plugin. Claude Code:
 
 ```text
 /plugin marketplace add FlourishHealth/terreno

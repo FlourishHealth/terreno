@@ -5,6 +5,7 @@ import {describe, it} from "bun:test";
 import {
   validateAsyncReviewBotsContract,
   validateClaudePluginHost,
+  validateCodexPluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
   validateLifecyclePlugin,
@@ -34,6 +35,29 @@ describe("lifecycle skill architecture", (): void => {
     assert.equal(claudeMarketplace.name, "terreno-plugins");
     assert.equal(claudeMarketplace.plugins[0]?.name, "terreno");
     assert.notEqual(claudeMarketplace.name, claudeMarketplace.plugins[0]?.name);
+  });
+
+  it("validates the Codex plugin host", (): void => {
+    assert.deepEqual(validateCodexPluginHost({rootDirectory: ROOT_DIRECTORY}), []);
+    const codexMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".agents/plugins/marketplace.json"), "utf8")
+    ) as {
+      name: string;
+      plugins: Array<{name: string; source: {path: string; source: string}}>;
+    };
+    const codexManifest = JSON.parse(
+      readFileSync(
+        resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.codex-plugin/plugin.json"),
+        "utf8"
+      )
+    ) as {name: string; skills: string};
+
+    assert.equal(codexMarketplace.name, "terreno-plugins");
+    assert.equal(codexMarketplace.plugins[0]?.name, "terreno-planning");
+    assert.equal(codexMarketplace.plugins[0]?.source.source, "local");
+    assert.equal(codexMarketplace.plugins[0]?.source.path, "./plugins/terreno-planning");
+    assert.equal(codexManifest.name, "terreno-planning");
+    assert.equal(codexManifest.skills, "./skills/");
   });
 
   it("keeps canonical stage names for Cursor and npx skills", (): void => {
