@@ -1,7 +1,10 @@
 name: Publish feature-flags manually
 
 # Disabled after migration to CircleCI manual package publish; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   publish-feature-flags:

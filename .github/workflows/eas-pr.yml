@@ -15,11 +15,13 @@ name: EAS PR
 #
 # Native rebuilds happen only when native deps / config plugins / app
 # icons / SDK bumps change the fingerprint. Seed a missing platform for
-# an already-known fingerprint via the `Trigger EAS Workflow` manual
-# dispatch — not from every PR.
+# an already-known fingerprint through CircleCI's `eas-dev-target`.
 
-# Disabled during the CircleCI cutover; manual EAS dispatch remains available.
-on: []
+# Disabled during the CircleCI cutover; retained for rollback.
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 permissions:
   contents: read
