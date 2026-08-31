@@ -168,9 +168,16 @@ describe("LocalTraceStore", () => {
     const scored = await store.list({hasScore: true});
     expect(scored.data.map((row) => row.id)).toEqual([older.id]);
 
+    const unscored = await store.list({hasScore: false});
+    expect(unscored.data.map((row) => row.id)).toEqual([newer.id]);
+
     const since = DateTime.utc().minus({hours: 1}).toISO() ?? "";
     const recent = await store.list({from: since});
     expect(recent.data.map((row) => row.id)).toEqual([newer.id]);
+
+    const until = DateTime.utc().minus({hours: 12}).toISO() ?? "";
+    const olderWindow = await store.list({to: until});
+    expect(olderWindow.data.map((row) => row.id)).toEqual([older.id]);
 
     const page = await store.list({limit: 1, page: 2});
     expect(page.meta).toEqual({limit: 1, page: 2, total: 2});

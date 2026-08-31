@@ -90,4 +90,10 @@ describe("observability trace routes", () => {
     expect(listed.status).toBe(200);
     expect(listed.body.data.map((row: {id: string}) => row.id)).toEqual([exported.id]);
   });
+
+  it("forbids non-admins from listing traces", async () => {
+    const agent = await authAsUser(app, "notAdmin");
+    const res = await agent.get("/ai/observability/traces");
+    expect(res.status).toBe(403);
+  });
 });
