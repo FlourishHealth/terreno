@@ -159,6 +159,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
       },
+      // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
+      rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
       userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);

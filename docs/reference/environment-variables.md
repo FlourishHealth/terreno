@@ -170,8 +170,10 @@ for authenticated test sends.
 
 | Variable | Read by | Required | Default | Secret | Scope |
 |----------|---------|----------|---------|--------|-------|
-| `VALKEY_URL` | `@terreno/api` | ❌ | — | Yes | server |
-| `REDIS_URL` | various | ❌ | — | Yes | server |
+| `VALKEY_URL` | `@terreno/api` realtime adapter **and** `rateLimit.store: "redis"` | ❌ | — | Yes | server |
+| `REDIS_URL` | `@terreno/api` fallback after `VALKEY_URL` (realtime + Redis rate-limit store) | ❌ | — | Yes | server |
+
+There is **no** `RATE_LIMIT_ENABLED` (or similar) read by `@terreno/api`. Apps that want an env toggle pass `rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined` themselves. See [Rate limiting](../how-to/rate-limiting.md).
 
 ## Webhooks & notifications
 
@@ -245,3 +247,4 @@ for authenticated test sends.
 - [Deployment baseline](../explanation/deployment-baseline.md)
 - [Build for web](../how-to/build-for-web.md)
 - [Configure Better Auth](../how-to/configure-better-auth.md)
+- [Rate limiting](../how-to/rate-limiting.md)

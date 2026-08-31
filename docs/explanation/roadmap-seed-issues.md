@@ -837,14 +837,17 @@ B2B customers.
 **Title:** `[Roadmap] API rate limiting`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rate-limiting`, Status=`Planned`
 
-Adds HTTP rate limiting to `@terreno/api`: per-user/per-org/per-IP policies, sensible
-defaults for auth and OTP endpoints, memory and Redis stores, and standard rate-limit
-headers. Today only realtime subscriptions are capped.
+Adds opt-in HTTP rate limiting to `@terreno/api`: per-user or per-IP keys, stricter
+auth/OTP buckets (including login), memory Redis or Mongo stores, and 429 rate-limit
+headers. Default is off until Terreno 58. Sync mutation nacks stay a separate limiter.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1187.
+
+- **Implementation plan:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rate-limiting.md)
+- **Tasks:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/rate-limiting.md)
+- **How-to:** [rate-limiting.md](../how-to/rate-limiting.md)
 - **RTK flag:** None
 - **Depends on:** —
 

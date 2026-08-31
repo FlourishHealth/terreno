@@ -15,6 +15,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
+- [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API

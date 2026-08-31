@@ -54,6 +54,17 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export type {
+  RateLimitLimits,
+  RateLimitOptions,
+  RateLimitRedisClient,
+  RateLimitStore,
+} from "./rateLimit/types";
+export {
+  DEFAULT_API_MAX,
+  DEFAULT_AUTH_MAX,
+  DEFAULT_WINDOW_MS,
+} from "./rateLimit/types";
 export * from "./rbac/access";
 export {assertAllowed} from "./rbac/assertAllowed";
 export {

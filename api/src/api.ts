@@ -797,7 +797,6 @@ const _buildModelRouter = <T>(
     })
   );
 
-  // TODO add rate limit
   router.get(
     "/",
     [
