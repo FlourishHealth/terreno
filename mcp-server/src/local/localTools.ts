@@ -9,7 +9,7 @@ import {evaluate, getRtkState, navigate} from "./tools/runtime.js";
 export const localMcpTools: Tool[] = [
   {
     description:
-      "Read the consumer app's package.json workspaces and key dependency versions (@terreno/*, Expo, React Native, Mongoose). Call at the start of each chat and write version-specific code (Boost-style).",
+      "Read the consumer app's package.json workspaces and key dependency versions (@terreno/*, Expo, React Native, Mongoose). Looks in `backend/` or `example-backend/`, and `frontend/` or `example-frontend/`. Call at the start of each chat and write version-specific code (Boost-style).",
     inputSchema: {additionalProperties: false, properties: {}, type: "object"},
     name: "application_info",
   },

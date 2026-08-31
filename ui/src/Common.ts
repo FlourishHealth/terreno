@@ -637,15 +637,14 @@ export interface BoxPropsBase extends WithTestID {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
-      // noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      [key: string]: any;
+      [key: string]: unknown;
     };
   };
   direction?: "row" | "column";
   smDirection?: "row" | "column";
   mdDirection?: "row" | "column";
   lgDirection?: "row" | "column";
+  xlDirection?: "row" | "column";
   display?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   smDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   mdDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
@@ -1121,7 +1120,11 @@ export interface LayoutChangeEvent {
   };
 }
 
-export interface SplitPageProps {
+export interface SplitPageListItem {
+  id: string;
+}
+
+export interface SplitPageProps<TItem extends SplitPageListItem = SplitPageListItem> {
   /**
    * can accept either one React Child or any array of ReactChild. If this is not provided,
    * renderContent must return one or many ReactChild.
@@ -1141,21 +1144,15 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
+  renderListViewItem: (itemInfo: ListRenderItemInfo<TItem>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  // noExplicitAny: list data type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
-  listViewData: any[];
+  listViewData: TItem[];
   listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  // noExplicitAny: callback value type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
-  onSelectionChange?: (value?: any) => void | Promise<void>;
+  onSelectionChange?: (value?: ListRenderItemInfo<TItem>) => void | Promise<void>;
 }
 
 export type PermissionKind =
@@ -2162,24 +2159,31 @@ export interface HeightActionSheetProps {
   title?: string;
 }
 
+export interface LinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  text: string;
+  url: string;
+}
+
+export interface LinkifyItLike {
+  pretest: (text: string) => boolean;
+  test: (text: string) => boolean;
+  match: (text: string) => LinkifyMatch[] | null;
+}
+
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  // noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  linkify?: any;
-  // noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  linkStyle?: StyleProp<any>;
+  linkify?: LinkifyItLike;
+  linkStyle?: StyleProp<TextStyle>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
-  // noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  injectViewProps?: (url: string) => any;
+  injectViewProps?: (url: string) => Record<string, unknown>;
   children?: React.ReactNode;
-  // noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  style?: StyleProp<any>;
+  style?: StyleProp<ViewStyle | TextStyle>;
 }
 
 export interface IconButtonProps extends WithTestID {
@@ -2368,6 +2372,8 @@ export interface PageProps extends WithTestID {
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;
+  /** When set, invoked instead of `router.back()` for the header back arrow. */
+  onBack?: () => void;
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;
@@ -2921,6 +2927,14 @@ export type TapToEditProps =
       });
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
+  /**
+   * Root test id. Forwards to the Field input and suffixes action controls for e2e:
+   * `{testID}.edit-clickable`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
+   * The edit control is a pressable Box (`-clickable` is appended by Box).
+   * Cancel/Clear/Save only render when the user opened edit from inside the
+   * component, not when `isEditing` is true.
+   */
+  testID?: string;
   title: string;
   // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)

@@ -1,5 +1,6 @@
 name: Example Frontend Deploy
 
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
 on:
   push:
     branches:
@@ -12,9 +13,6 @@ on:
       - "admin-frontend/**"
       - "bun.lock"
       - ".github/workflows/frontend-example-deploy.yml"
-  # Do not list backend globs here. Build still requires frontend `has_changes`,
-  # so backend-only PRs would start then skip. Mixed PRs still run via frontend
-  # paths and `has_backend_changes` still retargets preview BASE_URL.
   pull_request:
     paths:
       - "example-frontend/**"

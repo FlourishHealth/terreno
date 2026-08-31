@@ -38,10 +38,16 @@ deploy.
 ## Agentic lifecycle
 
 The reusable planning plugin uses five bounded transitions:
-**Grow** (shape) → **Pick** (build) → **Roast** (prove) → **Brew** (submit) →
-**Taste** (react once). The outer loop owns state persistence, product-CI waiting, retry,
-stop, and escalation. Brew and Taste also sleep until review bots such as Bugbot or
-CodeQL finish so they can react in the same invocation. See `plugins/README.md` and
+**Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
+**Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
+it, next task. Roast never invokes Pick. The outer loop owns state persistence,
+retry, stop, and escalation. Taste waits in-process for review bots and for product
+CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
+then spawns a no-context subagent to run `bun lint` in affected packages and locally
+affected tests, then pushes and watches CI. Brew also waits until
+review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
+Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
+Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
 `docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
@@ -54,7 +60,13 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`.
+`bun run skills:sync`. The same five stages install as the Cursor plugin
+`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
+as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
+(invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
+`/plugin marketplace add FlourishHealth/terreno` then
+`/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
+`plugins/terreno-claude/` is generated; never hand-edit it.
 
 ## Development
 
@@ -498,6 +510,13 @@ When present, these are injected as environment variables holding GCP service-ac
 ### Sentry API access
 
 When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
+
+### CircleCI API access
+
+When present, `CIRCLECI_TOKEN` is a CircleCI personal API token (`CIRCLE_TOKEN` is the
+CLI name). Use it to list jobs and fetch logs for Taste. Project slug:
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs` (not `gh/FlourishHealth/terreno`).
+See [`docs/how-to/circleci.md`](../../docs/how-to/circleci.md).
 
 ### Gotchas
 

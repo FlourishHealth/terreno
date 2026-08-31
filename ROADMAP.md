@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-08-25T21:24:30.388Z.
+> dates are promised. Last updated: 2026-08-31T15:50:18.537Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -11,19 +11,15 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### api
 
-- [API rate limiting](https://github.com/FlourishHealth/terreno/issues/1187) (Feature, Planned)
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
-- [can() as the permission seam](https://github.com/FlourishHealth/terreno/issues/1192) (Improvement, Planned) — IP: [can-as-permission-seam](docs/implementationPlans/can-as-permission-seam.md)
-- [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, Planned) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
+- [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, In progress) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
 - [Comms adapter — Twilio SMS](https://github.com/FlourishHealth/terreno/issues/1020) (Feature, Planned) — IP: [comms-adapter-twilio-sms](docs/implementationPlans/comms-adapter-twilio-sms.md)
 - [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Planned) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
-- [describeModel() schema metadata](https://github.com/FlourishHealth/terreno/issues/1193) (Improvement, Planned) — IP: [describe-model-schema](docs/implementationPlans/describe-model-schema.md)
 - [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Planned)
 - [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, Planned)
 - [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, Planned)
 - [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
-- [One collection registry](https://github.com/FlourishHealth/terreno/issues/1191) (Improvement, Planned) — IP: [collection-registry](docs/implementationPlans/collection-registry.md)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Planned) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
 

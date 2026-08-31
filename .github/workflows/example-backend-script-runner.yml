@@ -4,39 +4,8 @@ name: Example Backend Script Runner
 # example backend with a real MongoDB. This guards the CLI surface that lets AI
 # assistants run admin scripts directly from the project.
 
-on:
-  pull_request:
-    paths:
-      - "api/**"
-      - "ai/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "rtk/**"
-      - "ui/**"
-      - "example-backend/**"
-      - "bun.lock"
-      - ".github/workflows/example-backend-script-runner.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "api/**"
-      - "ai/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "admin-spa/**"
-      - "comms/**"
-      - "feature-flags/**"
-      - "rtk/**"
-      - "ui/**"
-      - "example-backend/**"
-      - "bun.lock"
-      - ".github/workflows/example-backend-script-runner.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   run-script-cli:

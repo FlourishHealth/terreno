@@ -54,6 +54,17 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export type {
+  RateLimitLimits,
+  RateLimitOptions,
+  RateLimitRedisClient,
+  RateLimitStore,
+} from "./rateLimit/types";
+export {
+  DEFAULT_API_MAX,
+  DEFAULT_AUTH_MAX,
+  DEFAULT_WINDOW_MS,
+} from "./rateLimit/types";
 export * from "./rbac/access";
 export {assertAllowed} from "./rbac/assertAllowed";
 export {
@@ -151,9 +162,26 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
+export {
+  type DescribeModelForRouterOptions,
+  type DescribeModelOptions,
+  describeModel,
+  describeModelForRouter,
+  type FieldDescription,
+  type FieldKind,
+  fieldDescriptionToAdminMeta,
+  fieldDescriptionToOpenApiProperty,
+  fieldDescriptionToZodType,
+  type ModelDescription,
+  modelDescriptionToAdminFields,
+  modelDescriptionToOpenApiSpec,
+  nestDottedFieldDescriptions,
+  SYSTEM_FIELD_PATHS,
+} from "./schemaMetadata";
 export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
+export * from "./seedRunner";
 export * from "./sync/executors";
 export * from "./sync/models";
 export * from "./sync/mutationHandler";

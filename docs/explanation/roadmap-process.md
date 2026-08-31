@@ -10,6 +10,9 @@ both.
 - **IPs** — approved design docs before substantial cross-package work
 
 See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
+Issue-sized work that is not a public roadmap item uses
+[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) (`create-github-issue` →
+`work-github-issues`) instead of an IP.
 
 ## How work flows (IP ↔ roadmap)
 
@@ -225,6 +228,19 @@ before applying a rewrite.
 
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
 
+Every issue on the board carries the **`roadmap`** label. That label — not a title prefix — is
+how roadmap work is filtered:
+
+```bash
+gh issue list --repo FlourishHealth/terreno --label roadmap --state all
+```
+
+`roadmap:sync` adds it to every issue it declares, so seed entries do not repeat it on their
+`**Labels:**` line. Tracking issues used to be titled `[Roadmap] <outcome>`; titles are now
+just the outcome, and `displayTitle` in
+[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+strips the legacy prefix wherever it survives.
+
 Apply or update labels with `gh` authenticated as a maintainer:
 
 ```bash
@@ -300,11 +316,12 @@ per-agent mirrors.
 The skills do not carry a copy of the taxonomy. They call:
 
 ```bash
-bun run roadmap:check --labels "area:api,type:feature" --status Planned --target Next --impact Feature --area api
+bun run roadmap:check --on-board --labels "roadmap,area:api,type:feature" --status Planned --target Next --impact Feature --area api
 ```
 
 Run it with no arguments to print every valid label and field option. It enforces exactly one
-`area:*` and one `type:*` label, rejects labels absent from
+`area:*` and one `type:*` label, requires the `roadmap` label under `--on-board` (omit the
+flag when triaging an issue that is not headed for the board), rejects labels absent from
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml),
 rejects Project values absent from
 [`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml),
@@ -356,7 +373,7 @@ do not claim completion until done.
 
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
-| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown |
+| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
 | [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
 | [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
 | [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |

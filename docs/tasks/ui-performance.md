@@ -33,7 +33,7 @@
 
 ### Phase 1: Finish omitted and deferred high-priority work
 
-- [ ] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
+- [x] **Task 1.1**: Stabilize `OpenAPIProvider` context values (leftover P0)
   - Delivers: unrelated parent renders no longer fan out through unchanged OpenAPI model metadata.
   - Files: `ui/src/OpenAPIContext.tsx`, focused regression tests, `ui/benchmarks/`, `ui/package.json`,
     `docs/reference/ui-performance.md`
@@ -42,7 +42,7 @@
     value with complete dependencies; unchanged metadata skips consumer renders; replacing the spec
     updates field lookups immediately; existing form/admin behavior and the full UI suite pass.
 
-- [ ] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
+- [x] **Task 1.2**: Virtualize large `DataTable` row sets without changing table behavior
   - Delivers: initial mount cost and mounted row count scale with the viewport instead of total rows.
   - Files: `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`, P1 regressions and benchmark,
     `demo/stories/DataTable.stories.tsx`, `docs/reference/ui-performance.md`
@@ -61,7 +61,7 @@
     default table path; opening header info still renders identical markdown with an explicit
     loading/error state; table snapshots and interactions remain unchanged.
 
-- [ ] **Task 1.4**: Measure and isolate remaining heavy root-import modules
+- [x] **Task 1.4**: Measure and isolate remaining heavy root-import modules
   - Delivers: startup guidance and lazy boundaries for heavy optional widgets while the root import
     remains compatible.
   - Files: `ui/src/index.tsx`, heavy components identified by the measurement, `ui/package.json`,
@@ -112,15 +112,16 @@
     state or load the modal path; rapid presses, delayed handlers, unmount cleanup, loading,
     disabled, keyboard, haptic, and confirmation behavior match current tests and running stories.
 
-- [ ] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
+- [x] **Task 2.4**: Replace synchronous responsive dimension reads with reactive breakpoints
   - Delivers: responsive `Box` props read one shared window state and update correctly on rotation
     and resize.
   - Files: `ui/src/MediaQuery.ts`, `ui/src/Box.tsx`, provider/hook files if needed, tests,
     benchmark/example renderer, `docs/reference/ui-performance.md`
   - Blocked by: none
   - Acceptance: benchmark a large responsive `Box` tree; remove per-box synchronous
-    `Dimensions.get` calls; exact `sm`/`md`/`lg` boundaries match current output; resize, rotation,
-    SSR hydration, web, and native behavior have regressions and running-demo proof.
+    `Dimensions.get` calls; native `sm`/`md`/`lg`/`xl` (320/375/600/1024) and web `lg`/`xl`
+    (1024/1280) boundaries match the product spec; resize, rotation, SSR hydration, web, and
+    native behavior have regressions and running-demo proof.
 
 - [ ] **Task 2.5**: Close the measured hot-style allocation backlog
   - Delivers: only proven hot leaves reuse style objects without stale theme values.

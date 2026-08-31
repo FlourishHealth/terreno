@@ -1,18 +1,7 @@
 name: UI CI
 
-on:
-  pull_request:
-    paths:
-      - 'ui/**'
-      - 'demo/**'
-      - '.github/workflows/ui-ci.yml'
-  push:
-    branches:
-      - master
-    paths:
-      - 'ui/**'
-      - 'demo/**'
-      - '.github/workflows/ui-ci.yml'
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   ui-lint-and-test:

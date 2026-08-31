@@ -12,12 +12,8 @@ Terreno separates engineering method from orchestration:
                shape
                   |
                   v
-               PICK
-               build
-                  |
-                  v
-              ROAST
-               prove
+         PICK ⇄ ROAST  (inner loop)
+         one task, prove it, next task
                   |
                   v
                BREW
@@ -42,24 +38,49 @@ durable artifacts. Pick can retry from exact Roast evidence; Roast can verify wi
 implementer's assumptions; Taste can react to the current PR head rather than an old
 green result.
 
-The outer loop decides **when, who, what next, when to retry, when to wait on product
-CI, and when to escalate**. Stages decide how to perform one transition correctly. Brew
-and Taste additionally sleep while async review bots are running.
+Pick continues across tasks in one invocation. Roast proves the current task and
+returns. Each Roast cycle still reconstructs from artifacts and prefers a fresh context.
+That is how the inner loop stays automated without turning Roast into a self-review or
+a second driver.
+
+The outer loop decides **when, who, what next, when to retry Taste `PENDING`, and when
+to escalate**. Stages decide how to perform one transition correctly. Pick continues
+the inner loop until the approved task list is done. Roast never invokes Pick. Brew and
+Taste additionally wait while async review bots are running, preferring provider CLI
+watch hooks or harness event subscriptions over timer polling. Taste also waits in a
+loop for product CI with `gh` or `circleci` until jobs are terminal or the wait times
+out. Before any push it always pulls latest `master`, then lints in a no-context
+subagent, then pushes and watches CI.
+
+Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
+(Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
+restrict. `/terreno-taste-sweep` drives the author's broken open PRs by reinvoking
+Taste. Neither is a sixth stage.
 
 ## The five transitions
 
 | Stage | Question | Primary evidence |
 | --- | --- | --- |
 | Grow | Is the work shaped and approved? | IP/tasks, decisions, criterion→verification map |
-| Pick | Was this slice implemented carefully? | red/green tests, checks, internal reviews |
-| Roast | Does the result actually satisfy the IP? | independent requirement→evidence verdict |
+| Pick | Was this slice implemented carefully? | red/green tests, checks, internal reviews; then Roast |
+| Roast | Does this task actually satisfy its criteria? | independent requirement→evidence verdict; emit next Pick or Brew |
 | Brew | Is the verified result correctly submitted? | final checks, commit/head, PR, artifacts |
-| Taste | What is actionable on the current PR head now? | CI, mergeability, reviews, bounded fixes |
+| Taste | What is actionable on the current PR head now? | CI on every discovered host, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
-acceptance criteria. Taste is not a resident watcher of product CI. It sleeps until
-async review bots (Bugbot, CodeQL, and similar) on the current head have reported, then
-observes, acts, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
+acceptance criteria. Taste is one reactive iteration, not an unbounded fix-until-green
+daemon. It waits until async review bots (Bugbot, CodeQL, and similar) on the current
+head have reported, then waits in a loop for product CI using GitHub CLI
+(`gh pr checks --watch`, `gh run watch`) or CircleCI CLI (`circleci run watch`) until
+jobs are terminal or the wait times out. Before any push it always pulls latest
+`master`, then proves `bun lint` and affected tests in a fresh subagent with no parent
+conversation, then pushes and watches CI. It emits `PASS`, `FAIL`, `BLOCKED`, or
+`PENDING`, and exits.
+
+Brew review-bot waits use only hooks targeted to the matched bot so ordinary CI cannot
+extend Brew. Taste's product-CI wait uses unfiltered GitHub/CircleCI watches on purpose.
+A host with a documented path/config reason not to run is terminal `skipped`; an
+unexplained missing run is never green.
 
 ## Portable plugin, local knowledge
 
@@ -88,6 +109,7 @@ agents. The current high-value composition points include:
 | UI/app | `terreno-ui`, `building-terreno-apps`, `building-native-ui`, `verify-ui-changes` |
 | AI/prompts | `ai-prompt-governance` — new features also follow [Develop an AI feature](../how-to/ai-feature-development.md) |
 | Docs/submission | `update-docs`, `commit`, `create-pr`, `fix-conflicts` |
+| GitHub issues | `create-github-issue`, `work-github-issues` (Pick plan comment is the Roast contract) |
 | Deployment/runtime | `deploy-gcp`, Expo deployment/workflow skills |
 
 This inventory is descriptive, not a plugin dependency list. Stages inspect the actual
@@ -107,15 +129,20 @@ contain chain-of-thought or transcripts.
 
 ## Retry and stop rules
 
-- Roast failure returns exact expected/actual evidence to a fresh Pick.
+- Pick implements one task, Roast proves it, then Pick takes the next unblocked task.
+  Do not start the next task until Roast PASS. Roast never invokes Pick. Exactly one
+  driver continues after each Roast. Do not pick every task and roast once.
+- Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
-- Taste `PENDING` lets the outer loop wait on remaining product CI or a review-bot
-  timeout, then invoke fresh Taste against current state.
-- Brew and Taste sleep in-process while Bugbot, CodeQL, or similar review bots are
-  running, then continue so they can react without a loop reinvocation.
+- Taste `PENDING` is for review-bot timeout, product-CI wait timeout, or a second
+  post-fix push. The outer loop then uses native provider watch hooks or harness
+  subscriptions where available and a timer only as fallback, then invokes fresh Taste.
+- Brew waits in-process while Bugbot, CodeQL, or similar review bots are running.
+  Taste waits in-process for those bots and for product CI (`gh` / `circleci` watch
+  loop), then continues without a loop reinvocation unless it timed out.
 - Human decisions are `BLOCKED`, never arbitrary retries.
-- Taste `PASS` requires all current-head checks terminal/non-failing, no conflicts, and
-  no actionable review findings.
+- Taste `PASS` requires all current-head jobs on every discovered CI host
+  terminal/non-failing, no conflicts, and no actionable review findings.
 
 The detailed contract, schemas, and three execution scenarios live under
 [`plugins/terreno-planning/references/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning/references).

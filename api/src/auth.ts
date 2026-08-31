@@ -16,6 +16,7 @@ import {Strategy as LocalStrategy} from "passport-local";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {isJwtCredentialExchangePath} from "./rateLimit/policies";
 import {
   getSessionIdFromJwtPayload,
   type JwtSessionPayload,
@@ -346,15 +347,16 @@ export const generateTokens = async (
     return {refreshToken: null, token: null};
   }
   const sessionId = options.sessionId ?? randomUUID();
+  const authUser = user as User;
   let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
   if (authOptions?.generateJWTPayload) {
-    payload = {...authOptions.generateJWTPayload(user), ...payload};
+    payload = {...authOptions.generateJWTPayload(authUser), ...payload};
   }
   const tokenOptions: jwt.SignOptions = {
     expiresIn: "15m",
   };
   if (authOptions?.generateTokenExpiration) {
-    tokenOptions.expiresIn = authOptions.generateTokenExpiration(user);
+    tokenOptions.expiresIn = authOptions.generateTokenExpiration(authUser);
   } else if (process.env.TOKEN_EXPIRES_IN) {
     const expiresIn = validateDuration("TOKEN_EXPIRES_IN", process.env.TOKEN_EXPIRES_IN);
     if (expiresIn) {
@@ -373,7 +375,7 @@ export const generateTokens = async (
       expiresIn: "30d",
     };
     if (authOptions?.generateRefreshTokenExpiration) {
-      refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(user);
+      refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(authUser);
     } else if (process.env.REFRESH_TOKEN_EXPIRES_IN) {
       const expiresIn = validateDuration(
         "REFRESH_TOKEN_EXPIRES_IN",
@@ -471,6 +473,12 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     next: express.NextFunction
   ) => {
     if (!process.env.TOKEN_SECRET) {
+      return next();
+    }
+
+    // Login, signup, and refresh exchange credentials. A stale access JWT in
+    // Authorization / the jwt cookie must not 401 before those handlers run.
+    if (isJwtCredentialExchangePath(req)) {
       return next();
     }
 

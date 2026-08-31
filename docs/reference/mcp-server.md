@@ -3,7 +3,7 @@
 Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
 
 - **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
-- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned)
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned). `application_info` reads bootstrap `backend/` + `frontend/`, or this monorepo's `example-backend/` + `example-frontend/` (bootstrap names win when both exist).
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 
@@ -351,6 +351,30 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 ``````
 
 **Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
+
+The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
+
+The generated app is expected to install and boot with no manual follow-up, so the
+scaffold deliberately ships no binary assets and no references to files it does not
+create:
+
+- **Fonts** come from `@terreno/ui`. `TerrenoProvider` wraps children in
+  `TerrenoFontProvider`, which loads Nunito and Titillium Web from
+  `@expo-google-fonts/*`. The generated `app/_layout.tsx` calls no `useFonts` of its own.
+- **Icon, splash, and favicon** are left unset in `app.json` so Expo uses its built-in
+  defaults. Point them at real files once the app has branding.
+- **`metro.config.js`** pins every `jspdf` request to `jspdf/dist/jspdf.es.min.js` on web
+  and drops it on native. `@terreno/admin-frontend` pulls jspdf in for consent-PDF export,
+  and jspdf's CommonJS and Node builds contain an AMD-style `require(["html2canvas"], cb)`
+  call that Metro's static transform cannot parse — without the override it fails the whole
+  bundle, including Expo Router's static web render.
+- **Auth-gated routes** use `<Stack.Protected guard={...}>`. Wrapping `Stack.Screen`
+  children in a conditional or fragment instead crashes the navigator.
+- **`tsconfig.json`** sets no `baseUrl`; it is deprecated in TypeScript 6 and makes `tsc`
+  abort with TS5101 before checking a single file. `paths` resolve relative to the tsconfig.
+- **Declared dependencies** include every package generated frontend source imports
+  (`react-native-reanimated`, `redux-persist`, `@reduxjs/toolkit`, `@expo/vector-icons`,
+  `lodash`, `luxon`, and the rest). Do not rely on transitive installs for those.
 
 ### terreno_bootstrap_ai_rules
 

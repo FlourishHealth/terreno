@@ -15,14 +15,17 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
+- [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
+- [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
 - [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
-- [Install agent skills](install-agent-skills.md) — Install Grow/Pick/Roast/Brew/Taste and domain skills with `npx skills`
+- [Install agent skills](install-agent-skills.md) — `npx skills`, the Cursor plugin, the Codex plugin, or the Claude Code plugin
 - [Develop an AI feature](ai-feature-development.md) — Dataset → prompt → evaluators → experiment → production label → live traces (SOP)
 - [Observe LLM calls](observe-llm-calls.md) — Register ObservabilityApp, primaries, price map, sampleRate
+- [GitHub issue lifecycle](github-issue-lifecycle.md) — Create pick-ready issues, post a Pick plan, Pick ⇄ Roast
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer

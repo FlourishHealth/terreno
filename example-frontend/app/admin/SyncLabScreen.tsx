@@ -18,20 +18,13 @@
  * Endpoints are called with `fetch` + the Better Auth session token (matching gcs-settings.tsx)
  * rather than the generated SDK, so the tool needs no SDK regen to work.
  */
+
+import {AdminScreenPage} from "@terreno/admin-frontend";
 import {baseUrl} from "@terreno/rtk";
 import type {SyncStatus} from "@terreno/syncdb";
 import {SyncDbProvider, useSyncDbClient} from "@terreno/syncdb/react";
-import {
-  Badge,
-  BooleanField,
-  Box,
-  Button,
-  Card,
-  Heading,
-  NumberField,
-  Page,
-  Text,
-} from "@terreno/ui";
+import {Badge, BooleanField, Box, Button, Card, Heading, NumberField, Text} from "@terreno/ui";
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
@@ -150,7 +143,7 @@ const SyncLabContent: React.FC = () => {
       const status = client.getSyncStatus();
       const localCount = client.store.listEntities({collection: SYNC_LAB_COLLECTION}).length;
       const stats = client.debug?.getStats();
-      const nowMs = Date.now();
+      const nowMs = DateTime.now().toMillis();
 
       let deltaRate = 0;
       let mutateRate = 0;
@@ -190,7 +183,7 @@ const SyncLabContent: React.FC = () => {
   const debugEnabled = Boolean(client.debug);
 
   return (
-    <Page maxWidth="100%" scroll title="SyncDB Load Lab">
+    <AdminScreenPage maxWidth="100%" scroll title="SyncDB Load Lab">
       <Box gap={4} padding={4}>
         <Box alignItems="center" direction="row" gap={2} justifyContent="between" wrap>
           <Box gap={1}>
@@ -325,7 +318,7 @@ const SyncLabContent: React.FC = () => {
           </Box>
         </Card>
       </Box>
-    </Page>
+    </AdminScreenPage>
   );
 };
 
