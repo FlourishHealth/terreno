@@ -14,7 +14,7 @@ import {FoodModel, setupTestData, UserModel} from "../tests";
 import {applyRateLimitTrustProxy} from "./applyTrustProxy";
 import {createRateLimitStore} from "./createStore";
 import {createMemoryRateLimitStore} from "./memoryStore";
-import {classifyRateLimitPolicy, shouldSkipRateLimit} from "./policies";
+import {classifyRateLimitPolicy, rateLimitKey, shouldSkipRateLimit} from "./policies";
 import {DEFAULT_API_MAX, DEFAULT_AUTH_MAX, type RateLimitOptions} from "./types";
 
 const foodRouter = modelRouter("/food", FoodModel, {
@@ -177,7 +177,14 @@ describe("HTTP rate limiting", () => {
       ),
       "auth"
     );
-    assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/health/"} as never));
+    assert.equal(
+      rateLimitKey({ip: "203.0.113.10", user: {id: "session-user"}} as never, "auth"),
+      "ip:203.0.113.10"
+    );
+    assert.equal(
+      rateLimitKey({ip: "203.0.113.10", user: {id: "session-user"}} as never, "api"),
+      "user:session-user"
+    );
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/openapi.json"} as never));
     assert.isTrue(shouldSkipRateLimit({method: "GET", originalUrl: "/swagger"} as never));
     assert.isTrue(

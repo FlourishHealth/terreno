@@ -49,7 +49,7 @@ export const createRateLimitMiddleware = (
     }
     const policy = classifyRateLimitPolicy(req, betterAuthBasePath);
     const max = policy === "auth" ? authMax : apiMax;
-    const key = `${policy}:${rateLimitKey(req)}`;
+    const key = `${policy}:${rateLimitKey(req, policy)}`;
     const now = nowFn();
     try {
       const result = await store.consume({key, max, now, windowMs});

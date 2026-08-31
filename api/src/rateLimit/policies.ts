@@ -105,11 +105,13 @@ export const classifyRateLimitPolicy = (
   return "api";
 };
 
-export const rateLimitKey = (req: Request): string => {
-  const user = req.user as {_id?: unknown; id?: string} | undefined;
-  const userId = user?.id ?? (user?._id != null ? String(user._id) : undefined);
-  if (userId) {
-    return `user:${userId}`;
+export const rateLimitKey = (req: Request, policy: RateLimitPolicyName): string => {
+  if (policy !== "auth") {
+    const user = req.user as {_id?: unknown; id?: string} | undefined;
+    const userId = user?.id ?? (user?._id != null ? String(user._id) : undefined);
+    if (userId) {
+      return `user:${userId}`;
+    }
   }
   return `ip:${req.ip || req.socket?.remoteAddress || "unknown"}`;
 };

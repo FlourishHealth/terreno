@@ -66,7 +66,9 @@ Unauthenticated keys use `req.ip`. Express `trust proxy` defaults to **off** so 
 
 `rateLimit.skip` adds extra skips. Health/openapi/swagger always skip. Paths use Express `req.path` (not the raw request-target), without a trailing slash.
 
-JWT `POST /auth/login`, `/auth/signup`, and `/auth/refresh_token` skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT. Path matching ignores trailing slashes and letter case because Express routing is case-insensitive by default.
+JWT login/signup/refresh skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT. Path matching uses Express `req.path` and ignores trailing slashes and letter case.
+
+Auth-bucket keys are always the client IP, even if a Better Auth session already set `req.user`. API traffic still keys by user when authenticated.
 
 When `BetterAuthApp` is registered, TerrenoApp copies its `config.basePath` into the limiter unless you set `rateLimit.betterAuthBasePath`.
 
