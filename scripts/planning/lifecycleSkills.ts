@@ -278,8 +278,29 @@ export const validateStageContent = ({
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
-    if (!content.includes("If step 8 did not push")) {
+    if (!content.includes("If step 9 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
+    }
+    if (!content.includes("fresh subagent")) {
+      errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
+    }
+    if (!content.includes("no parent conversation")) {
+      errors.push(`${prefix}: Taste's lint/test subagent must have no parent conversation`);
+    }
+    if (!content.includes("bun lint")) {
+      errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    }
+    if (!content.includes("locally affected tests")) {
+      errors.push(`${prefix}: Taste must run locally affected tests before push`);
+    }
+    if (!content.includes("gh pr checks <pr> --watch")) {
+      errors.push(`${prefix}: Taste must wait for GitHub product CI with gh pr checks --watch`);
+    }
+    if (!content.includes("circleci run watch --sha <sha>")) {
+      errors.push(`${prefix}: Taste must wait for CircleCI with circleci run watch`);
+    }
+    if (!content.includes("watch → snapshot cycle in a loop")) {
+      errors.push(`${prefix}: Taste must wait for product CI in a watch loop`);
     }
     for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
@@ -358,8 +379,8 @@ export const validateProductCiContract = (content: string): string[] => {
       errors.push(`product-CI procedure is missing non-blocking stage query: ${nonBlockingQuery}`);
     }
   }
-  if (!content.includes("These hooks belong to outer loops only")) {
-    errors.push("product-CI procedure must reserve blocking watch hooks for outer loops");
+  if (!content.includes("Taste waits in-process with these blocking watch hooks")) {
+    errors.push("product-CI procedure must wait in-process in Taste with blocking watch hooks");
   }
   if (!content.includes("Never emit Brew `PASS`")) {
     errors.push("product-CI procedure must reject unexplained untriggered hosts");
