@@ -1,5 +1,6 @@
 name: Demo Deploy
 
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
 on:
   push:
     branches:
@@ -9,8 +10,10 @@ on:
       - "ui/**"
       - ".github/workflows/demo-deploy.yml"
   pull_request:
-  # Allows publish-on-tag.yml to force a fresh production deploy after a release,
-  # so the public demo always reflects the latest published version.
+    paths:
+      - "demo/**"
+      - "ui/**"
+      - ".github/workflows/demo-deploy.yml"
   workflow_dispatch:
 
 jobs:
@@ -44,7 +47,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache bun + node_modules
         uses: actions/cache@v6

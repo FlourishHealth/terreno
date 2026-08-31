@@ -58,12 +58,25 @@ await getCommsService().sendSms({
 });
 ```
 
-`sendPushToUser()` resolves active device tokens and deactivates tokens only when a provider marks
-a failure as permanent. `startVerification()` and `checkVerification()` delegate to the configured
-verification provider. `startVerification()` accepts `channel: "sms"` or `channel: "email"`;
-`checkVerification()` verifies the code against the same phone number or email destination and may
-return an `error` reason when `valid` is false. Start attempts store the verification channel in
-delivery-log metadata while recipient values remain redacted.
+`sendPushToUser()` resolves active device tokens and deactivates tokens when
+`errorClass` is `"permanent"` or `isPermanentFailure` is `true`. Provider throws become
+`errorClass: "transient"` with `errorCode: "provider-throw"` and never reject the
+`CommsService` promise. Transient failures retry once (`onRetry` with
+`context.attempt === 2`); push retries only the failed tokens. `checkVerification()` does
+not retry.
+
+`beforeSend` may mutate the message or cancel (`status: "cancelled"`, no provider call).
+A throwing `beforeSend` is logged and treated as no-op (send continues). Adapters later
+call `recordDeliveryEvent()` / `recordOptOut()` to update the log and fire
+`onDeliveryEvent` / `onOptOut`.
+
+Each send stores one `CommsMessage` row with `attempts[]`. Rendered payloads are retained
+for `retainPayloadDays` (default 30, `0` disables) after `redactPayload`. Mail payloads
+keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Push payloads omit tokens.
+Verification start stores `{channel}` only; verification checks store no payload.
+`recordDeliveryEvent` writes `status`, `errorCode`, and `errorClass` onto the matching
+row (`opened` does not change status). Expired payloads are unset, not deleted.
 
 ## Provider contracts
 
@@ -119,20 +132,71 @@ row.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
 
+### Expo push adapter
+
+```bash
+bun add expo-server-sdk
+```
+
+```typescript
+import {CommsApp, getCommsService} from "@terreno/comms";
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      push: new ExpoPushProvider({
+        // accessToken defaults to process.env.EXPO_ACCESS_TOKEN (optional)
+        onDeadToken: async (token) => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event) => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      }),
+    })
+  )
+  .start();
+```
+
+`ExpoPushProvider` validates tokens with `Expo.isExpoPushToken`, chunks with
+`chunkPushNotifications`, and returns one `SendResult` per input token. Invalid tokens
+never hit the Expo API (`errorCode: expo-invalid-token`, `errorClass: permanent`).
+Ticket `DeviceNotRegistered` is a permanent failure so `sendPushToUser` deactivates the
+`PushToken`. `MessageTooBig` is `errorClass: config`: the send fails and is not retried,
+but the token stays active. Successful tickets schedule one receipt poll (default 15
+minutes, `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered`
+receipt calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
+
+Apps that ship `bun build --compile` (the example Cloud Run image) must inject
+an `Expo` client (static `import {Expo} from "expo-server-sdk"`). The adapter's
+default `createRequire("expo-server-sdk")` is not bundled into that binary.
+
+example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
+`POST /comms/pushTokens` after login. Denied permission and web skip registration (empty
+token). Physical-device gating via `expo-device` is deferred until the native baseline
+lands. The profile **Send test push** card is `__DEV__` only, so production web exports
+(CircleCI Playwright) do not render it.
+
 ## Configuration
 
 ```typescript
 interface CommsAppOptions {
   basePath?: string; // default: "/comms"
+  beforeSend?: (context: CommsHookContext) =>
+    Promise<{cancel?: boolean; message?: CommsHookMessage} | undefined>;
   defaultFrom?: string;
   logMessages?: boolean; // default: true
   mail?: MailProvider;
   onDeliveryEvent?: (event: DeliveryEvent) => Promise<void>;
   onError?: (context: CommsHookContext, result: SendResult) => Promise<void>;
+  onOptOut?: (event: OptOutEvent) => Promise<void>;
   onRetry?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   onSend?: (context: CommsHookContext, result: SendResult) => Promise<void>;
   push?: PushProvider;
+  redactPayload?: (context: CommsHookContext, payload: unknown) => unknown;
   redactRecipients?: boolean; // default: true
+  retainPayloadDays?: number; // default: 30; 0 stores no payload
   sms?: SmsProvider;
   verification?: VerificationProvider;
 }
@@ -144,10 +208,25 @@ When a channel is unconfigured:
 - production throws a `501` `APIError` titled `Comms channel not configured`.
 
 Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `[redacted]` unless
-`redactRecipients` is explicitly `false`.
+`redactRecipients` is explicitly `false`. Rendered payloads are retained for `retainPayloadDays`
+(default 30) after `redactPayload`; expired payloads are unset without deleting the log row.
+Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
+`dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
+only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
+and `errorClass` onto the matching row (`opened` does not change status).
 
-`onSend` and `onError` fire after every channel outcome (mail, SMS, push, and verification).
-`onRetry` currently runs only for transient mail failures before the one automatic retry.
+`beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
+`onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
+`errorClass` is `"transient"` (`context.attempt === 2`; shipped signature is `(context, result)`).
+Throwing hooks are logged and never change the send outcome. Exception text stays in logs;
+`metadata.hookErrors` records only `hook-threw` per hook name. Adapters should call
+`recordDeliveryEvent()` and `recordOptOut()` rather than invoking those hooks directly.
+
+Provider throws become `{accepted: false, errorClass: "transient", errorCode: "provider-throw"}`.
+Permanent and config failures are not retried. Push retries re-send only the tokens whose first
+result was transient; tokens are deactivated when `errorClass` is `"permanent"` or
+`isPermanentFailure` is true. Each push token gets its own hook context (`attempt`, `isRetry`,
+`messageId`).
 
 ## Routes
 
@@ -159,10 +238,25 @@ The default `basePath` is `/comms`.
 | `GET` | `/comms/pushTokens` | Authenticated owner | List the current user's tokens |
 | `GET` | `/comms/pushTokens/:id` | Owner | Read one token |
 | `DELETE` | `/comms/pushTokens/:id` | Owner | Deactivate a token |
-| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log |
+| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log. Query: `channel`, `provider`, `status`, `errorClass`, `errorCode`, `userId`, `to`, `templateId`, `retriedFromId`, `startDate`, `endDate`, free-text `q`, `page`, `limit` |
+| `GET` | `/comms/messages/:id` | Admin | Full row: attempts, metadata, retained payload, retry links, `retryable` / `retryDisabledReason` |
+| `POST` | `/comms/messages/:id/retry` | Admin | Re-send through the facade. Creates a linked row. 400 codes: `comms-retry-not-retryable`, `comms-retry-payload-expired`, `comms-retry-channel-unconfigured` |
+| `POST` | `/comms/messages/retryMany` | Admin | Same filters as list plus `limit` (cap 100). Returns `{retried, skipped: [{id, reason}]}` |
+| `GET` | `/comms/stats` | Admin | Counts by channel × provider × status with day buckets. Default range 7d. Includes per-provider failure rate |
 
 An active token cannot be claimed by another user. After its owner deactivates it, another
 authenticated user on the same device may register it.
+
+## Admin dashboard
+
+`CommsApp.adminContribution()` registers a custom screen named `comms` with the sidebar label **Comms Dashboard**. `@terreno/admin-frontend` ships `COMMS_ADMIN_WIDGETS` (`CommsDashboardScreen`, `CommsMessageDetail`) and hosts wire:
+
+- example-frontend: `/admin/comms` and `/admin/comms/[id]`
+- admin-spa: `/comms` and `/comms/[id]`
+
+Filters persist in the URL. List, stats, and bulk retry use the same match: when no dates are set, both the table and the cards use the trailing 7 days (labeled **Last 7 days**). Editing any filter while those dates are still implicit writes both bounds into the URL so the other bound is not dropped. `beforeSend` cancel on push attaches `loggedMessageId` the same way mail and SMS do. Created and attempt times print in the operator's locale (`DateTime.DATETIME_MED`), not UTC ISO. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
+
+Run `bun run backend:seed` from the repository root to populate the example dashboard with 10 current, idempotent delivery logs across mail, SMS, push, and verification. The sample includes delivered, sent, failed, bounced, and cancelled states so stats, provider breakdowns, filters, and retry controls are visible immediately.
 
 ## Templates
 

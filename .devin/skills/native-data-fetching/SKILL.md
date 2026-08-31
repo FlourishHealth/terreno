@@ -7,6 +7,10 @@ description: >-
 ---
 # Expo Networking
 
+**Terreno apps:** do not use this skill for Terreno client or server networking.
+Use `terreno-data-fetching` on the client and `terreno-backend-api` on the server.
+This skill is for Expo-only apps that are not on Terreno's RTK/syncdb stack.
+
 **You MUST use this skill for ANY networking work including API requests, data fetching, caching, or network debugging.**
 
 ## References

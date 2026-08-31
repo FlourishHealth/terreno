@@ -10,6 +10,7 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 - [createSyncDb configuration](#createsyncdb-configuration)
 - [SyncDb client methods](#syncdb-client-methods)
 - [React hooks](#react-hooks)
+- [Codegen](#codegen)
 - [Conflict API](#conflict-api)
 - [Sync status API](#sync-status-api)
 - [Stream scoping](#stream-scoping)
@@ -24,7 +25,8 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 - `createSyncDb`, `SyncDb`, `SyncDbConfig`, `MutateArgs`
 - `betterAuthAdapter`, `AuthProvider`
 - `listConflicts`, `wipeLocalData`, `generateMutationId`
-- React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`
+- React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`, `createCollectionHooks`
+- CLI: `terreno-syncdb-codegen` (generates `SYNC_COLLECTIONS` + friendly hooks from OpenAPI)
 - Testing (`@terreno/syncdb/testing`): `createFakeTransport`
 
 ## Installation
@@ -123,14 +125,19 @@ new TerrenoApp({userModel: User})
 ```
 
 - **`SyncApp`** — HTTP sync routes (`/sync/snapshot`, `/sync/mutate`, `/sync/mutate/batch`, `/sync/key`, `/sync/streams`, `/sync/entities`).
-- **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams).
-- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+- **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams). `modelRouter` `realtime` (RTK `sync` events) is deprecated and removed in Terreno 58; do not add it to new models.
+- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Registration queues this work without contacting MongoDB, so models can load before the database connects. Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` after connecting.
 
-Socket auth accepts legacy JWTs by default. For Better Auth sessions:
+Socket auth requires at least one configured authentication method. It enables legacy JWT
+validation when `tokenSecret` or `TOKEN_SECRET` is available. Better Auth can be used without
+a JWT secret:
 
 ```typescript
 new RealtimeApp({betterAuth: {auth, userModel: User}})
 ```
+
+When both methods are configured, JWT validation runs first and Better Auth session validation
+is the fallback.
 
 ## createSyncDb configuration
 
@@ -181,7 +188,7 @@ export const syncDb = createSyncDb({
 | `goOffline()` | Simulated outage: disconnect transport, pause replay/reconcile/timer; local mutations keep queueing. |
 | `goOnline()` | End simulated outage; reconnect triggers reconcile + outbox replay. |
 | `mutate({collection, operation, id?, data?})` | Optimistic local write + durable outbox enqueue + fire-and-forget replay. Returns `{mutationId, id}`. |
-| `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. |
+| `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. Also runs automatically on (re)connect, on a rate-limited seq-jump hint, and on the periodic timer; each `sync:subscribed` confirmation additionally pages just the streams it names. |
 | `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. |
 | `replayOutbox()` | Drain queued mutations for the current user now. |
 | `resolveConflict({mutationId, strategy})` | Apply `"useServer"` or `"keepMine"` to a recorded conflict. |
@@ -199,6 +206,7 @@ Import from `@terreno/syncdb/react`:
 
 ```typescript
 import {
+  createCollectionHooks,
   SyncDbProvider,
   useConflicts,
   useEntity,
@@ -288,6 +296,30 @@ Available when the client was created with `debug: true`. `log?.snapshot()` retu
 ### `useSyncDbClient()`
 
 Returns the `SyncDb` instance from context (escape hatch for imperative calls like `forceResync()`).
+
+### `createCollectionHooks`
+
+Factory used by `terreno-syncdb-codegen` and by hand-written custom collections. Returns five operation hooks (`useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`). Generated SDKs rename them to friendly names (`useTodos`, `useTodo`, `useCreateTodo`, …). Mutation hooks return `[trigger]`; triggers apply locally and return `{mutationId, id}` synchronously. Optional `retries` maps to `maxAttempts` (`false` → 1, a number → that many, omitted → engine default).
+
+```typescript
+export const {useListQuery: useNotes, useCreateMutation: useCreateNote} =
+  createCollectionHooks<Note, CreateNoteBody, UpdateNoteBody>({
+    collection: "notes",
+  });
+```
+
+## Codegen
+
+`terreno-syncdb-codegen` is a bin of `@terreno/syncdb`. It reads OpenAPI, discovers list operations with `x-terreno-sync`, and writes typed hooks plus `SYNC_COLLECTIONS`.
+
+```bash
+terreno-syncdb-codegen \
+  --schema http://localhost:4000/openapi.json \
+  --out ./store/syncDbSdk.ts \
+  --config ./syncdb-codegen.json
+```
+
+Do not edit the generated file. `--collections` filters when extensions exist. When they do not, it reads list/create/patch schemas from `GET /{name}` (or `/{name}/`). A missing path, a list response without `data.items`, a spec with no extensions and no `--collections` all exit non-zero.
 
 ## Conflict API
 
@@ -380,7 +412,7 @@ Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
 | Event | Direction | Payload |
 |-------|-----------|---------|
 | `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` |
-| `sync:subscribed` | server → client | `{collection, streams}` |
+| `sync:subscribed` | server → client | `{collection, streams}` — sent after the stream rooms are joined; the client pages each confirmed stream from its cursor so a write landing between the startup snapshot and the join is not missed |
 | `sync:error` | server → client | `{collection, message}` |
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?, frontierSeq?}` |
 | `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` |

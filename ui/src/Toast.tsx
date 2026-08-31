@@ -52,7 +52,7 @@ export const useToast = (): {
       console.warn("Toast not ready yet — provider ref may not be initialized");
       return "";
     }
-    const toastData = {
+    const toastData: Partial<ToastProps> & Record<string, unknown> = {
       variant: "info",
       ...options,
       title,

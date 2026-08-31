@@ -1,7 +1,7 @@
 import {DemoHomePage} from "@components/DemoHomePage";
+import {Host} from "@terreno/ui";
 import {router} from "expo-router";
 import {StyleSheet, View} from "react-native";
-import {Host} from "react-native-portalize";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 const App = () => {

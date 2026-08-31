@@ -1,11 +1,16 @@
-import {afterEach, describe, expect, it} from "bun:test";
+import {afterEach, describe, expect, it, spyOn} from "bun:test";
 import type {Socket} from "socket.io-client";
 
 import type {RealtimeEvent} from "./realtime";
 
-const {getRealtimeSocket, realtimeDocument, realtimeList, setRealtimeSocket} = await import(
-  "./realtime"
-);
+const {
+  getRealtimeSocket,
+  realtimeDocument,
+  realtimeList,
+  resetRealtimeDeprecationWarningsForTests,
+  RTK_REALTIME_DEPRECATION_MESSAGE,
+  setRealtimeSocket,
+} = await import("./realtime");
 
 /** Acknowledgement payload the server sends after a query subscription. */
 interface MockQuerySubscribedPayload {
@@ -109,6 +114,22 @@ const flushPromises = async (): Promise<void> => {
   await Promise.resolve();
   await Promise.resolve();
 };
+
+describe("realtime deprecation", () => {
+  it("warns once across realtimeList, realtimeDocument, and setRealtimeSocket", () => {
+    resetRealtimeDeprecationWarningsForTests();
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => undefined);
+
+    realtimeList("todos");
+    realtimeDocument("todos");
+    setRealtimeSocket(null);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0]?.[0]).toBe(RTK_REALTIME_DEPRECATION_MESSAGE);
+
+    warnSpy.mockRestore();
+  });
+});
 
 describe("realtimeDocument", () => {
   afterEach(() => {
@@ -334,6 +355,20 @@ describe("realtimeList", () => {
     await task;
     expect(socket.emitted).toContainEqual({event: "subscribe:model", payload: "todos"});
     expect(socket.emitted).toContainEqual({event: "unsubscribe:model", payload: "todos"});
+  });
+
+  it("subscribes to the model room when the argument is not a filter object", async () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    const api = createCacheApi<MockListDraft>({data: [], total: 0});
+    const task = realtimeList("todos")(undefined, api);
+
+    await flushPromises();
+    api.remove();
+    await task;
+
+    expect(socket.emitted).toContainEqual({event: "subscribe:model", payload: "todos"});
+    expect(socket.emitted.some((item) => item.event === "subscribe:query")).toBe(false);
   });
 
   it("correlates query subscription acknowledgements before using canonical queryId", async () => {

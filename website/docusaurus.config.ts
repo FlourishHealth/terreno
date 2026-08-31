@@ -4,10 +4,29 @@ import {themes as prismThemes} from "prism-react-renderer";
 
 const demoUrl = process.env.DEMO_URL ?? "https://terreno-demo.netlify.app";
 const docsUrl = process.env.DOCS_URL ?? "https://terreno-docs.netlify.app";
+// PR previews only need the current docs tree. Historical versions live in
+// website/versioned_docs and dominate `docusaurus build` time (~4 extra trees).
+const isPreview = process.env.DOCS_PREVIEW === "true";
+
+const searchTheme: [string, Record<string, unknown>] = [
+  require.resolve("@easyops-cn/docusaurus-search-local"),
+  {
+    docsRouteBasePath: "/",
+    hashed: true,
+    indexBlog: false,
+    language: ["en"],
+  },
+];
 
 const config: Config = {
   baseUrl: "/",
   favicon: "img/logo.svg",
+  future: {
+    faster: true,
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+    },
+  },
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
@@ -18,16 +37,32 @@ const config: Config = {
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   organizationName: "flourishhealth",
+  plugins: [
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            from: "/next/reference/rtk",
+            to: isPreview ? "/how-to/migrate-rtk-to-syncdb" : "/next/how-to/migrate-rtk-to-syncdb",
+          },
+        ],
+      },
+    ],
+  ],
   presets: [
     [
       "classic",
       {
         blog: false,
         docs: {
+          disableVersioning: isPreview,
           editUrl: "https://github.com/flourishhealth/terreno/tree/master/docs/",
           exclude: ["**/implementationPlans/**", "**/tasks/**"],
           path: "../docs",
           routeBasePath: "/",
+          showLastUpdateAuthor: false,
+          showLastUpdateTime: false,
           sidebarPath: "./sidebars.ts",
         },
         theme: {
@@ -37,11 +72,21 @@ const config: Config = {
     ],
   ],
   projectName: "terreno",
-  tagline: "Full-stack React Native and Express/Mongoose framework",
+  tagline: "Terreno is Django/Rails for TypeScript — with universal app support.",
   themeConfig: {
     customFields: {
       demoUrl,
     },
+    metadata: [
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        name: "description",
+      },
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        property: "og:description",
+      },
+    ],
     footer: {
       copyright: `Copyright © ${new Date().getFullYear()} Flourish Health.`,
       links: [
@@ -101,17 +146,10 @@ const config: Config = {
       theme: prismThemes.github,
     },
   } satisfies Preset.ThemeConfig,
-  themes: [
-    [
-      require.resolve("@easyops-cn/docusaurus-search-local"),
-      {
-        docsRouteBasePath: "/",
-        hashed: true,
-        indexBlog: false,
-        language: ["en"],
-      },
-    ],
-  ],
+  // Local search indexes every MDX page. Skip it on PR previews — the lunr
+  // pass is a large fraction of `docusaurus build` and reviewers use in-page
+  // find. Production `master` still ships the search index.
+  themes: isPreview ? [] : [searchTheme],
   title: "Terreno",
   url: docsUrl,
 };

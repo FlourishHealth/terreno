@@ -1,13 +1,14 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
-import type {AdminApi, AdminConfigResponse} from "./types";
+import type {AdminApi, AdminConfigResponse, AdminModelConfig} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});
 
@@ -79,6 +80,20 @@ const buildConfig = (): AdminConfigResponse => ({
   scripts: [{description: "Seed", name: "seed"}],
 });
 
+const platformModel = ({
+  displayName,
+  name,
+  routePath,
+}: Pick<AdminModelConfig, "displayName" | "name" | "routePath">): AdminModelConfig => ({
+  defaultSort: "-created",
+  displayName,
+  fields: {name: {required: true, type: "string"}},
+  group: "Platform",
+  listFields: ["name"],
+  name,
+  routePath,
+});
+
 const mockApi = {} as unknown as AdminApi;
 
 describe("AdminShell", () => {
@@ -110,6 +125,23 @@ describe("AdminShell", () => {
     expect(getByTestId("admin-shell-sidebar")).toBeTruthy();
     expect(queryByTestId("admin-shell-menu-button")).toBeNull();
     expect(queryByTestId("admin-shell-mobile-header")).toBeNull();
+  });
+
+  it("shows a forbidden state when admin config returns 403", () => {
+    configState.config = null;
+    configState.error = {status: 403} as unknown as Error;
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(getByTestId("admin-shell-forbidden")).toBeTruthy();
+    expect(queryByTestId("admin-shell-error")).toBeNull();
+    expect(queryByTestId("admin-shell-sidebar")).toBeNull();
   });
 
   it("hides the fixed sidebar and shows a hamburger header below 768px", () => {
@@ -187,5 +219,168 @@ describe("AdminShell", () => {
 
     expect(mockRouterPush).toHaveBeenCalled();
     expect(queryByTestId("admin-shell-drawer")).toBeNull();
+  });
+
+  it("renders the ordered Platform block last and removes its models from Models", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      models: [
+        ...buildConfig().models,
+        platformModel({
+          displayName: "Audit Logs",
+          name: "AdminAuditLog",
+          routePath: "/admin/audit-logs",
+        }),
+        platformModel({
+          displayName: "Feature Flags",
+          name: "FeatureFlag",
+          routePath: "/admin/feature-flags",
+        }),
+      ],
+    };
+
+    const {getByTestId, queryByTestId, queryByText} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    const platform = getByTestId("admin-shell-nav-platform");
+    const platformLinkTestIDs = platform
+      .findAll((node: ReactTestInstance) => typeof node.props.testID === "string")
+      .map((node: ReactTestInstance) => node.props.testID)
+      .filter((testID: string) => testID.startsWith("admin-shell-nav-"))
+      .filter((testID: string) => !testID.endsWith("-clickable"))
+      .filter((testID: string, index: number, testIDs: string[]) => {
+        return testIDs.indexOf(testID) === index;
+      });
+    expect(platformLinkTestIDs).toEqual([
+      "admin-shell-nav-platform",
+      "admin-shell-nav-scripts",
+      "admin-shell-nav-roles",
+      "admin-shell-nav-version",
+      "admin-shell-nav-audit-log",
+      "admin-shell-nav-feature-flags",
+      "admin-shell-nav-configuration",
+    ]);
+    expect(queryByText("Tools")).toBeNull();
+    expect(queryByTestId("admin-shell-nav-model-AdminAuditLog")).toBeNull();
+    expect(queryByTestId("admin-shell-nav-model-FeatureFlag")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AdminAuditLog");
+  });
+
+  it("hides built-in platform tools denied by backend RBAC metadata", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      platformTools: {
+        configuration: false,
+        roles: false,
+        scripts: false,
+        version: false,
+      },
+    };
+
+    const {queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        customScreens={[{displayName: "Denied local screen", name: "denied"}]}
+        rolesPath="/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNull(queryByTestId("admin-shell-nav-scripts"));
+    assert.isNull(queryByTestId("admin-shell-nav-roles"));
+    assert.isNull(queryByTestId("admin-shell-nav-version"));
+    assert.isNull(queryByTestId("admin-shell-nav-configuration"));
+    assert.isNull(queryByTestId("admin-shell-nav-screen-denied"));
+  });
+
+  it("shows only the platform tools and models granted to the current role", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      models: [
+        {
+          ...buildConfig().models[0],
+          permissions: {create: false, delete: false, update: false},
+        },
+      ],
+      platformTools: {
+        configuration: false,
+        roles: true,
+        scripts: false,
+        version: false,
+      },
+    };
+
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-model-Todo-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-roles-clickable"));
+    assert.isNull(queryByTestId("admin-shell-nav-scripts"));
+    assert.isNull(queryByTestId("admin-shell-nav-version"));
+    assert.isNull(queryByTestId("admin-shell-nav-configuration"));
+  });
+
+  it("hides empty Models and Screens headings", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      customScreens: [],
+      models: [
+        platformModel({
+          displayName: "Audit Logs",
+          name: "AdminAuditLog",
+          routePath: "/admin/audit-logs",
+        }),
+        platformModel({
+          displayName: "Feature Flags",
+          name: "FeatureFlag",
+          routePath: "/admin/feature-flags",
+        }),
+      ],
+      scripts: [],
+    };
+
+    const {getByText, queryByText} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(queryByText("Models")).toBeNull();
+    expect(queryByText("Screens")).toBeNull();
+    expect(queryByText("Tools")).toBeNull();
+    expect(getByText("Platform")).toBeTruthy();
   });
 });

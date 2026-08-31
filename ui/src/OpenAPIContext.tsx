@@ -1,6 +1,6 @@
 import camelCase from "lodash/camelCase";
 import type React from "react";
-import {createContext, useContext, useEffect, useState} from "react";
+import {createContext, useCallback, useContext, useEffect, useMemo, useState} from "react";
 
 import type {
   ModelFieldConfig,
@@ -16,34 +16,45 @@ const OpenAPIContext = createContext<OpenAPIContextType | null>(null);
 export const OpenAPIProvider = ({children, specUrl}: OpenAPIProviderProps): React.ReactElement => {
   const [spec, setSpec] = useState<OpenAPISpec | null>(null);
 
-  const getModelFields = (modelName: string): ModelFields | null => {
-    const modelPath = `/${camelCase(modelName.replace(/\s/g, ""))}/`;
-    const rootConfig = spec?.paths?.[modelPath];
-    if (!rootConfig) {
-      if (spec?.paths && modelName) {
-        console.warn(`No OpenAPI model found for ${modelName}`);
+  const getModelFields = useCallback(
+    (modelName: string): ModelFields | null => {
+      const modelPath = `/${camelCase(modelName.replace(/\s/g, ""))}/`;
+      const rootConfig = spec?.paths?.[modelPath];
+      if (!rootConfig) {
+        if (spec?.paths && modelName) {
+          console.warn(`No OpenAPI model found for ${modelName}`);
+        }
+        return null;
       }
-      return null;
-    }
 
-    return rootConfig?.get?.responses?.["200"]?.content?.["application/json"]?.schema?.properties
-      ?.data?.items;
-  };
+      return rootConfig?.get?.responses?.["200"]?.content?.["application/json"]?.schema?.properties
+        ?.data?.items;
+    },
+    [spec]
+  );
 
-  const getModelField = (modelName: string, fieldName: string): ModelFieldConfig => {
-    const fields = getModelFields(modelName);
-    const dotFields = fieldName.split(".");
+  const getModelField = useCallback(
+    (modelName: string, fieldName: string): ModelFieldConfig => {
+      const fields = getModelFields(modelName);
+      const dotFields = fieldName.split(".");
 
-    let field = fields?.properties?.[dotFields[0]];
-    if (!field && fieldName && fields?.properties) {
-      console.warn(`No OpenAPI field found for ${modelName}:${fieldName}`);
-    }
+      let field = fields?.properties?.[dotFields[0]];
+      if (!field && fieldName && fields?.properties) {
+        console.warn(`No OpenAPI field found for ${modelName}:${fieldName}`);
+      }
 
-    for (const dotField of dotFields.slice(1)) {
-      field = (field?.properties as Record<string, OpenApiProperty> | undefined)?.[dotField];
-    }
-    return field;
-  };
+      for (const dotField of dotFields.slice(1)) {
+        field = (field?.properties as Record<string, OpenApiProperty> | undefined)?.[dotField];
+      }
+      return field;
+    },
+    [getModelFields]
+  );
+
+  const contextValue = useMemo(
+    (): OpenAPIContextType => ({getModelField, getModelFields, spec}),
+    [getModelField, getModelFields, spec]
+  );
 
   // Fetch the OpenAPI spec from the provided URL.
   useEffect((): void => {
@@ -59,11 +70,7 @@ export const OpenAPIProvider = ({children, specUrl}: OpenAPIProviderProps): Reac
       .catch((error: unknown) => console.error(`Error fetching OpenAPI spec: ${String(error)}`));
   }, [specUrl]);
 
-  return (
-    <OpenAPIContext.Provider value={{getModelField, getModelFields, spec}}>
-      {children}
-    </OpenAPIContext.Provider>
-  );
+  return <OpenAPIContext.Provider value={contextValue}>{children}</OpenAPIContext.Provider>;
 };
 
 export const useOpenAPISpec = () => {

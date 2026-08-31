@@ -4,7 +4,7 @@ import type {AdminApi, EndpointBuilder} from "./types";
 
 export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
   const enhancedApi = useMemo(() => {
-    return api.injectEndpoints({
+    return api.enhanceEndpoints({addTagTypes: ["documentStorage"]}).injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
         documentStorageCreateFolder: build.mutation({
           invalidatesTags: ["documentStorage"],
@@ -82,7 +82,7 @@ export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
           },
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, basePath]);
 

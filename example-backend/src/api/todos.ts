@@ -1,3 +1,4 @@
+import {adminOwnedBy} from "@terreno/admin-backend";
 import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
@@ -10,8 +11,53 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  access: {resource: "todo"},
+  admin: {
+    actions: [
+      {
+        confirm: "Mark selected todos as completed?",
+        id: "markComplete",
+        label: "Mark completed",
+        patchKeys: ["completed"],
+      },
+    ],
+    adminAccess: {isOwned: adminOwnedBy("ownerId")},
+    adminPermissions: {delete: []},
+    bulkPatchAllowlist: ["completed", "priority", "tags"],
+    defaultSort: "-created",
+    displayName: "Todos",
+    fieldsets: [
+      {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+      {fields: ["ownerId"], title: "Ownership"},
+    ],
+    filters: [
+      {field: "completed", kind: "boolean", label: "Completed"},
+      {
+        choices: [
+          {label: "Low", value: "low"},
+          {label: "Medium", value: "medium"},
+          {label: "High", value: "high"},
+        ],
+        field: "priority",
+        kind: "choice",
+        label: "Priority",
+      },
+      {field: "created", kind: "dateRange", label: "Created"},
+      {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
+    ],
+    group: "Demo: shared app data",
+    listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+    listDisplayLinks: ["title"],
+    listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
+    pageSize: 25,
+    readonlyFields: ["ownerId"],
+    realtime: true,
+    searchFields: ["title", "tags"],
+    sortableFields: ["title", "completed", "created", "priority"],
+  },
   collectionActions: {
     bulkComplete: {
+      access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
       handler: async ({body, user}) => {
         const ownerId = (user as unknown as UserDocument)?._id;
@@ -48,6 +94,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   instanceActions: {
     markComplete: {
+      access: {action: "update", resource: "todo"},
       handler: async ({doc}) => {
         const todo = doc as TodoDocument;
         if (todo.completed) {
@@ -61,6 +108,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       permissions: [Permissions.IsOwner],
       summary: "Mark a single todo as complete",
     },
+  },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
   },
   permissions: {
     create: [Permissions.IsAuthenticated],

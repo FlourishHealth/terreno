@@ -14,6 +14,7 @@ import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
+import {SUPERADMIN_ROLE} from "../rbacRoles";
 import {connectToMongoDB} from "../utils/database";
 
 const API_URL = process.env.ADMIN_SPA_BACKEND_URL ?? "http://localhost:4000";
@@ -79,7 +80,10 @@ const main = async (): Promise<void> => {
   await fetch(`${API_URL}/admin/config`, {headers: {cookie}});
 
   await connectToMongoDB();
-  const result = await User.updateOne({email: ADMIN_EMAIL}, {$set: {admin: true}});
+  const result = await User.updateOne(
+    {email: ADMIN_EMAIL},
+    {$set: {admin: true, roles: [SUPERADMIN_ROLE]}}
+  );
   if (result.matchedCount === 0) {
     throw new APIError({
       status: 404,
@@ -91,7 +95,14 @@ const main = async (): Promise<void> => {
   if (!user?.admin) {
     throw new APIError({status: 500, title: `Failed to promote ${ADMIN_EMAIL} to admin`});
   }
-  logger.info(`Promoted ${ADMIN_EMAIL} to admin (id: ${user._id})`);
+  const roles = (user as {roles?: string[]}).roles ?? [];
+  if (!roles.includes(SUPERADMIN_ROLE)) {
+    throw new APIError({
+      status: 500,
+      title: `Failed to assign ${SUPERADMIN_ROLE} role to ${ADMIN_EMAIL}`,
+    });
+  }
+  logger.info(`Promoted ${ADMIN_EMAIL} to admin with superadmin role (id: ${user._id})`);
 
   await Configuration.shutdown();
   await mongoose.disconnect();

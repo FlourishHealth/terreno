@@ -1,5 +1,6 @@
 import {OpenFeature} from "@openfeature/server-sdk";
 import {
+  type AdminContribution,
   APIError,
   asyncHandler,
   authenticateMiddleware,
@@ -64,6 +65,25 @@ export class FeatureFlagsApp implements TerrenoPlugin {
   constructor(options?: FeatureFlagsOptions) {
     this.options = options ?? {};
     this.segments = this.options.segments ?? {};
+  }
+
+  adminContribution(): AdminContribution {
+    return {
+      homeWidgets: [{displayName: "Flag Overrides", icon: "flag", id: "feature-flags-overrides"}],
+      models: [
+        {
+          admin: {
+            defaultSort: "-created",
+            displayName: "Feature Flags",
+            listFields: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
+            searchFields: ["key", "name"],
+            sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
+          },
+          model: FeatureFlag as Model<FeatureFlagDocument>,
+          routePath: "/feature-flags",
+        },
+      ],
+    };
   }
 
   register(app: express.Application, openApi?: unknown): void {

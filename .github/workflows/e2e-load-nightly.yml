@@ -5,12 +5,8 @@ name: E2E Load Tests (nightly)
 # heavier than the rest of the syncdb-*.spec.ts suite and does not belong in the
 # PR-blocking matrix in e2e-ci.yml. Runs nightly on a schedule, on manual dispatch, or
 # on a PR carrying the `load-test` label — never unconditionally on every PR push.
-on:
-  schedule:
-    - cron: "0 6 * * *"
-  workflow_dispatch: {}
-  pull_request:
-    types: [labeled]
+# Disabled after migration to CircleCI `run-e2e-load`; retained for rollback.
+on: []
 
 jobs:
   e2e-load:
@@ -22,19 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
@@ -44,9 +29,6 @@ jobs:
           # Replica set is required for MongoDB change streams,
           # which power the RealtimeApp WebSocket sync.
           mongodb-replica-set: rs0
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
       - name: Compile workspace packages
         run: bun run compile
@@ -98,6 +80,12 @@ jobs:
           TOKEN_ISSUER: terreno-e2e
           REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
           SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium

@@ -15,6 +15,7 @@ import {
 
 import {createWebPortal} from "./createWebPortal";
 import {useTheme} from "./Theme";
+import {createBoxShadow} from "./Utilities";
 
 export const scheduleAfterPaint = (callback: () => void): void => {
   if (typeof requestAnimationFrame === "function") {
@@ -244,31 +245,29 @@ export const WebDropdownMenu = ({
     borderColor: theme.border.dark,
     borderRadius: 4,
     borderWidth: 1,
+    boxShadow: createBoxShadow({blurRadius: 8, offsetY: 2, opacity: 0.15}),
     left: anchor.x,
     maxHeight: clampedMaxHeight,
     minWidth,
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 2, width: 0},
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
     width: width ?? anchor.width,
     zIndex: 2,
   };
 
+  // Centered presentation is the Android native-picker path. `boxShadow` and
+  // `elevation` both paint on Android, so keep elevation-only there — matching
+  // Box's `shadow` prop. iOS/web get `boxShadow`.
   const centeredMenuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderRadius: 8,
-    elevation: 8,
     maxHeight: clampedMaxHeight,
     maxWidth: Math.min(400, windowWidth - 48),
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 4, width: 0},
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
     width: Math.min(400, windowWidth - 48),
+    ...(Platform.OS === "android"
+      ? {elevation: 8}
+      : {boxShadow: createBoxShadow({blurRadius: 12, offsetY: 4, opacity: 0.25})}),
   };
 
   const menuLayoutStyle = isCenteredPresentation
@@ -410,6 +409,8 @@ export const WebDropdownMenu = ({
 
     const webFixedOverlayStyle = {
       inset: 0,
+      // box-none lets clicks pass to the backdrop / menu but not the empty overlay.
+      pointerEvents: "box-none",
       position: "fixed",
       zIndex: 9999,
     } as unknown as ViewStyle;
@@ -426,7 +427,7 @@ export const WebDropdownMenu = ({
     } as unknown as ViewStyle;
 
     const overlay = (
-      <View pointerEvents="box-none" style={webFixedOverlayStyle}>
+      <View style={webFixedOverlayStyle}>
         <Pressable
           aria-role="button"
           onPress={onClose}

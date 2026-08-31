@@ -5,7 +5,7 @@ import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyPr
 import type {KeyProvider} from "./crypto/types";
 import {attachDebugChannel, type DebugChannelBridge} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
-import {listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
+import {getConflict, listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
@@ -186,6 +186,11 @@ export interface MutateArgs {
   id?: string;
   /** Fields to write (create/update). */
   data?: Record<string, unknown>;
+  /**
+   * Optional error-nack retry budget. `1` fails after a single error nack.
+   * Omitted uses the engine default (`MAX_ERROR_NACK_ATTEMPTS`).
+   */
+  maxAttempts?: number;
 }
 
 export interface SyncDb {
@@ -324,6 +329,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
 
   let currentUserId: string | undefined;
   let persister: ReturnType<PersisterFactory> | undefined;
+  const pendingDurableConflicts = new Map<string, string>();
   let connected = false;
   let simulatedOffline = false;
   let syncingCount = 0;
@@ -389,6 +395,14 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     for (const listener of statusListeners) {
       listener();
     }
+  };
+
+  const clearPendingDurableConflicts = (): void => {
+    if (pendingDurableConflicts.size === 0) {
+      return;
+    }
+    pendingDurableConflicts.clear();
+    notifyStatusChange();
   };
 
   const setConnected = (value: boolean): void => {
@@ -702,6 +716,67 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     });
     inFlightReconcile = {generation, promise, userId: currentUserId};
     return promise;
+  };
+
+  /**
+   * Catch up the streams the server just confirmed this socket joined
+   * (`sync:subscribed`).
+   *
+   * Closing the join gap: `start()` (and every reconnect) emits `sync:subscribe` and
+   * then immediately kicks off a snapshot reconcile over HTTP. The server, meanwhile,
+   * resolves the full user and its scopes before joining the `sync:{stream}` rooms, so
+   * the reconcile can finish paging a stream to its head BEFORE the socket is in the
+   * room. A write landing in that window is in neither the snapshot (too late) nor a
+   * delta (room not joined yet), leaving the client silently stale until the next
+   * periodic reconcile — minutes later.
+   *
+   * The confirmation is the first instant live delivery is guaranteed, so paging each
+   * confirmed stream from its cursor here makes snapshot + delta coverage contiguous.
+   * It deliberately does NOT go through `reconcile()`: that call coalesces onto a pass
+   * which may have started before the join (exactly the pass that could have missed the
+   * write). Per-stream paging is idempotent and cursor-guarded, so running it beside an
+   * in-flight reconcile is safe.
+   */
+  const catchUpSubscribedStreams = async ({
+    collection,
+    streams,
+  }: {
+    collection: string;
+    streams: string[];
+  }): Promise<void> => {
+    if (!httpChannel || simulatedOffline || authPaused || streams.length === 0) {
+      return;
+    }
+    if (!store.collections.includes(collection)) {
+      return;
+    }
+    const myGeneration = generation;
+    const myUserId = currentUserId;
+    const isSuperseded = (): boolean => generation !== myGeneration || currentUserId !== myUserId;
+    addSyncing(1);
+    try {
+      for (const stream of streams) {
+        if (isSuperseded()) {
+          return;
+        }
+        store.addKnownStream({collection, stream});
+        await bootstrapStream({channel: httpChannel, collection, store, stream});
+      }
+      debugLog?.record({
+        detail: {collection, streams},
+        direction: "system",
+        label: `subscribe catch-up: ${streams.join(", ")}`,
+        type: "reconcile",
+      });
+    } catch (error) {
+      if (error instanceof AuthRequiredError) {
+        setAuthPaused(true);
+        return;
+      }
+      throw error;
+    } finally {
+      addSyncing(-1);
+    }
   };
 
   /**
@@ -1059,6 +1134,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       persister,
       store,
     });
+    clearPendingDurableConflicts();
     lastSeqJumpReconcileAt.clear();
     persistenceMode = "durable";
     await createAndStartPersister(userId);
@@ -1112,6 +1188,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         persister,
         store,
       });
+      clearPendingDurableConflicts();
       lastSeqJumpReconcileAt.clear();
       await createAndStartPersister(userId);
     }
@@ -1440,6 +1517,12 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         unbindDeltaHandler = undefined;
       });
       unsubscribers.push(transport.onStatusChange(handleStatusChange));
+      const unsubscribeSubscribed = transport.onSubscribed?.((subscribed) => {
+        void catchUpSubscribedStreams(subscribed).catch(warn("subscribe catch-up failed"));
+      });
+      if (unsubscribeSubscribed) {
+        unsubscribers.push(unsubscribeSubscribed);
+      }
       unsubscribers.push(config.authProvider.onAuthChange(handleAuthChange));
 
       try {
@@ -1489,6 +1572,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       if (persisterToStop) {
         // Flush any pending autosave so a clean stop never loses local writes.
         await persisterToStop.save();
+        clearPendingDurableConflicts();
         await persisterToStop.destroy();
       }
     });
@@ -1527,6 +1611,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     operation,
     id,
     data,
+    maxAttempts,
   }: MutateArgs): {
     mutationId: string;
     id: string;
@@ -1579,6 +1664,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       baseVersion: existing?.seq,
       collection,
       entityId,
+      ...(maxAttempts !== undefined ? {maxAttempts} : {}),
       mutationId,
       operation,
       userId: currentUserId,
@@ -1604,7 +1690,49 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     mutationId: string;
     strategy: ConflictResolutionStrategy;
   }): void => {
-    applyConflictResolution({mutationId, outbox, store, strategy});
+    const conflict = getConflict({mutationId, store});
+    const didAddPendingConflict = Boolean(conflict);
+    if (conflict) {
+      pendingDurableConflicts.set(mutationId, conflict.collection);
+    }
+    try {
+      applyConflictResolution({mutationId, outbox, store, strategy});
+    } catch (error) {
+      if (didAddPendingConflict) {
+        pendingDurableConflicts.delete(mutationId);
+      }
+      throw error;
+    }
+    // Conflict resolution is a user-confirmed durability boundary. The web
+    // persister normally trails writes by 500ms; bypass that debounce now and
+    // keep status conflicted until the write succeeds so reload waits on it.
+    // Native and custom persisters fall back to TinyBase's immediate save().
+    const resolutionGeneration = generation;
+    const resolutionPersister = persister;
+    const persistenceFlush = resolutionPersister
+      ? (resolutionPersister.flush?.bind(resolutionPersister) ??
+        resolutionPersister.save.bind(resolutionPersister))
+      : undefined;
+    if (persistenceFlush) {
+      void persistenceFlush()
+        .then(() => {
+          if (generation !== resolutionGeneration || persister !== resolutionPersister) {
+            return;
+          }
+          pendingDurableConflicts.delete(mutationId);
+          notifyStatusChange();
+        })
+        .catch((error: unknown) => {
+          if (generation !== resolutionGeneration || persister !== resolutionPersister) {
+            return;
+          }
+          persistenceMode = "error";
+          warn("post-resolve persistence flush failed")(error);
+          notifyStatusChange();
+        });
+    } else {
+      pendingDurableConflicts.delete(mutationId);
+    }
     debugLog?.record({
       detail: {strategy},
       direction: "local",
@@ -1659,6 +1787,9 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     for (const conflict of conflicts) {
       forCollection(conflict.collection).conflictCount += 1;
     }
+    for (const collection of pendingDurableConflicts.values()) {
+      forCollection(collection).conflictCount += 1;
+    }
     return statuses;
   };
 
@@ -1672,7 +1803,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         ? coordinator.getBlockedEntities({userId: currentUserId}).length
         : 0,
       collections: buildCollectionStatuses({conflicts}),
-      conflictCount: conflicts.length,
+      conflictCount: conflicts.length + pendingDurableConflicts.size,
       draining: drainProgress.draining,
       failedCount: currentUserId
         ? outbox.countByStatus({status: "failed", userId: currentUserId})
@@ -1734,6 +1865,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
           persister: persisterToStop,
           store,
         });
+        clearPendingDurableConflicts();
         lastSeqJumpReconcileAt.clear();
         return;
       }
@@ -1742,6 +1874,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         // Flush any pending autosave so a sign-out without a wipe never loses
         // local writes (they belong to the user who may sign back in).
         await persisterToStop.save();
+        clearPendingDurableConflicts();
         await persisterToStop.destroy();
       }
     });

@@ -1,6 +1,8 @@
 # @terreno/syncdb
 
-Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](../docs/how-to/migrate-rtk-to-syncdb.md)).
+Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence.
+
+Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/migrate-rtk-to-syncdb.md)).
 
 ## Architecture
 
@@ -27,7 +29,7 @@ Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted 
        └── POST /sync/mutate (fallback while the socket is down)
 ```
 
-## Installation
+## Install
 
 ```bash
 bun install @terreno/syncdb
@@ -38,6 +40,29 @@ bunx expo install expo-sqlite
 Install `expo-sqlite` in the **app**, not only in a library that depends on `@terreno/syncdb`: Expo autolinking walks the app's own dependencies, so a nested copy leaves the ExpoSQLite native module out of the build and native persistence fails to start. Rebuild the native project after adding it — reloading JS is not enough.
 
 React bindings live on the `@terreno/syncdb/react` subpath so the main entry stays importable without react.
+
+## Codegen
+
+`terreno-syncdb-codegen` lives in this package (not a separate npm package). It reads a backend OpenAPI spec and writes typed collection hooks.
+
+```bash
+terreno-syncdb-codegen \
+  --schema http://localhost:4000/openapi.json \
+  --out ./store/syncDbSdk.ts \
+  --config ./syncdb-codegen.json
+```
+
+| Flag | Required | Meaning |
+|------|----------|---------|
+| `--schema` | yes | OpenAPI URL or JSON file |
+| `--out` | yes | Output `.ts` path |
+| `--collections a,b` | no | Allowlist when `x-terreno-sync` exists; otherwise reads GET `/name` (or `/name/`) list schemas. Missing path or missing `data.items` is an error. |
+| `--config` | no | JSON `{overrides: {todos: {retries: false}}}` |
+| `--no-format` | no | Skip biome formatting |
+
+List operations for `modelRouter` collections with `sync: {...}` include `"x-terreno-sync": {collection, scope}` so the CLI can discover them. Generated files call `createCollectionHooks` from `@terreno/syncdb/react` and rename the factory keys to friendly names (`useTodos`, `useTodo`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo` for collection `todos`). Do not edit the output; add custom collections in a sibling file with the same factory.
+
+`bun run build:binary` compiles a standalone `dist/terreno-syncdb-codegen` binary.
 
 ## Quick start
 
@@ -408,6 +433,16 @@ Stream seqs are **not** contiguous from any one client's perspective — permiss
 
 Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), safe under concurrent writes because a doc's seq only ever increases.
 
+## Codegen (`terreno-syncdb-codegen`)
+
+For apps using OpenAPI-backed backends, generate typed collection hooks instead of hand-writing entity interfaces and collection strings:
+
+```bash
+cd example-frontend && bun run sync-sdk
+```
+
+This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hooks (`useTodos`, `useCreateTodo`, …). Sync-enabled list routes must expose `x-terreno-sync` on `/openapi.json` (emitted by `@terreno/api` when `modelRouter` sets `sync`).
+
 ## Known limitations
 
 - **Synced models need a String `_id`** (or clients must mint ObjectId-format ids): offline clients generate entity ids (UUIDs) locally and the mutation channel writes them through as `_id`. A default ObjectId `_id` would cast-fail every client-side create. Declare `_id: {type: String, ...}` on synced schemas.
@@ -415,5 +450,13 @@ Catch-up is a plain indexed query (`_syncSeq > cursor`, tombstones included), sa
 - **`Model.bulkWrite` is unavailable on synced models**: it skips Mongoose middleware, so it can never stamp seqs. `registerSync` replaces the static with one that throws — bulk updates to a synced collection have to loop per document.
 - **Native plaintext by design**: no SQLCipher; the OS sandbox is deemed sufficient.
 - **Whole-store persistence**: each save serializes and (on web) encrypts the full store — cost scales with store size, not change size. Bound it by scoping which collections sync; saves are debounced.
-- **`realtime` + `sync` coexistence**: a model may enable both (distinct events, `sync` vs `sync:delta`, so clients never double-apply), at the cost of double emission work. Treat `realtime` as deprecated for a model once `sync` is on.
+- **`realtime` + `sync` coexistence**: a model may enable both (distinct events, `sync` vs `sync:delta`, so clients never double-apply), at the cost of double emission work. `modelRouter` `realtime` is **deprecated and will be removed in Terreno 58**; use `sync` only.
 - **Seq counter write amplification**: every synced write does an atomic `$inc` on a per-stream counter doc. Acceptable at current scale; Redis-based counters are the documented upgrade path.
+
+## Documentation
+
+Full API reference: [docs/reference/syncdb.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/syncdb.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

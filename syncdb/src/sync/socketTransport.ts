@@ -7,6 +7,7 @@ import type {
   SyncMutateBatchRequest,
   SyncMutateRequest,
   SyncNack,
+  SyncSubscribed,
 } from "../types";
 import {
   DEFAULT_MUTATION_TIMEOUT_MS,
@@ -48,6 +49,11 @@ export interface SocketTransportConfig {
   timeoutMs?: number;
   /** Grace period before a batch send is treated as unsupported (default 2s). */
   batchUnsupportedGraceMs?: number;
+  /**
+   * Socket.io transports. Default polling then websocket so a restarting
+   * dev server does not fail the first handshake.
+   */
+  transports?: string[];
 }
 
 interface PendingMutation {
@@ -64,7 +70,9 @@ interface PendingMutation {
  * - server replies with `sync:ack` / `sync:nack` events **and** a Socket.io
  *   ack callback carrying `{ack}` / `{nack}` — replies are correlated by
  *   `mutationId` and the first to arrive settles the pending promise;
- * - server pushes `sync:delta` events for subscribed streams.
+ * - server replies to a subscribe with `sync:subscribed {collection, streams}` once
+ *   the socket has actually joined the stream rooms, and pushes `sync:delta` events
+ *   for those streams from then on.
  *
  * The handshake token is resolved via `authProvider.getToken()` inside the
  * Socket.io `auth` callback, which runs on **every** connection attempt — the
@@ -83,9 +91,11 @@ export const createSocketTransport = ({
   authProvider,
   timeoutMs = DEFAULT_MUTATION_TIMEOUT_MS,
   batchUnsupportedGraceMs = BATCH_UNSUPPORTED_GRACE_MS,
+  transports = ["polling", "websocket"],
 }: SocketTransportConfig): SyncTransport => {
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
   const deltaBatchListeners = new Set<(deltas: SyncDelta[]) => void>();
+  const subscribedListeners = new Set<(subscribed: SyncSubscribed) => void>();
   const statusListeners = new Set<(status: TransportStatus) => void>();
   const pending = new Map<string, PendingMutation>();
   const pendingBatches = new Map<
@@ -146,7 +156,7 @@ export const createSocketTransport = ({
     reconnection: true,
     // Start with polling so dev server restarts don't fail the initial
     // websocket-only handshake; Socket.io upgrades once connected.
-    transports: ["polling", "websocket"],
+    transports,
   });
 
   const settle = (mutationId: string, result: SendMutationResult): void => {
@@ -203,6 +213,17 @@ export const createSocketTransport = ({
       inboundDeltaBatches.set(listener, batch);
     }
     scheduleInboundDeltaBatchFlush();
+  });
+  socket.on("sync:subscribed", (payload: {collection?: unknown; streams?: unknown}) => {
+    if (typeof payload?.collection !== "string" || !Array.isArray(payload.streams)) {
+      return;
+    }
+    const streams = payload.streams.filter(
+      (stream: unknown): stream is string => typeof stream === "string"
+    );
+    for (const listener of subscribedListeners) {
+      listener({collection: payload.collection, streams});
+    }
   });
   socket.on("sync:ack", (ack: SyncAck) => {
     settle(ack.mutationId, {ack, type: "ack"});
@@ -414,6 +435,12 @@ export const createSocketTransport = ({
       statusListeners.add(callback);
       return () => {
         statusListeners.delete(callback);
+      };
+    },
+    onSubscribed: (callback: (subscribed: SyncSubscribed) => void): (() => void) => {
+      subscribedListeners.add(callback);
+      return () => {
+        subscribedListeners.delete(callback);
       };
     },
     sendMutation,

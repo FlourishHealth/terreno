@@ -1,12 +1,14 @@
 import {useBooleanFlagDetails} from "@openfeature/react-sdk";
-import {selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
+import {canOpenAdminPage, selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
 import {
+  Badge,
   Box,
   Button,
   Card,
   Heading,
   Page,
   Spinner,
+  TapToEdit,
   Text,
   TextField,
   useStoredState,
@@ -17,7 +19,12 @@ import type React from "react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useSelector} from "react-redux";
 import {logout, useAppDispatch} from "@/store/index";
-import {terrenoApi, useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
+import {
+  terrenoApi,
+  useGetMeQuery,
+  usePatchMeMutation,
+  usePostCommsDevTestPushMutation,
+} from "@/store/sdk";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
@@ -25,6 +32,7 @@ const ProfileScreen: React.FC = () => {
   const userId = useSelector(selectBetterAuthUserId);
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery(undefined, {skip: !userId});
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
+  const [sendTestPush, {isLoading: isSendingTestPush}] = usePostCommsDevTestPushMutation();
   const {setPrimitives, resetTheme} = useTheme();
 
   const {
@@ -48,22 +56,31 @@ const ProfileScreen: React.FC = () => {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [testPushMessage, setTestPushMessage] = useState<string | null>(null);
+  const [testPushError, setTestPushError] = useState<string | null>(null);
 
   // API key management
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
 
-  // Initialize form with profile data when loaded
+  // Copy the server name into local state without resetting an in-progress email edit.
   useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setEmail(profile.email || "");
+    if (!profile) {
+      return;
     }
-  }, [profile]);
+    setName(profile.name || "");
+  }, [profile?.name]);
+
+  // Copy the server email into local state without resetting an in-progress name edit.
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+    setEmail(profile.email || "");
+  }, [profile?.email]);
 
   // Sync API key input with stored value
   useEffect(() => {
@@ -72,48 +89,68 @@ const ProfileScreen: React.FC = () => {
     }
   }, [geminiApiKey]);
 
-  // Track changes
-  useEffect(() => {
-    if (!profile) {
-      return;
-    }
-    const nameChanged = name !== (profile.name || "");
-    const emailChanged = email !== (profile.email || "");
-    const passwordChanged = password.length > 0;
-    setHasChanges(nameChanged || emailChanged || passwordChanged);
-  }, [name, email, password, profile]);
+  const showSaveSuccess = useCallback((): void => {
+    setSaveSuccess(true);
+    refetch();
+    setTimeout(() => {
+      setSaveSuccess(false);
+    }, 3000);
+  }, [refetch]);
 
-  const handleSave = useCallback(async (): Promise<void> => {
-    setSaveError(null);
-    setSaveSuccess(false);
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({name: value}).unwrap();
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating name:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update name"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
-    const updates: {name?: string; email?: string; password?: string} = {};
+  const handleSaveEmail = useCallback(
+    async (value: string): Promise<void> => {
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({email: value}).unwrap();
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating email:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update email"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
-    if (name !== profile?.name) {
-      updates.name = name;
-    }
-    if (email !== profile?.email) {
-      updates.email = email;
-    }
-    if (password) {
-      updates.password = password;
-    }
-
-    try {
-      await updateProfile(updates).unwrap();
-      setSaveSuccess(true);
-      setPassword("");
-      refetch();
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setSaveError(
-        (err as {data?: {message?: string}})?.data?.message || "Failed to update profile"
-      );
-    }
-  }, [name, email, password, profile, updateProfile, refetch]);
+  const handleSavePassword = useCallback(
+    async (value: string): Promise<void> => {
+      if (!value) {
+        return;
+      }
+      setSaveError(null);
+      setSaveSuccess(false);
+      try {
+        await updateProfile({password: value}).unwrap();
+        setPassword("");
+        showSaveSuccess();
+      } catch (err) {
+        console.error("Error updating password:", err);
+        setSaveError(
+          (err as {data?: {message?: string}})?.data?.message || "Failed to update password"
+        );
+      }
+    },
+    [showSaveSuccess, updateProfile]
+  );
 
   const handleLogout = useCallback((): void => {
     dispatch(logout());
@@ -137,7 +174,35 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
-  const isAdmin = profile?.admin === true;
+  const handleSendTestPush = useCallback(async (): Promise<void> => {
+    setTestPushError(null);
+    setTestPushMessage(null);
+    try {
+      const result = await sendTestPush({
+        body: "Sent from the example app profile screen.",
+        title: "Terreno test push",
+      }).unwrap();
+      if (result.tokenCount === 0) {
+        setTestPushMessage("No registered push tokens for this account.");
+        return;
+      }
+      setTestPushMessage(`Accepted ${result.accepted} of ${result.tokenCount} device token(s).`);
+    } catch (error: unknown) {
+      console.error("Failed to send test push", error);
+      setTestPushError("Could not send a test push.");
+    }
+  }, [sendTestPush]);
+
+  const handleEditRoles = useCallback((): void => {
+    router.push("/admin/roles");
+  }, [router]);
+
+  const roles = useMemo(() => [...(profile?.roles ?? [])].sort(), [profile?.roles]);
+  const isSuperAdmin = roles.includes("superadmin");
+  const isAdmin = canOpenAdminPage({
+    admin: profile?.admin,
+    permissions: profile?.permissions,
+  });
 
   if (isLoading) {
     return (
@@ -160,30 +225,34 @@ const ProfileScreen: React.FC = () => {
           <Box gap={4}>
             <Heading size="lg">Account Details</Heading>
 
-            <TextField
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setName}
-              placeholder="Your name"
+              editable={!isUpdating}
+              onSave={handleSaveName}
+              setValue={setName}
               testID="profile-name-input"
               title="Name"
+              type="text"
               value={name}
             />
 
-            <TextField
-              autoComplete="off"
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setEmail}
-              placeholder="your@email.com"
+              editable={!isUpdating}
+              onSave={handleSaveEmail}
+              setValue={setEmail}
               testID="profile-email-input"
               title="Email"
               type="email"
               value={email}
             />
 
-            <TextField
+            <TapToEdit
               disabled={isUpdating}
-              onChange={setPassword}
-              placeholder="Leave blank to keep current password"
+              editable={!isUpdating}
+              helperText="Leave blank to keep current password"
+              onSave={handleSavePassword}
+              setValue={setPassword}
               testID="profile-password-input"
               title="New Password"
               type="password"
@@ -201,17 +270,34 @@ const ProfileScreen: React.FC = () => {
                 <Text color="error">{saveError}</Text>
               </Box>
             )}
+          </Box>
+        </Card>
 
-            <Box marginTop={2}>
-              <Button
-                disabled={!hasChanges || isUpdating}
-                iconName="check"
-                loading={isUpdating}
-                onClick={handleSave}
-                testID="profile-save-button"
-                text="Save Changes"
-              />
+        <Card marginBottom={6} testID="profile-roles-card">
+          <Box gap={4}>
+            <Box alignItems="center" direction="row" justifyContent="between" wrap>
+              <Heading size="lg">Roles</Heading>
+              {isSuperAdmin && (
+                <Button
+                  iconName="pen"
+                  onClick={handleEditRoles}
+                  testID="profile-edit-roles-button"
+                  text="Edit roles"
+                  variant="outline"
+                />
+              )}
             </Box>
+            {roles.length === 0 ? (
+              <Text color="secondaryLight" testID="profile-roles-empty">
+                No roles assigned.
+              </Text>
+            ) : (
+              <Box direction="row" gap={2} testID="profile-roles-list" wrap>
+                {roles.map((role) => (
+                  <Badge key={role} value={role} />
+                ))}
+              </Box>
+            )}
           </Box>
         </Card>
 
@@ -317,6 +403,35 @@ const ProfileScreen: React.FC = () => {
               ))}
           </Box>
         </Card>
+
+        {__DEV__ && (
+          <Card marginBottom={6} testID="profile-test-push-card">
+            <Box gap={4}>
+              <Heading size="lg">Push notifications</Heading>
+              <Text color="secondaryLight" size="sm">
+                Native builds register an Expo push token after login. Send a test notification to
+                this account&apos;s registered devices.
+              </Text>
+              {testPushMessage && (
+                <Box testID="profile-test-push-success">
+                  <Text color="success">{testPushMessage}</Text>
+                </Box>
+              )}
+              {testPushError && (
+                <Box testID="profile-test-push-error">
+                  <Text color="error">{testPushError}</Text>
+                </Box>
+              )}
+              <Button
+                iconName="bell"
+                loading={isSendingTestPush}
+                onClick={handleSendTestPush}
+                testID="profile-test-push-button"
+                text="Send test push"
+              />
+            </Box>
+          </Card>
+        )}
 
         <Card marginBottom={6}>
           <Box gap={4}>

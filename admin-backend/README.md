@@ -1,5 +1,10 @@
 # @terreno/admin-backend
 
+Admin panel backend plugin for @terreno/api.
+
+See [Add a model to the admin](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/admin-add-model.md) for the recommended
+`modelRouter({admin: ...})` setup.
+
 Admin panel backend plugin for `@terreno/api` that auto-generates admin CRUD endpoints and metadata for Mongoose models.
 
 ## Install

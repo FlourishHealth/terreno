@@ -10,23 +10,40 @@ interface VersionInfo {
   version: string;
 }
 
-export const versionInfo = (): VersionInfo => {
+export interface VersionInfoInputs {
+  appEnv?: string;
+  configVersion?: string;
+  isDev: boolean;
+  manifestChannel?: string;
+  updatesChannel?: string | null;
+  updatesVersion?: string;
+}
+
+export const buildVersionInfo = ({
+  appEnv,
+  configVersion,
+  isDev,
+  manifestChannel,
+  updatesChannel,
+  updatesVersion,
+}: VersionInfoInputs): VersionInfo => {
   return {
-    dev: Boolean(__DEV__),
-    environment: Constants.expoConfig?.extra?.APP_ENV ?? (__DEV__ ? "dev" : "unknown"),
-    // According to https://docs.expo.dev/versions/latest/sdk/updates/ the Updates.channel is the suggested way to check
-    // for apps. For web, we need to use the manifest.
-    updateChannel:
-      Updates.channel ??
-      (Constants.manifest2?.metadata as {channel?: string})?.channel ??
-      "unknown",
-    // According to https://docs.expo.dev/versions/latest/sdk/constants/ the expoConfig is the suggested way to check
-    // version, and handles expo-updates
-    version:
-      (Updates.manifest as {version?: string})?.version ??
-      Constants.expoConfig?.version ??
-      "Unknown",
+    dev: Boolean(isDev),
+    environment: appEnv ?? (isDev ? "dev" : "unknown"),
+    updateChannel: updatesChannel ?? manifestChannel ?? "unknown",
+    version: updatesVersion ?? configVersion ?? "Unknown",
   };
+};
+
+export const versionInfo = (): VersionInfo => {
+  return buildVersionInfo({
+    appEnv: Constants.expoConfig?.extra?.APP_ENV,
+    configVersion: Constants.expoConfig?.version,
+    isDev: Boolean(__DEV__),
+    manifestChannel: (Constants.manifest2?.metadata as {channel?: string})?.channel,
+    updatesChannel: Updates.channel,
+    updatesVersion: (Updates.manifest as {version?: string})?.version,
+  });
 };
 
 export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
@@ -37,6 +54,13 @@ export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
   // evaluate expo-notifications' DevicePushTokenAutoRegistration side effect,
   // which logs "Listening to push token changes is not yet fully supported on web".
   const Notifications = await import("expo-notifications");
+  // Native push registration fails on iOS and Android 13+ unless the user has granted
+  // notification permission. Request it before fetching the Expo token so denied
+  // permission skips registration instead of throwing.
+  const permission = await Notifications.requestPermissionsAsync();
+  if (permission.status !== "granted") {
+    return {data: "", type: "expo"};
+  }
   let tokenRes: ExpoPushToken;
   if (__DEV__) {
     const appConfig = require("../app.json");

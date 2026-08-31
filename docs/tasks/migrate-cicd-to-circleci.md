@@ -19,14 +19,16 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Files: `docs/how-to/circleci.md` (stub OK)
   - Depends on: none (human prerequisite)
   - Acceptance: a manual “hello” pipeline can be triggered from the project; dynamic config is enabled.
+  - Note: hello scaffold merged (#1052). Dynamic config + org slug still need maintainer confirmation.
 
 - [ ] **Task 0.2**: Create CircleCI Contexts (empty shells)
   - Description: Create contexts named in the IP (`terreno-npm`, `terreno-netlify`, `terreno-expo`, `terreno-gcp`, `terreno-e2e`, `terreno-release`, `terreno-agentic`, `terreno-github-api`). Document which GitHub secrets map into each. Do not paste secret values into the repo.
   - Files: `docs/how-to/circleci.md`
   - Depends on: Task 0.1
   - Acceptance: contexts exist; mapping table is complete; access restrictions noted for `terreno-release`.
+  - Note: mapping table documented in how-to; contexts themselves are still a human step.
 
-- [ ] **Task 0.3**: Inventory required GitHub checks
+- [x] **Task 0.3**: Inventory required GitHub checks
   - Description: List current branch-protection required checks and map each to the GHA job `name:` and the future CircleCI job name. Start from `docs/explanation/repository-settings.md` and live settings.
   - Files: `docs/how-to/circleci.md` or a short table in the IP
   - Depends on: none
@@ -34,43 +36,45 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 1: Foundation
 
-- [ ] **Task 1.1**: Add setup + continue config skeleton
+- [x] **Task 1.1**: Add setup + continue config skeleton
   - Description: Create `.circleci/config.yml` with `setup: true` using `circleci/path-filtering` (and `circleci/continuation`). Create `.circleci/continue-config.yml` with parameters for each package/area and a no-op `config-ok` job that always runs.
   - Files: `.circleci/config.yml`, `.circleci/continue-config.yml`
   - Depends on: Task 0.1
   - Acceptance: push triggers setup → continuation; `config-ok` is green.
 
-- [ ] **Task 1.2**: Shared Bun + cache commands
+- [x] **Task 1.2**: Shared Bun + cache commands
   - Description: Add reusable commands (inline or orb) for installing Bun via `circleci/node`, `bun install --frozen-lockfile`, and cache keys equivalent to today’s GHA bun cache. Pin Bun policy (`latest` vs pin) consistently with EAS jobs that need a pin.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 1.1
   - Acceptance: a sample job restores cache on second run; install is frozen-lockfile.
 
-- [ ] **Task 1.3**: Path-filter mapping
+- [x] **Task 1.3**: Path-filter mapping
   - Description: Encode path → parameter mapping for api, ai, ui, rtk, comms, mcp-server, admin-*, example-*, demo, docs/website, terraform, e2e-relevant sets, matching current workflow path filters.
   - Files: `.circleci/config.yml`
   - Depends on: Task 1.1
   - Acceptance: a docs-only change sets docs/deploy params without setting `run-api`.
+  - Note: deploy path params omitted until Phase 4+.
 
 ## Phase 2: Package CI + policy
 
-- [ ] **Task 2.1**: Port package CI jobs
+- [x] **Task 2.1**: Port package CI jobs
   - Description: Port api/ai/rtk/ui/ui-demo/comms/mcp-server/example-frontend/example-backend(+script)/admin-spa CI to CircleCI jobs gated by path params. Include Mongo service where GHA used it. Fix mcp branch filter to `master`.
   - Files: `.circleci/continue-config.yml`, possibly package scripts unchanged
   - Depends on: Task 1.2, Task 1.3
   - Acceptance: dual-run green for each package on a change that touches it; GHA still required.
 
-- [ ] **Task 2.2**: Port Docker build-only job
+- [x] **Task 2.2**: Port Docker build-only job
   - Description: Port `example-backend-docker.yml` to CircleCI remote Docker / machine with layer caching replacement for `type=gha`.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 2.1
   - Acceptance: PR touching `example-backend/**` builds the image without pushing.
 
-- [ ] **Task 2.3**: Port repo-policies + rulesync + DCO
+- [x] **Task 2.3**: Port repo-policies + rulesync + DCO
   - Description: Port `repo-policies.yml`, `rulesync-check.yml`, and fork DCO checks. DCO must use GitHub API via `terreno-github-api` context.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.2
   - Acceptance: intentional barrel-import / dirty rulesync / missing DCO on a fork PR fails the CircleCI job.
+  - Note: DCO skips cleanly if `GITHUB_TOKEN` unset until context is created.
 
 - [ ] **Task 2.4**: Dual-run cutover for Phase 2
   - Description: Add CircleCI checks to branch protection; remove GHA package/policy workflows once trusted; delete corresponding `.github/workflows/*-ci.yml` and policy workflows.
@@ -80,7 +84,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 3: Playwright E2E
 
-- [ ] **Task 3.1**: Port `e2e-ci` and `admin-spa-integration`
+- [x] **Task 3.1**: Port `e2e-ci` and `admin-spa-integration`
   - Description: Mongo replica set, E2E secrets context, Playwright browsers, artifact store for reports. Skip Dependabot-equivalent if applicable.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 2.1, Task 0.2
@@ -94,11 +98,12 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 4: Netlify deploys
 
-- [ ] **Task 4.1**: Port demo / frontend-example / docs Netlify workflows
+- [x] **Task 4.1**: Port demo / frontend-example / docs Netlify workflows
   - Description: Build + `netlify-cli` deploy prod/preview; preserve alias naming (`pr-N`); recreate GitHub Deployment statuses via API if still desired.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 0.2, Task 1.3
   - Acceptance: preview deploy URL posted or visible; prod deploy on master path filter.
+  - Note: Path filters and preview jobs exist. Live Netlify still runs on GHA until `terreno-netlify` is filled; CircleCI skips. Cleanup on PR close is GHA `preview-cleanup.yml`.
 
 - [ ] **Task 4.2**: Preview cleanup port
   - Description: On PR close, clean Netlify/GCP preview resources from CircleCI (webhook or GitHub App → pipeline). Prefer OIDC over `GCP_SA_KEY`.
@@ -140,11 +145,12 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Depends on: Task 0.1
   - Acceptance: `gcloud` auth from a CircleCI job succeeds with WIF (no JSON key).
 
-- [ ] **Task 6.2**: Port `cd.yml`
+- [x] **Task 6.2**: Port `cd.yml`
   - Description: Path-filtered terraform fmt/preview/apply + Docker build/push + Cloud Run deploys + mcp-test/deploy. Preserve concurrency semantics (do not cancel in-flight prod applies).
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 6.1
   - Acceptance: terraform preview on PR; apply+deploy on master for a safe test path; GitHub Deployment records optional but documented.
+  - Note: Path filters exist. Live GCP still runs on GHA until `terreno-gcp` is filled; CircleCI skips apply.
 
 - [ ] **Task 6.3**: Dual-run cutover for CD
   - Description: Single deployer: disable GHA `cd.yml` when CircleCI CD is required; remove GitHub OIDC provider only after GHA CD is gone (or keep read-only if other repos need it — document).
@@ -168,17 +174,23 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
 
 ## Phase 8: Mobile (post-v1, required for CC1)
 
-- [ ] **Task 8.1**: Port Maestro + Appium Android
-  - Description: Port `maestro-e2e` and Android half of `demo-appium-ci` to CircleCI Linux VM with emulator strategy documented.
-  - Files: `.circleci/continue-config.yml`
+- [x] **Task 8.1**: Port Maestro web E2E
+  - Description: Port `maestro-e2e` (Chrome + xvfb against example-frontend, optional demo smokes) to CircleCI `node22_browsers_mongo_rs`. Appium Android remains separate.
+  - Files: `.circleci/continue-config.yml`, `.circleci/config.yml`, `.github/workflows/maestro-e2e.yml`
   - Depends on: Task 5.2
-  - Acceptance: manual pipeline runs Android Appium and Maestro successfully.
+  - Acceptance: CircleCI `maestro-e2e` is the writer; GHA workflow is `on: []`.
 
 - [ ] **Task 8.2**: Port Appium iOS on CircleCI macOS
   - Description: Select macOS resource class/image with Working WDA; port iOS job; compare flake rate to GHA `macos-15`.
   - Files: `.circleci/continue-config.yml`
   - Depends on: Task 8.1
   - Acceptance: iOS Appium green on a representative run; then delete GHA Appium workflow.
+
+- [ ] **Task 8.3**: Port Appium Android
+  - Description: Linux VM with emulator strategy documented.
+  - Files: `.circleci/continue-config.yml`
+  - Depends on: Task 8.1
+  - Acceptance: Android Appium green on a representative run.
 
 ## Phase 9: GitHub-native + agentic replacements
 
@@ -194,11 +206,17 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Depends on: Task 0.2
   - Acceptance: each former workflow’s acceptance behavior has an owner on CircleCI; GHA files deleted.
 
-- [ ] **Task 9.3**: Replace architectural review + gh-aw agentics
-  - Description: Per lockfile (`update-rules`, `update-docs`, daily improvers) and `architectural-pr-review` / `agentics-maintenance`: either port to CircleCI scheduled/PR pipelines with the same scripts or **retire** with maintainer sign-off. CC1 forbids leaving them on GHA.
-  - Files: `.github/workflows/*lock*`, `architectural-pr-review.yml`, `agentics-maintenance.yml`, `.circleci/continue-config.yml`
+- [x] **Task 9.3a**: Port architectural PR review
+  - Description: CircleCI `architectural-pr-review` runs `.github/scripts/architectural-pr-review.ts` after checking out `origin/master`. Skips forks and missing `CURSOR_API_KEY` / `GITHUB_TOKEN`. GHA workflow is `on: []`.
+  - Files: `.circleci/continue-config.yml`, `.github/workflows/architectural-pr-review.yml`, `.github/scripts/architectural-pr-review.ts`
   - Depends on: Task 0.2
-  - Acceptance: written retire-or-port decision for each; no gh-aw workflows remain if ported/retired.
+  - Acceptance: CircleCI job is the writer; Cursor Approval Agent stays on GitHub.
+
+- [ ] **Task 9.3b**: Replace remaining gh-aw agentics
+  - Description: Per lockfile (`update-rules`, `update-docs`, daily improvers) and `agentics-maintenance`: either port to CircleCI scheduled pipelines or retire with maintainer sign-off.
+  - Files: `.github/workflows/*lock*`, `agentics-maintenance.yml`, `.circleci/continue-config.yml`
+  - Depends on: Task 0.2
+  - Acceptance: written retire-or-port decision for each remaining lock workflow.
 
 ## Phase 10: Cleanup
 
@@ -209,7 +227,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Acceptance: `rg -n "GitHub Actions" docs/explanation/repository-settings.md` and deploy docs reflect CircleCI as source of truth.
 
 - [ ] **Task 10.2**: Final GHA workflow purge + IP close
-  - Description: Ensure `.github/workflows` has no CI/CD yml left (except intentionally empty dir or README). Update `PLAN_INDEX.md`; archive IP when Complete.
-  - Files: `.github/workflows/`, `docs/implementationPlans/PLAN_INDEX.md`
+  - Description: Ensure `.github/workflows` has no CI/CD yml left (except intentionally empty dir or README). Set the IP `**Status:**` to Complete and archive the IP.
+  - Files: `.github/workflows/`, `docs/implementationPlans/migrate-cicd-to-circleci.md`
   - Depends on: Task 9.3, Task 10.1, Task 8.2
   - Acceptance: `ls .github/workflows/*.yml` is empty (or only an agreed stub); IP status Complete.

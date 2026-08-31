@@ -1,8 +1,10 @@
 ---
-targets: ["cursor", "copilot", "claudecode"]
-description: "@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends"
+targets: ["cursor", "devin", "copilot", "claudecode"]
+description: "@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends (LEGACY for data sync)"
 globs: ["**/*"]
 ---
+
+> **LEGACY — data synchronization:** Do **not** generate RTK Query hooks for new collection CRUD. Use [`@terreno/syncdb`](../syncdb/00-syncdb.md) and [`migrate-rtk-to-syncdb.md`](../../docs/how-to/migrate-rtk-to-syncdb.md). This rule remains for maintaining existing consumers and for **non-synced** OpenAPI SDK routes, Better Auth session Redux, feature flags, and sockets.
 
 # @terreno/rtk
 

@@ -74,6 +74,8 @@ website/.docusaurus/
 website/build/
 website/node_modules/
 
-.devdata
+# Local dev databases (e.g. mongod dbpath used by the cloud dev setup)
+.devdata/
 
 .claude/worktrees/
+.terreno-skills-sync/

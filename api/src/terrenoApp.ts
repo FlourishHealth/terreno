@@ -1,11 +1,18 @@
+import {EventEmitter} from "node:events";
 import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
+import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
+import type {BetterAuthInstance} from "./betterAuthSetup";
+import {
+  ConfigurationApp,
+  type ConfigurationAppOptions,
+  type ConfigurationModelLike,
+} from "./configurationApp";
 import {
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
@@ -14,6 +21,7 @@ import {
 import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -27,6 +35,11 @@ import {
 import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+
+/** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
+interface BetterAuthProvider {
+  getAuth: () => BetterAuthInstance | undefined;
+}
 
 type CorsOrigin =
   | string
@@ -70,6 +83,10 @@ export interface TerrenoAppOptions {
    * Set to `true` for defaults, or pass a RealtimeAppOptions object for full control.
    */
   realtime?: boolean | RealtimeAppOptions;
+  /**
+   * RBAC access controller injected into model routers and `/auth/me` enrichment.
+   */
+  accessControl?: import("./rbac/types").AnyTerrenoAccess;
   /**
    * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
    * Use to attach early middleware via `app.use(...)` before JSON parsing.
@@ -149,6 +166,7 @@ export class TerrenoApp {
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
+  private readonly adminEvents = new EventEmitter();
 
   /**
    * Create a new TerrenoApp builder.
@@ -157,6 +175,7 @@ export class TerrenoApp {
    */
   constructor(options: TerrenoAppOptions) {
     this.options = options;
+    this.adminEvents.setMaxListeners(50);
   }
 
   /**
@@ -182,6 +201,37 @@ export class TerrenoApp {
   register(registration: ModelRouterRegistration | TerrenoPlugin): this {
     this.registrations.push(registration);
     return this;
+  }
+
+  /**
+   * Returns registered model routers and plugins in mount order.
+   */
+  getRegistrations(): readonly (ModelRouterRegistration | TerrenoPlugin)[] {
+    return this.registrations;
+  }
+
+  /**
+   * Returns only TerrenoPlugin registrations (excludes model routers).
+   */
+  getPlugins(): TerrenoPlugin[] {
+    return this.registrations.filter(
+      (registration): registration is TerrenoPlugin => !this.isModelRouterRegistration(registration)
+    );
+  }
+
+  on(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.on(event, listener);
+    return this;
+  }
+
+  off(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.off(event, listener);
+    return this;
+  }
+
+  /** @internal Emits scrubbed admin model change events from modelRouter hooks. */
+  emitAdminModelChanged(payload: AdminChangeEvent): void {
+    this.adminEvents.emit("admin:model.changed", payload);
   }
 
   /**
@@ -228,12 +278,7 @@ export class TerrenoApp {
    *   .start();
    * ```
    */
-  configure(
-    // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    model: import("mongoose").Model<any>,
-    options?: Omit<ConfigurationAppOptions, "model">
-  ): this {
+  configure(model: ConfigurationModelLike, options?: Omit<ConfigurationAppOptions, "model">): this {
     this.configurationApp = new ConfigurationApp({model, ...options});
     return this;
   }
@@ -365,12 +410,28 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        const router = registration._buildWithOpenApi(oapi);
+        const router = registration._buildWithContext({
+          accessControl: options.accessControl,
+          openApi: oapi,
+          routePath: registration.path,
+          terrenoApp: this,
+        });
         app.use(registration.path, router);
       } else {
-        registration.register(app, oapi);
+        registration.register(app, oapi, this);
       }
     }
+
+    // Mount MCP at POST /mcp when any model opted in or a custom tool was registered.
+    const betterAuthPlugin = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    mountMCPServer(app, {
+      betterAuth: betterAuthPlugin?.getAuth(),
+      userModel: options.userModel,
+    });
 
     if (options.configureApp) {
       options.configureApp(app, {openApi: oapi});
@@ -378,7 +439,7 @@ export class TerrenoApp {
 
     // /auth/me must be registered after plugins so that session middleware
     // (e.g. Better Auth) has a chance to populate req.user first.
-    addMeRoutes(app, options.userModel, options.authOptions);
+    addMeRoutes(app, options.userModel, options.authOptions, options.accessControl);
 
     Sentry.setupExpressErrorHandler(app);
 

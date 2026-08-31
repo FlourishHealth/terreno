@@ -92,6 +92,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "verb",
             "schema": {
               "oneOf": [
@@ -279,7 +297,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "actorId": {
                             "description": "User who performed the action",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "created": {
                             "description": "When this document was created",
@@ -300,7 +319,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "recordId": {
                             "description": "Primary key of the affected document",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "recordLabel": {
                             "description": "Human-readable label for the record",
@@ -527,7 +547,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "actorId": {
                       "description": "User who performed the action",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "created": {
                       "description": "When this document was created",
@@ -548,7 +569,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "recordId": {
                       "description": "Primary key of the affected document",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "recordLabel": {
                       "description": "Human-readable label for the record",
@@ -746,6 +768,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "application/json": {
                 "schema": {
                   "properties": {
+                    "capabilities": {
+                      "properties": {
+                        "actions": {
+                          "type": "boolean",
+                        },
+                        "fieldsets": {
+                          "type": "boolean",
+                        },
+                        "filters": {
+                          "type": "boolean",
+                        },
+                        "realtime": {
+                          "type": "boolean",
+                        },
+                      },
+                      "type": "object",
+                    },
                     "customScreens": {
                       "items": {
                         "properties": {
@@ -769,6 +808,29 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "models": {
                       "type": "array",
                     },
+                    "platformTools": {
+                      "properties": {
+                        "configuration": {
+                          "type": "boolean",
+                        },
+                        "roles": {
+                          "type": "boolean",
+                        },
+                        "runScripts": {
+                          "type": "boolean",
+                        },
+                        "scripts": {
+                          "type": "boolean",
+                        },
+                        "version": {
+                          "type": "boolean",
+                        },
+                        "viewScripts": {
+                          "type": "boolean",
+                        },
+                      },
+                      "type": "object",
+                    },
                     "schemaVersion": {
                       "type": "number",
                     },
@@ -786,6 +848,12 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                         },
                         "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "widgetIds": {
+                      "items": {
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -862,6 +930,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -1095,6 +1181,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "List of checkboxes the user must interact with before agreeing",
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "confirmationPrompt": {
                                   "description": "Optional prompt shown when the user checks this checkbox",
                                   "type": "string",
@@ -1292,6 +1381,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "List of checkboxes the user must interact with before agreeing",
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "confirmationPrompt": {
                           "description": "Optional prompt shown when the user checks this checkbox",
                           "type": "string",
@@ -1413,6 +1505,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -1769,6 +1864,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -1959,6 +2057,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "List of checkboxes the user must interact with before agreeing",
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "confirmationPrompt": {
                           "description": "Optional prompt shown when the user checks this checkbox",
                           "type": "string",
@@ -2080,6 +2181,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "List of checkboxes the user must interact with before agreeing",
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "confirmationPrompt": {
                             "description": "Optional prompt shown when the user checks this checkbox",
                             "type": "string",
@@ -2248,6 +2352,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -2526,300 +2648,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "Successful list",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentresponses",
-        ],
-      },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "agreed": {
-                    "description": "Whether the user agreed (true) or declined (false) the consent form",
-                    "type": "boolean",
-                  },
-                  "agreedAt": {
-                    "description": "Timestamp when the user submitted their agreement or declination",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "checkboxValues": {
-                    "additionalProperties": {
-                      "type": "boolean",
-                    },
-                    "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                    "type": "object",
-                  },
-                  "consentFormId": {
-                    "properties": {
-                      "slug": {
-                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                        "type": "string",
-                      },
-                      "title": {
-                        "description": "Human-readable title of the consent form",
-                        "type": "string",
-                      },
-                      "type": {
-                        "description": "Category of consent form",
-                        "enum": [
-                          "agreement",
-                          "privacy",
-                          "hipaa",
-                          "research",
-                          "terms",
-                          "custom",
-                        ],
-                        "type": "string",
-                      },
-                      "version": {
-                        "default": 1,
-                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                        "type": "number",
-                      },
-                    },
-                    "type": "object",
-                  },
-                  "contentSnapshot": {
-                    "description": "Snapshot of the form content in the user's locale at the time of response",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "formVersionSnapshot": {
-                    "description": "Version number of the form at the time the user responded",
-                    "type": "number",
-                  },
-                  "ipAddress": {
-                    "description": "IP address of the user at the time of response, captured for audit purposes",
-                    "type": "string",
-                  },
-                  "locale": {
-                    "description": "Locale code of the content version the user viewed when responding",
-                    "type": "string",
-                  },
-                  "signature": {
-                    "description": "Base64-encoded signature image or typed signature text, if captured",
-                    "type": "string",
-                  },
-                  "signedAt": {
-                    "description": "Timestamp when the user provided their signature",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userAgent": {
-                    "description": "User-agent string of the browser or app used to submit the response",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "properties": {
-                      "email": {
-                        "description": "The user's email address, used for authentication",
-                        "type": "string",
-                      },
-                      "name": {
-                        "description": "The user's display name",
-                        "type": "string",
-                      },
-                    },
-                    "type": "object",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "agreed": {
-                      "description": "Whether the user agreed (true) or declined (false) the consent form",
-                      "type": "boolean",
-                    },
-                    "agreedAt": {
-                      "description": "Timestamp when the user submitted their agreement or declination",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "checkboxValues": {
-                      "additionalProperties": {
-                        "type": "boolean",
-                      },
-                      "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                      "type": "object",
-                    },
-                    "consentFormId": {
-                      "properties": {
-                        "slug": {
-                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                          "type": "string",
-                        },
-                        "title": {
-                          "description": "Human-readable title of the consent form",
-                          "type": "string",
-                        },
-                        "type": {
-                          "description": "Category of consent form",
-                          "enum": [
-                            "agreement",
-                            "privacy",
-                            "hipaa",
-                            "research",
-                            "terms",
-                            "custom",
-                          ],
-                          "type": "string",
-                        },
-                        "version": {
-                          "default": 1,
-                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                    "contentSnapshot": {
-                      "description": "Snapshot of the form content in the user's locale at the time of response",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "formVersionSnapshot": {
-                      "description": "Version number of the form at the time the user responded",
-                      "type": "number",
-                    },
-                    "ipAddress": {
-                      "description": "IP address of the user at the time of response, captured for audit purposes",
-                      "type": "string",
-                    },
-                    "locale": {
-                      "description": "Locale code of the content version the user viewed when responding",
-                      "type": "string",
-                    },
-                    "signature": {
-                      "description": "Base64-encoded signature image or typed signature text, if captured",
-                      "type": "string",
-                    },
-                    "signedAt": {
-                      "description": "Timestamp when the user provided their signature",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userAgent": {
-                      "description": "User-agent string of the browser or app used to submit the response",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "properties": {
-                        "email": {
-                          "description": "The user's email address, used for authentication",
-                          "type": "string",
-                        },
-                        "name": {
-                          "description": "The user's display name",
-                          "type": "string",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "agreed",
-                    "agreedAt",
-                    "consentFormId",
-                    "locale",
-                    "userId",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
           },
           "400": {
             "content": {
@@ -3158,310 +2986,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "consentresponses",
         ],
       },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "agreed": {
-                    "description": "Whether the user agreed (true) or declined (false) the consent form",
-                    "type": "boolean",
-                  },
-                  "agreedAt": {
-                    "description": "Timestamp when the user submitted their agreement or declination",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "checkboxValues": {
-                    "additionalProperties": {
-                      "type": "boolean",
-                    },
-                    "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                    "type": "object",
-                  },
-                  "consentFormId": {
-                    "properties": {
-                      "slug": {
-                        "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                        "type": "string",
-                      },
-                      "title": {
-                        "description": "Human-readable title of the consent form",
-                        "type": "string",
-                      },
-                      "type": {
-                        "description": "Category of consent form",
-                        "enum": [
-                          "agreement",
-                          "privacy",
-                          "hipaa",
-                          "research",
-                          "terms",
-                          "custom",
-                        ],
-                        "type": "string",
-                      },
-                      "version": {
-                        "default": 1,
-                        "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                        "type": "number",
-                      },
-                    },
-                    "type": "object",
-                  },
-                  "contentSnapshot": {
-                    "description": "Snapshot of the form content in the user's locale at the time of response",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "formVersionSnapshot": {
-                    "description": "Version number of the form at the time the user responded",
-                    "type": "number",
-                  },
-                  "ipAddress": {
-                    "description": "IP address of the user at the time of response, captured for audit purposes",
-                    "type": "string",
-                  },
-                  "locale": {
-                    "description": "Locale code of the content version the user viewed when responding",
-                    "type": "string",
-                  },
-                  "signature": {
-                    "description": "Base64-encoded signature image or typed signature text, if captured",
-                    "type": "string",
-                  },
-                  "signedAt": {
-                    "description": "Timestamp when the user provided their signature",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userAgent": {
-                    "description": "User-agent string of the browser or app used to submit the response",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "properties": {
-                      "email": {
-                        "description": "The user's email address, used for authentication",
-                        "type": "string",
-                      },
-                      "name": {
-                        "description": "The user's display name",
-                        "type": "string",
-                      },
-                    },
-                    "type": "object",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "agreed": {
-                      "description": "Whether the user agreed (true) or declined (false) the consent form",
-                      "type": "boolean",
-                    },
-                    "agreedAt": {
-                      "description": "Timestamp when the user submitted their agreement or declination",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "checkboxValues": {
-                      "additionalProperties": {
-                        "type": "boolean",
-                      },
-                      "description": "Map of checkbox index to boolean indicating whether each checkbox was checked",
-                      "type": "object",
-                    },
-                    "consentFormId": {
-                      "properties": {
-                        "slug": {
-                          "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
-                          "type": "string",
-                        },
-                        "title": {
-                          "description": "Human-readable title of the consent form",
-                          "type": "string",
-                        },
-                        "type": {
-                          "description": "Category of consent form",
-                          "enum": [
-                            "agreement",
-                            "privacy",
-                            "hipaa",
-                            "research",
-                            "terms",
-                            "custom",
-                          ],
-                          "type": "string",
-                        },
-                        "version": {
-                          "default": 1,
-                          "description": "Version number of this form. Incrementing the version requires users to re-consent",
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                    "contentSnapshot": {
-                      "description": "Snapshot of the form content in the user's locale at the time of response",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "formVersionSnapshot": {
-                      "description": "Version number of the form at the time the user responded",
-                      "type": "number",
-                    },
-                    "ipAddress": {
-                      "description": "IP address of the user at the time of response, captured for audit purposes",
-                      "type": "string",
-                    },
-                    "locale": {
-                      "description": "Locale code of the content version the user viewed when responding",
-                      "type": "string",
-                    },
-                    "signature": {
-                      "description": "Base64-encoded signature image or typed signature text, if captured",
-                      "type": "string",
-                    },
-                    "signedAt": {
-                      "description": "Timestamp when the user provided their signature",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userAgent": {
-                      "description": "User-agent string of the browser or app used to submit the response",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "properties": {
-                        "email": {
-                          "description": "The user's email address, used for authentication",
-                          "type": "string",
-                        },
-                        "name": {
-                          "description": "The user's display name",
-                          "type": "string",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "agreed",
-                    "agreedAt",
-                    "consentFormId",
-                    "locale",
-                    "userId",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful update",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "consentresponses",
-        ],
-      },
     },
     "/admin/feature-flags/": {
       "get": {
@@ -3479,6 +3003,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -3667,30 +3209,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
-            "name": "description",
-            "schema": {
-              "oneOf": [
-                {
-                  "default": "",
-                  "description": "Explanation of what this flag controls",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
             "name": "page",
             "schema": {
               "type": "number",
@@ -3734,7 +3252,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "defaultVariant": {
                             "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                            "required": false,
                             "type": "string",
                           },
                           "deleted": {
@@ -3764,6 +3281,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "rules": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "enabled": {
                                   "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                                   "type": "boolean",
@@ -3818,6 +3338,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "variants": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "key": {
                                   "description": "Variant identifier, e.g., 'control', 'variant-a'",
                                   "type": "string",
@@ -3934,7 +3457,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -3964,6 +3486,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -4018,6 +3543,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -4062,7 +3590,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -4092,6 +3619,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -4146,6 +3676,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -4421,7 +3954,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -4451,6 +3983,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -4505,6 +4040,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -4614,7 +4152,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -4644,6 +4181,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -4698,6 +4238,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -4742,7 +4285,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -4772,6 +4314,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -4826,6 +4371,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -4922,6 +4470,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -5181,7 +4747,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "ownerId": {
                             "description": "The user who owns this todo",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "priority": {
                             "description": "Priority level of the todo",
@@ -5320,7 +4887,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -5387,7 +4955,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -5622,7 +5191,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -5754,7 +5324,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -5821,7 +5392,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -5927,6 +5499,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -6116,6 +5706,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -6257,6 +5854,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6321,6 +5925,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -6626,6 +6237,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -6760,6 +6378,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -6824,6 +6449,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -7082,58 +6714,26 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/aiRequestsExplorer": {
-      "get": {
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "number",
+    "/comms/dev/testPush": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "body": {
+                    "type": "string",
+                  },
+                  "title": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
             },
           },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "number",
-            },
-          },
-          {
-            "in": "query",
-            "name": "requestType",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "model",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-          {
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
+          "required": true,
+        },
         "responses": {
           "200": {
             "content": {
@@ -7141,22 +6741,21 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
-                      "items": {
-                        "type": "object",
+                      "properties": {
+                        "accepted": {
+                          "type": "number",
+                        },
+                        "results": {
+                          "items": {
+                            "type": "object",
+                          },
+                          "type": "array",
+                        },
+                        "tokenCount": {
+                          "type": "number",
+                        },
                       },
-                      "type": "array",
-                    },
-                    "limit": {
-                      "type": "number",
-                    },
-                    "more": {
-                      "type": "boolean",
-                    },
-                    "page": {
-                      "type": "number",
-                    },
-                    "total": {
-                      "type": "number",
+                      "type": "object",
                     },
                   },
                   "type": "object",
@@ -7209,9 +6808,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "description": "The user is not allowed to perform this action on any document",
           },
         },
-        "summary": "List AI requests (admin only)",
+        "summary": "Send a development test push to the caller's registered devices",
         "tags": [
-          "admin",
+          "comms",
         ],
       },
     },
@@ -7244,6 +6843,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
             "name": "status",
             "required": false,
             "schema": {
@@ -7252,7 +6859,47 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "errorClass",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "errorCode",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
             "name": "userId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "templateId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "retriedFromId",
             "required": false,
             "schema": {
               "type": "string",
@@ -7269,6 +6916,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           {
             "in": "query",
             "name": "endDate",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
             "required": false,
             "schema": {
               "type": "string",
@@ -7351,6 +7006,293 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "summary": "List communication delivery attempts",
+        "tags": [
+          "admin",
+          "comms",
+        ],
+      },
+    },
+    "/comms/messages/retryMany": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                  },
+                  "endDate": {
+                    "type": "string",
+                  },
+                  "errorClass": {
+                    "type": "string",
+                  },
+                  "errorCode": {
+                    "type": "string",
+                  },
+                  "limit": {
+                    "type": "number",
+                  },
+                  "provider": {
+                    "type": "string",
+                  },
+                  "q": {
+                    "type": "string",
+                  },
+                  "retriedFromId": {
+                    "type": "string",
+                  },
+                  "startDate": {
+                    "type": "string",
+                  },
+                  "status": {
+                    "type": "string",
+                  },
+                  "templateId": {
+                    "type": "string",
+                  },
+                  "to": {
+                    "type": "string",
+                  },
+                  "userId": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "retried": {
+                      "items": {
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "skipped": {
+                      "items": {
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Retry matching failed communication messages",
+        "tags": [
+          "admin",
+          "comms",
+        ],
+      },
+    },
+    "/comms/messages/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Read one communication delivery attempt",
+        "tags": [
+          "admin",
+          "comms",
+        ],
+      },
+    },
+    "/comms/messages/{id}/retry": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Retry a failed communication message",
         "tags": [
           "admin",
           "comms",
@@ -7721,7 +7663,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "User who owns the device token",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -7784,6 +7727,201 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
+          "comms",
+        ],
+      },
+    },
+    "/comms/stats": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "channel",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "errorClass",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "errorCode",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "templateId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "retriedFromId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "buckets": {
+                      "items": {
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "byProvider": {
+                      "items": {
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "totals": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Aggregate communication delivery stats",
+        "tags": [
+          "admin",
           "comms",
         ],
       },
@@ -7851,7 +7989,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "defaultVariant": {
                             "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                            "required": false,
                             "type": "string",
                           },
                           "deleted": {
@@ -7881,6 +8018,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "rules": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "enabled": {
                                   "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                                   "type": "boolean",
@@ -7935,6 +8075,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "variants": {
                             "items": {
                               "properties": {
+                                "_id": {
+                                  "type": "string",
+                                },
                                 "key": {
                                   "description": "Variant identifier, e.g., 'control', 'variant-a'",
                                   "type": "string",
@@ -8051,7 +8194,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -8081,6 +8223,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -8135,6 +8280,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -8179,7 +8327,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -8209,6 +8356,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -8263,6 +8413,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -8438,7 +8591,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -8468,6 +8620,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -8522,6 +8677,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -8631,7 +8789,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "defaultVariant": {
                     "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                    "required": false,
                     "type": "string",
                   },
                   "deleted": {
@@ -8661,6 +8818,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "rules": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "enabled": {
                           "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                           "type": "boolean",
@@ -8715,6 +8875,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "variants": {
                     "items": {
                       "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
                         "key": {
                           "description": "Variant identifier, e.g., 'control', 'variant-a'",
                           "type": "string",
@@ -8759,7 +8922,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "defaultVariant": {
                       "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
-                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -8789,6 +8951,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "rules": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "enabled": {
                             "description": "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
                             "type": "boolean",
@@ -8843,6 +9008,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "variants": {
                       "items": {
                         "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
                           "key": {
                             "description": "Variant identifier, e.g., 'control', 'variant-a'",
                             "type": "string",
@@ -9035,7 +9203,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "projectId": {
                             "description": "Project this conversation belongs to",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "prompts": {
                             "description": "Ordered list of messages in this conversation",
@@ -9139,7 +9308,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "userId": {
                             "description": "The user who owns this conversation history",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                         },
                         "required": [
@@ -9242,7 +9412,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "projectId": {
                     "description": "Project this conversation belongs to",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "prompts": {
                     "description": "Ordered list of messages in this conversation",
@@ -9346,7 +9517,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "userId": {
                     "description": "The user who owns this conversation history",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                 },
                 "type": "object",
@@ -9378,7 +9550,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -9482,7 +9655,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -9644,7 +9818,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -9748,7 +9923,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -9844,7 +10020,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "projectId": {
                     "description": "Project this conversation belongs to",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "prompts": {
                     "description": "Ordered list of messages in this conversation",
@@ -9948,7 +10125,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "userId": {
                     "description": "The user who owns this conversation history",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                 },
                 "type": "object",
@@ -9980,7 +10158,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "projectId": {
                       "description": "Project this conversation belongs to",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "prompts": {
                       "description": "Ordered list of messages in this conversation",
@@ -10084,7 +10263,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "userId": {
                       "description": "The user who owns this conversation history",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                   },
                   "required": [
@@ -10992,6 +11172,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "tags": [
           "exampleprojects",
         ],
+        "x-terreno-sync": {
+          "collection": "projects",
+          "scope": "tenant",
+        },
       },
       "post": {
         "requestBody": {
@@ -11854,7 +12038,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "ownerId": {
                             "description": "The user who owns this todo",
-                            "type": "schemaobjectid",
+                            "format": "objectid",
+                            "type": "string",
                           },
                           "priority": {
                             "description": "Priority level of the todo",
@@ -11959,6 +12144,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "tags": [
           "todos",
         ],
+        "x-terreno-sync": {
+          "collection": "todos",
+          "scope": "owner",
+        },
       },
       "post": {
         "requestBody": {
@@ -11993,7 +12182,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -12060,7 +12250,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -12367,7 +12558,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -12499,7 +12691,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "ownerId": {
                     "description": "The user who owns this todo",
-                    "type": "schemaobjectid",
+                    "format": "objectid",
+                    "type": "string",
                   },
                   "priority": {
                     "description": "Priority level of the todo",
@@ -12566,7 +12759,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "ownerId": {
                       "description": "The user who owns this todo",
-                      "type": "schemaobjectid",
+                      "format": "objectid",
+                      "type": "string",
                     },
                     "priority": {
                       "description": "Priority level of the todo",
@@ -12878,6 +13072,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -13019,6 +13220,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -13083,6 +13291,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },
@@ -13288,6 +13503,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       },
                       "type": "array",
                     },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "salt": {
                       "type": "string",
                     },
@@ -13422,6 +13644,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "type": "array",
                   },
+                  "roles": {
+                    "description": "RBAC role names assigned to this user",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "salt": {
                     "type": "string",
                   },
@@ -13486,6 +13715,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "organizationIds": {
                       "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "roles": {
+                      "description": "RBAC role names assigned to this user",
                       "items": {
                         "type": "string",
                       },

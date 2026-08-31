@@ -1,12 +1,19 @@
 ---
 name: terreno-data-fetching
-description: Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps.
+description: 'Use when implementing or debugging ANY network request, API call, or data fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice, token management, realtime sockets, caching, and SDK regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps. Lifecycle composition: Grow for data-flow shape, Pick for implementation, Roast for independent network/cache behavior proof.'
 ---
 # Terreno Data Fetching
 
 **You MUST use this skill for ANY networking work in Terreno apps.** Never use `axios`, raw `fetch`, React Query, or SWR — use generated RTK Query hooks from `@terreno/rtk`.
 
 **Related skills:** `generate-sdk` (regenerate hooks after backend changes), `terreno-backend-api` (create backend routes), `building-terreno-apps` (screen integration).
+
+## Documentation
+
+1. Read `docs/reference/syncdb.md`, `docs/how-to/migrate-rtk-to-syncdb.md`, and auth/realtime explanation pages before changing fetch, cache, or session behavior.
+2. Implement against that design.
+3. Update those pages in the same slice with `update-docs`.
+4. Ship without matching docs is a failed slice.
 
 ## References
 

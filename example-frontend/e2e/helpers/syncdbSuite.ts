@@ -15,15 +15,28 @@
  * Note on clickable Boxes: @terreno/ui Box renders onClick pressables with a
  * "-clickable" testID suffix (Box.tsx), so `todo-toggle-{id}` / `sync-conflict-badge`
  * are addressed as `todo-toggle-{id}-clickable` / `sync-conflict-badge-clickable`,
- * matching the convention already used by todos.spec.ts.
+ * matching the convention already used by todos.spec.ts. `clickTodoControl`
+ * scrolls the target to the viewport center so the Expo Router tab bar does
+ * not intercept Playwright clicks on the 720px CI viewport.
  */
 import type {Browser, BrowserContext, Locator, Page, WebSocketRoute} from "@playwright/test";
 import type {ConsoleGuard} from "../fixtures/test";
-import type {E2EUser} from "../fixtures/testUsers";
-import {loginAs} from "./login";
 
 export const SYNC_DB_NAME = "terreno-example";
 export const CONVERGE_TIMEOUT = 20_000;
+
+/**
+ * Per-test budget for the syncdb suites, applied with `test.describe.configure`.
+ *
+ * Playwright counts `beforeEach` against the test timeout, and these hooks seed the
+ * backend, log in through the UI, and then wait up to CONVERGE_TIMEOUT for the seeded
+ * sentinel — which can exceed the 30s CI default before the test body even starts. When
+ * it does, the run dies with a generic "Test timeout exceeded while running beforeEach"
+ * and truncates whichever convergence assertion was mid-flight, so the failure says
+ * nothing about which wait actually stalled. Every meaningful wait in these suites
+ * carries its own explicit timeout; this only bounds the total.
+ */
+export const SYNCDB_TEST_TIMEOUT = 90_000;
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
@@ -46,16 +59,33 @@ export const allowSyncDbNoise = (consoleGuard: ConsoleGuard): void => {
   consoleGuard.allow("rejected query");
   consoleGuard.allow("Error fetching OpenAPI spec");
   // Logging out while offline (see syncdb-storage.spec.ts's user-switch scenario)
-  // legitimately fails Better Auth's sign-out network call.
+  // legitimately fails Better Auth's session and sign-out network calls.
+  consoleGuard.allow("Better Auth: Error syncing session: TypeError: Failed to fetch");
   consoleGuard.allow("Better Auth: Error signing out");
   consoleGuard.allow(/sync needs attention/i);
   // Queueing mutations against a severed network is the point of these suites, so the
   // app's own "queue is deep" health warning is expected rather than a defect.
   consoleGuard.allow(/Sync is falling behind/i);
+  // The AI tab stays mounted under Expo Router Tabs, so useMCPTools still
+  // tries POST /mcp while these suites have aborted page HTTP.
+  consoleGuard.allow("useMCPTools error");
 };
 
 export const todoItemByTitle = (page: Page, title: string): Locator =>
   page.locator('[data-testid^="todo-item-"]').filter({hasText: title});
+
+/**
+ * Click a control that may sit under the bottom tab bar. Playwright's default
+ * scroll-into-view aligns to the viewport bottom, which is exactly where `/ai`
+ * intercepts pointer events on the 720px Desktop Chrome CI viewport.
+ */
+export const clickTodoControl = async (locator: Locator): Promise<void> => {
+  await locator.waitFor({state: "visible"});
+  await locator.evaluate((node: HTMLElement) => {
+    node.scrollIntoView({block: "center", inline: "center"});
+  });
+  await locator.click({force: true});
+};
 
 /**
  * Wait for the syncdb-backed Todos screen. The banner is asserted as *attached*
@@ -224,8 +254,7 @@ export const installChaosControl = async (
 
   const stop = async (): Promise<void> => {
     chaosActive = false;
-    offline = false;
-    await page.unroute(`${API_URL}/**`);
+    await goOnline();
   };
 
   return {dropSocket, goOffline, goOnline, stop};
@@ -322,16 +351,30 @@ export const createTodoViaUi = async (page: Page, title: string): Promise<void> 
   await todoItemByTitle(page, title).waitFor({state: "visible"});
 };
 
-/** Open a second logged-in browser session on the sync Todos screen. */
+/**
+ * Wait until this page's outbox is empty, i.e. every local mutation has been
+ * server-acked. Creating a todo only proves the optimistic local apply, so a test that
+ * asserts another session sees it needs this in between — otherwise a mutation stuck in
+ * the sender's queue fails as "the receiver never got the delta", blaming the wrong side.
+ */
+export const waitForOutboxDrained = async (page: Page): Promise<void> => {
+  await page.getByTestId("sync-queued-count").waitFor({state: "hidden", timeout: CONVERGE_TIMEOUT});
+};
+
+/**
+ * Open a second logged-in browser session on the sync Todos screen, cloning the
+ * authenticated storage state of `page` rather than driving the login form again. A
+ * second UI login costs seconds of the test budget on CI and adds an unrelated failure
+ * surface to tests that are about the sync protocol.
+ */
 export const openSecondSession = async (
   browser: Browser,
-  user: E2EUser
+  page: Page
 ): Promise<{context: BrowserContext; page: Page}> => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await loginAs(page, user);
-  await openSyncTodos(page);
-  return {context, page};
+  const context = await browser.newContext({storageState: await page.context().storageState()});
+  const secondPage = await context.newPage();
+  await openSyncTodos(secondPage);
+  return {context, page: secondPage};
 };
 
 /** Byte length of the encrypted syncdb blob in IndexedDB (0 when absent). */

@@ -1,18 +1,7 @@
 name: MCP Server CI
 
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - "mcp-server/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/mcp-server-ci.yml"
-  pull_request:
-    paths:
-      - "mcp-server/**"
-      - "scripts/check-coverage.ts"
-      - ".github/workflows/mcp-server-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:
@@ -28,7 +17,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
@@ -63,7 +52,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
@@ -82,6 +71,7 @@ jobs:
           bun install --production --frozen-lockfile
 
       - name: Build Docker image
+        working-directory: .
         run: |
           docker build \
             --file mcp-server/Dockerfile \

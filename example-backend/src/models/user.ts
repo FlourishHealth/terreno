@@ -1,5 +1,7 @@
+import {rbacUserPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
+import {DEFAULT_USER_ROLE} from "../rbacRoles";
 import type {UserDocument, UserModel} from "../types/models/userTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
@@ -54,6 +56,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
 userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
 });
+userSchema.plugin(rbacUserPlugin, {defaultRoles: [DEFAULT_USER_ROLE]});
 
 addDefaultPlugins(userSchema);
 
@@ -65,6 +68,6 @@ userSchema.method("getDisplayName", function (this: UserDocument): string {
 export const User = mongoose.model<UserDocument, UserModel>("User", userSchema);
 
 // Define custom statics after model creation
-User.findByEmail = async function (email: string): Promise<UserDocument | null> {
-  return this.findOneOrNone({email: email.toLowerCase()});
+User.findByEmail = async (email: string): Promise<UserDocument | null> => {
+  return User.findOneOrNone({email: email.toLowerCase()});
 };

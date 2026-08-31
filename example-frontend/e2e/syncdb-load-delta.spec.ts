@@ -9,14 +9,21 @@ import {loginAs} from "./helpers/login";
 import {
   allowSyncDbNoise,
   CONVERGE_TIMEOUT,
+  clickTodoControl,
   createTodoViaUi,
   openSecondSession,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   todoItemByTitle,
+  waitForOutboxDrained,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, createTodoAs} from "./helpers/todosApi";
 
 const USER = SYNCDB_LOAD_USER;
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB local-first load (AC-1)", () => {
   let seeded: Array<{_id: string; title: string}> = [];
@@ -60,13 +67,16 @@ test.describe("SyncDB live delta sync (AC-8)", () => {
   });
 
   test("a todo created in another session appears without reload", async ({page, browser}) => {
-    const {context, page: pageB} = await openSecondSession(browser, USER);
+    const {context, page: pageB} = await openSecondSession(browser, page);
     try {
       // Wait for B's client to be fully started before mutating from it.
       await expect(pageB.getByTestId(`todo-item-${sentinel._id}`)).toBeVisible({
         timeout: CONVERGE_TIMEOUT,
       });
       await createTodoViaUi(pageB, "From the other tab");
+      // B's create is only optimistic until its outbox drains. Assert the server took it
+      // before asking anything of A, so a stuck sender never reads as a missed delta.
+      await waitForOutboxDrained(pageB);
 
       // Context A receives the change via sync:delta — no reload, no interaction.
       await expect(todoItemByTitle(page, "From the other tab")).toBeVisible({
@@ -77,8 +87,9 @@ test.describe("SyncDB live delta sync (AC-8)", () => {
       const itemInB = todoItemByTitle(pageB, "From the other tab");
       const testId = (await itemInB.getAttribute("data-testid")) ?? "";
       const id = testId.replace("todo-item-", "");
-      await pageB.getByTestId(`todo-delete-${id}`).click();
+      await clickTodoControl(pageB.getByTestId(`todo-delete-${id}`));
       await expect(todoItemByTitle(pageB, "From the other tab")).toBeHidden();
+      await waitForOutboxDrained(pageB);
       await expect(todoItemByTitle(page, "From the other tab")).toBeHidden({
         timeout: CONVERGE_TIMEOUT,
       });

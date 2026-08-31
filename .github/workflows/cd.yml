@@ -1,10 +1,23 @@
 name: CD
 
+# Dual-run with CircleCI until `terreno-gcp` has WIF/OIDC values.
+# Do not leave both applying terraform once CircleCI GCP deploys succeed.
 on:
   push:
     branches:
       - master
   pull_request:
+    paths:
+      - "terraform/**"
+      - "example-backend/**"
+      - "api/**"
+      - "api-health/**"
+      - "admin-backend/**"
+      - "ai/**"
+      - "comms/**"
+      - "mcp-server/**"
+      - "ui/**"
+      - ".github/workflows/cd.yml"
   workflow_dispatch:
     inputs:
       run_terraform:
@@ -13,9 +26,12 @@ on:
         type: boolean
         default: false
 
+# Fork PRs still receive repository variables and can request an OIDC token.
+# Do not grant id-token at the workflow; only jobs that mint GCP identity
+# request it, and preview jobs also require a same-repo head.
 permissions:
   contents: read
-  id-token: write
+  id-token: none
   pull-requests: write
   deployments: write
   statuses: write
@@ -59,6 +75,7 @@ jobs:
               - 'api-health/**'
               - 'admin-backend/**'
               - 'ai/**'
+              - 'comms/**'
               - '.github/workflows/cd.yml'
             tasks:
               - 'example-backend/**'
@@ -66,6 +83,7 @@ jobs:
               - 'api-health/**'
               - 'admin-backend/**'
               - 'ai/**'
+              - 'comms/**'
               - '.github/workflows/cd.yml'
             mcp:
               - 'mcp-server/**'
@@ -90,10 +108,17 @@ jobs:
   terraform-preview:
     name: Terraform preview
     needs: [detect, terraform-format]
+    # Same-repo PRs only. Fork PRs keep repository = FlourishHealth/terreno on
+    # the OIDC token, so WIF would otherwise accept them.
     if: |
       always() &&
       needs.terraform-format.result == 'success' &&
-      github.event_name == 'pull_request'
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write
+    environment: gcp-cd-preview
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -144,6 +169,9 @@ jobs:
       always() &&
       needs.terraform-format.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -195,6 +223,11 @@ jobs:
       needs.detect.outputs.backend == 'true' &&
       github.event_name == 'push' &&
       (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+      statuses: write
     runs-on: ubuntu-latest
     outputs:
       backend_url: ${{ steps.deploy.outputs.url }}
@@ -330,7 +363,14 @@ jobs:
       always() &&
       needs.detect.outputs.backend == 'true' &&
       github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+      statuses: write
+    environment: gcp-cd-preview
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -389,13 +429,25 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
       - name: Build Docker image
+        id: docker-build
+        env:
+          IMAGE: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
         run: |
           docker build \
             --file ./example-backend/Dockerfile \
-            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }} \
+            --tag "$IMAGE" \
             .
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      - name: Smoke-test container before deploy
+        env:
+          SMOKE_IMAGE: ${{ steps.docker-build.outputs.image }}
+          SMOKE_MODE: preview
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: .github/workflows/scripts/backend-container-smoke.sh
       - name: Push Docker image
-        run: docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+        run: docker push ${{ steps.docker-build.outputs.image }}
       # Better Auth is only enabled once the terraform-managed secret exists,
       # so preview deploys keep working before the first terraform apply on master.
       - name: Resolve Better Auth deploy config
@@ -447,6 +499,26 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+      - name: Print failed Cloud Run revision logs
+        if: failure() && steps.deploy.outcome == 'failure'
+        run: |
+          revision="$(
+            gcloud run revisions list \
+              --service="${{ env.GCP_BACKEND_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format=json |
+              jq -r --arg sha "$GITHUB_SHA" \
+                'first(.[] | select(.metadata.labels["commit-sha"] == $sha) | .metadata.name) // empty'
+          )"
+          if [ -z "$revision" ]; then
+            echo "::warning::Could not identify the failed Cloud Run revision for $GITHUB_SHA"
+            exit 0
+          fi
+          gcloud logging read \
+            "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${{ env.GCP_BACKEND_SERVICE }}\" AND resource.labels.revision_name=\"$revision\"" \
+            --limit=100 \
+            --order=asc \
+            --format=json
       - name: Set deployment status to success
         if: success()
         uses: actions/github-script@v9.0.0
@@ -484,6 +556,9 @@ jobs:
       needs.detect.outputs.tasks == 'true' &&
       github.event_name == 'push' &&
       (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -554,7 +629,7 @@ jobs:
       - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build all packages
@@ -574,12 +649,15 @@ jobs:
       github.event_name == 'push' &&
       (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') &&
       needs.mcp-test.result == 'success'
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build all packages

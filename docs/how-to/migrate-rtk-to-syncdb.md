@@ -4,6 +4,8 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 
 `@terreno/syncdb` supersedes `@terreno/rtk` for **data synchronization** (CRUD reads/writes, offline queue, realtime convergence). It does not replace the generated OpenAPI SDK, Better Auth Redux wiring, or feature-flag infrastructure.
 
+`modelRouter` `realtime`, `realtimeList`, `realtimeDocument`, and `setRealtimeSocket` are **deprecated** and **will be removed in Terreno 58**. `RealtimeApp` stays as the socket host for syncdb. Removal checklist: [`docs/tasks/remove-legacy-realtime.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/remove-legacy-realtime.md).
+
 ## 1. Before you start
 
 | Decision | Requirement | Why |
@@ -20,6 +22,8 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 2. **Step B — Data:** For each collection, replace RTK Query hooks with syncdb hooks and delete the RTK path for that screen.
 
 The example app completed both steps; todos are syncdb-only while profile/admin still use generated RTK hooks.
+
+**Validation (Task 3.5):** The profile screen (`example-frontend/app/(tabs)/profile.tsx`) was reviewed against this guide. `useGetMeQuery` / `usePatchMeMutation` are **non-synced** custom SDK routes — the guide §8 explicitly says to keep them on RTK. No profile migration is required; the guide is sufficient for that case.
 
 Reference: [`docs/reference/syncdb.md`](../reference/syncdb.md), and the package [`syncdb/README.md`](https://github.com/flourishhealth/terreno/blob/release-56.0.0/syncdb/README.md).
 
@@ -318,6 +322,18 @@ Required for Better Auth socket sessions. Legacy JWT sockets continue to work wi
 
 ## 8. Codegen
 
+Synced collections use `bun run sync-sdk`, which runs `terreno-syncdb-codegen` from
+`@terreno/syncdb`. It reads `/openapi.json`, finds list operations tagged
+`x-terreno-sync`, and writes `store/syncDbSdk.ts` (`SYNC_COLLECTIONS` plus friendly
+hooks such as `useTodos` / `useTodo` / `useCreateTodo`). Do not edit that file.
+Custom collections call `createCollectionHooks` in a sibling file. Names are chosen
+so they do not collide with RTK `openApiSdk.ts` during dual-stack migration.
+
+```bash
+# Backend running on port 4000
+cd example-frontend && bun run sync-sdk
+```
+
 ### Does `bun run sdk` still work?
 
 **Yes.** `example-frontend/package.json` still defines:
@@ -332,7 +348,7 @@ It runs `@rtk-query/codegen-openapi` against `openapi-config.ts` and writes `sto
 
 | Still generated | Stop using for migrated collections |
 |-----------------|-------------------------------------|
-| Auth routes, `GET /auth/me`, admin, AI explorer, version config, feature flags | `useGetTodosQuery`, `usePostTodosMutation`, etc. |
+| Auth routes, `GET /auth/me`, admin, AI explorer, version config, feature flags | Collection CRUD — import from `store/syncDbSdk.ts` instead |
 | Custom REST / RPC endpoints | Todo `realtimeList` / `realtimeDocument` wiring in `store/sdk.ts` |
 
 Keep running `bun run sdk` after backend route changes — non-synced screens still import from `store/sdk.ts`.
@@ -342,7 +358,18 @@ Workflow:
 ```bash
 # Backend running on port 4000
 cd example-frontend && bun run sdk
+cd example-frontend && bun run sync-sdk
 ```
+
+### Syncdb hooks codegen
+
+For collections with `sync` enabled on the backend, generate local-first hooks from the same OpenAPI spec:
+
+```bash
+cd example-frontend && bun run sync-sdk
+```
+
+This writes `store/syncDbSdk.ts` with friendly hooks (`useTodos`, `useCreateTodo`, …) that intentionally differ from RTK names so both SDKs can coexist during migration. Import synced screens from `@/store/syncDbSdk`, not `store/sdk.ts`.
 
 ## 9. Feature flags
 

@@ -1,5 +1,7 @@
 # @terreno/ai
 
+AI service layer for Terreno apps - GPT chat, request logging, and admin tools.
+
 AI service layer for Terreno backends — provider-agnostic chat, request logging, GPT history, projects, file uploads, MCP tools, and optional Langfuse integration.
 
 ## Install
@@ -36,6 +38,7 @@ This mounts GPT chat (`POST /gpt/prompt`), history CRUD (`/gpt/histories`), proj
 - `LangfuseApp` — optional Langfuse tracing and admin UI routes
 - `FileStorageService` — GCS uploads with signed URLs
 - `MCPService` — SSE MCP client for tool calling
+- `getMCPTools` — wrap registered `modelRouter` MCP tools as Vercel AI SDK tools for in-process `streamText` / `generateText`
 - Gemini and Vertex helpers: `listGeminiApiModels`, `createVertexProvider`
 
 ## Documentation

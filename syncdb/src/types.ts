@@ -31,6 +31,19 @@ export interface SyncDelta {
   deleted?: boolean;
 }
 
+/**
+ * Server confirmation (`sync:subscribed`) that a collection's delta streams are joined.
+ *
+ * Emitted after the server has joined the socket to every `sync:{stream}` room for the
+ * collection, so it is the first moment live deltas are guaranteed to reach this client.
+ */
+export interface SyncSubscribed {
+  /** Collection tag the confirmation is for. */
+  collection: string;
+  /** Stream keys now joined for that collection. */
+  streams: string[];
+}
+
 /** A client mutation sent via `sync:mutate` or `POST /sync/mutate`. */
 export interface SyncMutateRequest {
   /** Client-generated stable id; the idempotency key. */
@@ -177,6 +190,11 @@ export interface OutboxMutation {
   attemptCount: number;
   /** Retry-budget counter incremented only on server error-nacks (see MAX_ERROR_NACK_ATTEMPTS). */
   errorNackCount: number;
+  /**
+   * Per-mutation cap on error-nack retries before terminal failure. Omitted rows use
+   * {@link MAX_ERROR_NACK_ATTEMPTS} in the replay coordinator.
+   */
+  maxAttempts?: number;
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   createdAt: string;
@@ -212,6 +230,10 @@ export type ConflictResolutionStrategy = "useServer" | "keepMine";
  */
 export interface SyncCollectionStatus {
   queuedCount: number;
+  /**
+   * Unresolved conflicts plus resolved conflicts whose local persistence write
+   * has not succeeded yet.
+   */
   conflictCount: number;
   failedCount: number;
 }
@@ -221,6 +243,10 @@ export interface SyncStatus {
   isOnline: boolean;
   isSyncing: boolean;
   queuedCount: number;
+  /**
+   * Unresolved conflicts plus resolved conflicts whose local persistence write
+   * has not succeeded yet.
+   */
   conflictCount: number;
   /** Count of mutations in the terminal `failed` state. */
   failedCount: number;

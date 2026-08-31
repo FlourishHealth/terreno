@@ -26,9 +26,9 @@ Read the [deployment baseline](../explanation/deployment-baseline.md) — seven 
 
 [Environment variables reference](../reference/environment-variables.md) — full list of backend and client config.
 
-## Legacy Flourish deployment
+## Operator-specific deployment
 
-Flourish-specific infrastructure (hardcoded project IDs, CI deploy workflows) lives in `infra/flourish/` and the existing `demo-deploy.yml` / `frontend-example-deploy.yml` workflows. New deployments should follow the generalized guides above with your own `$PROJECT_ID` and bucket names.
+Vendor-specific infrastructure (hardcoded project IDs, CI deploy workflows) lives outside these generalized guides. New deployments should follow the guides above with your own `$PROJECT_ID` and bucket names.
 
 ## Related
 

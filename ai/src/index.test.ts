@@ -23,6 +23,7 @@ describe("@terreno/ai public exports", () => {
     "createTelemetryConfig",
     "createVertexProvider",
     "getCached",
+    "getMCPTools",
     "getLangfuseClient",
     "getPrompt",
     "initLangfuseClient",

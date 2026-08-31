@@ -1526,6 +1526,79 @@ describe("AI Routes", () => {
       expect(res.body.data[0].requestType).toBe("remix");
     });
 
+    it("filters by multiple requestType values", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "remix prompt",
+        requestType: "remix",
+        response: "remix response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "general prompt",
+        requestType: "general",
+        response: "general response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "json prompt",
+        requestType: "json_object",
+        response: "json response",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType=remix,general");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(2);
+      const types = (res.body.data as {requestType: string}[]).map((row) => row.requestType).sort();
+      expect(types).toEqual(["general", "remix"]);
+    });
+
+    it("filters by repeated requestType query parameters", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "remix prompt",
+        requestType: "remix",
+        response: "remix response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "general prompt",
+        requestType: "general",
+        response: "general response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "json prompt",
+        requestType: "json_object",
+        response: "json response",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType=remix&requestType=general");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(2);
+      const types = (res.body.data as {requestType: string}[]).map((row) => row.requestType).sort();
+      expect(types).toEqual(["general", "remix"]);
+    });
+
+    it("ignores blank and non-string requestType values", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "general prompt",
+        requestType: "general",
+        response: "general response",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType=,%20&requestType[key]=general");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+    });
+
     it("filters by model query parameter", async () => {
       await AIRequest.create({
         aiModel: "gpt-4",

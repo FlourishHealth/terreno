@@ -1,9 +1,9 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import express from "express";
 import {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
+import {APIError} from "../errors";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
@@ -21,7 +21,8 @@ import {syncPlugin} from "./syncSeqPlugin";
  * (`SyncCounter.stream` / `SyncMutation.mutationId` uniques, the scope-move lookups,
  * `SyncKey.userId`), so they exist after startup without any manual `ensureIndexes()`
  * call — without the unique indexes, duplicate mutation deliveries double-apply and the
- * counter upsert race mints duplicate seqs.
+ * counter upsert race mints duplicate seqs. Index work must remain deferred until this
+ * function runs because model registration can happen before MongoDB connects.
  */
 
 interface IndexTodo extends IsDeleted {
@@ -50,7 +51,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<IndexTodo>;
 
 describe("ensureSyncIndexes (C8)", () => {
   beforeEach(() => {
@@ -65,28 +66,58 @@ describe("ensureSyncIndexes (C8)", () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoOk");
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosOk",
     });
     await expect(ensureSyncIndexes()).resolves.toBeUndefined();
   });
 
+  it("defers snapshot index creation until startup ensures indexes", async () => {
+    const IndexTodoModel = buildModel("EnsureIndexTodoDeferred");
+    let createIndexCalls = 0;
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
+      createIndexCalls += 1;
+      return "ownerId_1__syncSeq_1";
+    };
+
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: IndexTodoModel,
+      options: authedOptions,
+      routePath: "/ensureIndexTodosDeferred",
+    });
+
+    assert.strictEqual(createIndexCalls, 0);
+    await ensureSyncIndexes();
+    assert.strictEqual(createIndexCalls, 1);
+  });
+
   it("rejects with an actionable error when createIndex fails, so startup fails loudly", async () => {
     const IndexTodoModel = buildModel("EnsureIndexTodoFail");
+    const sentinel = new Error("boom-sentinel-snapshot-index");
     // Force the collection's createIndex to reject, simulating a DB/schema failure.
-    (IndexTodoModel.collection as any).createIndex = async () => {
-      throw new Error("boom: index build failed");
+    IndexTodoModel.collection.createIndex = async (): Promise<string> => {
+      throw sentinel;
     };
     registerSync({
       config: {scope: {type: "owner"}},
-      model: IndexTodoModel as any,
+      model: IndexTodoModel,
       options: authedOptions,
       routePath: "/ensureIndexTodosFail",
     });
-    await expect(ensureSyncIndexes()).rejects.toThrow(
+    const rejection = ensureSyncIndexes();
+    await expect(rejection).rejects.toThrow(
       /Failed to create sync snapshot index for EnsureIndexTodoFail/
     );
+    const error = await rejection.catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(APIError);
+    const apiError = error as APIError;
+    expect(apiError.code).toBe("sync-snapshot-index-failed");
+    expect(apiError.cause).toBe(sentinel);
+    expect(apiError.status).toBe(500);
+    expect(apiError.message).not.toContain(sentinel.message);
+    expect(apiError.detail).toContain(sentinel.message);
   });
 });
 
@@ -129,16 +160,24 @@ describe("sync bookkeeping indexes at startup (Task 9.9)", () => {
 
   it("rejects with an actionable error when a bookkeeping index build fails", async () => {
     const originalEnsure = SyncMutation.ensureIndexes.bind(SyncMutation);
-    (SyncMutation as any).ensureIndexes = async () => {
-      throw new Error("boom: mutationId index build failed");
+    const sentinel = new Error("boom-sentinel-mutation-index");
+    SyncMutation.ensureIndexes = async (): Promise<void> => {
+      throw sentinel;
     };
     try {
       new SyncApp().register(express());
-      await expect(ensureSyncIndexes()).rejects.toThrow(
-        /Failed to ensure sync indexes for SyncMutation/
-      );
+      const rejection = ensureSyncIndexes();
+      await expect(rejection).rejects.toThrow(/Failed to ensure sync indexes for SyncMutation/);
+      const error = await rejection.catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(APIError);
+      const apiError = error as APIError;
+      expect(apiError.code).toBe("sync-indexes-failed");
+      expect(apiError.cause).toBe(sentinel);
+      expect(apiError.status).toBe(500);
+      expect(apiError.message).not.toContain(sentinel.message);
+      expect(apiError.detail).toContain(sentinel.message);
     } finally {
-      (SyncMutation as any).ensureIndexes = originalEnsure;
+      SyncMutation.ensureIndexes = originalEnsure;
     }
   });
 });

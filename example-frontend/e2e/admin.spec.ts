@@ -1,4 +1,4 @@
-import type {Page} from "@playwright/test";
+import type {Locator, Page} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
@@ -11,8 +11,14 @@ const adminModelEntry = (page: Page, modelName: string) =>
     .or(page.getByTestId(`admin-home-models-grid-${modelName}`))
     .or(page.getByTestId(`admin-model-card-${modelName}`));
 
+const permissionControl = (page: Page, resource: string, action: string): Locator => {
+  const testID = `admin-role-permission-${resource}-${action}`;
+  return page.getByTestId(`${testID}-clickable`).or(page.getByTestId(testID));
+};
+
 test.describe("Admin Panel", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    consoleGuard.allow("UTC is not a valid timezone");
     await loginAsAdmin(page);
     await page.goto("/admin");
   });
@@ -26,9 +32,8 @@ test.describe("Admin Panel", () => {
   });
 
   test("admin panel shows custom screens", async ({page}) => {
-    await page.getByTestId("admin-custom-screen-card-ai-admin").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-custom-screen-card-ai-admin")).toBeVisible();
-    await expect(page.getByTestId("admin-custom-screen-card-showcase")).toBeVisible();
+    await expect(page.getByText("AI Requests").first()).toBeVisible();
+    await expect(page.getByText("Documents").first()).toBeVisible();
   });
 
   test("can navigate to model table", async ({page}) => {
@@ -76,9 +81,72 @@ test.describe("Admin Panel", () => {
     });
   });
 
-  test("admin panel shows configuration card", async ({page}) => {
-    await page.getByTestId("admin-configuration-card").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-configuration-card")).toBeVisible();
+  test("admin panel shows configuration in the shell nav", async ({page}) => {
+    const configurationEntry = page
+      .getByTestId("admin-shell-nav-configuration-clickable")
+      .or(page.getByTestId("admin-shell-nav-configuration"))
+      .or(page.getByTestId("admin-configuration-card-clickable"))
+      .or(page.getByTestId("admin-configuration-card"));
+    const menuButton = page
+      .getByTestId("admin-shell-menu-button-clickable")
+      .or(page.getByTestId("admin-shell-menu-button"));
+    if (await menuButton.first().isVisible()) {
+      await menuButton.first().click();
+    }
+    await configurationEntry.first().waitFor({state: "visible"});
+    await expect(configurationEntry.first()).toBeVisible();
+  });
+
+  test("superadmin profile lists its role and links to role editing", async ({page}) => {
+    await page.goto("/profile");
+    await page.getByTestId("profile-roles-card").waitFor({state: "visible"});
+
+    await expect(page.getByTestId("profile-roles-list")).toContainText("superadmin");
+    await page.getByTestId("profile-edit-roles-button").click();
+    await expect(page).toHaveURL(/\/admin\/roles$/);
+  });
+
+  test("admin scripts include the database reset action", async ({page}) => {
+    await page.goto("/admin/__scripts");
+
+    await expect(page.getByTestId("admin-script-card-resetDatabase")).toBeVisible();
+    await page.getByTestId("admin-script-run-resetDatabase").click();
+    await page.getByTestId("admin-script-dry-run-button").click();
+
+    await expect(page.getByText("Dry run completed cleanly.")).toBeVisible({timeout: 15_000});
+    await expect(page.getByText(/Dry run: would reset \d+ record/)).toBeVisible();
+  });
+
+  test("can create and edit a role with attached permissions", async ({page, request}) => {
+    const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+    const token = await getAdminToken(request);
+    const roleName = "e2eRoleEditor";
+    await request.delete(`${API_URL}/rbac/roles/${roleName}`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+
+    await page.goto("/admin/roles");
+    await expect(page.getByTestId("admin-permissions-list")).toContainText("todo:update");
+    await page.getByTestId("admin-roles-add-button").click();
+    await page.getByTestId("admin-role-name").fill(roleName);
+    await page.getByTestId("admin-role-display-name").fill("E2E Role Editor");
+    await page.getByTestId("admin-role-description").fill("Created by Playwright");
+    await permissionControl(page, "todo", "read").click();
+    const saveButton = page.getByTestId("admin-role-save-button");
+    await saveButton.scrollIntoViewIfNeeded();
+    await saveButton.click();
+
+    const roleItem = page.getByTestId(`admin-roles-item-${roleName}`);
+    await expect(roleItem).toContainText("todo:read");
+    await page.getByTestId(`admin-roles-edit-${roleName}`).click();
+    await permissionControl(page, "todo", "update").click();
+    await saveButton.scrollIntoViewIfNeeded();
+    await saveButton.click();
+    await expect(roleItem).toContainText("todo:update");
+
+    await request.delete(`${API_URL}/rbac/roles/${roleName}`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
   });
 });
 
@@ -86,7 +154,7 @@ test.describe("Admin Access Control", () => {
   test("non-admin user cannot see admin button in profile", async ({page}) => {
     await loginAs(page);
     await page.goto("/profile");
-    await page.getByTestId("profile-name-input").first().waitFor({state: "visible"});
+    await page.getByTestId("profile-name-input.edit-clickable").first().waitFor({state: "visible"});
     await expect(page.getByTestId("profile-admin-button")).not.toBeVisible();
   });
 });

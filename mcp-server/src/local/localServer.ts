@@ -1,10 +1,9 @@
-import {Server} from "@modelcontextprotocol/sdk/server/index.js";
-import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
-import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotocol/sdk/types.js";
+import {Server} from "@modelcontextprotocol/server";
+import {serveStdio} from "@modelcontextprotocol/server/stdio";
 
 import {handleLocalToolCall, localMcpTools} from "./localTools.js";
 
-export const startLocalMcpServer = async (): Promise<void> => {
+const createLocalMcpServer = (): Server => {
   const server = new Server(
     {
       name: "terreno-mcp-local",
@@ -17,16 +16,19 @@ export const startLocalMcpServer = async (): Promise<void> => {
     }
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.setRequestHandler("tools/list", async () => {
     return {tools: localMcpTools};
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler("tools/call", async (request) => {
     const name = request.params.name;
     const args = (request.params.arguments ?? {}) as Record<string, unknown>;
     return handleLocalToolCall(name, args);
   });
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  return server;
+};
+
+export const startLocalMcpServer = async (): Promise<void> => {
+  serveStdio(createLocalMcpServer, {legacy: "serve"});
 };

@@ -8,7 +8,8 @@ import type {Server, Socket} from "socket.io";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions, type PermissionMethod} from "../permissions";
+import type {PermissionMethod} from "../permissions";
+import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
 import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
 import {serializeSyncPayload} from "../sync/serialize";
@@ -18,7 +19,7 @@ import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/typ
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
-import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
+import {awaitSocketFullUser, type SocketWithDecodedToken} from "./socketUser";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
 /**
@@ -199,9 +200,7 @@ const canReadDocument = async (
   entry: AuthorizedEmitEntry,
   user?: User,
   doc?: Record<string, unknown>
-): Promise<boolean> => {
-  return checkPermissions("read", entry.options.permissions.read, user, doc);
-};
+): Promise<boolean> => canReadDocumentRealtime(entry, user, doc);
 
 /**
  * Determine which Socket.io rooms to emit to based on the room strategy.
@@ -297,14 +296,14 @@ export const serializeDoc = async (
       const restMethod = method === "delete" ? "read" : method;
       // Synthesize the minimal request shape responseHandlers commonly inspect.
       const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-      return ensureApiId(
-        await responseHandler(
-          doc as unknown as mongoose.Document<unknown, unknown, unknown>,
-          restMethod,
-          syntheticReq,
-          entry.options
-        )
+      const serialized = await responseHandler(
+        doc as unknown as mongoose.Document<unknown, unknown, unknown>,
+        restMethod,
+        syntheticReq,
+        entry.options
       );
+      const masked = await maskRealtimeDocument(entry, user, serialized, restMethod);
+      return ensureApiId(masked);
     } catch (error) {
       logger.error(
         `[realtime] modelRouter responseHandler threw during realtime serialization for ` +
@@ -314,9 +313,15 @@ export const serializeDoc = async (
     }
   }
 
-  return ensureApiId(
-    typeof doc.toJSON === "function" ? (doc as {toJSON: () => unknown}).toJSON() : doc
+  const fallback =
+    typeof doc.toJSON === "function" ? (doc as {toJSON: () => unknown}).toJSON() : doc;
+  const maskedFallback = await maskRealtimeDocument(
+    entry,
+    user,
+    fallback,
+    method === "delete" ? "read" : method
   );
+  return ensureApiId(maskedFallback);
 };
 
 /**
@@ -347,7 +352,7 @@ export const emitPayloadToAuthorizedRoom = async ({
 }): Promise<void> => {
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
-    const user = getSocketUser(socket);
+    const user = await awaitSocketFullUser(socket);
     try {
       // Hard deletes have no document context; use an empty object so object-scoped
       // permission helpers fail closed instead of treating the check as preflight.

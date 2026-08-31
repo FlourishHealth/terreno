@@ -7,6 +7,7 @@ import type {
   AdminFieldConfig,
   AdminFieldValue,
   AdminModelConfig,
+  AdminRecordCapabilities,
   RefRendererMap,
 } from "./types";
 import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
@@ -129,6 +130,24 @@ const sanitizePayloadValue = (value: AdminFieldValue): AdminFieldValue => {
     return nextValue;
   }
   return value;
+};
+
+const omitBlankOptionalEnums = (
+  payload: Record<string, AdminFieldValue>,
+  fields: Record<string, AdminFieldConfig>
+): Record<string, AdminFieldValue> => {
+  const nextPayload = {...payload};
+  for (const [fieldKey, fieldConfig] of Object.entries(fields)) {
+    if (
+      nextPayload[fieldKey] === "" &&
+      !fieldConfig.required &&
+      fieldConfig.enum &&
+      fieldConfig.enum.length > 0
+    ) {
+      Reflect.deleteProperty(nextPayload, fieldKey);
+    }
+  }
+  return nextPayload;
 };
 
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
@@ -385,7 +404,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
-      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, AdminFieldValue>;
+      const sanitizedPayload = omitBlankOptionalEnums(
+        sanitizePayloadValue(formState) as Record<string, AdminFieldValue>,
+        modelConfig.fields
+      );
       const readonlyKeys = new Set(modelConfig.readonlyFields ?? []);
       const stripped: Record<string, AdminFieldValue> = {};
       for (const [k, v] of Object.entries(sanitizedPayload)) {
@@ -436,6 +458,14 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [itemId, deleteItem, toast, modelName]);
 
   const isSaving = isCreating || isUpdating;
+  const recordCapabilities = (
+    itemData as {_adminCapabilities?: AdminRecordCapabilities} | undefined
+  )?._adminCapabilities;
+  const isFormWritable =
+    mode === "create"
+      ? modelConfig?.permissions?.create !== false
+      : (recordCapabilities?.update ?? modelConfig?.permissions?.update !== false);
+  const canDeleteRecord = recordCapabilities?.delete ?? modelConfig?.permissions?.delete !== false;
 
   const navigationTitle = useMemo((): string => {
     if (!modelConfig) {
@@ -491,16 +521,18 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     navigation.setOptions({
       headerRight: () => (
         <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
-          {mode === "edit" && modelConfig.permissions?.delete !== false ? (
+          {mode === "edit" && canDeleteRecord ? (
             <DeleteButton loading={isDeleting} onDelete={handleDelete} />
           ) : null}
-          <Button
-            loading={isSaving}
-            onClick={handleSave}
-            testID="admin-save-button"
-            text={mode === "create" ? "Create" : "Save"}
-            variant="primary"
-          />
+          {isFormWritable ? (
+            <Button
+              loading={isSaving}
+              onClick={handleSave}
+              testID="admin-save-button"
+              text={mode === "create" ? "Create" : "Save"}
+              variant="primary"
+            />
+          ) : null}
         </Box>
       ),
       title: navigationTitle,
@@ -514,6 +546,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     isDeleting,
     handleSave,
     handleDelete,
+    isFormWritable,
+    canDeleteRecord,
   ]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
@@ -531,8 +565,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (!modelConfig) {
       return new Set<string>();
     }
+    if (!isFormWritable) {
+      return new Set(Object.keys(modelConfig.fields));
+    }
     return new Set(modelConfig.readonlyFields ?? []);
-  }, [modelConfig]);
+  }, [isFormWritable, modelConfig]);
 
   const fieldSections = useMemo(() => {
     if (!modelConfig?.fieldsets?.length) {
@@ -598,6 +635,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                     <AdminFieldRenderer
                       api={api}
                       apiBase={resolvedApiBase}
+                      autocompleteFields={modelConfig.autocompleteFields}
                       errorText={errors[fieldKey]}
                       fieldConfig={fieldConfig}
                       fieldKey={fieldKey}
@@ -618,6 +656,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
               <AdminFieldRenderer
                 api={api}
                 apiBase={resolvedApiBase}
+                autocompleteFields={modelConfig.autocompleteFields}
                 errorText={errors[fieldKey]}
                 fieldConfig={fieldConfig}
                 fieldKey={fieldKey}

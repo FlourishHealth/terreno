@@ -1,10 +1,16 @@
 {
+  "bin": {
+    "terreno-syncdb-codegen": "./src/codegen/cli.ts"
+  },
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "luxon": "catalog:",
     "socket.io-client": "catalog:",
     "tinybase": "^9.5.1"
   },
-  "description": "Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence",
+  "description": "Local-first data layer with TinyBase, durable outbox, and delta sync — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@testing-library/react-native": "catalog:",
@@ -37,6 +43,14 @@
     "dist/**/*",
     "src/**/*"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "local-first",
+    "tinybase",
+    "sync",
+    "offline",
+    "terreno"
+  ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "@terreno/syncdb",
@@ -55,7 +69,12 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
   "scripts": {
+    "build:binary": "bun build --compile src/codegen/cli.ts --outfile dist/terreno-syncdb-codegen",
     "compile": "tsc",
     "compile:watch": "tsc -w",
     "dev": "tsc -w",
@@ -63,9 +82,10 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.23.1"
+  "version": "57.2.0"
 }

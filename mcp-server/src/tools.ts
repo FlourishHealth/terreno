@@ -1,4 +1,4 @@
-import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import type {Tool} from "@modelcontextprotocol/server";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
 import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
@@ -413,7 +413,8 @@ const generateRoute = (args: {
         read: [${getPerm(permissions.read)}],
         update: [${getPerm(permissions.update)}],
         delete: [${getPerm(permissions.delete)}],
-      },`
+      },
+      // Or use RBAC: access: { resource: "${lowerName}" }, with TerrenoApp accessControl`
     : `
       permissions: {
         create: [Permissions.IsAuthenticated],
@@ -421,7 +422,8 @@ const generateRoute = (args: {
         read: [Permissions.IsAuthenticated],
         update: [Permissions.IsAuthenticated],
         delete: [Permissions.IsAuthenticated],
-      },`;
+      },
+      // Or use RBAC: access: { resource: "${lowerName}" }, with TerrenoApp accessControl`;
 
   const queryFieldsConfig = queryFields?.length
     ? `\n      queryFields: ${JSON.stringify(queryFields)},`

@@ -1,22 +1,20 @@
-import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
-import {LangfuseApp} from "@terreno/ai";
+import {AIAdminApp, LangfuseApp} from "@terreno/ai";
 import {
   BetterAuthApp,
+  backfillAdmins,
   ConsentApp,
-  ConsentForm,
-  ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
-  consentResponsePopulatePaths,
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
+  rbacRouter,
   SyncApp,
   syncConsents,
   TerrenoApp,
@@ -27,28 +25,32 @@ import {HealthApp} from "@terreno/api-health";
 import {
   CommsApp,
   ConsoleMailProvider,
-  ConsolePushProvider,
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
+  getCommsService,
 } from "@terreno/comms";
+import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
-import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
+import {FeatureFlagsApp} from "@terreno/feature-flags";
+import {Expo} from "expo-server-sdk";
 import express from "express";
 import mongoose from "mongoose";
+import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
-import {addUserRoutes} from "./api/users";
+import {usersRouter} from "./api/users";
+import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
-import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
@@ -74,17 +76,25 @@ const createOpenApiAwareRouteRegistration = (
 
   const registration: ModelRouterRegistration = {
     __type: "modelRouter",
-    _buildWithOpenApi: buildRouter,
+    _buildWithContext: ({openApi}) => buildRouter(openApi),
+    model: {} as ModelRouterRegistration["model"],
+    options: {} as ModelRouterRegistration["options"],
     path: "/",
-    // Placeholder router; TerrenoApp uses _buildWithOpenApi during registration.
+    // Placeholder router; TerrenoApp uses _buildWithContext during registration.
     router: express.Router(),
   };
   return registration;
 };
 
-export async function start(skipListen = false): Promise<express.Application> {
+export const start = async (skipListen = false): Promise<express.Application> => {
   // Connect to MongoDB first
   await connectToMongoDB();
+  await access.roles.seedDefaults();
+  await backfillAdmins({
+    access,
+    userModel: User as unknown as TerrenoAuthUserModel,
+    wetRun: process.env.RBAC_BACKFILL_ADMINS === "true",
+  });
 
   if (process.env.SEED_DEFAULTS === "true") {
     logger.info("Seeding default example data");
@@ -114,19 +124,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
 
-  const transports: Array<InstanceType<typeof LoggingWinston>> = [];
-
-  if (isDeployed) {
-    transports.push(
-      new LoggingWinston({
-        defaultCallback: (error): void => {
-          if (error) {
-            logger.error(`Error occurred: ${error}`);
-          }
-        },
-      })
-    );
-  } else {
+  if (!isDeployed) {
     checkModelsStrict();
   }
 
@@ -141,9 +139,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       ? createBetterAuth({
           config: betterAuthConfig,
           mongoClient: getMongoClientFromMongoose(),
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       : undefined;
 
@@ -151,20 +147,23 @@ export async function start(skipListen = false): Promise<express.Application> {
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
+      accessControl: access,
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
+      // Cloud Run captures stdout/stderr. Keeping the console transport avoids making
+      // startup depend on LoggingWinston network/auth callbacks before the port opens.
       loggingOptions: {
         disableConsoleColors: isDeployed,
-        disableConsoleLogging: isDeployed,
         disableFileLogging: isDeployed,
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
-        transports,
       },
       skipListen,
       userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);
+
+    registerUsersTodoStatusTool();
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
@@ -179,15 +178,17 @@ export async function start(skipListen = false): Promise<express.Application> {
     }
 
     terraApp
+      .register(rbacRouter({access, userModel: User as unknown as TerrenoAuthUserModel}))
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
       .register(todoRouter)
       .register(projectRouter)
-      .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
+      .register(usersRouter)
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
       // resolve tenant streams (projects are scoped by the user's organizationIds).
@@ -220,9 +221,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           betterAuth: betterAuthInstance
             ? {
                 auth: betterAuthInstance,
-                // noExplicitAny: User model type mismatch
-                // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-                userModel: User as any,
+                userModel: User as unknown as TerrenoAuthUserModel,
               }
             : undefined,
           changeStream: {
@@ -233,9 +232,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           // otherwise falls back to the synthetic JWT-claim user, which carries no
           // `organizationIds`, so tenant streams resolve to nothing and `admin` is
           // trusted from the token instead of the database (Task 9.21).
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       );
     } else {
@@ -254,6 +251,23 @@ export async function start(skipListen = false): Promise<express.Application> {
         : isDeployed
           ? undefined
           : new ConsoleMailProvider();
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `expo-server-sdk`. `ExpoPushProvider`'s default path uses createRequire
+      // and is missing from the compiled binary.
+      const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
+      const pushProvider = new ExpoPushProvider({
+        accessToken: expoAccessToken,
+        client: new Expo(
+          expoAccessToken ? {accessToken: expoAccessToken} : {}
+        ) as unknown as ExpoPushClient,
+        isExpoPushToken: (token: string): boolean => Expo.isExpoPushToken(token),
+        onDeadToken: async (token: string): Promise<void> => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event): Promise<void> => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      });
 
       terraApp.register(
         new CommsApp(
@@ -261,11 +275,12 @@ export async function start(skipListen = false): Promise<express.Application> {
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                push: pushProvider,
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
-                push: new ConsolePushProvider(),
+                push: pushProvider,
                 sms: new ConsoleSmsProvider(),
                 verification: new ConsoleVerificationProvider(),
               }
@@ -289,17 +304,20 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new DocumentStorageApp({
-          basePath: "/admin/documents",
+          basePath: "/documents",
           bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
+      .register(new AIAdminApp())
       .register(
         new AdminApp({
+          accessControl: access,
           customScreens: [
             {
-              description: "How this example wires Terreno admin UI v2",
-              displayName: "Admin UI v2 map",
-              name: "showcase",
+              adminAccess: {action: "syncLab", resource: "adminScreen"},
+              description: "Stress-test the local-first sync layer",
+              displayName: "SyncDB Load Lab",
+              name: "sync-lab",
             },
           ],
           home: {
@@ -313,182 +331,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           },
           models: [
             {
-              ...featureFlagAdminConfig,
-              filters: [
-                {field: "enabled", kind: "boolean", label: "Enabled"},
-                {field: "archived", kind: "boolean", label: "Archived"},
-                {
-                  choices: [
-                    {label: "Boolean", value: "boolean"},
-                    {label: "Variant", value: "variant"},
-                  ],
-                  field: "type",
-                  kind: "choice",
-                  label: "Type",
-                },
-              ],
-              group: "Platform",
-              listDisplay: [
-                "key",
-                "name",
-                "type",
-                "enabled",
-                "archived",
-                "defaultVariant",
-                "created",
-              ],
-              pageSize: 50,
-              searchFields: ["key", "name", "description"],
-              sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
-            },
-            {
-              actions: [
-                {
-                  confirm: "Mark selected todos as completed?",
-                  id: "markComplete",
-                  label: "Mark completed",
-                  patchKeys: ["completed"],
-                },
-              ],
-              bulkPatchAllowlist: ["completed", "priority", "tags"],
-              defaultSort: "-created",
-              displayName: "Todos",
-              fieldsets: [
-                {fields: ["title", "tags", "priority", "completed"], title: "Task"},
-                {fields: ["ownerId"], title: "Ownership"},
-              ],
-              filters: [
-                {field: "completed", kind: "boolean", label: "Completed"},
-                {
-                  choices: [
-                    {label: "Low", value: "low"},
-                    {label: "Medium", value: "medium"},
-                    {label: "High", value: "high"},
-                  ],
-                  field: "priority",
-                  kind: "choice",
-                  label: "Priority",
-                },
-                {field: "created", kind: "dateRange", label: "Created"},
-                {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
-              ],
-              group: "Demo: shared app data",
-              listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
-              listDisplayLinks: ["title"],
-              listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
-              // noExplicitAny: String _id model mismatches Model<any> variance
-              // biome-ignore lint/suspicious/noExplicitAny: String _id model mismatches Model<any> variance
-              model: Todo as any,
-              pageSize: 25,
-              permissions: {delete: false},
-              readonlyFields: ["ownerId"],
-              realtime: true,
-              routePath: "/todos",
-              searchFields: ["title", "tags"],
-              sortableFields: ["title", "completed", "created", "priority"],
-            },
-            {
-              displayName: "Users",
-              fieldsets: [
-                {fields: ["email", "name"], title: "Profile"},
-                {fields: ["admin", "oauthProvider"], title: "Access"},
-              ],
-              filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
-              group: "Demo: shared app data",
-              hiddenFields: ["hash", "salt"],
-              listDisplayLinks: ["email"],
-              listFields: ["email", "name", "admin", "created"],
-              model: User as unknown as import("mongoose").Model<unknown>,
-              pageSize: 50,
-              readonlyFields: ["email"],
-              recordTitleField: "name",
-              routePath: "/users",
-              searchFields: ["email", "name"],
-              sortableFields: ["email", "name", "admin", "created"],
-            },
-            {
-              displayName: "Consent Forms",
-              fieldOrder: [
-                "title",
-                "slug",
-                "type",
-                "version",
-                "order",
-                "active",
-                "required",
-                "content",
-                "defaultLocale",
-                "requireScrollToBottom",
-                "captureSignature",
-                "agreeButtonText",
-                "allowDecline",
-                "declineButtonText",
-                "checkboxes",
-              ],
-              fieldOverrides: {
-                checkboxes: {widget: "checkbox-list"},
-                content: {widget: "locale-content"},
-                defaultLocale: {widget: "locale-default"},
-              },
-              fieldsets: [
-                {
-                  fields: ["title", "slug", "type", "version", "order", "active", "required"],
-                  title: "Basics",
-                },
-                {
-                  fields: ["content", "defaultLocale", "requireScrollToBottom", "checkboxes"],
-                  title: "Content",
-                },
-                {
-                  fields: [
-                    "captureSignature",
-                    "agreeButtonText",
-                    "allowDecline",
-                    "declineButtonText",
-                  ],
-                  title: "Actions",
-                },
-              ],
-              filters: [
-                {field: "active", kind: "boolean", label: "Active"},
-                {
-                  choices: [
-                    {label: "Agreement", value: "agreement"},
-                    {label: "Privacy", value: "privacy"},
-                    {label: "HIPAA", value: "hipaa"},
-                    {label: "Research", value: "research"},
-                    {label: "Terms", value: "terms"},
-                    {label: "Custom", value: "custom"},
-                  ],
-                  field: "type",
-                  kind: "choice",
-                  label: "Type",
-                },
-              ],
-              group: "Compliance",
-              listDisplay: ["title", "type", "version", "active", "order"],
-              listFields: ["title", "type", "version", "active", "order"],
-              model: ConsentForm,
-              routePath: "/consent-forms",
-              searchFields: ["title", "slug"],
-              sortableFields: ["title", "type", "version", "active", "order", "created"],
-            },
-            {
-              displayName: "Consent Responses",
-              filters: [
-                {field: "agreed", kind: "boolean", label: "Agreed"},
-                {field: "locale", kind: "text", label: "Locale"},
-              ],
-              group: "Compliance",
-              listFields: ["userId", "agreed", "locale", "agreedAt"],
-              model: ConsentResponse,
-              permissions: {delete: false},
-              populatePaths: consentResponsePopulatePaths,
-              routePath: "/consent-responses",
-              searchFields: ["locale"],
-              sortableFields: ["agreed", "locale", "agreedAt", "created"],
-            },
-            {
+              adminAccess: {},
               displayName: "Audit log",
               group: "Platform",
               listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
@@ -570,7 +413,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-}
+};
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

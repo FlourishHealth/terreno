@@ -4,7 +4,26 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {ConsentForm, type ConsentFormType, logger} from "@terreno/api";
+import {
+  APIError,
+  ConsentForm,
+  type ConsentFormType,
+  ConsentResponse,
+  logger,
+  runSeedCli,
+  runSeeds,
+  type SeedContext,
+  type SeedRunResult,
+  type SeedStep,
+} from "@terreno/api";
+import {
+  type CommsChannel,
+  type CommsErrorClass,
+  CommsMessage,
+  type CommsMessageStatus,
+} from "@terreno/comms";
+import {FeatureFlag} from "@terreno/feature-flags";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
 // real _syncSeq stamped instead of arriving to clients as legacy seq-0 documents.
@@ -14,10 +33,12 @@ import {Configuration} from "../models/configuration";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
+import {DEFAULT_USER_ROLE, SUPERADMIN_ROLE} from "../rbacRoles";
 import type {UserDocument} from "../types/models/userTypes";
 import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
+import {seedFeatureFlags} from "./seed-feature-flags";
 
 interface SeedUser {
   admin?: boolean;
@@ -42,6 +63,19 @@ interface SeedConsentForm {
   version: number;
 }
 
+interface SeedCommsMessage {
+  channel: CommsChannel;
+  error?: string;
+  errorClass?: CommsErrorClass;
+  errorCode?: string;
+  key: string;
+  payload: Record<string, unknown>;
+  provider: string;
+  status: CommsMessageStatus;
+  subject?: string;
+  to: string;
+}
+
 // Shared organization so both seeded users demonstrate tenant-scoped project sync.
 const EXAMPLE_ORGANIZATION_ID = "org-example";
 
@@ -59,6 +93,13 @@ const TEST_USERS: SeedUser[] = [
     organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
+  {
+    admin: true,
+    email: "superadmin@example.com",
+    name: "Super Admin",
+    organizationIds: [EXAMPLE_ORGANIZATION_ID],
+    password: "testpassword123",
+  },
 ];
 
 const SEED_PROJECTS = [
@@ -67,6 +108,105 @@ const SEED_PROJECTS = [
 ];
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
+
+const SEED_COMMS_MESSAGES: SeedCommsMessage[] = [
+  {
+    channel: "mail",
+    key: "welcome-delivered",
+    payload: {subject: "Welcome to Terreno", text: "Your account is ready."},
+    provider: "sendgrid",
+    status: "delivered",
+    subject: "Welcome to Terreno",
+    to: "a***@example.com",
+  },
+  {
+    channel: "mail",
+    key: "password-reset-sent",
+    payload: {subject: "Reset your password", text: "Use the secure reset link."},
+    provider: "sendgrid",
+    status: "sent",
+    subject: "Reset your password",
+    to: "b***@example.com",
+  },
+  {
+    channel: "push",
+    key: "weekly-digest-delivered",
+    payload: {body: "You completed 4 tasks this week.", title: "Weekly digest"},
+    provider: "expo",
+    status: "delivered",
+    subject: "Weekly digest",
+    to: "ExpoPushToken[…7C2]",
+  },
+  {
+    channel: "sms",
+    key: "appointment-reminder-sent",
+    payload: {body: "Reminder: your appointment starts in 30 minutes."},
+    provider: "twilio",
+    status: "sent",
+    to: "***-***-0142",
+  },
+  {
+    channel: "mail",
+    error: "Provider request timed out",
+    errorClass: "transient",
+    errorCode: "ETIMEDOUT",
+    key: "invoice-failed",
+    payload: {subject: "Your invoice is ready", text: "Invoice #1042 is ready to view."},
+    provider: "sendgrid",
+    status: "failed",
+    subject: "Your invoice is ready",
+    to: "c***@example.com",
+  },
+  {
+    channel: "mail",
+    error: "Recipient mailbox is unavailable",
+    errorClass: "permanent",
+    errorCode: "bounce-550",
+    key: "invite-bounced",
+    payload: {subject: "You have been invited", text: "Join the example workspace."},
+    provider: "sendgrid",
+    status: "bounced",
+    subject: "You have been invited",
+    to: "d***@example.com",
+  },
+  {
+    channel: "mail",
+    key: "receipt-delivered",
+    payload: {subject: "Payment receipt", text: "Thanks for your payment."},
+    provider: "sendgrid",
+    status: "delivered",
+    subject: "Payment receipt",
+    to: "e***@example.com",
+  },
+  {
+    channel: "verification",
+    error: "Cancelled by beforeSend",
+    errorClass: "permanent",
+    errorCode: "before-send-cancel",
+    key: "verification-cancelled",
+    payload: {channel: "sms"},
+    provider: "console",
+    status: "cancelled",
+    to: "***-***-0199",
+  },
+  {
+    channel: "sms",
+    key: "security-code-delivered",
+    payload: {body: "Your security code was delivered."},
+    provider: "console",
+    status: "delivered",
+    to: "***-***-0175",
+  },
+  {
+    channel: "push",
+    key: "project-update-sent",
+    payload: {body: "Sync Rollout was updated.", title: "Project update"},
+    provider: "expo",
+    status: "sent",
+    subject: "Project update",
+    to: "ExpoPushToken[…9A4]",
+  },
+];
 
 const CONSENT_FORMS: SeedConsentForm[] = [
   {
@@ -173,11 +313,33 @@ This consent is optional. You can decline without affecting your use of the appl
   },
 ];
 
-/** Ensure the Mongoose user doc reflects the seed's admin flag and organizations. */
+const seedRolesForUser = (testUser: SeedUser): string[] => {
+  return testUser.admin ? [SUPERADMIN_ROLE] : [DEFAULT_USER_ROLE];
+};
+
+const applySeedRoles = (
+  user: UserDocument,
+  testUser: SeedUser
+): {changed: boolean; user: UserDocument} => {
+  const roles = seedRolesForUser(testUser);
+  const rbacUser = user as UserDocument & {roles?: string[]};
+  const currentRoles = rbacUser.roles ?? [];
+  const missingRoles = roles.filter((role) => !currentRoles.includes(role));
+  if (missingRoles.length === 0) {
+    return {changed: false, user};
+  }
+  rbacUser.roles = [...new Set([...currentRoles, ...roles])];
+  return {changed: true, user};
+};
+
+/** Ensure the Mongoose user doc reflects the seed's admin flag, roles, and organizations. */
 const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const user = await User.findByEmail(testUser.email);
   if (!user) {
-    throw new Error(`User ${testUser.email} was not synced to Mongoose`);
+    throw new APIError({
+      status: 500,
+      title: `User ${testUser.email} was not synced to Mongoose`,
+    });
   }
   let changed = false;
   if (testUser.admin && !user.admin) {
@@ -186,6 +348,10 @@ const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> 
   }
   if ((user.organizationIds ?? []).length === 0) {
     user.organizationIds = testUser.organizationIds;
+    changed = true;
+  }
+  const withRoles = applySeedRoles(user, testUser);
+  if (withRoles.changed) {
     changed = true;
   }
   if (changed) {
@@ -214,27 +380,17 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const existingUser = await User.findByEmail(testUser.email);
   if (existingUser) {
     logger.info(`Test user already exists: ${testUser.email}`);
-    if ((existingUser.organizationIds ?? []).length === 0) {
-      existingUser.organizationIds = testUser.organizationIds;
-      await existingUser.save();
-      logger.info(`Backfilled organizationIds for ${testUser.email}`);
-    }
-    if (testUser.admin && !existingUser.admin) {
-      existingUser.admin = true;
-      await existingUser.save();
-      logger.info(`Promoted ${testUser.email} to admin`);
-    }
+    await reconcileMongooseUser(testUser);
     return existingUser;
   }
 
-  // noExplicitAny: passport-local-mongoose register is not typed on the model
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
-  const user = await (User as any).register(
+  const user = await User.register(
     {
       admin: testUser.admin ?? false,
       email: testUser.email,
       name: testUser.name,
       organizationIds: testUser.organizationIds,
+      roles: seedRolesForUser(testUser),
     },
     testUser.password
   );
@@ -243,80 +399,240 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   return user as UserDocument;
 };
 
-const seedProjects = async (): Promise<void> => {
+const seedProjects = async (context: SeedContext): Promise<void> => {
   for (const project of SEED_PROJECTS) {
-    const existing = await Project.findOneOrNone({
-      organizationId: project.organizationId,
-      title: project.title,
-    });
-    if (existing) {
-      logger.info(`Project already exists: ${project.title}`);
-      continue;
-    }
-    const created = await Project.create(project);
-    logger.info(`Project created: ${created.title} (id: ${created._id})`);
+    await context.upsert(
+      Project,
+      {organizationId: project.organizationId, title: project.title},
+      project
+    );
   }
 };
 
-const seedTodos = async (owner: UserDocument): Promise<void> => {
+const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<void> => {
   for (const title of SEED_TODOS) {
-    const existing = await Todo.findOneOrNone({ownerId: owner._id, title});
-    if (existing) {
-      logger.info(`Todo already exists: ${title}`);
-      continue;
-    }
-    const created = await Todo.create({ownerId: owner._id, title});
-    logger.info(`Todo created: ${created.title} (id: ${created._id})`);
+    await context.upsert(Todo, {ownerId: owner._id, title}, {ownerId: owner._id, title});
   }
 };
 
-const seedConsentForms = async (): Promise<void> => {
-  const slugs = CONSENT_FORMS.map((f) => f.slug);
-  const existing = await ConsentForm.find({slug: {$in: slugs}});
-  const existingSlugs = new Set(existing.map((f) => f.slug));
+/** Seed current, representative delivery logs so the comms dashboard is useful after setup. */
+const seedCommsMessages = async (context: SeedContext, admin: UserDocument): Promise<void> => {
+  const seededAt = DateTime.utc();
+  for (const [index, message] of SEED_COMMS_MESSAGES.entries()) {
+    const attemptAt = seededAt.minus({minutes: index * 18}).toJSDate();
+    const providerMessageId = `demo-${message.key}`;
+    await context.upsert(
+      CommsMessage,
+      {providerMessageId},
+      {
+        attemptCount: 1,
+        attempts: [
+          {
+            at: attemptAt,
+            error: message.error,
+            errorClass: message.errorClass,
+            errorCode: message.errorCode,
+            provider: message.provider,
+            providerMessageId,
+          },
+        ],
+        channel: message.channel,
+        created: attemptAt,
+        error: message.error,
+        errorClass: message.errorClass,
+        errorCode: message.errorCode,
+        lastAttemptAt: attemptAt,
+        metadata: {demoSeed: true, seedKey: message.key},
+        payload: message.payload,
+        payloadExpiresAt: seededAt.plus({days: 30}).toJSDate(),
+        provider: message.provider,
+        status: message.status,
+        subject: message.subject,
+        to: message.to,
+        userId: admin._id,
+      }
+    );
+  }
+  logger.info(`Seeded ${SEED_COMMS_MESSAGES.length} current comms delivery logs`);
+};
 
-  const toCreate = CONSENT_FORMS.filter((f) => !existingSlugs.has(f.slug));
+/** Accept active consent forms so Maestro/Playwright logins land on the app shell. */
+const acceptPendingConsentsForUser = async (user: UserDocument): Promise<void> => {
+  const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
+  const existingResponses = await ConsentResponse.find({userId: user._id});
 
-  if (toCreate.length === 0) {
-    logger.info(`All ${slugs.length} consent forms already exist`);
+  const pendingForms = activeForms.filter((form) => {
+    const formId = form._id.toString();
+    const matchingResponses = existingResponses.filter(
+      (response) => response.consentFormId.toString() === formId
+    );
+    if (matchingResponses.length === 0) {
+      return true;
+    }
+    return !matchingResponses.some((response) => response.formVersionSnapshot === form.version);
+  });
+
+  if (pendingForms.length === 0) {
+    logger.info(`All consent forms already accepted for ${user.email}`);
     return;
   }
 
-  await ConsentForm.create(toCreate);
-  logger.info(
-    `Seeded ${toCreate.length} consent form(s): ${toCreate.map((f) => f.slug).join(", ")}`
-  );
+  const agreedAt = DateTime.now().toJSDate();
+  for (const form of pendingForms) {
+    await ConsentResponse.create({
+      agreed: true,
+      agreedAt,
+      consentFormId: form._id,
+      formVersionSnapshot: form.version,
+      locale: "en",
+      userId: user._id,
+      ...(form.captureSignature ? {signature: "E2E Seed", signedAt: agreedAt} : {}),
+    });
+    logger.info(`Accepted consent ${form.slug} for ${user.email}`);
+  }
 };
 
+const seedConsentForms = async (context: SeedContext): Promise<void> => {
+  for (const form of CONSENT_FORMS) {
+    await context.upsert(ConsentForm, {slug: form.slug}, form);
+  }
+};
+
+const softDeleteAll = async (
+  context: SeedContext,
+  documents: Array<{deleted: boolean; save: () => Promise<unknown>}>,
+  model: string
+): Promise<void> => {
+  context.changes.push({
+    change: documents.length > 0 ? "deleted" : "unchanged",
+    count: documents.length,
+    key: "{}",
+    model,
+  });
+  if (context.dryRun) {
+    return;
+  }
+  for (const document of documents) {
+    document.deleted = true;
+    await document.save();
+  }
+};
+
+const seededUsers: UserDocument[] = [];
+
+export const seedSteps: SeedStep[] = [
+  {
+    name: "users",
+    run: async (context) => {
+      seededUsers.length = 0;
+      for (const testUser of TEST_USERS) {
+        if (context.dryRun) {
+          const existingUser = await User.findByEmail(testUser.email);
+          context.changes.push({
+            change: existingUser ? "updated" : "created",
+            count: 1,
+            key: JSON.stringify({email: testUser.email}),
+            model: User.modelName,
+          });
+          seededUsers.push(
+            existingUser ??
+              ({
+                _id: new mongoose.Types.ObjectId(),
+                email: testUser.email,
+              } as UserDocument)
+          );
+          continue;
+        }
+        seededUsers.push(await seedUser(testUser));
+      }
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "projects",
+    reset: async (context) => {
+      await softDeleteAll(context, await Project.find({}), Project.modelName);
+    },
+    run: seedProjects,
+  },
+  {
+    dependsOn: ["users"],
+    name: "todos",
+    reset: async (context) => {
+      await softDeleteAll(context, await Todo.find({}), Todo.modelName);
+    },
+    run: async (context) => {
+      if (seededUsers[0]) {
+        await seedTodos(context, seededUsers[0]);
+      }
+    },
+  },
+  {
+    name: "consentForms",
+    reset: async (context) => {
+      await context.deleteMany(ConsentForm);
+    },
+    run: seedConsentForms,
+  },
+  {
+    dependsOn: ["users", "consentForms"],
+    name: "consentResponses",
+    reset: async (context) => {
+      await context.deleteMany(ConsentResponse);
+    },
+    run: async (context) => {
+      if (context.dryRun) {
+        return;
+      }
+      for (const user of seededUsers) {
+        await acceptPendingConsentsForUser(user);
+      }
+    },
+  },
+  {
+    name: "featureFlags",
+    reset: async (context) => {
+      await context.deleteMany(FeatureFlag);
+    },
+    run: async (context) => {
+      await seedFeatureFlags(context);
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "commsMessages",
+    reset: async (context) => {
+      await context.deleteMany(CommsMessage, {"metadata.demoSeed": true});
+    },
+    run: async (context) => {
+      const adminUser = seededUsers.find((user) => user.email === "admin@example.com");
+      if (adminUser) {
+        await seedCommsMessages(context, adminUser);
+      }
+    },
+  },
+];
+
 /** Seed the idempotent example users and records into the active MongoDB database. */
-export const seedDefaultData = async (): Promise<void> => {
-  const seededUsers: UserDocument[] = [];
-  for (const testUser of TEST_USERS) {
-    seededUsers.push(await seedUser(testUser));
-  }
-
-  await seedProjects();
-  // A couple of todos for the non-admin test user (owner-scoped sync stream).
-  if (seededUsers[0]) {
-    await seedTodos(seededUsers[0]);
-  }
-
-  await seedConsentForms();
+export const seedDefaultData = async (): Promise<SeedRunResult> => {
+  return runSeeds({name: "example-backend", steps: seedSteps});
 };
 
 const main = async (): Promise<void> => {
-  try {
-    logger.info("Connecting to MongoDB...");
-    await connectToMongoDB();
-    await seedDefaultData();
-
-    await Configuration.shutdown();
-    await mongoose.disconnect();
-    logger.info("Done.");
-  } catch (error: unknown) {
-    logger.error(`Error seeding test data: ${error}`);
-    process.exit(1);
+  const cli = await runSeedCli({
+    allowProductionReset: () => process.env.ALLOW_SEED_RESET === "true",
+    connect: connectToMongoDB,
+    disconnect: async () => {
+      await Configuration.shutdown();
+      await mongoose.disconnect();
+    },
+    name: "bun run seed",
+    steps: seedSteps,
+  });
+  if (cli.help) {
+    logger.info(cli.help);
   }
+  process.exit(cli.exitCode);
 };
 
 if (import.meta.main) {

@@ -22,6 +22,7 @@ import {
   createTodoViaUi,
   installChaosControl,
   openSyncTodos,
+  SYNCDB_TEST_TIMEOUT,
   startSyncFlapLoop,
 } from "./helpers/syncdbSuite";
 import {clearTodosAs, listTodosAs} from "./helpers/todosApi";
@@ -43,6 +44,10 @@ const assertNoDuplicates = (items: string[], label: string): void => {
   const duplicated = [...counts.entries()].filter(([, count]) => count > 1);
   expect(duplicated, `${label} had duplicate titles: ${JSON.stringify(duplicated)}`).toEqual([]);
 };
+
+// Logging in through the UI happens inside beforeEach, which Playwright charges to the
+// test timeout — see SYNCDB_TEST_TIMEOUT. The chaos test body raises it further below.
+test.describe.configure({timeout: SYNCDB_TEST_TIMEOUT});
 
 test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
   let chaos: ChaosControl;
@@ -76,11 +81,10 @@ test.describe("SyncDB chaos (reconnect-mid-drain)", () => {
     await flap.stop();
     await chaos.stop();
 
-    // 30 flaps grow the socket's reconnect backoff, so the drain can sit idle waiting
-    // out a delay longer than CONVERGE_TIMEOUT even though connectivity is restored.
-    // Force the reconnect instead of racing the backoff — the drain itself is what this
-    // test is measuring, not Socket.io's retry schedule.
-    await page.getByTestId("syncdb-reconnect-button").click();
+    // Do not client.stop()/start() here. On CircleCI's production static export,
+    // force reconnect hung in stop() for 30s (job 2139) and left Offline up.
+    // flap.stop + chaos.stop already wait for sync-offline-indicator to hide, which
+    // is the reconnect signal; drain assertions follow.
 
     // The banner shows queued state via ONE of two testIDs depending on volume:
     // "sync-queued-count" (<=20 queued) or "sync-drain-progress" (>20 queued —

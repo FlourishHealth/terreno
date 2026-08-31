@@ -1,5 +1,8 @@
 # Implementation Plan: MCP Server — Boost Parity (Docs Search, Local Runtime Tools, Per-Package Guidelines, Upgrade Prompts)
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1085  
+**Status:** In progress
+
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
 ## Overview
@@ -26,7 +29,7 @@ This plan closes the gap with five additions, ordered by value:
 - App console logs are read over the Chrome DevTools Protocol that Metro already exposes (`/json/list` + `/inspector/debug` from `@react-native/dev-middleware`) instead of patching `console` in app code. This is zero-instrumentation and also unlocks `Runtime.evaluate` for the control tools in Phase 6. A POST-to-backend fallback logger covers what CDP can't reach (web browsers when not driven by Playwright, non-dev builds on physical devices).
 - For UI automation we compose existing MCP servers (official `expo-mcp`, Playwright MCP, Maestro) instead of building tap/screenshot tools — that space is mature and Expo now ships it first-party. We only build runtime tools where Terreno has an information advantage: we control store creation (`generateAuthSlice`) and routing conventions, so RTK state inspection and expo-router navigation can be reliable rather than heuristic.
 
-**Related work:** `docs/implementationPlans/model-router-mcp.md` adds MCP tools to consumer apps' own APIs — that is the *app's* MCP surface; this plan is about the *development-time* MCP surface. The companion plan `docs-site-and-versioning.md` covers versioned documentation, which `terreno_search_docs` will consume once it exists.
+**Related work:** `docs/implementationPlans/model-router-mcp.md` adds MCP tools to consumer apps' own APIs — that is the *app's* MCP surface; this plan is about the *development-time* MCP surface. Completing that app surface (prompts, resources, named servers, OAuth, Inspector/test DX, Streamable HTTP client, hosted generators) is [`app-mcp-server.md`](app-mcp-server.md). The companion plan `docs-site-and-versioning.md` covers versioned documentation, which `terreno_search_docs` will consume once it exists.
 
 ## Phase 1: Docs Search Tools (hosted server)
 

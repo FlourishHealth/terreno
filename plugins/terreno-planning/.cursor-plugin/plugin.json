@@ -1,8 +1,8 @@
 {
   "name": "terreno-planning",
   "displayName": "Terreno Planning",
-  "description": "Five-stage agentic SDLC pipeline: plan, implement, review, submit, and triage PRs for Terreno apps.",
-  "version": "1.1.1",
+  "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, and Brew/Taste prefer native CI watch hooks while reacting to review bots and product CI. Outer loops: planning-loop and taste-sweep.",
+  "version": "2.4.0",
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"
@@ -11,6 +11,6 @@
   "skills": "skills",
   "compatibility": {
     "terreno": ">=1.0.0",
-    "expoSdk": "~54"
+    "expoSdk": "~57"
   }
 }

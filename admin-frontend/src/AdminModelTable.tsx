@@ -7,13 +7,10 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   type DataTableCustomComponentMap,
-  Heading,
   IconButton,
   Link,
-  Modal,
   Page,
   printDateAndTime,
-  SelectField,
   Spinner,
   Text,
   TextField,
@@ -24,11 +21,14 @@ import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Pressable} from "react-native";
+import {AdminActionMenu} from "./AdminActionMenu";
+import {AdminFilterDrawer} from "./AdminFilterDrawer";
 import {
   ADMIN_LIST_MAX_SELECTION,
   type AdminListFilterState,
   buildAdminListQueryParams,
 } from "./adminModelListQueryParams";
+import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
 import {
   type AdminApi,
   type AdminFieldConfig,
@@ -197,6 +197,7 @@ const AdminSelectCell: React.FC<{column: DataTableColumn; cellData: DataTableCel
       accessibilityRole="checkbox"
       accessibilityState={{checked: selected}}
       onPress={() => onToggle(id, !selected)}
+      testID={`admin-table-row-checkbox-${id}`}
     >
       <Box alignItems="center" justifyContent="center" padding={1}>
         <Text size="lg">{selected ? "\u2611" : "\u2610"}</Text>
@@ -267,7 +268,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterState, setFilterState] = useState<AdminListFilterState>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [confirmActionId, setConfirmActionId] = useState<string | null>(null);
   const navigation = useNavigation();
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
@@ -279,11 +279,24 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(searchText);
-    }, 300);
+    }, ADMIN_SEARCH_DEBOUNCE_MS);
     return () => {
       clearTimeout(t);
     };
   }, [searchText]);
+
+  const filterSignature = useMemo(() => JSON.stringify(filterState), [filterState]);
+  const sortSignature = useMemo(() => JSON.stringify(sortColumn), [sortColumn]);
+
+  // Clear bulk selection when filters, search, or sort change.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [debouncedSearch, filterSignature, sortSignature]);
+
+  // Reset to page 1 when search changes.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   // Reset filter UI when switching models.
   useEffect(() => {
@@ -364,7 +377,21 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   const deleteEnabled = modelConfig?.permissions?.delete !== false;
   const createEnabled = modelConfig?.permissions?.create !== false;
-  const showSelectColumn = Boolean(modelConfig?.actions?.length);
+  const visibleActions = useMemo(
+    () => (modelConfig?.actions ?? []).filter((action) => action.allowed !== false),
+    [modelConfig?.actions]
+  );
+  const showSelectColumn = visibleActions.length > 0;
+
+  const modelConfigs = useMemo(
+    () => config?.models.map((m) => ({name: m.name, routePath: m.routePath})) ?? [],
+    [config]
+  );
+
+  const handleApplyFilters = useCallback((next: AdminListFilterState) => {
+    setFilterState(next);
+    setPage(1);
+  }, []);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -429,7 +456,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       if (!modelConfig) {
         return;
       }
-      const action = modelConfig.actions?.find((a) => a.id === actionId);
+      const action = visibleActions.find((a) => a.id === actionId);
       if (!action) {
         return;
       }
@@ -437,32 +464,34 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       if (ids.length === 0) {
         return;
       }
-      try {
-        if (action.background) {
-          await enqueueBackground({
-            ids,
-            kind: action.id,
-            metadata: {actionId: action.id},
-            resourceRoute: modelConfig.routePath,
-          }).unwrap();
-          toast.success("Background task queued");
-        } else if (action.patchKeys && action.patchKeys.length > 0) {
-          const patch: Record<string, unknown> = {};
-          for (const k of action.patchKeys) {
-            patch[k] = true;
-          }
-          await bulkPatch({ids, patch}).unwrap();
-          toast.success("Bulk update applied");
-        } else {
-          toast.warn("This action has no bulk handler configured.");
+      if (action.background) {
+        await enqueueBackground({
+          ids,
+          kind: action.id,
+          metadata: {actionId: action.id},
+          resourceRoute: modelConfig.routePath,
+        }).unwrap();
+        toast.success("Background task queued");
+      } else if (action.patchKeys && action.patchKeys.length > 0) {
+        const patch: Record<string, unknown> = {};
+        for (const k of action.patchKeys) {
+          patch[k] = true;
         }
-        setSelectedIds(new Set());
-        setConfirmActionId(null);
-      } catch (err) {
-        toast.catch(err, "Bulk action failed");
+        const result = (await bulkPatch({ids, patch}).unwrap()) as {
+          failures?: {id: string; title: string}[];
+          updated?: number;
+        };
+        if (Array.isArray(result.failures) && result.failures.length > 0) {
+          toast.error(`Updated ${result.updated ?? 0}; ${result.failures.length} failed`);
+          return;
+        }
+        toast.success("Bulk update applied");
+      } else {
+        toast.warn("This action has no bulk handler configured.");
       }
+      setSelectedIds(new Set());
     },
-    [bulkPatch, enqueueBackground, modelConfig, selectedIds, toast]
+    [bulkPatch, enqueueBackground, modelConfig, selectedIds, toast, visibleActions]
   );
 
   const handleInlineBooleanToggle = useCallback(
@@ -567,9 +596,11 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
 
       if (isInlineBool) {
+        const recordCapabilities = item._adminCapabilities as {update?: boolean} | undefined;
         return {
           value: {
-            disabled: modelConfig.permissions?.update === false,
+            disabled:
+              recordCapabilities?.update === false || modelConfig.permissions?.update === false,
             onToggle: () => handleInlineBooleanToggle(id, fieldKey, !item[fieldKey]),
             value: Boolean(item[fieldKey]),
           },
@@ -604,54 +635,51 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   const totalPages = listData ? Math.ceil((listData.total as number) / pageLimit) : 1;
 
-  const pendingAction = modelConfig.actions?.find((a) => a.id === confirmActionId);
+  const searchHelperText =
+    modelConfig.searchFields && modelConfig.searchFields.length > 0
+      ? `Searching ${modelConfig.searchFields.map((f) => startCase(f)).join(", ")}`
+      : undefined;
 
-  const hasFilterRail =
-    Boolean(modelConfig.searchFields?.length) || Boolean((modelConfig.filters ?? []).length);
+  const pageIds = listItems.map((row) => String(row._id));
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedIds.has(id));
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0}>
       <Box gap={3} padding={0} testID={`admin-list-${modelName}`}>
+        {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
+          <Card padding={3}>
+            <TextField
+              helperText={searchHelperText}
+              onChange={setSearchText}
+              testID="admin-table-search"
+              title="Search"
+              value={searchText}
+            />
+          </Card>
+        ) : null}
+
         <Box alignItems="stretch" direction="column" gap={3} mdDirection="row">
           <Box direction="column" flex="grow" gap={3} minWidth={0} width="100%">
-            {selectColumn ? (
+            {showSelectColumn ? (
               <Card padding={3}>
-                <Box direction="column" gap={3} testID="bulk-action">
-                  <Box alignItems="end" direction="row" gap={3} wrap>
-                    {modelConfig.actions && modelConfig.actions.length > 0 ? (
-                      <Box minWidth={260}>
-                        <SelectField
-                          onChange={(next: string) => {
-                            if (next === "__none__" || !next) {
-                              return;
-                            }
-                            const act = modelConfig.actions?.find((a) => a.id === next);
-                            if (!act) {
-                              return;
-                            }
-                            if (act.confirm) {
-                              setConfirmActionId(act.id);
-                            } else {
-                              void runBulkAction(act.id);
-                            }
-                          }}
-                          options={[
-                            {label: "Bulk actions\u2026", value: "__none__"},
-                            ...modelConfig.actions.map((a) => ({label: a.label, value: a.id})),
-                          ]}
-                          title="Actions"
-                          value="__none__"
-                        />
-                      </Box>
-                    ) : null}
-                    <Text color="secondaryDark" size="sm">
-                      {selectedIds.size} selected
-                    </Text>
-                  </Box>
-                  <Button
-                    onClick={toggleSelectPage}
-                    text="Toggle page selection"
-                    variant="outline"
+                <Box alignItems="center" direction="row" gap={3} wrap>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{checked: allPageSelected}}
+                    onPress={toggleSelectPage}
+                    testID="admin-table-select-all"
+                  >
+                    <Box alignItems="center" justifyContent="center" padding={1}>
+                      <Text size="lg">{allPageSelected ? "\u2611" : "\u2610"}</Text>
+                    </Box>
+                  </Pressable>
+                  <Text color="secondaryDark" size="sm" testID="admin-table-selection-count">
+                    {selectedIds.size} selected
+                  </Text>
+                  <AdminActionMenu
+                    actions={visibleActions}
+                    onRunAction={runBulkAction}
+                    selectedCount={selectedIds.size}
                   />
                 </Box>
               </Card>
@@ -678,133 +706,18 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
             </Card>
           </Box>
 
-          {hasFilterRail ? (
-            <Box alignSelf="stretch" maxWidth={360} minWidth={260}>
-              <Card padding={3}>
-                <Heading size="sm">Filters</Heading>
-                <Box direction="column" gap={3} marginTop={2} width="100%">
-                  {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
-                    <Box width="100%">
-                      <TextField
-                        helperText={`Filter by ${modelConfig.searchFields[0]} (exact match)`}
-                        onChange={setSearchText}
-                        title="Search"
-                        value={searchText}
-                      />
-                    </Box>
-                  ) : null}
-                  {(modelConfig.filters ?? []).map((f) => {
-                    if (f.kind === "boolean") {
-                      const v = filterState[f.field];
-                      return (
-                        <Box key={f.field} width="100%">
-                          <SelectField
-                            onChange={(next: string) => {
-                              setFilterState((prev) => ({...prev, [f.field]: next}));
-                              setPage(1);
-                            }}
-                            options={[
-                              {label: f.label ?? startCase(f.field), value: "all"},
-                              {label: "Yes", value: "true"},
-                              {label: "No", value: "false"},
-                            ]}
-                            title={f.label ?? startCase(f.field)}
-                            value={v === true ? "true" : v === false ? "false" : "all"}
-                          />
-                        </Box>
-                      );
-                    }
-                    if (f.kind === "dateRange") {
-                      const gteKey = `${f.field}_gte`;
-                      const lteKey = `${f.field}_lte`;
-                      return (
-                        <Box direction="column" gap={2} key={f.field} width="100%">
-                          <Box width="100%">
-                            <TextField
-                              helperText="ISO date or datetime"
-                              onChange={(next: string) => {
-                                setFilterState((prev) => ({...prev, [gteKey]: next}));
-                                setPage(1);
-                              }}
-                              title={`${f.label ?? startCase(f.field)} from`}
-                              value={String(filterState[gteKey] ?? "")}
-                            />
-                          </Box>
-                          <Box width="100%">
-                            <TextField
-                              helperText="ISO date or datetime"
-                              onChange={(next: string) => {
-                                setFilterState((prev) => ({...prev, [lteKey]: next}));
-                                setPage(1);
-                              }}
-                              title={`${f.label ?? startCase(f.field)} to`}
-                              value={String(filterState[lteKey] ?? "")}
-                            />
-                          </Box>
-                        </Box>
-                      );
-                    }
-                    if (f.kind === "choice") {
-                      return (
-                        <Box key={f.field} width="100%">
-                          <SelectField
-                            onChange={(next: string) => {
-                              setFilterState((prev) => ({
-                                ...prev,
-                                [f.field]: next === "__all__" ? "" : next,
-                              }));
-                              setPage(1);
-                            }}
-                            options={[
-                              {label: "All", value: "__all__"},
-                              ...((f.choices ?? []) as {label: string; value: string}[]).map(
-                                (c) => ({
-                                  label: c.label,
-                                  value: c.value,
-                                })
-                              ),
-                            ]}
-                            title={f.label ?? startCase(f.field)}
-                            value={String(filterState[f.field] ?? "__all__")}
-                          />
-                        </Box>
-                      );
-                    }
-                    return (
-                      <Box key={f.field} width="100%">
-                        <TextField
-                          onChange={(next: string) => {
-                            setFilterState((prev) => ({...prev, [f.field]: next}));
-                            setPage(1);
-                          }}
-                          title={f.label ?? startCase(f.field)}
-                          value={String(filterState[f.field] ?? "")}
-                        />
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Card>
-            </Box>
+          {(modelConfig.filters ?? []).length > 0 ? (
+            <AdminFilterDrawer
+              api={api}
+              appliedFilterState={filterState}
+              fields={modelConfig.fields}
+              filters={modelConfig.filters ?? []}
+              modelConfigs={modelConfigs}
+              onApply={handleApplyFilters}
+            />
           ) : null}
         </Box>
       </Box>
-
-      <Modal
-        onDismiss={() => setConfirmActionId(null)}
-        primaryButtonOnClick={() => {
-          if (confirmActionId) {
-            void runBulkAction(confirmActionId);
-          }
-        }}
-        primaryButtonText="Continue"
-        secondaryButtonOnClick={() => setConfirmActionId(null)}
-        secondaryButtonText="Cancel"
-        title="Confirm bulk action"
-        visible={Boolean(pendingAction?.confirm)}
-      >
-        <Text>{pendingAction?.confirm}</Text>
-      </Modal>
     </Page>
   );
 };

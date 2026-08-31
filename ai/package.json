@@ -15,7 +15,7 @@
     "luxon": "catalog:",
     "multer": "catalog:"
   },
-  "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
+  "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@terreno/api": "workspace:*",
@@ -86,9 +86,10 @@
     "lint:fix": "biome check --write ./src",
     "lint:unsafefix": "biome check --fix --unsafe ./src",
     "test": "bun test --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do bun test --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
+    "test:agent": "AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
     "test:ci": "bun test --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do bun test --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.0.0"
+  "version": "57.2.0"
 }

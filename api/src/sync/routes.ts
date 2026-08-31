@@ -1,5 +1,3 @@
-// noExplicitAny: sync routes operate generically across registered models
-// biome-ignore-all lint/suspicious/noExplicitAny: sync routes operate generically across registered models
 import express from "express";
 import mongoose from "mongoose";
 import {asyncHandler} from "../api";
@@ -7,6 +5,7 @@ import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
+import {findOneOrNoneFor} from "../plugins";
 import {
   computeStableFrontier,
   getCompactedThroughSeq,
@@ -59,6 +58,22 @@ export interface SyncAppOptions {
 
 const MAX_SNAPSHOT_LIMIT = 100;
 const DEFAULT_SNAPSHOT_LIMIT = 100;
+
+/** Minimal shape of a synced document as read by the snapshot/entities routes. */
+interface SyncedDoc {
+  _syncSeq?: number;
+  deleted?: boolean;
+}
+
+/** A registered sync model, viewed through the fields these routes read. */
+type SyncedModel = mongoose.Model<SyncedDoc>;
+
+/**
+ * Look up a registered model by name as a `SyncedModel`. `mongoose.model(name)` has no
+ * schema to infer from, so its static type carries none of the synced-document fields.
+ */
+const getSyncedModel = (modelName: string): SyncedModel =>
+  mongoose.model(modelName) as unknown as SyncedModel;
 
 /** HTTP status for each nack code returned by `POST /sync/mutate`. */
 const NACK_HTTP_STATUS: Record<SyncNackCode, number> = {
@@ -222,7 +237,7 @@ const legacyCursorClause = ({
   model,
   legacyCursorIn,
 }: {
-  model: any;
+  model: SyncedModel;
   legacyCursorIn: string;
 }): Record<string, unknown> => {
   const idInstance = (model.schema?.path("_id") as {instance?: string} | undefined)?.instance;
@@ -250,7 +265,7 @@ const pageLegacyStratum = async ({
   entry,
   req,
 }: {
-  model: any;
+  model: SyncedModel;
   scopeFilter: Record<string, unknown>;
   legacyCursorIn?: string;
   limit: number;
@@ -302,8 +317,8 @@ const frontierBelowStreamHead = async (
   streamKey: string,
   frontierSeq: number
 ): Promise<boolean> => {
-  const counter = await SyncCounter.findOne({stream: streamKey}).select({seq: 1}).lean();
-  const head = counter ? ((counter as {seq?: number}).seq ?? 0) : 0;
+  const counter = await findOneOrNoneFor(SyncCounter, {stream: streamKey});
+  const head = counter?.seq ?? 0;
   return head > frontierSeq;
 };
 
@@ -325,7 +340,7 @@ const pageSeqStratum = async ({
   entry,
   req,
 }: {
-  model: any;
+  model: SyncedModel;
   scopeFilter: Record<string, unknown>;
   cursor: number;
   limit: number;
@@ -367,7 +382,7 @@ const pageSeqStratum = async ({
   // independent limits, so coverage stops at the lower of the two: past that seq, the
   // truncated side may still hold rows this page never saw. When a side was not
   // truncated, everything up to the frontier is covered.
-  const lastDocSeq = page.length > 0 ? ((page[page.length - 1]._syncSeq as number) ?? 0) : 0;
+  const lastDocSeq = page.length > 0 ? (page[page.length - 1]._syncSeq ?? 0) : 0;
   const lastMarkerSeq = markerPage.length > 0 ? markerPage[markerPage.length - 1].seq : 0;
   const coveredSeq = Math.min(
     docsHaveMore ? lastDocSeq : frontierSeq,
@@ -377,7 +392,7 @@ const pageSeqStratum = async ({
   // C6 (M2): run the same per-doc read permission the delta path uses; drop denied
   // docs but still advance the cursor past them (parity with delta behavior).
   const docEntities: SyncEntityPayload[] = [];
-  for (const doc of page as any[]) {
+  for (const doc of page) {
     const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
     if (!allowed) {
       continue;
@@ -436,7 +451,7 @@ const castEntityIds = ({
   ids,
 }: {
   ids: string[];
-  model: any;
+  model: SyncedModel;
 }): (string | mongoose.Types.ObjectId)[] => {
   const idInstance = (model.schema?.path("_id") as {instance?: string} | undefined)?.instance;
   if (idInstance !== "ObjectId") {
@@ -446,7 +461,7 @@ const castEntityIds = ({
   if (invalid.length > 0) {
     throw new APIError({
       status: 400,
-      title: `Invalid ids for ${String(model.modelName)}: ${invalid.join(",")}`,
+      title: `Invalid ids for ${model.modelName}: ${invalid.join(",")}`,
     });
   }
   return ids.map((id) => new mongoose.Types.ObjectId(id));
@@ -565,7 +580,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
           snapshotFilterResult,
         }),
       });
-      const model = mongoose.model(entry.modelName);
+      const model = getSyncedModel(entry.modelName);
       const frontierSeq = await computeStableFrontier({stream: streamKey});
       // C7 (Task 9.15): the retention signal is the durable compaction watermark, not
       // min(retained seq). The old computation was pinned low forever by any early doc that
@@ -697,7 +712,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         return res.json(deniedResponse);
       }
 
-      const model = mongoose.model(entry.modelName);
+      const model = getSyncedModel(entry.modelName);
       const castIds = castEntityIds({ids, model});
       const docs = await model.find({
         // `deleted` MUST stay a TOP-LEVEL key so isDeletedPlugin does not re-inject its

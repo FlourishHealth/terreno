@@ -41,6 +41,8 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  permissions?: Record<string, readonly string[]>;
+  roles?: string[];
 }
 
 // AI Request Explorer types
@@ -236,6 +238,16 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      postCommsDevTestPush: builder.mutation<
+        {accepted: number; results: unknown[]; tokenCount: number},
+        {body?: string; title?: string} | undefined
+      >({
+        query: (body) => ({
+          body: body ?? {},
+          method: "POST",
+          url: "/comms/dev/testPush",
+        }),
+      }),
       postGptHistories: builder.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
         invalidatesTags: [{id: "LIST", type: "gptHistories"}],
         query: ({body}) => ({
@@ -261,7 +273,15 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "feature-flags", "gptHistories", "profile", "PendingConsents"],
+    addTagTypes: [
+      "admin_scriptRuns",
+      "admin_scriptTask",
+      "consentForms",
+      "feature-flags",
+      "gptHistories",
+      "profile",
+      "PendingConsents",
+    ],
     endpoints: {
       ...generateTags(openapi, [...CACHE_TAG_TYPES, "consentForms", "PendingConsents"]),
       ...TODO_REALTIME_ENDPOINTS,
@@ -280,6 +300,7 @@ export const {
   useGetMeQuery,
   usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
+  usePostCommsDevTestPushMutation,
   useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
   usePostGptHistoriesMutation,

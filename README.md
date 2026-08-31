@@ -9,426 +9,162 @@
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**The full-stack TypeScript framework for building and launching apps fast.**
+**Terreno is Django/Rails for TypeScript — with universal app support.**
 
-Terreno is to React Native + Express what Django is to Python web development: a batteries-included framework where the generic, undifferentiated work is already done so you can focus on what makes your app unique — the business logic.
+Terreno is Django/Rails for TypeScript — a batteries-included, full-stack
+framework where the undifferentiated 80% of an app is already written. On the
+backend you get Mongoose models, auto-generated REST APIs, permissions, an admin
+panel, authentication, and an AI service. On the frontend you get one universal
+app — a single React Native codebase that ships to iOS, Android, and web. It is
+built to be driven by AI coding agents from the first prompt to a production
+deploy.
 
-## Vision
+- Batteries included — auth, CRUD APIs, admin, permissions, AI, realtime,
+  feature flags, and consent are already built, so your code is business logic.
+- Universal by default — one React Native codebase ships to iOS, Android, and
+  web. Not a web framework with a mobile bolt-on.
+- AI-native — agents are a first-class client of the framework, not an
+  afterthought.
 
-Most apps need the same foundational pieces: authentication, user management, CRUD APIs, admin panels, real-time updates, AI integrations, consent flows, onboarding carousels. These features are table stakes — they don't differentiate your product, but they take weeks to build from scratch. Terreno handles all of it out of the box.
+Terreno's AI-native story has two layers. The tool layer is a Model Context
+Protocol (MCP) server that gives coding agents codegen, documentation search,
+and component reference for the framework's conventions. The process layer is the
+`/terreno-*` SDLC pipeline — plan, implement test-first, verify in a fresh
+context, submit with evidence, then own the review loop — which today runs inside
+the Terreno repository while its consumer-installable packaging is finished.
+Django gives you `manage.py startapp`; Terreno is building a reviewed path from a
+request to a mergeable pull request.
 
-**The goal:** all the low-level, generalized code lives in Terreno. Your app only contains business logic.
+Canonical wording, language rules, and an honest Django/Rails comparison live in
+[docs/explanation/positioning.md](docs/explanation/positioning.md).
 
-### What Terreno gives you today
+## Quickstart
 
-- **Authentication** — Email/password, Google, GitHub, and Apple OAuth with JWT or Better Auth. Login, signup, token refresh, and session management all built in.
-- **REST APIs in minutes** — Define a Mongoose model, pass it to `modelRouter`, and get a full CRUD API with permissions, pagination, filtering, sorting, and OpenAPI docs.
-- **90+ UI components** — A themed React Native component library that works on iOS, Android, and web. Forms, tables, modals, navigation — everything you need to build real screens.
-- **Auto-generated frontend SDK** — Your backend's OpenAPI spec generates type-safe RTK Query hooks. Change a backend route and regenerate — no manual API wiring.
-- **Admin panel** — Register your models and get a full admin interface with list views, forms, and reference linking. No custom admin code needed.
-- **AI integration** — Provider-agnostic AI service with streaming chat, text generation, conversation history, and request logging. Plug in any model via Vercel AI SDK.
-- **Real-time** — Socket.io integration with auth-aware connections, auto-reconnect, and token refresh.
+```bash
+git clone https://github.com/FlourishHealth/terreno.git
+cd terreno
+bun run bootstrap
+```
 
-### Where Terreno is headed
+Then run the example full stack ([getting started](docs/tutorials/getting-started.md)):
 
-- **Onboarding & signup flows** — Pre-built carousel-based signup experiences that you configure, not code.
-- **Consent & legal** — Terms of service, privacy policy, and consent form management baked into the framework.
-- **Notifications** — Push notifications, in-app notifications, and email with a unified API.
-- **File uploads & media** — Managed file storage with image processing and CDN integration.
-- **Feature flags & remote config** — Runtime configuration without redeploying.
-- **Background jobs** — Queued task processing for emails, data sync, and scheduled work.
+```bash
+# Terminal 1 — backend
+bun run backend:dev
 
-### The best way to build with AI
+# Terminal 2 — frontend
+bun run frontend:web
+```
 
-Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `terreno_bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
-
-### Philosophy
-
-- **Flexible but opinionated.** Terreno makes strong default choices (Mongoose, RTK Query, Expo Router) so you don't have to. But every layer is configurable when you need it to be.
-- **Your app is just business logic.** If most apps need it and it doesn't add unique value to your product, it belongs in Terreno, not in your codebase.
-- **Full-stack coherence.** Backend models flow into OpenAPI specs, which generate frontend hooks, which power typed UI components. One change propagates cleanly across the stack.
-- **Ship, don't configure.** Terreno optimizes for getting to a launchable product with minimal effort — not for maximum flexibility at the cost of productivity.
+Local development, linking packages, and release steps: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Packages
 
-### Published Packages
+Published together from [`.github/workflows/publish-on-tag.yml`](.github/workflows/publish-on-tag.yml):
 
-- **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
-- **test/** - Bun and MongoDB test helpers (published as `@terreno/test`)
-- **ui/** - React Native UI component library (published as `@terreno/ui`)
-- **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
-- **ai/** - AI service layer with streaming chat, text generation, and Langfuse integration (published as `@terreno/ai`)
-- **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
-- **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
-- **admin-spa/** - Standalone admin SPA and Express serve plugin (published as `@terreno/admin-spa`)
-- **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
-- **comms/** - Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
-- **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
-- **mcp-server/** - MCP server and local CLI (published as `@terreno/mcp`)
+- **api/** — REST API framework for Express/Mongoose (modelRouter, auth, OpenAPI) (published as `@terreno/api`)
+- **test/** — Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures (published as `@terreno/test`)
+- **ui/** — React Native UI component library for iOS, Android, and web (published as `@terreno/ui`)
+- **rtk/** — OpenAPI SDK, Better Auth Redux, and feature flags for Terreno frontends (published as `@terreno/rtk`; **deprecated for collection data sync**)
+- **admin-backend/** — Admin panel backend plugin for `@terreno/api` (published as `@terreno/admin-backend`)
+- **admin-frontend/** — Admin panel frontend screens for `@terreno/api` backends (published as `@terreno/admin-frontend`)
+- **admin-spa/** — Standalone admin SPA (Expo Router web) plus Express serve plugin (published as `@terreno/admin-spa`)
+- **ai/** — Provider-agnostic AI service with streaming chat, request logging, and admin tools (published as `@terreno/ai`)
+- **api-health/** — Health check plugin for `@terreno/api` (published as `@terreno/api-health`)
+- **comms/** — Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
+- **feature-flags/** — Feature flags and A/B testing plugin for `@terreno/api` (published as `@terreno/feature-flags`)
+- **mcp-server/** — MCP server that gives coding agents Terreno docs, codegen tools, and prompts (published as `@terreno/mcp`)
+- **syncdb/** — Local-first data layer with TinyBase, durable outbox, and delta sync (published as `@terreno/syncdb`)
 
-### Deployed Services
+Workspace apps (not published): **example-backend/**, **example-frontend/**, **demo/**.
 
-- **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
-- **example-backend/** - Example backend API (deployed to [prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app](https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app))
-- **example-frontend/** - Example frontend app (deployed to [terreno-frontend.netlify.app](https://terreno-frontend.netlify.app))
+## Architecture
 
-### Example/Demo Apps
-
-- **example-backend/** - Example backend application using `@terreno/api`
-- **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
-- **demo/** - Demo app for showcasing and testing UI components
-
-## Feature flags: OpenFeature migration
-
-Terreno’s feature-flag stack uses **OpenFeature** (`@terreno/feature-flags` on the server, `@terreno/rtk` on the client). If you upgrade from a Terreno release that only documented `GET …/evaluate`, use this checklist.
-
-### Backend (`@terreno/feature-flags`)
-
-1. Keep **`FeatureFlagsApp`** registered as before; admin CRUD is unchanged.
-2. Prefer authenticated clients calling **`GET {basePath}/flagConfiguration`** — the JSON body matches OpenFeature’s static configuration shape (for `TypedInMemoryProvider` on the client).
-3. **`GET {basePath}/evaluate`** still returns the legacy `Record<key, boolean | string | null>` map but is **deprecated** (`Deprecation: true`, `Sunset` header). Migrate direct HTTP or hand-written clients to `/flagConfiguration`, or rely on `@terreno/rtk` hooks below.
-4. **`FeatureFlag`** documents gain optional **`defaultVariant`** (boolean: `"on"` / `"off"`; variant: a key from `variants`). Omitted values are filled on save. For existing databases, run a one-off backfill or reuse the pattern in `example-backend/src/scripts/seed-feature-flags.ts`.
-5. **Live updates (optional):** pass `liveUpdates: { socketIoServer: io | () => io }` to `FeatureFlagsApp`. MongoDB must run as a **replica set** (a single-node replset is enough) so Mongoose change streams work.
-
-### Frontend (`@terreno/rtk` + OpenFeature)
-
-1. **`useFeatureFlags(terrenoApi, …)`** — no code changes required for the common case; it already uses `/flagConfiguration` and keeps `{ flags, getFlag, getVariant, isLoading, refetch }`.
-2. **OpenFeature React hooks** (`useBooleanFlagValue`, `useStringFlagValue`, `<FeatureFlag>`, …): add **`@openfeature/react-sdk`** and **`@openfeature/web-sdk`** to your app (align versions with `@terreno/rtk` **peerDependencies** and the root **`catalog`** in this repo).
-3. Wrap the UI that reads flags in **`<OpenFeatureProvider domain="feature-flags">`** (or the same `domain` you pass into the hook).
-4. After auth, call **`useTerrenoFeatureFlags(terrenoApi, { userId, skip, socket, … })`** once under your Redux `Provider` so OpenFeature is populated before hooks read flag values.
-5. **Regenerate the OpenAPI SDK** after the backend exposes the new route: `cd your-frontend && bun run sdk`. Prefer **`useTerrenoFeatureFlags` / `useFeatureFlags`** over calling a generated `flagConfiguration` hook directly, so domain, cache keys, and optional socket refetch stay consistent.
-
-### Further reading
-
-- [`docs/reference/feature-flags.md`](docs/reference/feature-flags.md)
-- [`docs/how-to/add-feature-flags.md`](docs/how-to/add-feature-flags.md)
-- [`docs/implementationPlans/feature-flags-openfeature.md`](docs/implementationPlans/feature-flags-openfeature.md)
-
-## Development
-
-This project uses [Bun](https://bun.sh/) as the package manager.
-
-### Bootstrap
-
-The fastest way to get a development-ready checkout is the top-level `bootstrap` command. It installs all dependencies and compiles every package so the workspace is ready for development:
-
-```bash
-bun run bootstrap         # Install dependencies + compile all packages
-bun run bootstrap:update  # Re-run after pulling changes or switching branches
+```
+                           BACKEND
+  @terreno/api
+  - Mongoose models with modelRouter -> CRUD + sync endpoints
+  - Better Auth (default) + legacy JWT/Passport
+  - Automatic OpenAPI spec generation
+                              |
+              +---------------+---------------+
+              |                               |
+     /openapi.json                    sync protocol
+              |                               |
+     RTK Query SDK Codegen            @terreno/syncdb
+     (non-synced routes)              (collection CRUD)
+              |                               |
+                           FRONTEND
+  @terreno/rtk                         @terreno/syncdb
+  - Generated hooks (auth, admin, AI)  - useQuery / useMutate (local-first)
+  - Better Auth session Redux          - Offline outbox + conflict UI
+  - Feature flags + sockets
+                              +
+  @terreno/ui
+  - React Native components (Box, Button, TextField, etc.)
+  - TerrenoProvider for theming
 ```
 
-- **`bootstrap`** — Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package.
-- **`bootstrap:update`** — Run when resuming work after pulling changes, switching branches, or when dependencies have changed. Reinstalls dependencies and recompiles to pick up any changes.
+New collection CRUD uses `@terreno/syncdb`. Keep `@terreno/rtk` for the generated OpenAPI SDK (non-synced routes), Better Auth session Redux, feature flags, and sockets. Migration: [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md).
 
-If you prefer to run the steps individually:
+## Live examples
 
-```bash
-# Install dependencies
-bun install
-```
+Public hosted copies of the example apps (not infrastructure you own):
 
-### Root Scripts
+- [Example frontend](https://terreno-frontend.netlify.app)
+- MCP server: `https://mcp.terreno.app`
+- [Component demo](https://terreno-demo.netlify.app)
+- [Docs](https://terreno-docs.netlify.app)
 
-Run commands across all packages or target specific ones:
+To deploy your own apps, follow [Deploy to GCP](docs/how-to/deploy-to-gcp.md).
 
-```bash
-# All packages
-bun run compile        # Compile all packages
-bun run lint           # Lint all packages
-bun run lint:fix       # Fix lint issues in all packages
-bun run test           # Run tests in api and ui
+## MCP server
 
-# API package (@terreno/api)
-bun run api:compile
-bun run api:lint
-bun run api:test
+Terreno's MCP server is the **tool** layer of the AI-native pillar: codegen, documentation search, and component reference. Pair it with the `/terreno-*` SDLC pipeline described in [positioning.md](docs/explanation/positioning.md) (the **process** layer; consumer packaging is still in progress).
 
-# UI package (@terreno/ui)
-bun run ui:compile
-bun run ui:dev         # Watch mode
-bun run ui:lint
-bun run ui:test
+### Cursor
 
-# Demo app
-bun run demo:compile
-bun run demo:lint
-bun run demo:start     # Start dev server
-```
-**Note:** Make sure to run `bun run ui:compile` or `bun run ui:dev` when running the demo app to ensure you have the latest changes in ui while testing or in development
-
-You can also use Bun's filter syntax directly:
-
-```bash
-bun run --filter '@terreno/ui' compile
-bun run --filter '@terreno/api' test
-```
-
-## Dependency Management
-
-This monorepo uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) to manage shared dependency versions across workspaces.
-
-Shared dependency versions are defined in the root `package.json` under the `catalog` field:
-
-```json
-{
-  "catalog": {
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "typescript": "~5.8.3"
-  }
-}
-```
-
-Workspace packages reference these versions using `catalog:`:
-
-```json
-{
-  "dependencies": {
-    "react": "catalog:",
-    "react-native": "catalog:"
-  }
-}
-```
-
-This ensures consistent versions across all packages. To update a shared dependency version, change it in the root `catalog` and run `bun install`.
-
-## Linking Terreno Packages in Another Repo
-
-Consumers (e.g. [Flourish](https://github.com/FlourishHealth/flourish)) can develop against local copies of any published package—`@terreno/api`, `@terreno/ui`, `@terreno/rtk`—or multiple at once, using Bun’s link feature.
-
-### Which package goes where
-
-- **@terreno/api** — Link in the consumer’s backend (e.g. `backend/package.json`). Restart the server after changes; run `bun run api:compile` or `bun run api:dev` in terreno so the consumer uses the built output.
-- **@terreno/ui** — Link in the consumer’s frontend app (e.g. `app/package.json`). When the app uses Metro/Expo, the consumer’s Metro config must be updated (see step 5 below). Run `bun run ui:compile` or `bun run ui:dev` in terreno so the consumer uses `ui/dist/`.
-- **@terreno/rtk** — Link in the consumer’s frontend app. If the app uses Metro and you link rtk, you may need the same Metro resolution tweaks as for ui so dependencies resolve from the app’s `node_modules`.
-
-### One-time setup in the consumer repo
-
-1. **Clone both repos**  
-   Place terreno next to the consumer repo (e.g. `flourish` and `terreno` as siblings). Adjust paths below if your layout differs.
-
-2. **Declare the link(s) in the right package.json**  
-   In the workspace that depends on the package, set the dependency to the link protocol. Examples for a consumer where terreno is at `../terreno`:
-   ```json
-   "@terreno/api": "link:../../terreno/api",
-   "@terreno/ui": "link:../../terreno/ui",
-   "@terreno/rtk": "link:../../terreno/rtk"
-   ```
-   You can link one, two, or all three; use the path that resolves from that package.json to the terreno package directory.
-
-3. **Register and link each package**  
-   For each package you’re linking, from the consumer repo:
-   ```bash
-   cd ../terreno/<package-dir> && bun link && cd - && cd <consumer-dir> && bun link @terreno/<name>
-   ```
-   Example for ui when the consumer app is in `app/`:
-   ```bash
-   cd ../terreno/ui && bun link && cd - && cd app && bun link @terreno/ui
-   ```
-   Repeat for api (from backend dir) and rtk (from app dir) as needed. Or use scripts in the consumer repo (e.g. `bun run link:ui`, `bun run link:api`) if they exist.
-
-4. **Fix symlinks if resolution fails**  
-   If Bun creates a bad relative symlink and the package can’t be resolved, replace it with an absolute path. From the consumer workspace that contains `node_modules`:
-   ```bash
-   rm node_modules/@terreno/<name>
-   ln -s /absolute/path/to/terreno/<package-dir> node_modules/@terreno/<name>
-   ```
-
-5. **Metro (Expo / React Native)**  
-   When linking **@terreno/ui** (and optionally **@terreno/rtk**) in an Expo/Metro app, the consumer’s Metro config must:
-   - Add the linked package directory (e.g. `terreno/ui`) to `watchFolders`
-   - Resolve the linked package’s dependencies from the app’s `node_modules` (e.g. `resolver.nodeModulesPaths` and a `resolveRequest` fallback for bare imports from the linked path) so there’s only one copy of React and all deps resolve.
-
-   See a consumer that already does this (e.g. Flourish’s `app/metro.config.js`) for a reference.
-
-6. **Restart dev servers**  
-   After linking or Metro config changes, restart the bundler with a clean cache (e.g. `bun start --clear`). For backend, restart the API server so it picks up the linked `@terreno/api`.
-
-### In the terreno repo
-
-- Run the relevant compile or dev command for each linked package so the consumer sees changes: `bun run api:compile` / `api:dev`, `bun run ui:compile` / `ui:dev`, `bun run rtk:compile` / `rtk:dev`.
-
-### Reverting to published packages
-
-In the consumer’s `package.json`, set each linked dependency back to a version (e.g. `"@terreno/ui": "0.0.17"`) and run `bun install` in that workspace.
-
----
-
-## Releasing
-
-Packages are published to npm automatically when a semantic-version tag is pushed. The twelve
-published packages listed above are kept in lockstep at the same version.
-
-### Publishing a Release
-
-1. Go to the [Releases page](../../releases) on GitHub
-2. Click "Draft a new release"
-3. Create a new tag with the version number (e.g., `1.0.0`) - no `v` prefix
-4. Fill in the release title and notes
-5. Click "Publish release"
-
-The GitHub Action will automatically:
-   - Validate required upgrade documentation
-   - Publish all twelve packages in dependency order
-   - Commit package version updates directly to `master` for non-prerelease tags
-   - Send a Zoom Chat notification with the results
-
-### Version Format
-
-- Use semantic versioning: `1.0.0`, `1.2.3`, `2.0.0-beta.1`
-- No `v` prefix - just the version number
-- The version from the release tag is applied to all published packages
-
-### Required Secrets
-
-The following secrets must be configured in your GitHub repository:
-- `NPM_TOKEN` - npm access token with publish permissions
-- `REPO_ADMIN_TOKEN` - repository token used for the version-bump commit
-- `ZOOM_WEBHOOK_URL` - Zoom Chat incoming webhook URL
-- `ZOOM_WEBHOOK_TOKEN` - Zoom Chat webhook authorization token
-
-## GCP Static Site Hosting
-
-The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
-
-### GCP Project
-
-- **Project ID**: `flourish-terreno`
-- **Region**: `us-east1`
-
-### Buckets
-
-| App | Bucket | Backend Bucket (CDN) |
-|-----|--------|---------------------|
-| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
-| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
-
-### Initial Setup
-
-Run the setup script to create all GCS and CDN resources:
-
-```bash
-scripts/setup-gcs-hosting.sh
-```
-
-This creates:
-1. GCS buckets with public read access
-2. Static website config with SPA fallback (`index.html` served for 404s)
-3. Service account write access (prompts for the SA email)
-4. CDN backend buckets, URL maps, static IPs, HTTP proxies, and forwarding rules
-
-After running the script, point DNS records to the output IPs. To add HTTPS, follow the instructions printed at the end.
-
-### Required Secrets
-
-- `GCP_SA_KEY` - Service account key JSON with permissions for GCS and CDN cache invalidation
-
-### Workflows
-
-| Workflow | Trigger | What it does |
-|----------|---------|--------------|
-| `frontend-example-deploy.yml` | Push to master (example-frontend/ui/rtk changes) | Builds and deploys to production bucket |
-| `frontend-example-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
-| `demo-deploy.yml` | Push to master (demo/ui changes) | Builds and deploys to production bucket |
-| `demo-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
-| `preview-cleanup.yml` | PR closed | Deletes preview files from both buckets |
-
-## MCP Server
-
-Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
-
-### Adding the MCP Server to Claude Code
-
-Add the following to your Claude Code MCP settings file (`~/.claude/claude_desktop_config.json` or `.claude/settings.json` in your project):
+Add this to `.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
 ```
 
-### Adding the MCP Server to Claude Desktop
-
-Add the following to your Claude Desktop configuration file:
-
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+### Claude Code / Claude Desktop
 
 ```json
 {
   "mcpServers": {
     "terreno": {
       "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
+      "url": "https://mcp.terreno.app"
     }
   }
 }
 ```
 
-### Adding the MCP Server to Cursor
+Claude Desktop config paths: macOS `~/Library/Application Support/Claude/claude_desktop_config.json`; Windows `%APPDATA%\Claude\claude_desktop_config.json`.
 
-Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your project or global settings):
+Restart the assistant after saving.
 
-```json
-{
-  "mcpServers": {
-    "terreno": {
-      "type": "sse",
-      "url": "https://mcp.terreno.flourish.health"
-    }
-  }
-}
-```
+## Roadmap
 
-After adding the configuration, restart your AI assistant to connect to the MCP server.
-
-## AI Rules Management
-
-This project uses [rulesync](https://github.com/dyoshikawa/rulesync) to maintain consistent AI assistant rules across multiple tools (Cursor, Windsurf, Claude Code, GitHub Copilot).
-
-### How It Works
-
-1. **Single source of truth**: Rules are defined in `.rulesync/rules/` as markdown files with YAML frontmatter
-2. **Generated files**: Running `bun run rules` generates tool-specific files:
-   - `.cursorrules` - Cursor AI rules
-   - `.windsurfrules` - Windsurf AI rules
-   - `CLAUDE.md` - Claude Code instructions
-   - `.github/copilot-instructions.md` - GitHub Copilot instructions
-3. **Per-package rules**: Each package has its own rules in addition to root-level rules
-
-### Commands
-
-```bash
-bun run rules        # Generate all rule files from source
-bun run rules:check  # Verify generated files are up to date (used in CI)
-```
-
-### Updating Rules
-
-1. Edit the source files in `.rulesync/rules/`
-2. Run `bun run rules` to regenerate all tool-specific files
-3. Commit both the source and generated files
-
-The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules stay in sync with source files.
-
-## License
-
-Terreno is [MIT licensed](LICENSE).
-
-## Roadmap and community
-
-- **[ROADMAP.md](ROADMAP.md)** — public roadmap (generated from the Terreno Roadmap GitHub Project)
-- **[GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions)** — Ideas, Q&A, RFCs, and release announcements
-- **[Roadmap process](docs/explanation/roadmap-process.md)** — how work is triaged and how GitHub relates to Linear
+Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Background jobs, web SSR, and consumer-installable `/terreno-*` packaging are not shipped yet.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and pull request expectations.
 Read our [Code of Conduct](CODE_OF_CONDUCT.md) and report security issues via
 [SECURITY.md](SECURITY.md) (do not open public issues for vulnerabilities).
+Community: [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 
+## License
+
+Terreno is [MIT licensed](LICENSE).

@@ -1,5 +1,15 @@
-import {createListenerMiddleware, type Middleware} from "@reduxjs/toolkit";
-import type {Api} from "@reduxjs/toolkit/query/react";
+import {
+  createListenerMiddleware,
+  type Middleware,
+  type ThunkDispatch,
+  type UnknownAction,
+} from "@reduxjs/toolkit";
+import type {
+  Api,
+  RootState as ApiRootState,
+  BaseQueryFn,
+  EndpointDefinitions,
+} from "@reduxjs/toolkit/query/react";
 import {DateTime} from "luxon";
 
 import {getAuthToken, selectCurrentUserId} from "./authSlice";
@@ -24,13 +34,47 @@ import {
 } from "./offlineSlice";
 import {IsWeb} from "./platform";
 
+type GenericApi = Api<BaseQueryFn, EndpointDefinitions, string, string>;
+type GenericApiState = ApiRootState<EndpointDefinitions, string, string>;
+type OfflineDispatch = ThunkDispatch<GenericApiState, unknown, UnknownAction>;
+
+interface NetworkErrorSource {
+  error?: string | {message?: unknown; name?: unknown};
+  payload?: {error?: unknown};
+  status?: unknown;
+}
+
+interface QueryCacheEntry {
+  data?: unknown;
+  originalArgs?: unknown;
+}
+
+interface ApiReducerState {
+  queries?: Record<string, QueryCacheEntry>;
+}
+
+interface ListCacheData {
+  data?: Record<string, unknown>[];
+}
+
+interface RtkQueryAction {
+  error?: unknown;
+  meta?: {
+    arg?: {
+      endpointName?: unknown;
+      originalArgs?: unknown;
+    };
+  };
+  payload?: unknown;
+  status?: unknown;
+  type?: unknown;
+}
+
 export interface OfflineMiddlewareConfig {
   /** RTK Query mutation endpoint names to queue when offline */
   endpoints: string[];
   /** The RTK Query API instance */
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>;
+  api: GenericApi;
 }
 
 /**
@@ -54,12 +98,12 @@ const inferMutationType = (endpointName: string): "create" | "update" | "delete"
  * True when a rejected RTK Query action failed due to a network/transport error,
  * not an auth or application-level FETCH_ERROR from emptyApi.
  */
-export const isNetworkFetchError = (
-  // noExplicitAny: RTK Query error shapes vary by source
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query error shapes vary by source
-  source: any
-): boolean => {
-  if (source?.error?.name === "TypeError") {
+export const isNetworkFetchError = (source: unknown): boolean => {
+  const candidate = source as NetworkErrorSource | null | undefined;
+  const errorObject =
+    typeof candidate?.error === "object" && candidate.error !== null ? candidate.error : undefined;
+
+  if (errorObject?.name === "TypeError") {
     return true;
   }
 
@@ -72,18 +116,18 @@ export const isNetworkFetchError = (
   ];
 
   const candidates: string[] = [];
-  if (typeof source?.error?.message === "string") {
-    candidates.push(source.error.message);
+  if (typeof errorObject?.message === "string") {
+    candidates.push(errorObject.message);
   }
-  if (typeof source?.error === "string") {
-    candidates.push(source.error);
+  if (typeof candidate?.error === "string") {
+    candidates.push(candidate.error);
   }
-  if (typeof source?.payload?.error === "string") {
-    candidates.push(source.payload.error);
+  if (typeof candidate?.payload?.error === "string") {
+    candidates.push(candidate.payload.error);
   }
-  if (typeof source?.status === "string" && source.status === "FETCH_ERROR") {
-    if (typeof source?.error === "string") {
-      candidates.push(source.error);
+  if (candidate?.status === "FETCH_ERROR") {
+    if (typeof candidate.error === "string") {
+      candidates.push(candidate.error);
     }
   }
 
@@ -143,12 +187,8 @@ const inferGetByIdEndpointName = (endpointName: string): string => {
 const extractBaseUpdatedAt = (
   endpointName: string,
   originalArgs: unknown,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>
+  getState: () => unknown,
+  api: GenericApi
 ): string | undefined => {
   if (inferMutationType(endpointName) !== "update") {
     return undefined;
@@ -165,16 +205,15 @@ const extractBaseUpdatedAt = (
   }
 
   const getByIdEndpoint = inferGetByIdEndpointName(endpointName);
-  const state = getState();
-  // noExplicitAny: RTK Query internal state shape
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
-  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  const state = getState() as Record<string, ApiReducerState | undefined>;
+  const queries = state[api.reducerPath]?.queries ?? {};
   for (const key of Object.keys(queries)) {
     if (!key.startsWith(`${getByIdEndpoint}(`)) {
       continue;
     }
     const queryEntry = queries[key];
-    if (queryEntry?.originalArgs?.id !== args.id) {
+    const originalArgs = queryEntry?.originalArgs as {id?: unknown} | undefined;
+    if (originalArgs?.id !== args.id) {
       continue;
     }
     const data = queryEntry?.data as {data?: {updated?: string}} | undefined;
@@ -193,18 +232,12 @@ const extractBaseUpdatedAt = (
  * args the consumer passed to the query hook, e.g. `{}` vs `undefined`).
  */
 const getCachedQueryArgs = (
-  // noExplicitAny: Generic API state shape
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API state shape
-  getState: () => any,
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
+  getState: () => unknown,
+  api: GenericApi,
   listEndpointName: string
 ): unknown[] => {
-  const state = getState();
-  // noExplicitAny: RTK Query internal state shape
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
-  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  const state = getState() as Record<string, ApiReducerState | undefined>;
+  const queries = state[api.reducerPath]?.queries ?? {};
   const cachedArgs: unknown[] = [];
   for (const key of Object.keys(queries)) {
     if (key.startsWith(`${listEndpointName}(`)) {
@@ -221,29 +254,23 @@ const getCachedQueryArgs = (
  * Apply an optimistic update to the RTK Query cache for a queued mutation.
  */
 const applyOptimisticUpdate = (
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
+  api: GenericApi,
+  dispatch: OfflineDispatch,
+  getState: () => unknown,
   mutation: QueuedMutation
 ): void => {
   const tagType = inferTagType(mutation.endpointName);
   const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
   const cachedArgs = getCachedQueryArgs(getState, api, listEndpointName);
 
-  // noExplicitAny: RTK Query cache shape varies by endpoint
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-  const updateAllCacheEntries = (updater: (draft: any) => void): void => {
+  const updateAllCacheEntries = (updater: (draft: ListCacheData) => void): void => {
     for (const queryArg of cachedArgs) {
       dispatch(
-        // noExplicitAny: RTK Query cache shape varies by endpoint
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, updater)
+        api.util.updateQueryData(
+          listEndpointName as never,
+          queryArg as never,
+          updater as unknown as never
+        )
       );
     }
   };
@@ -251,9 +278,7 @@ const applyOptimisticUpdate = (
   if (mutation.type === "create") {
     const args = mutation.args as {body?: Record<string, unknown>};
     const tempItem = buildOptimisticCreateItem(mutation, args?.body);
-    // noExplicitAny: RTK Query cache shape varies by endpoint
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-    updateAllCacheEntries((draft: any) => {
+    updateAllCacheEntries((draft) => {
       if (draft?.data && Array.isArray(draft.data)) {
         draft.data.unshift(tempItem);
       }
@@ -261,9 +286,7 @@ const applyOptimisticUpdate = (
   } else if (mutation.type === "update") {
     const args = mutation.args as {id?: string; body?: Record<string, unknown>};
     if (args?.id && args?.body) {
-      // noExplicitAny: RTK Query cache shape varies by endpoint
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
+      updateAllCacheEntries((draft) => {
         if (draft?.data && Array.isArray(draft.data)) {
           const item = draft.data.find(
             (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
@@ -277,9 +300,7 @@ const applyOptimisticUpdate = (
   } else if (mutation.type === "delete") {
     const args = mutation.args as {id?: string};
     if (args?.id) {
-      // noExplicitAny: RTK Query cache shape varies by endpoint
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
+      updateAllCacheEntries((draft) => {
         if (draft?.data && Array.isArray(draft.data)) {
           draft.data = draft.data.filter(
             (d: Record<string, unknown>) => d._id !== args.id && d.id !== args.id
@@ -294,15 +315,9 @@ const applyOptimisticUpdate = (
  * Remove optimistic temp items from the cache after they've been replayed.
  */
 const removeTempItems = (
-  // noExplicitAny: Generic API type
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
-  // noExplicitAny: Generic getState
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
+  api: GenericApi,
+  dispatch: OfflineDispatch,
+  getState: () => unknown,
   mutations: QueuedMutation[]
 ): void => {
   const tempIds = new Set(mutations.map((m) => `temp-${m.id}`));
@@ -314,16 +329,18 @@ const removeTempItems = (
 
     for (const queryArg of cachedArgs) {
       dispatch(
-        // noExplicitAny: RTK Query cache shape varies by endpoint
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, (draft: any) => {
-          if (draft?.data && Array.isArray(draft.data)) {
-            draft.data = draft.data.filter(
-              (d: Record<string, unknown>) =>
-                !tempIds.has(d._id as string) && !tempIds.has(d.id as string)
-            );
-          }
-        })
+        api.util.updateQueryData(
+          listEndpointName as never,
+          queryArg as never,
+          ((draft: ListCacheData) => {
+            if (draft?.data && Array.isArray(draft.data)) {
+              draft.data = draft.data.filter(
+                (d: Record<string, unknown>) =>
+                  !tempIds.has(d._id as string) && !tempIds.has(d.id as string)
+              );
+            }
+          }) as unknown as never
+        )
       );
     }
   }
@@ -388,11 +405,7 @@ const replayMutation = async (
  * Set up native-only network monitoring (expo-network).
  * Web apps should use `useServerStatus` for server-level health checking.
  */
-const setupNativeNetworkMonitoring = (
-  // noExplicitAny: Generic dispatch
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any
-): (() => void) => {
+const setupNativeNetworkMonitoring = (dispatch: OfflineDispatch): (() => void) => {
   if (IsWeb) {
     return () => {};
   }
@@ -450,7 +463,7 @@ export const createOfflineMiddleware = (
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
       networkInitialized = true;
-      _networkCleanup = setupNativeNetworkMonitoring(listenerApi.dispatch);
+      _networkCleanup = setupNativeNetworkMonitoring(listenerApi.dispatch as OfflineDispatch);
     },
     predicate: () => !networkInitialized,
   });
@@ -459,18 +472,20 @@ export const createOfflineMiddleware = (
   // RTK Query dispatches actions with type "terreno-rtk/executeMutation/rejected"
   // when a mutation fails. Queue the mutation and apply an optimistic cache update.
   listenerMiddleware.startListening({
-    // noExplicitAny: RTK Query action types are complex
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query action types are complex
-    effect: async (action: any, listenerApi) => {
+    effect: async (action, listenerApi) => {
+      const queryAction = action as RtkQueryAction;
       const state = listenerApi.getState() as {offline: OfflineState};
       const isOnline = selectIsOnline(state);
 
-      if (!isNetworkFetchError(action)) {
+      if (!isNetworkFetchError(queryAction)) {
         return;
       }
 
-      const endpointName = action.meta.arg.endpointName as string;
-      const originalArgs = action.meta.arg.originalArgs;
+      const endpointName = queryAction.meta?.arg?.endpointName;
+      if (typeof endpointName !== "string") {
+        return;
+      }
+      const originalArgs = queryAction.meta?.arg?.originalArgs;
 
       const mutationType = inferMutationType(endpointName);
 
@@ -486,25 +501,31 @@ export const createOfflineMiddleware = (
           const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
           const cachedArgs = getCachedQueryArgs(listenerApi.getState, api, listEndpointName);
           for (const queryArg of cachedArgs) {
-            // noExplicitAny: RTK Query cache shape and endpoint types vary
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
-            const endpoint = (api.endpoints as any)[listEndpointName];
+            const endpoint = (
+              api.endpoints as unknown as Record<
+                string,
+                {
+                  select?: (
+                    arg: unknown
+                  ) => (state: unknown) => {data?: {data?: Record<string, unknown>[]} | undefined};
+                }
+              >
+            )[listEndpointName];
             if (!endpoint?.select) {
               continue;
             }
-            // noExplicitAny: RTK Query cache shape varies
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
-            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState() as any) as any;
+            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState());
             const items = cacheEntry?.data?.data;
             if (Array.isArray(items)) {
               const doc = items.find(
                 (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
               );
               if (doc?.updated) {
-                timestamp =
-                  typeof doc.updated === "string"
-                    ? doc.updated
-                    : DateTime.fromJSDate(doc.updated).toISO();
+                if (typeof doc.updated === "string") {
+                  timestamp = doc.updated;
+                } else if (doc.updated instanceof Date) {
+                  timestamp = DateTime.fromJSDate(doc.updated).toISO() ?? timestamp;
+                }
                 listCacheBaseUpdatedAt = timestamp ?? undefined;
                 break;
               }
@@ -530,24 +551,29 @@ export const createOfflineMiddleware = (
       };
 
       listenerApi.dispatch(enqueue(mutation));
-      applyOptimisticUpdate(api, listenerApi.dispatch, listenerApi.getState, mutation);
+      applyOptimisticUpdate(
+        api,
+        listenerApi.dispatch as OfflineDispatch,
+        listenerApi.getState,
+        mutation
+      );
 
       // Browser may still report online when the API server is unreachable
       if (isOnline) {
         listenerApi.dispatch(setOnlineStatus(false));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action) => {
+      const queryAction = action as RtkQueryAction;
+      if (typeof queryAction.type !== "string") {
         return false;
       }
+      const endpointName = queryAction.meta?.arg?.endpointName;
       // Match RTK Query mutation rejected actions
       return (
-        action.type.includes("/executeMutation/rejected") &&
-        action?.meta?.arg?.endpointName &&
-        endpointSet.has(action.meta.arg.endpointName)
+        queryAction.type.includes("/executeMutation/rejected") &&
+        typeof endpointName === "string" &&
+        endpointSet.has(endpointName)
       );
     },
   });
@@ -560,17 +586,16 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setOnlineStatus(false));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action) => {
+      const queryAction = action as RtkQueryAction;
+      if (typeof queryAction.type !== "string") {
         return false;
       }
       return (
-        action.type.startsWith(`${api.reducerPath}/`) &&
-        (action.type.includes("/executeQuery/rejected") ||
-          action.type.includes("/executeMutation/rejected")) &&
-        isNetworkFetchError(action)
+        queryAction.type.startsWith(`${api.reducerPath}/`) &&
+        (queryAction.type.includes("/executeQuery/rejected") ||
+          queryAction.type.includes("/executeMutation/rejected")) &&
+        isNetworkFetchError(queryAction)
       );
     },
   });
@@ -583,16 +608,16 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setOnlineStatus(true));
       }
     },
-    // noExplicitAny: RTK Query internal action shape
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
-    predicate: (action: any) => {
-      if (typeof action?.type !== "string") {
+    predicate: (action) => {
+      const queryAction = action as RtkQueryAction;
+      if (typeof queryAction.type !== "string") {
         return false;
       }
       return (
-        action.type.startsWith(`${api.reducerPath}/`) &&
-        action.type.endsWith("/fulfilled") &&
-        (action.type.includes("/executeQuery/") || action.type.includes("/executeMutation/"))
+        queryAction.type.startsWith(`${api.reducerPath}/`) &&
+        queryAction.type.endsWith("/fulfilled") &&
+        (queryAction.type.includes("/executeQuery/") ||
+          queryAction.type.includes("/executeMutation/"))
       );
     },
   });
@@ -680,7 +705,12 @@ export const createOfflineMiddleware = (
 
         // Remove optimistic temp items for creates that were replayed
         if (replayedCreates.length > 0) {
-          removeTempItems(api, listenerApi.dispatch, listenerApi.getState, replayedCreates);
+          removeTempItems(
+            api,
+            listenerApi.dispatch as OfflineDispatch,
+            listenerApi.getState,
+            replayedCreates
+          );
         }
 
         // Invalidate tags to refresh cache with server state

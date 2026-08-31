@@ -3,20 +3,8 @@
 # Better Auth admin user, and drive the full login -> admin model list flow with Playwright.
 name: Admin SPA Integration
 
-on:
-  push:
-    paths:
-      - "admin-spa/**"
-      - "admin-frontend/src/**"
-      - "admin-backend/src/**"
-      - "api/src/**"
-      - "api-health/src/**"
-      - "feature-flags/src/**"
-      - "rtk/src/**"
-      - "ui/src/**"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - ".github/workflows/admin-spa-integration.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   integration:
@@ -26,19 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
       # The mongodb action builds its own helper image FROM docker:latest, which pulls
       # from Docker Hub and intermittently times out on GitHub runners. Pre-pull the
@@ -57,9 +34,6 @@ jobs:
           # Replica set is required for MongoDB change streams,
           # which power the RealtimeApp WebSocket sync.
           mongodb-replica-set: rs0
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
       - name: Compile workspace packages
         run: bun run compile
@@ -141,6 +115,12 @@ jobs:
         run: |
           curl -sf http://localhost:4000/console/app-config.json
           curl -sf http://localhost:4000/console/ | grep -q "__ADMIN_SPA_BASE__"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium

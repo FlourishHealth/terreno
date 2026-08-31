@@ -296,11 +296,10 @@ update-only fast path even if one platform never got an artifact; seed those via
 the manual **Trigger EAS Workflow** job instead of from every PR.
 
 To keep this fast, `fingerprint.config.js` skips the Expo config `extra` section
-(`sourceSkips: ["ExpoConfigExtraSection"]`). Values in `extra` (e.g. `BASE_URL`,
-`AUTH_DEBUG`, the EAS `projectId`) are read by JS at runtime and shipped in the JS
-bundle via EAS Update — they don't change the native binary, so they must not
-feed the fingerprint. Without this skip, per-environment or per-commit `extra`
-values would force a full native rebuild on every change instead of an OTA update.
+and the `package.json` scripts section. Values in `extra` (e.g. `BASE_URL`,
+`AUTH_DEBUG`, the EAS `projectId`) ship in the JS bundle, while package scripts
+are development/build commands. Neither changes the native binary, so
+`sourceSkips` includes `ExpoConfigExtraSection` and `PackageJsonScriptsAll`.
 
 **Rule of thumb:** if your change only touches JS/TS (screens, components, store,
 SDK), expect a quick OTA update. Only native dependency/config changes should

@@ -1,0 +1,286 @@
+import {createAccessControl} from "better-auth/plugins/access";
+import {DateTime} from "luxon";
+
+import type {User} from "../auth";
+import {logger} from "../logger";
+import {unionPermissionSets} from "./permissionUtils";
+import type {RbacRoleModel} from "./roleModel";
+import type {PermissionSet, Statements} from "./statements";
+import type {PermissionSource, PermissionSourceGrants} from "./types";
+
+interface CacheEntry {
+  permissions: PermissionSet;
+  expiresAt: number;
+}
+
+interface SourceCacheEntry {
+  grants: PermissionSourceGrants | null;
+  fetchedAt: number;
+}
+
+const DEFAULT_CACHE_TTL_MS = 30_000;
+const DEFAULT_MAX_CACHE_ENTRIES = 10_000;
+
+const getUserRoles = (user: User): string[] => {
+  const withRoles = user as User & {roles?: string[]};
+  return withRoles.roles ?? [];
+};
+
+export const createPermissionResolver = <S extends Statements>(args: {
+  statements: S;
+  rbacRoleModel: RbacRoleModel;
+  sources?: PermissionSource[];
+  cacheTtlMs?: number;
+  maxCacheEntries?: number;
+  resolvePermissions?: (args: {user: User}) => Promise<PermissionSet | null>;
+}) => {
+  const {
+    statements,
+    rbacRoleModel,
+    sources = [],
+    cacheTtlMs = DEFAULT_CACHE_TTL_MS,
+    maxCacheEntries = DEFAULT_MAX_CACHE_ENTRIES,
+    resolvePermissions,
+  } = args;
+
+  const ac = createAccessControl(statements);
+  const permissionCache = new Map<string, CacheEntry>();
+  const sourceCache = new Map<string, Map<string, SourceCacheEntry>>();
+
+  const enforceCacheBound = (): void => {
+    const now = DateTime.now().toMillis();
+    for (const [userId, entry] of permissionCache) {
+      if (entry.expiresAt <= now) {
+        permissionCache.delete(userId);
+      }
+    }
+    while (permissionCache.size > maxCacheEntries) {
+      const oldestUserId = permissionCache.keys().next().value;
+      if (oldestUserId === undefined) {
+        break;
+      }
+      permissionCache.delete(oldestUserId);
+      sourceCache.delete(oldestUserId);
+    }
+    while (sourceCache.size > maxCacheEntries) {
+      const oldestUserId = sourceCache.keys().next().value;
+      if (oldestUserId === undefined) {
+        break;
+      }
+      sourceCache.delete(oldestUserId);
+    }
+  };
+
+  const rememberPermissions = (userId: string, entry: CacheEntry): void => {
+    permissionCache.delete(userId);
+    permissionCache.set(userId, entry);
+    enforceCacheBound();
+  };
+
+  const invalidateCache = (invalidateArgs?: {userId?: string}): void => {
+    if (invalidateArgs?.userId) {
+      permissionCache.delete(invalidateArgs.userId);
+      sourceCache.delete(invalidateArgs.userId);
+      return;
+    }
+    permissionCache.clear();
+    sourceCache.clear();
+  };
+
+  const loadRolePermissions = async (roleNames: string[]): Promise<PermissionSet[]> => {
+    if (roleNames.length === 0) {
+      return [];
+    }
+
+    const roleDocs = await rbacRoleModel.find({name: {$in: roleNames}});
+    return roleDocs.map((roleDoc) => roleDoc.permissions ?? {});
+  };
+
+  const applyDenyGrants = (permissions: PermissionSet, deny?: PermissionSet): PermissionSet => {
+    if (!deny) {
+      return permissions;
+    }
+
+    const result: Record<string, string[]> = {};
+    for (const [resource, actions] of Object.entries(permissions)) {
+      const denied = new Set(deny[resource] ?? []);
+      const remaining = actions.filter((action) => !denied.has(action));
+      if (remaining.length > 0) {
+        result[resource] = remaining;
+      }
+    }
+    return result;
+  };
+
+  const grantsFromStaleCache = (
+    source: PermissionSource,
+    cached: SourceCacheEntry | undefined,
+    now: number
+  ): PermissionSourceGrants | null => {
+    if (
+      source.staleOnFailure === "use-stale-bounded" &&
+      cached &&
+      source.staleMaxAgeMs &&
+      now - cached.fetchedAt < source.staleMaxAgeMs
+    ) {
+      return cached.grants;
+    }
+
+    if (source.staleOnFailure === "use-stale" && cached) {
+      return cached.grants;
+    }
+
+    return null;
+  };
+
+  const denyOnlyFromCache = (
+    cached: SourceCacheEntry | undefined
+  ): PermissionSourceGrants | null => {
+    const deny = cached?.grants?.deny;
+    if (!deny) {
+      return null;
+    }
+    return {deny};
+  };
+
+  const grantsAfterSourceFailure = (
+    source: PermissionSource,
+    cached: SourceCacheEntry | undefined,
+    now: number
+  ): PermissionSourceGrants | null => {
+    const stale = grantsFromStaleCache(source, cached, now);
+    if (stale) {
+      return stale;
+    }
+    return denyOnlyFromCache(cached);
+  };
+
+  const fetchSourceGrants = async (
+    user: User,
+    source: PermissionSource,
+    shouldCache = true
+  ): Promise<PermissionSourceGrants | null> => {
+    const now = DateTime.now().toMillis();
+    const cached = sourceCache.get(user.id)?.get(source.name);
+
+    if (!shouldCache) {
+      try {
+        return await source.getGrants({user});
+      } catch (error) {
+        logger.warn("Permission source refresh failed during uncached resolution", {
+          error: error instanceof Error ? error.message : String(error),
+          policy: source.staleOnFailure ?? "deny",
+          source: source.name,
+        });
+        return grantsAfterSourceFailure(source, cached, now);
+      }
+    }
+
+    const userSources = sourceCache.get(user.id) ?? new Map<string, SourceCacheEntry>();
+    sourceCache.delete(user.id);
+    sourceCache.set(user.id, userSources);
+
+    const ttlMs = source.ttlMs ?? cacheTtlMs;
+    const cachedAfterTouch = userSources.get(source.name);
+
+    if (cachedAfterTouch && now - cachedAfterTouch.fetchedAt < ttlMs) {
+      return cachedAfterTouch.grants;
+    }
+
+    try {
+      const grants = await source.getGrants({user});
+      userSources.set(source.name, {fetchedAt: now, grants});
+      return grants;
+    } catch (error) {
+      logger.warn("Permission source refresh failed", {
+        error: error instanceof Error ? error.message : String(error),
+        policy: source.staleOnFailure ?? "deny",
+        source: source.name,
+      });
+      return grantsAfterSourceFailure(source, cachedAfterTouch, now);
+    }
+  };
+
+  const resolveEffectivePermissions = async (
+    user: User,
+    shouldCache: boolean
+  ): Promise<PermissionSet> => {
+    if (shouldCache) {
+      const cached = permissionCache.get(user.id);
+      if (cached && cached.expiresAt > DateTime.now().toMillis()) {
+        rememberPermissions(user.id, cached);
+        return cached.permissions;
+      }
+    }
+
+    const roleNames = [...getUserRoles(user)];
+    const permissionSets: PermissionSet[] = [];
+    const sourceResults = new Map<string, PermissionSourceGrants | null>();
+
+    for (const source of sources) {
+      const grants = await fetchSourceGrants(user, source, shouldCache);
+      sourceResults.set(source.name, grants);
+      if (!grants) {
+        continue;
+      }
+      if (grants.roles?.length) {
+        roleNames.push(...grants.roles);
+      }
+      if (grants.permissions) {
+        permissionSets.push(grants.permissions);
+      }
+    }
+
+    const uniqueRoleNames = [...new Set(roleNames)];
+    permissionSets.push(...(await loadRolePermissions(uniqueRoleNames)));
+
+    if (resolvePermissions) {
+      const custom = await resolvePermissions({user});
+      if (custom) {
+        permissionSets.push(custom);
+      }
+    }
+
+    let permissions = unionPermissionSets(...permissionSets);
+
+    for (const source of sources) {
+      const grants = sourceResults.get(source.name);
+      if (grants?.deny) {
+        permissions = applyDenyGrants(permissions, grants.deny);
+      }
+    }
+
+    if (shouldCache) {
+      rememberPermissions(user.id, {
+        expiresAt: DateTime.now().plus({milliseconds: cacheTtlMs}).toMillis(),
+        permissions,
+      });
+    }
+
+    return permissions;
+  };
+
+  const resolvePermissionsForUser = async (user: User): Promise<PermissionSet> => {
+    return resolveEffectivePermissions(user, true);
+  };
+
+  const resolvePermissionsForUserUncached = async (user: User): Promise<PermissionSet> => {
+    return resolveEffectivePermissions(user, false);
+  };
+
+  const authorizePermissions = (
+    permissions: PermissionSet,
+    request: PermissionSet
+  ): {success: boolean; error?: string} => {
+    const role = ac.newRole(permissions as never);
+    return role.authorize(request as never);
+  };
+
+  return {
+    ac,
+    authorizePermissions,
+    invalidateCache,
+    resolvePermissionsForUser,
+    resolvePermissionsForUserUncached,
+  };
+};

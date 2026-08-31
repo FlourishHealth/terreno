@@ -1,4 +1,5 @@
 export * from "./actions";
+export * from "./adminTypes";
 export * from "./api";
 export * from "./auth";
 export * from "./betterAuth";
@@ -14,6 +15,31 @@ export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";
+export {extractUserFromHeaders, type MCPAuthContext} from "./mcp/auth";
+export type {MCPCustomTool} from "./mcp/registry";
+export {
+  clearMCPRegistry,
+  getMCPRegistry,
+  registerMCPModel,
+  registerMCPTool,
+  updateMCPRegistryOptions,
+} from "./mcp/registry";
+export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
+export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
+export {
+  generateAllTools,
+  generateToolsForEntry,
+  getAllMCPTools,
+  type MCPToolDefinition,
+} from "./mcp/toolGenerator";
+export type {
+  MCPConfig,
+  MCPMethod,
+  MCPRegistryEntry,
+  MCPRequest,
+  MCPToolArgs,
+  MCPToolResult,
+} from "./mcp/types";
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
@@ -28,6 +54,35 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./rbac/access";
+export {assertAllowed} from "./rbac/assertAllowed";
+export {
+  createRbacAuditModel,
+  type RbacAuditDocument,
+  recordRbacAudit,
+} from "./rbac/auditModel";
+export {
+  type BackfillAdminsOptions,
+  type BackfillAdminsResult,
+  backfillAdmins,
+} from "./rbac/backfillAdmins";
+export * from "./rbac/fieldViews";
+export * from "./rbac/middleware";
+export * from "./rbac/permissionUtils";
+export {
+  createRbacRoleModel,
+  expandRolePermissions,
+  type RbacRoleDocument,
+  type RbacRoleModel,
+  READ_ONLY_ROLE_PERMISSIONS,
+  type RoleDefinition,
+  terrenoDefaultRoles,
+} from "./rbac/roleModel";
+export {type RbacRouterOptions, rbacRouter} from "./rbac/routes";
+export * from "./rbac/scopes";
+export * from "./rbac/statements";
+export * from "./rbac/types";
+export * from "./rbac/userPlugin";
 export {
   type AuthorizedEmitEntry,
   emitPayloadToAuthorizedRoom,
@@ -59,6 +114,7 @@ export {
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
+  updateRealtimeRegistryOptions,
 } from "./realtime/registry";
 export {
   DEFAULT_SESSION_REVALIDATION_INTERVAL_MS,
@@ -95,8 +151,26 @@ export type {
   RealtimeEvent,
 } from "./realtime/types";
 export * from "./requestContext";
+export {
+  type DescribeModelForRouterOptions,
+  type DescribeModelOptions,
+  describeModel,
+  describeModelForRouter,
+  type FieldDescription,
+  type FieldKind,
+  fieldDescriptionToAdminMeta,
+  fieldDescriptionToOpenApiProperty,
+  fieldDescriptionToZodType,
+  type ModelDescription,
+  modelDescriptionToAdminFields,
+  modelDescriptionToOpenApiSpec,
+  nestDottedFieldDescriptions,
+  SYSTEM_FIELD_PATHS,
+} from "./schemaMetadata";
 export * from "./scriptRunner";
+export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
+export * from "./seedRunner";
 export * from "./sync/executors";
 export * from "./sync/models";
 export * from "./sync/mutationHandler";

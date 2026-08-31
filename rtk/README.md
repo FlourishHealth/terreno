@@ -1,8 +1,14 @@
 # @terreno/rtk
 
-Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo support.
+Redux Toolkit Query utilities for @terreno/api backends.
 
-> **Deprecation notice (data synchronization):** the offline mutation queue (`createOfflineMiddleware`, `offlineSlice`, `configureOfflineMutationEndpoints`) and realtime cache patching (`realtimeList`, `realtimeDocument`) are superseded by [`@terreno/syncdb`](../syncdb/README.md), the local-first data layer. Use syncdb for new offline/realtime work; see the [migration guide](../docs/how-to/migrate-rtk-to-syncdb.md). @terreno/rtk remains the home of the generated RTK Query OpenAPI SDK (non-synced RPC/custom endpoints) and legacy JWT auth.
+> **Deprecation notice (56.0.0):** `@terreno/rtk` is **deprecated for data synchronization** as of version **56.0.0**. It remains published with a deprecation notice through the **current major line** (56.x beta and stable 0.x) and will **not** be published in the **next major** Terreno release. Superseded by [`@terreno/syncdb`](https://github.com/flourishhealth/terreno/blob/master/syncdb/README.md) for collection reads/writes, offline sync, and realtime convergence.
+>
+> **Still use @terreno/rtk for:** generated OpenAPI SDK hooks (`bun run sdk`) on non-synced routes, Better Auth session Redux, feature flags, sockets, and legacy JWT auth during migration. See the [migration guide](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/migrate-rtk-to-syncdb.md).
+
+> **Removed in Terreno 58:** `realtimeList`, `realtimeDocument`, `setRealtimeSocket`, and `getRealtimeSocket`. `modelRouter` `realtime` is also removed then. `RealtimeApp` stays for syncdb sockets.
+
+> **Historical note:** the offline mutation queue (`createOfflineMiddleware`, `offlineSlice`, `configureOfflineMutationEndpoints`) and realtime cache patching (`realtimeList`, `realtimeDocument`) were superseded by `@terreno/syncdb` before this deprecation window.
 
 ## Features
 
@@ -13,12 +19,10 @@ Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo
 - RTK Query base API with auth header injection
 - OpenAPI SDK generation support
 
-## Installation
-
-This package is part of the terreno workspace. Add it as a dependency:
+## Install
 
 ```bash
-    bun install @terreno/rtk
+bun install @terreno/rtk
 ```
 
 ## Usage
@@ -101,5 +105,13 @@ const {socket, isSocketConnected} = useSocketConnection({
 
 `useFeatureFlags` and **`useTerrenoFeatureFlags`** wire Terreno’s `GET /feature-flags/flagConfiguration` into OpenFeature. Peer dependencies: **`@openfeature/react-sdk`** and **`@openfeature/web-sdk`** (install them in your app; do not rely on transitive copies).
 
-Full upgrade steps (backend + frontend + SDK regen) live in the **Terreno root README**: [Feature flags: OpenFeature migration](../README.md#feature-flags-openfeature-migration).
+Full upgrade steps (backend + frontend + SDK regen) live in [Add feature flags](../docs/how-to/add-feature-flags.md#migrating-from-get-evaluate-openfeature).
+
+## Documentation
+
+Archived RTK reference: [docs/reference/legacy/rtk.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/legacy/rtk.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.
 

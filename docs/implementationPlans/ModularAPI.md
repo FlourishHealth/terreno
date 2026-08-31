@@ -1,5 +1,8 @@
 # Modular API Implementation Plan
 
+**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1084  
+**Status:** Complete
+
 ## Overview
 
 This document outlines the implementation plan for a new modular API design in `@terreno/api`. The goal is to create a `TerrenoApp` class that provides a cleaner, more flexible interface for building APIs while maintaining backward compatibility with the existing `setupServer` function.

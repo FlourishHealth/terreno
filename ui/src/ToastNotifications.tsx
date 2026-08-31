@@ -56,6 +56,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import type {ToastProps as TerrenoToastPayload} from "./Common";
 
 // ============================================================================
 // useDimensions hook
@@ -175,11 +176,10 @@ export interface ToastOptions {
   onClose?(): void;
 
   /**
-   * Payload data for custom toasts. You can pass whatever you want
+   * Payload forwarded to {@link Toast} via TerrenoProvider's renderToast.
+   * Extra keys are allowed for custom renderToast implementations.
    */
-  // noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
-  // biome-ignore lint/suspicious/noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
-  data?: any;
+  data?: Partial<TerrenoToastPayload> & Record<string, unknown>;
 
   swipeEnabled?: boolean;
 }
@@ -397,7 +397,6 @@ const ToastItem: FC<ToastProps> = (props) => {
 
   return (
     <Animated.View
-      pointerEvents={"box-none"}
       ref={containerRef}
       {...(swipeEnabled ? getPanResponder().panHandlers : null)}
       style={[toastStyles.container, animationStyle]}
@@ -429,7 +428,7 @@ const ToastItem: FC<ToastProps> = (props) => {
 };
 
 const toastStyles = StyleSheet.create({
-  container: {alignItems: "center", width: "100%"},
+  container: {alignItems: "center", pointerEvents: "box-none", width: "100%"},
   iconContainer: {
     marginRight: 5,
   },
@@ -640,7 +639,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         <SafeAreaView>
@@ -664,7 +662,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         <SafeAreaView>
@@ -695,7 +692,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         {toasts
@@ -724,6 +720,9 @@ const containerStyles = StyleSheet.create({
     elevation: 999999,
     flex: 0,
     maxWidth: "100%",
+    // box-none lets clicks pass through the full-width container to the page below,
+    // while individual toasts stay interactive.
+    pointerEvents: "box-none",
     // @ts-expect-error: fixed is available on web.
     position: Platform.OS === "web" ? "fixed" : "absolute",
     zIndex: 999999,

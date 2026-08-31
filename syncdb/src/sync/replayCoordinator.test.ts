@@ -119,6 +119,7 @@ const enqueue = (
     mutationId,
     data = {title: entityId},
     baseVersion,
+    maxAttempts,
     operation = "create" as const,
     userId = USER,
   }: {
@@ -127,6 +128,7 @@ const enqueue = (
     mutationId: string;
     data?: Record<string, unknown>;
     baseVersion?: number;
+    maxAttempts?: number;
     operation?: "create" | "update" | "delete";
     userId?: string;
   }
@@ -143,6 +145,7 @@ const enqueue = (
     baseVersion,
     collection,
     entityId,
+    ...(maxAttempts !== undefined ? {maxAttempts} : {}),
     mutationId,
     operation,
     userId,
@@ -575,6 +578,35 @@ describe("createReplayCoordinator", () => {
     expect(harness.outbox.getMutation({mutationId: "m2"})?.status).toBe("acked");
   });
 
+  it("fails terminally after one error nack when maxAttempts is 1", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 1, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    await harness.coordinator.replay({userId: USER});
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+    expect(harness.transport.sentMutations).toHaveLength(1);
+  });
+
+  it("fails terminally after three error nacks when maxAttempts is 3", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 3, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await harness.coordinator.replay({userId: USER});
+      harness.clock.value += ERROR_NACK_BASE_BACKOFF_MS * 2 ** attempt;
+    }
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+    expect(harness.transport.sentMutations).toHaveLength(3);
+  });
+
   it(`marks failed after ${MAX_ERROR_NACK_ATTEMPTS} error-nack attempts`, async () => {
     const harness = makeHarness();
     enqueue(harness, {entityId: "t1", mutationId: "m1"});
@@ -598,6 +630,35 @@ describe("createReplayCoordinator", () => {
     harness.clock.value += ERROR_NACK_BASE_BACKOFF_MS * 100;
     await harness.coordinator.replay({userId: USER});
     expect(harness.transport.sentMutations).toHaveLength(MAX_ERROR_NACK_ATTEMPTS);
+  });
+
+  it("marks failed after one error-nack when maxAttempts is 1", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 1, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    await harness.coordinator.replay({userId: USER});
+    expect(harness.transport.sentMutations).toHaveLength(1);
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
+  });
+
+  it("marks failed after three error-nack attempts when maxAttempts is 3", async () => {
+    const harness = makeHarness();
+    enqueue(harness, {entityId: "t1", maxAttempts: 3, mutationId: "m1"});
+    harness.transport.setDefaultResponder((request) => ({
+      nack: {code: "error", mutationId: request.mutationId},
+      type: "nack",
+    }));
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await harness.coordinator.replay({userId: USER});
+      harness.clock.value += ERROR_NACK_BASE_BACKOFF_MS * 2 ** attempt;
+    }
+    expect(harness.transport.sentMutations).toHaveLength(3);
+    expect(harness.outbox.getMutation({mutationId: "m1"})?.status).toBe("failed");
   });
 
   it("a concurrent replay for the same user returns the in-flight promise", async () => {

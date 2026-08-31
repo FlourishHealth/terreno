@@ -6,7 +6,6 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 - [@terreno/api](api.md) — modelRouter, auth, permissions, setupServer
 - [@terreno/ui](ui.md) — Components, theming, layout
-- [@terreno/rtk](rtk.md) — Auth slice, SDK codegen, token handling
 - [@terreno/syncdb](syncdb.md) — Local-first data layer (reads, writes, offline sync)
 - [@terreno/ai](ai.md) — AI service, GPT routes, Langfuse integration
 - [@terreno/admin-backend](admin-backend.md) — Auto-generated admin CRUD endpoints
@@ -18,11 +17,20 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
 - [@terreno/test](test.md) — Bun test helpers and in-memory MongoDB
 
+## Legacy
+
+`@terreno/rtk` is deprecated for **data synchronization**. New apps should use [`@terreno/syncdb`](syncdb.md). Existing RTK consumers: follow [Migrate from @terreno/rtk to @terreno/syncdb](../how-to/migrate-rtk-to-syncdb.md). Archived RTK reference: [legacy/rtk.md](legacy/rtk.md). `modelRouter` `realtime` and the RTK cache-patching helpers are removed in Terreno 58.
+
 ## Configuration
 
 - [Environment Variables](environment-variables.md) — Complete environment variable reference for all packages
+- [Admin configuration](admin-config.md) — `modelRouter` `admin` object fields
 
 ## Other references
 
+- [UI performance](ui-performance.md) — Component render benchmarks
+- [Lifecycle plugin](lifecycle-plugin.md) — Grow/Pick/Roast/Brew/Taste contracts, results, and transitions
+- [Install agent skills](../how-to/install-agent-skills.md) — Published `skills/` tree for `npx skills`
+- [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and Pick plan comments
 - Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog
 - Per-package `package.json` in each package directory — Commands and dependencies

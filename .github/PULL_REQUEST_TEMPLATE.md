@@ -1,28 +1,17 @@
-## Summary
+## Why
 
-<!-- What changed and why? -->
+<!-- 1–2 sentences: problem, impact, and one issue/IP link if useful. -->
 
-## Related IP or issue
+## What changed
 
-<!-- Link issue (#NNN) or implementation plan -->
+- <!-- Outcome or behavior; maximum 5 bullets. -->
 
-## Type of change
+## Verification
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation
-- [ ] Chore / CI
+| Status | Scope | Evidence / action |
+| --- | --- | --- |
+| ✅ Tested | <!-- Behavior or risk --> | <!-- What proves it: command or artifact --> |
+| ⚠️ Not tested | <!-- Remaining risk; delete row if none --> | <!-- Exact reviewer action --> |
 
-## Testing performed
-
-<!-- Commands run, manual steps. Frontend changes: attach screenshots or video per AGENTS.md -->
-
-## Checklist
-
-- [ ] Tests added or updated where appropriate
-- [ ] `bun run lint` passes
-- [ ] `bun run compile` passes (if TypeScript changed)
-- [ ] Docs updated (if user-facing behavior changed)
-- [ ] `CHANGELOG.md` `## [Unreleased]` updated for user-facing changes
-- [ ] DCO signed off (`git commit -s`) on every commit
+<!-- Keep visible body under 250 words. Put essential screenshots/videos below. Use one
+<details> block only when migration notes or unusual implementation detail is necessary. -->

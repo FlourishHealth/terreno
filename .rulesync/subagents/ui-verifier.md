@@ -43,7 +43,8 @@ You are the UI verifier. Given a set of UI changes (a diff, branch, or list of c
    - Save screenshots to `/opt/cursor/artifacts/screenshots/`
    - Save screen recordings to `/opt/cursor/artifacts/`
    - Use `RecordScreen` for interaction-flow videos in Cursor Cloud.
-   - Report artifact paths so the parent agent can post them to the PR `## Evidence` or `## UI verification` section.
+   - Report artifact paths and what each proves so the parent agent can add only the
+     decisive artifact to the PR `Verification` table.
 
 ## Output format
 

@@ -25,6 +25,7 @@
     "@terreno/feature-flags": "workspace:*",
     "@thream/socketio-jwt": "catalog:",
     "ai": "catalog:",
+    "expo-server-sdk": "^6.0.0",
     "express": "catalog:",
     "ioredis": "^5.11.0",
     "lodash": "catalog:",
@@ -67,6 +68,7 @@
     "start:prod": "bun run dist/index.js",
     "sync-consents": "bun run src/scripts/syncConsents.ts",
     "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun test --coverage",
     "test:watch": "bun test --watch"
