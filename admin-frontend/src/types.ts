@@ -362,6 +362,8 @@ export interface DocumentListResponse {
 export interface DocumentStorageBrowserProps {
   api: AdminApi;
   basePath: string;
+  /** Route opened by the standard admin screen back arrow. */
+  backHref?: string;
   title?: string;
   allowDelete?: boolean;
   allowUpload?: boolean;

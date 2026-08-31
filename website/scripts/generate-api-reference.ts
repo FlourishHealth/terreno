@@ -29,6 +29,21 @@ const PACKAGE_TARGETS: PackageTarget[] = [
   {entryFile: "src/index.ts", id: "rtk", packageDir: "rtk", title: "@terreno/rtk"},
 ];
 
+const compileWorkspaceDeps = (): void => {
+  const compileDependenciesResult = spawnSync(
+    "node",
+    [
+      join(REPO_ROOT, ".github/scripts/compile-workspace-deps.js"),
+      ...PACKAGE_TARGETS.map((target) => join(REPO_ROOT, target.packageDir)),
+    ],
+    {cwd: REPO_ROOT, env: process.env, stdio: "inherit"}
+  );
+  if (compileDependenciesResult.status !== 0) {
+    console.error("Workspace dependency compilation failed for API reference packages");
+    process.exit(compileDependenciesResult.status ?? 1);
+  }
+};
+
 const runTypedoc = (target: PackageTarget): void => {
   const outDir = join(OUTPUT_ROOT, target.id);
   if (existsSync(outDir)) {
@@ -40,17 +55,6 @@ const runTypedoc = (target: PackageTarget): void => {
   const typedocTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.typedoc.json");
   const defaultTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.json");
   const tsconfigPath = existsSync(typedocTsconfigPath) ? typedocTsconfigPath : defaultTsconfigPath;
-  const packageDir = join(REPO_ROOT, target.packageDir);
-
-  const compileDependenciesResult = spawnSync(
-    "node",
-    [join(REPO_ROOT, ".github/scripts/compile-workspace-deps.js")],
-    {cwd: packageDir, env: process.env, stdio: "inherit"}
-  );
-  if (compileDependenciesResult.status !== 0) {
-    console.error(`Workspace dependency compilation failed for ${target.title}`);
-    process.exit(compileDependenciesResult.status ?? 1);
-  }
 
   const result = spawnSync(
     "bun",
@@ -109,6 +113,7 @@ ${body}
 };
 
 const main = (): void => {
+  compileWorkspaceDeps();
   for (const target of PACKAGE_TARGETS) {
     runTypedoc(target);
   }

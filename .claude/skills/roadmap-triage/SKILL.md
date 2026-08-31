@@ -26,6 +26,8 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 - Creating a roadmap item for an approved IP — use `roadmap-item`
 - Board-wide hygiene passes — use `roadmap-review`
 - Writing the implementation plan itself — use `ip`
+- Filing a pick-ready implementation issue — use `create-github-issue`
+- Selecting recent issues to Pick/Roast — use `work-github-issues`
 
 ## Hard rules
 
@@ -92,5 +94,5 @@ State what changed, what you deliberately left alone, and anything still needing
 
 ## Notes
 
-- `.github/workflows/triage.yml` already applies `status:needs-triage` plus a best-effort `area:*` on open. Your job is to correct and complete that, not repeat it.
+- `.github/workflows/triage.yml` already applies `status:needs-triage` plus a best-effort `area:*` (and `type:*` from Kind when present) on open. Your job is to correct and complete that, not repeat it.
 - If an issue should have been a discussion (a question, or an unshaped idea), say so and propose converting it rather than labeling it onto the board.

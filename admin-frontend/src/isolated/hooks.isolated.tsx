@@ -10,7 +10,7 @@
  *  - the returned hook functions correspond to the generated hook names
  */
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 import React from "react";
 import {useAdminApi} from "../useAdminApi";
 import {useAdminConfig} from "../useAdminConfig";

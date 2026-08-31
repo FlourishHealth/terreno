@@ -1,6 +1,6 @@
 # Implementation Plan: Stripe billing and subscriptions
 
-**Status:** Draft
+**Status:** Approved
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1025
 **Priority:** High
 **Effort:** Epic

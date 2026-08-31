@@ -19,7 +19,6 @@
     "better-auth": "catalog:",
     "cors": "^2.8.5",
     "cron": "^4.3.4",
-    "expo-server-sdk": "^6.0.0",
     "express": "catalog:",
     "generaterr": "^1.5.0",
     "http-errors": "^2.0.0",
@@ -46,7 +45,7 @@
     "winston": "catalog:",
     "yaml": "^2.4.0"
   },
-  "description": "Styled after the Django & Django REST Framework, a batteries-include framework for building REST APIs with Node/Express/Mongoose.",
+  "description": "REST API framework for Express/Mongoose (modelRouter, auth, OpenAPI) — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@modelcontextprotocol/client": "catalog:",

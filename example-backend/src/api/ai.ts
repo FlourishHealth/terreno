@@ -36,6 +36,8 @@ interface AIProvider {
   image: (modelId: string) => ImageModel;
 }
 
+type GptRouteOptions = Parameters<typeof addGptRoutes>[1];
+
 /** The subset of @ai-sdk/google we use (loaded dynamically). */
 interface GoogleModule {
   createGoogleGenerativeAI: (opts: {apiKey: string}) => AIProvider;
@@ -728,9 +730,7 @@ export const addAiRoutes = (
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
-    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    createRequestTools: createPerRequestTools as any,
+    createRequestTools: createPerRequestTools as unknown as GptRouteOptions["createRequestTools"],
     createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",
@@ -738,9 +738,7 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
-    // noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    tools: getDemoTools() as any,
+    tools: getDemoTools() as unknown as GptRouteOptions["tools"],
   });
   if (fileStorageService) {
     addFileRoutes(router, {

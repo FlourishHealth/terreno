@@ -1,6 +1,6 @@
 # Implementation Plan: Migrate CI/CD to CircleCI
 
-**Status:** In progress — Phase 1–3 CI config landed (deploys deferred per request)  
+**Status:** In progress — CI, release, Netlify/GCP production path deploys, and PR previews landed; EAS PR/fingerprint temporarily disabled; GitHub-native maintenance remains  
 **Discussion:** _(none)_  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1088
 **Linear:** _(none)_  
@@ -164,10 +164,21 @@ Port and dual-run:
 - Recreate preview aliases + optional GitHub Deployments via API.
 - `preview-cleanup` equivalent for Netlify/GCP previews as applicable.
 
+Implemented: production and PR preview jobs exist on CircleCI. GitHub Actions
+is the live Netlify/GCP writer until `terreno-netlify` / `terreno-gcp` are
+populated; CircleCI deploy scripts skip (exit 0) when those variables are
+missing. After a successful CircleCI deploy, set GHA deploy workflows back to
+`on: []` in the same change. Preview cleanup on PR close is GHA
+`preview-cleanup.yml` plus the manual CircleCI parameter.
+
 ### Phase 5 — EAS + fingerprint (v1)
 
 - Port `eas-pr`, `eas-dev-build`, `fingerprint-gate` scripts under `.circleci/` or keep scripts in `.github/workflows/scripts/` and invoke from CircleCI until relocated to `scripts/ci/`.
 - PR comment + `fingerprint-acknowledged` label via GitHub API.
+
+Manual EAS dispatch is implemented. EAS PR updates and fingerprint
+acknowledgement are retained with `on: []` until CircleCI comment/label parity
+is implemented.
 
 ### Phase 6 — GCP CD + OIDC (v1)
 
@@ -176,18 +187,25 @@ Port and dual-run:
 - Port `preview-cleanup` onto OIDC (eliminate `GCP_SA_KEY`).
 - Dual-run CD carefully (concurrency: one deployer).
 
+Implemented as CircleCI jobs plus GHA dual-run until CircleCI OIDC/context
+values exist. Path filters start `gcp-cd-prod` / `gcp-cd-preview`. CircleCI
+skips apply when `terreno-gcp` is empty so terraform is not double-applied.
+
 ### Phase 7 — npm publish (v1)
 
 - Port `publish-on-tag` + `publish-feature-flags-manual`.
 - **Single-writer rule:** disable GHA tag trigger in the same change that enables CircleCI tag pipeline.
 - Keep Zoom notify + master version bump + docs cut + demo dispatch.
 
+Implemented as a semver-tag release job plus manual `syncdb`/`feature-flags`
+publishing. GHA publishing triggers are disabled. Docs version cutting remains
+a follow-up; package publish, stable master bumps, Zoom notify, and demo deploy
+are ported.
+
 ### Phase 8 — Mobile runners (post-v1 / still required for full cutover)
 
-- Maestro (`maestro-e2e`).
-- Appium Android on Linux VM.
-- Appium iOS on CircleCI macOS resource class (image pin parity with `macos-15` intent).
-- Then delete `demo-appium-ci.yml` / `maestro-e2e.yml`.
+- Maestro web/Chrome (`maestro-e2e`) is implemented on CircleCI Linux browsers + Mongo replica set. GHA `maestro-e2e.yml` is `on: []`.
+- Appium Android on Linux VM and Appium iOS on CircleCI macOS remain unported.
 
 ### Phase 9 — GitHub-native + agentic replacements (full cutover)
 
@@ -197,7 +215,8 @@ Port and dual-run:
 | `dependabot-auto-merge` | Keep Dependabot PRs on GitHub; auto-merge via CircleCI on Dependabot branches **or** Renovate on CircleCI |
 | `triage.yml` | CircleCI pipeline trigger on `issues` via GitHub Apps webhook → CircleCI API, or GitHub Action **stub** only if product accepts residual GHA (conflicts with CC1 — prefer webhook) |
 | `roadmap-generate` | Scheduled CircleCI job with `ROADMAP_PROJECT_TOKEN` |
-| `architectural-pr-review` | CircleCI job + `CURSOR_API_KEY` (lose `pull_request_target` free fork safety — use least privilege + fork policy) |
+| `architectural-pr-review` | Implemented: CircleCI job + `CURSOR_API_KEY` / `GITHUB_TOKEN`. Checks out `origin/master`, skips forks. GHA workflow is `on: []`. |
+| Cursor Approval / Security / Bugbot | **Cannot move.** Cursor GitHub App automations, not repo workflows. |
 | `agentics-maintenance` + `*.lock.yml` gh-aw | Re-home to CircleCI scheduled pipelines calling the same scripts **or** retire features; do not leave gh-aw as the only runner if CC1 holds |
 | `docs-audit` | Scheduled CircleCI job |
 

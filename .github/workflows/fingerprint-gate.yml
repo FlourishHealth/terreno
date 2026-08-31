@@ -13,16 +13,8 @@ name: Fingerprint Gate
 # is required. The acknowledged hash pair is recorded in a hidden HTML marker
 # inside the sticky PR comment.
 
-on:
-  pull_request:
-    branches: [master]
-    types: [opened, reopened, synchronize, labeled, unlabeled]
-    paths:
-      - example-frontend/**
-      - ui/**
-      - rtk/**
-      - package.json
-      - bun.lock
+# Disabled during the CircleCI cutover; retained for rollback.
+on: []
 
 permissions:
   contents: read
@@ -95,13 +87,34 @@ jobs:
           echo "ios=$ios" >> "$GITHUB_OUTPUT"
           echo "android=$android" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout master
+      - name: Restore master fingerprint cache
+        id: master_fp_cache
+        uses: actions/cache@v6
+        with:
+          path: master-fingerprint.json
+          key: fingerprint-master-${{ github.event.pull_request.base.sha }}
+
+      - name: Read cached master fingerprint
+        id: master_fp_cached
+        if: steps.master_fp_cache.outputs.cache-hit == 'true'
+        run: |
+          set -euo pipefail
+          ios=$(jq -r .ios master-fingerprint.json)
+          android=$(jq -r .android master-fingerprint.json)
+          echo "iOS master fingerprint (cached):     $ios"
+          echo "Android master fingerprint (cached): $android"
+          echo "ios=$ios" >> "$GITHUB_OUTPUT"
+          echo "android=$android" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR base
+        if: steps.master_fp_cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v6.0.3
         with:
-          ref: master
+          ref: ${{ github.event.pull_request.base.sha }}
           path: master
 
       - name: Install + compile (master)
+        if: steps.master_fp_cache.outputs.cache-hit != 'true'
         working-directory: master
         run: |
           bun install --frozen-lockfile
@@ -109,6 +122,7 @@ jobs:
 
       - name: Compute master fingerprint
         id: master_fp
+        if: steps.master_fp_cache.outputs.cache-hit != 'true'
         working-directory: master/example-frontend
         run: |
           set -euo pipefail
@@ -118,6 +132,7 @@ jobs:
           echo "Android master fingerprint: $android"
           echo "ios=$ios" >> "$GITHUB_OUTPUT"
           echo "android=$android" >> "$GITHUB_OUTPUT"
+          printf '{"ios":"%s","android":"%s"}\n' "$ios" "$android" > "$GITHUB_WORKSPACE/master-fingerprint.json"
 
       - name: Evaluate gate
         env:
@@ -125,6 +140,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_IOS: ${{ steps.pr_fp.outputs.ios }}
           PR_ANDROID: ${{ steps.pr_fp.outputs.android }}
-          MASTER_IOS: ${{ steps.master_fp.outputs.ios }}
-          MASTER_ANDROID: ${{ steps.master_fp.outputs.android }}
+          MASTER_IOS: ${{ steps.master_fp.outputs.ios || steps.master_fp_cached.outputs.ios }}
+          MASTER_ANDROID: ${{ steps.master_fp.outputs.android || steps.master_fp_cached.outputs.android }}
         run: pr/.github/workflows/scripts/fingerprint-gate.sh

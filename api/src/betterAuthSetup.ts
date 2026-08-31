@@ -10,6 +10,7 @@ import {mongodbAdapter} from "better-auth/adapters/mongodb";
 import {toNodeHandler} from "better-auth/node";
 import {bearer} from "better-auth/plugins";
 import type {Application, NextFunction, Request, Response} from "express";
+import type {Db} from "mongodb";
 import mongoose from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
@@ -28,9 +29,7 @@ export type BetterAuthInstance = ReturnType<typeof betterAuth>;
  */
 // Minimal shape we use from the MongoDB native client returned by mongoose connection
 export interface MongoClientLike {
-  // noExplicitAny: the MongoDB driver Db type is opaque to this layer; it is passed straight to better-auth's adapter
-  // biome-ignore lint/suspicious/noExplicitAny: the MongoDB driver Db type is opaque to this layer; it is passed straight to better-auth's adapter
-  db: () => any;
+  db: () => Db;
 }
 
 export interface CreateBetterAuthOptions {

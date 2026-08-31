@@ -7,19 +7,42 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+
+# Shared with roadmap-sync and roadmap-reconcile: three workflows write the same
+# board, and interleaving them produces confusing partial states.
+concurrency:
+  group: roadmap
+  cancel-in-progress: false
 
 jobs:
   generate:
     name: Regenerate ROADMAP.md
     runs-on: ubuntu-latest
     steps:
+      # Checks out with the roadmap PAT so later git fetch/push can authenticate:
+      # master requires a pull request, and the default GITHUB_TOKEN is not a
+      # bypass actor on that ruleset. persist-credentials is false so the PAT
+      # is not stored in git config through bun install.
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+          token: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+
+      # Concurrency waits on the triggering SHA. Reset to the branch tip so a
+      # queued generate cannot commit ROADMAP.md from a stale board snapshot.
+      - name: Refresh to latest branch HEAD after concurrency wait
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
+          git fetch origin "$GITHUB_REF_NAME"
+          git reset --hard "origin/$GITHUB_REF_NAME"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Validate required secrets
         env:
@@ -39,6 +62,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Reports board drift without failing the run: maintainers own board state,
+      # so a moved card must never block ROADMAP.md from regenerating.
+      - name: Report roadmap board drift
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          if ! bun run roadmap:sync --check; then
+            echo "::warning::Roadmap board has drifted from the repository. Extra cards need a seed entry; a dragged Status is kept. See the check log."
+          fi
+
       - name: Generate ROADMAP.md
         env:
           GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
@@ -48,8 +82,7 @@ jobs:
 
       - name: Commit roadmap changes
         env:
-          GH_TOKEN: ${{ github.token }}
-          ROADMAP_BRANCH: automation/roadmap-${{ github.run_id }}
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
         run: |
           if git diff --quiet ROADMAP.md; then
             echo "ROADMAP.md unchanged"
@@ -57,12 +90,11 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$ROADMAP_BRANCH"
           git add ROADMAP.md
           git commit -m "chore: regenerate ROADMAP.md from project board"
-          git push --set-upstream origin "$ROADMAP_BRANCH"
-          gh pr create \
-            --base master \
-            --head "$ROADMAP_BRANCH" \
-            --title "chore: regenerate ROADMAP.md from project board" \
-            --body "Automated update generated from the Terreno Roadmap project board."
+          # master moves while this job runs, so a first push can be rejected as
+          # non-fast-forward; rebasing onto the new tip and retrying is safe
+          # because this job only ever touches ROADMAP.md.
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
+          git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)

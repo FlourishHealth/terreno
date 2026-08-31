@@ -1,5 +1,7 @@
 name: Docs Deploy
 
+# Dual-run with CircleCI until `terreno-netlify` has NETLIFY_* values.
+# CircleCI skips Netlify jobs when those vars are unset.
 on:
   push:
     branches:
@@ -53,39 +55,64 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      # Cache Bun's download cache only (see setup-bun-workspace). Do not restore
+      # node_modules: a stale tree across lockfile changes can leave extra
+      # packages that a frozen install will not prune (typedoc TypeScript resolution).
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
-      # Cache only Bun's global download cache, not node_modules. Restoring a stale
-      # node_modules across lockfile changes can leave extraneous packages (e.g. an old
-      # TypeScript) that a frozen install won't prune, which broke typedoc's TypeScript
-      # resolution. A clean node_modules per run keeps the installed tree deterministic.
-      - name: Cache bun download cache
+      - name: Cache generated API reference
+        id: api-ref-cache
+        uses: actions/cache@v6
+        with:
+          path: docs/reference/generated
+          key: docs-api-ref-${{ hashFiles('api/src/**', 'rtk/src/**', 'website/scripts/generate-api-reference.ts') }}
+
+      - name: Cache generated UI component docs
+        id: ui-docs-cache
         uses: actions/cache@v6
         with:
           path: |
-            ~/.bun/install/cache
-          key: bun-docs-v2-${{ runner.os }}-${{ hashFiles('bun.lock', 'website/package.json') }}
-          restore-keys: |
-            bun-docs-v2-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+            demo/ui-types-documentation.json
+            docs/reference/components
+          key: docs-ui-ref-${{ hashFiles('ui/src/**', 'demo/demoConfig.tsx', 'demo/story-config/**', 'website/scripts/generate-component-docs.ts') }}
 
       - name: Compile UI package
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
         run: bun run compile
         working-directory: ui
 
       - name: Generate UI type documentation
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
         run: bun run types
         working-directory: ui
 
+      - name: Generate component docs
+        if: steps.ui-docs-cache.outputs.cache-hit != 'true'
+        run: bun run generate:components
+        working-directory: website
+
+      - name: Generate API reference
+        if: steps.api-ref-cache.outputs.cache-hit != 'true'
+        run: bun run generate:api
+        working-directory: website
+
+      # Rspack incremental cache. Preview vs production configs differ
+      # (versioning, minify, search), so the key includes event_name.
+      - name: Cache Docusaurus build cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/rspack
+          key: docusaurus-rspack-v1-${{ runner.os }}-${{ github.event_name }}-${{ hashFiles('bun.lock', 'website/docusaurus.config.ts', 'website/package.json') }}
+          restore-keys: |
+            docusaurus-rspack-v1-${{ runner.os }}-${{ github.event_name }}-
+
       - name: Build docs site
-        run: bun run website:build
+        run: bunx docusaurus build ${{ github.event_name == 'pull_request' && '--no-minify' || '' }}
+        working-directory: website
         env:
           DEMO_URL: https://terreno-demo.netlify.app
+          DOCS_PREVIEW: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7.0.1

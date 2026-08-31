@@ -2779,14 +2779,16 @@ describe("RealtimeApp.onServerCreated", () => {
     return server;
   };
 
-  it("throws when TOKEN_SECRET is missing", () => {
+  it("throws when no socket authentication method is configured", () => {
     const originalSecret = process.env.TOKEN_SECRET;
     process.env.TOKEN_SECRET = "";
 
     const app = new RealtimeApp({tokenSecret: undefined});
     const server = makeServer();
 
-    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+    expect(() => app.onServerCreated(server)).toThrow(
+      "Socket authentication requires TOKEN_SECRET or Better Auth"
+    );
 
     process.env.TOKEN_SECRET = originalSecret;
   });
@@ -3440,7 +3442,7 @@ describe("RealtimeApp — onServerCreated and setupAdapter", () => {
     server.close();
   });
 
-  it("onServerCreated throws when TOKEN_SECRET is missing", () => {
+  it("onServerCreated throws when no socket authentication method is configured", () => {
     const http = require("node:http");
     const origSecret = process.env.TOKEN_SECRET;
     process.env.TOKEN_SECRET = "";
@@ -3449,7 +3451,9 @@ describe("RealtimeApp — onServerCreated and setupAdapter", () => {
     app.register(expressApp);
     const server = http.createServer(expressApp);
 
-    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+    expect(() => app.onServerCreated(server)).toThrow(
+      "Socket authentication requires TOKEN_SECRET or Better Auth"
+    );
     process.env.TOKEN_SECRET = origSecret;
     server.close();
   });
