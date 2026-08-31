@@ -374,7 +374,18 @@ Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
 
 In-app prompt versions, nested traces, evaluators, datasets, experiments, review queue, and in-app feedback. Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). Register plugins: [Observe LLM calls](../how-to/observe-llm-calls.md). Why two planes: [AI observability](../explanation/ai-observability.md). Locked design: [implementation plan](../implementationPlans/ai-observability.md).
 
-Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`. Construction also registers the app as the process singleton (`getObservabilityApp()`). Call `resetObservabilityApp()` in tests.
+Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`. Construction also registers the app as the process singleton (`getObservabilityApp()`). Call `resetObservabilityApp()` in tests. `createLocalObservabilityPlugin()` registers the local Mongo models (`ObsPrompt`, `ObsPromptVersion`, `ObsPromptLabel`, `ObsTrace`, `ObsSpan`, `ObsScore`) on the default connection.
+
+### Local observability models
+
+| Model | Role |
+| --- | --- |
+| `ObsPrompt` | Named prompt (`name` unique) with `folder` and `tags[]` |
+| `ObsPromptVersion` | Immutable `vN` body, `variables[]`, schemas, `sensitive` (default false), `config` |
+| `ObsPromptLabel` | Movable labels; unique `(promptId, label)` |
+| `ObsTrace` | Root trace: user, session, status, `errorSummary`, `sensitive`, `prompts[]`, usage |
+| `ObsSpan` | Nested span with `kind`, `status`, optional `error`, offsets, usage |
+| `ObsScore` | Scores on a trace/span; many per trace, **no unique index** |
 
 `AIService` generate methods:
 

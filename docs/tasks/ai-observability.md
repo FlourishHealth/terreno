@@ -36,7 +36,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
 
 ## 1B — Local store: prompts, traces, review
 
-- [ ] **Task 1.4**: Local Mongo models — prompts, versions, labels, traces, spans, scores
+- [x] **Task 1.4**: Local Mongo models — prompts, versions, labels, traces, spans, scores
   - Delivers: schemas with a description on every field, standard plugins, the indexes in the IP; models registered only when the local plugin constructs; `ObsPromptVersion` carries `variables[]` (`key`, `required`, `label?`, `reviewerNote?`), `inputSchema`, `outputSchema`, `outputFieldNotes`, **`sensitive` (default false)**, `config`; `ObsPrompt` carries `folder` + `tags[]`; `ObsTrace` carries `sensitive`, `errorSummary`, `prompts[]`; `ObsSpan` carries `status` and optional short `error`
   - Files: `ai/src/observability/local/models/*.ts`, `ai/src/types/observability*.ts`, model tests
   - Blocked by: 1.1
