@@ -35,6 +35,7 @@ export {Project} from "./models/project";
 export {LocalEvaluatorStore} from "./observability/local/evaluatorStore";
 export {createLocalObservabilityPlugin} from "./observability/local/localPlugin";
 export {LocalPromptStore} from "./observability/local/promptStore";
+export {LocalReviewStore} from "./observability/local/reviewStore";
 export {LocalScoreSink, LocalTraceSink, LocalTraceStore} from "./observability/local/traceStore";
 export {MemoryScoreSink, MemoryTraceSink} from "./observability/memorySinks";
 export {

@@ -64,7 +64,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/how-to/ai-feature-development.md` step 4 (human half)
   - Acceptance: numeric / boolean / categorical dimensions persist; human evaluator with live sampling is a 400; a template installs by name
 
-- [ ] **Task 1.8**: Local review queue API
+- [x] **Task 1.8**: Local review queue API
   - Delivers: `POST /traces/review` enqueues one or many traces against a human evaluator (`reason: "manual"`); `GET /review` by status with counts, oldest-first; `GET /review/:id` returns the item, its evaluator dimensions, and rendered `given` / `wrote` panels built from the prompt version's `variables[]` labels/notes and `outputSchema` + `outputFieldNotes`, falling back to raw keys; `POST /review/:id` submit / skip / assign
   - Files: `ai/src/observability/local/reviewStore.ts`, `ai/src/observability/reviewPanels.ts`, `ai/src/observability/routes/review.ts`, tests
   - Blocked by: 1.6, 1.7

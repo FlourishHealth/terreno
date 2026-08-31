@@ -387,6 +387,7 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 | `ObsSpan` | Nested span with `kind`, `status`, optional `error`, offsets, usage |
 | `ObsScore` | Scores on a trace/span; many per trace, **no unique index** |
 | `ObsEvaluator` | Human (phase 1) evaluator: `type`, `target`, `dimensions[]`, `runModes`, `instructions`, `confidenceAlertBelow` (default 0.7) |
+| `ObsReviewItem` | Review queue item: status, evaluator, trace, reason, scores, comment |
 
 `AIService` generate methods:
 
@@ -428,6 +429,10 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 | POST | `/ai/observability/evaluators/templates/:name` | Install a template by name as an immutable-named evaluator |
 | GET/POST | `/ai/observability/evaluators` | List / create. Phase 1 `type` is `human`. Human + `liveSampleRate > 0` → 400 |
 | GET/PATCH/DELETE | `/ai/observability/evaluators/:id` | Read / update / soft-delete |
+| POST | `/ai/observability/traces/review` | Enqueue one or many traces against a human evaluator (`reason: "manual"`) |
+| GET | `/ai/observability/review` | Queue by `status` with counts; oldest-first |
+| GET | `/ai/observability/review/:id` | Item + evaluator dimensions + `given` / `wrote` panels |
+| POST | `/ai/observability/review/:id` | `submit` (scores via ScoreSinks, status `done`), `skip`, or `assign` |
 
 Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
 

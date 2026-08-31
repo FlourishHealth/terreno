@@ -186,3 +186,27 @@ export interface ObsEvaluatorStatics
 export interface ObsEvaluatorModel
   extends mongoose.Model<ObsEvaluatorDocument>,
     ObsEvaluatorStatics {}
+
+export interface ObsReviewItemDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  assigneeId?: mongoose.Types.ObjectId;
+  comment?: string;
+  created: Date;
+  datasetItemId?: mongoose.Types.ObjectId;
+  deleted: boolean;
+  enqueuedAt: Date;
+  evaluatorId: mongoose.Types.ObjectId;
+  reason: "dataset_candidate" | "eval" | "feedback" | "manual";
+  scores?: Record<string, boolean | number | string>;
+  spanId?: mongoose.Types.ObjectId;
+  status: "done" | "in_progress" | "pending" | "skipped";
+  traceId: mongoose.Types.ObjectId;
+  updated: Date;
+}
+
+export interface ObsReviewItemStatics
+  extends FindExactlyOnePlugin<ObsReviewItemDocument>,
+    FindOneOrNonePlugin<ObsReviewItemDocument> {}
+
+export interface ObsReviewItemModel
+  extends mongoose.Model<ObsReviewItemDocument>,
+    ObsReviewItemStatics {}

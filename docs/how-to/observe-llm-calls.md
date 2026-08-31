@@ -83,3 +83,12 @@ curl -X POST "$API/ai/observability/prompts/example-summarize/labels" \
 ```
 
 `GET /ai/observability/prompts?folder=examples&search=sum&include=usage7d` lists folder matches with 7-day call/cost rollups. A prompt with no `production` label returns `production: "—"`. Playground `POST /ai/observability/prompts/:name/playground` compiles `{{var}}`, runs one `AIService` call, and does not create a version.
+
+## Review a trace
+
+1. Install a human evaluator (`POST /ai/observability/evaluators/templates/correctness`).
+2. Enqueue traces: `POST /ai/observability/traces/review` with `{evaluatorId, traceIds, reason: "manual"}`.
+3. List oldest-first: `GET /ai/observability/review?status=pending` (response includes per-status counts).
+4. Open an item: `GET /ai/observability/review/:id` returns evaluator dimensions plus `given` / `wrote` panels (variable labels when present, otherwise raw keys).
+5. `POST /ai/observability/review/:id` with `action: "submit"` writes dimension-keyed scores through every ScoreSink and marks the item `done` (it leaves the pending list). `skip` and `assign` move status to `skipped` / `in_progress`.
+

@@ -3,6 +3,7 @@ import {registerObsEvaluator} from "./models/obsEvaluator";
 import {registerObsPrompt} from "./models/obsPrompt";
 import {registerObsPromptLabel} from "./models/obsPromptLabel";
 import {registerObsPromptVersion} from "./models/obsPromptVersion";
+import {registerObsReviewItem} from "./models/obsReviewItem";
 import {registerObsScore} from "./models/obsScore";
 import {registerObsSpan} from "./models/obsSpan";
 import {registerObsTrace} from "./models/obsTrace";
@@ -17,6 +18,7 @@ export const registerLocalObservabilityModels = (): void => {
   registerObsSpan();
   registerObsScore();
   registerObsEvaluator();
+  registerObsReviewItem();
 };
 
 export const createLocalObservabilityPlugin = (): ObservabilityPlugin => {
