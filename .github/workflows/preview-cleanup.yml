@@ -1,5 +1,6 @@
 name: Preview Cleanup
 
+# GitHub still receives pull_request.closed; CircleCI cleanup stays manual.
 on:
   pull_request:
     types: [closed]
@@ -12,11 +13,11 @@ env:
 jobs:
   cleanup:
     name: Clean Up Preview Resources
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
-      id-token: write
     steps:
       - name: Validate required secrets
         env:
@@ -45,7 +46,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

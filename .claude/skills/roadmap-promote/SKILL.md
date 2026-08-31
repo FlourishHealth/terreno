@@ -104,17 +104,34 @@ Print, then **stop and wait**:
 
 ### 5. Create, after approval
 
-```bash
-gh issue create --title "$TITLE" --body-file "$BODY_FILE" --label "area:ui,type:feature"
+**Do not touch the board directly.** Declare the item in
+[`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md)
+and let the sync tool create it. Hand-added board items are reported as drift on the next
+`roadmap:sync --check`.
+
+A promoted discussion has no IP yet, so use the discussion slug as the section heading and
+leave the `IP` field empty:
+
+```markdown
+## <discussion-slug>
+
+**Title:** `[Roadmap] <outcome>`
+
+**Labels:** `area:ui`, `type:feature`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Shaping`
+
+<body, including the discussion link>
 ```
 
-Add it to the board and set fields:
+An entry with an empty `IP` is skipped by `roadmap:sync` unless you ask for the issue, which is
+the behaviour you want here — promotion is exactly the moment a discussion earns one:
 
 ```bash
-gh project item-add "$PROJECT_NUMBER" --owner FlourishHealth --url "$ISSUE_URL"
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --dry-run
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --create-missing-issues
 ```
 
-Field values are set with `gh project item-edit`, which needs the project, item, and field IDs — resolve them with `gh project field-list "$PROJECT_NUMBER" --owner FlourishHealth --format json`. Setting single-select fields from the UI is also fine and often faster for a one-off.
+That opens the issue, applies the labels, adds the board item, and sets the fields in one pass.
 
 ### 6. Close the loop
 

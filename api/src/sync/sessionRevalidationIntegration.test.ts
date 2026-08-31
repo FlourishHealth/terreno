@@ -1,5 +1,3 @@
-// noExplicitAny: the rig bridges generic model/router/test types
-// biome-ignore-all lint/suspicious/noExplicitAny: the rig bridges generic model/router/test types
 /**
  * Integration coverage for D1 (socket session re-validation sweep) and D4
  * (membership revocation vs socket rooms), using a REAL @terreno/syncdb client
@@ -32,7 +30,7 @@ import {
 import mongoose, {model, Schema} from "mongoose";
 
 import {modelRouter} from "../api";
-import {addAuthRoutes, generateTokens, setupAuth} from "../auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, generateTokens, setupAuth} from "../auth";
 import {createdUpdatedPlugin, findOneOrNoneFor, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {RealtimeApp} from "../realtime/realtimeApp";
 import {getBaseServer, setupDb, UserModel} from "../tests";
@@ -155,8 +153,8 @@ describe("session re-validation sweep integration (D1/D4)", () => {
     });
 
     const app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({
       getUserScopes: (user) => memberships.get(String(user.id)) ?? [],
     }).register(app);
@@ -165,7 +163,7 @@ describe("session re-validation sweep integration (D1/D4)", () => {
     realtimeApp = new RealtimeApp({
       // D1: a short sweep interval so the tests don't wait a full 60s default.
       sessionRevalidationIntervalMs: SESSION_REVALIDATION_INTERVAL_MS,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     });
     realtimeApp.register(app);
 
@@ -208,9 +206,12 @@ describe("session re-validation sweep integration (D1/D4)", () => {
     // for the socket-specific signal (isOnline flipping false) first — the only
     // thing that can disconnect this socket mid-test is the sweep, since nothing
     // else in this scenario touches the transport.
-    const fullUser = await findOneOrNoneFor(UserModel as any, {_id: userDoc._id});
-    (fullUser as any).disabled = true;
-    await (fullUser as any).save();
+    const fullUser = await findOneOrNoneFor(UserModel, {_id: userDoc._id});
+    if (!fullUser) {
+      throw new Error("the seeded test user is missing");
+    }
+    fullUser.disabled = true;
+    await fullUser.save();
 
     await waitFor(() => !client.getSyncStatus().isOnline, {
       label: "socket disconnected by the sweep after being disabled",
@@ -234,8 +235,8 @@ describe("session re-validation sweep integration (D1/D4)", () => {
 
     // Re-enable so afterAll's client.stop() and any later scenario aren't left
     // fighting a disabled user; also proves recovery is possible.
-    (fullUser as any).disabled = false;
-    await (fullUser as any).save();
+    fullUser.disabled = false;
+    await fullUser.save();
   }, 15_000);
 
   it("D4: revoking the user's only organization membership stops further deltas for that tenant on the live socket", async () => {

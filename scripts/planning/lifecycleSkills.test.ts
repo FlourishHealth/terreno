@@ -3,9 +3,13 @@ import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
+  validateAsyncReviewBotsContract,
+  validateClaudePluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
   validateLifecyclePlugin,
+  validateOuterLoopContent,
+  validateProductCiContract,
   validateStageContent,
 } from "./lifecycleSkills.ts";
 
@@ -22,9 +26,36 @@ describe("lifecycle skill architecture", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
   });
 
-  it("rejects an internal Taste wait loop", (): void => {
+  it("validates the Claude Code plugin host", (): void => {
+    assert.deepEqual(validateClaudePluginHost({rootDirectory: ROOT_DIRECTORY}), []);
+    const claudeMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".claude-plugin/marketplace.json"), "utf8")
+    ) as {name: string; plugins: Array<{name: string}>};
+    assert.equal(claudeMarketplace.name, "terreno-plugins");
+    assert.equal(claudeMarketplace.plugins[0]?.name, "terreno");
+    assert.notEqual(claudeMarketplace.name, claudeMarketplace.plugins[0]?.name);
+  });
+
+  it("keeps canonical stage names for Cursor and npx skills", (): void => {
+    const cursorPlugin = JSON.parse(
+      readFileSync(
+        resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
+        "utf8"
+      )
+    ) as {name: string};
+    const cursorMarketplace = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, ".cursor-plugin/marketplace.json"), "utf8")
+    ) as {plugins: Array<{name: string; source: string}>};
+
+    assert.equal(cursorPlugin.name, "terreno-planning");
+    assert.equal(cursorMarketplace.plugins[0]?.name, "terreno-planning");
+    assert.equal(cursorMarketplace.plugins[0]?.source, "terreno-planning");
+    assert.include(readStage("terreno-1-grow"), "name: terreno-1-grow");
+  });
+
+  it("rejects an unbounded Taste wait loop", (): void => {
     const errors = validateStageContent({
-      content: `${readStage("terreno-5-taste")}\nRun sleep 180 before checking again.`,
+      content: `${readStage("terreno-5-taste")}\nKeep the loop active until all CI is green.`,
       definition: {
         directory: "terreno-5-taste",
         nextMarkers: ["next: taste", "next: null"],
@@ -32,7 +63,82 @@ describe("lifecycle skill architecture", (): void => {
       },
     });
 
-    assert.isTrue(errors.some((error) => error.includes("internal waiting/loop")));
+    assert.isTrue(errors.some((error) => error.includes("unbounded waiting/loop")));
+  });
+
+  it("rejects Taste without a no-push emit path", (): void => {
+    const errors = validateStageContent({
+      content: readStage("terreno-5-taste").replace(
+        "If step 8 did not push",
+        "After step 8 pushed"
+      ),
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("emit path when no fix was pushed")));
+  });
+
+  it("rejects Brew that exits while review bots are running", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("../../references/async-review-bots.md", "missing-bots")
+      .replaceAll("Do not exit while", "Exit immediately while");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("async review-bot wait")));
+    assert.isTrue(errors.some((error) => error.includes("wait in-process for running review bots")));
+  });
+
+  it("rejects Brew that skips product CI host discovery", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("../../references/product-ci.md", "missing-product-ci")
+      .replaceAll("every discovered CI host", "GitHub Actions only")
+      .replaceAll("provider CLI watch hooks", "manual polling")
+      .replaceAll("required host untriggered after grace", "untriggered hosts pass");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("every discovered CI host")));
+    assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("required CI host")));
+  });
+
+  it("rejects Taste that observes only GitHub checks", (): void => {
+    const content = readStage("terreno-5-taste")
+      .replace("../../references/product-ci.md", "missing-product-ci")
+      .replaceAll("not only GitHub checks", "from GitHub checks only")
+      .replaceAll("provider CLI watch hooks", "manual polling")
+      .replaceAll("documented path-filter/config", "undocumented");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("not only GitHub checks")));
+    assert.isTrue(errors.some((error) => error.includes("provider CLI watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("non-applicable hosts")));
   });
 
   it("rejects same-invocation Brew to Taste execution", (): void => {
@@ -59,6 +165,80 @@ describe("lifecycle skill architecture", (): void => {
     });
 
     assert.isTrue(errors.some((error) => error.includes("repository-specific marker")));
+  });
+
+  it("rejects Pick that skips Roast or the inner loop", (): void => {
+    const content = readStage("terreno-2-pick")
+      .replace("../../references/pick-roast-loop.md", "missing-loop")
+      .replaceAll("Do not start the next task until Roast PASS", "Start the next task immediately")
+      .replaceAll("Pick never skips Roast", "Pick may skip Roast");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("pick-roast inner loop")));
+    assert.isTrue(errors.some((error) => error.includes("Roast PASS before the next task")));
+    assert.isTrue(errors.some((error) => error.includes("must not skip Roast")));
+  });
+
+  it("rejects Pick that skips Reconstruct on the next task or dual-drives the loop", (): void => {
+    const content = readStage("terreno-2-pick")
+      .replaceAll("repeat from Reconstruct", "repeat from Specify")
+      .replaceAll("Exactly one driver continues", "Both Pick and Roast continue")
+      .replaceAll("Roast never invokes Pick", "Roast may invoke Pick");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("rediscover docs and skills")));
+    assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
+    assert.isTrue(errors.some((error) => error.includes("treat Roast as prove-only")));
+  });
+
+  it("rejects Roast that invokes Pick or dual-drives the loop", (): void => {
+    const content = readStage("terreno-3-roast")
+      .replaceAll("Exactly one driver continues", "Both stages continue")
+      .replaceAll("Roast never invokes Pick", "Roast may invoke Pick")
+      .replaceAll("Pick owns the inner loop", "Roast owns the inner loop");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-3-roast",
+        nextMarkers: ["next: brew", "next: pick", "next: null"],
+        stage: "roast",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
+    assert.isTrue(errors.some((error) => error.includes("never invoke Pick")));
+    assert.isTrue(errors.some((error) => error.includes("Pick as the inner-loop driver")));
+  });
+
+  it("rejects Roast that does not continue the inner loop", (): void => {
+    const content = readStage("terreno-3-roast")
+      .replace("../../references/pick-roast-loop.md", "missing-loop")
+      .replaceAll("Do not start the next task until Roast PASS", "Hand off to Brew after one task");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-3-roast",
+        nextMarkers: ["next: brew", "next: pick", "next: null"],
+        stage: "roast",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("pick-roast inner loop")));
+    assert.isTrue(errors.some((error) => error.includes("Roast PASS before the next task")));
   });
 
   it("rejects a missing non-pass transition marker", (): void => {
@@ -99,6 +279,32 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("Diátaxis")));
   });
 
+  it("rejects product CI polling without native wait hooks", (): void => {
+    const errors = validateProductCiContract(
+      "Fetch status, sleep 30 seconds, then fetch status again."
+    );
+
+    assert.isTrue(errors.some((error) => error.includes("gh pr checks")));
+    assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
+    assert.isTrue(errors.some((error) => error.includes("bk build watch")));
+    assert.isTrue(errors.some((error) => error.includes("final fallback")));
+    assert.isTrue(errors.some((error) => error.includes("untriggered hosts")));
+    assert.isTrue(errors.some((error) => error.includes("non-applicable hosts")));
+  });
+
+  it("rejects review-bot waits that watch every PR check", (): void => {
+    const missingErrors = validateAsyncReviewBotsContract("");
+    const unsafeErrors = validateAsyncReviewBotsContract(
+      "Prefer `gh pr checks <pr> --watch --interval 30` or gh run watch <run-id> --exit-status."
+    );
+
+    assert.isTrue(missingErrors.some((error) => error.includes("targeted GitHub Actions")));
+    assert.isTrue(missingErrors.some((error) => error.includes("unfiltered PR-check")));
+    assert.isTrue(missingErrors.some((error) => error.includes("PR-event subscriptions")));
+    assert.isTrue(unsafeErrors.some((error) => error.includes("all PR product checks")));
+    assert.isTrue(unsafeErrors.some((error) => error.includes("bot failure")));
+  });
+
   it("rejects a stage that does not load the documentation contract", (): void => {
     const content = readStage("terreno-2-pick").replace(
       "../../references/documentation-contract.md",
@@ -131,5 +337,26 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("grilling procedure")));
     assert.isTrue(errors.some((error) => error.includes("Decisions table")));
+  });
+
+  it("keeps planning-loop and taste-sweep as non-stage plugin skills", (): void => {
+    for (const directory of ["terreno-planning-loop", "terreno-taste-sweep"] as const) {
+      const content = readStage(directory);
+      assert.include(content, `name: ${directory}`);
+      assert.include(content, "disable-model-invocation: true");
+      assert.include(content, "../../references/lifecycle-contract.md");
+      assert.deepEqual(validateOuterLoopContent({content, directory}), []);
+    }
+  });
+
+  it("rejects outer loops that use timers before native CI hooks", (): void => {
+    const errors = validateOuterLoopContent({
+      content: "Wait 120 seconds, then invoke Taste.",
+      directory: "terreno-planning-loop",
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("product-CI procedure")));
+    assert.isTrue(errors.some((error) => error.includes("native watch hooks")));
+    assert.isTrue(errors.some((error) => error.includes("timer waiting")));
   });
 });

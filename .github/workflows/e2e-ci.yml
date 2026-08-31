@@ -1,64 +1,42 @@
 name: E2E Tests
 
-# Path filters on `push` are ignored for the first push of a new branch
-# (GitHub Actions docs). PR CI uses `pull_request`; `push` is master-only.
-on:
-  pull_request:
-    paths:
-      - "example-frontend/app/**"
-      - "example-frontend/constants/**"
-      - "example-frontend/hooks/**"
-      - "example-frontend/lib/**"
-      - "example-frontend/store/**"
-      - "example-frontend/utils/**"
-      - "example-frontend/e2e/**"
-      - "example-frontend/playwright.config.ts"
-      - "example-frontend/package.json"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - "ui/src/**"
-      - "rtk/src/**"
-      - "api/src/**"
-      - "ai/src/**"
-      - "admin-backend/src/**"
-      - "admin-frontend/src/**"
-      - "feature-flags/src/**"
-      - "api-health/src/**"
-      - "syncdb/**"
-      - ".github/workflows/e2e-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "example-frontend/app/**"
-      - "example-frontend/constants/**"
-      - "example-frontend/hooks/**"
-      - "example-frontend/lib/**"
-      - "example-frontend/store/**"
-      - "example-frontend/utils/**"
-      - "example-frontend/e2e/**"
-      - "example-frontend/playwright.config.ts"
-      - "example-frontend/package.json"
-      - "example-backend/src/**"
-      - "bun.lock"
-      - "ui/src/**"
-      - "rtk/src/**"
-      - "api/src/**"
-      - "ai/src/**"
-      - "admin-backend/src/**"
-      - "admin-frontend/src/**"
-      - "feature-flags/src/**"
-      - "api-health/src/**"
-      - "syncdb/**"
-      - ".github/workflows/e2e-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 concurrency:
   group: e2e-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  compile:
+    name: Compile workspace
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Upload compiled dist
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: workspace-dist
+          path: |
+            **/dist/**
+            !**/node_modules/**
+            !website/**
+            !demo/**
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
+
   e2e:
     name: "E2E · ${{ matrix.spec }}"
+    needs: compile
     if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     strategy:
@@ -84,19 +62,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
+      - name: Restore compiled dist
+        uses: actions/download-artifact@v8.0.1
         with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
+          name: workspace-dist
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
@@ -106,12 +78,6 @@ jobs:
           # Replica set is required for MongoDB change streams,
           # which power the RealtimeApp WebSocket sync.
           mongodb-replica-set: rs0
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Compile workspace packages
-        run: bun run compile
 
       - name: Resolve E2E auth secrets
         run: |
@@ -173,6 +139,12 @@ jobs:
           TOKEN_ISSUER: terreno-e2e
           REFRESH_TOKEN_SECRET: ${{ env.REFRESH_TOKEN_SECRET }}
           SESSION_SECRET: ${{ env.SESSION_SECRET }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium

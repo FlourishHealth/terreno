@@ -1,6 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
+import {StyleSheet} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
 
 import {RNPickerSelect} from "./PickerSelect";
@@ -516,6 +517,43 @@ describe("PickerSelect", () => {
           <RNPickerSelect {...searchEnabledWebProps} onValueChange={mockOnValueChange} value="2" />
         );
         expect(getByTestId("text_input").props.value).toBe("Option 2");
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    // A trigger label that cannot shrink below its intrinsic width overflows narrow
+    // fields (e.g. the am/pm and timezone pickers in DateTimeField) and pushes the
+    // chevron outside the field border.
+    it("lets the searchable trigger input shrink inside a narrow field", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
+        );
+        const style = StyleSheet.flatten(getByTestId("text_input").props.style);
+        expect(style.minWidth).toBe(0);
+        expect(style.flex).toBe(1);
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("lets the non-searchable trigger label shrink inside a narrow field", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} disableSearch value="1" />
+        );
+        const style = StyleSheet.flatten(getByTestId("text_input").props.style);
+        expect(style.minWidth).toBe(0);
+        expect(style.flex).toBe(1);
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();

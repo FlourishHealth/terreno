@@ -8,6 +8,8 @@ export interface SendResult {
   errorClass?: CommsErrorClass;
   errorCode?: string;
   isPermanentFailure?: boolean;
+  /** Id of the CommsMessage row written for this send, when logging is on. */
+  loggedMessageId?: string;
   metadata?: Record<string, unknown>;
   providerMessageId?: string;
 }
@@ -127,6 +129,17 @@ export interface CommsOptions {
   retainPayloadDays?: number;
   sms?: SmsProvider;
   verification?: VerificationProvider;
+}
+
+export interface CommsSendOptions {
+  extraMetadata?: Record<string, unknown>;
+  isRetry?: boolean;
+  retriedFromId?: string;
+}
+
+export interface RetryMessageOptions {
+  messageId: string;
+  retriedByUserId?: string;
 }
 
 export interface SendPushToUserMessage extends Omit<PushMessage, "tokens"> {

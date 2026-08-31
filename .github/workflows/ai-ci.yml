@@ -1,18 +1,7 @@
 name: AI CI
 
-on:
-  pull_request:
-    paths:
-      - "ai/**"
-      - "bun.lock"
-      - ".github/workflows/ai-ci.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - "ai/**"
-      - "bun.lock"
-      - ".github/workflows/ai-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:
@@ -30,7 +19,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache

@@ -8,7 +8,6 @@ import {
   IconButton,
   Link,
   Modal,
-  Page,
   Spinner,
   Text,
   TextField,
@@ -18,6 +17,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform, Image as RNImage, useWindowDimensions} from "react-native";
 import {WebView} from "react-native-webview";
 
+import {AdminScreenPage} from "./AdminScreenPage";
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
 import {useDocumentStorageApi} from "./useDocumentStorageApi";
 
@@ -42,6 +42,7 @@ const formatDate = (isoDate: string): string => {
 export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   api,
   basePath,
+  backHref,
   title = "Documents",
   allowDelete = true,
   allowUpload = true,
@@ -600,7 +601,13 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   };
 
   return (
-    <Page color="transparent" maxWidth="100%" padding={0} title={title}>
+    <AdminScreenPage
+      backHref={backHref}
+      color="transparent"
+      maxWidth="100%"
+      padding={0}
+      title={title}
+    >
       {headerRow}
       {renderContent()}
 
@@ -636,6 +643,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
           />
         </Box>
       </Modal>
-    </Page>
+    </AdminScreenPage>
   );
 };

@@ -1,5 +1,7 @@
 # Implementation Plan: modelRouter MCP Tools
 
+**Status:** Complete (write path now uses unified mutation executors — see [unified-mutation-executors.md](unified-mutation-executors.md); list/read remain handlers)
+
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1092
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
@@ -177,7 +179,7 @@ No activity logging specific to this feature. MCP tool calls go through the same
 ## Not Included / Future Work
 
 - **Rate limiting** — structured for future hooks but not implemented
-- **MCP resources/prompts** — only tools generated from modelRouter plus `registerMCPTool`
+- **MCP resources/prompts** — only tools generated from modelRouter plus `registerMCPTool`. Follow-up: [`app-mcp-server.md`](app-mcp-server.md) (prompts, resources, named servers, Better Auth OAuth 2.1, Inspector/test DX, Streamable HTTP client, hosted generators).
 - **Array operation tools** — handled via update, no dedicated push/patch/delete array tools
 - **WebSocket transport** — HTTP/SSE only
 - **Admin dashboard** — use `getMCPTools()` programmatically or MCP client tool listing

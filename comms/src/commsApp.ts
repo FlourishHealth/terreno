@@ -1,9 +1,9 @@
-import {APIError, logger, type TerrenoPlugin} from "@terreno/api";
+import {type AdminContribution, APIError, logger, type TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
 import {CommsService} from "./commsService";
 import {PushToken} from "./models/pushToken";
-import {addCommsExplorerRoute} from "./routes/commsExplorer";
+import {addCommsDashboardRoutes} from "./routes/commsDashboard";
 import {addPushTokenRoutes} from "./routes/pushTokens";
 import type {CommsOptions} from "./types";
 
@@ -43,6 +43,18 @@ export class CommsApp implements TerrenoPlugin {
     });
 
     addPushTokenRoutes(app, {basePath: `${basePath}/pushTokens`, openApi});
-    addCommsExplorerRoute(app, {openApi, path: `${basePath}/messages`});
+    addCommsDashboardRoutes(app, {basePath, openApi, service: this.service});
+  }
+
+  adminContribution(): AdminContribution {
+    return {
+      customScreens: [
+        {
+          displayName: "Comms Dashboard",
+          icon: "paper-plane",
+          name: "comms",
+        },
+      ],
+    };
   }
 }
