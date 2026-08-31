@@ -126,6 +126,8 @@ describe("lifecycle skill architecture", (): void => {
       .replaceAll("no parent conversation", "full parent context")
       .replaceAll("bun lint", "repo lint")
       .replaceAll("locally affected tests", "the full suite")
+      .replaceAll("latest `master`", "latest origin")
+      .replaceAll("Before any push, in this order", "Before any push, optionally")
       .replaceAll("gh pr checks <pr> --watch", "poll GitHub later")
       .replaceAll("circleci run watch --sha <sha>", "poll CircleCI later")
       .replaceAll("watch → snapshot cycle in a loop", "one snapshot then exit");
@@ -145,6 +147,8 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("gh pr checks --watch")));
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("watch loop")));
+    assert.isTrue(errors.some((error) => error.includes("latest master")));
+    assert.isTrue(errors.some((error) => error.includes("pull, then lint, then watch")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {

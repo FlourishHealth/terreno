@@ -12,7 +12,7 @@ it as `terreno-planning`; Claude Code installs the generated `terreno-claude/` c
 | 2 | **Pick** (`terreno-2-pick`) | Build one slice, roast it, then pick the next until the list is done |
 | 3 | **Roast** (`terreno-3-roast`) | Prove the current task, then continue the pick-roast inner loop |
 | 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, confirm product CI on every discovered host, wait for review bots, then exit |
-| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots, wait for product CI with `gh`/`circleci`, one current-head reaction, local `bun lint` + affected tests in a no-context subagent before any push, then exit |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; before push: pull latest `master`, then `bun lint` in a no-context subagent, then push and watch |
 
 Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
 Grow, Brew, and Taste never own the full orchestration. Pick and Roast own the inner
@@ -83,9 +83,9 @@ one driver continues after each current-task Roast. Brew and Taste wait until Bu
 CodeQL, and similar review bots on the current head have reported, preferring provider
 CLI watch hooks or harness event subscriptions over sleep polling, then continue. Taste
 then waits in a loop for product CI using GitHub CLI or CircleCI CLI until jobs are
-terminal or the wait times out. Before any push, Taste spawns a fresh subagent with no
-parent conversation to run `bun lint` in each affected package and the locally affected
-tests. Taste observes jobs on every discovered CI host (GitHub Actions, CircleCI,
+terminal or the wait times out. Before any push, Taste always pulls latest `master`,
+then spawns a fresh subagent with no parent conversation to run `bun lint` in each
+affected package and the locally affected tests, then pushes and watches product CI. Taste observes jobs on every discovered CI host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. Outer loops use the same native hooks
 during Taste `PENDING` waits. The loop owns persistence, retry, stop, and escalation.
 It does not reinvoke Pick between roasted tasks.

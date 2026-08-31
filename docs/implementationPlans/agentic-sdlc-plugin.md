@@ -19,8 +19,9 @@ Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (rea
 
 The outer loop owns invocation, persistence, Taste `PENDING` reinvocation, retry, stop,
 and escalation. Brew waits in-process for async review bots. Taste waits in-process for
-review bots and for product CI (GitHub CLI or CircleCI CLI watch loop), and proves
-local lint/tests in a no-context subagent before any push.
+review bots and for product CI (GitHub CLI or CircleCI CLI watch loop). Before any
+push it pulls latest `master`, lints in a no-context subagent, then pushes and watches
+CI.
 Lifecycle skills own how one stage is performed. Repository skills own how this codebase
 works. Roast owns independent acceptance proof. State/evidence bridge fresh invocations.
 
@@ -55,7 +56,7 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP2 | Sensitive-data rules cover credentials, customer data, PII/PHI, and evidence media |
 | AP3 | Canonical stages are Grow, Pick, Roast, Brew, Taste |
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
-| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI (GitHub/CircleCI CLI watch loop). Before any push it spawns a fresh subagent with no parent conversation to run `bun lint` in affected packages and locally affected tests. The outer loop reinvokes on Taste `PENDING` |
+| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI. Before any push: always pull latest `master`, then run `bun lint` (and affected tests) in a fresh subagent with no parent conversation, then push and watch CI (`gh` / `circleci`). The outer loop reinvokes on Taste `PENDING` |
 | AP6 | Shared results use compact `v: 2` YAML; required keys are `v`, `stage`, `status`, `next`, `action`; empty keys are omitted; YAML is collapsed for humans |
 | AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
@@ -164,9 +165,10 @@ provider CLI watch hooks or harness subscriptions, then waits in a loop for prod
 using GitHub CLI (`gh pr checks --watch`, `gh run watch`) or CircleCI CLI
 (`circleci run watch`) until jobs on every discovered host are terminal or the wait
 times out. It then classifies mergeability and reviews, performs one bounded set of
-actionable fixes, and before any push spawns a fresh subagent with no parent conversation
-to run `bun lint` in each affected package and the locally affected tests. After a push
-it waits again for review bots and product CI and may act once more. It emits
+actionable fixes. Before any push it always pulls latest `master`, then spawns a fresh
+subagent with no parent conversation to run `bun lint` in each affected package and the
+locally affected tests, then pushes and watches review bots and product CI. It may act
+once more after that watch. It emits
 `PASS`/`PENDING`/`BLOCKED`/`FAIL` and exits. The outer loop reinvokes after timeout or a
 second post-fix push.
 

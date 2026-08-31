@@ -14,7 +14,7 @@ stages; they are not stages and must not appear as `stage` values.
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
-| `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait, product-CI wait loop, and a no-context lint/test subagent before any push | null or fresh Taste |
+| `terreno-5-taste` | PR + current state | one current-head reaction; before push: pull latest `master`, lint in a no-context subagent, then watch CI | null or fresh Taste |
 
 Outer loops (not stages):
 
@@ -48,8 +48,9 @@ until async review bots (Bugbot, CodeQL, and similar) on the current head have r
 preferring provider CLI watch hooks or harness event subscriptions over sleep polling.
 Taste then waits in a loop for product CI using GitHub CLI (`gh pr checks --watch`,
 `gh run watch`) or CircleCI CLI (`circleci run watch`) until jobs are terminal or the
-wait times out. Before any push, Taste spawns a fresh subagent with no parent
-conversation to run `bun lint` in each affected package and the locally affected tests.
+wait times out. Before any push, Taste always pulls latest `master`, then spawns a
+fresh subagent with no parent conversation to run `bun lint` in each affected package
+and the locally affected tests, then pushes and watches product CI.
 Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. A documented not-applicable host
 counts as skipped; an unexplained untriggered host prevents Brew `PASS`. Brew still

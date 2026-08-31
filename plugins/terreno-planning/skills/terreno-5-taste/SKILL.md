@@ -1,15 +1,15 @@
 ---
 name: terreno-5-taste
-description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable, spawn a no-context subagent to lint and test affected packages before any push, emit state, and exit.
+description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable. Before any push: always pull latest master, then lint affected packages in a no-context subagent, then push and watch CI. Emit state and exit.
 disable-model-invocation: true
 ---
 
 # Taste — react
 
 Observe current external state, wait until review bots and product CI on this head are
-terminal, act on currently actionable engineering work, prove local lint and affected
-tests in a fresh subagent before any push, emit structured state, and exit. Taste never
-owns persistence.
+terminal, act on currently actionable engineering work, then before any push pull latest
+master, lint in a fresh subagent, push, and watch CI. Emit structured state and exit.
+Taste never owns persistence.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 [`documentation contract`](../../references/documentation-contract.md),
@@ -67,26 +67,32 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
    - For a mechanical conflict, integrate the latest base using repository policy,
      preserve both intended changes, and never rewrite pushed history unless allowed.
    - Do not push speculative code for unrelated/flaky/external failures.
-8. **Verify locally in a fresh subagent.** Before any push, map the uncommitted (and
-   compared-to-base) changed files to affected packages: nearest directory with a
-   `package.json` `lint` script. Spawn a **fresh subagent with no parent conversation**.
-   The prompt may contain only the repo root, affected package directories, changed
-   files, and these orders:
-   - run `bun lint` in each affected package
-   - run the locally affected tests (closest package or file-level tests for those
-     files; not the whole workspace unless the change is repo-wide)
-   Do not push until that subagent reports pass with command output. If the harness
-   cannot spawn a fresh subagent, run the same commands yourself and ignore prior
-   conversational claims. Also run any mandatory domain, runtime, or UI verification.
-   Update architecture/public docs when the fix changes behavior. Capture updated
-   evidence/artifacts. Missing mandatory capability is `BLOCKED`. Local lint/test
-   failure is `FAIL` until fixed; do not push it.
-9. **Commit/push if changed.** Follow repository policy. Record the new head. Resolve an
-   addressed thread silently when the diff is self-explanatory. Reply only when a
-   non-obvious decision must be preserved, using no more than three short sentences.
-   After a push, wait again for review bots and then the product-CI wait loop on the
-   new head, then act on those results once more in this invocation. A further push
-   after that second act is `PENDING`.
+8. **Before any push, in this order: pull latest master, then lint, then watch.**
+   1. Always fetch and merge the latest `master` into this branch (use the PR base if it
+      is not `master`). Do this even when git reports no conflict. Preserve both intended
+      changes. Never rewrite pushed history unless allowed. A merge that needs a
+      design/behavior choice is `BLOCKED`.
+   2. Then map the uncommitted (and compared-to-base) changed files to affected packages:
+      nearest directory with a `package.json` `lint` script. Spawn a **fresh subagent
+      with no parent conversation**. The prompt may contain only the repo root, affected
+      package directories, changed files, and these orders:
+      - run `bun lint` in each affected package
+      - run the locally affected tests (closest package or file-level tests for those
+        files; not the whole workspace unless the change is repo-wide)
+      Do not push until that subagent reports pass with command output. If the harness
+      cannot spawn a fresh subagent, run the same commands yourself and ignore prior
+      conversational claims. Also run any mandatory domain, runtime, or UI verification.
+      Update architecture/public docs when the fix changes behavior. Capture updated
+      evidence/artifacts. Missing mandatory capability is `BLOCKED`. Local lint/test
+      failure is `FAIL` until fixed; do not push it.
+9. **Commit/push if changed, then watch.** Follow repository policy. Record the new
+   head. Resolve an addressed thread silently when the diff is self-explanatory. Reply
+   only when a non-obvious decision must be preserved, using no more than three short
+   sentences. After a push, wait again for review bots and then the product-CI wait
+   loop on the new head (`gh pr checks <pr> --watch`, `gh run watch`,
+   `circleci run watch --sha <sha>`), then act on those results once more in this
+   invocation. A further push after that second act is `PENDING`. Do not watch product
+   CI for a head you have not pulled, linted, and pushed.
 10. **Preserve PR description.** Never regenerate or replace human-authored text. Fetch the
     latest body before a required minimal evidence edit; skip body mutation if it cannot
     be preserved exactly. Update `Verification` instead of posting test/CI comments. Keep
@@ -121,6 +127,7 @@ safety policy.
 - Current head/base and complete job-state summary for every discovered CI host
 - Async review-bot wait outcome (names, statuses, timeout if any)
 - Product-CI wait-loop outcome (hosts, watch commands, terminal vs timeout)
+- Latest-`master` pull/merge outcome before push
 - Fresh-subagent `bun lint` and affected-test commands and outcomes
 - Mergeability/conflict classification
 - Review-thread classification and actions taken

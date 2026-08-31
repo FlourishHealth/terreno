@@ -281,6 +281,12 @@ export const validateStageContent = ({
     if (!content.includes("If step 9 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
+    if (!content.includes("latest `master`")) {
+      errors.push(`${prefix}: Taste must pull latest master before lint and push`);
+    }
+    if (!content.includes("Before any push, in this order")) {
+      errors.push(`${prefix}: Taste must order before-push as pull, then lint, then watch`);
+    }
     if (!content.includes("fresh subagent")) {
       errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
     }

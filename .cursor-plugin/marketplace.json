@@ -14,7 +14,7 @@
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions plus outer loops; Taste waits for product CI with gh/circleci and lints/tests affected packages in a no-context subagent before push."
+      "description": "Five bounded transitions plus outer loops; before push Taste pulls latest master, lints in a no-context subagent, then watches product CI with gh/circleci."
     }
   ]
 }
