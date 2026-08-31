@@ -259,6 +259,7 @@
       "version": "57.2.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
+        "libphonenumber-js": "catalog:",
         "luxon": "catalog:",
       },
       "devDependencies": {

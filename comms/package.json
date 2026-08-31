@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
+    "libphonenumber-js": "catalog:",
     "luxon": "catalog:"
   },
   "description": "Pluggable mail, SMS, push, and verification providers — part of Terreno, the batteries-included TypeScript framework for universal apps.",
