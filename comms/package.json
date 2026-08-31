@@ -36,6 +36,10 @@
     "./adapters/twilioSms": {
       "types": "./dist/adapters/twilioSms.d.ts",
       "default": "./dist/adapters/twilioSms.js"
+    },
+    "./adapters/twilioVerify": {
+      "types": "./dist/adapters/twilioVerify.d.ts",
+      "default": "./dist/adapters/twilioVerify.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
