@@ -11,5 +11,7 @@ export const applyRateLimitTrustProxy = (app: Application, options: RateLimitOpt
     app.set("trust proxy", options.trustProxy);
     return;
   }
-  app.set("trust proxy", 1);
+  // Default off so client X-Forwarded-For cannot rotate unauthenticated buckets.
+  // Cloud Run / GFE: pass trustProxy: 1.
+  app.set("trust proxy", false);
 };

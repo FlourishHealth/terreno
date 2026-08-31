@@ -155,6 +155,22 @@ describe("HTTP rate limiting", () => {
       "api"
     );
     assert.equal(
+      classifyRateLimitPolicy({
+        method: "POST",
+        originalUrl: "/auth/login#x",
+        path: "/auth/login",
+      } as never),
+      "auth"
+    );
+    assert.equal(
+      classifyRateLimitPolicy({
+        method: "POST",
+        originalUrl: "http://host/auth/login",
+        path: "/auth/login",
+      } as never),
+      "auth"
+    );
+    assert.equal(
       classifyRateLimitPolicy(
         {method: "POST", originalUrl: "/custom/auth/sign-in"} as never,
         "/custom/auth"
@@ -192,8 +208,8 @@ describe("HTTP rate limiting", () => {
     assert.equal(otherClient.status, 200);
   });
 
-  it("ignores spoofed X-Forwarded-For when trustProxy is false", async () => {
-    const app = buildApp({limits: {apiMax: 1, authMax: 20}, trustProxy: false});
+  it("ignores spoofed X-Forwarded-For when trustProxy is omitted", async () => {
+    const app = buildApp({limits: {apiMax: 1, authMax: 20}});
     const first = await supertest(app).get("/food").set("X-Forwarded-For", "203.0.113.10");
     assert.equal(first.status, 200);
     const spoofed = await supertest(app).get("/food").set("X-Forwarded-For", "198.51.100.20");
@@ -285,10 +301,10 @@ describe("memory rate limit store", () => {
 });
 
 describe("applyRateLimitTrustProxy", () => {
-  it("defaults to 1 and honors false or hop count", () => {
+  it("defaults to false and honors hop count", () => {
     const app = express();
     applyRateLimitTrustProxy(app, {});
-    assert.equal(app.get("trust proxy"), 1);
+    assert.equal(app.get("trust proxy"), false);
     applyRateLimitTrustProxy(app, {trustProxy: false});
     assert.equal(app.get("trust proxy"), false);
     applyRateLimitTrustProxy(app, {trustProxy: 2});

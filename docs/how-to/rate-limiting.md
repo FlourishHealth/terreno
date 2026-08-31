@@ -30,7 +30,7 @@ new TerrenoApp({
   userModel: User,
   rateLimit:
     process.env.RATE_LIMIT_ENABLED === "true"
-      ? {store: "redis"}
+      ? {store: "redis", trustProxy: 1}
       : undefined,
 });
 ```
@@ -50,7 +50,7 @@ new TerrenoApp({
 
 Pass `{store: "mongo"}`. Hits live in `rateLimitHits` on the same mongoose connection as the app. A TTL index on `expiresAt` expires windows. This collection is not a `modelRouter` resource.
 
-Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy` defaults to `1` unless you set `rateLimit.trustProxy`. `trustProxy: false` ignores `X-Forwarded-For` (tests and local sockets).
+Unauthenticated keys use `req.ip`. Express `trust proxy` defaults to **off** so a client cannot rotate `X-Forwarded-For` to bypass the auth bucket. On Cloud Run (one hop via GFE), pass `trustProxy: 1`. Extra proxies: hop count or a subnet list. `trustProxy: false` is the same as the default.
 
 ## Auth vs API buckets
 
@@ -64,7 +64,7 @@ Unauthenticated keys use `req.ip`. When the limiter is on, Express `trust proxy`
 | modelRouter, admin, AI HTTP, `POST /mcp`, `POST /sync/mutate` | api |
 | `GET /health`, `/healthz`, `/openapi.json`, `/swagger` | skip |
 
-`rateLimit.skip` adds extra skips. Health/openapi/swagger always skip. Paths are compared without a trailing slash.
+`rateLimit.skip` adds extra skips. Health/openapi/swagger always skip. Paths use Express `req.path` (not the raw request-target), without a trailing slash.
 
 JWT `POST /auth/login`, `/auth/signup`, and `/auth/refresh_token` skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT. Path matching ignores trailing slashes and letter case because Express routing is case-insensitive by default.
 

@@ -4,14 +4,16 @@ import type {RateLimitPolicyName} from "./types";
 
 const DEFAULT_BETTER_AUTH_BASE_PATH = "/api/auth";
 
-const stripQuery = (url: string): string => {
-  const q = url.indexOf("?");
-  return q === -1 ? url : url.slice(0, q);
+const stripQueryAndFragment = (url: string): string => {
+  const hash = url.indexOf("#");
+  const withoutHash = hash === -1 ? url : url.slice(0, hash);
+  const q = withoutHash.indexOf("?");
+  return q === -1 ? withoutHash : withoutHash.slice(0, q);
 };
 
-/** Strip query and a trailing slash so `/auth/login/` matches `/auth/login`. */
+/** Strip query, fragment, and a trailing slash so `/auth/login/` matches `/auth/login`. */
 export const normalizeRequestPath = (url: string): string => {
-  const withoutQuery = stripQuery(url);
+  const withoutQuery = stripQueryAndFragment(url);
   const withoutSlash =
     withoutQuery.length > 1 && withoutQuery.endsWith("/")
       ? withoutQuery.slice(0, -1)
@@ -19,8 +21,9 @@ export const normalizeRequestPath = (url: string): string => {
   return withoutSlash.toLowerCase();
 };
 
+/** Prefer Express `req.path` (routing) over the raw request-target. */
 export const requestPath = (req: Request): string => {
-  const raw = req.originalUrl || req.url || req.path || "";
+  const raw = req.path || req.url || req.originalUrl || "";
   return normalizeRequestPath(raw);
 };
 
