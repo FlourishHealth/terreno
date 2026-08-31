@@ -376,6 +376,47 @@ describe("createSocketTransport", () => {
     }
   });
 
+  it("flushes inbound delta batches on a microtask when the document is hidden", async () => {
+    const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+    const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+    let rafCalled = false;
+    globalThis.requestAnimationFrame = (): number => {
+      rafCalled = true;
+      return 1;
+    };
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {hidden: true},
+    });
+    try {
+      const receiver = makeTransport();
+      const batches: SyncDelta[][] = [];
+      receiver.onDeltaBatch?.((deltas) => batches.push(deltas));
+      await receiver.connect();
+
+      const delta: SyncDelta = {
+        collection: "todos",
+        data: {title: "background"},
+        id: "t1",
+        method: "create",
+        seq: 1,
+        stream: "todos|owner:u1",
+      };
+      server.sockets[0]?.emit("sync:delta", delta);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      expect(rafCalled).toBe(false);
+      expect(batches).toEqual([[delta]]);
+    } finally {
+      globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+      if (originalDocument) {
+        Object.defineProperty(globalThis, "document", originalDocument);
+      } else {
+        Reflect.deleteProperty(globalThis, "document");
+      }
+    }
+  });
+
   it("sendMutationBatch resolves results from the Socket.io ack callback (FIX 5)", async () => {
     server.mutateBatchHandler = (request, socket, ack) => {
       socket.emit("sync:batchReceived", {batchId: request.batchId});

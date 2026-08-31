@@ -124,8 +124,13 @@ export const createSocketTransport = ({
     // Socket.IO can deliver a high-volume stream in separate tasks. Deferring to
     // the next paint coalesces that stream into one store transaction, so React
     // does not render once per delta. Non-DOM environments retain microtask
-    // semantics for SSR and transport tests.
-    if (typeof globalThis.requestAnimationFrame === "function") {
+    // semantics for SSR and transport tests. Hidden documents also skip rAF:
+    // browsers pause animation frames in background tabs, which would leave
+    // received deltas unapplied (and unpersisted) until the tab is shown again
+    // — or drop them if the browser discards the tab.
+    const isDocumentHidden =
+      typeof globalThis.document !== "undefined" && globalThis.document.hidden === true;
+    if (typeof globalThis.requestAnimationFrame === "function" && !isDocumentHidden) {
       globalThis.requestAnimationFrame(flushInboundDeltaBatch);
       return;
     }
