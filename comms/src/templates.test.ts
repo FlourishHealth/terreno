@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {renderTemplate} from "./templates";
+import {renderAuthMail, renderTemplate} from "./templates";
 
 describe("renderTemplate", () => {
   it("interpolates own data fields across subject, text, and html", (): void => {
@@ -48,6 +48,52 @@ describe("renderTemplate", () => {
       html: "<p></p>",
       subject: " ",
       text: "",
+    });
+  });
+});
+
+describe("auth mail templates", () => {
+  it("renders resetPassword and verifyEmail links from publicAppUrl", (): void => {
+    const reset = renderAuthMail({
+      publicAppUrl: "https://app.example.com/",
+      templateId: "resetPassword",
+      token: "abc123",
+    });
+    const verify = renderAuthMail({
+      publicAppUrl: "https://app.example.com/",
+      templateId: "verifyEmail",
+      token: "def456",
+    });
+
+    assert.deepEqual(reset, {
+      html: '<p><a href="https://app.example.com/resetPassword?token=abc123">Reset your password</a></p>',
+      subject: "Reset your password",
+      text: "Reset your password using this link: https://app.example.com/resetPassword?token=abc123",
+    });
+    assert.deepEqual(verify, {
+      html: '<p><a href="https://app.example.com/verifyEmail?token=def456">Verify your email</a></p>',
+      subject: "Verify your email",
+      text: "Verify your email using this link: https://app.example.com/verifyEmail?token=def456",
+    });
+  });
+
+  it("uses app-provided template overrides when present", (): void => {
+    const rendered = renderAuthMail({
+      publicAppUrl: "https://app.example.com",
+      templateId: "resetPassword",
+      templates: {
+        resetPassword: {
+          html: "<p>{{resetUrl}}</p>",
+          subject: "Reset for {{token}}",
+          text: "{{resetUrl}}",
+        },
+      },
+      token: "abc123",
+    });
+    assert.deepEqual(rendered, {
+      html: "<p>https://app.example.com/resetPassword?token=abc123</p>",
+      subject: "Reset for abc123",
+      text: "https://app.example.com/resetPassword?token=abc123",
     });
   });
 });
