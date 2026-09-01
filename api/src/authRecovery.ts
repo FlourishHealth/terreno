@@ -4,6 +4,7 @@ import {asyncHandler} from "./api";
 import {
   generateTokens,
   type HasSetPassword,
+  MAX_PASSWORD_LENGTH,
   setPasswordForUser,
   type User,
   type UserModel,
@@ -82,18 +83,22 @@ export const addAuthRecoveryRoutes = (
       try {
         const user = await userModel.findByUsername(email, false);
         if (user) {
-          const issued = await AuthToken.issueFor({_id: user._id}, "passwordReset");
-          const resetUrl = buildResetUrl(authOptions?.publicAppUrl, issued.token);
-          const destination =
-            typeof (user as User & {email?: string}).email === "string"
-              ? (user as User & {email: string}).email
-              : email;
-          await deliverRecoveryMail(authOptions, {
-            html: resetPasswordHtml(resetUrl),
-            subject: RESET_PASSWORD_SUBJECT,
-            text: resetPasswordText(resetUrl),
-            to: destination,
-          });
+          if (!authOptions?.publicAppUrl) {
+            logger.error("[auth] publicAppUrl is required to send password reset mail");
+          } else {
+            const issued = await AuthToken.issueFor({_id: user._id}, "passwordReset");
+            const resetUrl = buildResetUrl(authOptions.publicAppUrl, issued.token);
+            const destination =
+              typeof (user as User & {email?: string}).email === "string"
+                ? (user as User & {email: string}).email
+                : email;
+            await deliverRecoveryMail(authOptions, {
+              html: resetPasswordHtml(resetUrl),
+              subject: RESET_PASSWORD_SUBJECT,
+              text: resetPasswordText(resetUrl),
+              to: destination,
+            });
+          }
         }
       } catch (error: unknown) {
         logger.error("[auth] Failed to send password reset mail", {error});
@@ -108,6 +113,12 @@ export const addAuthRecoveryRoutes = (
     const password = passwordFromBody(body);
     if (!token || !password) {
       throw new APIError({status: 400, title: "token and password are required"});
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      throw new APIError({
+        status: 400,
+        title: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+      });
     }
     const consumed = await AuthToken.consume(token, "passwordReset");
     if (!consumed) {
@@ -137,6 +148,7 @@ export const addAuthRecoveryRoutes = (
     .withTags(["auth"])
     .withSummary("Reset password with a one-time token")
     .withRequestBody({
+      newPassword: {type: "string"},
       password: {type: "string"},
       token: {type: "string"},
     })

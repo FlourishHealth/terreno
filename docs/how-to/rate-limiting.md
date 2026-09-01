@@ -57,6 +57,7 @@ Unauthenticated keys use `req.ip`. Express `trust proxy` defaults to **off** so 
 | Path | Bucket |
 | --- | --- |
 | `POST /auth/login`, `/auth/signup`, `/auth/refresh_token` | auth (20 / 15 min) |
+| `POST /auth/forgotPassword`, `/auth/resetPassword`, `/resetPassword` | auth |
 | `GET /auth/github`, `/auth/github/callback` | auth |
 | `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password`, `reset-password`, `callback/*` | auth |
 | Trailing slash on those paths (`/auth/login/`) | same bucket as the unsuffixed path |
@@ -66,7 +67,7 @@ Unauthenticated keys use `req.ip`. Express `trust proxy` defaults to **off** so 
 
 `rateLimit.skip` adds extra skips. Health/openapi/swagger always skip. Paths use Express `req.path` (not the raw request-target), without a trailing slash.
 
-JWT login/signup/refresh skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT. Path matching uses Express `req.path` and ignores trailing slashes and letter case.
+JWT login/signup/refresh and password-reset paths skip access-token verification so a stale `Authorization` header cannot block credential exchange. Other routes still 401 on an expired JWT. Path matching uses Express `req.path` and ignores trailing slashes and letter case.
 
 Auth-bucket keys are always the client IP, even if a Better Auth session already set `req.user`. API traffic still keys by user when authenticated.
 

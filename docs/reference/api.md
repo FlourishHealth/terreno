@@ -178,9 +178,14 @@ marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours 
 
 Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
 `getCommsService().sendMail`) so forgot-password can deliver the link
-`${publicAppUrl}/resetPassword?token=...`. Successful reset calls `setPassword`, increments
-`tokenEpoch` so outstanding refresh tokens fail, and returns new JWT tokens. `POST /resetPassword`
-matches the `@terreno/rtk` `resetPassword` mutation path.
+`${publicAppUrl}/resetPassword?token=...`. Forgot-password skips issuing a token when
+`publicAppUrl` is missing. Successful reset calls `setPassword`, increments
+`tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. Access
+tokens stay valid until expiry (default 15m). `POST /resetPassword`
+matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
+
+Add `tokenEpoch` (number, default 0) on the User schema so epoch bumps persist under
+`strict: "throw"`. See `example-backend` User.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)

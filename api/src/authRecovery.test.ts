@@ -3,6 +3,7 @@ import {assert} from "chai";
 import type express from "express";
 import supertest from "supertest";
 
+import {MAX_PASSWORD_LENGTH} from "./auth";
 import {AuthToken} from "./authTokens";
 import {TerrenoApp} from "./terrenoApp";
 import {setupDb, UserModel} from "./tests";
@@ -119,6 +120,24 @@ describe("password reset routes", () => {
     await supertest(app)
       .post("/auth/login")
       .send({email: "notAdmin@example.com", password: "rtk-new-password"})
+      .expect(200);
+  });
+
+  it("does not consume a reset token when the new password is too long", async () => {
+    await supertest(app)
+      .post("/auth/forgotPassword")
+      .send({email: "notAdmin@example.com"})
+      .expect(202);
+    const token = tokenFromResetUrl(sentMail[0]?.text ?? "");
+
+    await supertest(app)
+      .post("/auth/resetPassword")
+      .send({password: "x".repeat(MAX_PASSWORD_LENGTH + 1), token})
+      .expect(400);
+
+    await supertest(app)
+      .post("/auth/resetPassword")
+      .send({password: "valid-after-too-long", token})
       .expect(200);
   });
 });
