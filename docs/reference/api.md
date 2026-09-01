@@ -1023,13 +1023,14 @@ JSON and `application/x-www-form-urlencoded` parsers on `TerrenoApp` copy the or
 bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verified
 without re-serializing `req.body`.
 
-Register inbound routes on `WebhooksApp` (HMAC in this slice; Stripe/Twilio/SendGrid
-verifiers and Mongo receipts follow). The path is not added to `/openapi.json`.
+Register inbound routes on `WebhooksApp`. Helpers: `hmacSignature`, `stripeSignature`,
+`twilioSignature`, `sendgridEventSignature`. Idempotency is `memory` or `mongo`
+(`webhookReceipts`). Paths are not added to `/openapi.json` and do not use JWT.
 
 ```typescript
 import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
 
-const webhooks = new WebhooksApp({idempotency: {store: "memory"}});
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
 webhooks.route({
   path: "/webhooks/example",
   source: "example",
@@ -1042,6 +1043,9 @@ webhooks.route({
 
 new TerrenoApp({userModel: User}).register(webhooks).start();
 ```
+
+Call `webhooks.claim` / `webhooks.release` from a handler when one HTTP body contains
+nested ids (SendGrid `sg_event_id`). Operator guide: [Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ### Slack Notifications
 

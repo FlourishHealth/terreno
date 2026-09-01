@@ -103,10 +103,11 @@ None new — Phase 2 adds one webhook route via the inbound-webhooks framework.
 1. **Send path:** provider, config resolution, E.164 validation, error-code
    classification map, `withApiErrorHandling` wrapping, console deep-link metadata, tests
    with mocked Twilio client; example-backend env-gated registration; docs.
-2. **Delivery callbacks + opt-outs** *(ships in [inbound-webhooks](inbound-webhooks.md)
-   Tasks 3.2–3.3)*: status callback route with Twilio signature verification, statuses →
-   `DeliveryEvent` → `CommsMessage.status` updates (with `errorCode`), STOP/START keyword
-   handling → `OptOutEvent` → `onOptOut`. Do not Pick those tasks on this IP.
+2. **Delivery callbacks + opt-outs** *(owned and shipped by
+   [inbound-webhooks](inbound-webhooks.md) Task 3.2)*: status callback route with Twilio
+   signature verification, statuses → `DeliveryEvent` → `CommsMessage.status` updates
+   (with `errorCode`), STOP/START keyword handling → `OptOutEvent` → `onOptOut`. Do not
+   Pick those tasks on this adapter IP.
 
 ## Feature Flags & Migrations
 

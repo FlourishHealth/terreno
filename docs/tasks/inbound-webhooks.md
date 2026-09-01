@@ -51,7 +51,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
   - Docs: none (4.1)
   - Acceptance: bun test — unset secret → no route (404); set secret → signed POST 200
 
-- [ ] **Task 3.2**: Twilio status + inbound routes on CommsApp
+- [x] **Task 3.2**: Twilio status + inbound routes on CommsApp
   - Delivers: `CommsApp({webhooks, webhookPublicUrl, sms: TwilioSmsProvider})` mounts `POST {basePath}/webhooks/twilio/status` and `.../inbound`; Twilio verifier; status mapping per comms-adapter-twilio-sms table including `ErrorCode`; STOP/START → `recordOptOut`; `statusCallbackUrl` defaults to the public status URL; skip routes and `logger.error` if auth token missing
   - Files: `comms/src/commsApp.ts`, `comms/src/adapters/twilioSms.ts` (or `comms/src/webhooks/twilio.ts`), tests, `example-backend/src/server.ts` (pass `webhooks` when SMS adapter is on)
   - Blocked by: 2.1
@@ -59,7 +59,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
   - Docs: paths in `docs/reference/comms.md` (full page in 4.1)
   - Acceptance: bun tests — signed delivered/failed fixtures update `CommsMessage`; unsigned 401; STOP fires `onOptOut` `reason: "sms-stop"`; no `webhooks` option → those paths 404
 
-- [ ] **Task 3.3**: SendGrid Event Webhook on CommsApp
+- [x] **Task 3.3**: SendGrid Event Webhook on CommsApp
   - Delivers: `CommsApp({webhooks, mail: SendGridMailProvider})` mounts `POST {basePath}/webhooks/sendgrid`; ECDSA verifier; per-`sg_event_id` `webhooks.claim`; mapping per comms-adapter-sendgrid table; correlate `sg_message_id` prefix to stored `x-message-id`; `SENDGRID_WEBHOOK_VERIFICATION_KEY` (or constructor `webhookVerificationKey`); skip + `logger.error` if key missing
   - Files: `comms/src/commsApp.ts`, `comms/src/adapters/sendgrid.ts` (or `comms/src/webhooks/sendgrid.ts`), tests, `example-backend/src/server.ts`
   - Blocked by: 2.1
@@ -69,7 +69,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
 
 ## Phase 4 — Docs and seed
 
-- [ ] **Task 4.1**: Diátaxis + changelog + agent docs
+- [x] **Task 4.1**: Diátaxis + changelog + agent docs
   - Delivers: how-to, reference, replace auth HMAC snippet, env table (`SENDGRID_WEBHOOK_VERIFICATION_KEY`, `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL`), comms webhook section, custom-routes skill, api rule, unreleased changelog, seed IP/task URLs, adapter Phase 2 ownership note, `bun run rules` / `skills:sync` if rulesync changed
   - Files: `docs/how-to/inbound-webhooks.md`, `docs/how-to/README.md`, `docs/reference/api.md`, `docs/reference/comms.md`, `docs/explanation/authentication.md`, `docs/reference/environment-variables.md`, `docs/explanation/roadmap-seed-issues.md`, `docs/implementationPlans/billing-stripe.md`, `docs/implementationPlans/comms-adapter-twilio-sms.md`, `docs/implementationPlans/comms-adapter-sendgrid.md`, `.rulesync/skills/terreno-backend-api/references/custom-routes.md`, `.rulesync/rules/api/00-api.mdc`, `.rulesync/rules/comms/00-comms.md`, `changelog/unreleased/inbound-webhooks.md`
   - Blocked by: 1.2 (content must match 2.x and 3.x)

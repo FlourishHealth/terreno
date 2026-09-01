@@ -469,6 +469,8 @@ equivalents, and sends the emails through `@terreno/comms`.
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`inbound-webhooks`, Status=`Planned`
 
+**GitHub:** https://github.com/FlourishHealth/terreno/issues/1172
+
 Terreno has outbound notifiers (Slack, Google Chat, Zoom) but no framework for receiving
 webhooks from external services. Adds a plugin for registering webhook endpoints with
 signature verification, raw-body handling, idempotency/replay protection, and event

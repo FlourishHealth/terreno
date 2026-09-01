@@ -110,8 +110,9 @@ settings show a billing placeholder until this IP ships (see `org-management-ui`
    validation, unit tests.
 2. **Checkout + portal:** customer creation, session routes, `getEntitlements`,
    `planSegment`, `RequiresPlan`, tests with mocked Stripe SDK.
-3. **Webhook sync** *(gated on inbound-webhooks)*: signature-verified event routes,
-   idempotent handlers, dunning email, `stripe-mock`/fixture tests.
+3. **Webhook sync** *(gated on inbound-webhooks)*: register `POST /billing/webhooks/stripe`
+   on the shared `WebhooksApp` with `stripeSignature`. Do not fork parsers. Idempotent
+   handlers, dunning email, `stripe-mock`/fixture tests.
 4. **UI + example + docs:** plan picker + billing settings in example-frontend, seeds
    with Stripe test-mode instructions, `docs/how-to/add-billing.md`, SDK regen.
 
