@@ -29,9 +29,10 @@ Skip unlabeled items in experiments unless you only need generation smoke (still
 
 ## 3. Create the prompt
 
-1. Open **Prompts** → create a named prompt.
-2. Save an immutable version (playground compile does **not** create a version).
-3. Do not paste that string into app routes. Apps call `AIService` with `promptName` + `promptLabel` (step 6).
+1. Open **Admin → AI Observability → Prompts**. The folder rail shows counts; search filters name and folder.
+2. **Create prompt** (folder, name, system, user template with `{{variables}}`). That write is immutable **v1**. Open the row to the editor.
+3. Edit system/template/variables/temperature, then **Save as vN+1**. There is no in-place save. **Playground → Run once** compiles and calls the model; it does **not** create a version.
+4. Do not paste that string into app routes. Apps call `AIService` with `promptName` + `promptLabel` (step 6).
 
 Judge prompts for evaluators are named constants or registry prompts — never inline in `AIService`.
 
@@ -74,7 +75,7 @@ Unproofread synthetic items are excluded unless you set `includeUnproofread`.
 
 ## 6. Deploy to production
 
-1. On the winning version, move the **`production`** label (explicit; experiments never auto-promote).
+1. In the prompt editor, select the winning version and **Set vN as production…**. The confirm modal names the **outgoing** production version (or none). Experiments never auto-promote.
 2. In the app, resolve that label at call time:
 
 ```typescript

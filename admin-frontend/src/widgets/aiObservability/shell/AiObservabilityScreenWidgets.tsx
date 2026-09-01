@@ -1,6 +1,8 @@
 import {Text} from "@terreno/ui";
 import React from "react";
 import type {AdminScreenWidgetProps, ScreenWidgetComponent} from "../../../types";
+import {AiPromptEditorScreenWidget} from "../prompts/AiPromptEditorScreen";
+import {AiPromptsScreenWidget} from "../prompts/AiPromptsListScreen";
 import {AiObservabilityChrome} from "./AiObservabilityChrome";
 
 const PlaceholderBody: React.FC<{screenName: string}> = ({screenName}) => (
@@ -18,8 +20,8 @@ const createPlaceholderWidget = (screenName: string): ScreenWidgetComponent => {
   return Widget;
 };
 
-export const AiPromptsScreenWidget = createPlaceholderWidget("ai-prompts");
-export const AiPromptEditorScreenWidget = createPlaceholderWidget("ai-prompt-editor");
+export {AiPromptEditorScreenWidget, AiPromptsScreenWidget};
+
 export const AiTracesScreenWidget = createPlaceholderWidget("ai-traces");
 export const AiTraceDetailScreenWidget = createPlaceholderWidget("ai-trace-detail");
 export const AiReviewScreenWidget = createPlaceholderWidget("ai-review");

@@ -29,6 +29,7 @@ Admin chrome lives in `admin-frontend`. One sidebar group **AI Observability** h
 Traces, and Review (Review is omitted when the local plugin is off). Existing **AI Requests**
 stays under **Screens**. Every observability screen shows breadcrumbs
 `Admin / AI Observability / <Section> / <leaf>` and a status chip from `GET /ai/observability/status`.
+Prompts are edited as immutable versions in admin (`Save as vN+1`); apps never inline the string.
 
 ## Why this shape for product work
 

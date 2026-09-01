@@ -11,6 +11,7 @@ import {
 } from "./aiObservabilityNav";
 
 export interface AiObservabilityChromeProps extends AdminScreenWidgetProps {
+  backHref?: string;
   children?: React.ReactNode;
   error?: boolean;
   isLoading?: boolean;
@@ -19,6 +20,7 @@ export interface AiObservabilityChromeProps extends AdminScreenWidgetProps {
 
 export const AiObservabilityChrome: React.FC<AiObservabilityChromeProps> = ({
   api,
+  backHref,
   children,
   error,
   isLoading,
@@ -36,7 +38,7 @@ export const AiObservabilityChrome: React.FC<AiObservabilityChromeProps> = ({
 
   return (
     <AdminScreenPage
-      backHref={resolvedRouteBase}
+      backHref={backHref ?? resolvedRouteBase}
       maxWidth="100%"
       scroll
       title={meta?.title ?? screenName}

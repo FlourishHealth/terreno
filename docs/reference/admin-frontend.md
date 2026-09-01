@@ -267,3 +267,9 @@ Every observability screen wraps `AiObservabilityChrome`: breadcrumbs
 `Admin / AI Observability / <Section> / <leaf>` and a status chip from
 `GET /ai/observability/status` (`Local on|off` plus active primaries). Review queue nav and the
 review screen body hide when `localOn` is false.
+
+`ai-prompts` lists prompts with a folder rail, search, type badge, latest vs production columns
+(tooltips), 7-day usage, and **Create prompt**. `ai-prompt-editor?name=` is the versioned editor:
+version rail with production/latest dots, Editor / Playground tabs, **Save as vN+1**, and
+**Set vN as production…** (modal names the outgoing version). Playground **Run once** does not
+create a version; **Save this run to dataset** stays disabled until phase 2.

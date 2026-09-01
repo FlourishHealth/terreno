@@ -80,7 +80,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/reference/admin-frontend.md` screen names
   - Acceptance: widget tests for chip states and for the hidden review entry
 
-- [ ] **Task 1.10**: Prompts list + prompt editor + playground screens
+- [x] **Task 1.10**: Prompts list + prompt editor + playground screens
   - Delivers: folder rail with counts and search; table with type badge, latest, production, last used, calls 7d, cost 7d and the latest-vs-production tooltips; editor with version rail (production/latest dots), Editor/Playground tabs, system + template + variables + schema summary, temperature preset and model hint, **Save as vN+1**, **Set vN as production…** confirm modal naming the outgoing version; playground variable inputs, Run once with a running state, compiled-messages disclosure, output, latency/tokens/cost, and a **Save this run to dataset** button disabled until phase 2
   - Files: `admin-frontend/src/widgets/aiObservability/prompts/*.tsx`
   - Blocked by: 1.5, 1.9
