@@ -2,7 +2,11 @@ import {Badge} from "@terreno/ui";
 import React, {useMemo} from "react";
 import {asDynamicHookApi} from "../../../dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "../../../types";
-import {formatObservabilityStatusChip, type ObservabilityStatusPayload} from "./aiObservabilityNav";
+import {
+  formatObservabilityStatusChip,
+  type ObservabilityStatusPayload,
+  unwrapObservabilityStatus,
+} from "./aiObservabilityNav";
 
 const STATUS_ENDPOINT_KEY = "aiObservabilityStatus";
 
@@ -66,12 +70,16 @@ const FetchedStatusChip: React.FC<{api: AdminApi}> = ({api}) => {
     return createStatusApi(api);
   }, [api]);
   const query = asDynamicHookApi(enhancedApi).useAiObservabilityStatusQuery() as {
-    data?: StatusResponse;
+    data?: StatusResponse | ObservabilityStatusPayload;
     isError: boolean;
     isLoading: boolean;
   };
   return (
-    <StatusChipView error={query.isError} isLoading={query.isLoading} status={query.data?.data} />
+    <StatusChipView
+      error={query.isError}
+      isLoading={query.isLoading}
+      status={unwrapObservabilityStatus(query.data)}
+    />
   );
 };
 

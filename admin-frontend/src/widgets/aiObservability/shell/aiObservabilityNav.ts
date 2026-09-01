@@ -49,6 +49,21 @@ export const getAiObservabilityNavItems = (localOn: boolean): AiObservabilityNav
   });
 };
 
+export const unwrapObservabilityStatus = (raw: unknown): ObservabilityStatusPayload | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const record = raw as Record<string, unknown>;
+  const nested = record.data;
+  if (nested && typeof nested === "object" && "localOn" in nested) {
+    return nested as ObservabilityStatusPayload;
+  }
+  if ("localOn" in record) {
+    return record as unknown as ObservabilityStatusPayload;
+  }
+  return undefined;
+};
+
 export const formatObservabilityStatusChip = (status: ObservabilityStatusPayload): string => {
   const localLabel = status.localOn ? "Local on" : "Local off";
   return [

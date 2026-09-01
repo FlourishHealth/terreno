@@ -10,6 +10,7 @@ import {
   formatObservabilityStatusChip,
   getAiObservabilityNavItems,
   type ObservabilityStatusPayload,
+  unwrapObservabilityStatus,
 } from "./aiObservabilityNav";
 
 mock.module("expo-router", () => ({
@@ -49,6 +50,11 @@ describe("AI observability chrome", () => {
     expect(formatObservabilityStatusChip(localOffStatus)).toBe(
       "Local off · prompts:langfuse · datasets:langfuse · experiments:langfuse"
     );
+  });
+
+  it("unwraps both envelope and already-unwrapped status payloads", () => {
+    expect(unwrapObservabilityStatus({data: localOnStatus})).toEqual(localOnStatus);
+    expect(unwrapObservabilityStatus(localOnStatus)).toEqual(localOnStatus);
   });
 
   it("hides the review queue nav entry when the local plugin is off", () => {
