@@ -66,4 +66,4 @@ On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMa
 
 A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. Changing the mailbox through `PATCH /auth/me` also invalidates unused `emailVerification` tokens so a link from the old inbox cannot verify the new address. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
 
-Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken`.
+Better Auth password reset revokes that user's Better Auth sessions (`revokeSessionsOnPasswordReset`). Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken` in bodies and in URL query strings.

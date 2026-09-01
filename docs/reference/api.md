@@ -174,7 +174,7 @@ setupServer({
 
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
-`oldPassword`, `token`, and `refreshToken`. Changing the mailbox through `PATCH /auth/me`
+`oldPassword`, `token`, and `refreshToken` in request bodies and in URL query strings. Changing the mailbox through `PATCH /auth/me`
 sets `emailVerified` to false when the schema uses `emailVerificationPlugin` and
 invalidates unused `emailVerification` AuthTokens for that user; changing letter
 casing alone does not.
@@ -268,7 +268,9 @@ const server = app.start();
 
 Set `publicAppUrl`, `sendMail`, and `renderAuthMail` (from `@terreno/comms`) so Better Auth
 `sendResetPassword` / `sendVerificationEmail` use the same templates as JWT recovery mail.
-Optional `authMailTemplates` overrides subject/text/html per template id.
+Password reset also sets `revokeSessionsOnPasswordReset`, so existing Better Auth sessions
+are deleted when that reset path succeeds. Optional `authMailTemplates` overrides
+subject/text/html per template id.
 
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup

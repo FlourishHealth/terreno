@@ -36,6 +36,8 @@ export interface User {
    * This can be helpful for pre-signup users.
    */
   isAnonymous?: boolean;
+  /** Login identifier; present on passport-local and Better Auth app users. */
+  email?: string;
   /** Incremented on password reset so outstanding refresh tokens fail. */
   tokenEpoch?: number;
   /** Set by emailVerificationPlugin; login may require this when requireEmailVerification is on. */
@@ -770,7 +772,7 @@ export const addMeRoutes = (
       Object.assign(doc, update);
       if (shouldResetEmailVerification) {
         doc.emailVerified = false;
-        await AuthToken.invalidateUnusedFor(doc, "emailVerification");
+        await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
       }
       await doc.save();
 

@@ -192,6 +192,22 @@ describe("createBetterAuth", () => {
     expect(auth).toBeDefined();
   });
 
+  it("revokes Better Auth sessions on password reset", async () => {
+    await setup;
+    const config: BetterAuthConfig = {
+      baseURL: "http://localhost:3000",
+      enabled: true,
+      secret: "test-secret-at-least-32-characters-long",
+    };
+    const auth = createBetterAuth({config, mongoClient: getClient()});
+    const options = (
+      auth as {
+        options?: {emailAndPassword?: {revokeSessionsOnPasswordReset?: boolean}};
+      }
+    ).options;
+    assert.isTrue(options?.emailAndPassword?.revokeSessionsOnPasswordReset);
+  });
+
   it("sends reset and verification mail through the injected renderer", async () => {
     await setup;
     const renderedCalls: Array<{templateId: string; token: string}> = [];

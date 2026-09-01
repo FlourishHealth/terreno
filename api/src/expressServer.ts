@@ -33,6 +33,30 @@ const redactSensitiveRequestBody = (body: Record<string, unknown>): Record<strin
   return bodyCopy;
 };
 
+const sensitiveQueryKeySet = new Set<string>(SENSITIVE_REQUEST_BODY_KEYS);
+
+export const redactSensitiveRequestUrl = (url: string | undefined): string => {
+  if (!url) {
+    return "";
+  }
+  const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(url);
+  const parsed = new URL(url, "http://terreno.invalid");
+  let didRedact = false;
+  for (const key of parsed.searchParams.keys()) {
+    if (sensitiveQueryKeySet.has(key)) {
+      parsed.searchParams.set(key, "<REDACTED>");
+      didRedact = true;
+    }
+  }
+  if (!didRedact) {
+    return url;
+  }
+  if (isAbsolute) {
+    return parsed.toString();
+  }
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+};
+
 export const setupEnvironment = (): void => {
   if (!process.env.TOKEN_ISSUER) {
     throw new APIError({status: 500, title: "TOKEN_ISSUER must be set in env."});
@@ -90,10 +114,12 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
   } else if (req.route) {
     pathName = req.route.path;
   } else if (res.statusCode != null && res.statusCode < 400) {
-    logger.warn(`Request without route: ${req.originalUrl}`);
+    logger.warn(`Request without route: ${redactSensitiveRequestUrl(req.originalUrl)}`);
   }
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
-    logger.debug(`${req.method} -> ${req.originalUrl} ${res.statusCode} ${`${diffInMs}ms`}`);
+    logger.debug(
+      `${req.method} -> ${redactSensitiveRequestUrl(req.originalUrl)} ${res.statusCode} ${`${diffInMs}ms`}`
+    );
   }
   if (options.logSlowRequests) {
     if (diffInMs > slowReadMs && req.method === "GET") {
@@ -101,7 +127,7 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
         `Slow GET request, ${JSON.stringify({
           pathName,
           requestTime: diffInMs,
-          url: req.originalUrl,
+          url: redactSensitiveRequestUrl(req.originalUrl),
         })}`
       );
     } else if (diffInMs > slowWriteMs) {
@@ -109,7 +135,7 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
         `Slow write request ${JSON.stringify({
           pathName,
           requestTime: diffInMs,
-          url: req.originalUrl,
+          url: redactSensitiveRequestUrl(req.originalUrl),
         })}`
       );
     }
@@ -142,7 +168,7 @@ export const logRequests = (
   }
 
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
-    logger.debug(`${req.method} <- ${req.url}${userString}${body}`);
+    logger.debug(`${req.method} <- ${redactSensitiveRequestUrl(req.url)}${userString}${body}`);
   }
   onFinished(res as unknown as OutgoingMessage, () => logRequestsFinished(req, res, startTime));
   next();

@@ -15,12 +15,12 @@ export interface AuthTokenStatics
   ) => Promise<AuthTokenDocument | null>;
   invalidateUnusedFor: (
     this: AuthTokenModel,
-    user: {_id: mongoose.Types.ObjectId | string},
+    user: {_id: {toString(): string}},
     type: AuthTokenType
   ) => Promise<void>;
   issueFor: (
     this: AuthTokenModel,
-    user: {_id: mongoose.Types.ObjectId | string},
+    user: {_id: {toString(): string}},
     type: AuthTokenType
   ) => Promise<{authToken: AuthTokenDocument; token: string}>;
 }

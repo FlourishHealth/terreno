@@ -221,6 +221,31 @@ describe("expressServer", () => {
       }
     });
 
+    it("redacts token query params in request URLs", () => {
+      const logged: string[] = [];
+      const originalDebug = logger.debug;
+      logger.debug = ((message: string) => {
+        logged.push(message);
+      }) as typeof logger.debug;
+      try {
+        const req = {
+          body: {},
+          method: "GET",
+          url: "/api/auth/verify-email?token=one-time-token",
+        };
+        const res = {
+          locals: {},
+          on: () => {},
+        };
+        logRequests(req as never, res as never, () => {});
+        const combined = logged.join("\n");
+        expect(combined).toContain("token=%3CREDACTED%3E");
+        expect(combined).not.toContain("one-time-token");
+      } finally {
+        logger.debug = originalDebug;
+      }
+    });
+
     it("triggers onFinished callback with route info", async () => {
       const app = express();
       app.use(logRequests);

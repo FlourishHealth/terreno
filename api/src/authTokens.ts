@@ -79,7 +79,7 @@ authTokenSchema.statics = {
 
   async invalidateUnusedFor(
     this: AuthTokenModel,
-    user: {_id: mongoose.Types.ObjectId | string},
+    user: {_id: {toString(): string}},
     type: AuthTokenType
   ): Promise<void> {
     const userId = new mongoose.Types.ObjectId(String(user._id));
@@ -95,7 +95,7 @@ authTokenSchema.statics = {
 
   async issueFor(
     this: AuthTokenModel,
-    user: {_id: mongoose.Types.ObjectId | string},
+    user: {_id: {toString(): string}},
     type: AuthTokenType
   ): Promise<{authToken: AuthTokenDocument; token: string}> {
     const token = randomBytes(32).toString("hex");

@@ -193,6 +193,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     database: mongodbAdapter(mongoClient.db()),
     emailAndPassword: {
       enabled: true,
+      revokeSessionsOnPasswordReset: true,
       ...(emailHooks ? {sendResetPassword: emailHooks.sendResetPassword} : {}),
     },
     ...(emailHooks
