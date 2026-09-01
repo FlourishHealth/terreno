@@ -2,6 +2,9 @@
 
 Standalone Expo Router admin web SPA plus an Express plugin (`AdminSpaServeApp`) that serves the pre-built static export from a Terreno backend on the same origin.
 
+How screens and nav work (including `routeBase=""`): [How admin interfaces are shaped](../explanation/admin-interface.md).
+How to add a screen: [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Table of Contents
 
 - [Install](#install)

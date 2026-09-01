@@ -4,7 +4,12 @@ paths:
 ---
 # @terreno/admin-frontend
 
-Admin panel frontend screens for @terreno/api backends. Provides reusable React Native components for building admin interfaces with CRUD operations. This is a **frontend-only** package — no Express, no Mongoose, no backend code.
+Human architecture: `docs/explanation/admin-interface.md` and
+`docs/how-to/build-admin-screens.md`. Agent workflow: skill
+`building-admin-interfaces`.
+
+Admin panel frontend screens for `@terreno/api` backends. This is a **frontend-only**
+package — no Express, no Mongoose, no backend code.
 
 ## Commands
 

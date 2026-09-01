@@ -6,7 +6,7 @@ description: Complete guide for building Terreno full-stack Expo apps with @terr
 
 Use this skill when building or refactoring screens in a Terreno Expo app (`example-frontend`, `admin-spa`, or a consumer app using `@terreno/ui` + `@terreno/rtk`).
 
-**Related skills:** `terreno-ui` (component selection), `terreno-data-fetching` (API hooks), `verify-ui-changes` (mandatory UI verification), `generate-sdk` (after backend changes).
+**Related skills:** `terreno-ui` (component selection), `terreno-data-fetching` (API hooks), `verify-ui-changes` (mandatory UI verification), `generate-sdk` (after backend changes), `building-admin-interfaces` (admin shell, custom screens, sidebar).
 
 ## Documentation
 
@@ -25,6 +25,9 @@ references/
   screen-patterns.md     List, detail, form, and admin screen templates
   navigation.md          Stacks, tabs, modals, and auth-gated routing
 ```
+
+Admin CRUD, sidebar, custom screens, and `apiBase`/`routeBase`: use skill
+`building-admin-interfaces` and `docs/how-to/build-admin-screens.md`.
 
 ## Running the App
 
@@ -218,8 +221,8 @@ Building or changing a screen?
   |-- Need navigation?
   |   \-- references/navigation.md (Expo Router + auth gating)
   |
-  |-- Need admin CRUD?
-  |   \-- @terreno/admin-frontend components + AdminShellLayout
+  |-- Need admin CRUD, sidebar, or a custom operator screen?
+  |   \-- building-admin-interfaces + AdminShellLayout + AdminScreenRouter
   |
   |-- Backend API doesn't exist yet?
   |   \-- terreno-backend-api (modelRouter on Express, then generate-sdk)

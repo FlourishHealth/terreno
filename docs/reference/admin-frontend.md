@@ -2,15 +2,21 @@
 
 React Native components for building admin panels that connect to `@terreno/admin-backend`.
 
+**Build a screen or change nav:** [How admin interfaces are shaped](../explanation/admin-interface.md)
+and [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Quick Start
+
+Home is `AdminHome` inside `AdminProvider` + `AdminShellLayout`. Generic models use
+`AdminScreenRouter` on `[model]/index`. See the how-to for `apiBase` vs `routeBase`.
 
 ``````typescript
 // app/admin/index.tsx
-import {AdminModelList} from "@terreno/admin-frontend";
+import {AdminHome} from "@terreno/admin-frontend";
 import {api} from "@/store/openApiSdk";
 
 export default function AdminScreen() {
-  return <AdminModelList baseUrl="/admin" api={api} />;
+  return <AdminHome api={api} apiBase="/admin" routeBase="/admin" />;
 }
 ``````
 

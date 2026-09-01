@@ -16,10 +16,10 @@ app/
     profile.tsx
   admin/
     _layout.tsx            # AdminShellLayout wrapper
-    index.tsx              # AdminModelList
-    [modelName]/
-      index.tsx            # AdminModelTable
-      new.tsx              # AdminModelForm (create)
+    index.tsx              # AdminHome
+    [model]/
+      index.tsx            # AdminScreenRouter (table or custom screen)
+      create.tsx           # AdminModelForm (create)
       [id].tsx             # AdminModelForm (edit)
 components/                # Screen components (NOT in app/)
 hooks/                     # Custom hooks
