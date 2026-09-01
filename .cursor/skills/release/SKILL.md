@@ -110,7 +110,7 @@ Before creating the tag:
 1. Preview pending notes: `bun run changelog:preview`. If there are no fragments, stop — do not cut an empty release (see Step 2).
 2. Run `bun run changelog:assemble X.Y.Z`. That command uses today's ISO date via Luxon (`DateTime.now().toISODate()`), folds fragments into a new `## [X.Y.Z] - YYYY-MM-DD` section in [`CHANGELOG.md`](../../CHANGELOG.md), leaves `## [Unreleased]` as a pointer at `changelog/unreleased/`, and deletes the assembled fragment files.
 3. Confirm the new version section is **non-empty** and grouped under Keep a Changelog headings.
-4. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` in the same commit — the tag-time `breaking-change-documentation` job fails the release without it. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
+4. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` **in the same commit as the assembled changelog**, using the template in [`mcp-server/src/docs/upgrades/README.md`](../../mcp-server/src/docs/upgrades/README.md). Add a changelog line `Upgrade note: [\`mcp-server/src/docs/upgrades/X.Y.Z.md\`](mcp-server/src/docs/upgrades/X.Y.Z.md).` under the version heading. The tag-time `breaking-change-documentation` job fails the release without the file. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
 5. Commit the assembled changelog, deleted fragments, and the upgrade note on `master` before tagging. When `master` requires a PR, merge that PR first and only then create the release, so the tagged commit contains both files.
 
 ## Step 6: Create the release
