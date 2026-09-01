@@ -8,8 +8,8 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../../ui/src/test-utils";
-import {AdminFilterDrawer} from "../AdminFilterDrawer";
 
 let mockWindowWidth = 1200;
 
@@ -21,6 +21,13 @@ mock.module("react-native", () => ({
   useWindowDimensions: () => ({height: 800, width: mockWindowWidth}),
 }));
 
+mock.module("../AdminRefField", () => ({
+  AdminRefField: (props: Record<string, unknown>) =>
+    React.createElement("RefField", {...props, testID: `${String(props.testID)}-mock`}),
+}));
+
+import {AdminFilterDrawer} from "../AdminFilterDrawer";
+
 describe("AdminFilterDrawer", () => {
   beforeEach(() => {
     mockWindowWidth = 1200;
@@ -28,7 +35,7 @@ describe("AdminFilterDrawer", () => {
 
   it("renders desktop drawer with apply button and filter testIDs", async () => {
     const onApply = mock(() => {});
-    const {getByTestId} = renderWithTheme(
+    const {getByLabelText, getByTestId, getByText} = renderWithTheme(
       <AdminFilterDrawer
         api={{} as never}
         appliedFilterState={{active: undefined}}
@@ -49,6 +56,15 @@ describe("AdminFilterDrawer", () => {
       fireEvent.press(getByTestId("admin-filter-apply"));
     });
     expect(onApply).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(getByLabelText("Collapse filters"));
+    });
+    expect(getByText("Filters collapsed")).toBeDefined();
+    await act(async () => {
+      fireEvent.press(getByLabelText("Expand filters"));
+    });
+    expect(getByTestId("admin-filter-apply")).toBeDefined();
   });
 
   it("enables apply after a draft change and clear-all applies empty filters", async () => {
@@ -93,14 +109,15 @@ describe("AdminFilterDrawer", () => {
     expect(onApply.mock.calls[1]?.[0]).toEqual({});
   });
 
-  it("renders every filter field kind and applies a boolean draft", async () => {
+  it("renders every filter field kind and applies the edited draft", async () => {
     const onApply = mock(() => {});
-    const {getByTestId} = renderWithTheme(
+    const {UNSAFE_root, getByTestId} = renderWithTheme(
       <AdminFilterDrawer
         api={{} as never}
         appliedFilterState={{active: true, status: "open"}}
         fields={{
           active: {required: false, type: "boolean"},
+          assignee: {ref: "User", required: false, type: "string"},
           created: {required: false, type: "date"},
           query: {required: false, type: "string"},
           status: {required: false, type: "string"},
@@ -117,8 +134,10 @@ describe("AdminFilterDrawer", () => {
             kind: "choice",
             label: "Status",
           },
+          {field: "assignee", kind: "ref", label: "Assignee"},
           {field: "query", kind: "text", label: "Query"},
         ]}
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
         onApply={onApply}
       />
     );
@@ -126,28 +145,59 @@ describe("AdminFilterDrawer", () => {
     expect(getByTestId("admin-filter-created-gte")).toBeDefined();
     expect(getByTestId("admin-filter-created-lte")).toBeDefined();
     expect(getByTestId("admin-filter-query")).toBeDefined();
+    expect(getByTestId("admin-filter-assignee-mock").props.routePath).toBe("/admin/users");
+
+    const fieldByTitle = (title: string): ReactTestInstance =>
+      UNSAFE_root.findAll(
+        (node: ReactTestInstance) =>
+          node.props?.title === title && typeof node.props?.onChange === "function"
+      )[0];
 
     await act(async () => {
       fireEvent.press(getByTestId("admin-filter-active.switch"));
     });
     await act(async () => {
-      fireEvent.changeText(getByTestId("admin-filter-created-gte"), "2024-01-01");
-      fireEvent.changeText(getByTestId("admin-filter-created-lte"), "2024-01-31");
-      fireEvent.changeText(getByTestId("admin-filter-query"), "needle");
+      fieldByTitle("Created from").props.onChange("2024-01-01");
+    });
+    await act(async () => {
+      fieldByTitle("Created to").props.onChange("2024-01-31");
+    });
+    await act(async () => {
+      fieldByTitle("Status").props.onChange("__all__");
+    });
+    await act(async () => {
+      fieldByTitle("Assignee").props.onChange("user-1");
+    });
+    await act(async () => {
+      fieldByTitle("Query").props.onChange("needle");
+    });
+    await act(async () => {
       fireEvent.press(getByTestId("admin-filter-apply"));
     });
 
     expect(onApply).toHaveBeenCalledTimes(1);
     expect(onApply.mock.calls[0]?.[0]).toMatchObject({
       active: false,
-      status: "open",
+      assignee: "user-1",
+      created_gte: "2024-01-01",
+      created_lte: "2024-01-31",
+      query: "needle",
+      status: "",
     });
   });
 
-  it("renders the mobile filter trigger", () => {
+  it("opens and dismisses the mobile filter sheet", async () => {
     mockWindowWidth = 320;
     const onApply = mock(() => {});
-    const {getByTestId} = renderWithTheme(
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {activeElement: null},
+    });
+    Object.defineProperty(globalThis, "HTMLElement", {
+      configurable: true,
+      value: class HTMLElement {},
+    });
+    const {UNSAFE_root, getByTestId} = renderWithTheme(
       <AdminFilterDrawer
         api={{} as never}
         appliedFilterState={{}}
@@ -158,5 +208,16 @@ describe("AdminFilterDrawer", () => {
     );
 
     expect(getByTestId("admin-filter-open")).toBeDefined();
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter-open"));
+    });
+    const modal = UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.title === "Filters" && typeof node.props?.onDismiss === "function"
+    )[0];
+    await act(async () => {
+      modal.props.onDismiss();
+    });
+    expect(onApply).not.toHaveBeenCalled();
   });
 });

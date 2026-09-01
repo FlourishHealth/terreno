@@ -203,6 +203,7 @@ describe("useAdminScripts", () => {
     expect(injected.adminRunScript).toBeDefined();
     expect(injected.adminGetScriptTask).toBeDefined();
     expect(injected.adminCancelScriptTask).toBeDefined();
+    expect(injected.adminListScriptRuns).toBeDefined();
 
     const runDef = injected.adminRunScript;
     expect(runDef.query({name: "migrate", wetRun: false})).toEqual({
@@ -224,9 +225,40 @@ describe("useAdminScripts", () => {
     });
     expect(cancelDef.invalidatesTags).toEqual(["admin_scriptTask", "admin_scriptRuns"]);
 
+    const listDef = injected.adminListScriptRuns;
+    expect(listDef.query()).toEqual({
+      method: "GET",
+      url: "/admin/scripts/runs?page=1&limit=25",
+    });
+    expect(listDef.query({limit: 10, name: "migrate", page: 2})).toEqual({
+      method: "GET",
+      url: "/admin/scripts/runs?page=2&limit=10&name=migrate",
+    });
+    expect(listDef.providesTags).toEqual(["admin_scriptRuns"]);
     expect(typeof result.useRunScriptMutation).toBe("function");
     expect(typeof result.useGetScriptTaskQuery).toBe("function");
     expect(typeof result.useCancelScriptTaskMutation).toBe("function");
+    expect(typeof result.useListScriptRunsQuery).toBe("function");
+  });
+
+  it("returns safe script hooks when endpoint injection is unavailable", async () => {
+    const result = runHook(() => useAdminScripts({} as never, "/admin"));
+
+    expect(await result.useCancelScriptTaskMutation()[0]("task-1").unwrap()).toEqual({});
+    expect(result.useGetScriptTaskQuery("task-1")).toEqual({
+      data: undefined,
+      error: null,
+      isLoading: false,
+    });
+    expect(result.useListScriptRunsQuery()).toEqual({
+      data: undefined,
+      error: null,
+      isFetching: false,
+      isLoading: false,
+    });
+    expect(
+      await result.useRunScriptMutation()[0]({name: "migrate", wetRun: false}).unwrap()
+    ).toEqual({taskId: ""});
   });
 });
 

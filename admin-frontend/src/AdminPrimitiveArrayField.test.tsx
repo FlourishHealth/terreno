@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and mock.calls access
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import type {AdminApi} from "./types";
 
@@ -186,5 +186,85 @@ describe("AdminPrimitiveArrayField", () => {
       />
     );
     expect(toJSON()).toBeDefined();
+  });
+
+  it("updates boolean and enum items", () => {
+    const booleanChange = mock((_: unknown) => undefined);
+    const boolean = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        itemType="boolean"
+        onChange={booleanChange}
+        title="Flags"
+        value={[false]}
+      />
+    );
+    const booleanField = boolean.UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.title === "" && typeof node.props?.onChange === "function"
+    )[0];
+    act(() => {
+      booleanField.props.onChange(true);
+    });
+    expect(booleanChange).toHaveBeenCalledWith([true]);
+
+    const enumChange = mock((_: unknown) => undefined);
+    const enumField = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        itemEnum={["low", "high"]}
+        itemType="string"
+        onChange={enumChange}
+        title="Levels"
+        value={["low"]}
+      />
+    ).UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        Array.isArray(node.props?.options) && typeof node.props?.onChange === "function"
+    )[0];
+    act(() => {
+      enumField.props.onChange("high");
+    });
+    expect(enumChange).toHaveBeenCalledWith(["high"]);
+  });
+
+  it("keeps non-numeric number input as text", () => {
+    const onChange = mock((_: unknown) => undefined);
+    const {getByTestId} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        itemType="number"
+        onChange={onChange}
+        title="Scores"
+        value={[1]}
+      />
+    );
+    fireEvent.changeText(getByTestId("admin-array-item-0"), "invalid");
+    expect(onChange).toHaveBeenCalledWith(["invalid"]);
+  });
+
+  it("uses custom reference renderers with resolved routes", () => {
+    const CustomRenderer: React.FC<Record<string, unknown>> = (props) =>
+      React.createElement("CustomRenderer", props);
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        apiBase="/admin"
+        autocomplete
+        itemRef="User"
+        itemType="objectid"
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        onChange={() => {}}
+        readOnly
+        refRenderers={{User: CustomRenderer}}
+        routeBase="/console"
+        title="Users"
+        value={["user-1"]}
+      />
+    );
+    const custom = UNSAFE_root.findAll((node) => node.type === "CustomRenderer")[0];
+    expect(custom.props.routePath).toBe("/admin/users");
+    expect(custom.props.autocomplete).toBe(true);
+    expect(custom.props.readOnly).toBe(true);
   });
 });
