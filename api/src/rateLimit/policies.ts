@@ -31,6 +31,9 @@ const JWT_CREDENTIAL_EXCHANGE_EXACT = new Set([
   "/auth/login",
   "/auth/signup",
   "/auth/refresh_token",
+  "/auth/forgotpassword",
+  "/auth/resetpassword",
+  "/resetpassword",
 ]);
 
 /**
@@ -61,10 +64,14 @@ export const shouldSkipRateLimit = (
   return false;
 };
 
+// `requestPath` lowercases, so camelCase routes live here as lowercase.
 const AUTH_EXACT = new Set([
   "/auth/login",
   "/auth/signup",
   "/auth/refresh_token",
+  "/auth/forgotpassword",
+  "/auth/resetpassword",
+  "/resetpassword",
   "/auth/github",
   "/auth/github/callback",
   "/auth/github/failure",

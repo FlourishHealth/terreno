@@ -79,7 +79,7 @@ authTokenSchema.statics = {
 
   async issueFor(
     this: AuthTokenModel,
-    user: {_id: mongoose.Types.ObjectId},
+    user: {_id: mongoose.Types.ObjectId | string},
     type: AuthTokenType
   ): Promise<{authToken: AuthTokenDocument; token: string}> {
     const token = randomBytes(32).toString("hex");

@@ -148,6 +148,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
 
     const terraApp = new TerrenoApp({
       accessControl: access,
+      authOptions: {
+        publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+        sendMail: async (message) => {
+          await getCommsService().sendMail(message);
+        },
+      },
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),

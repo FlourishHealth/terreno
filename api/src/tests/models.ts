@@ -11,6 +11,7 @@ export interface User {
   age?: number;
   disabled?: boolean;
   organizationIds?: string[];
+  tokenEpoch?: number;
 }
 
 export interface SuperUser extends User {
@@ -62,6 +63,11 @@ const userSchema = new Schema<User>({
     default: [],
     description: "Organization memberships",
     type: [String],
+  },
+  tokenEpoch: {
+    default: 0,
+    description: "Incremented on password reset to invalidate outstanding refresh tokens",
+    type: Number,
   },
   username: {description: "The user's username", type: String},
 });

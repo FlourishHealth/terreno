@@ -48,6 +48,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       description: "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
       type: [String],
     },
+    tokenEpoch: {
+      default: 0,
+      description: "Incremented on password reset to invalidate outstanding refresh tokens",
+      type: Number,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );

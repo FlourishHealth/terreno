@@ -12,7 +12,7 @@ import {
   type StrategyOptions,
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
-
+import {addAuthRecoveryRoutes} from "./authRecovery";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
@@ -35,6 +35,8 @@ export interface User {
    * This can be helpful for pre-signup users.
    */
   isAnonymous?: boolean;
+  /** Incremented on password reset so outstanding refresh tokens fail. */
+  tokenEpoch?: number;
 }
 
 export interface UserModel extends Model<User> {
@@ -348,7 +350,11 @@ export const generateTokens = async (
   }
   const sessionId = options.sessionId ?? randomUUID();
   const authUser = user as User;
-  let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
+  let payload: Record<string, unknown> = {
+    id: String(tokenUser._id),
+    sid: sessionId,
+    te: authUser.tokenEpoch ?? 0,
+  };
   if (authOptions?.generateJWTPayload) {
     payload = {...authOptions.generateJWTPayload(authUser), ...payload};
   }
@@ -614,6 +620,12 @@ export const addAuthRoutes = (
     }
     if (decoded?.id) {
       const user = await userModel.findById(decoded.id);
+      const tokenEpoch = typeof decoded.te === "number" ? decoded.te : 0;
+      const userEpoch = (user as User | null)?.tokenEpoch ?? 0;
+      if (!user || tokenEpoch !== userEpoch) {
+        logger.error(`Invalid refresh token, user id: ${req.user?.id}`);
+        return res.status(401).json({message: "Invalid refresh token"});
+      }
       const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
       const tokens = await generateTokens(user, authOptions, {sessionId});
       if (tokens.sessionId) {
@@ -671,6 +683,7 @@ export const addAuthRoutes = (
   }
   app.set("etag", false);
   app.use("/auth", router);
+  addAuthRecoveryRoutes(app, userModel, authOptions);
 };
 
 export const addMeRoutes = (

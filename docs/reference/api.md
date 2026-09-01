@@ -165,6 +165,8 @@ setupServer({
 - `POST /auth/signup` — Create user account
 - `POST /auth/login` — Authenticate with email/password
 - `POST /auth/refresh_token` — Refresh access token
+- `POST /auth/forgotPassword` — Always 202; mails a reset link only when the email exists
+- `POST /auth/resetPassword` — `{token, password}`; also aliased at `POST /resetPassword` for the RTK client
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
@@ -172,8 +174,13 @@ setupServer({
 `AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` returns a 32-byte hex
 plaintext once and stores only the SHA-256 hash. `AuthToken.consume(token, type)` atomically
 marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours for
-`emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`. Recovery HTTP routes
-are added in the password-reset slice.
+`emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`.
+
+Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
+`getCommsService().sendMail`) so forgot-password can deliver the link
+`${publicAppUrl}/resetPassword?token=...`. Successful reset calls `setPassword`, increments
+`tokenEpoch` so outstanding refresh tokens fail, and returns new JWT tokens. `POST /resetPassword`
+matches the `@terreno/rtk` `resetPassword` mutation path.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)

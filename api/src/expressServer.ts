@@ -169,10 +169,26 @@ export const createRouterWithAuth = (
   ]);
 };
 
+export interface AuthRecoveryMail {
+  html?: string;
+  subject: string;
+  text: string;
+  to: string;
+}
+
 export interface AuthOptions {
   generateJWTPayload?: (user: User) => Record<string, unknown>;
   generateTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
   generateRefreshTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
+  /** Public web/app origin used in password-reset and verification links. */
+  publicAppUrl?: string;
+  /**
+   * Deliver recovery mail (forgot password / verify email). Wire to
+   * `getCommsService().sendMail` when `@terreno/comms` is registered.
+   */
+  sendMail?: (message: AuthRecoveryMail) => Promise<void>;
+  /** When true, unverified users receive 403 `email-not-verified` on login. Default false. */
+  requireEmailVerification?: boolean;
 }
 
 export const cronjob = (
