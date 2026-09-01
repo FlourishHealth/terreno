@@ -12,7 +12,7 @@ import {
   type StrategyOptions,
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
-import {addAuthRecoveryRoutes} from "./authRecovery";
+import {addAuthRecoveryRoutes, sendVerificationEmail} from "./authRecovery";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
@@ -37,6 +37,8 @@ export interface User {
   isAnonymous?: boolean;
   /** Incremented on password reset so outstanding refresh tokens fail. */
   tokenEpoch?: number;
+  /** Set by emailVerificationPlugin; login may require this when requireEmailVerification is on. */
+  emailVerified?: boolean;
 }
 
 export interface UserModel extends Model<User> {
@@ -581,6 +583,15 @@ export const addAuthRoutes = (
           logger.warn(`Invalid login: ${info}`);
           return res.status(401).json({message: info?.message});
         }
+        if (authOptions?.requireEmailVerification && user.emailVerified !== true) {
+          return next(
+            new APIError({
+              code: "email-not-verified",
+              status: 403,
+              title: "Email is not verified",
+            })
+          );
+        }
         if (process.env.NODE_ENV !== "test") {
           logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
         }
@@ -667,6 +678,13 @@ export const addAuthRoutes = (
         )(req, res, next);
       },
       async (req: express.Request, res: express.Response) => {
+        if (req.user) {
+          try {
+            await sendVerificationEmail(req.user, authOptions);
+          } catch (error: unknown) {
+            logger.error("[auth] Failed to send verification mail after signup", {error});
+          }
+        }
         const tokens = await generateTokens(req.user, authOptions);
         if (tokens.sessionId) {
           setRequestContext({

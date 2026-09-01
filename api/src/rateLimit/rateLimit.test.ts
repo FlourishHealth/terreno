@@ -132,6 +132,8 @@ describe("HTTP rate limiting", () => {
       "/auth/forgotPassword",
       "/auth/resetPassword",
       "/resetPassword",
+      "/auth/sendVerification",
+      "/auth/verifyEmail",
       "/auth/github",
       "/auth/github/callback",
       "/auth/github/failure",

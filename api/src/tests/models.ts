@@ -1,7 +1,12 @@
 import mongoose, {type Model, model, Schema, type StringSchemaDefinition} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
-import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "../plugins";
+import {
+  createdUpdatedPlugin,
+  DateOnly,
+  emailVerificationPlugin,
+  isDisabledPlugin,
+} from "../plugins";
 
 export interface User {
   admin: boolean;
@@ -12,6 +17,7 @@ export interface User {
   disabled?: boolean;
   organizationIds?: string[];
   tokenEpoch?: number;
+  emailVerified?: boolean;
 }
 
 export interface SuperUser extends User {
@@ -86,6 +92,7 @@ userSchema.plugin(
 );
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDisabledPlugin);
+userSchema.plugin(emailVerificationPlugin);
 userSchema.methods.postCreate = async function (body: {age?: number}) {
   this.age = body.age;
   return this.save();

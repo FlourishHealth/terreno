@@ -2,6 +2,7 @@ import express from "express";
 
 import {asyncHandler} from "./api";
 import {
+  authenticateMiddleware,
   generateTokens,
   type HasSetPassword,
   MAX_PASSWORD_LENGTH,
@@ -16,12 +17,19 @@ import {logger} from "./logger";
 import {createOpenApiBuilder} from "./openApiBuilder";
 
 const RESET_PASSWORD_SUBJECT = "Reset your password";
+const VERIFY_EMAIL_SUBJECT = "Verify your email";
 
 const resetPasswordText = (resetUrl: string): string =>
   `Reset your password using this link: ${resetUrl}`;
 
 const resetPasswordHtml = (resetUrl: string): string =>
   `<p><a href="${resetUrl}">Reset your password</a></p>`;
+
+const verifyEmailText = (verifyUrl: string): string =>
+  `Verify your email using this link: ${verifyUrl}`;
+
+const verifyEmailHtml = (verifyUrl: string): string =>
+  `<p><a href="${verifyUrl}">Verify your email</a></p>`;
 
 const normalizeEmail = (value: unknown): string => {
   if (typeof value !== "string") {
@@ -47,9 +55,53 @@ const tokenFromBody = (body: Record<string, unknown>): string => {
   return "";
 };
 
-const buildResetUrl = (publicAppUrl: string | undefined, token: string): string => {
+const buildAppUrl = (publicAppUrl: string | undefined, path: string, token: string): string => {
   const base = (publicAppUrl ?? "").replace(/\/$/, "");
-  return `${base}/resetPassword?token=${encodeURIComponent(token)}`;
+  return `${base}${path}?token=${encodeURIComponent(token)}`;
+};
+
+const buildResetUrl = (publicAppUrl: string | undefined, token: string): string => {
+  return buildAppUrl(publicAppUrl, "/resetPassword", token);
+};
+
+const buildVerifyUrl = (publicAppUrl: string | undefined, token: string): string => {
+  return buildAppUrl(publicAppUrl, "/verifyEmail", token);
+};
+
+const userEmail = (user: User, fallback = ""): string => {
+  if (typeof (user as User & {email?: string}).email === "string") {
+    return (user as User & {email: string}).email;
+  }
+  return fallback;
+};
+
+const isEmailVerified = (user: User): boolean => {
+  return (user as User & {emailVerified?: boolean}).emailVerified === true;
+};
+
+const markEmailVerified = (user: User): void => {
+  (user as User & {emailVerified?: boolean}).emailVerified = true;
+};
+
+export const sendVerificationEmail = async (
+  user: User,
+  authOptions?: AuthOptions
+): Promise<void> => {
+  if (!authOptions?.publicAppUrl) {
+    logger.error("[auth] publicAppUrl is required to send verification mail");
+    return;
+  }
+  if (isEmailVerified(user)) {
+    return;
+  }
+  const issued = await AuthToken.issueFor({_id: user._id}, "emailVerification");
+  const verifyUrl = buildVerifyUrl(authOptions.publicAppUrl, issued.token);
+  await deliverRecoveryMail(authOptions, {
+    html: verifyEmailHtml(verifyUrl),
+    subject: VERIFY_EMAIL_SUBJECT,
+    text: verifyEmailText(verifyUrl),
+    to: userEmail(user),
+  });
 };
 
 const deliverRecoveryMail = async (
@@ -88,15 +140,11 @@ export const addAuthRecoveryRoutes = (
           } else {
             const issued = await AuthToken.issueFor({_id: user._id}, "passwordReset");
             const resetUrl = buildResetUrl(authOptions.publicAppUrl, issued.token);
-            const destination =
-              typeof (user as User & {email?: string}).email === "string"
-                ? (user as User & {email: string}).email
-                : email;
             await deliverRecoveryMail(authOptions, {
               html: resetPasswordHtml(resetUrl),
               subject: RESET_PASSWORD_SUBJECT,
               text: resetPasswordText(resetUrl),
-              to: destination,
+              to: userEmail(user, email),
             });
           }
         }
@@ -159,9 +207,60 @@ export const addAuthRecoveryRoutes = (
     })
     .build();
 
+  const sendVerification = asyncHandler(async (req: express.Request, res: express.Response) => {
+    const user = req.user as User | undefined;
+    if (!user) {
+      throw new APIError({status: 401, title: "Unauthorized"});
+    }
+    try {
+      await sendVerificationEmail(user, authOptions);
+    } catch (error: unknown) {
+      logger.error("[auth] Failed to send verification mail", {error});
+    }
+    return res.status(202).json({data: {ok: true}});
+  });
+
+  const verifyEmail = asyncHandler(async (req: express.Request, res: express.Response) => {
+    const token = tokenFromBody((req.body ?? {}) as Record<string, unknown>);
+    if (!token) {
+      throw new APIError({status: 400, title: "token is required"});
+    }
+    const consumed = await AuthToken.consume(token, "emailVerification");
+    if (!consumed) {
+      throw new APIError({status: 400, title: "Invalid or expired verification token"});
+    }
+    const user = await userModel.findById(consumed.userId);
+    if (!user) {
+      throw new APIError({status: 400, title: "Invalid or expired verification token"});
+    }
+    markEmailVerified(user);
+    await (user as unknown as {save: () => Promise<unknown>}).save();
+    return res.json({data: {ok: true}});
+  });
+
+  const sendVerificationOpenApi = createOpenApiBuilder({})
+    .withTags(["auth"])
+    .withSummary("Send or resend an email verification link")
+    .withResponse(202, {ok: {type: "boolean"}})
+    .build();
+
+  const verifyEmailOpenApi = createOpenApiBuilder({})
+    .withTags(["auth"])
+    .withSummary("Verify email with a one-time token")
+    .withRequestBody({token: {type: "string"}})
+    .withResponse(200, {ok: {type: "boolean"}})
+    .build();
+
   const router = express.Router();
   router.post("/forgotPassword", forgotOpenApi, forgotPassword);
   router.post("/resetPassword", resetOpenApi, resetPassword);
+  router.post(
+    "/sendVerification",
+    authenticateMiddleware(),
+    sendVerificationOpenApi,
+    sendVerification
+  );
+  router.post("/verifyEmail", verifyEmailOpenApi, verifyEmail);
   app.use("/auth", router);
   app.post("/resetPassword", resetOpenApi, resetPassword);
 };

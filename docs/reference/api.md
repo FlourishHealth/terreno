@@ -167,6 +167,8 @@ setupServer({
 - `POST /auth/refresh_token` — Refresh access token
 - `POST /auth/forgotPassword` — Always 202; mails a reset link only when the email exists
 - `POST /auth/resetPassword` — `{token, password}`; also aliased at `POST /resetPassword` for the RTK client
+- `POST /auth/sendVerification` — Authenticated; 202; mails a verification link when `emailVerified` is not true
+- `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
@@ -185,7 +187,10 @@ tokens stay valid until expiry (default 15m). `POST /resetPassword`
 matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
 
 Add `tokenEpoch` (number, default 0) on the User schema so epoch bumps persist under
-`strict: "throw"`. See `example-backend` User.
+`strict: "throw"`. See `example-backend` User. Opt in to `emailVerified` with
+`emailVerificationPlugin`. Set `authOptions.requireEmailVerification` to reject login
+with 403 `email-not-verified` until `POST /auth/verifyEmail`. Signup still returns JWTs
+and sends `${publicAppUrl}/verifyEmail?token=...` so the user can complete verification.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)

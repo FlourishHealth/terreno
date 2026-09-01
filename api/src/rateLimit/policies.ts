@@ -34,6 +34,7 @@ const JWT_CREDENTIAL_EXCHANGE_EXACT = new Set([
   "/auth/forgotpassword",
   "/auth/resetpassword",
   "/resetpassword",
+  "/auth/verifyemail",
 ]);
 
 /**
@@ -72,6 +73,8 @@ const AUTH_EXACT = new Set([
   "/auth/forgotpassword",
   "/auth/resetpassword",
   "/resetpassword",
+  "/auth/sendverification",
+  "/auth/verifyemail",
   "/auth/github",
   "/auth/github/callback",
   "/auth/github/failure",
