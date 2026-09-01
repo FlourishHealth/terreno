@@ -163,7 +163,10 @@ the console verification provider; production omits verification until a provide
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
-token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+token, Expo still accepts sends at a lower rate limit. The example backend also
+depends on `twilio` and injects a statically imported client into
+`TwilioSmsProvider` / `TwilioVerifyProvider` when those env vars are complete,
+so the compiled binary includes the SDK. Non-production also mounts `POST /comms/dev/testPush`
 for authenticated test sends.
 
 ## Observability

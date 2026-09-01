@@ -3,6 +3,8 @@
  * Twilio stays an optional `@terreno/comms` peer — this file does not import it.
  */
 
+import {APIError} from "@terreno/api";
+
 export interface TwilioVerifyEnvConfig {
   accountSid: string;
   authToken: string;
@@ -22,7 +24,7 @@ export const resolveTwilioVerifyEnvConfig = (
     return undefined;
   }
   if (accountSid.length === 0 || authToken.length === 0) {
-    throw new Error(TWILIO_VERIFY_CONFIG_ERROR);
+    throw new APIError({status: 500, title: TWILIO_VERIFY_CONFIG_ERROR});
   }
   return {accountSid, authToken, verifyServiceSid};
 };

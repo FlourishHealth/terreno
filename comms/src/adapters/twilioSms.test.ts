@@ -1,5 +1,5 @@
 import {describe, it, spyOn} from "bun:test";
-import {isAPIError, logger} from "@terreno/api";
+import {logger} from "@terreno/api";
 import {assert} from "chai";
 
 import {CommsService} from "../commsService";
@@ -59,15 +59,12 @@ describe("TwilioSmsProvider", () => {
     );
   });
 
-  it("fails fast when the twilio peer is not installed", (): void => {
-    assert.throws(
-      (): TwilioSmsProvider =>
-        new TwilioSmsProvider({
-          accountSid: "ACtest",
-          authToken: "token",
-        }),
-      /optional peer dependency twilio/
-    );
+  it("constructs without an injected client when the twilio peer is installed", (): void => {
+    const provider = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+    });
+    assert.equal(provider.id, "twilio");
   });
 
   it("sends with messagingServiceSid when both senders are configured", async (): Promise<void> => {
@@ -152,7 +149,7 @@ describe("TwilioSmsProvider", () => {
     assert.equal(client.calls.length, 0);
   });
 
-  it("rejects a non-E.164 destination with a 400 before calling Twilio", async (): Promise<void> => {
+  it("rejects a non-E.164 destination as a permanent result before calling Twilio", async (): Promise<void> => {
     const client = createMockClient();
     const provider = new TwilioSmsProvider({
       accountSid: "ACtest",
@@ -161,13 +158,30 @@ describe("TwilioSmsProvider", () => {
       messagingServiceSid: "MGservice",
     });
 
-    try {
-      await provider.sendSms({body: "Hello", to: "not-a-phone"});
-      assert.fail("expected BadRequestError");
-    } catch (error: unknown) {
-      assert.isTrue(isAPIError(error));
-      assert.equal((error as {status: number}).status, 400);
-    }
+    const result = await provider.sendSms({body: "Hello", to: "not-a-phone"});
+
+    assert.isFalse(result.accepted);
+    assert.equal(result.errorClass, "permanent");
+    assert.equal(result.errorCode, "twilio-invalid-destination");
+    assert.isTrue(result.isPermanentFailure);
+    assert.equal(client.calls.length, 0);
+  });
+
+  it("does not retry invalid destinations through the facade", async (): Promise<void> => {
+    const client = createMockClient();
+    const provider = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+      client,
+      messagingServiceSid: "MGservice",
+    });
+    const service = new CommsService({sms: provider});
+
+    const result = await service.sendSms({body: "Hello", to: "not-a-phone"});
+
+    assert.isFalse(result.accepted);
+    assert.equal(result.errorClass, "permanent");
+    assert.equal(result.errorCode, "twilio-invalid-destination");
     assert.equal(client.calls.length, 0);
   });
 

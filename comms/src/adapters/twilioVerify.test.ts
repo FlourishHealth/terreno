@@ -78,16 +78,13 @@ describe("TwilioVerifyProvider", () => {
     );
   });
 
-  it("fails fast when the twilio peer is not installed", (): void => {
-    assert.throws(
-      (): TwilioVerifyProvider =>
-        new TwilioVerifyProvider({
-          accountSid: "ACtest",
-          authToken: "token",
-          verifyServiceSid: "VAservice",
-        }),
-      /optional peer dependency twilio/
-    );
+  it("constructs without an injected client when the twilio peer is installed", (): void => {
+    const provider = new TwilioVerifyProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+      verifyServiceSid: "VAservice",
+    });
+    assert.equal(provider.id, "twilio-verify");
   });
 
   it("starts SMS and email verifications on the configured service", async (): Promise<void> => {

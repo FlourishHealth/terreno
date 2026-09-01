@@ -56,7 +56,8 @@ export class TwilioSmsProvider implements SmsProvider {
 
 Errors map Twilio exception codes to `SendResult.error`/`errorCode`/`errorClass`, with
 the full Twilio error payload kept in `CommsMessage.metadata` for triage. Invalid
-destination numbers fail fast with a `BadRequestError` before any API call.
+destination numbers return a permanent `SendResult` (`errorCode: twilio-invalid-destination`)
+before any API call so the facade does not retry.
 
 ### Error classification
 

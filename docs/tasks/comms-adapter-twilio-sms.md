@@ -13,7 +13,7 @@ IP: [comms-adapter-twilio-sms](../implementationPlans/comms-adapter-twilio-sms.m
   - Description: `libphonenumber-js` normalization; Twilio error-code → `errorCode`/`errorClass` map per the IP table (unknown codes → `transient`); full error payload into `CommsMessage.metadata`; Twilio SDK calls wrapped with `withApiErrorHandling`
   - Files: `comms/src/adapters/twilioSms.ts`
   - Depends on: 1.1
-  - Acceptance: invalid number → 400 before API call; fixtures for at least one code per class (e.g. 21610 permanent, 20429 transient, 20003 config) assert `errorClass`; permanent failures skip the inline retry
+  - Acceptance: invalid number → permanent `SendResult` before API call; fixtures for at least one code per class (e.g. 21610 permanent, 20429 transient, 20003 config) assert `errorClass`; permanent failures skip the inline retry
 - [x] **Task 1.3**: Dashboard metadata + hooks coverage
   - Description: `metadata.consoleUrl` deep link per message SID; `onError` fires with the classified `SendResult`
   - Files: `comms/src/adapters/twilioSms.ts` + tests

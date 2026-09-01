@@ -31,12 +31,13 @@ import {
 } from "@terreno/comms";
 import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
-import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
-import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+import {type TwilioSmsClient, TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+import {type TwilioVerifyClient, TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
 import {Expo} from "expo-server-sdk";
 import express from "express";
 import mongoose from "mongoose";
+import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
@@ -276,14 +277,27 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       });
 
       const twilioSmsConfig = resolveTwilioSmsEnvConfig();
+      const twilioVerifyConfig = resolveTwilioVerifyEnvConfig();
+      const twilioCreds = twilioSmsConfig ?? twilioVerifyConfig;
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `twilio`. The adapters' default path uses createRequire and is missing
+      // from the compiled binary.
+      const twilioClient = twilioCreds
+        ? twilio(twilioCreds.accountSid, twilioCreds.authToken)
+        : undefined;
       const twilioSmsProvider = twilioSmsConfig
-        ? new TwilioSmsProvider(twilioSmsConfig)
+        ? new TwilioSmsProvider({
+            ...twilioSmsConfig,
+            ...(twilioClient ? {client: twilioClient as unknown as TwilioSmsClient} : {}),
+          })
         : undefined;
       const smsProvider = twilioSmsProvider ?? (isDeployed ? undefined : new ConsoleSmsProvider());
 
-      const twilioVerifyConfig = resolveTwilioVerifyEnvConfig();
       const twilioVerifyProvider = twilioVerifyConfig
-        ? new TwilioVerifyProvider(twilioVerifyConfig)
+        ? new TwilioVerifyProvider({
+            ...twilioVerifyConfig,
+            ...(twilioClient ? {client: twilioClient as unknown as TwilioVerifyClient} : {}),
+          })
         : undefined;
       const verificationProvider =
         twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());

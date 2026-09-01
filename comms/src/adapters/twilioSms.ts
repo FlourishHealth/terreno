@@ -1,5 +1,5 @@
 import {createRequire} from "node:module";
-import {BadRequestError, logger, withApiErrorHandling} from "@terreno/api";
+import {logger, withApiErrorHandling} from "@terreno/api";
 import {parsePhoneNumberFromString} from "libphonenumber-js";
 
 import type {CommsErrorClass, SendResult, SmsMessage, SmsProvider} from "../types";
@@ -72,17 +72,21 @@ const loadTwilio = (): TwilioFactory => {
   }
 };
 
-const toE164 = (to: string): string => {
+const toE164 = (to: string): string | undefined => {
   const parsed = parsePhoneNumberFromString(to);
   if (!parsed?.isValid()) {
-    throw new BadRequestError({
-      code: "twilio-invalid-destination",
-      detail: "Destination must be a valid E.164 phone number",
-      title: "Invalid SMS destination",
-    });
+    return undefined;
   }
   return parsed.format("E.164");
 };
+
+const invalidDestinationResult = (): SendResult => ({
+  accepted: false,
+  error: "Destination must be a valid E.164 phone number",
+  errorClass: "permanent",
+  errorCode: "twilio-invalid-destination",
+  isPermanentFailure: true,
+});
 
 const twilioErrorFields = (error: unknown): TwilioErrorFields => {
   if (!error || typeof error !== "object") {
@@ -183,6 +187,9 @@ export class TwilioSmsProvider implements SmsProvider {
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const to = toE164(message.to);
+    if (!to) {
+      return invalidDestinationResult();
+    }
     const params: TwilioMessageCreateParams = {
       body: message.body,
       to,

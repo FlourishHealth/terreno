@@ -1,3 +1,5 @@
+import {APIError} from "@terreno/api";
+
 export interface TwilioSmsEnvConfig {
   accountSid: string;
   authToken: string;
@@ -22,7 +24,7 @@ export const resolveTwilioSmsEnvConfig = (
 
   const hasCreds = accountSid.length > 0 && authToken.length > 0;
   if (!hasCreds) {
-    throw new Error(TWILIO_SMS_CONFIG_ERROR);
+    throw new APIError({status: 500, title: TWILIO_SMS_CONFIG_ERROR});
   }
 
   return {

@@ -73,7 +73,9 @@ new CommsApp({
 
 Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and a sender
 (`TWILIO_MESSAGING_SERVICE_SID` preferred, else `TWILIO_FROM_NUMBER`). Invalid destinations
-throw 400 before the API. Send failures return classified `SendResult` values and never throw.
+return `errorClass: permanent` (`errorCode: twilio-invalid-destination`) before the API.
+Send failures return classified `SendResult` values and never throw. Apps that
+`bun build --compile` must inject a Twilio client (static `import twilio from "twilio"`).
 
 ### Twilio Verify (`@terreno/comms/adapters/twilioVerify`)
 

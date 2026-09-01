@@ -158,18 +158,23 @@ new TerrenoApp({userModel: User})
 ```
 
 `TwilioSmsProvider` fails fast at construction when account SID or auth token is missing.
-Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers throw a 400
-`BadRequestError` before any Twilio call. Send failures never throw through `sendSms`; they
-return `accepted: false` with Twilio `errorCode` / `errorClass` (`permanent` | `transient` |
-`config`). Permanent codes (including 21610 STOP) are not retried. Accepted sends store
-`providerMessageId` and `metadata.consoleUrl` for the Twilio SMS log.
+Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers return
+`accepted: false` with `errorClass: permanent` and `errorCode: twilio-invalid-destination`
+before any Twilio call, so the facade does not retry. Send failures never throw through
+`sendSms`; they return `accepted: false` with Twilio `errorCode` / `errorClass`
+(`permanent` | `transient` | `config`). Permanent codes (including 21610 STOP) are not
+retried. Accepted sends store `providerMessageId` and `metadata.consoleUrl` for the
+Twilio SMS log.
 
 The example backend registers this adapter when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
 and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. A sender
 without credentials throws at startup. Account credentials without a sender skip SMS so
 Verify-only configs can share `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`. Unconfigured
 environments keep the console SMS provider (or omit SMS in production). `twilio` is an
-optional peer — apps that do not send SMS do not install it.
+optional peer — apps that do not send SMS do not install it. Apps that ship
+`bun build --compile` (the example Cloud Run image) must inject a Twilio client
+(static `import twilio from "twilio"`). The adapters' default
+`createRequire("twilio")` is not bundled into that binary.
 
 ### Twilio Verify adapter
 
