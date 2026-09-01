@@ -59,19 +59,19 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: Task 2.2
   - Acceptance: the clean-tree precondition is a hard refusal, not a warning; the confirmation gate precedes the first mutation; step 6 invokes `upgrading-expo` by name; the failure path names a rollback command; the ordering matches the how-to guide exactly.
 
-- [ ] **Task 3.2**: Add the ordering reference
+- [x] **Task 3.2**: Add the ordering reference
   - Description: Create `.rulesync/skills/upgrading-terreno/references/ordering.md` containing the dependency reasoning in detail: why backend precedes frontend, why the typed client is regenerated only after the backend is upgraded and running, why Expo precedes `@terreno/ui`, which packages are backend versus frontend (enumerate them from `publish-on-tag.yml`), and what breaks if the order is violated — with the specific symptom for each violation (for example: regenerating the client against an old backend produces a client missing the new routes, which fails at compile time in the consumer's screens).
   - Files: `.rulesync/skills/upgrading-terreno/references/ordering.md` (new)
   - Depends on: Task 3.1
   - Acceptance: every package is classified backend or frontend and the list matches `publish-on-tag.yml`; each ordering rule has a concrete violation symptom.
 
-- [ ] **Task 3.3**: `[RTK]` Add the syncdb migration branch
+- [x] **Task 3.3**: `[RTK]` Add the syncdb migration branch
   - Description: Add a section to the skill for the case where the upgrade range crosses the syncdb release. The skill must detect this (the range includes the syncdb version), stop, and tell the user that this is a platform migration rather than a version bump, pointing at `docs/how-to/migrate-rtk-to-syncdb.md` and offering to perform the routine version bump first and the migration as a separate operation. Do not attempt to automate the full migration inside a version-bump flow.
   - Files: `.rulesync/skills/upgrading-terreno/SKILL.md`
   - Depends on: Task 3.1, `rtk-to-syncdb-migration-docs` Phase 3
   - Acceptance: the skill detects a range crossing the syncdb version and stops with the two-option choice; it does not attempt the data-layer migration automatically.
 
-- [ ] **Task 3.4**: Wire the MCP prompt to the skill
+- [x] **Task 3.4**: Wire the MCP prompt to the skill
   - Description: Update the `terreno_upgrade` prompt in `mcp-server/src/prompts.ts` so it points at the `upgrading-terreno` skill as the executor, keeping the prompt as the discovery surface for agents without skill support. Ensure the prompt's ordering matches the skill's exactly so the two cannot drift into disagreement — ideally the prompt references the ordering rather than restating it.
   - Files: `mcp-server/src/prompts.ts`
   - Depends on: Task 3.1
