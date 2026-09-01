@@ -38,3 +38,15 @@ Flourish AI features follow an 8-step loop: gold dataset → labels → prompt v
 That loop is the product requirement, not an optional dashboard. Operator steps: [Develop an AI feature](../how-to/ai-feature-development.md). Registration and env: [Observe LLM calls](../how-to/observe-llm-calls.md). Models and routes: [AI reference](../reference/ai.md). Design lock: [implementation plan](../implementationPlans/ai-observability.md).
 
 `AIRequest` remains the cheap per-call log. Observability traces are the nested, scored, user/session/cost record used in the SOP.
+
+## Phase 1 reference loop
+
+The example backend always registers the local plugin. Its idempotent seed creates one
+registry prompt (`examples/example-summarize` v1 labelled `production`) and one human
+`correctness` evaluator. This makes the complete phase 1 loop walkable without Langfuse:
+resolve the production prompt → emit a trace → inspect spans and sensitive I/O → send the
+trace to Review → record a human score.
+
+`AI_OBS_PRICE_MAP_JSON` belongs to deployment configuration because prices change
+independently of prompt versions. A missing model price preserves token counts and omits
+USD cost; it never invents `$0`.

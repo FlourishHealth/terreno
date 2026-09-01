@@ -376,6 +376,12 @@ In-app prompt versions, nested traces, evaluators, datasets, experiments, review
 
 Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`. Construction also registers the app as the process singleton (`getObservabilityApp()`). Call `resetObservabilityApp()` in tests. `createLocalObservabilityPlugin()` registers the local Mongo models (`ObsPrompt`, `ObsPromptVersion`, `ObsPromptLabel`, `ObsTrace`, `ObsSpan`, `ObsScore`) on the default connection.
 
+The example backend always registers `createLocalObservabilityPlugin()` and passes the
+validated `AI_OBS_PRICE_MAP_JSON` object as `priceMap`. `bun run backend:seed` idempotently
+creates `examples/example-summarize` v1 with `production` on v1 and installs the human
+`correctness` evaluator. Invalid price JSON or negative/non-numeric prices fail startup
+with `AI_OBS_PRICE_MAP_JSON` in the error.
+
 ### Local observability models
 
 | Model | Role |
@@ -551,6 +557,7 @@ Legacy `setupServer` pattern: call `addGptHistoryRoutes`, `addGptRoutes`, etc. i
 |----------|---------|-------------|
 | `GOOGLE_VERTEX_PROJECT` | `createVertexProvider` | GCP project for Vertex models |
 | `GOOGLE_VERTEX_LOCATION` | `createVertexProvider` | Vertex region (default `us-central1`) |
+| `AI_OBS_PRICE_MAP_JSON` | `ObservabilityApp` | JSON model map with non-negative `inputPerMTok` / `outputPerMTok`; omitted models have tokens but no USD cost |
 | `LANGFUSE_PUBLIC_KEY` | `LangfuseApp` | Langfuse public key |
 | `LANGFUSE_SECRET_KEY` | `LangfuseApp` | Langfuse secret key |
 | `LANGFUSE_BASE_URL` | Langfuse client | Langfuse host URL |

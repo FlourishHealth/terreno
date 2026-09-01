@@ -6,6 +6,9 @@ Architecture: [AI observability](../explanation/ai-observability.md). Routes and
 
 Volume targets (how many gold items, class balance) live in the operator spreadsheet, not in Terreno. Use **tags** and **outcome class** so you can filter for balance.
 
+For a walkable phase 1 example, run `bun run backend:seed`: it installs
+`examples/example-summarize` v1 as `production` and the human `correctness` evaluator.
+
 ## 1. Gather a gold dataset
 
 1. Open **Datasets** → create a named set. Set `expectedOutputSchema` if product has agreed a label shape.
@@ -80,10 +83,10 @@ Unproofread synthetic items are excluded unless you set `includeUnproofread`.
 
 ```typescript
 await aiService.generateText({
+  prompt: text,
   promptLabel: "production",
   promptName: "example-summarize",
   userId: req.user?.id,
-  variables: {text},
 });
 ```
 

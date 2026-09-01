@@ -1,4 +1,5 @@
 import {describe, it} from "bun:test";
+import {LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
 import {ConsentForm, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
@@ -6,7 +7,7 @@ import {DateTime} from "luxon";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
-import {seedDefaultData, seedSteps} from "./seed-test-data";
+import {EXAMPLE_SUMMARIZE_PROMPT, seedDefaultData, seedSteps} from "./seed-test-data";
 
 describe("seedDefaultData", () => {
   it("idempotently seeds the default users and example records", async () => {
@@ -36,6 +37,26 @@ describe("seedDefaultData", () => {
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
     assert.equal(await ConsentForm.countDocuments({}), 3);
     assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
+    const promptStore = new LocalPromptStore();
+    const prompt = (await promptStore.list({search: "example-summarize"})).find(
+      (entry) => entry.name === "example-summarize"
+    );
+    assert.equal(prompt?.folder, "examples");
+    assert.equal(prompt?.latestVersion, 1);
+    assert.equal(prompt?.production, 1);
+    const promptDetail = await promptStore.getDetail("example-summarize");
+    assert.equal(promptDetail.versions[0]?.system, EXAMPLE_SUMMARIZE_PROMPT.system);
+    assert.equal(promptDetail.versions[0]?.template, EXAMPLE_SUMMARIZE_PROMPT.template);
+    assert.equal(promptDetail.versions[0]?.variables[0]?.key, "text");
+    assert.include(promptDetail.tags, "example");
+    const evaluator = (await new LocalEvaluatorStore().list()).find(
+      (entry) => entry.name === "correctness"
+    );
+    assert.equal(evaluator?.type, "human");
+    assert.equal(evaluator?.dimensions[0]?.key, "correct");
+    assert.equal(evaluator?.dimensions[0]?.dataType, "boolean");
+    assert.isTrue(evaluator?.dimensions[0]?.required);
+    assert.equal(evaluator?.runModes.liveSampleRate, 0);
     assert.equal(
       await CommsMessage.countDocuments({
         "metadata.demoSeed": true,
@@ -65,6 +86,10 @@ describe("seedDefaultData", () => {
     });
 
     assert.isAtLeast(preview.summary.created, 2);
+    assert.includeMembers(
+      preview.changes.map((change) => change.model),
+      ["ObsPrompt", "ObsEvaluator"]
+    );
     assert.equal(await User.countDocuments({}), 0);
   });
 });

@@ -1,7 +1,12 @@
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
-import {AIAdminApp, createLocalObservabilityPlugin, LangfuseApp, ObservabilityApp} from "@terreno/ai";
+import {
+  AIAdminApp,
+  createLocalObservabilityPlugin,
+  LangfuseApp,
+  ObservabilityApp,
+} from "@terreno/ai";
 import {
   BetterAuthApp,
   backfillAdmins,
@@ -55,6 +60,7 @@ import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {parseObservabilityPriceMap} from "./utils/observabilityConfig";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
@@ -314,6 +320,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(
         new ObservabilityApp({
           plugins: [createLocalObservabilityPlugin()],
+          priceMap: parseObservabilityPriceMap(process.env.AI_OBS_PRICE_MAP_JSON),
         })
       )
       .register(

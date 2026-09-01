@@ -4,6 +4,7 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
+import {LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
 import {
   APIError,
   ConsentForm,
@@ -78,6 +79,17 @@ interface SeedCommsMessage {
 
 // Shared organization so both seeded users demonstrate tenant-scoped project sync.
 const EXAMPLE_ORGANIZATION_ID = "org-example";
+export const EXAMPLE_SUMMARIZE_PROMPT = {
+  config: {temperature: 0.3},
+  folder: "examples",
+  name: "example-summarize",
+  system: "Write one faithful, concise sentence that preserves the source meaning.",
+  tags: ["example", "summarization"],
+  template: "Summarize the following text:\n\n{{text}}",
+  type: "text" as const,
+  variables: [{key: "text", label: "Source text", required: true}],
+};
+const EXAMPLE_REVIEW_EVALUATOR_TEMPLATE = "correctness";
 
 const TEST_USERS: SeedUser[] = [
   {
@@ -520,6 +532,45 @@ const softDeleteAll = async (
 
 const seededUsers: UserDocument[] = [];
 
+const seedObservability = async (context: SeedContext): Promise<void> => {
+  const promptStore = new LocalPromptStore();
+  const prompt = (await promptStore.list({search: EXAMPLE_SUMMARIZE_PROMPT.name})).find(
+    (entry) => entry.name === EXAMPLE_SUMMARIZE_PROMPT.name
+  );
+  context.changes.push({
+    change: prompt ? "unchanged" : "created",
+    count: 1,
+    key: JSON.stringify({name: EXAMPLE_SUMMARIZE_PROMPT.name}),
+    model: "ObsPrompt",
+  });
+  if (!context.dryRun && !prompt) {
+    await promptStore.create(EXAMPLE_SUMMARIZE_PROMPT);
+    await promptStore.moveLabel(EXAMPLE_SUMMARIZE_PROMPT.name, {
+      label: "production",
+      version: 1,
+    });
+  } else if (!context.dryRun && prompt?.production === "—") {
+    await promptStore.moveLabel(EXAMPLE_SUMMARIZE_PROMPT.name, {
+      label: "production",
+      version: prompt.latestVersion,
+    });
+  }
+
+  const evaluatorStore = new LocalEvaluatorStore();
+  const evaluator = (await evaluatorStore.list()).find(
+    (entry) => entry.name === EXAMPLE_REVIEW_EVALUATOR_TEMPLATE
+  );
+  context.changes.push({
+    change: evaluator ? "unchanged" : "created",
+    count: 1,
+    key: JSON.stringify({name: EXAMPLE_REVIEW_EVALUATOR_TEMPLATE}),
+    model: "ObsEvaluator",
+  });
+  if (!context.dryRun && !evaluator) {
+    await evaluatorStore.installTemplate(EXAMPLE_REVIEW_EVALUATOR_TEMPLATE);
+  }
+};
+
 export const seedSteps: SeedStep[] = [
   {
     name: "users",
@@ -610,6 +661,10 @@ export const seedSteps: SeedStep[] = [
         await seedCommsMessages(context, adminUser);
       }
     },
+  },
+  {
+    name: "aiObservability",
+    run: seedObservability,
   },
 ];
 

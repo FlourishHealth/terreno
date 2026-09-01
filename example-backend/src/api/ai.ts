@@ -12,6 +12,7 @@ import {
   MCPService,
   normalizeVertexModelId,
   preparePromptForAI,
+  TemperaturePresets,
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
@@ -610,6 +611,7 @@ const pdfTool = tool({
 
 const JOKE_FALLBACK_SYSTEM_PROMPT =
   "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
+const EXAMPLE_SUMMARIZE_PROMPT_NAME = "example-summarize";
 
 const jokeGeneratorTool = tool({
   description:
@@ -723,6 +725,46 @@ export const addAiRoutes = (
     asyncHandler(async (_req, res) => {
       const models = await listAvailableModels();
       return res.json({models});
+    }),
+  ]);
+
+  router.post("/ai/example-summarize", [
+    authenticateMiddleware(),
+    createOpenApiBuilder(options ?? {})
+      .withTags(["ai", "observability"])
+      .withSummary("Run the seeded observability summarization prompt")
+      .withRequestBody({
+        text: {type: "string"},
+      })
+      .withResponse(200, {
+        data: {
+          properties: {
+            output: {type: "string"},
+          },
+          type: "object",
+        },
+      })
+      .build(),
+    asyncHandler(async (req, res) => {
+      if (!aiService) {
+        throw new APIError({
+          status: 503,
+          title: "Configure GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY to run AI examples",
+        });
+      }
+      const text = (req.body as {text?: string}).text?.trim();
+      if (!text) {
+        throw new APIError({status: 400, title: "text is required"});
+      }
+      const output = await aiService.generateText({
+        prompt: text,
+        promptLabel: "production",
+        promptName: EXAMPLE_SUMMARIZE_PROMPT_NAME,
+        sessionId: req.header("x-ai-session-id"),
+        temperature: TemperaturePresets.LOW,
+        userId: req.user?._id,
+      });
+      return res.json({data: {output}});
     }),
   ]);
 

@@ -2,15 +2,16 @@
 import {emptySplitApi as api} from "./betterAuthApi";
 export const addTagTypes = [
   "ai",
+  "observability",
   "gpthistories",
   "gpt",
   "admin-users",
   "settings",
   "loadtest",
+  "comms",
   "todos",
   "exampleprojects",
   "users",
-  "comms",
   "admin",
   "featureflags",
   "adminauditlogs",
@@ -48,6 +49,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/users/${queryArg}`,
+        }),
+      }),
+      deleteAiObservabilityEvaluatorsById: build.mutation<
+        DeleteAiObservabilityEvaluatorsByIdRes,
+        DeleteAiObservabilityEvaluatorsByIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/ai/observability/evaluators/${queryArg}`,
         }),
       }),
       deleteCommsPushTokensById: build.mutation<
@@ -255,20 +266,110 @@ const injectedRtkApi = api
         providesTags: ["ai"],
         query: () => ({url: `/ai/models`}),
       }),
+      getAiObservabilityEvaluators: build.query<
+        GetAiObservabilityEvaluatorsRes,
+        GetAiObservabilityEvaluatorsArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/evaluators`}),
+      }),
+      getAiObservabilityEvaluatorsById: build.query<
+        GetAiObservabilityEvaluatorsByIdRes,
+        GetAiObservabilityEvaluatorsByIdArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({
+          url: `/ai/observability/evaluators/${queryArg}`,
+        }),
+      }),
+      getAiObservabilityEvaluatorsTemplates: build.query<
+        GetAiObservabilityEvaluatorsTemplatesRes,
+        GetAiObservabilityEvaluatorsTemplatesArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/evaluators/templates`}),
+      }),
+      getAiObservabilityPrompts: build.query<
+        GetAiObservabilityPromptsRes,
+        GetAiObservabilityPromptsArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({
+          params: {
+            folder: queryArg.folder,
+            include: queryArg.include,
+            search: queryArg.search,
+          },
+          url: `/ai/observability/prompts`,
+        }),
+      }),
+      getAiObservabilityPromptsByName: build.query<
+        GetAiObservabilityPromptsByNameRes,
+        GetAiObservabilityPromptsByNameArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({url: `/ai/observability/prompts/${queryArg}`}),
+      }),
+      getAiObservabilityReview: build.query<
+        GetAiObservabilityReviewRes,
+        GetAiObservabilityReviewArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/review`}),
+      }),
+      getAiObservabilityReviewById: build.query<
+        GetAiObservabilityReviewByIdRes,
+        GetAiObservabilityReviewByIdArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({url: `/ai/observability/review/${queryArg}`}),
+      }),
+      getAiObservabilityStatus: build.query<
+        GetAiObservabilityStatusRes,
+        GetAiObservabilityStatusArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/status`}),
+      }),
+      getAiObservabilityTraces: build.query<
+        GetAiObservabilityTracesRes,
+        GetAiObservabilityTracesArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/traces`}),
+      }),
+      getAiObservabilityTracesById: build.query<
+        GetAiObservabilityTracesByIdRes,
+        GetAiObservabilityTracesByIdArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({url: `/ai/observability/traces/${queryArg}`}),
+      }),
       getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
         providesTags: ["admin", "comms"],
         query: (queryArg) => ({
           params: {
             channel: queryArg.channel,
             endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
             limit: queryArg.limit,
             page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
             startDate: queryArg.startDate,
             status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
             userId: queryArg.userId,
           },
           url: `/comms/messages`,
         }),
+      }),
+      getCommsMessagesById: build.query<GetCommsMessagesByIdRes, GetCommsMessagesByIdArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({url: `/comms/messages/${queryArg}`}),
       }),
       getCommsPushTokens: build.query<GetCommsPushTokensRes, GetCommsPushTokensArgs>({
         providesTags: ["comms"],
@@ -285,6 +386,28 @@ const injectedRtkApi = api
       getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
         providesTags: ["comms"],
         query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
+      }),
+      getCommsStats: build.query<GetCommsStatsRes, GetCommsStatsArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          params: {
+            channel: queryArg.channel,
+            endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
+            startDate: queryArg.startDate,
+            status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
+            userId: queryArg.userId,
+          },
+          url: `/comms/stats`,
+        }),
       }),
       getFeatureFlagsFlags: build.query<GetFeatureFlagsFlagsRes, GetFeatureFlagsFlagsArgs>({
         providesTags: ["featureflags"],
@@ -421,6 +544,16 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/admin/users/${queryArg.id}`,
+        }),
+      }),
+      patchAiObservabilityEvaluatorsById: build.mutation<
+        PatchAiObservabilityEvaluatorsByIdRes,
+        PatchAiObservabilityEvaluatorsByIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "PATCH",
+          url: `/ai/observability/evaluators/${queryArg}`,
         }),
       }),
       patchFeatureFlagsFlagsById: build.mutation<
@@ -597,6 +730,134 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}/password`,
         }),
       }),
+      postAiExampleSummarize: build.mutation<PostAiExampleSummarizeRes, PostAiExampleSummarizeArgs>(
+        {
+          invalidatesTags: ["ai", "observability"],
+          query: (queryArg) => ({
+            body: queryArg,
+            method: "POST",
+            url: `/ai/example-summarize`,
+          }),
+        }
+      ),
+      postAiObservabilityEvaluators: build.mutation<
+        PostAiObservabilityEvaluatorsRes,
+        PostAiObservabilityEvaluatorsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({method: "POST", url: `/ai/observability/evaluators`}),
+      }),
+      postAiObservabilityEvaluatorsTemplatesByName: build.mutation<
+        PostAiObservabilityEvaluatorsTemplatesByNameRes,
+        PostAiObservabilityEvaluatorsTemplatesByNameArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/evaluators/templates/${queryArg}`,
+        }),
+      }),
+      postAiObservabilityPrompts: build.mutation<
+        PostAiObservabilityPromptsRes,
+        PostAiObservabilityPromptsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/ai/observability/prompts`,
+        }),
+      }),
+      postAiObservabilityPromptsByNameLabels: build.mutation<
+        PostAiObservabilityPromptsByNameLabelsRes,
+        PostAiObservabilityPromptsByNameLabelsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/ai/observability/prompts/${queryArg.name}/labels`,
+        }),
+      }),
+      postAiObservabilityPromptsByNamePlayground: build.mutation<
+        PostAiObservabilityPromptsByNamePlaygroundRes,
+        PostAiObservabilityPromptsByNamePlaygroundArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/prompts/${queryArg}/playground`,
+        }),
+      }),
+      postAiObservabilityPromptsByNameVersions: build.mutation<
+        PostAiObservabilityPromptsByNameVersionsRes,
+        PostAiObservabilityPromptsByNameVersionsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/prompts/${queryArg}/versions`,
+        }),
+      }),
+      postAiObservabilityReviewById: build.mutation<
+        PostAiObservabilityReviewByIdRes,
+        PostAiObservabilityReviewByIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/review/${queryArg}`,
+        }),
+      }),
+      postAiObservabilityTracesByIdScores: build.mutation<
+        PostAiObservabilityTracesByIdScoresRes,
+        PostAiObservabilityTracesByIdScoresArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/traces/${queryArg}/scores`,
+        }),
+      }),
+      postAiObservabilityTracesReview: build.mutation<
+        PostAiObservabilityTracesReviewRes,
+        PostAiObservabilityTracesReviewArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({
+          method: "POST",
+          url: `/ai/observability/traces/review`,
+        }),
+      }),
+      postCommsDevTestPush: build.mutation<PostCommsDevTestPushRes, PostCommsDevTestPushArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/dev/testPush`,
+        }),
+      }),
+      postCommsMessagesByIdRetry: build.mutation<
+        PostCommsMessagesByIdRetryRes,
+        PostCommsMessagesByIdRetryArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/comms/messages/${queryArg}/retry`,
+        }),
+      }),
+      postCommsMessagesRetryMany: build.mutation<
+        PostCommsMessagesRetryManyRes,
+        PostCommsMessagesRetryManyArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/messages/retryMany`,
+        }),
+      }),
       postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({
         invalidatesTags: ["comms"],
         query: (queryArg) => ({
@@ -723,9 +984,17 @@ export type GetAiModelsRes = /** status 200 Success */ {
   }[];
 };
 export type GetAiModelsArgs = undefined;
+export type PostAiExampleSummarizeRes = /** status 200 Success */ {
+  data?: {
+    output?: string;
+  };
+};
+export type PostAiExampleSummarizeArgs = {
+  text?: string;
+};
 export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -761,7 +1030,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -773,7 +1042,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
 };
 export type PostGptHistoriesArgs = {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -809,7 +1078,7 @@ export type PostGptHistoriesArgs = {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId?: any;
+  userId?: string;
   _id?: string;
   /** When this document was last updated */
   updated?: string;
@@ -822,7 +1091,7 @@ export type PostGptHistoriesArgs = {
 export type GetGptHistoriesRes = /** status 200 Successful list */ {
   data?: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -858,7 +1127,7 @@ export type GetGptHistoriesRes = /** status 200 Successful list */ {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId: any;
+    userId: string;
     _id: string;
     /** When this document was last updated */
     updated: string;
@@ -893,7 +1162,7 @@ export type GetGptHistoriesArgs = {
 };
 export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -929,7 +1198,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -942,7 +1211,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
 export type GetGptHistoriesByIdArgs = string;
 export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -978,7 +1247,7 @@ export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -992,7 +1261,7 @@ export type PatchGptHistoriesByIdArgs = {
   id: string;
   body: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -1028,7 +1297,7 @@ export type PatchGptHistoriesByIdArgs = {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId?: any;
+    userId?: string;
     _id?: string;
     /** When this document was last updated */
     updated?: string;
@@ -1055,6 +1324,10 @@ export type PostGptPromptArgs = {
   model?: string;
   projectId?: string;
   prompt?: string;
+  promptLabel?: string;
+  promptName?: string;
+  sensitive?: boolean;
+  sessionId?: string;
   systemPrompt?: string;
 };
 export type PatchGptHistoriesByIdRatingRes = /** status 200 Success */ {
@@ -1071,6 +1344,10 @@ export type PostGptRemixRes = /** status 200 Success */ {
   data?: string;
 };
 export type PostGptRemixArgs = {
+  promptLabel?: string;
+  promptName?: string;
+  sensitive?: boolean;
+  sessionId?: string;
   text?: string;
 };
 export type GetGptToolsRes = /** status 200 Success */ {
@@ -1147,6 +1424,17 @@ export type PostLoadtestTodosClearRes = /** status 200 Success */ {
   };
 };
 export type PostLoadtestTodosClearArgs = undefined;
+export type PostCommsDevTestPushRes = /** status 200 Success */ {
+  data?: {
+    accepted?: number;
+    results?: object[];
+    tokenCount?: number;
+  };
+};
+export type PostCommsDevTestPushArgs = {
+  body?: string;
+  title?: string;
+};
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
@@ -1166,7 +1454,7 @@ export type PostTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1190,7 +1478,7 @@ export type PostTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1215,7 +1503,7 @@ export type GetTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1262,7 +1550,7 @@ export type GetTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1287,7 +1575,7 @@ export type PatchTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1313,7 +1601,7 @@ export type PatchTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1693,7 +1981,7 @@ export type GetCommsPushTokensByIdRes = /** status 200 Successful read */ {
   /** Push provider token identifying the device */
   token: string;
   /** User who owns the device token */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -1715,10 +2003,65 @@ export type GetCommsMessagesArgs = {
   page?: number;
   limit?: number;
   channel?: string;
+  provider?: string;
   status?: string;
+  errorClass?: string;
+  errorCode?: string;
   userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
   startDate?: string;
   endDate?: string;
+  q?: string;
+};
+export type PostCommsMessagesRetryManyRes = /** status 200 Success */ {
+  retried?: object[];
+  skipped?: object[];
+};
+export type PostCommsMessagesRetryManyArgs = {
+  channel?: string;
+  endDate?: string;
+  errorClass?: string;
+  errorCode?: string;
+  limit?: number;
+  provider?: string;
+  q?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  status?: string;
+  templateId?: string;
+  to?: string;
+  userId?: string;
+};
+export type GetCommsMessagesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetCommsMessagesByIdArgs = string;
+export type PostCommsMessagesByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostCommsMessagesByIdRetryArgs = string;
+export type GetCommsStatsRes = /** status 200 Success */ {
+  buckets?: object[];
+  byProvider?: object[];
+  totals?: object;
+};
+export type GetCommsStatsArgs = {
+  page?: number;
+  limit?: number;
+  channel?: string;
+  provider?: string;
+  status?: string;
+  errorClass?: string;
+  errorCode?: string;
+  userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  endDate?: string;
+  q?: string;
 };
 export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
   /** Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added. */
@@ -1748,6 +2091,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1756,6 +2100,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1793,6 +2138,7 @@ export type PostFeatureFlagsFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1801,6 +2147,7 @@ export type PostFeatureFlagsFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -1839,6 +2186,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1847,6 +2195,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -1897,6 +2246,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1905,6 +2255,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1943,6 +2294,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1951,6 +2303,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1990,6 +2343,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1998,6 +2352,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2010,6 +2365,101 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetAiObservabilityStatusRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityStatusArgs = undefined;
+export type GetAiObservabilityPromptsRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityPromptsArgs = {
+  folder?: string;
+  search?: string;
+  include?: string;
+};
+export type PostAiObservabilityPromptsRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityPromptsArgs = {
+  folder: string;
+  name: string;
+};
+export type GetAiObservabilityPromptsByNameRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityPromptsByNameArgs = string;
+export type PostAiObservabilityPromptsByNameVersionsRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityPromptsByNameVersionsArgs = string;
+export type PostAiObservabilityPromptsByNameLabelsRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityPromptsByNameLabelsArgs = {
+  name: string;
+  body: {
+    label: string;
+    version: number;
+  };
+};
+export type PostAiObservabilityPromptsByNamePlaygroundRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityPromptsByNamePlaygroundArgs = string;
+export type GetAiObservabilityTracesRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityTracesArgs = undefined;
+export type GetAiObservabilityTracesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityTracesByIdArgs = string;
+export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityTracesByIdScoresArgs = string;
+export type GetAiObservabilityEvaluatorsTemplatesRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityEvaluatorsTemplatesArgs = undefined;
+export type PostAiObservabilityEvaluatorsTemplatesByNameRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityEvaluatorsTemplatesByNameArgs = string;
+export type GetAiObservabilityEvaluatorsRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityEvaluatorsArgs = undefined;
+export type PostAiObservabilityEvaluatorsRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityEvaluatorsArgs = undefined;
+export type GetAiObservabilityEvaluatorsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityEvaluatorsByIdArgs = string;
+export type PatchAiObservabilityEvaluatorsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PatchAiObservabilityEvaluatorsByIdArgs = string;
+export type DeleteAiObservabilityEvaluatorsByIdRes = /** status 204 Success */ {};
+export type DeleteAiObservabilityEvaluatorsByIdArgs = string;
+export type PostAiObservabilityTracesReviewRes = /** status 201 Success */ {
+  data?: any;
+};
+export type PostAiObservabilityTracesReviewArgs = undefined;
+export type GetAiObservabilityReviewRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityReviewArgs = undefined;
+export type GetAiObservabilityReviewByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityReviewByIdArgs = string;
+export type PostAiObservabilityReviewByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityReviewByIdArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -2020,6 +2470,8 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   customScreens?: {
     description?: string;
     displayName?: string;
+    group?: string;
+    icon?: string;
     name?: string;
   }[];
   home?: object;
@@ -2067,11 +2519,11 @@ export type PostAdminAuditLogsBulkPatchArgs = {
 export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
   data?: {
     /** User who performed the action */
-    actorId?: any;
+    actorId?: string;
     /** Mongoose model name affected */
     modelName: string;
     /** Primary key of the affected document */
-    recordId?: any;
+    recordId?: string;
     /** Human-readable label for the record */
     recordLabel?: string;
     /** Mutation kind */
@@ -2139,11 +2591,11 @@ export type GetAdminAuditLogsArgs = {
 };
 export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
   /** User who performed the action */
-  actorId?: any;
+  actorId?: string;
   /** Mongoose model name affected */
   modelName: string;
   /** Primary key of the affected document */
-  recordId?: any;
+  recordId?: string;
   /** Human-readable label for the record */
   recordLabel?: string;
   /** Mutation kind */
@@ -2197,6 +2649,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2205,6 +2658,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2242,6 +2696,7 @@ export type PostAdminFeatureFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2250,6 +2705,7 @@ export type PostAdminFeatureFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -2288,6 +2744,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2296,6 +2753,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -2393,6 +2851,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2401,6 +2860,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2439,6 +2899,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2447,6 +2908,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2486,6 +2948,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2494,6 +2957,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2533,6 +2997,7 @@ export type PostAdminConsentFormsRes = /** status 201 Successful create */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2581,6 +3046,7 @@ export type PostAdminConsentFormsArgs = {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content?: {
@@ -2630,6 +3096,7 @@ export type GetAdminConsentFormsRes = /** status 200 Successful list */ {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content: {
@@ -2740,6 +3207,7 @@ export type GetAdminConsentFormsByIdRes = /** status 200 Successful read */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2789,6 +3257,7 @@ export type PatchAdminConsentFormsByIdRes = /** status 200 Successful update */ 
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2839,6 +3308,7 @@ export type PatchAdminConsentFormsByIdArgs = {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content?: {
@@ -3040,7 +3510,7 @@ export type PostAdminTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3064,7 +3534,7 @@ export type PostAdminTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3089,7 +3559,7 @@ export type GetAdminTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3178,7 +3648,7 @@ export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3203,7 +3673,7 @@ export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3229,7 +3699,7 @@ export type PatchAdminTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3490,6 +3960,7 @@ export type ApiError = {
 };
 export const {
   useGetAiModelsQuery,
+  usePostAiExampleSummarizeMutation,
   usePostGptHistoriesMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
@@ -3506,6 +3977,7 @@ export const {
   usePostLoadtestTodosGenerateMutation,
   usePostLoadtestTodosChurnMutation,
   usePostLoadtestTodosClearMutation,
+  usePostCommsDevTestPushMutation,
   useTodosMarkCompleteMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
@@ -3528,11 +4000,36 @@ export const {
   useDeleteCommsPushTokensByIdMutation,
   useGetCommsPushTokensByIdQuery,
   useGetCommsMessagesQuery,
+  usePostCommsMessagesRetryManyMutation,
+  useGetCommsMessagesByIdQuery,
+  usePostCommsMessagesByIdRetryMutation,
+  useGetCommsStatsQuery,
   usePostFeatureFlagsFlagsMutation,
   useGetFeatureFlagsFlagsQuery,
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetAiObservabilityStatusQuery,
+  useGetAiObservabilityPromptsQuery,
+  usePostAiObservabilityPromptsMutation,
+  useGetAiObservabilityPromptsByNameQuery,
+  usePostAiObservabilityPromptsByNameVersionsMutation,
+  usePostAiObservabilityPromptsByNameLabelsMutation,
+  usePostAiObservabilityPromptsByNamePlaygroundMutation,
+  useGetAiObservabilityTracesQuery,
+  useGetAiObservabilityTracesByIdQuery,
+  usePostAiObservabilityTracesByIdScoresMutation,
+  useGetAiObservabilityEvaluatorsTemplatesQuery,
+  usePostAiObservabilityEvaluatorsTemplatesByNameMutation,
+  useGetAiObservabilityEvaluatorsQuery,
+  usePostAiObservabilityEvaluatorsMutation,
+  useGetAiObservabilityEvaluatorsByIdQuery,
+  usePatchAiObservabilityEvaluatorsByIdMutation,
+  useDeleteAiObservabilityEvaluatorsByIdMutation,
+  usePostAiObservabilityTracesReviewMutation,
+  useGetAiObservabilityReviewQuery,
+  useGetAiObservabilityReviewByIdQuery,
+  usePostAiObservabilityReviewByIdMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminAuditLogsBulkPatchMutation,
