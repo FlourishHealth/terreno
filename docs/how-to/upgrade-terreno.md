@@ -54,7 +54,7 @@ If the range includes the syncdb release (`56.0.0-beta.2` and later), treat coll
 7. `bun run compile`, `bun run lint`, and the app test suite.
 8. Log in and exercise the screens that use changed APIs.
 
-Stop at the first failed compile or test. Do not continue.
+Stop at the first failed compile or test. Do not continue. Compile is a typecheck (`tsc --noEmit`); a bundler that ignores types is not enough.
 
 ## 6. Verification
 

@@ -56,6 +56,8 @@ Do not install, edit lockfiles, or regenerate the client before confirmation.
 
 Match `docs/how-to/upgrade-terreno.md`. After each phase, run its gate. **If compile or tests fail, stop. Do not continue.**
 
+Compile means a **typecheck** (`tsc --noEmit` or `bun run compile` when that script typechecks). `bun build` / bundlers that ignore TypeScript errors are not a passing gate.
+
 1. Clean git tree + branch (already enforced).
 2. Record current `@terreno/*` versions (`application_info` / `package.json`).
 3. `terreno_get_upgrade_guide` for the range (already fetched). Apply note migrations that are code edits **after** confirmation, in this same order.
@@ -75,7 +77,7 @@ Report all three:
 2. What failed (command and first error line).
 3. Rollback: `git reset --hard` on this branch, or `git checkout <pre-upgrade-sha> -- package.json bun.lock && bun install`.
 
-On a **multi-version** jump failure: retry **version by version** (`from` → next recorded note version → …) to isolate the breaking version. Do not continue past a failed compile or test run.
+On a **multi-version** jump failure: retry **version by version** (`from` → next recorded note version → …) to isolate the breaking version. Keep the failing consumer file. The first version whose typecheck fails is the isolate. Do not continue past a failed compile or test run.
 
 ## Final report
 

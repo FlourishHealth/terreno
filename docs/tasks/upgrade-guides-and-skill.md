@@ -105,13 +105,13 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
 
 ## Phase 5: Validation
 
-- [ ] **Task 5.1**: Perform a real multi-version upgrade with the skill
+- [x] **Task 5.1**: Perform a real multi-version upgrade with the skill
   - Description: Create a consumer app pinned to an older Terreno version (at least two minors behind current — scaffold with `terreno_bootstrap_app` from that version, or check out `example-frontend`/`example-backend` at the older tag into a scratch directory). Run the `upgrading-terreno` skill to bring it to current. Verify: the clean-tree precondition fires when the tree is dirty, the confirmation gate fires, each phase's verification runs, and the app compiles and runs afterward. Record every gap and fix the skill, the notes, or the how-to as appropriate. Capture the transcript and the running upgraded app to `/opt/cursor/artifacts/`.
   - Files: `.rulesync/skills/upgrading-terreno/SKILL.md`, `mcp-server/src/docs/upgrades/*`, `docs/how-to/upgrade-terreno.md`, generated mirrors
   - Depends on: Task 3.5, Task 1.3
   - Acceptance: the upgrade succeeds and the app runs; both gates observed firing; every gap fixed; artifacts captured; `bun run rules:check` exits 0.
 
-- [ ] **Task 5.2**: Verify the failure-isolation path
+- [x] **Task 5.2**: Verify the failure-isolation path
   - Description: Deliberately create a failing upgrade (for example by pinning a consumer file to an API removed in the range) and confirm the skill stops at the failing phase, names it, reports what succeeded, offers rollback, and — for a multi-version range — retries version by version to isolate the breaking version. Fix the skill if any of those behaviors is missing.
   - Files: `.rulesync/skills/upgrading-terreno/SKILL.md`, generated mirrors
   - Depends on: Task 5.1
