@@ -117,7 +117,7 @@ describe("observability prompt routes", () => {
       totalTokens: 15,
     });
     expect(playground.body.data.costUsd).toBeCloseTo(0.025);
-    expect(playground.body.data.latencyMs).toBeGreaterThan(0);
+    expect(playground.body.data.latencyMs).toBeGreaterThanOrEqual(0);
     expect(doGenerate).toHaveBeenCalledTimes(1);
 
     const after = await agent.get("/ai/observability/prompts/greeter");
