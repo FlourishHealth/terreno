@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-01T21:36:21.960Z.
+> dates are promised. Last updated: 2026-09-01T21:44:15.361Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -47,7 +47,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### docs
 
 - [AI-first tutorials](https://github.com/FlourishHealth/terreno/issues/1010) (Feature, Planned) — IP: [docs-tutorials-ai-first](docs/implementationPlans/docs-tutorials-ai-first.md)
-- [Documentation site and versioning](https://github.com/FlourishHealth/terreno/issues/1086) (Feature, Planned) — IP: [docs-site-and-versioning](docs/implementationPlans/docs-site-and-versioning.md)
 - [Dogfooding run and launch blog post](https://github.com/FlourishHealth/terreno/issues/1015) (Improvement, Planned) — IP: [build-terreno-app-validation](docs/implementationPlans/build-terreno-app-validation.md)
 - [Reference documentation coverage](https://github.com/FlourishHealth/terreno/issues/1009) (Improvement, Shipped) — IP: [docs-reference-coverage](docs/implementationPlans/docs-reference-coverage.md)
 
