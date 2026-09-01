@@ -43,7 +43,7 @@ export class WebhooksApp implements TerrenoPlugin {
   constructor(options: WebhooksAppOptions = {}) {
     const storeKind = options.idempotency?.store ?? "memory";
     if (storeKind === "mongo") {
-      this.store = createMongoIdempotencyStore();
+      this.store = createMongoIdempotencyStore({ttlDays: options.idempotency?.ttlDays});
     } else {
       this.store = createMemoryIdempotencyStore();
     }

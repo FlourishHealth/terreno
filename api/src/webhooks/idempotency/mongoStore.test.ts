@@ -218,6 +218,41 @@ describe("mongo webhook idempotency store", () => {
     }
   });
 
+  it("applies idempotency.ttlDays to the created TTL index", async () => {
+    const webhooks = new WebhooksApp({idempotency: {store: "mongo", ttlDays: 1}});
+    webhooks.route({
+      eventId: () => "ttl-custom",
+      handler: () => undefined,
+      path: "/webhooks/ttl",
+      source: "example",
+      verify: () => true,
+    });
+    const app = new TerrenoApp({
+      logRequests: false,
+      skipListen: true,
+      userModel: UserModel as unknown as AuthUserModel,
+    })
+      .register(webhooks)
+      .build();
+    await supertest(app).post("/webhooks/ttl").set("Content-Type", "application/json").send("{}");
+    const db = mongoose.connection.db;
+    assert.ok(db);
+    const indexes = await db.collection(WEBHOOK_RECEIPTS_COLLECTION).indexes();
+    const ttl = indexes.find((index) => index.key.created === 1);
+    assert.ok(ttl);
+    assert.equal(ttl.expireAfterSeconds, 86_400);
+  });
+
+  it("throws when ttlDays is not a positive number", (): void => {
+    let failed = false;
+    try {
+      createMongoIdempotencyStore({ttlDays: 0});
+    } catch {
+      failed = true;
+    }
+    assert.isTrue(failed);
+  });
+
   it("throws when mongoose is not connected", async () => {
     const store = createMongoIdempotencyStore();
     const descriptor = Object.getOwnPropertyDescriptor(mongoose.connection, "db");

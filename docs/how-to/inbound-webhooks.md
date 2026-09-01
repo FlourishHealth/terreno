@@ -70,8 +70,8 @@ Missing `rawBody` returns `400` `webhook-body-missing`. Duplicate `(source, even
 returns `200 {received: true, duplicate: true}` without running the handler. A throwing
 handler returns `500` and **releases** the claim so a retry can run.
 
-Pass `idempotency: {store: "mongo"}` to persist claims in the `webhookReceipts` collection
-(unique `(source, eventId)`, TTL 7 days on `created`). This is not a public `modelRouter`
+Pass `idempotency: {store: "mongo", ttlDays?}` to persist claims in the `webhookReceipts` collection
+(unique `(source, eventId)`, TTL on `created`, default 7 days). This is not a public `modelRouter`
 model. Use `store: "memory"` in tests and single-process apps.
 
 SendGrid posts an array. Omit route-level `eventId` and call `webhooks.claim({source, eventId})`
