@@ -381,13 +381,13 @@ export const getComponentDocsMarkdown = (componentName: string, version?: string
   }
 
   const {chunks, index} = ensureIndex();
-  const extra = index.search(`${chosen.name} props`, {combineWith: "OR", fuzzy: 0.2}).slice(0, 3);
+  const extraHits = index.search(`${chosen.name} props`, {combineWith: "OR", fuzzy: 0.2});
   const chunkById = new Map<string, SearchableChunk>();
   for (const c of chunks) {
     chunkById.set(c.id, c);
   }
   const extras: string[] = [];
-  for (const hit of extra) {
+  for (const hit of extraHits) {
     const ch = chunkById.get(hit.id);
     if (!ch) {
       continue;
@@ -401,6 +401,9 @@ export const getComponentDocsMarkdown = (componentName: string, version?: string
     extras.push(
       `### Related: ${ch.title}\n_Source: \`${ch.sourcePath}\`_\n\n${ch.text.slice(0, 1500)}`
     );
+    if (extras.length >= 3) {
+      break;
+    }
   }
   if (extras.length) {
     md += "\n\n## Related markdown excerpts\n\n";

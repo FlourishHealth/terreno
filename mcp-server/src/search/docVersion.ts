@@ -13,6 +13,13 @@ export interface ResolvedDocVersion {
 
 const isSemverLike = (value: string): boolean => /^\d+\.\d+\.\d+/.test(value);
 
+const stripVersionRangePrefix = (value: string): string => {
+  const trimmed = value.trim();
+  const withoutOperator = trimmed.replace(/^(?:workspace:)?[~^>=<\s]+/, "");
+  const firstToken = withoutOperator.split(/\s+/)[0] ?? withoutOperator;
+  return firstToken.replace(/^[~^>=<]+/, "");
+};
+
 const semverKey = (value: string): number[] => {
   const core = value.split("-")[0] ?? value;
   return core.split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -49,7 +56,7 @@ export const resolveDocVersion = ({
   retained,
 }: ResolveDocVersionInput): ResolvedDocVersion => {
   const versions = retained.length > 0 ? retained : ["next"];
-  const trimmed = requested?.trim() ?? "";
+  const trimmed = stripVersionRangePrefix(requested?.trim() ?? "");
   if (trimmed === "" || trimmed === "next") {
     return {version: fallbackVersion(versions)};
   }
@@ -92,6 +99,8 @@ export const docVersionFromSourcePath = (sourcePath: string): string | undefined
 
 export const slugifyComponentName = (name: string): string =>
   name
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");

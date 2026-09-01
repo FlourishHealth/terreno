@@ -124,7 +124,7 @@ BM25-style keyword search over markdown bundled with the MCP server: `docs/resou
 }
 ``````
 
-Unmatched versions fall back to the nearest retained snapshot (`website/versioned_docs/`, copied into `docs/versioned/` at MCP build). The response names the resolved version and includes a note when a fallback happened. Pass the consumer app's `@terreno/*` version from `application_info` or `package.json`.
+Unmatched versions fall back to the nearest retained snapshot (`website/versioned_docs/`, copied into `docs/versioned/` at MCP build). The response names the resolved version and includes a note when a fallback happened. Pass the consumer app's `@terreno/*` version from `application_info` or `package.json`. Range prefixes such as `^57.2.0` are stripped before matching.
 
 ### terreno_get_component_docs
 

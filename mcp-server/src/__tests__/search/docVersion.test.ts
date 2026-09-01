@@ -46,6 +46,22 @@ describe("resolveDocVersion", () => {
     expect(resolved.version).toBe("next");
     expect(resolved.note).toContain("not-a-version");
   });
+
+  test("strips package.json range prefixes before matching", () => {
+    const caret = resolveDocVersion({
+      requested: "^0.19.0",
+      retained: ["0.19.0", "0.20.0", "next"],
+    });
+    expect(caret.version).toBe("0.19.0");
+    expect(caret.note).toBeUndefined();
+
+    const tilde = resolveDocVersion({
+      requested: "~0.19.1",
+      retained: ["0.19.0", "0.20.0", "next"],
+    });
+    expect(tilde.version).toBe("0.19.0");
+    expect(tilde.note).toContain("0.19.1");
+  });
 });
 
 describe("listRetainedDocVersions", () => {

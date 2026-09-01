@@ -255,6 +255,51 @@ describe("docIndex", () => {
     expect(out).not.toContain("<ComponentDemo");
   });
 
+  test("getComponentDocsMarkdown matches PascalCase names to kebab snapshot files", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "text-field.mdx"),
+      ["# Text field", "", "snapshotTextFieldToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("TextField", "0.19.0");
+    expect(out).toContain("snapshotTextFieldToken");
+    expect(out).not.toContain("No snapshot page");
+  });
+
+  test("related excerpts keep the requested version when older copies score higher", () => {
+    const typeDoc = {
+      children: [
+        {
+          children: [
+            {
+              children: [{flags: {}, name: "label", type: {name: "string", type: "intrinsic"}}],
+              kind: 256,
+              name: "ButtonProps",
+            },
+          ],
+          name: "Common",
+        },
+      ],
+    };
+    writeFileSync(join(tmp, "ui-types-documentation.json"), JSON.stringify(typeDoc));
+    mkdirSync(join(tmp, "versioned", "0.18.0"), {recursive: true});
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    for (const index of [1, 2, 3, 4]) {
+      writeFileSync(
+        join(tmp, "versioned", "0.18.0", `old-${index}.md`),
+        ["# Old Button", "", `Button props historicalOnlyExcerptToken ${index}`].join("\n")
+      );
+    }
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "current.md"),
+      ["# Current Button", "", "Button props currentOnlyExcerptToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("Button", "0.19.0");
+    expect(out).toContain("currentOnlyExcerptToken");
+    expect(out).not.toContain("historicalOnlyExcerptToken");
+  });
+
   test("getComponentDocsMarkdown resolves component case-insensitively and adds related excerpts", () => {
     const typeDoc = {
       children: [
