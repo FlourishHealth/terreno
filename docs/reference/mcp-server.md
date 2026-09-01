@@ -143,7 +143,7 @@ When `version` matches a retained docs snapshot, the tool returns that version's
 
 ### terreno_get_upgrade_guide
 
-Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages.
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages. The response always lists which versions in the range **have** notes. If some or all versions have none, it names those gaps — an empty concatenation would look like “nothing changed,” which is usually false. `fromVersion` must be less than or equal to `toVersion`. Note format: `mcp-server/src/docs/upgrades/README.md`.
 
 **Parameters:**
 
