@@ -92,6 +92,23 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 };
 ``````
 
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms` so password-reset and
+email-verification mail match the JWT recovery templates.
+
+```typescript
+import {getCommsService, renderAuthMail} from "@terreno/comms";
+
+const config: BetterAuthConfig = {
+  enabled: true,
+  publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+  renderAuthMail,
+  sendMail: async (message) => {
+    await getCommsService().sendMail(message);
+  },
+  // ...
+};
+```
+
 ### 3. Register BetterAuthApp Plugin
 
 Use the TerrenoApp plugin system:

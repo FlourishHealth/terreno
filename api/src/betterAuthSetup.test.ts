@@ -9,6 +9,7 @@ import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthUser} from "./betterAuth";
 import {
   createBetterAuth,
+  createBetterAuthEmailHooks,
   createBetterAuthSessionMiddleware,
   getBetterAuthSession,
   getMongoClientFromMongoose,
@@ -189,6 +190,42 @@ describe("createBetterAuth", () => {
 
     const auth = createBetterAuth({config, mongoClient: getClient()});
     expect(auth).toBeDefined();
+  });
+
+  it("sends reset and verification mail through the injected renderer", async () => {
+    await setup;
+    const renderedCalls: Array<{templateId: string; token: string}> = [];
+    const sent: Array<{subject: string; text?: string; to: string}> = [];
+    const hooks = createBetterAuthEmailHooks({
+      enabled: true,
+      publicAppUrl: "https://app.example.com",
+      renderAuthMail: ({templateId, token}) => {
+        renderedCalls.push({templateId, token});
+        return {subject: templateId, text: `link-${token}`};
+      },
+      sendMail: async (message) => {
+        sent.push({subject: message.subject, text: message.text, to: message.to});
+      },
+    });
+    assert.isDefined(hooks);
+    await hooks?.sendResetPassword({
+      token: "reset-token",
+      url: "https://better-auth.example/ignored",
+      user: {email: "reset@example.com"},
+    });
+    await hooks?.sendVerificationEmail({
+      token: "verify-token",
+      url: "https://better-auth.example/ignored",
+      user: {email: "verify@example.com"},
+    });
+    assert.deepEqual(renderedCalls, [
+      {templateId: "resetPassword", token: "reset-token"},
+      {templateId: "verifyEmail", token: "verify-token"},
+    ]);
+    assert.deepEqual(sent, [
+      {subject: "resetPassword", text: "link-reset-token", to: "reset@example.com"},
+      {subject: "verifyEmail", text: "link-verify-token", to: "verify@example.com"},
+    ]);
   });
 });
 

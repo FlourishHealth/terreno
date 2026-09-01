@@ -258,6 +258,10 @@ app.register(new BetterAuthApp({config: betterAuthConfig, userModel: User}));
 const server = app.start();
 ``````
 
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` (from `@terreno/comms`) so Better Auth
+`sendResetPassword` / `sendVerificationEmail` use the same templates as JWT recovery mail.
+Optional `authMailTemplates` overrides subject/text/html per template id.
+
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup
 - `POST /api/auth/signin/email` — Email/password signin

@@ -15,6 +15,7 @@ import mongoose from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {APIError} from "./errors";
+import type {AuthRecoveryMail} from "./expressServer";
 import {logger} from "./logger";
 import {findOneOrNoneFor} from "./plugins";
 import {updateRequestContextFromRequest} from "./requestContext";
@@ -37,6 +38,96 @@ export interface CreateBetterAuthOptions {
   mongoClient: MongoClientLike;
   userModel?: UserModel;
 }
+
+const FALLBACK_AUTH_MAIL = {
+  resetPassword: {
+    html: '<p><a href="{{resetUrl}}">Reset your password</a></p>',
+    subject: "Reset your password",
+    text: "Reset your password using this link: {{resetUrl}}",
+  },
+  verifyEmail: {
+    html: '<p><a href="{{verifyUrl}}">Verify your email</a></p>',
+    subject: "Verify your email",
+    text: "Verify your email using this link: {{verifyUrl}}",
+  },
+} as const;
+
+const interpolateMail = (value: string, data: Record<string, string>): string =>
+  value.replace(/{{\s*([A-Za-z0-9_]+)\s*}}/g, (_match: string, key: string): string => {
+    return data[key] ?? "";
+  });
+
+const fallbackRenderAuthMail = ({
+  publicAppUrl,
+  templateId,
+  token,
+  templates,
+}: {
+  publicAppUrl: string;
+  templateId: "resetPassword" | "verifyEmail";
+  token: string;
+  templates?: BetterAuthConfig["authMailTemplates"];
+}): {html?: string; subject: string; text?: string} => {
+  const template = templates?.[templateId] ?? FALLBACK_AUTH_MAIL[templateId];
+  const base = publicAppUrl.replace(/\/$/, "");
+  const resetUrl = `${base}/resetPassword?token=${encodeURIComponent(token)}`;
+  const verifyUrl = `${base}/verifyEmail?token=${encodeURIComponent(token)}`;
+  const data = {publicAppUrl: base, resetUrl, token, verifyUrl};
+  return {
+    html: template.html === undefined ? undefined : interpolateMail(template.html, data),
+    subject: interpolateMail(template.subject, data),
+    text: template.text === undefined ? undefined : interpolateMail(template.text, data),
+  };
+};
+
+export const createBetterAuthEmailHooks = (config: BetterAuthConfig) => {
+  if (!config.sendMail) {
+    return undefined;
+  }
+  const sendMail = config.sendMail;
+  const deliver = async (
+    templateId: "resetPassword" | "verifyEmail",
+    user: {email: string},
+    token: string
+  ): Promise<void> => {
+    const publicAppUrl = config.publicAppUrl ?? "";
+    const rendered = (config.renderAuthMail ?? fallbackRenderAuthMail)({
+      publicAppUrl,
+      templateId,
+      templates: config.authMailTemplates,
+      token,
+    });
+    const message: AuthRecoveryMail = {
+      html: rendered.html,
+      subject: rendered.subject,
+      text: rendered.text ?? "",
+      to: user.email,
+    };
+    await sendMail(message);
+  };
+  return {
+    sendResetPassword: async ({
+      token,
+      user,
+    }: {
+      token: string;
+      url: string;
+      user: {email: string};
+    }): Promise<void> => {
+      await deliver("resetPassword", user, token);
+    },
+    sendVerificationEmail: async ({
+      token,
+      user,
+    }: {
+      token: string;
+      url: string;
+      user: {email: string};
+    }): Promise<void> => {
+      await deliver("verifyEmail", user, token);
+    },
+  };
+};
 
 /**
  * Creates a Better Auth instance with MongoDB adapter.
@@ -85,6 +176,8 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     };
   }
 
+  const emailHooks = createBetterAuthEmailHooks(config);
+
   const auth = betterAuth({
     advanced: config.crossDomainCookies
       ? {
@@ -100,7 +193,16 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     database: mongodbAdapter(mongoClient.db()),
     emailAndPassword: {
       enabled: true,
+      ...(emailHooks ? {sendResetPassword: emailHooks.sendResetPassword} : {}),
     },
+    ...(emailHooks
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            sendVerificationEmail: emailHooks.sendVerificationEmail,
+          },
+        }
+      : {}),
     // The bearer plugin lets clients authenticate with `Authorization: Bearer <sessionToken>`
     // instead of the signed session cookie. Required for cross-origin/native clients and for
     // websocket handshakes (RealtimeApp's Better Auth socket validator forwards the handshake
