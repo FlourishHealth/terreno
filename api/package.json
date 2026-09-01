@@ -4,11 +4,11 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^8.5.0",
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@modelcontextprotocol/node": "catalog:",
     "@modelcontextprotocol/server": "catalog:",
     "@sentry/bun": "catalog:",
-    "@sentry/profiling-node": "^10.25.0",
+    "@sentry/profiling-node": "^10.71.0",
     "@terreno/test": "workspace:*",
     "@thream/socketio-jwt": "catalog:",
     "@types/qs": "catalog:",
@@ -41,7 +41,7 @@
     "serve-static": "^2.2.1",
     "socket.io": "catalog:",
     "swagger-parser": "^10.0.3",
-    "swagger-ui-dist": "^5.11.8",
+    "swagger-ui-dist": "^5.32.14",
     "winston": "catalog:",
     "yaml": "^2.4.0"
   },
@@ -64,7 +64,7 @@
     "@types/passport-github2": "^1.2.9",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
-    "@types/sinon": "^21.0.0",
+    "@types/sinon": "^22.0.0",
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongoose": "catalog:",
