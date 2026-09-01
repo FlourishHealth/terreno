@@ -25,6 +25,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Production source rules](source-rules.md) — Arrow functions, Luxon, APIError, logging, findOne, `as any`
 - [Positioning](positioning.md) — Canonical copy blocks and the honest Django/Rails comparison
 - [Versioning policy](versioning-policy.md) — Lockstep `@terreno/*` versions, pre-1.0 breaks, deprecation window
+- [How admin interfaces are shaped](admin-interface.md) — Screens, sidebar, `apiBase` vs `routeBase`
 - [Admin plugin frontend widgets](admin-plugin-frontend.md) — Widget IDs from backend plugins
 - [Consent admin migration](admin-consent-migration.md) — Which consent screens stay hand-written
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution

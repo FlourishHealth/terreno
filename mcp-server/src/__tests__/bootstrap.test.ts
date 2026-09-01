@@ -481,14 +481,14 @@ describe("bootstrap", () => {
         packages: ["api", "ui", "rtk"],
       });
       const filteredText = filtered.content[0].text;
-      expect(filteredText).not.toContain("## Admin Panel (backend)");
+      expect(filteredText).not.toContain("## Admin panel backend");
 
       const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "With Admin BE",
         appName: "with-admin-be",
       });
       const fullText = full.content[0].text;
-      expect(fullText).toContain("## Admin Panel (backend)");
+      expect(fullText).toContain("## Admin panel backend");
     });
 
     test("packages filter omits admin-frontend guidelines from frontend rules", () => {
@@ -498,14 +498,14 @@ describe("bootstrap", () => {
         packages: ["api", "ui", "rtk"],
       });
       const filteredText = filtered.content[0].text;
-      expect(filteredText).not.toContain("AdminModelList");
+      expect(filteredText).not.toContain("## Admin panel frontend");
 
       const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "With Admin FE",
         appName: "with-admin-fe",
       });
       const fullText = full.content[0].text;
-      expect(fullText).toContain("AdminModelList");
+      expect(fullText).toContain("## Admin panel frontend");
     });
   });
 

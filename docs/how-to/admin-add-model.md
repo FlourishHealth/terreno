@@ -1,5 +1,8 @@
 # Add a model to the admin
 
+Generic table/form routes are already in the host app. Do not add an Expo file per
+model. For screens and nav, see [Build admin screens](build-admin-screens.md).
+
 Add `admin` directly to the model's existing `modelRouter` options:
 
 ```ts

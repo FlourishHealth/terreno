@@ -55,6 +55,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "mongoose-schema-safety",
       "generate-sdk",
       "building-terreno-apps",
+      "building-admin-interfaces",
       "backend-test-env",
       "ai-prompt-governance",
     ],

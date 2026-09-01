@@ -31,6 +31,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Admin
 
+- [Build admin screens](build-admin-screens.md) — Screens, sidebar nav, `routeBase`, custom screens
 - [Add a model to the admin](admin-add-model.md) — `modelRouter({admin: ...})` setup
 - [Import pre-built admins](admin-import-prebuilt.md) — Plugin `adminContribution()` wiring
 - [Add a custom admin field widget](admin-custom-widget.md) — Custom field widgets
