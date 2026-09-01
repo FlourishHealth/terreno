@@ -15,7 +15,7 @@ This file tracks the remaining frontier.
 
 ## Phase 3: Versioning (remaining)
 
-- [ ] **Task 3.1**: MCP `version` parameter on doc search tools
+- [x] **Task 3.1**: MCP `version` parameter on doc search tools
   - Delivers: `terreno_search_docs` and `terreno_get_component_docs` accept
     optional `version`. Unmatched versions fall back to the nearest retained
     snapshot with a note. Omitted `version` searches `next` (current `docs/`).
@@ -32,7 +32,7 @@ This file tracks the remaining frontier.
 
 ## Phase 4: Skills (remaining)
 
-- [ ] **Task 4.1**: `improve-rulesync` docs-vs-agent split
+- [x] **Task 4.1**: `improve-rulesync` docs-vs-agent split
   - Delivers: `improve-rulesync` states that user-facing guidance belongs in
     `docs/` (the site) and agent-facing guidance belongs in `.ai/` / rules,
     with cross-links rather than duplication.
