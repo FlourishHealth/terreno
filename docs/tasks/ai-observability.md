@@ -101,7 +101,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/how-to/ai-feature-development.md` — the review loop
   - Acceptance: widget tests for each dimension control type and the empty state; `verify-ui-changes` reviews an item end to end and reaches "Queue clear"
 
-- [ ] **Task 1.13**: example-backend registration + seed + phase-1 docs
+- [x] **Task 1.13**: example-backend registration + seed + phase-1 docs
   - Delivers: `ObservabilityApp` with the local plugin always on; `AI_OBS_PRICE_MAP_JSON` wiring; seed prompt `example-summarize` v1 labelled production in folder `examples`; seed the human evaluator template so the queue is walkable on a fresh DB; `.env.example`
   - Files: `example-backend/src/server.ts`, seed script, `.env.example`, `docs/explanation/ai-observability.md`, `docs/how-to/observe-llm-calls.md`, `docs/how-to/ai-feature-development.md`, `docs/reference/ai.md`
   - Blocked by: 1.10, 1.11, 1.12
