@@ -2,6 +2,9 @@
 
 Backend plugin that auto-generates admin CRUD endpoints for Mongoose models. Works with `@terreno/admin-frontend` to provide a complete admin panel solution.
 
+Screens, sidebar, and host wiring: [How admin interfaces are shaped](../explanation/admin-interface.md)
+and [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Quick Start
 
 ``````typescript

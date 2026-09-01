@@ -57,6 +57,8 @@ Canonical copy, language rules, and the Django/Rails comparison:
 
 - [Getting started](tutorials/getting-started.md)
 - [Positioning](explanation/positioning.md)
+- [How admin interfaces are shaped](explanation/admin-interface.md)
+- [Build admin screens](how-to/build-admin-screens.md)
 - [Local-first data](explanation/local-first-data.md)
 - [AGENTS.md](../AGENTS.md) — Onboarding context for AI assistants
 - [ROADMAP.md](../ROADMAP.md) — Public roadmap

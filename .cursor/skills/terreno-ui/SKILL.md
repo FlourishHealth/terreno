@@ -14,7 +14,9 @@ Work down this list and stop at the first layer that meets the need:
 2. **Form fields.** `TextField`, `SelectField`, `DateTimeField`, `CheckBox`, etc. for user input.
 3. **Data display.** `DataTable`, `Badge`, `Text`, `Heading` for content.
 4. **Feedback.** `Modal`, `Toast`, `Spinner`, `Banner`, `ErrorPage` for states.
-5. **Admin screens.** `@terreno/admin-frontend` (`AdminModelTable`, `AdminModelForm`) before hand-rolling tables/forms.
+5. **Admin screens.** Skill `building-admin-interfaces` (`AdminScreenRouter`,
+   `AdminModelTable`, `AdminModelForm`, `AdminShellLayout`) before hand-rolling
+   tables/forms.
 6. **New component — last resort.** Only when a concrete composition gap is proven. Add to `ui/` package and a demo story in `demo/`.
 
 **Do not use `@expo/ui`** in Terreno apps unless there is an explicit requirement for native SwiftUI/Compose that `@terreno/ui` cannot satisfy.
@@ -191,8 +193,8 @@ Need UI in a Terreno app?
   |-- Colors/spacing/fonts?
   |   \-- references/theming.md
   |
-  |-- Admin CRUD table/form?
-  |   \-- @terreno/admin-frontend
+  |-- Admin CRUD table/form, sidebar, or custom operator screen?
+  |   \-- skill building-admin-interfaces
   |
   |-- Component doesn't exist?
   |   \-- Compose with Box + existing fields; add to ui/ only if gap is proven

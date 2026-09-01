@@ -1,5 +1,8 @@
 # Customize the admin home
 
+Home widgets sit in the admin shell. Screen and sidebar rules:
+[Build admin screens](build-admin-screens.md).
+
 Configure home slots on `AdminApp`:
 
 ```ts

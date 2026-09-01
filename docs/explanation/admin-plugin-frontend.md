@@ -1,5 +1,8 @@
 # Admin plugin frontend widgets
 
+Screen layout, sidebar order, and host wiring: [How admin interfaces are
+shaped](admin-interface.md) and [Build admin screens](../how-to/build-admin-screens.md).
+
 Backend plugins contribute stable widget IDs through `adminContribution()`. Their React
 implementations ship from `@terreno/admin-frontend`, under `src/widgets/`.
 
