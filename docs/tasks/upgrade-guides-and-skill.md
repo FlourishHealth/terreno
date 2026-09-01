@@ -77,7 +77,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: Task 3.1
   - Acceptance: the prompt names the skill; the two do not state conflicting orderings; `bun run mcp:build` succeeds.
 
-- [ ] **Task 3.5**: Generate skill mirrors
+- [x] **Task 3.5**: Generate skill mirrors
   - Description: Run `bun run rules` and commit all generated files.
   - Files: generated skill mirrors
   - Depends on: Task 3.1, Task 3.2, Task 3.3
