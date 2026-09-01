@@ -28,6 +28,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - `createOpenApiBuilder`
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
+- `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
@@ -166,6 +167,13 @@ setupServer({
 - `POST /auth/refresh_token` — Refresh access token
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
+
+**AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
+`AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` returns a 32-byte hex
+plaintext once and stores only the SHA-256 hash. `AuthToken.consume(token, type)` atomically
+marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours for
+`emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`. Recovery HTTP routes
+are added in the password-reset slice.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)
