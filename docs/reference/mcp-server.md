@@ -139,7 +139,7 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 }
 ``````
 
-When `version` matches a retained docs snapshot, the tool returns that version's generated component page (MDX chrome stripped). Otherwise it uses current `ui-types-documentation.json` and notes the fallback.
+When `version` matches a retained docs snapshot, the tool returns that version's generated component page (MDX chrome stripped). Snapshot filenames may be hyphenated (`text-field.mdx`) or concatenated (`userinactivity.mdx`); lookup tries both. Otherwise it uses current `ui-types-documentation.json` and notes the fallback.
 
 ### terreno_get_upgrade_guide
 

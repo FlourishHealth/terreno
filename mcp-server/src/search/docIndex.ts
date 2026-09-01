@@ -13,7 +13,7 @@ import {
   docVersionFromSourcePath,
   listRetainedDocVersions,
   resolveDocVersion,
-  slugifyComponentName,
+  snapshotComponentFileBases,
 } from "./docVersion.js";
 import {inferPackageTags, normalizePackageFilter} from "./inferPackages.js";
 
@@ -229,15 +229,14 @@ const readSnapshotComponentMarkdown = (
   if (!existsSync(componentsDir)) {
     return undefined;
   }
-  const slug = slugifyComponentName(componentName);
-  const match = readdirSync(componentsDir).find((fileName) => {
-    const base = fileName.replace(/\.(mdx|md)$/i, "");
-    return base === slug;
-  });
-  if (!match) {
-    return undefined;
+  const files = readdirSync(componentsDir);
+  for (const base of snapshotComponentFileBases(componentName)) {
+    const match = files.find((fileName) => fileName.replace(/\.(mdx|md)$/i, "") === base);
+    if (match) {
+      return stripMdxChrome(readFileSync(join(componentsDir, match), "utf-8"));
+    }
   }
-  return stripMdxChrome(readFileSync(join(componentsDir, match), "utf-8"));
+  return undefined;
 };
 
 export const searchDocs = (params: SearchDocsParams): string => {
