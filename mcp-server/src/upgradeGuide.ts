@@ -27,7 +27,7 @@ export const getUpgradeGuideMarkdown = (fromVersion: string, toVersion: string):
   if (!existsSync(dir)) {
     return `_(No bundled upgrade notes under ${dir}.)_`;
   }
-  const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
+  const files = readdirSync(dir).filter((f) => /^\d.*\.md$/i.test(f));
   const allVersions = files.map((f) => f.replace(/\.md$/i, ""));
   let versions: string[];
   if (fromVersion === toVersion) {

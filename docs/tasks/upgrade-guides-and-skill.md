@@ -13,7 +13,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
 
 ## Phase 1: Note format and backfill
 
-- [ ] **Task 1.1**: Define the upgrade note format
+- [x] **Task 1.1**: Define the upgrade note format
   - Description: Create `mcp-server/src/docs/upgrades/README.md` documenting the required note format from the IP: frontmatter-style header (`Action required`, `Affected packages`) then `Summary`, `Breaking changes` (each with What changed / Why / Migration with before-and-after code), `Deprecations`, `New capabilities`, `Verification`. Explain that notes are concatenated by `terreno_get_upgrade_guide` across a version range, so each must be self-contained and must not assume the reader read an adjacent note. Include a copy-paste template. Read the existing `0.20.0.md` and `0.21.0.md` first and keep the format compatible with them.
   - Files: `mcp-server/src/docs/upgrades/README.md` (new)
   - Depends on: none
