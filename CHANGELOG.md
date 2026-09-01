@@ -13,6 +13,8 @@ Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/) as o
 file per feature. `bun run changelog:assemble <version>` folds those files into a
 dated section below when cutting a release.
 
+Upgrade notes for consumer action live in [`mcp-server/src/docs/upgrades/`](mcp-server/src/docs/upgrades/). Fetch a range with the MCP tool `terreno_get_upgrade_guide`. Format: [`mcp-server/src/docs/upgrades/README.md`](mcp-server/src/docs/upgrades/README.md). The [`58.0.0` stub](mcp-server/src/docs/upgrades/58.0.0.md) is for the next major (not yet a changelog section).
+
 ## [Unreleased]
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
@@ -291,6 +293,8 @@ Upgrade note: [`mcp-server/src/docs/upgrades/57.1.0.md`](mcp-server/src/docs/upg
 
 ## [57.0.0] - 2026-08-20
 
+Upgrade note: [`mcp-server/src/docs/upgrades/57.0.0.md`](mcp-server/src/docs/upgrades/57.0.0.md).
+
 First stable release of the Expo SDK 57 line, cut from `master` after
 [`#1065`](https://github.com/FlourishHealth/terreno/pull/1065). Publishes to the npm
 `latest` dist-tag. Apps on `0.x` should stay pinned until they upgrade Expo.
@@ -316,6 +320,8 @@ First stable release of the Expo SDK 57 line, cut from `master` after
 
 ## [57.0.0-beta.1] - 2026-08-20
 
+Upgrade note: [`mcp-server/src/docs/upgrades/57.0.0-beta.1.md`](mcp-server/src/docs/upgrades/57.0.0-beta.1.md).
+
 First beta of the Expo SDK 57 line, cut from `master` after merging
 [`#1065`](https://github.com/FlourishHealth/terreno/pull/1065). Publishes under the npm
 `beta` dist-tag; `npm install @terreno/ui` still resolves to the stable `0.x` line.
@@ -340,6 +346,8 @@ First beta of the Expo SDK 57 line, cut from `master` after merging
   `expo-sqlite` type compatibility ([#1065](https://github.com/FlourishHealth/terreno/pull/1065))
 
 ## [56.0.0-beta.2] - 2026-08-17
+
+Upgrade note: [`mcp-server/src/docs/upgrades/56.0.0-beta.2.md`](mcp-server/src/docs/upgrades/56.0.0-beta.2.md).
 
 Second beta of the Expo SDK 56 line, cut from `master` after merging
 [`#976`](https://github.com/FlourishHealth/terreno/pull/976). Publishes under the npm
@@ -401,6 +409,8 @@ Second beta of the Expo SDK 56 line, cut from `master` after merging
 
 ## [0.31.0] - 2026-08-11
 
+Upgrade note: [`mcp-server/src/docs/upgrades/0.31.0.md`](mcp-server/src/docs/upgrades/0.31.0.md).
+
 ### Added
 
 - `EditableCard` in `@terreno/ui`: a summary card with an optional icon, badge,
@@ -455,6 +465,8 @@ Second beta of the Expo SDK 56 line, cut from `master` after merging
   ([#1030](https://github.com/FlourishHealth/terreno/pull/1030))
 
 ## [0.30.0] - 2026-08-03
+
+Upgrade note: [`mcp-server/src/docs/upgrades/0.30.0.md`](mcp-server/src/docs/upgrades/0.30.0.md) (consolidated 0.21.0 → 0.30.0).
 
 ### Added
 
@@ -663,6 +675,8 @@ Second beta of the Expo SDK 56 line, cut from `master` after merging
 
 ## [0.21.0] - 2026-06-22
 
+Upgrade note: [`mcp-server/src/docs/upgrades/0.21.0.md`](mcp-server/src/docs/upgrades/0.21.0.md).
+
 ### Changed
 
 - **Breaking:** `setupServer` removed — use `TerrenoApp` instead ([#795](https://github.com/FlourishHealth/terreno/pull/795))
@@ -734,6 +748,8 @@ Historical `@terreno/api` release notes preserved from the former
   `{tag}_{actionName}` (e.g. `todos_markComplete`)
 
 ## [0.20.0] - 2026-06-14
+
+Upgrade note: [`mcp-server/src/docs/upgrades/0.20.0.md`](mcp-server/src/docs/upgrades/0.20.0.md).
 
 ### Changed
 
