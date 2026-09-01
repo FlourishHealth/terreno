@@ -138,7 +138,7 @@ JSON (auth already mounts urlencoded later; consolidating is allowed if tests st
 
 | Helper | Input | Algorithm |
 |--------|--------|-----------|
-| `hmacSignature({secret, header, encoding?, algorithm?})` | Header vs HMAC of `rawBody` | Default SHA-256 hex |
+| `hmacSignature({secret, header, encoding?, algorithm?, timestampHeader?})` | Header vs HMAC of `rawBody`, or `${timestamp}.${rawBody}` when `timestampHeader` is set | Default SHA-256 hex; optional skew (300s) |
 | `stripeSignature({secret, toleranceSec?})` | `Stripe-Signature` `t=` / `v1=` | HMAC-SHA256 of `${t}.${rawBody}` |
 | `twilioSignature({authToken, url?})` | `X-Twilio-Signature`; URL + sorted POST params | HMAC-SHA1 base64 (Twilio validator) |
 | `sendgridEventSignature({publicKey})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}` |

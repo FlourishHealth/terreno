@@ -314,6 +314,180 @@ describe("SendGrid CommsApp webhooks", () => {
     errorSpy.mockRestore();
   });
 
+  it("maps dropped to failed", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const res = await postSignedEvents({
+      app,
+      events: [
+        {
+          event: "dropped",
+          reason: "Bounced Address",
+          sg_event_id: "sg_dropped_1",
+          sg_message_id: `${MESSAGE_ID}.filter`,
+        },
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(res.status, 200);
+    const stored = await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID});
+    assert.equal(stored.status, "failed");
+    assert.equal(stored.errorCode, "Bounced Address");
+  });
+
+  it("maps processed to sent", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const res = await postSignedEvents({
+      app,
+      events: [
+        {
+          event: "processed",
+          sg_event_id: "sg_processed_1",
+          sg_message_id: `${MESSAGE_ID}.filter`,
+        },
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(
+      (await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID})).status,
+      "sent"
+    );
+  });
+
+  it("skips unknown events, skipped events, and events without message ids", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const res = await postSignedEvents({
+      app,
+      events: [
+        {event: "skipped", sg_event_id: "sg_skip_1", sg_message_id: `${MESSAGE_ID}.filter`},
+        {event: "delivered"},
+        {event: "bounce", type: "bounce"},
+        {notAnEvent: true},
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(
+      (await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID})).status,
+      "sent"
+    );
+  });
+
+  it("uses bounce as errorCode when a bounce has no reason", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const res = await postSignedEvents({
+      app,
+      events: [
+        {
+          event: "bounce",
+          sg_event_id: "sg_bounce_noreason",
+          sg_message_id: `${MESSAGE_ID}.filter`,
+          type: "bounce",
+        },
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(res.status, 200);
+    const stored = await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID});
+    assert.equal(stored.status, "bounced");
+    assert.equal(stored.errorCode, "bounce");
+  });
+
+  it("maps a blocked bounce to bounced with transient errorClass", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const res = await postSignedEvents({
+      app,
+      events: [
+        {
+          event: "bounce",
+          reason: "blocked",
+          sg_event_id: "sg_blocked_1",
+          sg_message_id: SG_MESSAGE_ID,
+          type: "blocked",
+        },
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(res.status, 200);
+    const row = await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID});
+    assert.equal(row.status, "bounced");
+    assert.equal(row.errorClass, "transient");
+    assert.equal(row.errorCode, "blocked");
+  });
+
+  it("maps dropped and open events and ignores processed", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const processed = await postSignedEvents({
+      app,
+      events: [{event: "processed", sg_event_id: "sg_proc_1", sg_message_id: SG_MESSAGE_ID}],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(processed.status, 200);
+    assert.equal(
+      (await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID})).status,
+      "sent"
+    );
+    const dropped = await postSignedEvents({
+      app,
+      events: [
+        {
+          event: "dropped",
+          reason: "Bounced Address",
+          sg_event_id: "sg_drop_1",
+          sg_message_id: SG_MESSAGE_ID,
+        },
+      ],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(dropped.status, 200);
+    const droppedRow = await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID});
+    assert.equal(droppedRow.status, "failed");
+    assert.equal(droppedRow.errorClass, "permanent");
+    const opened = await postSignedEvents({
+      app,
+      events: [{event: "open", sg_event_id: "sg_open_1", sg_message_id: SG_MESSAGE_ID}],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(opened.status, 200);
+    assert.equal(
+      (await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID})).status,
+      "failed"
+    );
+  });
+
+  it("ignores a non-array body and events without sg_event_id", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const objectBody = JSON.stringify({event: "delivered", sg_event_id: "sg_obj"});
+    const {signature, timestamp} = signPayload({
+      payload: objectBody,
+      privateKey: keyPair.privateKey,
+    });
+    const objectRes = await supertest(app)
+      .post(PATH)
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", timestamp)
+      .set("X-Twilio-Email-Event-Webhook-Signature", signature)
+      .send(objectBody);
+    assert.equal(objectRes.status, 200);
+    const missingId = await postSignedEvents({
+      app,
+      events: [{event: "delivered", sg_message_id: SG_MESSAGE_ID}],
+      privateKey: keyPair.privateKey,
+    });
+    assert.equal(missingId.status, 200);
+    assert.equal(
+      (await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID})).status,
+      "sent"
+    );
+  });
+
   it("omits the SendGrid webhook path from OpenAPI", async (): Promise<void> => {
     const {app} = buildSendGridCommsApp();
     const response = await supertest(app).get("/openapi.json").expect(200);

@@ -9,6 +9,7 @@ import {TerrenoApp} from "../../terrenoApp";
 import {setupTestData, UserModel} from "../../tests";
 import {hmacSignature} from "../verifiers/hmac";
 import {WebhooksApp} from "../webhooksApp";
+import {createMongoIdempotencyStore} from "./mongoStore";
 import {
   DEFAULT_WEBHOOK_RECEIPT_TTL_DAYS,
   getWebhookReceiptModel,
@@ -167,5 +168,72 @@ describe("mongo webhook idempotency store", () => {
     const paths = spec.body.paths as Record<string, unknown>;
     assert.isUndefined(paths["/webhookReceipts"]);
     assert.isUndefined(paths["/webhook-receipts"]);
+  });
+
+  it("retries index sync after a transient failure", async () => {
+    const model = getWebhookReceiptModel();
+    const originalSync = model.syncIndexes.bind(model);
+    let syncCalls = 0;
+    model.syncIndexes = (async () => {
+      syncCalls += 1;
+      if (syncCalls === 1) {
+        throw new Error("index sync failed");
+      }
+      return originalSync();
+    }) as typeof model.syncIndexes;
+    const store = createMongoIdempotencyStore();
+    try {
+      let firstFailed = false;
+      try {
+        await store.claim({eventId: "retry-1", source: "example"});
+      } catch {
+        firstFailed = true;
+      }
+      assert.isTrue(firstFailed);
+      const result = await store.claim({eventId: "retry-1", source: "example"});
+      assert.equal(result, "claimed");
+      assert.equal(syncCalls, 2);
+    } finally {
+      model.syncIndexes = originalSync;
+    }
+  });
+
+  it("rethrows non-duplicate create errors", async () => {
+    const store = createMongoIdempotencyStore();
+    const model = getWebhookReceiptModel();
+    const originalCreate = model.create.bind(model);
+    model.create = (async () => {
+      throw new Error("write failed");
+    }) as typeof model.create;
+    try {
+      let failed = false;
+      try {
+        await store.claim({eventId: "write-fail", source: "example"});
+      } catch {
+        failed = true;
+      }
+      assert.isTrue(failed);
+    } finally {
+      model.create = originalCreate;
+    }
+  });
+
+  it("throws when mongoose is not connected", async () => {
+    const store = createMongoIdempotencyStore();
+    const descriptor = Object.getOwnPropertyDescriptor(mongoose.connection, "db");
+    Object.defineProperty(mongoose.connection, "db", {configurable: true, value: undefined});
+    try {
+      let failed = false;
+      try {
+        await store.claim({eventId: "offline", source: "example"});
+      } catch {
+        failed = true;
+      }
+      assert.isTrue(failed);
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(mongoose.connection, "db", descriptor);
+      }
+    }
   });
 });

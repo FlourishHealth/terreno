@@ -1,11 +1,27 @@
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
-
+import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "../../plugins";
 import {findExactlyOne, findOneOrNone} from "../../plugins";
-import type {WebhookReceiptDocument, WebhookReceiptModel} from "./webhookReceiptTypes";
 
 export const WEBHOOK_RECEIPTS_COLLECTION = "webhookReceipts";
 export const DEFAULT_WEBHOOK_RECEIPT_TTL_DAYS = 7;
+
+export type WebhookReceiptMethods = Record<string, never>;
+
+export interface WebhookReceiptStatics
+  extends FindExactlyOnePlugin<WebhookReceiptDocument>,
+    FindOneOrNonePlugin<WebhookReceiptDocument> {}
+
+export interface WebhookReceiptModel
+  extends mongoose.Model<WebhookReceiptDocument, object, WebhookReceiptMethods>,
+    WebhookReceiptStatics {}
+
+export interface WebhookReceiptDocument extends mongoose.Document {
+  _id: mongoose.Types.ObjectId;
+  created: Date;
+  eventId: string;
+  source: string;
+}
 
 const secondsPerDay = 86_400;
 

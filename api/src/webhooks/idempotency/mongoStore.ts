@@ -11,18 +11,22 @@ const isDuplicateKeyError = (error: unknown): boolean => {
   return (error as {code: unknown}).code === 11000;
 };
 
-let indexesReady: Promise<void> | undefined;
-
-const ensureIndexes = async (): Promise<void> => {
-  if (!indexesReady) {
-    indexesReady = getWebhookReceiptModel()
-      .syncIndexes()
-      .then(() => undefined);
-  }
-  await indexesReady;
-};
-
 export const createMongoIdempotencyStore = (): WebhookIdempotencyStore => {
+  let indexesReady: Promise<void> | undefined;
+
+  const ensureIndexes = async (): Promise<void> => {
+    if (!indexesReady) {
+      indexesReady = getWebhookReceiptModel()
+        .syncIndexes()
+        .then(() => undefined)
+        .catch((error: unknown) => {
+          indexesReady = undefined;
+          throw error;
+        });
+    }
+    await indexesReady;
+  };
+
   const claim = async (args: WebhookClaimArgs): Promise<WebhookClaimResult> => {
     if (!mongoose.connection.db) {
       throw new APIError({

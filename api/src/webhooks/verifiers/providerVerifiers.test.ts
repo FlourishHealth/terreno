@@ -197,4 +197,82 @@ describe("sendgridEventSignature", () => {
       .send(`[{"sg_event_id":"sg_1","event":"bounce"}]`);
     assert.equal(rejected.status, 401);
   });
+
+  it("accepts a raw public key without PEM headers", async () => {
+    const {publicKey, privateKey} = crypto.generateKeyPairSync("ec", {
+      namedCurve: "prime256v1",
+    });
+    const raw = publicKey
+      .export({format: "pem", type: "spki"})
+      .toString()
+      .replace("-----BEGIN PUBLIC KEY-----", "")
+      .replace("-----END PUBLIC KEY-----", "")
+      .replace(/\s+/g, "");
+    const app = buildApp({
+      path: "/comms/webhooks/sendgrid",
+      source: "sendgrid",
+      verify: sendgridEventSignature({publicKey: raw}),
+    });
+    const payload = `[{"sg_event_id":"sg_raw","event":"delivered"}]`;
+    const timestamp = String(DateTime.utc().toUnixInteger());
+    const signer = crypto.createSign("SHA256");
+    signer.update(timestamp);
+    signer.update(payload);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    const res = await supertest(app)
+      .post("/comms/webhooks/sendgrid")
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", timestamp)
+      .set("X-Twilio-Email-Event-Webhook-Signature", signature)
+      .send(payload);
+    assert.equal(res.status, 200);
+  });
+
+  it("rejects a missing timestamp header", async () => {
+    const {publicKey} = crypto.generateKeyPairSync("ec", {namedCurve: "prime256v1"});
+    const pem = publicKey.export({format: "pem", type: "spki"}).toString();
+    const app = buildApp({
+      path: "/comms/webhooks/sendgrid",
+      source: "sendgrid",
+      verify: sendgridEventSignature({publicKey: pem}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/sendgrid")
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Signature", "sig")
+      .send(`[{"sg_event_id":"sg_1","event":"delivered"}]`);
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects a missing signature header", async () => {
+    const {publicKey} = crypto.generateKeyPairSync("ec", {namedCurve: "prime256v1"});
+    const pem = publicKey.export({format: "pem", type: "spki"}).toString();
+    const app = buildApp({
+      path: "/comms/webhooks/sendgrid",
+      source: "sendgrid",
+      verify: sendgridEventSignature({publicKey: pem}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/sendgrid")
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", "1")
+      .send(`[{"sg_event_id":"sg_1","event":"delivered"}]`);
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects an invalid public key", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/sendgrid",
+      source: "sendgrid",
+      verify: sendgridEventSignature({publicKey: "not-a-key"}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/sendgrid")
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", "1")
+      .set("X-Twilio-Email-Event-Webhook-Signature", "AAAA")
+      .send(`[{"sg_event_id":"sg_1","event":"delivered"}]`);
+    assert.equal(res.status, 401);
+  });
 });

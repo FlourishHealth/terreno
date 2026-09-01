@@ -59,14 +59,11 @@ const applySendGridEvent = async ({
     return;
   }
   if (type === "bounce") {
-    const bounceType = eventString(event.type);
-    if (bounceType === "blocked") {
-      return;
-    }
+    const isSoft = eventString(event.type) === "blocked";
     await service.recordDeliveryEvent({
       channel: "mail",
-      errorClass: "permanent",
-      errorCode: reason || "bounce",
+      errorClass: isSoft ? "transient" : "permanent",
+      errorCode: reason || (isSoft ? "deferred" : "bounce"),
       providerMessageId,
       raw: event,
       status: "bounced",

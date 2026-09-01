@@ -16,7 +16,8 @@ export interface HmacSignatureOptions {
 
 /**
  * Verifies `header` against HMAC of `req.rawBody`.
- * Optional `timestampHeader` rejects timestamps outside `toleranceSec` (default 300).
+ * When `timestampHeader` is set, the MAC is HMAC(`${timestamp}.${rawBody}`) and
+ * timestamps outside `toleranceSec` (default 300) are rejected.
  */
 export const hmacSignature = (options: HmacSignatureOptions): ((req: Request) => boolean) => {
   const algorithm = options.algorithm ?? "sha256";
@@ -31,6 +32,7 @@ export const hmacSignature = (options: HmacSignatureOptions): ((req: Request) =>
     if (!req.rawBody) {
       return false;
     }
+    const mac = crypto.createHmac(algorithm, options.secret);
     if (options.timestampHeader) {
       const timestampRaw = headerValue(req, options.timestampHeader);
       if (!timestampRaw) {
@@ -44,11 +46,9 @@ export const hmacSignature = (options: HmacSignatureOptions): ((req: Request) =>
       if (Math.abs(nowSec - timestamp) > toleranceSec) {
         return false;
       }
+      mac.update(`${timestampRaw}.`);
     }
-    const expected = crypto
-      .createHmac(algorithm, options.secret)
-      .update(req.rawBody)
-      .digest(encoding);
+    const expected = mac.update(req.rawBody).digest(encoding);
     return timingSafeEqualUtf8({expected, provided});
   };
 };

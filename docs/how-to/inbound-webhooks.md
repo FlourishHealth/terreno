@@ -60,7 +60,7 @@ Stripe billing webhooks stay on `billing-stripe` at `POST /billing/webhooks/stri
 
 | Helper | Header | Algorithm |
 |--------|--------|-----------|
-| `hmacSignature({secret, header})` | caller-chosen | HMAC of `rawBody` (default SHA-256 hex). Optional timestamp header + skew. |
+| `hmacSignature({secret, header, timestampHeader?})` | caller-chosen | HMAC of `rawBody`, or `${timestamp}.${rawBody}` when `timestampHeader` is set. Optional skew (default 300s). |
 | `stripeSignature({secret, toleranceSec?})` | `Stripe-Signature` | HMAC-SHA256 of `${t}.${rawBody}`. Default 300s timestamp window. |
 | `twilioSignature({authToken, url})` | `X-Twilio-Signature` | HMAC-SHA1 base64 of callback URL + sorted POST fields. Form-urlencoded only. |
 | `sendgridEventSignature({publicKey})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}`. |
