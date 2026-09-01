@@ -73,7 +73,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
 
 ## 1C — Admin UI and example app
 
-- [ ] **Task 1.9**: Admin chrome — nav group, breadcrumbs, status chip
+- [x] **Task 1.9**: Admin chrome — nav group, breadcrumbs, status chip
   - Delivers: one `AI Observability` sidebar group; `Admin / AI Observability / <Section> / <leaf>` breadcrumbs; status chip reading `GET /status` (local state, primaries); **Review queue hidden when the local plugin is off**; existing `AI Requests` untouched
   - Files: `admin-frontend/src/widgets/aiObservability/shell/*.tsx`, `builtInWidgets.ts`
   - Blocked by: 1.1
