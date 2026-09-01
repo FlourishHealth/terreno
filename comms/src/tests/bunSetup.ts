@@ -19,4 +19,5 @@ beforeEach((): void => {
   Reflect.deleteProperty(process.env, "TWILIO_VERIFY_SERVICE_SID");
   Reflect.deleteProperty(process.env, "PUBLIC_API_URL");
   Reflect.deleteProperty(process.env, "COMMS_WEBHOOK_PUBLIC_URL");
+  Reflect.deleteProperty(process.env, "SENDGRID_WEBHOOK_VERIFICATION_KEY");
 });

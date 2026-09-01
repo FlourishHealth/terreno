@@ -97,8 +97,11 @@ bun add @sendgrid/mail
 ```
 
 ```typescript
+import {TerrenoApp, WebhooksApp} from "@terreno/api";
 import {CommsApp} from "@terreno/comms";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+const webhooks = new WebhooksApp();
 
 new TerrenoApp({userModel: User})
   .register(
@@ -109,12 +112,15 @@ new TerrenoApp({userModel: User})
         fromEmail: "notifications@example.com",
         fromName: "Terreno",
         // sandboxMode defaults to true when NODE_ENV === "test"
+        // webhookVerificationKey defaults to SENDGRID_WEBHOOK_VERIFICATION_KEY
       }),
+      webhooks,
       onError: async (_context, result) => {
         console.error("mail failed", result.errorCode, result.errorClass);
       },
     })
   )
+  .register(webhooks)
   .start();
 ```
 
@@ -131,6 +137,15 @@ row.
 2. Verify the from domain (or single sender) in SendGrid.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
+
+Pass the same `WebhooksApp` into `CommsApp` **before** registering it. With
+`SendGridMailProvider` this mounts `POST {basePath}/webhooks/sendgrid` (default
+`/comms/webhooks/sendgrid`). The handler verifies ECDSA (`SENDGRID_WEBHOOK_VERIFICATION_KEY`
+or constructor `webhookVerificationKey`), claims each `sg_event_id`, correlates
+`sg_message_id` prefixes to stored `x-message-id`, and maps `delivered` / `bounce` /
+`dropped` / `open` plus opt-outs (`spamreport`, `unsubscribe`, `group_unsubscribe`).
+Missing verification key skips the route and logs an error. Full operator setup is in
+the inbound webhooks how-to.
 
 ### Twilio SMS adapter
 

@@ -12,6 +12,7 @@ import {PushToken} from "./models/pushToken";
 import {addCommsDashboardRoutes} from "./routes/commsDashboard";
 import {addPushTokenRoutes} from "./routes/pushTokens";
 import type {CommsOptions} from "./types";
+import {maybeRegisterSendGridCommsWebhooks} from "./webhooks/sendgridWebhooks";
 import {maybeRegisterTwilioCommsWebhooks} from "./webhooks/twilioWebhooks";
 
 export interface CommsAppOptions extends CommsOptions {
@@ -58,6 +59,12 @@ export class CommsApp implements TerrenoPlugin {
       publicUrl: this.options.webhookPublicUrl,
       service: this.service,
       sms: this.options.sms,
+      webhooks: this.options.webhooks,
+    });
+    maybeRegisterSendGridCommsWebhooks({
+      basePath,
+      mail: this.options.mail,
+      service: this.service,
       webhooks: this.options.webhooks,
     });
   }

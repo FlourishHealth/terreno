@@ -27,6 +27,7 @@ export interface SendGridMailProviderOptions {
   fromEmail?: string;
   fromName?: string;
   sandboxMode?: boolean;
+  webhookVerificationKey?: string;
 }
 
 const EMAIL_ACTIVITY_BASE = "https://app.sendgrid.com/email_activity";
@@ -155,12 +156,15 @@ export class SendGridMailProvider implements MailProvider {
   private readonly fromEmail?: string;
   private readonly fromName?: string;
   private readonly sandboxMode: boolean;
+  private readonly webhookVerificationKey?: string;
 
   constructor(options?: SendGridMailProviderOptions) {
     const apiKey = resolveApiKey(options);
     this.fromEmail = options?.fromEmail;
     this.fromName = options?.fromName;
     this.sandboxMode = options?.sandboxMode ?? process.env.NODE_ENV === "test";
+    this.webhookVerificationKey =
+      options?.webhookVerificationKey ?? process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
 
     if (options?.client) {
       this.client = options.client;
@@ -171,6 +175,10 @@ export class SendGridMailProvider implements MailProvider {
     sgMail.setApiKey(apiKey);
     this.client = sgMail;
   }
+
+  getWebhookVerificationKey = (): string | undefined => {
+    return this.webhookVerificationKey;
+  };
 
   async sendMail(message: MailMessage): Promise<SendResult> {
     const fromEmail = this.fromEmail ?? message.from;
