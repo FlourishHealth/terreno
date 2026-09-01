@@ -8,6 +8,7 @@ export interface ProfileData {
   email?: string;
   name?: string;
   admin?: boolean;
+  emailVerified?: boolean;
   roles?: string[];
   permissions?: Record<string, readonly string[]>;
 }

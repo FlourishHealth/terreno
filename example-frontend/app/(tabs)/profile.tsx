@@ -2,6 +2,7 @@ import {useBooleanFlagDetails} from "@openfeature/react-sdk";
 import {canOpenAdminPage, selectBetterAuthUserId, useFeatureFlags} from "@terreno/rtk";
 import {
   Badge,
+  Banner,
   Box,
   Button,
   Card,
@@ -23,6 +24,7 @@ import {
   terrenoApi,
   useGetMeQuery,
   usePatchMeMutation,
+  usePostAuthSendVerificationMutation,
   usePostCommsDevTestPushMutation,
 } from "@/store/sdk";
 
@@ -32,6 +34,8 @@ const ProfileScreen: React.FC = () => {
   const userId = useSelector(selectBetterAuthUserId);
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery(undefined, {skip: !userId});
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
+  const [sendVerification, {isLoading: isSendingVerification}] =
+    usePostAuthSendVerificationMutation();
   const [sendTestPush, {isLoading: isSendingTestPush}] = usePostCommsDevTestPushMutation();
   const {setPrimitives, resetTheme} = useTheme();
 
@@ -60,6 +64,8 @@ const ProfileScreen: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [testPushMessage, setTestPushMessage] = useState<string | null>(null);
   const [testPushError, setTestPushError] = useState<string | null>(null);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   // API key management
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
@@ -156,6 +162,18 @@ const ProfileScreen: React.FC = () => {
     dispatch(logout());
   }, [dispatch]);
 
+  const handleResendVerification = useCallback(async (): Promise<void> => {
+    setVerificationError(null);
+    setVerificationMessage(null);
+    try {
+      await sendVerification().unwrap();
+      setVerificationMessage("Verification email sent. Check your inbox or the server console.");
+    } catch (error: unknown) {
+      console.error("Failed to send verification email", error);
+      setVerificationError("Could not send a verification email.");
+    }
+  }, [sendVerification]);
+
   const handleSaveApiKey = useCallback((): void => {
     setGeminiApiKey(apiKeyInput.trim());
     setApiKeySaved(true);
@@ -220,6 +238,29 @@ const ProfileScreen: React.FC = () => {
         <Box marginBottom={6}>
           <Heading size="xl">Profile</Heading>
         </Box>
+
+        {profile?.emailVerified !== true && (
+          <Box marginBottom={6} testID="profile-verify-email-banner">
+            <Banner
+              buttonIconName="envelope"
+              buttonOnClick={handleResendVerification}
+              buttonText={isSendingVerification ? "Sending…" : "Resend"}
+              hasIcon
+              status="warning"
+              text="Verify your email to keep this account recoverable."
+            />
+            {verificationMessage && (
+              <Box marginTop={2} testID="profile-verify-email-sent">
+                <Text color="success">{verificationMessage}</Text>
+              </Box>
+            )}
+            {verificationError && (
+              <Box marginTop={2} testID="profile-verify-email-error">
+                <Text color="error">{verificationError}</Text>
+              </Box>
+            )}
+          </Box>
+        )}
 
         <Card marginBottom={6}>
           <Box gap={4}>

@@ -7,10 +7,10 @@ export const addTagTypes = [
   "admin-users",
   "settings",
   "loadtest",
+  "comms",
   "todos",
   "exampleprojects",
   "users",
-  "comms",
   "admin",
   "featureflags",
   "adminauditlogs",
@@ -238,6 +238,7 @@ const injectedRtkApi = api
             admin: queryArg.admin,
             created: queryArg.created,
             email: queryArg.email,
+            emailVerified: queryArg.emailVerified,
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
@@ -261,14 +262,25 @@ const injectedRtkApi = api
           params: {
             channel: queryArg.channel,
             endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
             limit: queryArg.limit,
             page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
             startDate: queryArg.startDate,
             status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
             userId: queryArg.userId,
           },
           url: `/comms/messages`,
         }),
+      }),
+      getCommsMessagesById: build.query<GetCommsMessagesByIdRes, GetCommsMessagesByIdArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({url: `/comms/messages/${queryArg}`}),
       }),
       getCommsPushTokens: build.query<GetCommsPushTokensRes, GetCommsPushTokensArgs>({
         providesTags: ["comms"],
@@ -285,6 +297,28 @@ const injectedRtkApi = api
       getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
         providesTags: ["comms"],
         query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
+      }),
+      getCommsStats: build.query<GetCommsStatsRes, GetCommsStatsArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          params: {
+            channel: queryArg.channel,
+            endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
+            startDate: queryArg.startDate,
+            status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
+            userId: queryArg.userId,
+          },
+          url: `/comms/stats`,
+        }),
       }),
       getFeatureFlagsFlags: build.query<GetFeatureFlagsFlagsRes, GetFeatureFlagsFlagsArgs>({
         providesTags: ["featureflags"],
@@ -597,6 +631,35 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}/password`,
         }),
       }),
+      postCommsDevTestPush: build.mutation<PostCommsDevTestPushRes, PostCommsDevTestPushArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/dev/testPush`,
+        }),
+      }),
+      postCommsMessagesByIdRetry: build.mutation<
+        PostCommsMessagesByIdRetryRes,
+        PostCommsMessagesByIdRetryArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/comms/messages/${queryArg}/retry`,
+        }),
+      }),
+      postCommsMessagesRetryMany: build.mutation<
+        PostCommsMessagesRetryManyRes,
+        PostCommsMessagesRetryManyArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/messages/retryMany`,
+        }),
+      }),
       postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({
         invalidatesTags: ["comms"],
         query: (queryArg) => ({
@@ -725,7 +788,7 @@ export type GetAiModelsRes = /** status 200 Success */ {
 export type GetAiModelsArgs = undefined;
 export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -761,7 +824,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -773,7 +836,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
 };
 export type PostGptHistoriesArgs = {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -809,7 +872,7 @@ export type PostGptHistoriesArgs = {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId?: any;
+  userId?: string;
   _id?: string;
   /** When this document was last updated */
   updated?: string;
@@ -822,7 +885,7 @@ export type PostGptHistoriesArgs = {
 export type GetGptHistoriesRes = /** status 200 Successful list */ {
   data?: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -858,7 +921,7 @@ export type GetGptHistoriesRes = /** status 200 Successful list */ {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId: any;
+    userId: string;
     _id: string;
     /** When this document was last updated */
     updated: string;
@@ -893,7 +956,7 @@ export type GetGptHistoriesArgs = {
 };
 export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -929,7 +992,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -942,7 +1005,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
 export type GetGptHistoriesByIdArgs = string;
 export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -978,7 +1041,7 @@ export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -992,7 +1055,7 @@ export type PatchGptHistoriesByIdArgs = {
   id: string;
   body: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -1028,7 +1091,7 @@ export type PatchGptHistoriesByIdArgs = {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId?: any;
+    userId?: string;
     _id?: string;
     /** When this document was last updated */
     updated?: string;
@@ -1147,6 +1210,17 @@ export type PostLoadtestTodosClearRes = /** status 200 Success */ {
   };
 };
 export type PostLoadtestTodosClearArgs = undefined;
+export type PostCommsDevTestPushRes = /** status 200 Success */ {
+  data?: {
+    accepted?: number;
+    results?: object[];
+    tokenCount?: number;
+  };
+};
+export type PostCommsDevTestPushArgs = {
+  body?: string;
+  title?: string;
+};
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
@@ -1166,7 +1240,7 @@ export type PostTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1190,7 +1264,7 @@ export type PostTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1215,7 +1289,7 @@ export type GetTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1262,7 +1336,7 @@ export type GetTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1287,7 +1361,7 @@ export type PatchTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1313,7 +1387,7 @@ export type PatchTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1485,11 +1559,15 @@ export type PostUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1510,11 +1588,15 @@ export type PostUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -1536,11 +1618,15 @@ export type GetUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -1584,11 +1670,15 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1610,11 +1700,15 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1637,11 +1731,15 @@ export type PatchUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -1693,7 +1791,7 @@ export type GetCommsPushTokensByIdRes = /** status 200 Successful read */ {
   /** Push provider token identifying the device */
   token: string;
   /** User who owns the device token */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -1715,10 +1813,65 @@ export type GetCommsMessagesArgs = {
   page?: number;
   limit?: number;
   channel?: string;
+  provider?: string;
   status?: string;
+  errorClass?: string;
+  errorCode?: string;
   userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
   startDate?: string;
   endDate?: string;
+  q?: string;
+};
+export type PostCommsMessagesRetryManyRes = /** status 200 Success */ {
+  retried?: object[];
+  skipped?: object[];
+};
+export type PostCommsMessagesRetryManyArgs = {
+  channel?: string;
+  endDate?: string;
+  errorClass?: string;
+  errorCode?: string;
+  limit?: number;
+  provider?: string;
+  q?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  status?: string;
+  templateId?: string;
+  to?: string;
+  userId?: string;
+};
+export type GetCommsMessagesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetCommsMessagesByIdArgs = string;
+export type PostCommsMessagesByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostCommsMessagesByIdRetryArgs = string;
+export type GetCommsStatsRes = /** status 200 Success */ {
+  buckets?: object[];
+  byProvider?: object[];
+  totals?: object;
+};
+export type GetCommsStatsArgs = {
+  page?: number;
+  limit?: number;
+  channel?: string;
+  provider?: string;
+  status?: string;
+  errorClass?: string;
+  errorCode?: string;
+  userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  endDate?: string;
+  q?: string;
 };
 export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
   /** Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added. */
@@ -1748,6 +1901,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1756,6 +1910,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1793,6 +1948,7 @@ export type PostFeatureFlagsFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1801,6 +1957,7 @@ export type PostFeatureFlagsFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -1839,6 +1996,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1847,6 +2005,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -1897,6 +2056,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1905,6 +2065,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1943,6 +2104,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1951,6 +2113,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1990,6 +2153,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1998,6 +2162,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2067,11 +2232,11 @@ export type PostAdminAuditLogsBulkPatchArgs = {
 export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
   data?: {
     /** User who performed the action */
-    actorId?: any;
+    actorId?: string;
     /** Mongoose model name affected */
     modelName: string;
     /** Primary key of the affected document */
-    recordId?: any;
+    recordId?: string;
     /** Human-readable label for the record */
     recordLabel?: string;
     /** Mutation kind */
@@ -2139,11 +2304,11 @@ export type GetAdminAuditLogsArgs = {
 };
 export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
   /** User who performed the action */
-  actorId?: any;
+  actorId?: string;
   /** Mongoose model name affected */
   modelName: string;
   /** Primary key of the affected document */
-  recordId?: any;
+  recordId?: string;
   /** Human-readable label for the record */
   recordLabel?: string;
   /** Mutation kind */
@@ -2197,6 +2362,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2205,6 +2371,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2242,6 +2409,7 @@ export type PostAdminFeatureFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2250,6 +2418,7 @@ export type PostAdminFeatureFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -2288,6 +2457,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2296,6 +2466,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -2393,6 +2564,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2401,6 +2573,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2439,6 +2612,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2447,6 +2621,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2486,6 +2661,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2494,6 +2670,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2533,6 +2710,7 @@ export type PostAdminConsentFormsRes = /** status 201 Successful create */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2581,6 +2759,7 @@ export type PostAdminConsentFormsArgs = {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content?: {
@@ -2630,6 +2809,7 @@ export type GetAdminConsentFormsRes = /** status 200 Successful list */ {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content: {
@@ -2740,6 +2920,7 @@ export type GetAdminConsentFormsByIdRes = /** status 200 Successful read */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2789,6 +2970,7 @@ export type PatchAdminConsentFormsByIdRes = /** status 200 Successful update */ 
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2839,6 +3021,7 @@ export type PatchAdminConsentFormsByIdArgs = {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content?: {
@@ -3040,7 +3223,7 @@ export type PostAdminTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3064,7 +3247,7 @@ export type PostAdminTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3089,7 +3272,7 @@ export type GetAdminTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3178,7 +3361,7 @@ export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3203,7 +3386,7 @@ export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3229,7 +3412,7 @@ export type PatchAdminTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3271,11 +3454,15 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3296,11 +3483,15 @@ export type PostAdminUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -3322,11 +3513,15 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -3363,6 +3558,11 @@ export type GetAdminUsersArgs = {
     | {
         $in?: boolean[];
       };
+  emailVerified?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
   created?:
     | string
     | {
@@ -3392,11 +3592,15 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3418,11 +3622,15 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3445,11 +3653,15 @@ export type PatchAdminUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -3506,6 +3718,7 @@ export const {
   usePostLoadtestTodosGenerateMutation,
   usePostLoadtestTodosChurnMutation,
   usePostLoadtestTodosClearMutation,
+  usePostCommsDevTestPushMutation,
   useTodosMarkCompleteMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
@@ -3528,6 +3741,10 @@ export const {
   useDeleteCommsPushTokensByIdMutation,
   useGetCommsPushTokensByIdQuery,
   useGetCommsMessagesQuery,
+  usePostCommsMessagesRetryManyMutation,
+  useGetCommsMessagesByIdQuery,
+  usePostCommsMessagesByIdRetryMutation,
+  useGetCommsStatsQuery,
   usePostFeatureFlagsFlagsMutation,
   useGetFeatureFlagsFlagsQuery,
   useGetFeatureFlagsFlagsByIdQuery,

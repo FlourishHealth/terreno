@@ -14,6 +14,7 @@ test.describe("Profile", () => {
     await expect(page.getByTestId("profile-email-input.edit-clickable").first()).toBeVisible();
     await expect(page.getByTestId("profile-password-input.edit-clickable").first()).toBeVisible();
     await expect(page.getByTestId("profile-logout-button").first()).toBeVisible();
+    await expect(page.getByTestId("profile-verify-email-banner").first()).toBeVisible();
   });
 
   test("shows current user info", async ({page}) => {

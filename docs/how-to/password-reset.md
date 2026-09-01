@@ -59,6 +59,8 @@ On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMa
 ## 5. Frontend
 
 1. Pass `onForgotPassword` (or `onForgotPasswordPress`) to `LoginScreen`.
-2. Add `/resetPassword` that reads `token` from the query string and submits the new password.
+2. Add `/forgotPassword` (email form) and `/resetPassword` that reads `token` from the query string.
+3. On Better Auth apps, request reset with `authClient.requestPasswordReset` and submit with `authClient.resetPassword({newPassword, token})`. JWT apps use `POST /auth/forgotPassword` and the RTK `resetPassword` mutation (`POST /resetPassword`). The example app tries Better Auth first, then the RTK mutation so either token type can complete.
+4. Show a profile banner when `emailVerified` is false, with Resend calling `POST /auth/sendVerification`.
 
 Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output.

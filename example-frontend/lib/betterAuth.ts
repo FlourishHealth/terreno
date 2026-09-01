@@ -40,6 +40,51 @@ export const signOut = async (): Promise<void> => {
   await betterAuthClient.signOut();
 };
 
+interface BetterAuthActionResult {
+  error?: {message?: string} | null;
+}
+
+export const getPasswordResetRedirectUrl = (): string => {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/resetPassword`;
+  }
+  return `${getAppScheme()}://resetPassword`;
+};
+
+export const requestPasswordReset = async (email: string): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch("/request-password-reset", {
+    body: {email, redirectTo: getPasswordResetRedirectUrl()},
+    method: "POST",
+  });
+  return {error: result.error};
+};
+
+export const resetPasswordWithToken = async ({
+  newPassword,
+  token,
+}: {
+  newPassword: string;
+  token: string;
+}): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch("/reset-password", {
+    body: {newPassword, token},
+    method: "POST",
+  });
+  return {error: result.error};
+};
+
+export const sendVerificationEmail = async (email: string): Promise<BetterAuthActionResult> => {
+  const callbackURL =
+    typeof window !== "undefined" && window.location?.origin
+      ? `${window.location.origin}/`
+      : `${getAppScheme()}://`;
+  const result = await betterAuthClient.$fetch("/send-verification-email", {
+    body: {callbackURL, email},
+    method: "POST",
+  });
+  return {error: result.error};
+};
+
 export const getSession = async () => {
   return betterAuthClient.getSession();
 };

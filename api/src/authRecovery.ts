@@ -94,7 +94,7 @@ export const sendVerificationEmail = async (
   if (isEmailVerified(user)) {
     return;
   }
-  const issued = await AuthToken.issueFor({_id: user._id}, "emailVerification");
+  const issued = await AuthToken.issueFor({_id: String(user._id)}, "emailVerification");
   const verifyUrl = buildVerifyUrl(authOptions.publicAppUrl, issued.token);
   await deliverRecoveryMail(authOptions, {
     html: verifyEmailHtml(verifyUrl),
@@ -138,7 +138,7 @@ export const addAuthRecoveryRoutes = (
           if (!authOptions?.publicAppUrl) {
             logger.error("[auth] publicAppUrl is required to send password reset mail");
           } else {
-            const issued = await AuthToken.issueFor({_id: user._id}, "passwordReset");
+            const issued = await AuthToken.issueFor({_id: String(user._id)}, "passwordReset");
             const resetUrl = buildResetUrl(authOptions.publicAppUrl, issued.token);
             await deliverRecoveryMail(authOptions, {
               html: resetPasswordHtml(resetUrl),

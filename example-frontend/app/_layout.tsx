@@ -237,11 +237,13 @@ const RootLayoutNav = (): React.ReactElement => {
       return;
     }
 
-    const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
+    const isLoginOrSignup = segments[0] === "login" || segments[0] === "signup";
+    const isPublicAuthPage =
+      isLoginOrSignup || segments[0] === "forgotPassword" || segments[0] === "resetPassword";
 
-    if (!userId && !isOnAuthPage) {
+    if (!userId && !isPublicAuthPage) {
       router.replace("/login");
-    } else if (userId && isOnAuthPage) {
+    } else if (userId && isLoginOrSignup) {
       router.replace("/(tabs)");
     }
   }, [userId, segments, router, isAuthLoading]);
@@ -289,6 +291,8 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="admin" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
+      <Stack.Screen name="forgotPassword" />
+      <Stack.Screen name="resetPassword" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
     </Stack>
   );

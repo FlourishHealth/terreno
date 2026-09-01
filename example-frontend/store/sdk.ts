@@ -41,6 +41,7 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  emailVerified?: boolean;
   permissions?: Record<string, readonly string[]>;
   roles?: string[];
 }
@@ -238,6 +239,20 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      postAuthForgotPassword: builder.mutation<{ok: boolean}, {email: string}>({
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/forgotPassword",
+        }),
+      }),
+      postAuthSendVerification: builder.mutation<{ok: boolean}, void>({
+        invalidatesTags: ["profile"],
+        query: () => ({
+          method: "POST",
+          url: "/auth/sendVerification",
+        }),
+      }),
       postCommsDevTestPush: builder.mutation<
         {accepted: number; results: unknown[]; tokenCount: number},
         {body?: string; title?: string} | undefined
@@ -300,6 +315,8 @@ export const {
   useGetMeQuery,
   usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
+  usePostAuthForgotPasswordMutation,
+  usePostAuthSendVerificationMutation,
   usePostCommsDevTestPushMutation,
   useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
