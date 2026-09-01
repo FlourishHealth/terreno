@@ -53,7 +53,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
 
 ## Phase 3: The skill
 
-- [ ] **Task 3.1**: Author the `upgrading-terreno` skill
+- [x] **Task 3.1**: Author the `upgrading-terreno` skill
   - Description: Create `.rulesync/skills/upgrading-terreno/SKILL.md`. Frontmatter: `name: upgrading-terreno`, a `description` naming trigger phrases ("upgrade Terreno", "bump @terreno packages", "update to the latest Terreno", "upgrade terreno version"), `targets: ['*']`. Body: Preconditions (clean git tree — refuse to start otherwise; on a branch, not the default branch; tests currently passing so failures are attributable); Determine versions (`application_info` from the local MCP server, or read `package.json` files); Fetch notes (`terreno_get_upgrade_guide`); **Plan and confirm** — print current version, target version, the notes found, the packages affected, and the ordered steps, then stop for confirmation; then the ten-step ordering from the IP with a verification gate between each phase; Expo delegation (invoke the `upgrading-expo` skill at step 6 rather than duplicating it); Failure handling (report what succeeded, what failed, and the rollback command; on a multi-version jump failure, retry version by version to isolate); and a final report. Include an explicit prohibition on continuing past a failed compile or test run.
   - Files: `.rulesync/skills/upgrading-terreno/SKILL.md` (new)
   - Depends on: Task 2.2
