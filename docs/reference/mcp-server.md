@@ -120,8 +120,11 @@ BM25-style keyword search over markdown bundled with the MCP server: `docs/resou
   queries: string[];       // Required — one or more search phrases
   packages?: string[];     // Optional — filter by package id or scope, e.g. ["api", "@terreno/ui"]
   tokenLimit?: number;      // Approximate max tokens of markdown (default 3000)
+  version?: string;         // Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current `next` docs.
 }
 ``````
+
+Unmatched versions fall back to the nearest retained snapshot (`website/versioned_docs/`, copied into `docs/versioned/` at MCP build). The response names the resolved version and includes a note when a fallback happened. Pass the consumer app's `@terreno/*` version from `application_info` or `package.json`. Range prefixes such as `^57.2.0` are stripped before matching.
 
 ### terreno_get_component_docs
 
@@ -132,8 +135,11 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 ``````typescript
 {
   component: string;        // e.g. "Button", "TextField"
+  version?: string;         // Optional @terreno/* lockstep version. Omit for current TypeDoc props.
 }
 ``````
+
+When `version` matches a retained docs snapshot, the tool returns that version's generated component page (MDX chrome stripped). Otherwise it uses current `ui-types-documentation.json` and notes the fallback.
 
 ### terreno_get_upgrade_guide
 
