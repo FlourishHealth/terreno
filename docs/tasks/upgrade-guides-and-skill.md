@@ -39,7 +39,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
 
 ## Phase 2: Versioning policy
 
-- [ ] **Task 2.1**: Write `docs/explanation/versioning-policy.md`
+- [x] **Task 2.1**: Write `docs/explanation/versioning-policy.md`
   - Description: Document: what lockstep versioning means (all `@terreno/*` packages share a version; you upgrade them together and mixing versions is unsupported — verify this claim against `publish-on-tag.yml` and any peer-dependency constraints before asserting it); the pre-1.0 policy (breaking changes may land in minor releases, always with an upgrade note); the deprecation window from IP question U6 (minimum three minor releases, with the RTK deprecation as the worked example); where to find upgrade notes and the changelog; and what 1.0 will mean when it happens (link program question P9). Keep it short and concrete — this document is a promise, so every sentence must be one the team will keep.
   - Files: `docs/explanation/versioning-policy.md` (new), `docs/explanation/README.md`
   - Depends on: Task 1.3
