@@ -85,19 +85,19 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
 
 ## Phase 4: Enforcement
 
-- [ ] **Task 4.1**: Require upgrade notes in the release skill
+- [x] **Task 4.1**: Require upgrade notes in the release skill
   - Description: Add a required step to `.rulesync/skills/release/SKILL.md`: after assembling the changelog section for the release, if it contains a `Breaking`, `Deprecated`, `Removed`, or `Changed` entry, write `mcp-server/src/docs/upgrades/<version>.md` using the template from Task 1.1 before tagging. Reference the note from the changelog section. Regenerate mirrors.
   - Files: `.rulesync/skills/release/SKILL.md`, generated mirrors
   - Depends on: Task 1.1
   - Acceptance: the step lists the four triggering changelog headings; `bun run rules:check` exits 0.
 
-- [ ] **Task 4.2**: Add the CI enforcement check
+- [x] **Task 4.2**: Add the CI enforcement check
   - Description: Add a check (script plus a job in `.github/workflows/repo-policies.yml`, or a step in `publish-on-tag.yml` that runs before publishing) that reads the changelog section for the tag being released and fails if it contains a breaking/deprecated/removed/changed entry while `mcp-server/src/docs/upgrades/<version>.md` does not exist. Write it as a Bun TypeScript script with `const` arrow functions and explicit return types, following the repo's script conventions. Include tests for: note present and required, note missing and required, note not required.
   - Files: `scripts/check-upgrade-notes.ts` (new), `package.json`, `.github/workflows/repo-policies.yml` or `.github/workflows/publish-on-tag.yml`, tests
   - Depends on: Task 4.1
   - Acceptance: all three test cases pass; the check fails a simulated release with a breaking changelog entry and no note; `bun run lint` passes.
 
-- [ ] **Task 4.3**: Link notes from the changelog
+- [x] **Task 4.3**: Link notes from the changelog
   - Description: Update `CHANGELOG.md` so each version section with an upgrade note links it. Add a line to the changelog header explaining that upgrade notes live in `mcp-server/src/docs/upgrades/` and are also available through the MCP server's `terreno_get_upgrade_guide` tool.
   - Files: `CHANGELOG.md`
   - Depends on: Task 1.3
