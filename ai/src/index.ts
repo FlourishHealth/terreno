@@ -32,6 +32,7 @@ export {AIRequest} from "./models/aiRequest";
 export {FileAttachment} from "./models/fileAttachment";
 export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
+export {AI_OBSERVABILITY_GROUP, observabilityAdminScreens} from "./observability/adminScreens";
 export {LocalEvaluatorStore} from "./observability/local/evaluatorStore";
 export {createLocalObservabilityPlugin} from "./observability/local/localPlugin";
 export {LocalPromptStore} from "./observability/local/promptStore";
@@ -43,6 +44,11 @@ export {
   ObservabilityApp,
   resetObservabilityApp,
 } from "./observability/observabilityApp";
+export type {
+  ObservabilityPluginStatus,
+  ObservabilityStatus,
+} from "./observability/status";
+export {buildObservabilityStatus, isLocalObservabilityPluginOn} from "./observability/status";
 export type {
   ControlPrimary,
   ObservabilityAppOptions,

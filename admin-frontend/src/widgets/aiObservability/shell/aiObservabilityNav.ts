@@ -1,0 +1,91 @@
+import type {AdminBreadcrumbSegment} from "../../../AdminBreadcrumbs";
+
+export interface ObservabilityStatusPayload {
+  localOn: boolean;
+  plugins: {capabilities: string[]; id: string}[];
+  primaries: {
+    datasets: string;
+    experiments: string;
+    prompts: string;
+    reviewQueue: string;
+  };
+}
+
+export interface AiObservabilityScreenMeta {
+  leaf: string;
+  section: string;
+  title: string;
+}
+
+export const AI_OBSERVABILITY_GROUP = "AI Observability";
+
+export const AI_OBSERVABILITY_SCREENS: Record<string, AiObservabilityScreenMeta> = {
+  "ai-prompt-editor": {leaf: "Editor", section: "Prompts", title: "Prompt editor"},
+  "ai-prompts": {leaf: "Library", section: "Prompts", title: "Prompts"},
+  "ai-review": {leaf: "Queue", section: "Review", title: "Review queue"},
+  "ai-review-item": {leaf: "Item", section: "Review", title: "Review item"},
+  "ai-trace-detail": {leaf: "Detail", section: "Traces", title: "Trace"},
+  "ai-traces": {leaf: "List", section: "Traces", title: "Traces"},
+};
+
+export interface AiObservabilityNavItem {
+  displayName: string;
+  name: string;
+  requiresLocal: boolean;
+}
+
+export const AI_OBSERVABILITY_NAV_ITEMS: AiObservabilityNavItem[] = [
+  {displayName: "Prompts", name: "ai-prompts", requiresLocal: false},
+  {displayName: "Traces", name: "ai-traces", requiresLocal: false},
+  {displayName: "Review queue", name: "ai-review", requiresLocal: true},
+];
+
+export const getAiObservabilityNavItems = (localOn: boolean): AiObservabilityNavItem[] => {
+  return AI_OBSERVABILITY_NAV_ITEMS.filter((item) => {
+    if (!item.requiresLocal) {
+      return true;
+    }
+    return localOn;
+  });
+};
+
+export const formatObservabilityStatusChip = (status: ObservabilityStatusPayload): string => {
+  const localLabel = status.localOn ? "Local on" : "Local off";
+  return [
+    localLabel,
+    `prompts:${status.primaries.prompts}`,
+    `datasets:${status.primaries.datasets}`,
+    `experiments:${status.primaries.experiments}`,
+  ].join(" · ");
+};
+
+const sectionHref = (section: string, routeBase: string): string => {
+  const prefix = routeBase.endsWith("/") ? routeBase.slice(0, -1) : routeBase;
+  if (section === "Prompts") {
+    return `${prefix}/ai-prompts`;
+  }
+  if (section === "Traces") {
+    return `${prefix}/ai-traces`;
+  }
+  return `${prefix}/ai-review`;
+};
+
+export const buildAiObservabilityBreadcrumbs = ({
+  routeBase,
+  screenName,
+}: {
+  routeBase: string;
+  screenName: string;
+}): AdminBreadcrumbSegment[] => {
+  const meta = AI_OBSERVABILITY_SCREENS[screenName];
+  const adminHref = routeBase || "/";
+  if (!meta) {
+    return [{href: adminHref, label: "Admin"}, {label: AI_OBSERVABILITY_GROUP}];
+  }
+  return [
+    {href: adminHref, label: "Admin"},
+    {label: AI_OBSERVABILITY_GROUP},
+    {href: sectionHref(meta.section, routeBase), label: meta.section},
+    {label: meta.leaf},
+  ];
+};

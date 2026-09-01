@@ -6,7 +6,11 @@ import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {
+  adminScreenGroupTestId,
+  groupAdminCustomScreens,
+  groupAdminModelsByGroup,
+} from "./adminShellNav";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -102,6 +106,8 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   const models = grouped.flatMap(({models: groupModels}) => groupModels);
   const auditLogModel = models.find(isAuditLogModel);
   const featureFlagModel = models.find(isFeatureFlagModel);
+  const {grouped: groupedScreens, ungrouped: ungroupedScreens} =
+    groupAdminCustomScreens(allCustomScreens);
   const visibleGrouped = grouped
     .map(({group, models: groupModels}) => ({
       group,
@@ -167,12 +173,32 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {allCustomScreens.length > 0 ? (
+        {groupedScreens.map(({group, screens}) => (
+          <Box direction="column" gap={1} key={group} testID={adminScreenGroupTestId(group)}>
+            <Text bold color={sectionLabelColor} size="sm">
+              {group}
+            </Text>
+            {screens.map((screen) => (
+              <NavButton
+                key={screen.name}
+                label={screen.displayName}
+                onPress={() => {
+                  runNav(() => {
+                    navigate(`/${screen.name}`);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID={`admin-shell-nav-screen-${screen.name}`}
+              />
+            ))}
+          </Box>
+        ))}
+        {ungroupedScreens.length > 0 ? (
           <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
-            {allCustomScreens.map((screen) => (
+            {ungroupedScreens.map((screen) => (
               <NavButton
                 key={screen.name}
                 label={screen.displayName}

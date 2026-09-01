@@ -25,6 +25,11 @@ That split is the two planes:
 
 Telemetry sinks still fan out even when a control primary is local-only.
 
+Admin chrome lives in `admin-frontend`. One sidebar group **AI Observability** holds Prompts,
+Traces, and Review (Review is omitted when the local plugin is off). Existing **AI Requests**
+stays under **Screens**. Every observability screen shows breadcrumbs
+`Admin / AI Observability / <Section> / <leaf>` and a status chip from `GET /ai/observability/status`.
+
 ## Why this shape for product work
 
 Flourish AI features follow an 8-step loop: gold dataset → labels → prompt versions → evaluators → experiments with gates → `production` label → live traces and in-app feedback → weak traces back into the dataset.

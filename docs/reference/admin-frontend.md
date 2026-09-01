@@ -255,3 +255,15 @@ import {CommsDashboardScreenWidget, CommsMessageDetail} from "@terreno/admin-fro
 The list screen persists filters in the URL (`channel`, `provider`, `status`, `errorClass`, `q`,
 `startDate`, `endDate`, `page`) and calls `/comms/messages`, `/comms/stats`, and
 `/comms/messages/retryMany`.
+
+### AI Observability chrome
+
+`ObservabilityApp` contributes grouped custom screens (`group: "AI Observability"`): `ai-prompts`,
+`ai-traces`, and `ai-review` when the local plugin is on. `AI Requests` (`ai-requests`) stays
+ungrouped. Phase 1 widgets also register `ai-prompt-editor`, `ai-trace-detail`, and
+`ai-review-item` for routed detail screens.
+
+Every observability screen wraps `AiObservabilityChrome`: breadcrumbs
+`Admin / AI Observability / <Section> / <leaf>` and a status chip from
+`GET /ai/observability/status` (`Local on|off` plus active primaries). Review queue nav and the
+review screen body hide when `localOn` is false.

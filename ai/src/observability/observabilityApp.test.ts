@@ -69,6 +69,17 @@ describe("ObservabilityApp config", () => {
     }).toThrow(/reviewQueue\.primary must be local/);
   });
 
+  it("contributes an AI Observability screen group including review when local is on", () => {
+    const app = new ObservabilityApp({plugins: [createLocalPlugin()]});
+    expect(app.adminContribution()).toEqual({
+      customScreens: [
+        {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+        {displayName: "Traces", group: "AI Observability", name: "ai-traces"},
+        {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+      ],
+    });
+  });
+
   it("rejects a primary whose plugin is missing", () => {
     expect(() => {
       new ObservabilityApp({

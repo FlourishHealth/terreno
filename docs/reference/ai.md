@@ -402,7 +402,11 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 
 Missing registry, missing prompt, or missing label throws `APIError` 400 and does not call the model. Sink `export` failures are logged and never fail generate.
 
-When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs.
+When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs. `GET /ai/observability/status` is always mounted so admin chrome can read plugin ids, capabilities, primaries, and `localOn`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/status` | Admin chrome. `{plugins, primaries, localOn}` — drives the status chip and hides Review when `localOn` is false |
 
 | Method | Path | Behavior |
 | --- | --- | --- |

@@ -1,6 +1,7 @@
-import type {TerrenoPlugin} from "@terreno/api";
+import type {AdminContribution, TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
+import {observabilityAdminScreens} from "./adminScreens";
 import {LocalEvaluatorStore} from "./local/evaluatorStore";
 import {LocalPromptStore} from "./local/promptStore";
 import {LocalReviewStore} from "./local/reviewStore";
@@ -8,7 +9,9 @@ import {LocalTraceSink} from "./local/traceStore";
 import {addObservabilityEvaluatorRoutes} from "./routes/evaluators";
 import {addObservabilityPromptRoutes} from "./routes/prompts";
 import {addObservabilityReviewRoutes} from "./routes/review";
+import {addObservabilityStatusRoutes} from "./routes/status";
 import {addObservabilityTraceRoutes} from "./routes/traces";
+import {isLocalObservabilityPluginOn} from "./status";
 import type {
   ObservabilityAppOptions,
   ObservabilityControlConfig,
@@ -65,7 +68,16 @@ export class ObservabilityApp implements TerrenoPlugin {
     });
   }
 
+  adminContribution(): AdminContribution {
+    return {
+      customScreens: observabilityAdminScreens({
+        localOn: isLocalObservabilityPluginOn(this.plugins),
+      }),
+    };
+  }
+
   register(app: express.Application, openApi?: unknown): void {
+    addObservabilityStatusRoutes(app, {openApi});
     if (this.control.prompts === "local") {
       const store = this.promptRegistry;
       if (store instanceof LocalPromptStore) {

@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
-import {AIAdminApp, LangfuseApp} from "@terreno/ai";
+import {AIAdminApp, createLocalObservabilityPlugin, LangfuseApp, ObservabilityApp} from "@terreno/ai";
 import {
   BetterAuthApp,
   backfillAdmins,
@@ -311,6 +311,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         })
       )
       .register(new AIAdminApp())
+      .register(
+        new ObservabilityApp({
+          plugins: [createLocalObservabilityPlugin()],
+        })
+      )
       .register(
         new AdminApp({
           accessControl: access,
