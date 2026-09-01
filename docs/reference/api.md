@@ -1019,6 +1019,10 @@ setupServer({
 
 ## Webhooks & Notifications
 
+JSON and `application/x-www-form-urlencoded` parsers on `TerrenoApp` copy the original
+bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verified
+without re-serializing `req.body`.
+
 ### Slack Notifications
 
 ``````typescript

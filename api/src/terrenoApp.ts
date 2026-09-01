@@ -39,6 +39,7 @@ import {
 import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+import {jsonBodyParserOptions, urlencodedBodyParserOptions} from "./webhooks/rawBody";
 
 /** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
 interface BetterAuthProvider {
@@ -123,7 +124,7 @@ export interface TerrenoAppOptions {
  * 1. CORS
  * 2. Optional `beforeJsonSetup` (configure the app before JSON parsing)
  * 3. Custom middleware (via addMiddleware)
- * 4. JSON body parser
+ * 4. JSON and urlencoded body parsers (stash `req.rawBody`)
  * 5. Auth routes (/auth/login, /auth/signup, etc.)
  * 6. JWT authentication setup
  * 7. Request logging
@@ -352,7 +353,8 @@ export class TerrenoApp {
       }
     }
 
-    app.use(express.json({limit: "50mb"}));
+    app.use(express.json(jsonBodyParserOptions));
+    app.use(express.urlencoded(urlencodedBodyParserOptions) as unknown as express.RequestHandler);
 
     // JWT decode before rate limiting so authenticated keys use userId.
     // Auth routes mount after the limiter so login is in the auth bucket.

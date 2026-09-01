@@ -7,7 +7,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
 
 ## Phase 1 — Tracer (raw body, HMAC, memory claim)
 
-- [ ] **Task 1.1**: Raw-body capture on TerrenoApp parsers
+- [x] **Task 1.1**: Raw-body capture on TerrenoApp parsers
   - Delivers: JSON (and urlencoded) parse stores `req.rawBody` as a `Buffer`; existing JSON routes still work
   - Files: `api/src/webhooks/rawBody.ts`, `api/src/terrenoApp.ts`, `api/src/webhooks/rawBody.test.ts`
   - Blocked by: none
