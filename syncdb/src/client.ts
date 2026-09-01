@@ -1247,13 +1247,32 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   const bindDeltaHandler = (): void => {
     const myEpoch = connectionEpoch;
     const unbindPrevious = unbindDeltaHandler;
-    unbindDeltaHandler = transport.onDelta((delta: SyncDelta): void => {
+    const isCurrentEpoch = (): boolean => {
       if (myEpoch !== connectionEpoch) {
         // A stale connection's delta arriving after a bounce for a new user.
-        return;
+        return false;
       }
-      handleDelta(delta);
-    });
+      return true;
+    };
+    if (transport.onDeltaBatch) {
+      unbindDeltaHandler = transport.onDeltaBatch((deltas: SyncDelta[]): void => {
+        if (!isCurrentEpoch()) {
+          return;
+        }
+        store.raw.transaction(() => {
+          for (const delta of deltas) {
+            handleDelta(delta);
+          }
+        });
+      });
+    } else {
+      unbindDeltaHandler = transport.onDelta((delta: SyncDelta): void => {
+        if (!isCurrentEpoch()) {
+          return;
+        }
+        handleDelta(delta);
+      });
+    }
     unbindPrevious?.();
   };
 

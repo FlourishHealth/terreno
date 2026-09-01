@@ -73,6 +73,12 @@ export interface SyncTransport {
   /** Subscribe to inbound `sync:delta` events. Returns an unsubscribe function. */
   onDelta: (callback: (delta: SyncDelta) => void) => () => void;
   /**
+   * Optional burst-aware inbound subscription. Transports that receive rapid
+   * `sync:delta` events can deliver one arrival-ordered batch so the client
+   * commits it atomically. `onDelta` remains the compatibility path.
+   */
+  onDeltaBatch?: (callback: (deltas: SyncDelta[]) => void) => () => void;
+  /**
    * Subscribe to the server's `sync:subscribed` confirmations. Returns an unsubscribe
    * function. Optional so transports without a subscription handshake (HTTP-only
    * doubles) satisfy the contract; callers must treat its absence as "never confirmed".
