@@ -31,7 +31,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: Task 1.2
   - Acceptance: every action-requiring change from Task 1.2 appears; the feature-flag migration is no longer in `README.md`; `terreno_get_upgrade_guide` with the range 0.21.0 → current returns this note's content.
 
-- [ ] **Task 1.4**: Improve the empty-range response
+- [x] **Task 1.4**: Improve the empty-range response
   - Description: Update `terreno_get_upgrade_guide` in `mcp-server/src/tools.ts` so that a range with no recorded notes returns an explicit message naming the versions with no notes, rather than empty output — an agent seeing empty output concludes nothing changed, which is the opposite of the truth. Also have it list which versions in the range *did* have notes. Add tests for: range fully covered, range partially covered, range with no notes, and an invalid range.
   - Files: `mcp-server/src/tools.ts`, tests under `mcp-server/src/`
   - Depends on: Task 1.3
