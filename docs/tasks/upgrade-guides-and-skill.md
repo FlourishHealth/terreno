@@ -45,7 +45,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: Task 1.3
   - Acceptance: the lockstep claim is verified against the publish workflow and peer deps; the deprecation window is a specific number; the RTK deprecation is used as the example; linked from the explanation index.
 
-- [ ] **Task 2.2**: `[RTK]` Write `docs/how-to/upgrade-terreno.md`
+- [x] **Task 2.2**: `[RTK]` Write `docs/how-to/upgrade-terreno.md`
   - Description: The human-facing upgrade guide. Cover: checking your current versions; finding the notes for your range (both via `terreno_get_upgrade_guide` and by browsing the notes directory); the correct ordering with the reasoning for each step (backend before frontend because the OpenAPI spec is the contract; Expo before Terreno frontend packages because `@terreno/ui` pins peers against Expo versions — verify both claims); the manual steps for each phase; verification; and rollback. Add a prominent section for the RTK → syncdb upgrade linking `docs/how-to/migrate-rtk-to-syncdb.md` as a larger, separate operation that should not be combined with a routine version bump.
   - Files: `docs/how-to/upgrade-terreno.md` (new), `docs/how-to/README.md`
   - Depends on: Task 2.1
