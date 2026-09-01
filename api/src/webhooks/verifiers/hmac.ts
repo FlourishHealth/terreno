@@ -2,6 +2,9 @@ import crypto from "node:crypto";
 import type {Request} from "express";
 import {DateTime} from "luxon";
 
+import {headerValue} from "../headerValue";
+import {timingSafeEqualUtf8} from "../timingSafeEqual";
+
 export interface HmacSignatureOptions {
   algorithm?: "sha256" | "sha1" | "sha512";
   encoding?: "hex" | "base64";
@@ -10,32 +13,6 @@ export interface HmacSignatureOptions {
   timestampHeader?: string;
   toleranceSec?: number;
 }
-
-const headerValue = (req: Request, header: string): string | undefined => {
-  const raw = req.headers[header.toLowerCase()];
-  if (Array.isArray(raw)) {
-    return raw[0];
-  }
-  if (typeof raw === "string") {
-    return raw;
-  }
-  return undefined;
-};
-
-const timingSafeEqualUtf8 = ({
-  expected,
-  provided,
-}: {
-  expected: string;
-  provided: string;
-}): boolean => {
-  const expectedBuf = Buffer.from(expected, "utf8");
-  const providedBuf = Buffer.from(provided, "utf8");
-  if (expectedBuf.length !== providedBuf.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(expectedBuf, providedBuf);
-};
 
 /**
  * Verifies `header` against HMAC of `req.rawBody`.

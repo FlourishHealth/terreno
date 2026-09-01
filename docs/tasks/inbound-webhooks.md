@@ -25,7 +25,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
 
 ## Phase 2 — Provider verifiers + Mongo receipts
 
-- [ ] **Task 2.1**: Stripe + Twilio + SendGrid verifiers
+- [x] **Task 2.1**: Stripe + Twilio + SendGrid verifiers
   - Delivers: `stripeSignature`, `twilioSignature`, `sendgridEventSignature` helpers; Stripe timestamp outside tolerance fails; Twilio form-urlencoded verifies; SendGrid ECDSA with a test keypair
   - Files: `api/src/webhooks/verifiers/stripe.ts`, `twilio.ts`, `sendgrid.ts`, `verifiers/*.test.ts`
   - Blocked by: 1.2
