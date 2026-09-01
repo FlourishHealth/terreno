@@ -1,9 +1,10 @@
 # Implementation Plan: Inbound webhook framework
 
-**Status:** Draft  
+**Status:** Approved  
 **Branch:** `cursor/inbound-webhooks-4945`  
 **Owner:** —  
 **Created:** 2026-09-01  
+**Approved:** 2026-09-01  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1172 (this feature **closes** that issue; implementation PRs use `Fixes #1172`)  
 **Task list:** [inbound-webhooks.md](../tasks/inbound-webhooks.md)  
 **Depends on:** —  
@@ -15,13 +16,14 @@
 `@terreno/api` can receive signed HTTP callbacks from Stripe, Twilio, SendGrid, and
 similar providers. Apps register webhook routes on a `WebhooksApp` plugin that captures
 the raw body, verifies signatures, claims event ids so retries are no-ops, and dispatches
-to a handler. Billing Phase 3 and comms adapter Phase 2 register against this plugin;
-they do not reimplement HMAC, raw-body, or replay.
+to a handler. `@terreno/comms` registers Twilio SMS and SendGrid Event Webhook routes on
+that plugin and maps them through `recordDeliveryEvent` / `recordOptOut`. Stripe checkout
+sync stays in `billing-stripe` Phase 3.
 
 ## Non-Goals
 
-- Stripe / Twilio / SendGrid **business** handlers, models, or routes (`billing-stripe`,
-  `comms-adapter-twilio-sms`, `comms-adapter-sendgrid` Phase 2 own those).
+- Stripe **billing** handlers, models, or `/billing/webhooks/stripe` (`billing-stripe`
+  Phase 3).
 - Expo push delivery — that adapter **polls receipts**; it does not need inbound HTTP
   despite the seed blurb.
 - Outbound Slack / Google Chat / Zoom notifiers (already shipped).
@@ -35,6 +37,7 @@ they do not reimplement HMAC, raw-body, or replay.
 |----------|----------|
 | Package | **`@terreno/api`**, class `WebhooksApp` implementing `TerrenoPlugin`. Same home as notifiers and rate limiting. No new workspace package. |
 | Registration | Consumer-owned paths. `webhooks.route({path, verify, eventId, handler})` then `app.register(webhooks)`. Billing stays at `POST /billing/webhooks/stripe`. |
+| Comms routes | **In this IP**, in `@terreno/comms`. `CommsApp` takes a `WebhooksApp` and registers Twilio + SendGrid routes when those adapters are the configured `sms` / `mail` providers. Mapping tables stay the adapter IPs' contract. |
 | Raw body | Stash `Buffer` on the request during parse (`express.json` / `urlencoded` `verify`). Never re-serialize `req.body` for HMAC (today's auth-doc snippet is wrong). |
 | Content types | JSON (Stripe, SendGrid) and `application/x-www-form-urlencoded` (Twilio). Other types via an explicit `parser: "raw"` route option. |
 | Verifiers | Built-in: generic HMAC, Stripe `Stripe-Signature`, Twilio request validator, SendGrid Event Webhook ECDSA. Custom `verify(req) => boolean \| Promise<boolean>`. |
@@ -79,6 +82,48 @@ webhooks.route({
 new TerrenoApp({userModel: User}).register(webhooks).start();
 ```
 
+### Comms registration
+
+```typescript
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+
+new TerrenoApp({userModel: User})
+  .register(webhooks)
+  .register(
+    new CommsApp({
+      mail: new SendGridMailProvider(),
+      sms: new TwilioSmsProvider(),
+      webhooks,
+      webhookPublicUrl: process.env.PUBLIC_API_URL, // Twilio signature URL
+    })
+  )
+  .start();
+```
+
+`CommsApp` calls `webhooks.route` during `register` when `options.webhooks` is set:
+
+| When | Path | Verifier | `eventId` |
+|------|------|----------|-----------|
+| `sms` is `TwilioSmsProvider` | `{basePath}/webhooks/twilio/status` | `twilioSignature` | `MessageSid` |
+| `sms` is `TwilioSmsProvider` | `{basePath}/webhooks/twilio/inbound` | `twilioSignature` | `SmsSid` + inbound `Body` keyword |
+| `mail` is `SendGridMailProvider` | `{basePath}/webhooks/sendgrid` | `sendgridEventSignature` | per-event `sg_event_id` (batch) |
+
+Default `basePath` is `/comms`. Omit `webhooks` → no inbound routes (send path unchanged).
+Missing Twilio auth token or SendGrid verification key → skip that provider's routes and
+`logger.error` (do not crash boot).
+
+SendGrid posts an **array** of events. The HTTP request may skip a single `eventId`; the
+handler calls public `webhooks.claim({source: "sendgrid", eventId})` per `sg_event_id`,
+maps each event per the SendGrid adapter table, then `getCommsService().recordDeliveryEvent`
+/ `recordOptOut`. Correlate mail rows by `sg_message_id` prefix vs stored `x-message-id`.
+
+Twilio status mapping and STOP/START opt-outs follow
+[comms-adapter-twilio-sms](comms-adapter-twilio-sms.md). When webhooks are registered,
+`TwilioSmsProvider` `statusCallbackUrl` defaults to
+`${webhookPublicUrl}{basePath}/webhooks/twilio/status` so sends attach the callback.
+
+Stripe remains a how-to example only in this slice.
+
 `WebhooksApp` must run its capture setup **before** `express.json`. Plugins currently
 mount after JSON, so `WebhooksApp` also implements an early hook: `TerrenoApp.build()`
 calls `plugin.captureRawBody?.(app)` (or equivalent) before JSON, then `register` for
@@ -109,6 +154,9 @@ claim({source, eventId}) → "claimed" | "duplicate"
 release({source, eventId})  // handler failure only
 ```
 
+`WebhooksApp.claim` / `release` are public so a batch handler (SendGrid) can claim each
+nested event id. HTTP-level `eventId` remains optional.
+
 Mongo collection `webhookReceipts`: `source` (string), `eventId` (string), `created`
 (date). Unique compound index `(source, eventId)`. TTL on `created`. Field `description`s
 if it is a Mongoose model (`mongoose-schema-safety`). Not a public `modelRouter` model.
@@ -137,15 +185,27 @@ No framework-fixed path. Contract per registered route:
 
 Anonymous. Not listed in OpenAPI.
 
+Comms (when `webhooks` is passed and the adapter is configured):
+
+| Method | Path | Notes |
+|--------|------|--------|
+| POST | `/comms/webhooks/twilio/status` | Form-urlencoded; Twilio signature |
+| POST | `/comms/webhooks/twilio/inbound` | Form-urlencoded; STOP/START → `OptOutEvent` |
+| POST | `/comms/webhooks/sendgrid` | JSON array; ECDSA; per-event claim |
+
 ## Notifications
 
-None from the framework. Downstream handlers may send mail via `@terreno/comms`.
+Comms webhook handlers update `CommsMessage` via `recordDeliveryEvent` / `recordOptOut`.
+No extra notifier.
 
 ## UI
 
-None. example-backend: env-gated HMAC demo `POST /webhooks/example` when
-`WEBHOOK_SECRET` is set; omitted → route not registered. Used to prove the tracer, not as
-a product webhook.
+None. example-backend:
+
+- HMAC demo `POST /webhooks/example` when `WEBHOOK_SECRET` is set.
+- Pass the same `WebhooksApp` into `CommsApp` so Twilio/SendGrid routes exist whenever
+  those adapters are already env-registered. Set `PUBLIC_API_URL` (or
+  `COMMS_WEBHOOK_PUBLIC_URL`) for Twilio signatures on Cloud Run.
 
 ## Docs in this slice
 
@@ -155,7 +215,8 @@ a product webhook.
 | `docs/how-to/README.md` | Link the how-to. |
 | `docs/reference/api.md` | `WebhooksApp` under Webhooks & Notifications; contrast outbound notifiers. |
 | `docs/explanation/authentication.md` | Replace HMAC-on-`JSON.stringify(req.body)` with `WebhooksApp`. |
-| `docs/reference/environment-variables.md` | `WEBHOOK_SECRET` is example-demo only; per-provider secrets live on the consuming package. |
+| `docs/reference/environment-variables.md` | `WEBHOOK_SECRET` is example-demo only; `SENDGRID_WEBHOOK_VERIFICATION_KEY`, `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL`. |
+| `docs/reference/comms.md` | Twilio + SendGrid webhook paths, mapping, `CommsApp({webhooks})`. |
 | `docs/explanation/roadmap-seed-issues.md` | IP + task GitHub URLs; `IP=inbound-webhooks`. |
 | `.rulesync/skills/terreno-backend-api/references/custom-routes.md` | Replace hand-rolled Stripe stub with `WebhooksApp.route`. |
 | `.rulesync/rules/api/00-api.mdc` | One paragraph on inbound webhooks. |
@@ -179,12 +240,17 @@ Must cover:
 - SendGrid ECDSA fixture (generated keypair in test).
 - OpenAPI document does not list the webhook path.
 - Default app with no `WebhooksApp` still parses JSON as today.
+- Twilio signed status fixture updates `CommsMessage.status`; unsigned 401.
+- Twilio STOP inbound fires `onOptOut` with `reason: "sms-stop"`.
+- SendGrid signed `delivered` / `bounce` / `spamreport` fixtures map per the adapter
+  table; unsigned 401; duplicate `sg_event_id` is a no-op.
 
 ## Phases
 
 1. **Tracer:** raw body + `WebhooksApp` + HMAC + memory idempotency + example route.
 2. **Provider verifiers + Mongo store:** Stripe, Twilio, SendGrid helpers; mongo receipts.
-3. **Docs + seed + agent skill:** Diátaxis, changelog, rulesync, dependent-IP links.
+3. **Comms routes:** Twilio status + inbound, SendGrid Event Webhook, example-backend wiring.
+4. **Docs + seed + agent skill:** Diátaxis, changelog, rulesync, dependent-IP links.
 
 ## Feature Flags & Migrations
 
@@ -200,14 +266,19 @@ New optional collection only. No user data migration. No RTK flag.
 - 200-then-queue dispatch (`job-queues`).
 - GitHub App / CircleCI inbound (CI IP).
 - Expo push HTTP (not required).
+- Stripe billing webhook (`billing-stripe` Phase 3).
 
 ## Files to Create / Modify
 
 - `api/src/webhooks/` — `webhooksApp.ts`, `rawBody.ts`, `verifiers/*.ts`, `idempotency/*.ts`, tests
 - `api/src/terrenoApp.ts` — early raw-body capture; plugin hook
 - `api/src/index.ts` — exports
-- `example-backend/src/server.ts` — optional HMAC demo
+- `comms/src/commsApp.ts` — `webhooks` / `webhookPublicUrl` options
+- `comms/src/adapters/twilioSms.ts` (+ webhook helper) — status + inbound routes
+- `comms/src/adapters/sendgrid.ts` (+ webhook helper) — Event Webhook route
+- `example-backend/src/server.ts` — HMAC demo + pass `WebhooksApp` into `CommsApp`
 - Docs, rulesync, changelog as in the table
+- Adapter task lists: Phase 2 owned here
 - `docs/implementationPlans/billing-stripe.md` — Depends on this IP (not “pending”)
 
 ## Task List
@@ -229,6 +300,8 @@ See [docs/tasks/inbound-webhooks.md](../tasks/inbound-webhooks.md).
       `TerrenoApp.build()`.
 - [ ] How-to + reference + auth explanation match the shipped API. Verified by reading
       those pages in Roast; `bun run website:build` in the docs task.
-- [ ] `billing-stripe` and comms adapter Phase 2 can call `webhooks.route` without
-      forking parsers. Verified by a compile-checked example in the how-to (handlers
-      themselves stay in those IPs).
+- [ ] `billing-stripe` can call `webhooks.route` without forking parsers. Verified by a
+      compile-checked Stripe example in the how-to (handlers stay in that IP).
+- [ ] With `CommsApp({webhooks, sms: TwilioSmsProvider, mail: SendGridMailProvider})`,
+      signed Twilio and SendGrid fixtures update `CommsMessage` / fire `onOptOut`;
+      unsigned requests are 401. Verified by bun tests in `comms/`.
