@@ -26,6 +26,16 @@ const flush = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 5));
 };
 
+const waitUntil = async (predicate: () => boolean, maxAttempts = 20): Promise<void> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    await flush();
+  }
+  throw new Error("waitUntil timed out");
+};
+
 interface FakeAuth {
   provider: AuthProvider;
   setUserId: (userId: string | null) => void;
@@ -829,7 +839,7 @@ describe("createSyncDb", () => {
 
       harness.auth.setUserId("u2");
       harness.auth.emitAuthChange();
-      await flush();
+      await waitUntil(() => client.store.getLastUserId() === "u2");
       expect(client.store.listEntities({collection: "todos"})).toEqual([]);
       expect(client.store.getLastUserId()).toBe("u2");
       await client.stop();
