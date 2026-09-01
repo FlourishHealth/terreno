@@ -2,7 +2,7 @@
 
 IP: [migrate-admin-to-syncdb.md](../implementationPlans/migrate-admin-to-syncdb.md)
 
-**Status:** Draft. Do not implement product behavior until the IP header is **Approved**.
+**Status:** Approved. Pick–Roast execution is in progress.
 
 Skills for Pick: `terreno-data-fetching`, `terreno-backend-api`, `mongoose-schema-safety` (only if a later task touches schema — this IP must not), `generate-sdk` (only if OpenAPI for non-admin routes changes), `verify-ui-changes`, `update-docs`, `backend-test-env`, `terreno-ui`, `update-agent-docs`.
 
@@ -12,7 +12,7 @@ Skills for Pick: `terreno-data-fetching`, `terreno-backend-api`, `mongoose-schem
 
 Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 checkbox is done.
 
-- [ ] **Task 1.1**: `admin-frontend` ≥95% line+function coverage + threshold
+- [x] **Task 1.1**: `admin-frontend` ≥95% line+function coverage + threshold
   - Delivers: existing screens/hooks covered enough that `bun test` in `admin-frontend` meets 95% lines and functions; `bunfig.toml` `coverageThreshold` set so CI fails on drop
   - Files: `admin-frontend/src/**/*.test.*`, `admin-frontend/bunfig.toml`
   - Blocked by: none
