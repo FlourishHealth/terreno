@@ -29,7 +29,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
-- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
+- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
@@ -445,6 +445,21 @@ userSchema.plugin(baseUserPlugin);
 // Adds:
 // - email: string (indexed)
 // - admin: boolean (default: false)
+``````
+
+### emailVerificationPlugin
+
+Opt-in `emailVerified` boolean for user schemas. Defaults to `false` so existing users stay
+unverified until they complete the verification flow. Apply this plugin; do not add the
+field by hand.
+
+``````typescript
+import {emailVerificationPlugin, type EmailVerified} from "@terreno/api";
+
+userSchema.plugin(emailVerificationPlugin);
+
+// Adds:
+// - emailVerified: boolean (default: false)
 ``````
 
 ### firebaseJWTPlugin

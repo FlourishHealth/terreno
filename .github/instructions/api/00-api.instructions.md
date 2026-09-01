@@ -488,6 +488,7 @@ Rules:
 | `isDeletedPlugin` | `deleted` | Soft delete (auto-filtered from queries) |
 | `isDisabledPlugin` | `disabled` | Returns 401 for disabled users |
 | `baseUserPlugin` | `admin`, `email` | Base user fields |
+| `emailVerificationPlugin` | `emailVerified` | Opt-in email verification flag (default false) |
 | `findExactlyOne` | static method | Throws if 0 or multiple matches |
 | `findOneOrNone` | static method | Throws if multiple matches |
 | `upsertPlugin` | static method | Create or update atomically |

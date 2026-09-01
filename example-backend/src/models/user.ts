@@ -1,4 +1,4 @@
-import {rbacUserPlugin} from "@terreno/api";
+import {emailVerificationPlugin, rbacUserPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
 import {DEFAULT_USER_ROLE} from "../rbacRoles";
@@ -57,6 +57,7 @@ userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
 });
 userSchema.plugin(rbacUserPlugin, {defaultRoles: [DEFAULT_USER_ROLE]});
+userSchema.plugin(emailVerificationPlugin);
 
 addDefaultPlugins(userSchema);
 
