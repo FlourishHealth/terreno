@@ -86,7 +86,7 @@ export const EXAMPLE_SUMMARIZE_PROMPT = {
   system: "Write one faithful, concise sentence that preserves the source meaning.",
   tags: ["example", "summarization"],
   template: "Summarize the following text:\n\n{{text}}",
-  type: "text" as const,
+  type: "chat" as const,
   variables: [{key: "text", label: "Source text", required: true}],
 };
 const EXAMPLE_REVIEW_EVALUATOR_TEMPLATE = "correctness";
