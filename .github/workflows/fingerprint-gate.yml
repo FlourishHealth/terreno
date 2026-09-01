@@ -14,7 +14,10 @@ name: Fingerprint Gate
 # inside the sticky PR comment.
 
 # Disabled during the CircleCI cutover; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 permissions:
   contents: read

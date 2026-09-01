@@ -2,7 +2,10 @@ name: Architectural PR Review
 
 # Disabled after migration to CircleCI; retained for rollback.
 # Original trigger: pull_request_target on master (opened, synchronize, reopened, ready_for_review).
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 permissions:
   contents: read

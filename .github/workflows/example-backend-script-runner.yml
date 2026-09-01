@@ -5,7 +5,10 @@ name: Example Backend Script Runner
 # assistants run admin scripts directly from the project.
 
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   run-script-cli:

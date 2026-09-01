@@ -1,7 +1,10 @@
 name: Example Backend CI
 
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   lint-and-test:

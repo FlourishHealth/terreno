@@ -1,7 +1,10 @@
 name: Repository policies
 
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   no-barrel-imports:

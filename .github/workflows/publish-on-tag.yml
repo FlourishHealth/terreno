@@ -1,7 +1,10 @@
 name: Publish packages on tag
 
 # Disabled after migration to CircleCI semver-tag publishing; retained for rollback.
-on: []
+on:
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   breaking-change-documentation:
