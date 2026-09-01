@@ -167,6 +167,8 @@ describe("LocalTraceStore", () => {
 
     const scored = await store.list({hasScore: true});
     expect(scored.data.map((row) => row.id)).toEqual([older.id]);
+    expect(scored.data[0]?.spanCount).toBe(1);
+    expect(scored.data[0]?.scoreCount).toBe(1);
 
     const unscored = await store.list({hasScore: false});
     expect(unscored.data.map((row) => row.id)).toEqual([newer.id]);

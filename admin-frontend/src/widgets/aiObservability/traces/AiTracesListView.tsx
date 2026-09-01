@@ -155,11 +155,11 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
       {value: trace.sensitive},
       {value: trace.errorSummary ?? "—"},
       {value: promptCountLabel(trace.prompts)},
-      {value: "—"},
+      {value: String(trace.spanCount)},
       {value: formatTokens(trace.usage)},
       {value: formatCost(trace.usage)},
       {value: formatLatency(trace)},
-      {value: "—"},
+      {value: String(trace.scoreCount)},
       {value: trace.id},
     ]);
   }, [traces]);

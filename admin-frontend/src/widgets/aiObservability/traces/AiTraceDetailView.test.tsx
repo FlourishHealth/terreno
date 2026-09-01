@@ -13,8 +13,10 @@ const detail: TraceDetail = {
   id: "trace-phi",
   name: "clinical-note",
   prompts: [{name: "note", version: 1}],
+  scoreCount: 1,
   scores: [{dataType: "boolean", name: "correct", source: "human", value: true}],
   sensitive: true,
+  spanCount: 2,
   spans: [
     {
       children: [

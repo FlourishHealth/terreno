@@ -14,7 +14,9 @@ const okTrace: TraceListItem = {
   id: "trace-ok",
   name: "summarize",
   prompts: [{name: "summarize", version: 1}],
+  scoreCount: 0,
   sensitive: false,
+  spanCount: 1,
   startedAt: "2026-09-01T12:00:00.000Z",
   status: "ok",
   usage: {costUsd: 0.0123, inputTokens: 10, outputTokens: 20},
@@ -29,7 +31,9 @@ const errorTrace: TraceListItem = {
     {name: "summarize", version: 1},
     {name: "safety", version: 2},
   ],
+  scoreCount: 0,
   sensitive: false,
+  spanCount: 1,
   startedAt: "2026-09-01T12:00:00.000Z",
   status: "error",
 };
@@ -39,7 +43,9 @@ const sensitiveTrace: TraceListItem = {
   id: "trace-phi",
   name: "clinical-note",
   prompts: [{name: "note", version: 1}],
+  scoreCount: 2,
   sensitive: true,
+  spanCount: 3,
   startedAt: "2026-09-01T12:00:00.000Z",
   status: "ok",
 };
@@ -91,7 +97,7 @@ describe("AiTracesListView", () => {
   });
 
   it("renders a sensitive badge on sensitive traces", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, getByText} = renderWithTheme(
       <AiTracesListView
         evaluatorId=""
         evaluators={[]}
@@ -104,6 +110,8 @@ describe("AiTracesListView", () => {
       />
     );
     expect(getByTestId("ai-traces-sensitive-badge")).toBeTruthy();
+    expect(getByText("3")).toBeTruthy();
+    expect(getByText("2")).toBeTruthy();
   });
 
   it("shows the bulk bar with a sensitive warning and a disabled dataset action", () => {

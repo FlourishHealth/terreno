@@ -421,7 +421,7 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| GET | `/ai/observability/traces` | Admin list. Query `from`, `to`, `prompt`, `status`, `userId`, `sessionId`, `hasScore`, `sensitive`, `flaggedForDataset`, `page`, `limit`. Body is `{data, page, limit, more, total}` so pagination survives RTK `{data}` unwrap. `prompts.length` is the `N prompts` count |
+| GET | `/ai/observability/traces` | Admin list. Query `from`, `to`, `prompt`, `status`, `userId`, `sessionId`, `hasScore`, `sensitive`, `flaggedForDataset`, `page`, `limit`. Body is `{data, page, limit, more, total}` so pagination survives RTK `{data}` unwrap. Each row includes `spanCount` and `scoreCount`. `prompts.length` is the `N prompts` count |
 | GET | `/ai/observability/traces/:id` | Span tree (kind, offsets, durations, I/O, cost) plus scores. `errorSummary` is the first span with `status: "error"` |
 | POST | `/ai/observability/traces/:id/scores` | Persist a score and fan out to every `ScoreSink` |
 

@@ -65,8 +65,10 @@ export interface TraceListItem {
   id: string;
   name: string;
   prompts: TraceRecord["prompts"];
+  scoreCount: number;
   sensitive: boolean;
   sessionId?: string;
+  spanCount: number;
   startedAt: string;
   status: "error" | "ok";
   usage?: TraceRecord["usage"];
@@ -119,6 +121,24 @@ const usageWithoutUndefinedCost = (
     return rest;
   }
   return usage;
+};
+
+const countByTraceId = async (
+  model: mongoose.Model<mongoose.Document>,
+  ids: mongoose.Types.ObjectId[]
+): Promise<Map<string, number>> => {
+  const counts = new Map<string, number>();
+  if (ids.length === 0) {
+    return counts;
+  }
+  const grouped = (await model.aggregate([
+    {$match: {traceId: {$in: ids}}},
+    {$group: {_id: "$traceId", n: {$sum: 1}}},
+  ])) as Array<{_id: mongoose.Types.ObjectId; n: number}>;
+  for (const row of grouped) {
+    counts.set(String(row._id), row.n);
+  }
+  return counts;
 };
 
 export class LocalTraceStore {
@@ -238,9 +258,16 @@ export class LocalTraceStore {
       .sort({created: -1})
       .skip((page - 1) * limit)
       .limit(limit);
+    const ids = rows.map((row) => row._id);
+    const spanCountById = await countByTraceId(registerObsSpan(), ids);
+    const scoreCountById = await countByTraceId(registerObsScore(), ids);
     return {
       data: rows.map((row) => {
-        return this.toListItem(row);
+        const id = String(row._id);
+        return this.toListItem(row, {
+          scoreCount: scoreCountById.get(id) ?? 0,
+          spanCount: spanCountById.get(id) ?? 0,
+        });
       }),
       meta: {limit, page, total},
     };
@@ -258,7 +285,10 @@ export class LocalTraceStore {
     const spans = await registerObsSpan().find({traceId: trace._id}).sort({startOffsetMs: 1});
     const scores = await registerObsScore().find({traceId: trace._id}).sort({created: 1});
     return {
-      ...this.toListItem(trace),
+      ...this.toListItem(trace, {
+        scoreCount: scores.length,
+        spanCount: spans.length,
+      }),
       input: trace.input,
       output: trace.output,
       scores: scores.map((score) => {
@@ -278,20 +308,23 @@ export class LocalTraceStore {
     };
   }
 
-  private toListItem(row: {
-    _id: mongoose.Types.ObjectId;
-    endedAt?: Date;
-    errorSummary?: string;
-    flaggedForDataset: boolean;
-    name: string;
-    prompts: TraceRecord["prompts"];
-    sensitive: boolean;
-    sessionId?: string;
-    startedAt: Date;
-    status: "error" | "ok";
-    usage?: TraceRecord["usage"];
-    userId?: mongoose.Types.ObjectId;
-  }): TraceListItem {
+  private toListItem(
+    row: {
+      _id: mongoose.Types.ObjectId;
+      endedAt?: Date;
+      errorSummary?: string;
+      flaggedForDataset: boolean;
+      name: string;
+      prompts: TraceRecord["prompts"];
+      sensitive: boolean;
+      sessionId?: string;
+      startedAt: Date;
+      status: "error" | "ok";
+      usage?: TraceRecord["usage"];
+      userId?: mongoose.Types.ObjectId;
+    },
+    counts: {scoreCount: number; spanCount: number}
+  ): TraceListItem {
     return {
       endedAt: toIso(row.endedAt),
       errorSummary: row.errorSummary,
@@ -299,8 +332,10 @@ export class LocalTraceStore {
       id: String(row._id),
       name: row.name,
       prompts: row.prompts,
+      scoreCount: counts.scoreCount,
       sensitive: row.sensitive,
       sessionId: row.sessionId,
+      spanCount: counts.spanCount,
       startedAt: toIso(row.startedAt) ?? "",
       status: row.status,
       usage: usageWithoutUndefinedCost(row.usage),

@@ -20,8 +20,10 @@ export interface TraceListItem {
   id: string;
   name: string;
   prompts: TracePromptRef[];
+  scoreCount: number;
   sensitive: boolean;
   sessionId?: string;
+  spanCount: number;
   startedAt: string;
   status: "error" | "ok";
   usage?: TraceUsage;
