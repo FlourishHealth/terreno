@@ -87,7 +87,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/how-to/ai-feature-development.md` steps 3 and 6
   - Acceptance: widget tests empty/loading/loaded; no in-place save control exists; `verify-ui-changes` walks create → save v2 → set production
 
-- [ ] **Task 1.11**: Traces list + trace detail screens
+- [x] **Task 1.11**: Traces list + trace detail screens
   - Delivers: filter bar; row selection with the bulk bar (**Send to review queue**, sensitive-count warning, Clear; Add to dataset disabled until phase 2); status dot, `sensitive` badge, error line, `N prompts`, spans/tokens/cost/latency/scores columns; pagination footer; detail header with actions, left span list (kind badge, indent, duration bar), right span detail with **collapsed** sensitive I/O disclosures, and the scores panel with value + source
   - Files: `admin-frontend/src/widgets/aiObservability/traces/*.tsx`
   - Blocked by: 1.6, 1.8, 1.9
