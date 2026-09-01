@@ -260,6 +260,89 @@ describe("Twilio CommsApp webhooks", () => {
     assert.equal(client.calls[0]?.params.statusCallback, STATUS_URL);
   });
 
+  it("does not change CommsMessage for queued, accepted, sending, or sent", async (): Promise<void> => {
+    const sid = "SMnoop";
+    const client = createMockClient(sid);
+    const {app, comms} = buildTwilioCommsApp({client});
+    await comms.service.sendSms({body: "Hello", to: "+14155552671"});
+    for (const messageStatus of ["queued", "accepted", "sending", "sent"]) {
+      const res = await postTwilioForm({
+        app,
+        fields: {MessageSid: sid, MessageStatus: messageStatus},
+        path: STATUS_PATH,
+        url: STATUS_URL,
+      });
+      assert.equal(res.status, 200);
+    }
+    const row = await CommsMessage.findExactlyOne({providerMessageId: sid});
+    assert.equal(row.status, "sent");
+  });
+
+  it("maps undelivered with a non-21610 ErrorCode to transient failed", async (): Promise<void> => {
+    const sid = "SMundelivered";
+    const client = createMockClient(sid);
+    const {app, comms} = buildTwilioCommsApp({client});
+    await comms.service.sendSms({body: "Hello", to: "+14155552671"});
+    const res = await postTwilioForm({
+      app,
+      fields: {ErrorCode: "30001", MessageSid: sid, MessageStatus: "undelivered"},
+      path: STATUS_PATH,
+      url: STATUS_URL,
+    });
+    assert.equal(res.status, 200);
+    const row = await CommsMessage.findExactlyOne({providerMessageId: sid});
+    assert.equal(row.status, "failed");
+    assert.equal(row.errorCode, "30001");
+    assert.equal(row.errorClass, "transient");
+  });
+
+  it("fires onOptOut with reason sms-start for a signed START inbound", async (): Promise<void> => {
+    const optOuts: OptOutEvent[] = [];
+    const {app} = buildTwilioCommsApp({
+      client: createMockClient("SMstart"),
+      onOptOut: async (event): Promise<void> => {
+        optOuts.push(event);
+      },
+    });
+    const res = await postTwilioForm({
+      app,
+      fields: {Body: "START", From: "+14155552671", MessageSid: "SMstart"},
+      path: INBOUND_PATH,
+      url: INBOUND_URL,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(optOuts[0]?.reason, "sms-start");
+  });
+
+  it("skips Twilio routes and logs when the auth token is missing", async (): Promise<void> => {
+    const errorSpy = spyOn(logger, "error");
+    const webhooks = new WebhooksApp({idempotency: {store: "memory"}});
+    const sms = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: AUTH_TOKEN,
+      client: createMockClient("SMnotoken"),
+      fromNumber: "+15555550199",
+    });
+    sms.getAuthToken = (): string => "";
+    const app = new TerrenoApp({
+      logRequests: false,
+      skipListen: true,
+      userModel: UserModel as unknown as UserModelType,
+    })
+      .register(new CommsApp({sms, webhookPublicUrl: PUBLIC_URL, webhooks}))
+      .register(webhooks)
+      .build();
+    const res = await supertest(app)
+      .post(STATUS_PATH)
+      .type("form")
+      .send({MessageSid: "SMnotoken", MessageStatus: "delivered"});
+    assert.equal(res.status, 404);
+    assert.isTrue(
+      errorSpy.mock.calls.some((call) => String(call[0]).includes("auth token is missing"))
+    );
+    errorSpy.mockRestore();
+  });
+
   it("omits Twilio webhook paths from OpenAPI", async (): Promise<void> => {
     const {app} = buildTwilioCommsApp({client: createMockClient("SMopenapi")});
     const response = await supertest(app).get("/openapi.json").expect(200);

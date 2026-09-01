@@ -60,7 +60,11 @@ export const registerTwilioCommsWebhooks = ({
   const inboundUrl = `${publicUrl}${inboundPath}`;
 
   webhooks.route({
-    eventId: (req: Request): string => formString(req.body, "MessageSid"),
+    eventId: (req: Request): string => {
+      const sid = formString(req.body, "MessageSid");
+      const status = formString(req.body, "MessageStatus");
+      return status ? `${sid}:${status}` : sid;
+    },
     handler: async ({body}): Promise<void> => {
       const messageStatus = formString(body, "MessageStatus");
       const mapped = mapStatus(messageStatus, formString(body, "ErrorCode"));
