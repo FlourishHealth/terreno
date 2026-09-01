@@ -35,7 +35,7 @@ describe("upgrade note format README", () => {
 
   test("is not concatenated as an upgrade version by terreno_get_upgrade_guide", () => {
     const byName = getUpgradeGuideMarkdown("README", "README");
-    expect(byName).toContain("No upgrade notes found");
+    expect(byName).toContain("Invalid version range");
     expect(byName).not.toContain("copy-paste template");
     const wideRange = getUpgradeGuideMarkdown("0.19.0", "99.0.0");
     expect(wideRange).not.toContain("Upgrade to README");
