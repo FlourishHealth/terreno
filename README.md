@@ -154,6 +154,12 @@ Claude Desktop config paths: macOS `~/Library/Application Support/Claude/claude_
 
 Restart the assistant after saving.
 
+## Upgrading
+
+`@terreno/*` packages version in lockstep. Fetch notes for your range with the MCP tool `terreno_get_upgrade_guide`, or read `mcp-server/src/docs/upgrades/`. Format: `mcp-server/src/docs/upgrades/README.md`.
+
+If you still call `GET …/feature-flags/evaluate`, migrate using [Add feature flags](docs/how-to/add-feature-flags.md#migrating-from-get-evaluate-openfeature) (also in the 0.30.0 upgrade note).
+
 ## Roadmap
 
 Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Background jobs, web SSR, and consumer-installable `/terreno-*` packaging are not shipped yet.

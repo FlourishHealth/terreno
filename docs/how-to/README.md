@@ -27,6 +27,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [GitHub issue lifecycle](github-issue-lifecycle.md) — Create pick-ready issues, post a Pick plan, Pick ⇄ Roast
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
+- [Upgrade Terreno](upgrade-terreno.md) — Lockstep `@terreno/*` bumps, note range, order, rollback
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
 
 ## Admin
