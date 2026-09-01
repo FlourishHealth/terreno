@@ -265,8 +265,11 @@ Delete unused GitHub defaults after the new taxonomy is applied (`gh label list`
 The workflow's built-in `GITHUB_TOKEN` **cannot** be used here: it is repository-scoped and
 returns no `projectV2` data for an organization project. GitHub also reserves the name
 `GITHUB_TOKEN`, so a PAT cannot be supplied under that name — hence the separate
-`ROADMAP_PROJECT_TOKEN` secret. Pushing the regenerated `ROADMAP.md` still uses the default
-token via `permissions: contents: write`.
+`ROADMAP_PROJECT_TOKEN` secret. The same PAT also pushes the regenerated `ROADMAP.md`: the
+`master` ruleset requires a pull request and the default `GITHUB_TOKEN` is not a bypass actor
+on it, so the PAT needs `repo` scope and its owner must be listed as a ruleset bypass actor.
+[`.github/scripts/git-auth-roadmap-pat.sh`](https://github.com/FlourishHealth/terreno/blob/master/.github/scripts/git-auth-roadmap-pat.sh)
+applies that credential only for the fetch/push steps, so `bun install` never sees it.
 
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
 is the variable the generator reads.
@@ -374,10 +377,9 @@ do not claim completion until done.
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
-| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board and open a pull request when it changes |
 | [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
 | [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
-
 All three share the `roadmap` concurrency group. They write the same board, and interleaving
 them produces confusing partial states. After the group lock is acquired, each job refreshes
 to the latest branch HEAD so a queued `roadmap-sync` cannot overwrite statuses that
