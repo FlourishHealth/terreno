@@ -2,7 +2,7 @@ import {describe, expect, test} from "bun:test";
 import {mkdirSync, rmSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
 
-import {listRetainedDocVersions, resolveDocVersion} from "./docVersion.js";
+import {listRetainedDocVersions, resolveDocVersion} from "../../search/docVersion.js";
 
 describe("resolveDocVersion", () => {
   test("omitted or blank version resolves to next", () => {
