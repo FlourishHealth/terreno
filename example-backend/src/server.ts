@@ -60,6 +60,7 @@ import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
@@ -207,6 +208,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         })
       )
       .register(new VersionCheckPlugin())
+      .register(createExampleInboundWebhooks())
       .register(
         new HealthApp({
           check: async () => {

@@ -43,7 +43,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
 
 ## Phase 3 — Example HMAC + comms routes
 
-- [ ] **Task 3.1**: example-backend HMAC demo
+- [x] **Task 3.1**: example-backend HMAC demo
   - Delivers: `POST /webhooks/example` registered only when `WEBHOOK_SECRET` is set; handler logs `[Webhook]` and returns `{received: true}`
   - Files: `example-backend/src/server.ts` (or small `webhooksExample.ts` + test)
   - Blocked by: 1.2
