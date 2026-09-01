@@ -177,9 +177,82 @@ describe("docIndex", () => {
       join(vDir, "guide.md"),
       ["# Guide", "", "versionedUniqueToken7654321"].join("\n")
     );
-    const out = searchDocs({queries: ["versionedUniqueToken7654321"]});
+    const out = searchDocs({queries: ["versionedUniqueToken7654321"], version: "0.19.0"});
     expect(out).toContain("versionedUniqueToken7654321");
     expect(out).toContain("nested/guide.md");
+    expect(out).toContain("Docs version: 0.19.0");
+  });
+
+  test("omitted version searches next docs only", () => {
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    mkdirSync(join(tmp, "versioned", "next"), {recursive: true});
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "old.md"),
+      ["# Old", "", "historicalOnlyToken111"].join("\n")
+    );
+    writeFileSync(
+      join(tmp, "versioned", "next", "current.md"),
+      ["# Current", "", "nextOnlyToken222"].join("\n")
+    );
+    const current = searchDocs({queries: ["historicalOnlyToken111"]});
+    expect(current).toContain("No matching chunks found");
+    expect(current).not.toContain("old.md");
+    const nextHit = searchDocs({queries: ["nextOnlyToken222"]});
+    expect(nextHit).toContain("nextOnlyToken222");
+    expect(nextHit).toContain("Docs version: next");
+  });
+
+  test("unmatched patch version falls back to nearest retained snapshot", () => {
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "guide.md"),
+      ["# Guide", "", "fallbackToken333"].join("\n")
+    );
+    const out = searchDocs({queries: ["fallbackToken333"], version: "0.19.1"});
+    expect(out).toContain("fallbackToken333");
+    expect(out).toContain("Docs version: 0.19.0");
+    expect(out).toContain("0.19.1");
+  });
+
+  test("indexes versioned mdx files", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "button.mdx"),
+      [
+        "import ComponentDemo from '@site/src/components/ComponentDemo';",
+        "",
+        "# Button",
+        "",
+        "mdxOnlyToken444",
+        "",
+        '<ComponentDemo name="Button" />',
+      ].join("\n")
+    );
+    const out = searchDocs({queries: ["mdxOnlyToken444"], version: "0.19.0"});
+    expect(out).toContain("mdxOnlyToken444");
+  });
+
+  test("getComponentDocsMarkdown reads a versioned snapshot page", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "button.mdx"),
+      [
+        "import ComponentDemo from '@site/src/components/ComponentDemo';",
+        "",
+        "# Button",
+        "",
+        "snapshotButtonPropsToken",
+        "",
+        '<ComponentDemo name="Button" />',
+      ].join("\n")
+    );
+    const out = getComponentDocsMarkdown("Button", "0.19.0");
+    expect(out).toContain("Docs version: 0.19.0");
+    expect(out).toContain("snapshotButtonPropsToken");
+    expect(out).not.toContain("import ComponentDemo");
+    expect(out).not.toContain("<ComponentDemo");
   });
 
   test("getComponentDocsMarkdown resolves component case-insensitively and adds related excerpts", () => {

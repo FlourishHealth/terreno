@@ -25,6 +25,11 @@ const docSearchTools: Tool[] = [
           description: "Approximate max tokens of markdown to return (default 3000, hard-capped).",
           type: "number",
         },
+        version: {
+          description:
+            "Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current `next` docs. Unmatched versions fall back to the nearest retained snapshot.",
+          type: "string",
+        },
       },
       required: ["queries"],
       type: "object",
@@ -38,6 +43,11 @@ const docSearchTools: Tool[] = [
       properties: {
         component: {
           description: 'Component name as exported by @terreno/ui, e.g. "Button", "TextField".',
+          type: "string",
+        },
+        version: {
+          description:
+            "Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current TypeDoc props. Unmatched versions fall back to the nearest retained snapshot.",
           type: "string",
         },
       },
@@ -1110,13 +1120,15 @@ export const handleToolCall = (
       ? args.packages.filter((p): p is string => typeof p === "string")
       : undefined;
     const tokenLimit = typeof args.tokenLimit === "number" ? args.tokenLimit : undefined;
-    result = searchDocs({packages, queries, tokenLimit});
+    const version = typeof args.version === "string" ? args.version : undefined;
+    result = searchDocs({packages, queries, tokenLimit, version});
     return {content: [{text: result, type: "text"}]};
   }
 
   if (name === "terreno_get_component_docs") {
     const component = typeof args.component === "string" ? args.component : "";
-    result = getComponentDocsMarkdown(component);
+    const componentVersion = typeof args.version === "string" ? args.version : undefined;
+    result = getComponentDocsMarkdown(component, componentVersion);
     return {content: [{text: result, type: "text"}]};
   }
 
