@@ -434,8 +434,8 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 | GET/POST | `/ai/observability/evaluators` | List / create. Phase 1 `type` is `human`. Human + `liveSampleRate > 0` → 400 |
 | GET/PATCH/DELETE | `/ai/observability/evaluators/:id` | Read / update / soft-delete |
 | POST | `/ai/observability/traces/review` | Enqueue one or many traces against a human evaluator (`reason: "manual"`) |
-| GET | `/ai/observability/review` | Queue by `status` with counts; oldest-first |
-| GET | `/ai/observability/review/:id` | Item + evaluator dimensions + `given` / `wrote` panels |
+| GET | `/ai/observability/review` | Queue by `status` with counts; oldest-first. Response includes `more: false` so RTK preserves the count envelope. Rows include `traceName`, `promptName`, assignee, reason, and enqueue time |
+| GET | `/ai/observability/review/:id` | Item + evaluator dimensions + `given` / `wrote` panels and `rawInput` / `rawOutput` for the Raw JSON disclosure |
 | POST | `/ai/observability/review/:id` | `submit` (scores via ScoreSinks, status `done`), `skip`, or `assign` |
 
 Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.

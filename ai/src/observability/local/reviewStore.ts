@@ -22,6 +22,7 @@ export interface ReviewListItem {
   reason: string;
   status: ReviewStatus;
   traceId: string;
+  traceName: string;
 }
 
 const objectId = (value: string, label: string): mongoose.Types.ObjectId => {
@@ -65,7 +66,7 @@ export class LocalReviewStore {
         traceId: trace._id,
         ...(params.spanId ? {spanId: objectId(params.spanId, "spanId")} : {}),
       });
-      created.push(this.toListItem(item, trace.prompts[0]?.name));
+      created.push(this.toListItem(item, trace.name, trace.prompts[0]?.name));
     }
     return created;
   }
@@ -86,7 +87,7 @@ export class LocalReviewStore {
     const data: ReviewListItem[] = [];
     for (const row of rows) {
       const trace = await registerObsTrace().findOneOrNone({_id: row.traceId});
-      data.push(this.toListItem(row, trace?.prompts[0]?.name));
+      data.push(this.toListItem(row, trace?.name ?? "Unknown trace", trace?.prompts[0]?.name));
     }
     return {counts, data};
   }
@@ -98,6 +99,8 @@ export class LocalReviewStore {
     id: string;
     instructions?: string;
     panels: ReviewPanels;
+    rawInput?: unknown;
+    rawOutput?: unknown;
     scores?: Record<string, boolean | number | string>;
     status: ReviewStatus;
     traceId: string;
@@ -142,6 +145,8 @@ export class LocalReviewStore {
         outputSchema,
         variables,
       }),
+      rawInput: trace?.input,
+      rawOutput: trace?.output,
       scores: item.scores,
       status: item.status,
       traceId: String(item.traceId),
@@ -158,6 +163,12 @@ export class LocalReviewStore {
     const evaluator = await registerObsEvaluator().findOneOrNone({_id: item.evaluatorId});
     if (!evaluator) {
       throw new APIError({status: 404, title: "Unknown evaluator"});
+    }
+    const missing = evaluator.dimensions.find((dimension) => {
+      return dimension.required && params.scores[dimension.key] === undefined;
+    });
+    if (missing) {
+      throw new APIError({status: 400, title: `Score "${missing.key}" is required`});
     }
     const records: ScoreRecord[] = evaluator.dimensions.map((dimension) => {
       return {
@@ -219,6 +230,7 @@ export class LocalReviewStore {
       status: ReviewStatus;
       traceId: mongoose.Types.ObjectId;
     },
+    traceName: string,
     promptName?: string
   ): ReviewListItem {
     return {
@@ -230,6 +242,7 @@ export class LocalReviewStore {
       reason: row.reason,
       status: row.status,
       traceId: String(row.traceId),
+      traceName,
     };
   }
 }

@@ -281,3 +281,15 @@ warning, **Clear**, and **Add to dataset** (disabled until phase 2). Rows show a
 **Open**. Pagination uses `page` / `limit` / `more` / `total`.
 `ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),
 right span detail with **collapsed** sensitive I/O, and scores (value + source).
+
+`ai-review` shows Pending / In progress / Done / Skipped tabs with counts. Each tab is
+oldest-first and lists the trace action, prompt, assignee, waiting time, and status.
+**Start reviewing — oldest first** opens the first pending item; the empty state names both
+Traces intake and manual **Assign to me** assignment.
+
+`ai-review-item?id=` shows "Item N of M pending", previous/next navigation, read-only
+**What the AI was given** / **What the AI wrote** panels, collapsed long fields with word
+counts, reviewer notes, and a collapsed Raw JSON disclosure. Score controls come from evaluator
+dimensions (numeric slider, boolean Pass / Fail, categorical pills). Actions are
+**Submit & next**, **Skip**, and **Assign to me**; completion toasts report the remaining count
+or **Queue clear**.

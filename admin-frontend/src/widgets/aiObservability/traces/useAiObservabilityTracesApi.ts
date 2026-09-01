@@ -52,7 +52,9 @@ const listParams = (args: TraceListQueryArgs): Record<string, unknown> => {
 const createTracesApi = (api: AdminApi) => {
   const tagged =
     typeof api.enhanceEndpoints === "function"
-      ? api.enhanceEndpoints({addTagTypes: ["aiObservabilityTraces"]})
+      ? api.enhanceEndpoints({
+          addTagTypes: ["aiObservabilityReview", "aiObservabilityTraces"],
+        })
       : api;
   return tagged.injectEndpoints({
     endpoints: (build: EndpointBuilder) => ({
@@ -77,7 +79,7 @@ const createTracesApi = (api: AdminApi) => {
         }),
       }),
       [REVIEW_KEY]: build.mutation({
-        invalidatesTags: ["aiObservabilityTraces"],
+        invalidatesTags: ["aiObservabilityReview", "aiObservabilityTraces"],
         query: (body: {evaluatorId: string; reason: "manual"; traceIds: string[]}) => ({
           body,
           method: "POST",

@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {Text} from "@terreno/ui";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse} from "../../../types";
@@ -112,6 +113,22 @@ describe("AI observability chrome", () => {
     );
     expect(getByTestId("ai-observability-review-hidden")).toBeTruthy();
     expect(queryByTestId("ai-observability-placeholder-ai-review")).toBeNull();
+  });
+
+  it("hides review item content when the local plugin is off", () => {
+    const {getByTestId, queryByText} = renderWithTheme(
+      <AiObservabilityChrome
+        api={stubApi}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-review-item"
+        status={localOffStatus}
+      >
+        <Text>Private review body</Text>
+      </AiObservabilityChrome>
+    );
+    expect(getByTestId("ai-observability-review-hidden")).toBeTruthy();
+    expect(queryByText("Private review body")).toBeNull();
   });
 
   it("registers phase 1 screen widgets including the review queue", () => {

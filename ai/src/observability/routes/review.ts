@@ -59,7 +59,7 @@ export const addObservabilityReviewRoutes = (
     ],
     asyncHandler(async (req, res) => {
       const status = req.query.status as ReviewStatus | undefined;
-      return res.json(await options.store.list(status));
+      return res.json({...(await options.store.list(status)), more: false});
     })
   );
 

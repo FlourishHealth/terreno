@@ -101,6 +101,16 @@ Do this in parallel with steps 1–6 once the feature is reachable.
    - `flagDataset: true` to queue the trace as a dataset candidate
 4. In **Admin → AI Observability → Traces**, filter by time, prompt, status, user, session, **Has score**, or **Sensitive**. Rows show a status dot, `sensitive` badge, error line, `N prompts`, tokens, cost, and latency. Open a row for the span tree (kind, indent, duration bar). Sensitive I/O disclosures start **collapsed**.
 5. Select one or more traces. The bulk bar warns when any selected row is `sensitive`. **Send to review queue** (pick a human evaluator) posts `POST /ai/observability/traces/review` with `reason: "manual"`. **Add to dataset** stays disabled until phase 2.
+6. Open **Review queue**. Tabs show Pending / In progress / Done / Skipped counts, and pending
+   items are oldest-first. Select **Start reviewing — oldest first**.
+7. On each item, compare **What the AI was given** with **What the AI wrote**. Long fields begin
+   collapsed with a word count; structured outputs retain field labels and reviewer notes. Use
+   **Raw JSON** only when the field view is insufficient.
+8. Score every required evaluator dimension: numeric dimensions use the declared range slider,
+   boolean dimensions use Pass / Fail, and categorical dimensions use pills. Add an optional
+   comment, then **Submit & next**. **Skip** records no score. For the second phase-1 intake path,
+   use **Assign to me** to manually claim an item and move it to In progress. Continue until the
+   toast says **Queue clear**.
 
 Feedback is a score (`source: "user-feedback"`) fanned out to every ScoreSink. Non-owners who are not admin get 403.
 
@@ -125,4 +135,5 @@ When phase 2 ships:
 - [ ] App calls `promptName` + `promptLabel`
 - [ ] Live traces include user/session
 - [ ] Product can send thumbs / outcome / flag-for-dataset
+- [ ] Human review queue reaches Queue clear
 - [ ] Weak traces can be added back to the dataset

@@ -69,8 +69,19 @@ describe("LocalReviewStore", () => {
       traceIds: [traceId],
     });
     const detail = await reviewStore.getDetail(item.id);
+    expect(item.traceName).toBe("gen");
+    expect(detail.rawInput).toEqual({raw: "prompt text"});
+    expect(detail.rawOutput).toEqual({raw: "model text"});
     expect(detail.panels.given[0]?.key).toBe("raw");
     expect(detail.panels.wrote[0]?.key).toBe("raw");
+
+    await expect(
+      reviewStore.submit({
+        id: item.id,
+        scores: {},
+        sinks: [scoreSink],
+      })
+    ).rejects.toMatchObject({status: 400, title: 'Score "correct" is required'});
 
     await reviewStore.submit({
       comment: "looks good",

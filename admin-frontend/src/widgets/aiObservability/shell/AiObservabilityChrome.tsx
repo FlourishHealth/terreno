@@ -34,7 +34,8 @@ export const AiObservabilityChrome: React.FC<AiObservabilityChromeProps> = ({
     routeBase: resolvedRouteBase,
     screenName,
   });
-  const localOffReview = screenName === "ai-review" && status && !status.localOn;
+  const localOffReview =
+    (screenName === "ai-review" || screenName === "ai-review-item") && status && !status.localOn;
 
   return (
     <AdminScreenPage

@@ -41,7 +41,9 @@ describe("observability review routes", () => {
     });
     const trace = await new LocalTraceStore().exportTrace({
       id: "t",
+      input: {text: "hello"},
       name: "gen",
+      output: {summary: "hi"},
       prompts: [{name: "summarize", version: 1}],
       sensitive: false,
       spans: [
@@ -66,6 +68,21 @@ describe("observability review routes", () => {
     const listed = await agent.get("/ai/observability/review?status=pending");
     expect(listed.status).toBe(200);
     expect(listed.body.counts.pending).toBe(1);
+    expect(listed.body.more).toBe(false);
     expect(listed.body.data[0].traceId).toBe(trace.id);
+    expect(listed.body.data[0].traceName).toBe("gen");
+    const detail = await agent.get(`/ai/observability/review/${listed.body.data[0].id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.rawInput).toEqual({text: "hello"});
+    expect(detail.body.data.rawOutput).toEqual({summary: "hi"});
+
+    const submitted = await agent
+      .post(`/ai/observability/review/${listed.body.data[0].id}`)
+      .send({action: "submit", comment: "grounded", scores: {correct: true}});
+    expect(submitted.status).toBe(200);
+    expect(submitted.body.data.status).toBe("done");
+    const pending = await agent.get("/ai/observability/review?status=pending");
+    expect(pending.body.counts.pending).toBe(0);
+    expect(pending.body.counts.done).toBe(1);
   });
 });
