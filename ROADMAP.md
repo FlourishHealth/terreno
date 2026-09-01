@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-01T06:29:12.992Z.
+> dates are promised. Last updated: 2026-09-01T20:24:47.175Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -15,7 +15,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, In progress) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
 - [Comms adapter — Twilio SMS](https://github.com/FlourishHealth/terreno/issues/1020) (Feature, Planned) — IP: [comms-adapter-twilio-sms](docs/implementationPlans/comms-adapter-twilio-sms.md)
-- [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Planned) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
+- [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Shipped) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
 - [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Planned)
 - [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, Planned)
 - [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, Planned)
