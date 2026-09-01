@@ -7,7 +7,7 @@
 **Owner:** unassigned
 **Created:** 2026-08-09
 **Program:** [B2B platform](b2b-platform-program.md)
-**Depends on:** [org-management-ui](org-management-ui.md), inbound-webhooks (IP pending — hard dependency for Phase 3)
+**Depends on:** [org-management-ui](org-management-ui.md), [inbound-webhooks](inbound-webhooks.md) (hard dependency for Phase 3)
 **RTK deprecation flag:** None for the backend; the two screens in Phase 4 follow whatever
 data layer example-frontend uses at that time
 
