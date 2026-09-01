@@ -273,3 +273,11 @@ review screen body hide when `localOn` is false.
 version rail with production/latest dots, Editor / Playground tabs, **Save as vN+1**, and
 **Set vN as production…** (modal names the outgoing version). Playground **Run once** does not
 create a version; **Save this run to dataset** stays disabled until phase 2.
+
+`ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
+sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count
+warning, **Clear**, and **Add to dataset** (disabled until phase 2). Rows show a status dot,
+`sensitive` badge, error line, `N prompts`, spans/tokens/cost/latency/scores (spans and scores
+are `—` until list counts ship), and **Open**. Pagination uses `page` / `limit` / `more` / `total`.
+`ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),
+right span detail with **collapsed** sensitive I/O, and scores (value + source).

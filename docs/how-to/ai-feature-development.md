@@ -99,10 +99,16 @@ Do this in parallel with steps 1–6 once the feature is reachable.
    - `kind: "thumbs"` + `up` / `down` (helpfulness of suggestions)
    - `kind: "outcome"` + `tp` / `fp` / `tn` / `fn` (flags)
    - `flagDataset: true` to queue the trace as a dataset candidate
+4. In **Admin → AI Observability → Traces**, filter by time, prompt, status, user, session, **Has score**, or **Sensitive**. Rows show a status dot, `sensitive` badge, error line, `N prompts`, tokens, cost, and latency. Open a row for the span tree (kind, indent, duration bar). Sensitive I/O disclosures start **collapsed**.
+5. Select one or more traces. The bulk bar warns when any selected row is `sensitive`. **Send to review queue** (pick a human evaluator) posts `POST /ai/observability/traces/review` with `reason: "manual"`. **Add to dataset** stays disabled until phase 2.
 
 Feedback is a score (`source: "user-feedback"`) fanned out to every ScoreSink. Non-owners who are not admin get 403.
 
 ## 8. Add weak production traces back to the dataset
+
+Phase 1: use the Traces bulk bar to **Send to review queue** (step 7). Dataset intake from traces is phase 2.
+
+When phase 2 ships:
 
 1. **Traces**: filter `thumbs=down`, `flaggedForDataset`, `failedEval`, or `lowConfidence`.
 2. **Add to dataset** (bulk allowed).

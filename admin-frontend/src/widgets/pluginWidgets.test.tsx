@@ -28,6 +28,7 @@ describe("plugin admin widget registries", () => {
     expect(DOCUMENT_STORAGE_ADMIN_WIDGETS.documents).toBeDefined();
     expect(AI_ADMIN_WIDGETS["ai-requests"]).toBeDefined();
     expect(AI_OBSERVABILITY_WIDGETS["ai-prompts"]).toBeDefined();
+    expect(AI_OBSERVABILITY_WIDGETS["ai-traces"]).toBeDefined();
     expect(AI_OBSERVABILITY_WIDGETS["ai-review"]).toBeDefined();
     expect(COMMS_ADMIN_WIDGETS.comms).toBeDefined();
   });

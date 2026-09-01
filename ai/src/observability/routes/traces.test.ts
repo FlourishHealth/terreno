@@ -89,6 +89,9 @@ describe("observability trace routes", () => {
     const listed = await agent.get("/ai/observability/traces?hasScore=true&prompt=summarize");
     expect(listed.status).toBe(200);
     expect(listed.body.data.map((row: {id: string}) => row.id)).toEqual([exported.id]);
+    expect(listed.body.more).toBe(false);
+    expect(listed.body.page).toBe(1);
+    expect(listed.body.total).toBe(1);
   });
 
   it("forbids non-admins from listing traces", async () => {

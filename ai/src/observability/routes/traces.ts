@@ -58,7 +58,7 @@ export const addObservabilityTraceRoutes = (
         .build(),
     ],
     asyncHandler(async (req, res) => {
-      const data = await options.store.list({
+      const listed = await options.store.list({
         flaggedForDataset: parseBoolean(req.query.flaggedForDataset),
         from: typeof req.query.from === "string" ? req.query.from : undefined,
         hasScore: parseBoolean(req.query.hasScore),
@@ -72,7 +72,14 @@ export const addObservabilityTraceRoutes = (
         to: typeof req.query.to === "string" ? req.query.to : undefined,
         userId: typeof req.query.userId === "string" ? req.query.userId : undefined,
       });
-      return res.json(data);
+      const {limit, page, total} = listed.meta;
+      return res.json({
+        data: listed.data,
+        limit,
+        more: page * limit < total,
+        page,
+        total,
+      });
     })
   );
 

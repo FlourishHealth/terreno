@@ -3,6 +3,8 @@ import React from "react";
 import type {AdminScreenWidgetProps, ScreenWidgetComponent} from "../../../types";
 import {AiPromptEditorScreenWidget} from "../prompts/AiPromptEditorScreen";
 import {AiPromptsScreenWidget} from "../prompts/AiPromptsListScreen";
+import {AiTraceDetailScreenWidget} from "../traces/AiTraceDetailScreen";
+import {AiTracesScreenWidget} from "../traces/AiTracesListScreen";
 import {AiObservabilityChrome} from "./AiObservabilityChrome";
 
 const PlaceholderBody: React.FC<{screenName: string}> = ({screenName}) => (
@@ -20,10 +22,13 @@ const createPlaceholderWidget = (screenName: string): ScreenWidgetComponent => {
   return Widget;
 };
 
-export {AiPromptEditorScreenWidget, AiPromptsScreenWidget};
+export {
+  AiPromptEditorScreenWidget,
+  AiPromptsScreenWidget,
+  AiTraceDetailScreenWidget,
+  AiTracesScreenWidget,
+};
 
-export const AiTracesScreenWidget = createPlaceholderWidget("ai-traces");
-export const AiTraceDetailScreenWidget = createPlaceholderWidget("ai-trace-detail");
 export const AiReviewScreenWidget = createPlaceholderWidget("ai-review");
 export const AiReviewItemScreenWidget = createPlaceholderWidget("ai-review-item");
 
