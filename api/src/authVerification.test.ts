@@ -111,6 +111,28 @@ describe("email verification gating", () => {
     assert.include(openMail[0]?.text ?? "", "https://app.example.com/verifyEmail?token=");
   });
 
+  it("returns a delivery error instead of reporting a false resend success", async () => {
+    const failingApp = new TerrenoApp({
+      authOptions: {
+        publicAppUrl: "https://app.example.com",
+        sendMail: async () => {
+          throw new Error("delivery failed");
+        },
+      },
+      skipListen: true,
+      userModel: UserModel,
+    }).build();
+    const login = await supertest(failingApp)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+
+    await supertest(failingApp)
+      .post("/auth/sendVerification")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .expect(500);
+  });
+
   it("does not send verification mail when the user is already verified", async () => {
     const login = await supertest(openApp)
       .post("/auth/login")

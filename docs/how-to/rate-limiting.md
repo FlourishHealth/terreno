@@ -60,7 +60,7 @@ Unauthenticated keys use `req.ip`. Express `trust proxy` defaults to **off** so 
 | `POST /auth/forgotPassword`, `/auth/resetPassword`, `/resetPassword` | auth |
 | `POST /auth/sendVerification`, `/auth/verifyEmail` | auth |
 | `GET /auth/github`, `/auth/github/callback` | auth |
-| `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password`, `reset-password`, `callback/*` | auth |
+| `{betterAuthBasePath}/sign-in/*`, `sign-up/*`, `forget-password`, `request-password-reset`, `reset-password`, `send-verification-email`, `verify-email`, `callback/*` | auth |
 | Trailing slash on those paths (`/auth/login/`) | same bucket as the unsuffixed path |
 | `GET`/`PATCH /auth/me` | api (600 / 15 min) |
 | modelRouter, admin, AI HTTP, `POST /mcp`, `POST /sync/mutate` | api |

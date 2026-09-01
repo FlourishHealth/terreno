@@ -59,6 +59,25 @@ describe("password reset routes", () => {
     assert.include(sentMail[0]?.text ?? "", "https://app.example.com/resetPassword?token=");
   });
 
+  it("finds an existing user email case-insensitively", async () => {
+    const users = await UserModel.find({email: "notAdmin@example.com"});
+    const user = users[0];
+    assert.isDefined(user);
+    if (!user) {
+      return;
+    }
+    user.email = "Mixed.Case@Example.com";
+    await user.save();
+
+    await supertest(app)
+      .post("/auth/forgotPassword")
+      .send({email: "mixed.case@example.com"})
+      .expect(202);
+
+    assert.equal(sentMail.length, 1);
+    assert.equal(sentMail[0]?.to, "Mixed.Case@Example.com");
+  });
+
   it("resets the password once, then rejects the token and old refresh tokens", async () => {
     const login = await supertest(app)
       .post("/auth/login")

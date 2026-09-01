@@ -167,14 +167,16 @@ setupServer({
 - `POST /auth/refresh_token` — Refresh access token
 - `POST /auth/forgotPassword` — Always 202; mails a reset link only when the email exists
 - `POST /auth/resetPassword` — `{token, password}`; also aliased at `POST /resetPassword` for the RTK client
-- `POST /auth/sendVerification` — Authenticated; 202; mails a verification link when `emailVerified` is not true
+- `POST /auth/sendVerification` — Authenticated; 202 only after delivery succeeds; mails a verification link when `emailVerified` is not true
 - `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
-`oldPassword`, `token`, and `refreshToken`.
+`oldPassword`, `token`, and `refreshToken`. Changing the mailbox through `PATCH /auth/me`
+sets `emailVerified` to false when the schema uses `emailVerificationPlugin`; changing
+letter casing alone does not.
 
 **AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
 `AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` invalidates other
@@ -186,7 +188,7 @@ marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours 
 Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
 `getCommsService().sendMail`) so forgot-password can deliver the link
 `${publicAppUrl}/resetPassword?token=...`. Forgot-password skips issuing a token when
-`publicAppUrl` is missing. Successful reset calls `setPassword`, increments
+`publicAppUrl` is missing. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
 `tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. Access
 tokens stay valid until expiry (default 15m). `POST /resetPassword`
 matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).

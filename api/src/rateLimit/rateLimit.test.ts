@@ -140,7 +140,10 @@ describe("HTTP rate limiting", () => {
       "/api/auth/sign-in/email",
       "/api/auth/sign-up/email",
       "/api/auth/forget-password",
+      "/api/auth/request-password-reset",
       "/api/auth/reset-password",
+      "/api/auth/send-verification-email",
+      "/api/auth/verify-email?token=secret",
       "/api/auth/callback/github",
     ];
     for (const originalUrl of authPaths) {

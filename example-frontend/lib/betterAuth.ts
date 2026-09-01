@@ -93,9 +93,8 @@ export const verifyEmailWithToken = async ({
 }: {
   token: string;
 }): Promise<BetterAuthActionResult> => {
-  const result = await betterAuthClient.$fetch("/verify-email", {
-    body: {token},
-    method: "POST",
+  const result = await betterAuthClient.$fetch(`/verify-email?token=${encodeURIComponent(token)}`, {
+    method: "GET",
   });
   return {error: result.error};
 };

@@ -15,6 +15,7 @@ import {APIError} from "./errors";
 import type {AuthOptions, AuthRecoveryMail} from "./expressServer";
 import {logger} from "./logger";
 import {createOpenApiBuilder} from "./openApiBuilder";
+import {findOneOrNoneFor} from "./plugins";
 
 const RESET_PASSWORD_SUBJECT = "Reset your password";
 const VERIFY_EMAIL_SUBJECT = "Verify your email";
@@ -36,6 +37,16 @@ const normalizeEmail = (value: unknown): string => {
     return "";
   }
   return value.trim().toLowerCase();
+};
+
+const escapeRegularExpression = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const findUserByEmail = async (userModel: UserModel, email: string): Promise<User | null> => {
+  return findOneOrNoneFor(userModel, {
+    email: {$options: "i", $regex: `^${escapeRegularExpression(email)}$`},
+  } as never);
 };
 
 const passwordFromBody = (body: Record<string, unknown>): string => {
@@ -133,7 +144,7 @@ export const addAuthRecoveryRoutes = (
     const email = normalizeEmail(req.body?.email);
     if (email) {
       try {
-        const user = await userModel.findByUsername(email, false);
+        const user = await findUserByEmail(userModel, email);
         if (user) {
           if (!authOptions?.publicAppUrl) {
             logger.error("[auth] publicAppUrl is required to send password reset mail");
@@ -212,11 +223,7 @@ export const addAuthRecoveryRoutes = (
     if (!user) {
       throw new APIError({status: 401, title: "Unauthorized"});
     }
-    try {
-      await sendVerificationEmail(user, authOptions);
-    } catch (error: unknown) {
-      logger.error("[auth] Failed to send verification mail", {error});
-    }
+    await sendVerificationEmail(user, authOptions);
     return res.status(202).json({data: {ok: true}});
   });
 

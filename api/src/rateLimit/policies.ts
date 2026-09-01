@@ -89,7 +89,10 @@ const betterAuthAuthPrefixes = (basePath: string): string[] => {
     `${base}/sign-in`,
     `${base}/sign-up`,
     `${base}/forget-password`,
+    `${base}/request-password-reset`,
     `${base}/reset-password`,
+    `${base}/send-verification-email`,
+    `${base}/verify-email`,
     `${base}/callback`,
   ];
 };

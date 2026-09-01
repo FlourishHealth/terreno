@@ -1137,6 +1137,44 @@ describe("privileged user fields", () => {
       (reloaded as unknown as {organizationIds?: string[]})?.organizationIds ?? []
     ).not.toContain("other-tenant");
   });
+
+  it("clears email verification when PATCH /auth/me changes the mailbox", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.findByIdAndUpdate(notAdminId, {$set: {emailVerified: true}});
+
+    await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "unproven@example.com"})
+      .expect(200);
+
+    const reloaded = await UserModel.findById(notAdminId);
+    expect((reloaded as unknown as {emailVerified?: boolean})?.emailVerified).toBe(false);
+  });
+
+  it("keeps email verification for a casing-only email update", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.findByIdAndUpdate(notAdminId, {$set: {emailVerified: true}});
+
+    await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "NOTADMIN@EXAMPLE.COM"})
+      .expect(200);
+
+    const reloaded = await UserModel.findById(notAdminId);
+    expect((reloaded as unknown as {emailVerified?: boolean})?.emailVerified).toBe(true);
+  });
 });
 
 describe("Secret prefix authorization bypass", () => {

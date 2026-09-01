@@ -138,6 +138,13 @@ export const stripPrivilegedUserFields = (
   return sanitized;
 };
 
+const isEmailUpdateChangingMailbox = (currentEmail: unknown, nextEmail: unknown): boolean => {
+  if (typeof currentEmail !== "string" || typeof nextEmail !== "string") {
+    return false;
+  }
+  return currentEmail.trim().toLowerCase() !== nextEmail.trim().toLowerCase();
+};
+
 const omitPrivilegedFieldsFromObject = (item: unknown, allowAdminWrite: boolean): unknown => {
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     return item;
@@ -755,7 +762,14 @@ export const addMeRoutes = (
     //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
-      Object.assign(doc, stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me"));
+      const update = stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me");
+      const shouldResetEmailVerification =
+        userModel.schema.path("emailVerified") !== undefined &&
+        isEmailUpdateChangingMailbox(doc.email, update.email);
+      Object.assign(doc, update);
+      if (shouldResetEmailVerification) {
+        doc.emailVerified = false;
+      }
       await doc.save();
 
       const dataObject = doc.toObject() as unknown as Record<string, unknown>;

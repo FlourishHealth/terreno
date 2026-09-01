@@ -3,6 +3,7 @@ import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useState} from "react";
 import {requestPasswordReset} from "@/lib/betterAuth";
+import {usePostAuthForgotPasswordMutation} from "@/store/sdk";
 
 const ForgotPasswordScreen: React.FC = () => {
   const router = useRouter();
@@ -10,6 +11,7 @@ const ForgotPasswordScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestJwtPasswordReset] = usePostAuthForgotPasswordMutation();
 
   const handleSubmit = useCallback(async (): Promise<void> => {
     const trimmedEmail = email.trim();
@@ -22,7 +24,7 @@ const ForgotPasswordScreen: React.FC = () => {
     try {
       const result = await requestPasswordReset(trimmedEmail);
       if (result.error) {
-        console.warn("[forgotPassword] Request returned an error", result.error);
+        await requestJwtPasswordReset({email: trimmedEmail}).unwrap();
       }
       setIsSubmitted(true);
     } catch (error: unknown) {
@@ -31,7 +33,7 @@ const ForgotPasswordScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [email]);
+  }, [email, requestJwtPasswordReset]);
 
   const handleBackToLogin = useCallback((): void => {
     router.replace("/login");
