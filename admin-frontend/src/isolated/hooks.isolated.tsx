@@ -13,6 +13,7 @@ import {describe, expect, it, mock} from "bun:test";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import {useAdminApi} from "../useAdminApi";
+import {useAdminBackgroundTaskMutation} from "../useAdminBackgroundTask";
 import {useAdminConfig} from "../useAdminConfig";
 import {normalizeRoles, normalizeStatements, useAdminRoles} from "../useAdminRoles";
 import {useAdminScripts} from "../useAdminScripts";
@@ -294,6 +295,33 @@ describe("useAdminRoles", () => {
       todos: ["read"],
     });
     expect(normalizeStatements(undefined)).toEqual({});
+  });
+});
+
+describe("useAdminBackgroundTaskMutation", () => {
+  it("injects a background-task request at a normalized admin root", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminBackgroundTaskMutation(api, "/admin/"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+
+    expect(
+      injected.adminPostBackgroundTask.query({
+        ids: ["todo-1"],
+        kind: "bulk-patch",
+        resourceRoute: "todos",
+      })
+    ).toEqual({
+      body: {
+        ids: ["todo-1"],
+        kind: "bulk-patch",
+        resourceRoute: "todos",
+      },
+      method: "POST",
+      url: "/admin/background-tasks",
+    });
+    expect(injected.adminPostBackgroundTask.invalidatesTags).toEqual([]);
+    expect(typeof result[0]).toBe("function");
+    expect(result[1]).toEqual({isLoading: false});
   });
 });
 
