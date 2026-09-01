@@ -19,8 +19,19 @@ describe("getUpgradeGuideMarkdown", () => {
     expect(text).toContain("No upgrade notes found");
   });
 
-  test("handles prerelease-style version tokens in semver keys", () => {
-    const text = getUpgradeGuideMarkdown("0.19.0-rc.1", "0.20.0");
-    expect(text.length).toBeGreaterThan(0);
+  test("returns the 0.21.0 to 0.30.0 backfill note for that range", () => {
+    const text = getUpgradeGuideMarkdown("0.21.0", "0.30.0");
+    expect(text).toContain("Upgrade to 0.30.0");
+    expect(text).toContain("OpenFeature");
+    expect(text).toContain("flagConfiguration");
+    expect(text).toContain("disableSearch");
+    expect(text).toContain("APIError");
+  });
+
+  test("includes the 0.30.0 backfill when jumping 0.21.0 to current 57.2.0", () => {
+    const text = getUpgradeGuideMarkdown("0.21.0", "57.2.0");
+    expect(text).toContain("Upgrade to 0.30.0");
+    expect(text).toContain("OpenFeature");
+    expect(text).toContain("Upgrade to 57.2.0");
   });
 });

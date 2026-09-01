@@ -25,7 +25,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: Task 1.1
   - Acceptance: every version from 0.22.0 to current is covered; each finding cites a commit or diff; the feature-flag migration is captured.
 
-- [ ] **Task 1.3**: Write the consolidated backfill note
+- [x] **Task 1.3**: Write the consolidated backfill note
   - Description: Per IP question U1, write a single consolidated note covering 0.21.0 → current (name it for the current version). Include everything from Task 1.2 that requires consumer action, organized by concern rather than by version. Open with an honest note that per-release notes were not maintained for this range and that this note consolidates them. Move the OpenFeature feature-flag migration content out of `README.md` into this note (or into `docs/how-to/add-feature-flags.md`) and link it, rather than leaving a migration guide in the README.
   - Files: `mcp-server/src/docs/upgrades/<current-version>.md` (new), `README.md`, `docs/how-to/add-feature-flags.md`
   - Depends on: Task 1.2
