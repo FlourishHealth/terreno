@@ -175,90 +175,94 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
 
   return (
     <Box gap={3} testID="ai-traces-list">
-      <Box direction="row" gap={2} testID="ai-traces-filters" wrap>
-        <Box width={200}>
-          <DateTimeField
-            onChange={(value) => {
-              onFiltersChange({...filters, from: value});
+      <Box gap={2} testID="ai-traces-filters">
+        <Box direction="row" gap={2} testID="ai-traces-time-filters" wrap>
+          <Box flex="grow" minWidth={320}>
+            <DateTimeField
+              onChange={(value) => {
+                onFiltersChange({...filters, from: value});
+              }}
+              testID="ai-traces-filter-from"
+              title="From"
+              type="datetime"
+              value={filters.from}
+            />
+          </Box>
+          <Box flex="grow" minWidth={320}>
+            <DateTimeField
+              onChange={(value) => {
+                onFiltersChange({...filters, to: value});
+              }}
+              testID="ai-traces-filter-to"
+              title="To"
+              type="datetime"
+              value={filters.to}
+            />
+          </Box>
+        </Box>
+        <Box alignItems="end" direction="row" gap={2} testID="ai-traces-field-filters" wrap>
+          <Box flex="grow" minWidth={160}>
+            <SelectField
+              onChange={handleStatusChange}
+              options={statusOptions}
+              testID="ai-traces-filter-status"
+              title="Status"
+              value={filters.status}
+            />
+          </Box>
+          <Box flex="grow" minWidth={180}>
+            <TextField
+              onChange={(value) => {
+                onFiltersChange({...filters, prompt: value});
+              }}
+              testID="ai-traces-filter-prompt"
+              title="Prompt"
+              value={filters.prompt}
+            />
+          </Box>
+          <Box flex="grow" minWidth={160}>
+            <TextField
+              onChange={(value) => {
+                onFiltersChange({...filters, userId: value});
+              }}
+              testID="ai-traces-filter-user"
+              title="User"
+              value={filters.userId}
+            />
+          </Box>
+          <Box flex="grow" minWidth={160}>
+            <TextField
+              onChange={(value) => {
+                onFiltersChange({...filters, sessionId: value});
+              }}
+              testID="ai-traces-filter-session"
+              title="Session"
+              value={filters.sessionId}
+            />
+          </Box>
+          <Button
+            onClick={() => {
+              onFiltersChange({
+                ...filters,
+                hasScore: filters.hasScore === true ? undefined : true,
+              });
             }}
-            testID="ai-traces-filter-from"
-            title="From"
-            type="datetime"
-            value={filters.from}
+            testID="ai-traces-filter-has-score"
+            text={filters.hasScore ? "Has score: on" : "Has score"}
+            variant={filters.hasScore ? "primary" : "secondary"}
           />
-        </Box>
-        <Box width={200}>
-          <DateTimeField
-            onChange={(value) => {
-              onFiltersChange({...filters, to: value});
+          <Button
+            onClick={() => {
+              onFiltersChange({
+                ...filters,
+                sensitive: filters.sensitive === true ? undefined : true,
+              });
             }}
-            testID="ai-traces-filter-to"
-            title="To"
-            type="datetime"
-            value={filters.to}
+            testID="ai-traces-filter-sensitive"
+            text={filters.sensitive ? "Sensitive: on" : "Sensitive"}
+            variant={filters.sensitive ? "primary" : "secondary"}
           />
         </Box>
-        <Box width={160}>
-          <SelectField
-            onChange={handleStatusChange}
-            options={statusOptions}
-            testID="ai-traces-filter-status"
-            title="Status"
-            value={filters.status}
-          />
-        </Box>
-        <Box width={180}>
-          <TextField
-            onChange={(value) => {
-              onFiltersChange({...filters, prompt: value});
-            }}
-            testID="ai-traces-filter-prompt"
-            title="Prompt"
-            value={filters.prompt}
-          />
-        </Box>
-        <Box width={160}>
-          <TextField
-            onChange={(value) => {
-              onFiltersChange({...filters, userId: value});
-            }}
-            testID="ai-traces-filter-user"
-            title="User"
-            value={filters.userId}
-          />
-        </Box>
-        <Box width={160}>
-          <TextField
-            onChange={(value) => {
-              onFiltersChange({...filters, sessionId: value});
-            }}
-            testID="ai-traces-filter-session"
-            title="Session"
-            value={filters.sessionId}
-          />
-        </Box>
-        <Button
-          onClick={() => {
-            onFiltersChange({
-              ...filters,
-              hasScore: filters.hasScore === true ? undefined : true,
-            });
-          }}
-          testID="ai-traces-filter-has-score"
-          text={filters.hasScore ? "Has score: on" : "Has score"}
-          variant={filters.hasScore ? "primary" : "secondary"}
-        />
-        <Button
-          onClick={() => {
-            onFiltersChange({
-              ...filters,
-              sensitive: filters.sensitive === true ? undefined : true,
-            });
-          }}
-          testID="ai-traces-filter-sensitive"
-          text={filters.sensitive ? "Sensitive: on" : "Sensitive"}
-          variant={filters.sensitive ? "primary" : "secondary"}
-        />
       </Box>
       {selectedIds.length > 0 ? (
         <Box
