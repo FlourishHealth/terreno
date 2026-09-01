@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
+    "libphonenumber-js": "catalog:",
     "luxon": "catalog:"
   },
   "description": "Pluggable mail, SMS, push, and verification providers — part of Terreno, the batteries-included TypeScript framework for universal apps.",
@@ -31,6 +32,14 @@
     "./adapters/sendgrid": {
       "types": "./dist/adapters/sendgrid.d.ts",
       "default": "./dist/adapters/sendgrid.js"
+    },
+    "./adapters/twilioSms": {
+      "types": "./dist/adapters/twilioSms.d.ts",
+      "default": "./dist/adapters/twilioSms.js"
+    },
+    "./adapters/twilioVerify": {
+      "types": "./dist/adapters/twilioVerify.d.ts",
+      "default": "./dist/adapters/twilioVerify.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -47,13 +56,17 @@
   "peerDependencies": {
     "@sendgrid/mail": "^8.0.0",
     "expo-server-sdk": "^6.0.0",
-    "mongoose": "^8.0.0 || ^9.0.0"
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "twilio": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@sendgrid/mail": {
       "optional": true
     },
     "expo-server-sdk": {
+      "optional": true
+    },
+    "twilio": {
       "optional": true
     }
   },
