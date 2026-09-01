@@ -15,7 +15,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
   - Docs: stub one sentence in `docs/reference/api.md` that inbound routes will use `rawBody`
   - Acceptance: bun test — parsed `req.body` matches today; `rawBody` equals the sent bytes; mutating parsed JSON does not change `rawBody`
 
-- [ ] **Task 1.2**: `WebhooksApp` + HMAC verifier + memory idempotency
+- [x] **Task 1.2**: `WebhooksApp` + HMAC verifier + memory idempotency
   - Delivers: `new WebhooksApp().route({path, source, verify, eventId, handler})`; `app.register(webhooks)` mounts anonymous POST; valid HMAC 200 once; bad/missing signature 401 `webhook-signature-invalid`; duplicate `eventId` 200 `duplicate: true` without second handler; handler throw 500 then retry succeeds; path not in `/openapi.json`
   - Files: `api/src/webhooks/webhooksApp.ts`, `api/src/webhooks/verifiers/hmac.ts`, `api/src/webhooks/idempotency/memoryStore.ts`, `api/src/webhooks/webhooksApp.test.ts`, `api/src/index.ts`, `api/src/terrenoPlugin.ts` (early capture hook if needed)
   - Blocked by: 1.1
