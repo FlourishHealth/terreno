@@ -94,7 +94,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Docs: `docs/how-to/ai-feature-development.md` steps 7–8 (observe half)
   - Acceptance: widget tests for empty, error row, sensitive badge, and bulk bar; `verify-ui-changes` selects traces and sends them to the queue
 
-- [ ] **Task 1.12**: Review queue + review item screens
+- [x] **Task 1.12**: Review queue + review item screens
   - Delivers: tabs Pending / In progress / Done / Skipped with counts; oldest-first table (item, what the AI did, prompt, assignee, waiting, status); **Start reviewing — oldest first**; empty state naming both intake paths; item screen with "Item N of M pending" and prev/next, read-only given/wrote panels (long fields collapsed with word count, structured output as key/value rows, per-field reviewer notes), raw JSON disclosure, dimension-driven score form (slider / Pass-Fail / pills) headed by the evaluator instructions, comment, **Submit & next** / Skip / Assign to me, and a toast reporting the remaining count
   - Files: `admin-frontend/src/widgets/aiObservability/review/*.tsx`
   - Blocked by: 1.8, 1.9
