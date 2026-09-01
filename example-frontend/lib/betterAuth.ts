@@ -51,6 +51,13 @@ export const getPasswordResetRedirectUrl = (): string => {
   return `${getAppScheme()}://resetPassword`;
 };
 
+export const getEmailVerifyRedirectUrl = (): string => {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/verifyEmail`;
+  }
+  return `${getAppScheme()}://verifyEmail`;
+};
+
 export const requestPasswordReset = async (email: string): Promise<BetterAuthActionResult> => {
   const result = await betterAuthClient.$fetch("/request-password-reset", {
     body: {email, redirectTo: getPasswordResetRedirectUrl()},
@@ -74,12 +81,20 @@ export const resetPasswordWithToken = async ({
 };
 
 export const sendVerificationEmail = async (email: string): Promise<BetterAuthActionResult> => {
-  const callbackURL =
-    typeof window !== "undefined" && window.location?.origin
-      ? `${window.location.origin}/`
-      : `${getAppScheme()}://`;
   const result = await betterAuthClient.$fetch("/send-verification-email", {
-    body: {callbackURL, email},
+    body: {callbackURL: getEmailVerifyRedirectUrl(), email},
+    method: "POST",
+  });
+  return {error: result.error};
+};
+
+export const verifyEmailWithToken = async ({
+  token,
+}: {
+  token: string;
+}): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch("/verify-email", {
+    body: {token},
     method: "POST",
   });
   return {error: result.error};

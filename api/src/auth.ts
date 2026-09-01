@@ -102,11 +102,18 @@ export const authenticateMiddleware = (anonymous = false) => {
 };
 
 /**
- * User fields that confer authority. Self-service requests (anonymous signup, `PATCH /me`)
- * must never set them, or any caller could grant themselves admin or an RBAC role. Elevate
- * users through the admin API or `access.roles.assign` instead.
+ * User fields that confer authority or skip security gates. Self-service requests
+ * (anonymous signup, `PATCH /me`) must never set them, or any caller could grant
+ * themselves admin, an RBAC role, a verified email, or a reset epoch. Elevate users
+ * through the admin API or `access.roles.assign` instead.
  */
-export const PRIVILEGED_USER_FIELDS = ["admin", "roles", "organizationIds"] as const;
+export const PRIVILEGED_USER_FIELDS = [
+  "admin",
+  "roles",
+  "organizationIds",
+  "emailVerified",
+  "tokenEpoch",
+] as const;
 
 /**
  * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather

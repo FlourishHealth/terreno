@@ -62,5 +62,8 @@ On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMa
 2. Add `/forgotPassword` (email form) and `/resetPassword` that reads `token` from the query string.
 3. On Better Auth apps, request reset with `authClient.requestPasswordReset` and submit with `authClient.resetPassword({newPassword, token})`. JWT apps use `POST /auth/forgotPassword` and the RTK `resetPassword` mutation (`POST /resetPassword`). The example app tries Better Auth first, then the RTK mutation so either token type can complete.
 4. Show a profile banner when `emailVerified` is false, with Resend calling `POST /auth/sendVerification`.
+5. Add `/verifyEmail` that reads `token` from the query string. JWT apps call `POST /auth/verifyEmail`. Better Auth apps try `authClient` `/verify-email` first, then the JWT route so either token type can complete.
 
-Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output.
+A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
+
+Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken`.

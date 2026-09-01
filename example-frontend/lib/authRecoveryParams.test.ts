@@ -1,6 +1,6 @@
 import {describe, expect, it} from "bun:test";
 
-import {parseAuthTokenFromSearch} from "./authRecoveryParams";
+import {parseAuthTokenFromRouteParam, parseAuthTokenFromSearch} from "./authRecoveryParams";
 
 describe("parseAuthTokenFromSearch", () => {
   it("reads token from a query string", () => {
@@ -20,5 +20,11 @@ describe("parseAuthTokenFromSearch", () => {
 
   it("decodes a percent-encoded token", () => {
     expect(parseAuthTokenFromSearch("?token=a%2Fb")).toBe("a/b");
+  });
+
+  it("reads a route param string or first array value", () => {
+    expect(parseAuthTokenFromRouteParam("abc123")).toBe("abc123");
+    expect(parseAuthTokenFromRouteParam(["first", "second"])).toBe("first");
+    expect(parseAuthTokenFromRouteParam(undefined)).toBeUndefined();
   });
 });

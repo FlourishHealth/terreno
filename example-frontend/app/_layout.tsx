@@ -239,7 +239,10 @@ const RootLayoutNav = (): React.ReactElement => {
 
     const isLoginOrSignup = segments[0] === "login" || segments[0] === "signup";
     const isPublicAuthPage =
-      isLoginOrSignup || segments[0] === "forgotPassword" || segments[0] === "resetPassword";
+      isLoginOrSignup ||
+      segments[0] === "forgotPassword" ||
+      segments[0] === "resetPassword" ||
+      segments[0] === "verifyEmail";
 
     if (!userId && !isPublicAuthPage) {
       router.replace("/login");
@@ -293,6 +296,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="signup" />
       <Stack.Screen name="forgotPassword" />
       <Stack.Screen name="resetPassword" />
+      <Stack.Screen name="verifyEmail" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
     </Stack>
   );

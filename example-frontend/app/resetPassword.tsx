@@ -2,24 +2,17 @@ import {Box, Button, Heading, Page, Text, TextField} from "@terreno/ui";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
-import {parseAuthTokenFromSearch} from "@/lib/authRecoveryParams";
+import {parseAuthTokenFromRouteParam} from "@/lib/authRecoveryParams";
 import {resetPasswordWithToken} from "@/lib/betterAuth";
 import {useResetPasswordMutation} from "@/store/sdk";
-
-const tokenFromParams = (raw: string | string[] | undefined): string | undefined => {
-  if (typeof raw === "string") {
-    return parseAuthTokenFromSearch(`token=${encodeURIComponent(raw)}`);
-  }
-  if (Array.isArray(raw) && typeof raw[0] === "string") {
-    return parseAuthTokenFromSearch(`token=${encodeURIComponent(raw[0])}`);
-  }
-  return undefined;
-};
 
 const ResetPasswordScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{token?: string | string[]}>();
-  const token = useMemo((): string | undefined => tokenFromParams(params.token), [params.token]);
+  const token = useMemo(
+    (): string | undefined => parseAuthTokenFromRouteParam(params.token),
+    [params.token]
+  );
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);

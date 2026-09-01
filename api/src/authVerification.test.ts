@@ -1,6 +1,7 @@
 import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type express from "express";
+import mongoose from "mongoose";
 import supertest from "supertest";
 
 import {AuthToken} from "./authTokens";
@@ -108,5 +109,41 @@ describe("email verification gating", () => {
       .expect(202);
     assert.equal(openMail.length, 1);
     assert.include(openMail[0]?.text ?? "", "https://app.example.com/verifyEmail?token=");
+  });
+
+  it("does not send verification mail when the user is already verified", async () => {
+    const login = await supertest(openApp)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const users = await UserModel.find({email: "notAdmin@example.com"});
+    const user = users[0];
+    assert.isNotNull(user);
+    (user as {emailVerified?: boolean}).emailVerified = true;
+    await user?.save();
+
+    await supertest(openApp)
+      .post("/auth/sendVerification")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .expect(202);
+    assert.equal(openMail.length, 0);
+  });
+
+  it("rejects verifyEmail without a token and with an invalid token", async () => {
+    await supertest(gatedApp).post("/auth/verifyEmail").send({}).expect(400);
+    await supertest(gatedApp)
+      .post("/auth/verifyEmail")
+      .send({token: "not-a-real-token"})
+      .expect(400);
+  });
+
+  it("requires authentication to resend verification", async () => {
+    await supertest(openApp).post("/auth/sendVerification").expect(401);
+  });
+
+  it("returns 400 when the consumed verification token has no user", async () => {
+    const orphanId = new mongoose.Types.ObjectId();
+    const issued = await AuthToken.issueFor({_id: orphanId}, "emailVerification");
+    await supertest(gatedApp).post("/auth/verifyEmail").send({token: issued.token}).expect(400);
   });
 });

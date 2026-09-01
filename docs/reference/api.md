@@ -172,8 +172,13 @@ setupServer({
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
+Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
+`emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
+`oldPassword`, `token`, and `refreshToken`.
+
 **AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
-`AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` returns a 32-byte hex
+`AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` invalidates other
+unused, unexpired tokens of that type for the same user, then returns a 32-byte hex
 plaintext once and stores only the SHA-256 hash. `AuthToken.consume(token, type)` atomically
 marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours for
 `emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`.

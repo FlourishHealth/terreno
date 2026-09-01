@@ -253,6 +253,14 @@ export const terrenoApi = openapi
           url: "/auth/sendVerification",
         }),
       }),
+      postAuthVerifyEmail: builder.mutation<{ok: boolean}, {token: string}>({
+        invalidatesTags: ["profile"],
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/verifyEmail",
+        }),
+      }),
       postCommsDevTestPush: builder.mutation<
         {accepted: number; results: unknown[]; tokenCount: number},
         {body?: string; title?: string} | undefined
@@ -317,6 +325,7 @@ export const {
   usePatchMeMutation,
   usePostAuthForgotPasswordMutation,
   usePostAuthSendVerificationMutation,
+  usePostAuthVerifyEmailMutation,
   usePostCommsDevTestPushMutation,
   useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,

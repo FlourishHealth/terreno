@@ -85,11 +85,20 @@ authTokenSchema.statics = {
     const token = randomBytes(32).toString("hex");
     const ttl = AUTH_TOKEN_TTL[type];
     const now = DateTime.now();
+    const userId = new mongoose.Types.ObjectId(String(user._id));
+    await this.updateMany(
+      {
+        consumedAt: {$exists: false},
+        type,
+        userId,
+      },
+      {$set: {consumedAt: now.toJSDate()}}
+    );
     const authToken = await this.create({
       expiresAt: now.plus(ttl).toJSDate(),
       tokenHash: hashToken(token),
       type,
-      userId: user._id,
+      userId,
     });
     return {authToken, token};
   },

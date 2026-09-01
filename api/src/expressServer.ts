@@ -15,6 +15,23 @@ import {sendToSlack} from "./notifiers/slackNotifier";
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
 const IS_JEST = process.env.JEST_WORKER_ID !== undefined;
+const SENSITIVE_REQUEST_BODY_KEYS = [
+  "newPassword",
+  "oldPassword",
+  "password",
+  "refreshToken",
+  "token",
+] as const;
+
+const redactSensitiveRequestBody = (body: Record<string, unknown>): Record<string, unknown> => {
+  const bodyCopy = cloneDeep(body);
+  for (const key of SENSITIVE_REQUEST_BODY_KEYS) {
+    if (key in bodyCopy && bodyCopy[key] !== undefined) {
+      bodyCopy[key] = "<REDACTED>";
+    }
+  }
+  return bodyCopy;
+};
 
 export const setupEnvironment = (): void => {
   if (!process.env.TOKEN_ISSUER) {
@@ -121,11 +138,7 @@ export const logRequests = (
 
   let body = "";
   if (req.body && Object.keys(req.body).length > 0) {
-    const bodyCopy = cloneDeep(req.body);
-    if (bodyCopy.password) {
-      bodyCopy.password = "<PASSWORD>";
-    }
-    body = ` Body: ${JSON.stringify(bodyCopy)}`;
+    body = ` Body: ${JSON.stringify(redactSensitiveRequestBody(req.body))}`;
   }
 
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {

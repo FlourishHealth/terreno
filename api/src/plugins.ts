@@ -50,9 +50,7 @@ export interface EmailVerified {
  * Opt-in `emailVerified` field for user schemas. Defaults to false so existing
  * documents stay unverified until they complete the email-verification flow.
  */
-// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-export const emailVerificationPlugin = (schema: Schema<any, any, any, any>): void => {
+export const emailVerificationPlugin = (schema: Parameters<typeof baseUserPlugin>[0]): void => {
   schema.add({
     emailVerified: {
       default: false,

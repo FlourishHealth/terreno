@@ -1,6 +1,7 @@
 import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type express from "express";
+import mongoose from "mongoose";
 import supertest from "supertest";
 
 import {MAX_PASSWORD_LENGTH} from "./auth";
@@ -139,5 +140,91 @@ describe("password reset routes", () => {
       .post("/auth/resetPassword")
       .send({password: "valid-after-too-long", token})
       .expect(200);
+  });
+
+  it("accepts newPassword when password is omitted", async () => {
+    await supertest(app)
+      .post("/auth/forgotPassword")
+      .send({email: "notAdmin@example.com"})
+      .expect(202);
+    const token = tokenFromResetUrl(sentMail[0]?.text ?? "");
+
+    await supertest(app)
+      .post("/auth/resetPassword")
+      .send({newPassword: "only-new-password", token})
+      .expect(200);
+  });
+
+  it("returns 202 without issuing a token when publicAppUrl is missing", async () => {
+    const noUrlApp = new TerrenoApp({
+      authOptions: {
+        sendMail: async (message) => {
+          sentMail.push(message);
+        },
+      },
+      skipListen: true,
+      userModel: UserModel,
+    }).build();
+    const before = await AuthToken.countDocuments({});
+    await supertest(noUrlApp)
+      .post("/auth/forgotPassword")
+      .send({email: "notAdmin@example.com"})
+      .expect(202);
+    assert.equal(sentMail.length, 0);
+    assert.equal(await AuthToken.countDocuments({}), before);
+  });
+
+  it("returns 202 for a non-string email and for a missing body", async () => {
+    await supertest(app).post("/auth/forgotPassword").send({email: 12}).expect(202);
+    await supertest(app).post("/auth/forgotPassword").send({}).expect(202);
+    assert.equal(sentMail.length, 0);
+  });
+
+  it("rejects reset without a token or password", async () => {
+    await supertest(app).post("/auth/resetPassword").send({password: "enough-chars"}).expect(400);
+    await supertest(app).post("/auth/resetPassword").send({token: "deadbeef"}).expect(400);
+  });
+
+  it("returns 400 when the consumed reset token has no user", async () => {
+    const orphanId = new mongoose.Types.ObjectId();
+    const issued = await AuthToken.issueFor({_id: orphanId}, "passwordReset");
+    await supertest(app)
+      .post("/auth/resetPassword")
+      .send({password: "valid-password", token: issued.token})
+      .expect(400);
+  });
+
+  it("logs recovery mail to the console when sendMail is unset outside production", async () => {
+    const consoleApp = new TerrenoApp({
+      authOptions: {
+        publicAppUrl: "https://app.example.com",
+      },
+      skipListen: true,
+      userModel: UserModel,
+    }).build();
+    await supertest(consoleApp)
+      .post("/auth/forgotPassword")
+      .send({email: "notAdmin@example.com"})
+      .expect(202);
+  });
+
+  it("still returns 202 when production mail is unset", async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const consoleApp = new TerrenoApp({
+        authOptions: {
+          publicAppUrl: "https://app.example.com",
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      await supertest(consoleApp)
+        .post("/auth/forgotPassword")
+        .send({email: "notAdmin@example.com"})
+        .expect(202);
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
   });
 });

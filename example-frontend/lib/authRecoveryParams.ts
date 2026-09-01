@@ -9,3 +9,15 @@ export const parseAuthTokenFromSearch = (search: string): string | undefined => 
   }
   return token;
 };
+
+export const parseAuthTokenFromRouteParam = (
+  raw: string | string[] | undefined
+): string | undefined => {
+  if (typeof raw === "string") {
+    return parseAuthTokenFromSearch(`token=${encodeURIComponent(raw)}`);
+  }
+  if (Array.isArray(raw) && typeof raw[0] === "string") {
+    return parseAuthTokenFromSearch(`token=${encodeURIComponent(raw[0])}`);
+  }
+  return undefined;
+};

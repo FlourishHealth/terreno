@@ -193,6 +193,34 @@ describe("expressServer", () => {
       expect(req.body.password).toBe("secret123");
     });
 
+    it("redacts token and newPassword in logged request bodies", () => {
+      const logged: string[] = [];
+      const originalDebug = logger.debug;
+      logger.debug = ((message: string) => {
+        logged.push(message);
+      }) as typeof logger.debug;
+      try {
+        const req = {
+          body: {newPassword: "fresh-secret", token: "one-time-token", username: "testuser"},
+          method: "POST",
+          url: "/auth/resetPassword",
+        };
+        const res = {
+          locals: {},
+          on: () => {},
+        };
+        logRequests(req as never, res as never, () => {});
+        const combined = logged.join("\n");
+        expect(combined).toContain("<REDACTED>");
+        expect(combined).not.toContain("fresh-secret");
+        expect(combined).not.toContain("one-time-token");
+        expect(req.body.token).toBe("one-time-token");
+        expect(req.body.newPassword).toBe("fresh-secret");
+      } finally {
+        logger.debug = originalDebug;
+      }
+    });
+
     it("triggers onFinished callback with route info", async () => {
       const app = express();
       app.use(logRequests);

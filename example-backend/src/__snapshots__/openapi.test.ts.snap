@@ -5591,6 +5591,30 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "emailVerified",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Whether the user has verified their email address",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "created",
             "schema": {
               "oneOf": [
@@ -5682,6 +5706,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "The user's email address, used for authentication",
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -5715,6 +5743,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -5830,6 +5862,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user's email address, used for authentication",
                     "type": "string",
                   },
+                  "emailVerified": {
+                    "description": "Whether the user has verified their email address",
+                    "type": "boolean",
+                  },
                   "hash": {
                     "type": "string",
                   },
@@ -5863,6 +5899,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "salt": {
                     "type": "string",
+                  },
+                  "tokenEpoch": {
+                    "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                    "type": "number",
                   },
                   "updated": {
                     "description": "When this document was last updated",
@@ -5906,6 +5946,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -5939,6 +5983,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -6213,6 +6261,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -6246,6 +6298,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -6354,6 +6410,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user's email address, used for authentication",
                     "type": "string",
                   },
+                  "emailVerified": {
+                    "description": "Whether the user has verified their email address",
+                    "type": "boolean",
+                  },
                   "hash": {
                     "type": "string",
                   },
@@ -6387,6 +6447,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "salt": {
                     "type": "string",
+                  },
+                  "tokenEpoch": {
+                    "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                    "type": "number",
                   },
                   "updated": {
                     "description": "When this document was last updated",
@@ -6430,6 +6494,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -6463,6 +6531,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -13048,6 +13120,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "The user's email address, used for authentication",
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -13081,6 +13157,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -13196,6 +13276,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user's email address, used for authentication",
                     "type": "string",
                   },
+                  "emailVerified": {
+                    "description": "Whether the user has verified their email address",
+                    "type": "boolean",
+                  },
                   "hash": {
                     "type": "string",
                   },
@@ -13229,6 +13313,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "salt": {
                     "type": "string",
+                  },
+                  "tokenEpoch": {
+                    "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                    "type": "number",
                   },
                   "updated": {
                     "description": "When this document was last updated",
@@ -13272,6 +13360,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -13305,6 +13397,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -13479,6 +13575,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -13512,6 +13612,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -13620,6 +13724,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user's email address, used for authentication",
                     "type": "string",
                   },
+                  "emailVerified": {
+                    "description": "Whether the user has verified their email address",
+                    "type": "boolean",
+                  },
                   "hash": {
                     "type": "string",
                   },
@@ -13653,6 +13761,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "salt": {
                     "type": "string",
+                  },
+                  "tokenEpoch": {
+                    "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                    "type": "number",
                   },
                   "updated": {
                     "description": "When this document was last updated",
@@ -13696,6 +13808,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user's email address, used for authentication",
                       "type": "string",
                     },
+                    "emailVerified": {
+                      "description": "Whether the user has verified their email address",
+                      "type": "boolean",
+                    },
                     "hash": {
                       "type": "string",
                     },
@@ -13729,6 +13845,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "salt": {
                       "type": "string",
+                    },
+                    "tokenEpoch": {
+                      "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                      "type": "number",
                     },
                     "updated": {
                       "description": "When this document was last updated",
