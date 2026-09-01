@@ -168,4 +168,25 @@ describe("email verification gating", () => {
     const issued = await AuthToken.issueFor({_id: orphanId}, "emailVerification");
     await supertest(gatedApp).post("/auth/verifyEmail").send({token: issued.token}).expect(400);
   });
+
+  it("rejects an old verification token after PATCH /auth/me changes the mailbox", async () => {
+    const login = await supertest(openApp)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const userId = login.body.data.userId as string;
+    const accessToken = login.body.data.token as string;
+    const issued = await AuthToken.issueFor({_id: userId}, "emailVerification");
+
+    await supertest(openApp)
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${accessToken}`)
+      .send({email: "new-mailbox@example.com"})
+      .expect(200);
+
+    await supertest(openApp).post("/auth/verifyEmail").send({token: issued.token}).expect(400);
+
+    const reloaded = await UserModel.findById(userId);
+    assert.equal((reloaded as unknown as {emailVerified?: boolean})?.emailVerified, false);
+  });
 });

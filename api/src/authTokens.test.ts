@@ -79,4 +79,16 @@ describe("AuthToken", () => {
     const consumedSecond = await AuthToken.consume(secondReset.token, "passwordReset");
     assert.isNotNull(consumedSecond);
   });
+
+  it("invalidates unused tokens of a type without issuing a replacement", async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const issued = await AuthToken.issueFor({_id: userId}, "emailVerification");
+    const resetIssued = await AuthToken.issueFor({_id: userId}, "passwordReset");
+
+    await AuthToken.invalidateUnusedFor({_id: userId}, "emailVerification");
+
+    assert.isNull(await AuthToken.consume(issued.token, "emailVerification"));
+    const stillValidReset = await AuthToken.consume(resetIssued.token, "passwordReset");
+    assert.isNotNull(stillValidReset);
+  });
 });

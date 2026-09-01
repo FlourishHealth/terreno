@@ -77,6 +77,22 @@ authTokenSchema.statics = {
     return consumed;
   },
 
+  async invalidateUnusedFor(
+    this: AuthTokenModel,
+    user: {_id: mongoose.Types.ObjectId | string},
+    type: AuthTokenType
+  ): Promise<void> {
+    const userId = new mongoose.Types.ObjectId(String(user._id));
+    await this.updateMany(
+      {
+        consumedAt: {$exists: false},
+        type,
+        userId,
+      },
+      {$set: {consumedAt: DateTime.now().toJSDate()}}
+    );
+  },
+
   async issueFor(
     this: AuthTokenModel,
     user: {_id: mongoose.Types.ObjectId | string},
@@ -86,14 +102,7 @@ authTokenSchema.statics = {
     const ttl = AUTH_TOKEN_TTL[type];
     const now = DateTime.now();
     const userId = new mongoose.Types.ObjectId(String(user._id));
-    await this.updateMany(
-      {
-        consumedAt: {$exists: false},
-        type,
-        userId,
-      },
-      {$set: {consumedAt: now.toJSDate()}}
-    );
+    await this.invalidateUnusedFor(user, type);
     const authToken = await this.create({
       expiresAt: now.plus(ttl).toJSDate(),
       tokenHash: hashToken(token),

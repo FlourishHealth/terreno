@@ -175,8 +175,9 @@ setupServer({
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
 `oldPassword`, `token`, and `refreshToken`. Changing the mailbox through `PATCH /auth/me`
-sets `emailVerified` to false when the schema uses `emailVerificationPlugin`; changing
-letter casing alone does not.
+sets `emailVerified` to false when the schema uses `emailVerificationPlugin` and
+invalidates unused `emailVerification` AuthTokens for that user; changing letter
+casing alone does not.
 
 **AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
 `AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` invalidates other

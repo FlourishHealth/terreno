@@ -13,6 +13,7 @@ import {
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
 import {addAuthRecoveryRoutes, sendVerificationEmail} from "./authRecovery";
+import {AuthToken} from "./authTokens";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
@@ -769,6 +770,7 @@ export const addMeRoutes = (
       Object.assign(doc, update);
       if (shouldResetEmailVerification) {
         doc.emailVerified = false;
+        await AuthToken.invalidateUnusedFor(doc, "emailVerification");
       }
       await doc.save();
 

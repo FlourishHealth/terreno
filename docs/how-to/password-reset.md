@@ -64,6 +64,6 @@ On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMa
 4. Show a profile banner when `emailVerified` is false, with Resend calling `POST /auth/sendVerification`.
 5. Add `/verifyEmail` that reads `token` from the query string. JWT apps call `POST /auth/verifyEmail`. Better Auth apps try `GET /verify-email?token=...` first, then the JWT route so either token type can complete.
 
-A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
+A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. Changing the mailbox through `PATCH /auth/me` also invalidates unused `emailVerification` tokens so a link from the old inbox cannot verify the new address. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
 
 Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken`.
