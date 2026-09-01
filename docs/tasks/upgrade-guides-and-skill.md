@@ -19,7 +19,7 @@ See: [`docs/implementationPlans/upgrade-guides-and-skill.md`](../implementationP
   - Depends on: none
   - Acceptance: the format is compatible with the two existing notes; the template includes every required section; the self-contained requirement is stated with its reason.
 
-- [ ] **Task 1.2**: Research what changed between 0.21.0 and the current version
+- [x] **Task 1.2**: Research what changed between 0.21.0 and the current version
   - Description: For each release from 0.22.0 through the current version, run `gh release view <tag>` and `git log --oneline <prev>..<tag>`, and diff the public surface of each published package (`git diff <prev>..<tag> -- '*/src/index.ts'`). Identify actual breaking changes, deprecations, and notable additions. Record findings per version in the PR body. Pay particular attention to the OpenFeature feature-flag migration, which the README documents as requiring consumer action — that is a breaking change with no upgrade note.
   - Files: none (findings in the PR body)
   - Depends on: Task 1.1
