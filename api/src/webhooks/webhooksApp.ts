@@ -12,6 +12,7 @@ import {
   type WebhookClaimResult,
   type WebhookIdempotencyStore,
 } from "./idempotency/memoryStore";
+import {createMongoIdempotencyStore} from "./idempotency/mongoStore";
 
 export interface WebhookHandlerContext {
   body: unknown;
@@ -42,11 +43,10 @@ export class WebhooksApp implements TerrenoPlugin {
   constructor(options: WebhooksAppOptions = {}) {
     const storeKind = options.idempotency?.store ?? "memory";
     if (storeKind === "mongo") {
-      throw new Error(
-        'WebhooksApp mongo idempotency store is not available yet; use {store: "memory"}'
-      );
+      this.store = createMongoIdempotencyStore();
+    } else {
+      this.store = createMemoryIdempotencyStore();
     }
-    this.store = createMemoryIdempotencyStore();
   }
 
   route(options: WebhookRouteOptions): this {

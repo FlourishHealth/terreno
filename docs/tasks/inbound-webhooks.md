@@ -33,7 +33,7 @@ IP: [inbound-webhooks.md](../implementationPlans/inbound-webhooks.md)
   - Docs: verifier table in `docs/how-to/inbound-webhooks.md` (create page if 3.1 not started)
   - Acceptance: fixture tests only (no network); mutated payload 401
 
-- [ ] **Task 2.2**: Mongo idempotency store
+- [x] **Task 2.2**: Mongo idempotency store
   - Delivers: `idempotency: {store: "mongo", ttlDays?}` uses mongoose connection and `webhookReceipts` unique `(source, eventId)` + TTL; claim-before-handler; release on throw
   - Files: `api/src/webhooks/idempotency/mongoStore.ts`, schema/types if a model is used, tests via `@terreno/test`
   - Blocked by: 1.2

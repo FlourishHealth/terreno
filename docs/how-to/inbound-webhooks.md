@@ -29,3 +29,7 @@ new TerrenoApp({userModel: User}).register(webhooks).start();
 
 Invalid or missing signatures return `401` with `code: "webhook-signature-invalid"`. Duplicate
 `(source, eventId)` returns `200 {received: true, duplicate: true}` without running the handler.
+
+Pass `idempotency: {store: "mongo"}` to persist claims in the `webhookReceipts` collection
+(unique `(source, eventId)`, TTL 7 days on `created`). This is not a public `modelRouter` model.
+Use `store: "memory"` in tests and single-process apps.
