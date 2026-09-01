@@ -51,6 +51,8 @@ Print, then **stop until the user confirms**:
 
 Do not install, edit lockfiles, or regenerate the client before confirmation.
 
+If the caller is an unattended agent whose **invoking task already names** `fromVersion`, `toVersion`, and authorizes the bump (for example Pick Task 5.1), print the same plan into the transcript and treat that task as confirmation. Do not skip the printed plan. Do not skip the stop when a human is in the loop.
+
 ## Ordered steps (verification gate after each phase)
 
 Match `docs/how-to/upgrade-terreno.md`. After each phase, run its gate. **If compile or tests fail, stop. Do not continue.**
