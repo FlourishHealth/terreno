@@ -56,7 +56,7 @@ Claude Code stages come from the generated copy at
 | Group | Skills |
 | --- | --- |
 | Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-planning-loop`, `terreno-taste-sweep` |
-| Terreno apps | backend, UI, data, schema, SDK |
+| Terreno apps | backend, UI, admin interfaces, data, schema, SDK |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
 | GitHub | commit, issues, PR, review, verify, release, deploy |
 

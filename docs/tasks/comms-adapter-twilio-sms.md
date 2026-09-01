@@ -4,22 +4,22 @@ IP: [comms-adapter-twilio-sms](../implementationPlans/comms-adapter-twilio-sms.m
 
 ## Phase 1 — Send path
 
-- [ ] **Task 1.1**: `TwilioSmsProvider` with config resolution
+- [x] **Task 1.1**: `TwilioSmsProvider` with config resolution
   - Description: constructor/env config, messaging-service-first sender selection
   - Files: `comms/src/adapters/twilioSms.ts`
   - Depends on: comms-abstraction Phase 1
   - Acceptance: mocked-client tests cover both sender configs
-- [ ] **Task 1.2**: E.164 validation + error classification
+- [x] **Task 1.2**: E.164 validation + error classification
   - Description: `libphonenumber-js` normalization; Twilio error-code → `errorCode`/`errorClass` map per the IP table (unknown codes → `transient`); full error payload into `CommsMessage.metadata`; Twilio SDK calls wrapped with `withApiErrorHandling`
   - Files: `comms/src/adapters/twilioSms.ts`
   - Depends on: 1.1
-  - Acceptance: invalid number → 400 before API call; fixtures for at least one code per class (e.g. 21610 permanent, 20429 transient, 20003 config) assert `errorClass`; permanent failures skip the inline retry
-- [ ] **Task 1.3**: Dashboard metadata + hooks coverage
+  - Acceptance: invalid number → permanent `SendResult` before API call; fixtures for at least one code per class (e.g. 21610 permanent, 20429 transient, 20003 config) assert `errorClass`; permanent failures skip the inline retry
+- [x] **Task 1.3**: Dashboard metadata + hooks coverage
   - Description: `metadata.consoleUrl` deep link per message SID; `onError` fires with the classified `SendResult`
   - Files: `comms/src/adapters/twilioSms.ts` + tests
   - Depends on: 1.2
   - Acceptance: failed-send test asserts consoleUrl and onError invocation
-- [ ] **Task 1.4**: Peer dep + example-backend registration + docs
+- [x] **Task 1.4**: Peer dep + example-backend registration + docs
   - Description: optional peer `twilio`; env-gated registration; reference + env-var docs
   - Files: `comms/package.json`, `example-backend/src/server.ts`, `docs/reference/comms.md`, `docs/reference/environment-variables.md`
   - Depends on: 1.1
