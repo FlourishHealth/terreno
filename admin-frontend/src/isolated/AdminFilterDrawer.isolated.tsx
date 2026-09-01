@@ -92,4 +92,71 @@ describe("AdminFilterDrawer", () => {
     expect(onApply).toHaveBeenCalledTimes(2);
     expect(onApply.mock.calls[1]?.[0]).toEqual({});
   });
+
+  it("renders every filter field kind and applies a boolean draft", async () => {
+    const onApply = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{active: true, status: "open"}}
+        fields={{
+          active: {required: false, type: "boolean"},
+          created: {required: false, type: "date"},
+          query: {required: false, type: "string"},
+          status: {required: false, type: "string"},
+        }}
+        filters={[
+          {field: "active", kind: "boolean", label: "Active"},
+          {field: "created", kind: "dateRange", label: "Created"},
+          {
+            choices: [
+              {label: "Open", value: "open"},
+              {label: "Closed", value: "closed"},
+            ],
+            field: "status",
+            kind: "choice",
+            label: "Status",
+          },
+          {field: "query", kind: "text", label: "Query"},
+        ]}
+        onApply={onApply}
+      />
+    );
+
+    expect(getByTestId("admin-filter-created-gte")).toBeDefined();
+    expect(getByTestId("admin-filter-created-lte")).toBeDefined();
+    expect(getByTestId("admin-filter-query")).toBeDefined();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter-active.switch"));
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-filter-created-gte"), "2024-01-01");
+      fireEvent.changeText(getByTestId("admin-filter-created-lte"), "2024-01-31");
+      fireEvent.changeText(getByTestId("admin-filter-query"), "needle");
+      fireEvent.press(getByTestId("admin-filter-apply"));
+    });
+
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply.mock.calls[0]?.[0]).toMatchObject({
+      active: false,
+      status: "open",
+    });
+  });
+
+  it("renders the mobile filter trigger", () => {
+    mockWindowWidth = 320;
+    const onApply = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{}}
+        fields={{query: {required: false, type: "string"}}}
+        filters={[{field: "query", kind: "text", label: "Query"}]}
+        onApply={onApply}
+      />
+    );
+
+    expect(getByTestId("admin-filter-open")).toBeDefined();
+  });
 });

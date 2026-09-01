@@ -10,10 +10,11 @@
  *  - the returned hook functions correspond to the generated hook names
  */
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../../ui/src/test-utils";
 import React from "react";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 import {useAdminApi} from "../useAdminApi";
 import {useAdminConfig} from "../useAdminConfig";
+import {normalizeRoles, normalizeStatements, useAdminRoles} from "../useAdminRoles";
 import {useAdminScripts} from "../useAdminScripts";
 import {useConfigurationApi} from "../useConfigurationApi";
 import {useDocumentStorageApi} from "../useDocumentStorageApi";
@@ -225,6 +226,74 @@ describe("useAdminScripts", () => {
     expect(typeof result.useRunScriptMutation).toBe("function");
     expect(typeof result.useGetScriptTaskQuery).toBe("function");
     expect(typeof result.useCancelScriptTaskMutation).toBe("function");
+  });
+});
+
+describe("useAdminRoles", () => {
+  it("injects RBAC endpoints outside the admin base", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminRoles(api, "/admin"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+
+    expect(
+      injected.adminCreateRbacRole.query({
+        displayName: "Operators",
+        name: "operator",
+        permissions: {todos: ["read"]},
+      })
+    ).toEqual({
+      body: {
+        displayName: "Operators",
+        name: "operator",
+        permissions: {todos: ["read"]},
+      },
+      method: "POST",
+      url: "/rbac/roles",
+    });
+    expect(injected.adminListRbacRoles.query()).toEqual({method: "GET", url: "/rbac/roles"});
+    expect(injected.adminListRbacStatements.query()).toEqual({
+      method: "GET",
+      url: "/rbac/statements",
+    });
+    expect(
+      injected.adminUpdateRbacRole.query({
+        changes: {displayName: "Operators", permissions: {}},
+        roleName: "operator/admin",
+      })
+    ).toEqual({
+      body: {displayName: "Operators", permissions: {}},
+      method: "PATCH",
+      url: "/rbac/roles/operator%2Fadmin",
+    });
+    expect(typeof result.useCreateRoleMutation).toBe("function");
+    expect(typeof result.useListRolesQuery).toBe("function");
+    expect(typeof result.useListStatementsQuery).toBe("function");
+    expect(typeof result.useUpdateRoleMutation).toBe("function");
+  });
+
+  it("uses safe empty hooks when RTK injection is unavailable", async () => {
+    const result = runHook(() => useAdminRoles({} as never, "/admin"));
+
+    expect(result.useListRolesQuery()).toMatchObject({data: undefined, isLoading: false});
+    expect(result.useListStatementsQuery()).toMatchObject({data: undefined, isLoading: false});
+    await expect(
+      result.useCreateRoleMutation()[0]({displayName: "x", name: "x", permissions: {}}).unwrap()
+    ).rejects.toThrow("Role management API is unavailable");
+    await expect(
+      result
+        .useUpdateRoleMutation()[0]({
+          changes: {displayName: "x", permissions: {}},
+          roleName: "x",
+        })
+        .unwrap()
+    ).rejects.toThrow("Role management API is unavailable");
+    expect(normalizeRoles([{displayName: "x", name: "x"}])).toHaveLength(1);
+    expect(normalizeRoles({data: [{displayName: "x", name: "x"}]})).toHaveLength(1);
+    expect(normalizeRoles(undefined)).toEqual([]);
+    expect(normalizeStatements({data: {statements: {todos: ["read"]}}})).toEqual({
+      todos: ["read"],
+    });
+    expect(normalizeStatements(undefined)).toEqual({});
   });
 });
 
