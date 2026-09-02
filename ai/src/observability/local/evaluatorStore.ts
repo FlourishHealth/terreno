@@ -5,8 +5,10 @@ import type {
   EvaluatorRunModes,
   ObsEvaluatorDocument,
 } from "../../types/observability";
+import {judgeSchemaMissingDimensions} from "../evaluate";
 import {getEvaluatorTemplate} from "../evaluatorTemplates";
 import {registerObsEvaluator} from "./models/obsEvaluator";
+import {LocalPromptStore} from "./promptStore";
 
 export interface EvaluatorWriteInput {
   assertion?: {constraint: string; path: string};
@@ -52,6 +54,40 @@ const rejectHumanLiveSampling = (type: string, liveSampleRate: number): void => 
   }
 };
 
+const validateEvaluatorShape = async (
+  input: EvaluatorWriteInput,
+  promptStore: LocalPromptStore
+): Promise<void> => {
+  if (!input.name || input.dimensions.length === 0) {
+    throw new APIError({status: 400, title: "name and dimensions are required"});
+  }
+  if (input.type === "llm-judge") {
+    if (!input.judgePromptName) {
+      throw new APIError({status: 400, title: "llm-judge evaluators require judgePromptName"});
+    }
+    const judgeVersion = await promptStore.getVersionByLabel(input.judgePromptName, "production");
+    if (!judgeVersion) {
+      throw new APIError({
+        status: 400,
+        title: `Unknown judge prompt "${input.judgePromptName}"`,
+      });
+    }
+    const missing = judgeSchemaMissingDimensions(input.dimensions, judgeVersion.outputSchema);
+    if (missing.length > 0) {
+      throw new APIError({
+        status: 400,
+        title: `Judge prompt output schema missing required dimension "${missing[0]}"`,
+      });
+    }
+  }
+  if (input.type === "json-assert" && input.name !== "schema-assert" && !input.assertion?.path) {
+    throw new APIError({
+      status: 400,
+      title: "json-assert evaluators require assertion.path unless using schema-assert mode",
+    });
+  }
+};
+
 const toView = (doc: ObsEvaluatorDocument): EvaluatorView => {
   return {
     assertion: doc.assertion,
@@ -69,15 +105,12 @@ const toView = (doc: ObsEvaluatorDocument): EvaluatorView => {
 };
 
 export class LocalEvaluatorStore {
+  constructor(private readonly promptStore = new LocalPromptStore()) {}
+
   async create(input: EvaluatorWriteInput): Promise<EvaluatorView> {
-    if (input.type !== "human") {
-      throw new APIError({status: 400, title: "phase 1 only supports human evaluators"});
-    }
     const runModes = defaultRunModes(input.runModes);
     rejectHumanLiveSampling(input.type, runModes.liveSampleRate);
-    if (!input.name || input.dimensions.length === 0) {
-      throw new APIError({status: 400, title: "name and dimensions are required"});
-    }
+    await validateEvaluatorShape(input, this.promptStore);
     try {
       const created = await registerObsEvaluator().create({
         assertion: input.assertion,
@@ -120,26 +153,44 @@ export class LocalEvaluatorStore {
     return toView(doc);
   }
 
+  async getByName(name: string): Promise<EvaluatorView | undefined> {
+    const doc = await registerObsEvaluator().findOneOrNone({name});
+    if (!doc) {
+      return undefined;
+    }
+    return toView(doc);
+  }
+
   async update(id: string, input: Partial<EvaluatorWriteInput>): Promise<EvaluatorView> {
     const doc = await registerObsEvaluator().findOneOrNone({_id: id});
     if (!doc) {
       throw new APIError({status: 404, title: `Unknown evaluator "${id}"`});
     }
-    const type = input.type ?? doc.type;
     const runModes = defaultRunModes({...doc.runModes, ...input.runModes});
-    rejectHumanLiveSampling(type, runModes.liveSampleRate);
-    if (input.type && input.type !== "human") {
-      throw new APIError({status: 400, title: "phase 1 only supports human evaluators"});
-    }
-    doc.assertion = input.assertion ?? doc.assertion;
-    doc.confidenceAlertBelow = input.confidenceAlertBelow ?? doc.confidenceAlertBelow;
-    doc.description = input.description ?? doc.description;
-    doc.dimensions = input.dimensions ?? doc.dimensions;
-    doc.instructions = input.instructions ?? doc.instructions;
-    doc.judgePromptName = input.judgePromptName ?? doc.judgePromptName;
-    doc.name = input.name ?? doc.name;
-    doc.runModes = runModes;
-    doc.target = input.target ?? doc.target;
+    const merged = {
+      assertion: input.assertion ?? doc.assertion,
+      confidenceAlertBelow: input.confidenceAlertBelow ?? doc.confidenceAlertBelow,
+      description: input.description ?? doc.description,
+      dimensions: input.dimensions ?? doc.dimensions,
+      instructions: input.instructions ?? doc.instructions,
+      judgePromptName: input.judgePromptName ?? doc.judgePromptName,
+      name: input.name ?? doc.name,
+      runModes,
+      target: input.target ?? doc.target,
+      type: input.type ?? doc.type,
+    } satisfies EvaluatorWriteInput;
+    rejectHumanLiveSampling(merged.type, merged.runModes.liveSampleRate);
+    await validateEvaluatorShape(merged, this.promptStore);
+    doc.assertion = merged.assertion;
+    doc.confidenceAlertBelow = merged.confidenceAlertBelow;
+    doc.description = merged.description;
+    doc.dimensions = merged.dimensions;
+    doc.instructions = merged.instructions;
+    doc.judgePromptName = merged.judgePromptName;
+    doc.name = merged.name;
+    doc.runModes = merged.runModes;
+    doc.target = merged.target;
+    doc.type = merged.type;
     await doc.save();
     return toView(doc);
   }
@@ -159,9 +210,11 @@ export class LocalEvaluatorStore {
       throw new APIError({status: 404, title: `Unknown evaluator template "${name}"`});
     }
     return this.create({
+      assertion: template.assertion,
       description: template.description,
       dimensions: template.dimensions,
       instructions: template.instructions,
+      judgePromptName: template.judgePromptName,
       name: template.name,
       runModes: template.runModes,
       target: template.target,

@@ -51,7 +51,7 @@ describe("seedDefaultData", () => {
     assert.equal(promptDetail.versions[0]?.variables[0]?.key, "text");
     assert.include(promptDetail.tags, "example");
     const evaluator = (await new LocalEvaluatorStore().list()).find(
-      (entry) => entry.name === "correctness"
+      (entry) => entry.name === "correctness-human"
     );
     assert.equal(evaluator?.type, "human");
     assert.equal(evaluator?.dimensions[0]?.key, "correct");

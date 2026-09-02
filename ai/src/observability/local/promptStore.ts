@@ -448,6 +448,84 @@ export class LocalPromptStore implements PromptRegistry {
     return previous?.version;
   }
 
+  async getVersionByLabel(
+    name: string,
+    label = "production"
+  ): Promise<
+    | {
+        inputSchema?: Record<string, unknown>;
+        outputSchema?: Record<string, unknown>;
+        system?: string;
+        template?: string;
+        type: "chat" | "text";
+        variables: ObsPromptVariable[];
+        version: number;
+      }
+    | undefined
+  > {
+    const prompt = await registerObsPrompt().findOneOrNone({name});
+    if (!prompt) {
+      return undefined;
+    }
+    const labelDoc = await registerObsPromptLabel().findOneOrNone({
+      label,
+      promptId: prompt._id,
+    });
+    if (!labelDoc) {
+      return undefined;
+    }
+    const version = await registerObsPromptVersion().findOneOrNone({_id: labelDoc.versionId});
+    if (!version) {
+      return undefined;
+    }
+    return {
+      inputSchema: version.inputSchema,
+      outputSchema: version.outputSchema,
+      system: version.system,
+      template: version.template,
+      type: version.type,
+      variables: version.variables,
+      version: version.version,
+    };
+  }
+
+  async getVersionByNumber(
+    name: string,
+    versionNumber: number
+  ): Promise<
+    | {
+        inputSchema?: Record<string, unknown>;
+        outputSchema?: Record<string, unknown>;
+        system?: string;
+        template?: string;
+        type: "chat" | "text";
+        variables: ObsPromptVariable[];
+        version: number;
+      }
+    | undefined
+  > {
+    const prompt = await registerObsPrompt().findOneOrNone({name});
+    if (!prompt) {
+      return undefined;
+    }
+    const version = await registerObsPromptVersion().findOneOrNone({
+      promptId: prompt._id,
+      version: versionNumber,
+    });
+    if (!version) {
+      return undefined;
+    }
+    return {
+      inputSchema: version.inputSchema,
+      outputSchema: version.outputSchema,
+      system: version.system,
+      template: version.template,
+      type: version.type,
+      variables: version.variables,
+      version: version.version,
+    };
+  }
+
   private async requirePrompt(name: string): Promise<{
     _id: mongoose.Types.ObjectId;
     folder: string;

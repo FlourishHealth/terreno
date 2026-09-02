@@ -2,17 +2,22 @@ import type {AdminContribution, TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
 import {observabilityAdminScreens} from "./adminScreens";
+import {LocalDatasetStore} from "./local/datasetStore";
 import {LocalEvaluatorStore} from "./local/evaluatorStore";
+import {LocalExperimentRunner} from "./local/experimentRunner";
 import {LocalPromptStore} from "./local/promptStore";
 import {LocalReviewStore} from "./local/reviewStore";
 import {LocalTraceSink} from "./local/traceStore";
+import {addObservabilityDatasetRoutes} from "./routes/datasets";
 import {addObservabilityEvaluatorRoutes} from "./routes/evaluators";
+import {addObservabilityExperimentRoutes} from "./routes/experiments";
 import {addObservabilityPromptRoutes} from "./routes/prompts";
 import {addObservabilityReviewRoutes} from "./routes/review";
 import {addObservabilityStatusRoutes} from "./routes/status";
 import {addObservabilityTraceRoutes} from "./routes/traces";
 import {isLocalObservabilityPluginOn} from "./status";
 import type {
+  ObservabilityAiServiceFactory,
   ObservabilityAppOptions,
   ObservabilityControlConfig,
   ObservabilityGenerateClient,
@@ -35,6 +40,7 @@ export const resetObservabilityApp = (): void => {
 
 export class ObservabilityApp implements TerrenoPlugin {
   readonly aiService?: ObservabilityGenerateClient;
+  readonly aiServiceFactory?: ObservabilityAiServiceFactory;
   readonly control: ObservabilityControlConfig;
   readonly plugins: ReadonlyArray<ObservabilityPlugin>;
   readonly priceMap: ObservabilityAppOptions["priceMap"];
@@ -42,6 +48,7 @@ export class ObservabilityApp implements TerrenoPlugin {
 
   constructor(options: ObservabilityAppOptions) {
     this.aiService = options.aiService;
+    this.aiServiceFactory = options.aiServiceFactory;
     this.control = validateObservabilityConfig(options);
     this.plugins = options.plugins;
     this.priceMap = options.priceMap;
@@ -76,6 +83,23 @@ export class ObservabilityApp implements TerrenoPlugin {
     };
   }
 
+  private configureLocalExperimentRunner(
+    localPlugin: ObservabilityPlugin
+  ): LocalExperimentRunner | undefined {
+    const runner = localPlugin.experimentRunner;
+    if (!(runner instanceof LocalExperimentRunner)) {
+      return undefined;
+    }
+    if (this.aiService) {
+      runner.configureAi({
+        aiService: this.aiService,
+        aiServiceFactory: this.aiServiceFactory,
+        priceMap: this.priceMap,
+      });
+    }
+    return runner;
+  }
+
   register(app: express.Application, openApi?: unknown): void {
     addObservabilityStatusRoutes(app, {openApi});
     if (this.control.prompts === "local") {
@@ -92,20 +116,36 @@ export class ObservabilityApp implements TerrenoPlugin {
     const localPlugin = this.plugins.find((plugin) => {
       return plugin.id === "local";
     });
-    if (localPlugin?.traceSink instanceof LocalTraceSink) {
-      addObservabilityTraceRoutes(app, {
-        openApi,
-        store: localPlugin.traceSink.store,
-      });
-    }
+    const promptStore =
+      this.promptRegistry instanceof LocalPromptStore ? this.promptRegistry : undefined;
     if (localPlugin) {
+      const evaluatorStore = new LocalEvaluatorStore(promptStore ?? new LocalPromptStore());
       addObservabilityEvaluatorRoutes(app, {
         openApi,
-        store: new LocalEvaluatorStore(),
+        store: evaluatorStore,
       });
       addObservabilityReviewRoutes(app, {
         openApi,
         store: new LocalReviewStore(),
+      });
+      if (localPlugin.datasetStore instanceof LocalDatasetStore) {
+        addObservabilityDatasetRoutes(app, {
+          openApi,
+          store: localPlugin.datasetStore,
+        });
+      }
+      const experimentRunner = this.configureLocalExperimentRunner(localPlugin);
+      if (experimentRunner) {
+        addObservabilityExperimentRoutes(app, {
+          openApi,
+          runner: experimentRunner,
+        });
+      }
+    }
+    if (localPlugin?.traceSink instanceof LocalTraceSink) {
+      addObservabilityTraceRoutes(app, {
+        openApi,
+        store: localPlugin.traceSink.store,
       });
     }
   }

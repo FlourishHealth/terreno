@@ -41,6 +41,12 @@ const writeFromBody = (
   if (typeof body.confidenceAlertBelow === "number") {
     input.confidenceAlertBelow = body.confidenceAlertBelow;
   }
+  if (typeof body.judgePromptName === "string") {
+    input.judgePromptName = body.judgePromptName;
+  }
+  if (body.assertion && typeof body.assertion === "object") {
+    input.assertion = body.assertion as EvaluatorWriteInput["assertion"];
+  }
   if (mode === "create") {
     return {
       ...input,

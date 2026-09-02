@@ -137,6 +137,8 @@
         "@opentelemetry/api": "^1.9.0",
         "@opentelemetry/sdk-node": "0.217.0",
         "ai": "catalog:",
+        "ajv": "catalog:",
+        "csv-parse": "catalog:",
         "google-auth-library": "^10.5.0",
         "luxon": "catalog:",
         "multer": "catalog:",
@@ -150,6 +152,7 @@
         "@types/luxon": "catalog:",
         "@types/multer": "catalog:",
         "@types/supertest": "catalog:",
+        "chai": "catalog:",
         "mongoose": "catalog:",
         "passport-local-mongoose": "catalog:",
         "supertest": "catalog:",
@@ -818,6 +821,7 @@
     "babel-preset-expo": "~57.0.7",
     "better-auth": "^1.6.25",
     "chai": "^6.2.2",
+    "csv-parse": "^6.1.0",
     "expo": "~57.0.14",
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.12",
@@ -2991,6 +2995,8 @@
     "csso": ["csso@5.0.5", "", { "dependencies": { "css-tree": "~2.2.0" } }, "sha512-0LrrStPOdJj+SPCCrGhzryycLjwcgUSHBtxNA8aIDxf0GLsRh1cKYhB00Gd1lDOS4yGH69+SNn13+TWbVHETFQ=="],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
+
+    "csv-parse": ["csv-parse@6.2.1", "", {}, "sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ=="],
 
     "data-uri-to-buffer": ["data-uri-to-buffer@4.0.1", "", {}, "sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A=="],
 

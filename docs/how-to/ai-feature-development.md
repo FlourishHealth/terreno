@@ -7,15 +7,16 @@ Architecture: [AI observability](../explanation/ai-observability.md). Routes and
 Volume targets (how many gold items, class balance) live in the operator spreadsheet, not in Terreno. Use **tags** and **outcome class** so you can filter for balance.
 
 For a walkable phase 1 example, run `bun run backend:seed`: it installs
-`examples/example-summarize` v1 as `production` and the human `correctness` evaluator.
+`examples/example-summarize` v1 as `production` and the human `correctness-human` evaluator.
 
 ## 1. Gather a gold dataset
 
-1. Open **Datasets** → create a named set. Set `expectedOutputSchema` if product has agreed a label shape.
+1. Open **Datasets** → create a named set. Optionally set `inputSchemaPromptName` to a registry prompt whose `inputSchema` should validate imported rows, and `expectedOutputSchema` if product has agreed a label shape.
 2. Add items in three ways:
-   - **From production traces** (preferred for open-ended features): Traces list → filter → **Add to dataset**.
-   - **Manual**: add an item that looks like production input.
-   - **Synthetic**: **Generate** drafts. They land as `origin: synthetic` and `proofread: false`. Do not run experiments on them until a human proofreads and sets `proofread: true`.
+   - **From production traces** (preferred for open-ended features): Traces list → filter → **Add to dataset** (`POST /ai/observability/traces/add-to-dataset`). Sensitive traces always land `proofread: false`.
+   - **Import JSON or CSV** (`POST /ai/observability/datasets/:id/import`): JSON can be an array of bare input objects or structured rows with `input`, `expectedOutput`, `proofread`, `tags`, `outcomeClass`, and `metadata`. CSV accepts `Content-Type: text/csv` or `{format: "csv", content: "..."}`; plain columns map to `input`, `input.foo` nests fields, `expectedOutput.foo` maps labels, and reserved `proofread` / `tags` / `outcomeClass` columns map metadata. Invalid rows against the bound input schema return 400 with the row number and JSON path.
+   - **Manual**: `POST /datasets/:id/items` with a production-shaped `input`.
+   - **Synthetic** (phase 2.4): **Generate** drafts. They land as `origin: synthetic` and `proofread: false`. Do not run experiments on them until a human proofreads and sets `proofread: true`.
 3. Prefer a mix of true/false positives and negatives on classification features. Tag critical cases.
 
 In-app **thumbs** / **false positive|negative** on a live feature write feedback scores and can **flag for dataset** (step 7). Those traces show up with `flaggedForDataset`.
@@ -41,25 +42,26 @@ Judge prompts for evaluators are named constants or registry prompts — never i
 
 ## 4. Set up evaluators
 
-Phase 1 ships **human** evaluators for the review queue. Judge/assert types land in phase 2.
-
 **Evaluators** → **Create from template** (`POST /ai/observability/evaluators/templates/:name`) or custom (`POST /ai/observability/evaluators`):
 
 | Feature shape | Template | Score |
 | --- | --- | --- |
-| Boolean flags (urgent, etc.) | `correctness` | boolean `correct` (human) |
-| Open-ended text | `hallucination` | boolean `contains_hallucination` |
-| Open-ended text | `helpfulness` | numeric 0–1 |
-| Open-ended text | `toxicity` | boolean `is_toxic` |
-| Open-ended text (if useful) | `conciseness` | numeric 0–1 |
+| Boolean flags (urgent, etc.) | `correctness` (`llm-judge`) or `correctness-human` (review queue) | boolean `correct` |
+| Open-ended text | `hallucination` / `hallucination-human` | boolean `hallucinated` / `contains_hallucination` |
+| Open-ended text | `helpfulness` / `helpfulness-human` | numeric 0–1 |
+| Open-ended text | `toxicity` / `toxicity-human` | boolean `is_toxic` / `toxic` |
+| Structured JSON output | `schema-assert` (`json-assert`) | boolean `schema_valid` |
+| Open-ended text (if useful) | `conciseness` | numeric 0–1 (human) |
 
-A human evaluator with `runModes.liveSampleRate > 0` is rejected (400). Live sampling is for LLM judges in phase 2, capped by `AI_OBS_SAMPLE_RATE`.
+`llm-judge` templates require a registry judge prompt (`eval-judge-*`) whose `outputSchema` declares every required dimension. Create returns 400 naming any missing key. `confidenceAlertBelow` defaults to **0.7**.
+
+A human evaluator with `runModes.liveSampleRate > 0` is rejected (400). Live sampling for judges is task 2.2, capped by `AI_OBS_SAMPLE_RATE`.
 
 Add more dimensions with product/engineering. Attach them to the experiment in step 5.
 
 ## 5. Run experiments
 
-1. **Experiments** → dataset + prompt versions + **model** + evaluators.
+1. **Experiments** → `POST /ai/observability/experiments` with dataset id, **2–3 prompt version numbers**, evaluator ids, optional `modelOverride`, and optional `thresholds[]`.
 2. Thresholds default to the SOP gates (override per run if product disagrees):
 
 | Dimension | Gate |
@@ -69,10 +71,12 @@ Add more dimensions with product/engineering. Attach them to the experiment in s
 | helpfulness mean | ≥ 90% |
 | toxicity true-rate | = 0% |
 
-3. Wait for the run (`BackgroundTask` when local).
-4. Skim **per-item outputs**. If they are nonsense, fix the prompt before trusting aggregates.
-5. Read **pass/fail vs thresholds**. Open **outliers** and **low confidence** (default alert below 0.7). Use those items to rewrite the prompt.
-6. Save a new prompt version. Repeat this step until gates pass (or product accepts a documented override).
+3. Wait for the run (`BackgroundTask` when local — even for a one-item dataset).
+4. `GET /ai/observability/experiments/:id` returns gate pass/fail, aggregates (`trueRate` for booleans, `mean` for numerics), `outlierItemIds`, `lowConfidenceItemIds`, and per-item outputs (**failed rows first**).
+5. Skim **per-item outputs**. If they are nonsense, fix the prompt before trusting aggregates.
+6. Read **pass/fail vs thresholds**. Open outliers and low-confidence items (default alert below 0.7). Use those items to rewrite the prompt.
+7. Save a new prompt version. Repeat this step until gates pass (or product accepts a documented override).
+8. `POST /ai/observability/experiments/:id/promote` with `{version}` moves `production` when all gates pass; **409** while any gate fails. Experiments never auto-promote without this call.
 
 Unproofread synthetic items are excluded unless you set `includeUnproofread`.
 
@@ -119,14 +123,12 @@ Feedback is a score (`source: "user-feedback"`) fanned out to every ScoreSink. N
 
 ## 8. Add weak production traces back to the dataset
 
-Phase 1: use the Traces bulk bar to **Send to review queue** (step 7). Dataset intake from traces is phase 2.
-
-When phase 2 ships:
-
-1. **Traces**: filter `thumbs=down`, `flaggedForDataset`, `failedEval`, or `lowConfidence`.
-2. **Add to dataset** (bulk allowed).
+1. **Traces**: filter `thumbs=down`, `flaggedForDataset`, `failedEval`, or `lowConfidence` (filters land with task 2.6 feedback).
+2. **Add to dataset** (`POST /ai/observability/traces/add-to-dataset`, bulk allowed).
 3. Label the new items (step 2).
 4. Repeat steps 5–8.
+
+Phase 1 also supports **Send to review queue** from the Traces bulk bar (step 7) when human scoring is enough before dataset intake.
 
 ## Checklist (one feature)
 

@@ -379,7 +379,7 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 The example backend always registers `createLocalObservabilityPlugin()` and passes the
 validated `AI_OBS_PRICE_MAP_JSON` object as `priceMap`. `bun run backend:seed` idempotently
 creates `examples/example-summarize` v1 with `production` on v1 and installs the human
-`correctness` evaluator. Invalid price JSON or negative/non-numeric prices fail startup
+`correctness-human` evaluator. Invalid price JSON or negative/non-numeric prices fail startup
 with `AI_OBS_PRICE_MAP_JSON` in the error.
 
 ### Local observability models
@@ -392,8 +392,12 @@ with `AI_OBS_PRICE_MAP_JSON` in the error.
 | `ObsTrace` | Root trace: user, session, status, `errorSummary`, `sensitive`, `prompts[]`, usage |
 | `ObsSpan` | Nested span with `kind`, `status`, optional `error`, offsets, usage |
 | `ObsScore` | Scores on a trace/span; many per trace, **no unique index** |
-| `ObsEvaluator` | Human (phase 1) evaluator: `type`, `target`, `dimensions[]`, `runModes`, `instructions`, `confidenceAlertBelow` (default 0.7) |
+| `ObsEvaluator` | Evaluator: `type` (`human` \| `llm-judge` \| `json-assert`), `target`, `dimensions[]`, `runModes`, `instructions`, `judgePromptName` (judge), `assertion` (json-assert), `confidenceAlertBelow` (default 0.7) |
 | `ObsReviewItem` | Review queue item: status, evaluator, trace, reason, scores, comment |
+| `ObsDataset` | Named dataset with optional `inputSchemaPromptName` and `expectedOutputSchema` |
+| `ObsDatasetItem` | Item with `input`, `expectedOutput`, `origin`, `proofread`, `tags`, `outcomeClass`, `sourceTraceId`, `metadata` |
+| `ObsExperiment` | Compares 2–3 prompt versions on a dataset with thresholds and aggregates |
+| `ObsExperimentItem` | Per dataset row: outputs per version, evaluator score maps, gate failure flags |
 
 `AIService` generate methods:
 
@@ -435,16 +439,34 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| GET | `/ai/observability/evaluators/templates` | Seeded human templates (`correctness`, `hallucination`, `helpfulness`, `toxicity`, `conciseness`) |
+| GET | `/ai/observability/evaluators/templates` | Seeded templates: `llm-judge` (`correctness`, `hallucination`, `helpfulness`, `toxicity`), `json-assert` (`schema-assert`), and human queue variants (`correctness-human`, …) |
 | POST | `/ai/observability/evaluators/templates/:name` | Install a template by name as an immutable-named evaluator |
-| GET/POST | `/ai/observability/evaluators` | List / create. Phase 1 `type` is `human`. Human + `liveSampleRate > 0` → 400 |
+| GET/POST | `/ai/observability/evaluators` | List / create. `llm-judge` requires `judgePromptName`; create rejects when the judge prompt `outputSchema` omits a required dimension (400 names the key). `json-assert` supports `assertion` (`path` + `constraint`) or built-in output-schema mode. Human + `liveSampleRate > 0` → 400 |
 | GET/PATCH/DELETE | `/ai/observability/evaluators/:id` | Read / update / soft-delete |
 | POST | `/ai/observability/traces/review` | Enqueue one or many traces against a human evaluator (`reason: "manual"`) |
 | GET | `/ai/observability/review` | Queue by `status` with counts; oldest-first. Response includes `more: false` so RTK preserves the count envelope. Rows include `traceName`, `promptName`, assignee, reason, and enqueue time |
 | GET | `/ai/observability/review/:id` | Item + evaluator dimensions + `given` / `wrote` panels and `rawInput` / `rawOutput` for the Raw JSON disclosure |
 | POST | `/ai/observability/review/:id` | `submit` (scores via ScoreSinks, status `done`), `skip`, or `assign` |
 
-Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset.
+`createLocalObservabilityPlugin()` wires `LocalDatasetStore` and `LocalExperimentRunner` when datasets/experiments primaries are `local`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET/POST | `/ai/observability/datasets` | List (includes `humanCount`, `autoCount`, `needsReviewCount`) / create |
+| GET/PATCH/DELETE | `/ai/observability/datasets/:id` | Detail (with counts) / update / soft-delete |
+| GET/POST | `/ai/observability/datasets/:id/items` | List / create items |
+| PATCH/DELETE | `/ai/observability/datasets/:id/items/:itemId` | Update labels (`expectedOutput`, `proofread`, `tags`, `outcomeClass`) / delete (does not touch the source trace) |
+| POST | `/ai/observability/datasets/:id/import` | **JSON:** body is an array of bare input objects, or structured rows with `input` / `expectedOutput` / `proofread` / `tags` / `outcomeClass` / `metadata`. **CSV:** `Content-Type: text/csv` with raw CSV body, or JSON `{format: "csv", content: "..."}`. Plain columns map to `input`; `input.foo` and `expectedOutput.foo` nest fields; reserved `proofread`, `tags`, `outcomeClass` map metadata. Rows validate against the dataset's bound prompt `inputSchema` when `inputSchemaPromptName` is set; 400 reports row number and JSON path |
+| POST | `/ai/observability/traces/add-to-dataset` | `{datasetId, traceId \| traceIds[]}`. Copies span I/O; `origin: "trace"`; `sourceTraceId` set; **sensitive traces always `proofread: false`** |
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| POST | `/ai/observability/experiments/estimate` | `{datasetId, promptName, versions[], evaluatorIds[], modelOverride?}` → generation count, USD, wall-clock estimate |
+| GET/POST | `/ai/observability/experiments` | List / create. Body: dataset, 2–3 version numbers, evaluator ids, optional `thresholds[]` (defaults to `SOP_DEFAULT_THRESHOLDS`), `modelOverride`, `includeUnproofread` (default false). Local primary always enqueues `BackgroundTask` (even one item) |
+| GET | `/ai/observability/experiments/:id` | Status, progress, per-version aggregates, gate pass/fail (`gates[].version`), `outlierItemIds`, `lowConfidenceItemIds`, per-item side-by-side (**failed rows first**) |
+| POST | `/ai/observability/experiments/:id/promote` | `{version}` moves the `production` label when **that version's** gates pass; **409** while any gate for the selected version fails |
+
+Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset (phase 2.6).
 
 ## Langfuse integration
 

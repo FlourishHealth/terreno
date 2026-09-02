@@ -4,6 +4,8 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
+    "ajv": "catalog:",
+    "csv-parse": "catalog:",
     "@ai-sdk/mcp": "^1.0.21",
     "@google-cloud/storage": "catalog:",
     "@langfuse/client": "^5.0.1",
@@ -18,6 +20,7 @@
   "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "chai": "catalog:",
     "@terreno/api": "workspace:*",
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",

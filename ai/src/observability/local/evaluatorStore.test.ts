@@ -53,9 +53,9 @@ describe("LocalEvaluatorStore", () => {
   });
 
   it("installs a seeded template by name", async () => {
-    expect(EVALUATOR_TEMPLATES.some((row) => row.name === "correctness")).toBe(true);
-    const installed = await store.installTemplate("correctness");
-    expect(installed.name).toBe("correctness");
+    expect(EVALUATOR_TEMPLATES.some((row) => row.name === "correctness-human")).toBe(true);
+    const installed = await store.installTemplate("correctness-human");
+    expect(installed.name).toBe("correctness-human");
     expect(installed.type).toBe("human");
     expect(installed.dimensions[0]?.dataType).toBe("boolean");
   });

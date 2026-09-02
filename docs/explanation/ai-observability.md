@@ -43,10 +43,20 @@ That loop is the product requirement, not an optional dashboard. Operator steps:
 
 The example backend always registers the local plugin. Its idempotent seed creates one
 registry prompt (`examples/example-summarize` v1 labelled `production`) and one human
-`correctness` evaluator. This makes the complete phase 1 loop walkable without Langfuse:
+`correctness-human` evaluator. This makes the complete phase 1 loop walkable without Langfuse:
 resolve the production prompt → emit a trace → inspect spans and sensitive I/O → send the
 trace to Review → record a human score.
 
 `AI_OBS_PRICE_MAP_JSON` belongs to deployment configuration because prices change
 independently of prompt versions. A missing model price preserves token counts and omits
 USD cost; it never invents `$0`.
+
+## Phase 2 backend (evaluators, datasets, experiments)
+
+With the local plugin registered and primaries set to `local`, the control plane now includes:
+
+- **`llm-judge` and `json-assert` evaluators** — judges call `AIService.generateJsonObject` through a named registry prompt (`judgePromptName`); create/update rejects a judge when the prompt `outputSchema` omits a required dimension (the error names that key). `json-assert` supports path/constraint checks and a built-in mode that validates output against the prompt version `outputSchema`. Parse or generation failures record an error outcome instead of throwing to the caller. Seeded templates install `correctness` / `hallucination` / `helpfulness` / `toxicity` as `llm-judge`, `schema-assert` as `json-assert`, and `*-human` variants for the review queue.
+- **Datasets** — CRUD plus item provenance (`origin`, `proofread`, `sourceTraceId`, tags, outcome class). Import accepts **JSON** (bare objects or structured rows) and **CSV** (quoted fields; `input.*` / `expectedOutput.*` column prefixes). Rows validate against the bound prompt input schema when configured. Adding from a trace copies I/O; sensitive traces always land `proofread: false`. Deleting an item never mutates the trace.
+- **Experiments** — compare 2–3 prompt versions on a dataset with optional `modelOverride` (requires `aiServiceFactory` on `ObservabilityApp`), evaluator thresholds (defaulting to the SOP gates), **per-version gate tiles** (`gates[].version`), outlier/low-confidence item ids, and version-scoped promote (**409** when the selected version's gates fail). Unproofread items are excluded unless `includeUnproofread` is true. Local runs compile exact prompt versions and call `AIService.generateText` with compiled `prompt` + `systemPrompt` (no `promptName`/`promptLabel`). `ObservabilityApp` wires the local experiment runner from `aiService` at register time.
+
+Operator UI for datasets and experiments ships in tasks 2.7–2.9; routes and stores are live for API clients and tests today.

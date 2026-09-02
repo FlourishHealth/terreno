@@ -112,8 +112,8 @@ export interface ReviewQueue {
 export interface ObservabilityPlugin {
   readonly capabilities: ReadonlySet<ObservabilityCapability>;
   readonly id: string;
-  datasetStore?: DatasetStore;
-  experimentRunner?: ExperimentRunner;
+  datasetStore?: DatasetStore | import("./local/datasetStore").LocalDatasetStore;
+  experimentRunner?: ExperimentRunner | import("./local/experimentRunner").LocalExperimentRunner;
   promptRegistry?: PromptRegistry;
   reviewQueue?: ReviewQueue;
   scoreSink?: ScoreSink;
@@ -127,6 +127,16 @@ export interface ModelPrice {
 
 export interface ObservabilityGenerateClient {
   readonly modelId: string;
+  generateJsonObject: <OBJECT>(options: {
+    prompt: string;
+    promptName?: string;
+    schema: import("ai").FlexibleSchema<OBJECT>;
+    schemaDescription?: string;
+    schemaName?: string;
+    skipTrace?: boolean;
+    systemPrompt?: string;
+    userId?: import("mongoose").Types.ObjectId;
+  }) => Promise<OBJECT>;
   generateText: (options: {
     prompt: string;
     skipTrace?: boolean;
@@ -135,8 +145,14 @@ export interface ObservabilityGenerateClient {
   }) => Promise<string>;
 }
 
+/** Selects an AI client for a specific model id (used by experiment `modelOverride`). */
+export type ObservabilityAiServiceFactory = (
+  modelId: string
+) => ObservabilityGenerateClient | undefined;
+
 export interface ObservabilityAppOptions {
   aiService?: ObservabilityGenerateClient;
+  aiServiceFactory?: ObservabilityAiServiceFactory;
   control?: {
     datasets?: ControlPrimary;
     experiments?: ControlPrimary;

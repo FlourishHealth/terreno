@@ -114,12 +114,12 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
 
 Ships design screens: Evaluators, Evaluator detail, New evaluator, Datasets, Dataset detail, Experiments, New experiment, Experiment results.
 
-- [ ] **Task 2.1**: `llm-judge` + `json-assert` evaluator types with the schema contract
+- [x] **Task 2.1**: `llm-judge` + `json-assert` evaluator types with the schema contract
   - Delivers: judge execution via `AIService.generateJsonObject` against a registry judge prompt; `json-assert` in-process assertion (`path`, `constraint`, plus the built-in "validate against the prompt version `outputSchema`" mode); **create/save rejects a judge whose prompt output schema omits a required dimension, naming that dimension**; parse failure records an error score rather than throwing to the caller
   - Files: `ai/src/observability/evaluate.ts`, `ai/src/observability/local/evaluatorStore.ts`, `ai/src/observability/evaluatorTemplates.ts`, tests
   - Blocked by: 1.7, 1.5
   - Docs: explanation — dimensions and the schema contract; how-to step 4
-  - Acceptance: mismatch rejected with the dimension key in the message; a judge writes exactly its declared keys; `confidenceAlertBelow` defaults to 0.7; templates for correctness / hallucination / helpfulness / toxicity / schema-assert install
+  - Acceptance: mismatch rejected with the dimension key in the message; a judge writes exactly its declared keys; `confidenceAlertBelow` defaults to 0.7; templates for correctness / hallucination / helpfulness / toxicity / schema-assert install (`*-human` variants preserved for the review queue)
 
 - [ ] **Task 2.2**: Live sampling execution
   - Delivers: after trace export, roll each evaluator's `liveSampleRate` (capped by `AI_OBS_SAMPLE_RATE`) and enqueue the eval on the same `BackgroundTask` path experiments use; never throws from generate
@@ -128,8 +128,8 @@ Ships design screens: Evaluators, Evaluator detail, New evaluator, Datasets, Dat
   - Docs: how-to — the sampling ceiling and its cost
   - Acceptance: rate 0 → no task; rate 100 with ceiling 0 → no task; rate 100 with ceiling 100 → task created
 
-- [ ] **Task 2.3**: Datasets and items with provenance
-  - Delivers: dataset CRUD with `inputSchemaPromptName` + `expectedOutputSchema`; item CRUD with `origin`, `proofread`, `annotatedBy`, `tags`, `outcomeClass`; `POST /datasets/:id/import` (JSON, validated against the bound input schema); `POST /traces/add-to-dataset` single and bulk copying the I/O snapshot with `sourceTraceId`; **a `sensitive` trace always lands `proofread: false`**
+- [x] **Task 2.3**: Datasets and items with provenance
+  - Delivers: dataset CRUD with `inputSchemaPromptName` + `expectedOutputSchema`; item CRUD with `origin`, `proofread`, `annotatedBy`, `tags`, `outcomeClass`; `POST /datasets/:id/import` (**JSON** array of bare objects or structured rows, plus **CSV** via `Content-Type: text/csv` or `{format: "csv", content}`; validates against the bound input schema); `POST /traces/add-to-dataset` single and bulk copying the I/O snapshot with `sourceTraceId`; **a `sensitive` trace always lands `proofread: false`**
   - Files: `ai/src/observability/local/datasetStore.ts`, `ai/src/observability/routes/datasets.ts`, tests
   - Blocked by: 1.6
   - Docs: how-to steps 1–2 and 8
@@ -142,7 +142,7 @@ Ships design screens: Evaluators, Evaluator detail, New evaluator, Datasets, Dat
   - Docs: how-to step 1 (synthetic)
   - Acceptance: generated items are excluded from a default experiment run; a playground run lands as an unproofread item with its input and output
 
-- [ ] **Task 2.5**: Experiment runner, gates, and gate-blocked promote
+- [x] **Task 2.5**: Experiment runner, gates, and gate-blocked promote
   - Delivers: `POST /experiments/estimate` (generations, USD, wall clock); `POST /experiments` comparing 2–3 versions on a dataset with optional `modelOverride`, always via `BackgroundTask` locally; per-item results per version; aggregates vs `thresholds[]` (defaulting to `SOP_DEFAULT_THRESHOLDS`); outlier and low-confidence item ids; failed items ordered first; `POST /experiments/:id/promote` returning **409 while any gate fails**
   - Files: `ai/src/observability/local/experimentRunner.ts`, `ai/src/observability/routes/experiments.ts`, tests
   - Blocked by: 2.3, 2.1, 1.5

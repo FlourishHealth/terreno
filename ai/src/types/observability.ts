@@ -210,3 +210,134 @@ export interface ObsReviewItemStatics
 export interface ObsReviewItemModel
   extends mongoose.Model<ObsReviewItemDocument>,
     ObsReviewItemStatics {}
+
+export interface ObsDatasetAnnotatedBy {
+  label: string;
+  reviewItemId?: string;
+  userId?: string;
+}
+
+export interface ObsDatasetDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  created: Date;
+  deleted: boolean;
+  description?: string;
+  expectedOutputSchema?: Record<string, unknown>;
+  inputSchemaPromptName?: string;
+  name: string;
+  tags: string[];
+  updated: Date;
+}
+
+export interface ObsDatasetStatics
+  extends FindExactlyOnePlugin<ObsDatasetDocument>,
+    FindOneOrNonePlugin<ObsDatasetDocument> {}
+
+export interface ObsDatasetModel extends mongoose.Model<ObsDatasetDocument>, ObsDatasetStatics {}
+
+export interface ObsDatasetItemDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  annotatedBy?: ObsDatasetAnnotatedBy;
+  created: Date;
+  datasetId: mongoose.Types.ObjectId;
+  deleted: boolean;
+  expectedOutput?: unknown;
+  input: unknown;
+  metadata?: Record<string, unknown>;
+  origin: "manual" | "synthetic" | "trace";
+  outcomeClass?: "fn" | "fp" | "tn" | "tp";
+  proofread: boolean;
+  sourceTraceId?: mongoose.Types.ObjectId;
+  tags: string[];
+  updated: Date;
+}
+
+export interface ObsDatasetItemStatics
+  extends FindExactlyOnePlugin<ObsDatasetItemDocument>,
+    FindOneOrNonePlugin<ObsDatasetItemDocument> {}
+
+export interface ObsDatasetItemModel
+  extends mongoose.Model<ObsDatasetItemDocument>,
+    ObsDatasetItemStatics {}
+
+export interface ScoreThreshold {
+  aggregate: "mean" | "trueRate";
+  dimension: string;
+  evaluatorName: string;
+  op: "eq" | "gte" | "lte";
+  value: number;
+}
+
+export interface ExperimentGateResult extends ScoreThreshold {
+  actual?: number;
+  passed: boolean;
+  version: number;
+}
+
+export interface ExperimentEstimate {
+  costUsd?: number;
+  generations: number;
+  wallClockSeconds: number;
+}
+
+export interface ExperimentAggregates {
+  gates: ExperimentGateResult[];
+  lowConfidenceItemIds: string[];
+  outlierItemIds: string[];
+  progress: {completed: number; total: number};
+  totalCostUsd?: number;
+}
+
+export interface ObsExperimentDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  backgroundTaskId?: mongoose.Types.ObjectId;
+  created: Date;
+  datasetId: mongoose.Types.ObjectId;
+  deleted: boolean;
+  estimate?: ExperimentEstimate;
+  evaluatorIds: mongoose.Types.ObjectId[];
+  includeUnproofread: boolean;
+  modelOverride?: string;
+  name: string;
+  promptName: string;
+  results?: ExperimentAggregates;
+  status: "completed" | "failed" | "pending" | "running";
+  thresholds: ScoreThreshold[];
+  updated: Date;
+  versions: number[];
+}
+
+export interface ObsExperimentStatics
+  extends FindExactlyOnePlugin<ObsExperimentDocument>,
+    FindOneOrNonePlugin<ObsExperimentDocument> {}
+
+export interface ObsExperimentModel
+  extends mongoose.Model<ObsExperimentDocument>,
+    ObsExperimentStatics {}
+
+export interface ExperimentVersionEvaluatorScore {
+  confidence?: number;
+  error?: string;
+  scores?: Record<string, boolean | number | string>;
+}
+
+export interface ExperimentVersionResult {
+  error?: string;
+  evaluatorScores: Record<string, ExperimentVersionEvaluatorScore>;
+  output?: unknown;
+}
+
+export interface ObsExperimentItemDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  created: Date;
+  datasetItemId: mongoose.Types.ObjectId;
+  deleted: boolean;
+  experimentId: mongoose.Types.ObjectId;
+  failed: boolean;
+  updated: Date;
+  versionResults: Record<string, ExperimentVersionResult>;
+}
+
+export interface ObsExperimentItemStatics
+  extends FindExactlyOnePlugin<ObsExperimentItemDocument>,
+    FindOneOrNonePlugin<ObsExperimentItemDocument> {}
+
+export interface ObsExperimentItemModel
+  extends mongoose.Model<ObsExperimentItemDocument>,
+    ObsExperimentItemStatics {}

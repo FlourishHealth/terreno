@@ -33,8 +33,13 @@ export {FileAttachment} from "./models/fileAttachment";
 export {GptHistory} from "./models/gptHistory";
 export {Project} from "./models/project";
 export {AI_OBSERVABILITY_GROUP, observabilityAdminScreens} from "./observability/adminScreens";
+export {LocalDatasetStore} from "./observability/local/datasetStore";
 export {LocalEvaluatorStore} from "./observability/local/evaluatorStore";
-export {createLocalObservabilityPlugin} from "./observability/local/localPlugin";
+export {LocalExperimentRunner} from "./observability/local/experimentRunner";
+export {
+  createLocalObservabilityBundle,
+  createLocalObservabilityPlugin,
+} from "./observability/local/localPlugin";
 export {LocalPromptStore} from "./observability/local/promptStore";
 export {LocalReviewStore} from "./observability/local/reviewStore";
 export {LocalScoreSink, LocalTraceSink, LocalTraceStore} from "./observability/local/traceStore";
@@ -51,6 +56,7 @@ export type {
 export {buildObservabilityStatus, isLocalObservabilityPluginOn} from "./observability/status";
 export type {
   ControlPrimary,
+  ObservabilityAiServiceFactory,
   ObservabilityAppOptions,
   ObservabilityCapability,
   ObservabilityControlConfig,

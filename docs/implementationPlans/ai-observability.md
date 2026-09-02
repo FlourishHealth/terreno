@@ -399,7 +399,7 @@ Admin-only unless noted (`Permissions.IsAdmin`). OpenAPI via `createOpenApiBuild
 | POST | `/traces/:id/feedback` | **IsAuthenticated** (owner or admin). Thumbs / outcome / flag-for-dataset → ScoreSinks; optional review enqueue |
 | POST | `/traces/add-to-dataset` | `{datasetId, traceIds[]}`. Copies I/O; `origin: "trace"`; sensitive traces forced to `proofread: false` (Q43) |
 | CRUD | `/datasets` + `/datasets/:id/items` | Item PATCH for expectedOutput / tags / outcomeClass / proofread |
-| POST | `/datasets/:id/import` | JSON upload; validates against `inputSchemaPromptName` when set |
+| POST | `/datasets/:id/import` | JSON or CSV upload; validates against `inputSchemaPromptName` when set. CSV: `text/csv` body or `{format: "csv", content}` |
 | POST | `/datasets/:id/generate` | Synthetic drafts via named generator prompt; `proofread: false` |
 | POST | `/experiments/estimate` | Wizard step 4: generation count, USD, wall-clock estimate |
 | POST | `/experiments` | 2–3 versions × dataset × evaluators + thresholds; local → `BackgroundTask` |
@@ -445,7 +445,7 @@ palette is already the Terreno theme (`#2B6072` rail, `#0E9DCD` primary, Titilli
 | Evaluators | `ai-evaluators` | Table (name, type badge, dimensions summary, target, run-mode chips) + the "schema is checked on save / live N% bills judge calls" footnote |
 | Evaluator detail | `ai-evaluator-detail` | Dimensions table (key, data type, range, required); type-specific panel (judge prompt link + model + **schema-match check**, assertion path/constraint, reviewer instructions); run modes with the live-sampling slider and its cost warning; **Used by** list with 30-day runs and cost |
 | New evaluator | `ai-evaluator-new` | Type and target pickers with hints; dimension builder (key, data type pills, range, required, remove); type-specific panel; **inline schema mismatch error naming the undeclared dimension**; run modes; Create |
-| Datasets | `ai-datasets` | Legend for human-annotated vs auto-captured; table (name, items, provenance bar + counts, source, updated); Import JSON; New dataset |
+| Datasets | `ai-datasets` | Legend for human-annotated vs auto-captured; table (name, items, provenance bar + counts, source, updated); Import JSON or CSV; New dataset |
 | Dataset detail | `ai-dataset-detail` | Header with human/auto counts and the input-schema binding line; Add item; Run experiment; tabs All / Human / Auto / **Needs review** (red count); items table (id, input, expected output, provenance + attribution line, trace link) |
 | Experiments | `ai-experiments` | Table (id, name, dataset, status badge, progress bar for running, cost); footnote on BackgroundTask / Langfuse deep-link |
 | New experiment | `ai-experiment-new` | 4-step rail with completed summaries; dataset picker showing item counts and schema match; version checkboxes tagged latest/production/superseded; evaluator checkboxes with per-item cost; **Review & run** summary with the estimate |

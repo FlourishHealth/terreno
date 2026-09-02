@@ -89,7 +89,7 @@ export const EXAMPLE_SUMMARIZE_PROMPT = {
   type: "chat" as const,
   variables: [{key: "text", label: "Source text", required: true}],
 };
-const EXAMPLE_REVIEW_EVALUATOR_TEMPLATE = "correctness";
+const EXAMPLE_REVIEW_EVALUATOR_TEMPLATE = "correctness-human";
 
 const TEST_USERS: SeedUser[] = [
   {
