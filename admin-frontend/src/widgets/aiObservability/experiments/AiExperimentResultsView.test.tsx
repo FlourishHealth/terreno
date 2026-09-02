@@ -54,7 +54,13 @@ describe("AiExperimentResultsView", () => {
       <AiExperimentResultsView
         experiment={{
           ...baseExperiment,
-          results: {...baseExperiment.results!, progress: {completed: 0, total: 3}},
+          results: {
+            gates: baseExperiment.results?.gates ?? [],
+            lowConfidenceItemIds: baseExperiment.results?.lowConfidenceItemIds ?? [],
+            outlierItemIds: baseExperiment.results?.outlierItemIds ?? [],
+            progress: {completed: 0, total: 3},
+            totalCostUsd: baseExperiment.results?.totalCostUsd,
+          },
           status: "running",
         }}
         isPromoting={false}

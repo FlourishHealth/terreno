@@ -50,7 +50,7 @@ const COLUMNS: DataTableColumn[] = [
   {columnType: "text", title: "Input", width: 200},
   {columnType: "text", title: "Expected", width: 200},
   {columnType: "text", title: "Provenance", width: 180},
-  {columnType: "text", title: "Trace", width: 120},
+  {columnType: "traceOpen", title: "Trace", width: 120},
 ];
 
 export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
@@ -70,6 +70,27 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   }, [items, tab]);
 
   const needsReviewCount = dataset.counts.needsReview;
+  const customColumnComponentMap = useMemo(
+    () => ({
+      traceOpen: ({cellData}: {cellData: DataTableCellData}) => {
+        const traceId = String(cellData.value ?? "");
+        if (!traceId || !onOpenTrace) {
+          return <Text>—</Text>;
+        }
+        return (
+          <Button
+            onClick={() => {
+              onOpenTrace(traceId);
+            }}
+            size="sm"
+            text="Open trace"
+            variant="ghost"
+          />
+        );
+      },
+    }),
+    [onOpenTrace]
+  );
 
   const rows: DataTableCellData[][] = useMemo(() => {
     return filtered.map((item) => {
@@ -78,7 +99,7 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
         {value: summarizeJson(item.input)},
         {value: summarizeJson(item.expectedOutput)},
         {value: `${item.origin} · ${attribution}`},
-        {value: item.sourceTraceId ?? "—"},
+        {value: item.sourceTraceId ?? ""},
       ];
     });
   }, [filtered]);
@@ -135,7 +156,12 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
           <Text color="secondaryDark">No items in this tab.</Text>
         </Box>
       ) : (
-        <DataTable columns={COLUMNS} data={rows} testID="ai-dataset-items-table" />
+        <DataTable
+          columns={COLUMNS}
+          customColumnComponentMap={customColumnComponentMap}
+          data={rows}
+          testID="ai-dataset-items-table"
+        />
       )}
       <Modal
         onDismiss={() => {

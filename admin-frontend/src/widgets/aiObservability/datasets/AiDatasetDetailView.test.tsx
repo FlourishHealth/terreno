@@ -45,7 +45,7 @@ describe("AiDatasetDetailView tabs", () => {
     const {getByTestId} = renderWithTheme(
       <AiDatasetDetailView
         dataset={dataset}
-        items={[items[1] ?? items[0]!]}
+        items={items.slice(1)}
         onAddItem={() => undefined}
         onOpenExperiment={() => undefined}
         routeBase="/admin"

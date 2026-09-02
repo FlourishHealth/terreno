@@ -112,10 +112,21 @@ const renderTypePanel = ({
             <Text>
               Judge prompt:{" "}
               {evaluator.judgePromptName ? (
-                <Link
-                  href={`${routeBase}/ai-prompt-editor?name=${encodeURIComponent(evaluator.judgePromptName)}`}
-                  text={evaluator.judgePromptName}
-                />
+                onOpenPrompt ? (
+                  <Button
+                    onClick={() => {
+                      onOpenPrompt(evaluator.judgePromptName ?? "");
+                    }}
+                    size="sm"
+                    text={evaluator.judgePromptName}
+                    variant="ghost"
+                  />
+                ) : (
+                  <Link
+                    href={`${routeBase}/ai-prompt-editor?name=${encodeURIComponent(evaluator.judgePromptName)}`}
+                    text={evaluator.judgePromptName}
+                  />
+                )
               ) : (
                 "—"
               )}
@@ -249,8 +260,8 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
       <Box gap={2}>
         <Text bold>Run modes</Text>
         <Text size="sm">
-          Live sampling at {Math.round(evaluator.runModes.liveSampleRate)}% bills judge calls
-          on matching traffic.
+          Live sampling at {Math.round(evaluator.runModes.liveSampleRate)}% bills judge calls on
+          matching traffic.
         </Text>
       </Box>
       <Box gap={2}>

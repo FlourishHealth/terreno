@@ -51,6 +51,26 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg}`,
         }),
       }),
+      deleteAiObservabilityDatasetsById: build.mutation<
+        DeleteAiObservabilityDatasetsByIdRes,
+        DeleteAiObservabilityDatasetsByIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/ai/observability/datasets/${queryArg}`,
+        }),
+      }),
+      deleteAiObservabilityDatasetsByIdItemsAndItemId: build.mutation<
+        DeleteAiObservabilityDatasetsByIdItemsAndItemIdRes,
+        DeleteAiObservabilityDatasetsByIdItemsAndItemIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/ai/observability/datasets/${queryArg.id}/items/${queryArg.itemId}`,
+        }),
+      }),
       deleteAiObservabilityEvaluatorsById: build.mutation<
         DeleteAiObservabilityEvaluatorsByIdRes,
         DeleteAiObservabilityEvaluatorsByIdArgs
@@ -266,6 +286,31 @@ const injectedRtkApi = api
         providesTags: ["ai"],
         query: () => ({url: `/ai/models`}),
       }),
+      getAiObservabilityDatasets: build.query<
+        GetAiObservabilityDatasetsRes,
+        GetAiObservabilityDatasetsArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/datasets`}),
+      }),
+      getAiObservabilityDatasetsById: build.query<
+        GetAiObservabilityDatasetsByIdRes,
+        GetAiObservabilityDatasetsByIdArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({
+          url: `/ai/observability/datasets/${queryArg}`,
+        }),
+      }),
+      getAiObservabilityDatasetsByIdItems: build.query<
+        GetAiObservabilityDatasetsByIdItemsRes,
+        GetAiObservabilityDatasetsByIdItemsArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({
+          url: `/ai/observability/datasets/${queryArg}/items`,
+        }),
+      }),
       getAiObservabilityEvaluators: build.query<
         GetAiObservabilityEvaluatorsRes,
         GetAiObservabilityEvaluatorsArgs
@@ -288,6 +333,22 @@ const injectedRtkApi = api
       >({
         providesTags: ["observability"],
         query: () => ({url: `/ai/observability/evaluators/templates`}),
+      }),
+      getAiObservabilityExperiments: build.query<
+        GetAiObservabilityExperimentsRes,
+        GetAiObservabilityExperimentsArgs
+      >({
+        providesTags: ["observability"],
+        query: () => ({url: `/ai/observability/experiments`}),
+      }),
+      getAiObservabilityExperimentsById: build.query<
+        GetAiObservabilityExperimentsByIdRes,
+        GetAiObservabilityExperimentsByIdArgs
+      >({
+        providesTags: ["observability"],
+        query: (queryArg) => ({
+          url: `/ai/observability/experiments/${queryArg}`,
+        }),
       }),
       getAiObservabilityPrompts: build.query<
         GetAiObservabilityPromptsRes,
@@ -546,6 +607,26 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}`,
         }),
       }),
+      patchAiObservabilityDatasetsById: build.mutation<
+        PatchAiObservabilityDatasetsByIdRes,
+        PatchAiObservabilityDatasetsByIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "PATCH",
+          url: `/ai/observability/datasets/${queryArg}`,
+        }),
+      }),
+      patchAiObservabilityDatasetsByIdItemsAndItemId: build.mutation<
+        PatchAiObservabilityDatasetsByIdItemsAndItemIdRes,
+        PatchAiObservabilityDatasetsByIdItemsAndItemIdArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "PATCH",
+          url: `/ai/observability/datasets/${queryArg.id}/items/${queryArg.itemId}`,
+        }),
+      }),
       patchAiObservabilityEvaluatorsById: build.mutation<
         PatchAiObservabilityEvaluatorsByIdRes,
         PatchAiObservabilityEvaluatorsByIdArgs
@@ -740,6 +821,33 @@ const injectedRtkApi = api
           }),
         }
       ),
+      postAiObservabilityDatasets: build.mutation<
+        PostAiObservabilityDatasetsRes,
+        PostAiObservabilityDatasetsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({method: "POST", url: `/ai/observability/datasets`}),
+      }),
+      postAiObservabilityDatasetsByIdImport: build.mutation<
+        PostAiObservabilityDatasetsByIdImportRes,
+        PostAiObservabilityDatasetsByIdImportArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/datasets/${queryArg}/import`,
+        }),
+      }),
+      postAiObservabilityDatasetsByIdItems: build.mutation<
+        PostAiObservabilityDatasetsByIdItemsRes,
+        PostAiObservabilityDatasetsByIdItemsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/datasets/${queryArg}/items`,
+        }),
+      }),
       postAiObservabilityEvaluators: build.mutation<
         PostAiObservabilityEvaluatorsRes,
         PostAiObservabilityEvaluatorsArgs
@@ -755,6 +863,33 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "POST",
           url: `/ai/observability/evaluators/templates/${queryArg}`,
+        }),
+      }),
+      postAiObservabilityExperiments: build.mutation<
+        PostAiObservabilityExperimentsRes,
+        PostAiObservabilityExperimentsArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({method: "POST", url: `/ai/observability/experiments`}),
+      }),
+      postAiObservabilityExperimentsByIdPromote: build.mutation<
+        PostAiObservabilityExperimentsByIdPromoteRes,
+        PostAiObservabilityExperimentsByIdPromoteArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/ai/observability/experiments/${queryArg}/promote`,
+        }),
+      }),
+      postAiObservabilityExperimentsEstimate: build.mutation<
+        PostAiObservabilityExperimentsEstimateRes,
+        PostAiObservabilityExperimentsEstimateArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({
+          method: "POST",
+          url: `/ai/observability/experiments/estimate`,
         }),
       }),
       postAiObservabilityPrompts: build.mutation<
@@ -807,6 +942,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "POST",
           url: `/ai/observability/review/${queryArg}`,
+        }),
+      }),
+      postAiObservabilityTracesAddToDataset: build.mutation<
+        PostAiObservabilityTracesAddToDatasetRes,
+        PostAiObservabilityTracesAddToDatasetArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: () => ({
+          method: "POST",
+          url: `/ai/observability/traces/add-to-dataset`,
         }),
       }),
       postAiObservabilityTracesByIdScores: build.mutation<
@@ -2406,18 +2551,6 @@ export type PostAiObservabilityPromptsByNamePlaygroundRes = /** status 200 Succe
   data?: object;
 };
 export type PostAiObservabilityPromptsByNamePlaygroundArgs = string;
-export type GetAiObservabilityTracesRes = /** status 200 Success */ {
-  data?: any;
-};
-export type GetAiObservabilityTracesArgs = undefined;
-export type GetAiObservabilityTracesByIdRes = /** status 200 Success */ {
-  data?: object;
-};
-export type GetAiObservabilityTracesByIdArgs = string;
-export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
-  data?: object;
-};
-export type PostAiObservabilityTracesByIdScoresArgs = string;
 export type GetAiObservabilityEvaluatorsTemplatesRes = /** status 200 Success */ {
   data?: any;
 };
@@ -2460,6 +2593,56 @@ export type PostAiObservabilityReviewByIdRes = /** status 200 Success */ {
   data?: object;
 };
 export type PostAiObservabilityReviewByIdArgs = string;
+export type GetAiObservabilityDatasetsRes = /** status 200 Success */ {};
+export type GetAiObservabilityDatasetsArgs = undefined;
+export type PostAiObservabilityDatasetsRes = /** status 201 Success */ {};
+export type PostAiObservabilityDatasetsArgs = undefined;
+export type GetAiObservabilityDatasetsByIdRes = /** status 200 Success */ {};
+export type GetAiObservabilityDatasetsByIdArgs = string;
+export type PatchAiObservabilityDatasetsByIdRes = /** status 200 Success */ {};
+export type PatchAiObservabilityDatasetsByIdArgs = string;
+export type DeleteAiObservabilityDatasetsByIdRes = /** status 204 Success */ {};
+export type DeleteAiObservabilityDatasetsByIdArgs = string;
+export type GetAiObservabilityDatasetsByIdItemsRes = /** status 200 Success */ {};
+export type GetAiObservabilityDatasetsByIdItemsArgs = string;
+export type PostAiObservabilityDatasetsByIdItemsRes = /** status 201 Success */ {};
+export type PostAiObservabilityDatasetsByIdItemsArgs = string;
+export type PatchAiObservabilityDatasetsByIdItemsAndItemIdRes = /** status 200 Success */ {};
+export type PatchAiObservabilityDatasetsByIdItemsAndItemIdArgs = {
+  id: string;
+  itemId: string;
+};
+export type DeleteAiObservabilityDatasetsByIdItemsAndItemIdRes = /** status 204 Success */ {};
+export type DeleteAiObservabilityDatasetsByIdItemsAndItemIdArgs = {
+  id: string;
+  itemId: string;
+};
+export type PostAiObservabilityDatasetsByIdImportRes = /** status 200 Success */ {};
+export type PostAiObservabilityDatasetsByIdImportArgs = string;
+export type PostAiObservabilityTracesAddToDatasetRes = /** status 201 Success */ {};
+export type PostAiObservabilityTracesAddToDatasetArgs = undefined;
+export type PostAiObservabilityExperimentsEstimateRes = /** status 200 Success */ {};
+export type PostAiObservabilityExperimentsEstimateArgs = undefined;
+export type GetAiObservabilityExperimentsRes = /** status 200 Success */ {};
+export type GetAiObservabilityExperimentsArgs = undefined;
+export type PostAiObservabilityExperimentsRes = /** status 201 Success */ {};
+export type PostAiObservabilityExperimentsArgs = undefined;
+export type GetAiObservabilityExperimentsByIdRes = /** status 200 Success */ {};
+export type GetAiObservabilityExperimentsByIdArgs = string;
+export type PostAiObservabilityExperimentsByIdPromoteRes = /** status 200 Success */ {};
+export type PostAiObservabilityExperimentsByIdPromoteArgs = string;
+export type GetAiObservabilityTracesRes = /** status 200 Success */ {
+  data?: any;
+};
+export type GetAiObservabilityTracesArgs = undefined;
+export type GetAiObservabilityTracesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetAiObservabilityTracesByIdArgs = string;
+export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityTracesByIdScoresArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -4016,9 +4199,6 @@ export const {
   usePostAiObservabilityPromptsByNameVersionsMutation,
   usePostAiObservabilityPromptsByNameLabelsMutation,
   usePostAiObservabilityPromptsByNamePlaygroundMutation,
-  useGetAiObservabilityTracesQuery,
-  useGetAiObservabilityTracesByIdQuery,
-  usePostAiObservabilityTracesByIdScoresMutation,
   useGetAiObservabilityEvaluatorsTemplatesQuery,
   usePostAiObservabilityEvaluatorsTemplatesByNameMutation,
   useGetAiObservabilityEvaluatorsQuery,
@@ -4030,6 +4210,25 @@ export const {
   useGetAiObservabilityReviewQuery,
   useGetAiObservabilityReviewByIdQuery,
   usePostAiObservabilityReviewByIdMutation,
+  useGetAiObservabilityDatasetsQuery,
+  usePostAiObservabilityDatasetsMutation,
+  useGetAiObservabilityDatasetsByIdQuery,
+  usePatchAiObservabilityDatasetsByIdMutation,
+  useDeleteAiObservabilityDatasetsByIdMutation,
+  useGetAiObservabilityDatasetsByIdItemsQuery,
+  usePostAiObservabilityDatasetsByIdItemsMutation,
+  usePatchAiObservabilityDatasetsByIdItemsAndItemIdMutation,
+  useDeleteAiObservabilityDatasetsByIdItemsAndItemIdMutation,
+  usePostAiObservabilityDatasetsByIdImportMutation,
+  usePostAiObservabilityTracesAddToDatasetMutation,
+  usePostAiObservabilityExperimentsEstimateMutation,
+  useGetAiObservabilityExperimentsQuery,
+  usePostAiObservabilityExperimentsMutation,
+  useGetAiObservabilityExperimentsByIdQuery,
+  usePostAiObservabilityExperimentsByIdPromoteMutation,
+  useGetAiObservabilityTracesQuery,
+  useGetAiObservabilityTracesByIdQuery,
+  usePostAiObservabilityTracesByIdScoresMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminAuditLogsBulkPatchMutation,
