@@ -75,6 +75,9 @@ describe("ObservabilityApp config", () => {
       customScreens: [
         {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
         {displayName: "Traces", group: "AI Observability", name: "ai-traces"},
+        {displayName: "Evaluators", group: "AI Observability", name: "ai-evaluators"},
+        {displayName: "Datasets", group: "AI Observability", name: "ai-datasets"},
+        {displayName: "Experiments", group: "AI Observability", name: "ai-experiments"},
         {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
       ],
     });
