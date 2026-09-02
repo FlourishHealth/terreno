@@ -2,8 +2,8 @@
 
 Plugin: `terreno-planning` (`2.5.0`)
 
-All five skills are explicitly invoked (`disable-model-invocation: true`). Grow, Brew,
-and Taste each implement one bounded transition. Pick continues an inner loop until the
+Planning skills are model-invocable: agents may select them from descriptions, not only
+from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
 approved task list is done. Roast proves the current task and returns.
 `terreno-planning-loop` and `terreno-taste-sweep` are outer loops that invoke those
 stages; they are not stages and must not appear as `stage` values.
