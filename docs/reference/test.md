@@ -114,9 +114,11 @@ declared in `bunfig.toml`.
 
 Pull requests also run the `New file coverage` workflow. Every newly added workspace
 `.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%
-line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, and isolated-test files
-are excluded. A new implementation file that is absent from LCOV is treated as 0%
-covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
+line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,
+`src/types` type modules, demo `story-config/*.config.tsx`, and Expo Router route
+files (`index`, `_layout`, `+not-found`, `[param]`, plus example recovery screens
+`forgotPassword` / `resetPassword` / `verifyEmail`) are excluded. A new implementation
+file that is absent from LCOV is treated as 0% covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
 globs) so Playwright `*.spec.ts` files are not collected. Globs are expanded in
 the coverage process before `bun test` is spawned, because spawn does not pass
 them through a shell. A glob that matches no files is omitted.

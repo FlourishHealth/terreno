@@ -2,6 +2,7 @@ import {Box, Button, Heading, Page, Text} from "@terreno/ui";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
+import {submitEmailVerification} from "@/lib/authRecoveryActions";
 import {parseAuthTokenFromRouteParam} from "@/lib/authRecoveryParams";
 import {verifyEmailWithToken} from "@/lib/betterAuth";
 import {usePostAuthVerifyEmailMutation} from "@/store/sdk";
@@ -19,25 +20,21 @@ const VerifyEmailScreen: React.FC = () => {
   const [verifyEmail] = usePostAuthVerifyEmailMutation();
 
   const handleVerify = useCallback(async (): Promise<void> => {
-    if (!token) {
-      setErrorMessage(
-        "This verification link is missing a token. Request a new email from your profile."
-      );
-      return;
-    }
-    setErrorMessage(undefined);
     setIsSubmitting(true);
     try {
-      const betterAuthResult = await verifyEmailWithToken({token});
-      if (betterAuthResult.error) {
-        await verifyEmail({token}).unwrap();
+      const result = await submitEmailVerification({
+        token,
+        verifyEmailWithToken,
+        verifyJwtEmail: async (verifyToken) => {
+          await verifyEmail({token: verifyToken}).unwrap();
+        },
+      });
+      if (result.errorMessage) {
+        setErrorMessage(result.errorMessage);
+        return;
       }
+      setErrorMessage(undefined);
       setIsComplete(true);
-    } catch (error: unknown) {
-      console.error("[verifyEmail] Verify failed", error);
-      setErrorMessage(
-        "This verification link is invalid or expired. Request a new one from your profile."
-      );
     } finally {
       setIsSubmitting(false);
     }

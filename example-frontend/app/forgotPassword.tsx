@@ -2,6 +2,7 @@ import {Box, Button, Heading, Page, Text, TextField} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useState} from "react";
+import {submitPasswordResetRequest} from "@/lib/authRecoveryActions";
 import {requestPasswordReset} from "@/lib/betterAuth";
 import {usePostAuthForgotPasswordMutation} from "@/store/sdk";
 
@@ -14,22 +15,21 @@ const ForgotPasswordScreen: React.FC = () => {
   const [requestJwtPasswordReset] = usePostAuthForgotPasswordMutation();
 
   const handleSubmit = useCallback(async (): Promise<void> => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setErrorMessage("Enter the email for your account.");
-      return;
-    }
-    setErrorMessage(undefined);
     setIsSubmitting(true);
     try {
-      const result = await requestPasswordReset(trimmedEmail);
-      if (result.error) {
-        await requestJwtPasswordReset({email: trimmedEmail}).unwrap();
+      const result = await submitPasswordResetRequest({
+        email,
+        requestJwtPasswordReset: async (trimmedEmail) => {
+          await requestJwtPasswordReset({email: trimmedEmail}).unwrap();
+        },
+        requestPasswordReset,
+      });
+      if (result.errorMessage) {
+        setErrorMessage(result.errorMessage);
+        return;
       }
+      setErrorMessage(undefined);
       setIsSubmitted(true);
-    } catch (error: unknown) {
-      console.error("[forgotPassword] Request failed", error);
-      setErrorMessage("Could not send a reset email. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

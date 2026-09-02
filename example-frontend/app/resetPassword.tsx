@@ -2,6 +2,7 @@ import {Box, Button, Heading, Page, Text, TextField} from "@terreno/ui";
 import {useLocalSearchParams, useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
+import {submitPasswordReset} from "@/lib/authRecoveryActions";
 import {parseAuthTokenFromRouteParam} from "@/lib/authRecoveryParams";
 import {resetPasswordWithToken} from "@/lib/betterAuth";
 import {useResetPasswordMutation} from "@/store/sdk";
@@ -20,29 +21,22 @@ const ResetPasswordScreen: React.FC = () => {
   const [resetPassword] = useResetPasswordMutation();
 
   const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!token) {
-      setErrorMessage(
-        "This reset link is missing a token. Request a new email from the login page."
-      );
-      return;
-    }
-    if (password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters.");
-      return;
-    }
-    setErrorMessage(undefined);
     setIsSubmitting(true);
     try {
-      const betterAuthResult = await resetPasswordWithToken({newPassword: password, token});
-      if (betterAuthResult.error) {
-        await resetPassword({email: "", password, token}).unwrap();
+      const result = await submitPasswordReset({
+        password,
+        resetJwtPassword: async ({password: nextPassword, token: resetToken}) => {
+          await resetPassword({email: "", password: nextPassword, token: resetToken}).unwrap();
+        },
+        resetPasswordWithToken,
+        token,
+      });
+      if (result.errorMessage) {
+        setErrorMessage(result.errorMessage);
+        return;
       }
+      setErrorMessage(undefined);
       setIsComplete(true);
-    } catch (error: unknown) {
-      console.error("[resetPassword] Reset failed", error);
-      setErrorMessage(
-        "This reset link is invalid or expired. Request a new one from the login page."
-      );
     } finally {
       setIsSubmitting(false);
     }
