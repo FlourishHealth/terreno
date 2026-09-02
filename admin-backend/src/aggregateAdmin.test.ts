@@ -2,6 +2,7 @@ import {describe, expect, it} from "bun:test";
 import type {AdminConfig, AdminContribution, TerrenoPlugin} from "@terreno/api";
 import {modelRouter, Permissions} from "@terreno/api";
 import {FoodModel} from "@terreno/api/testing";
+import {assert} from "chai";
 
 import type {AdminModelConfig} from "./adminApp";
 import {
@@ -126,6 +127,57 @@ describe("aggregateAdminContributions", () => {
         registeredModels: registered,
       })
     ).toThrow(/Duplicate admin modelRouter routePath/);
+  });
+
+  it("merges plugin scripts and custom screens, skipping duplicate names", () => {
+    const pluginContribution: AdminContribution = {
+      customScreens: [
+        {displayName: "Flags", name: "feature-flags"},
+        {displayName: "Flags again", name: "feature-flags"},
+      ],
+      scripts: [
+        {
+          description: "Seed foods",
+          name: "seed-foods",
+          runner: async () => ({results: [], success: true}),
+        },
+        {
+          description: "Duplicate seed",
+          name: "seed-foods",
+          runner: async () => ({results: [], success: true}),
+        },
+      ],
+    };
+
+    const aggregated = aggregateAdminContributions({
+      pluginContributions: [pluginContribution],
+    });
+
+    assert.deepEqual(
+      aggregated.customScreens.map((screen) => screen.name),
+      ["feature-flags"]
+    );
+    assert.equal(aggregated.customScreens[0]?.displayName, "Flags");
+    assert.deepEqual(
+      aggregated.scripts.map((script) => script.name),
+      ["seed-foods"]
+    );
+    assert.equal(aggregated.scripts[0]?.description, "Seed foods");
+  });
+
+  it("skips duplicate home widget ids", () => {
+    const aggregated = aggregateAdminContributions({
+      pluginContributions: [
+        {
+          homeWidgets: [
+            {displayName: "Overrides", id: "feature-flags-overrides"},
+            {displayName: "Overrides again", id: "feature-flags-overrides"},
+          ],
+        },
+      ],
+    });
+
+    assert.deepEqual(aggregated.widgetIds, ["feature-flags-overrides"]);
   });
 });
 

@@ -18,7 +18,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: none
   - Acceptance: `cd admin-frontend && bun test --coverage` reports ≥95% lines and functions; threshold is committed
 
-- [ ] **Task 1.2**: `admin-backend` coverage scope excludes `@terreno/test` dist
+- [x] **Task 1.2**: `admin-backend` coverage scope excludes `@terreno/test` dist
   - Delivers: LCOV / bun coverage for the package measures `admin-backend/src` (and dist of this package only), not `../test/dist/**`; package still ≥95% on that scope
   - Files: `admin-backend/bunfig.toml` (or coverage ignore), related test config
   - Blocked by: none
