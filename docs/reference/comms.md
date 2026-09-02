@@ -76,7 +76,8 @@ keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Push payloads omit tokens.
 Verification start stores `{channel}` only; verification checks store no payload.
 `recordDeliveryEvent` writes `status`, `errorCode`, and `errorClass` onto the matching
-row (`opened` does not change status). Expired payloads are unset, not deleted.
+row (`opened` does not change status). Missing rows log a warning and still fire the hook.
+A failed row save logs a warning and **throws** so webhook claims can release and retry.
 
 ## Provider contracts
 
@@ -324,7 +325,8 @@ Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `
 Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
 only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
-and `errorClass` onto the matching row (`opened` does not change status).
+and `errorClass` onto the matching row (`opened` does not change status). Missing rows warn;
+save failures throw after a warning so inbound webhook claims can retry.
 
 `beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
 `onError` fire after every channel outcome. `onRetry` fires once before the inline retry when

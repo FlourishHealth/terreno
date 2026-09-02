@@ -222,6 +222,30 @@ describe("SendGrid CommsApp webhooks", () => {
     assert.equal(deliveries.length, 1);
   });
 
+  it("releases the claim when recordDeliveryEvent save fails", async (): Promise<void> => {
+    const {app, comms, keyPair} = buildSendGridCommsApp();
+    await comms.service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const saveSpy = spyOn(CommsMessage.prototype, "save").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("save failed");
+      }
+    );
+    const events = [
+      {
+        event: "delivered",
+        sg_event_id: "sg_save_fail_1",
+        sg_message_id: SG_MESSAGE_ID,
+      },
+    ];
+    const first = await postSignedEvents({app, events, privateKey: keyPair.privateKey});
+    saveSpy.mockRestore();
+    assert.equal(first.status, 500);
+    const second = await postSignedEvents({app, events, privateKey: keyPair.privateKey});
+    assert.equal(second.status, 200);
+    const row = await CommsMessage.findExactlyOne({providerMessageId: MESSAGE_ID});
+    assert.equal(row.status, "delivered");
+  });
+
   it("applies both events in a signed batch", async (): Promise<void> => {
     const secondId = "filterdrecv-xyz789";
     let call = 0;

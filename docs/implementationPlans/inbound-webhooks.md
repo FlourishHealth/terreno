@@ -196,7 +196,7 @@ Comms (when `webhooks` is passed and the adapter is configured):
 ## Notifications
 
 Comms webhook handlers update `CommsMessage` via `recordDeliveryEvent` / `recordOptOut`.
-No extra notifier.
+A throwing `recordDeliveryEvent` (save failure) releases the claim so the provider can retry.
 
 ## UI
 
