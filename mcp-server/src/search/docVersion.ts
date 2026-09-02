@@ -104,3 +104,15 @@ export const slugifyComponentName = (name: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+/** Matches `website/scripts/generate-component-docs.ts`: lowercase only, no camelCase split. */
+export const generatorSlugifyComponentName = (name: string): string =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+export const snapshotComponentFileBases = (name: string): string[] => {
+  const bases = [slugifyComponentName(name), generatorSlugifyComponentName(name)];
+  return [...new Set(bases.filter((base) => base.length > 0))];
+};
