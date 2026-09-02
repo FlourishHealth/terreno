@@ -20,9 +20,6 @@ describe("createDatasetsApi", () => {
 
     createDatasetsApi(api);
 
-    assert.sameMembers(registeredTags, [
-      "aiObservabilityDatasets",
-      "aiObservabilityDatasetItems",
-    ]);
+    assert.sameMembers(registeredTags, ["aiObservabilityDatasets", "aiObservabilityDatasetItems"]);
   });
 });
