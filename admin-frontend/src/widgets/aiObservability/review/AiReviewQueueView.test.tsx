@@ -99,7 +99,7 @@ describe("AiReviewQueueView", () => {
     });
     expect(onRetry).toHaveBeenCalled();
 
-    const {getByTestId, getByText} = renderWithTheme(
+    const {getByText} = renderWithTheme(
       <AiReviewQueueView
         counts={{...counts, done: 1, pending: 1}}
         items={[item]}

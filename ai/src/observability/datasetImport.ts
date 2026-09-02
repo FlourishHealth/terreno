@@ -118,6 +118,8 @@ const rowFromBareObject = (row: Record<string, unknown>): ParsedDatasetImportRow
 const rowFromCsvRecord = (record: Record<string, string>): ParsedDatasetImportRow => {
   const input: Record<string, unknown> = {};
   const expectedOutput: Record<string, unknown> = {};
+  let explicitExpectedOutput: unknown;
+  let explicitInput: unknown;
   let proofread: boolean | undefined;
   let outcomeClass: ParsedDatasetImportRow["outcomeClass"];
   let tags: string[] = [];
@@ -143,6 +145,14 @@ const rowFromCsvRecord = (record: Record<string, string>): ParsedDatasetImportRo
       }
       continue;
     }
+    if (column === "input") {
+      explicitInput = coerceCellValue(rawValue);
+      continue;
+    }
+    if (column === "expectedOutput") {
+      explicitExpectedOutput = coerceCellValue(rawValue);
+      continue;
+    }
     if (column.startsWith("input.")) {
       setValueAtPath(input, column.slice("input.".length), coerceCellValue(rawValue));
       continue;
@@ -160,8 +170,14 @@ const rowFromCsvRecord = (record: Record<string, string>): ParsedDatasetImportRo
 
   const hasExpectedOutput = Object.keys(expectedOutput).length > 0;
   return {
-    expectedOutput: hasExpectedOutput ? expectedOutput : undefined,
-    input: Object.keys(input).length > 0 ? input : record,
+    expectedOutput:
+      explicitExpectedOutput !== undefined
+        ? explicitExpectedOutput
+        : hasExpectedOutput
+          ? expectedOutput
+          : undefined,
+    input:
+      explicitInput !== undefined ? explicitInput : Object.keys(input).length > 0 ? input : record,
     outcomeClass,
     proofread,
     tags,

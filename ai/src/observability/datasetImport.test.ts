@@ -80,6 +80,15 @@ describe("datasetImport", () => {
     });
   });
 
+  it("parses JSON values from plain input and expectedOutput CSV columns", () => {
+    const rows = parseDatasetCsvImport(
+      ["input,expectedOutput", '"{""text"":""hello""}","{""summary"":""short""}"'].join("\n")
+    );
+
+    assert.deepEqual(rows[0]?.input, {text: "hello"});
+    assert.deepEqual(rows[0]?.expectedOutput, {summary: "short"});
+  });
+
   it("normalizes validation paths and reads nested fields", () => {
     assert.equal(flattenValidationPath(""), "/");
     assert.equal(flattenValidationPath("text"), "/text");

@@ -109,10 +109,16 @@ describe("LocalDatasetStore", () => {
     const dataset = await store.create({name: "counts"});
     await store.createItem(dataset.id, {input: {a: 1}, proofread: true});
     await store.createItem(dataset.id, {input: {a: 2}, proofread: false});
+    await store.createItem(dataset.id, {
+      input: {a: 3},
+      origin: "synthetic",
+      proofread: false,
+    });
     const detail = await store.get(dataset.id);
-    assert.equal(detail.counts.total, 2);
+    assert.equal(detail.counts.total, 3);
     assert.equal(detail.counts.human, 1);
-    assert.equal(detail.counts.needsReview, 1);
+    assert.equal(detail.counts.auto, 1);
+    assert.equal(detail.counts.needsReview, 2);
     const listed = await store.list();
     assert.equal(
       listed.some((row) => row.id === dataset.id),
@@ -121,7 +127,13 @@ describe("LocalDatasetStore", () => {
   });
 
   it("supports dataset CRUD, duplicate protection, and item updates", async () => {
-    const created = await store.create({description: "gold", name: "crud-set", tags: ["a"]});
+    const created = await store.create({
+      description: "gold",
+      expectedOutputSchema: {type: "string"},
+      inputSchemaPromptName: "prompt",
+      name: "crud-set",
+      tags: ["a"],
+    });
     const updated = await store.update(created.id, {description: "updated", name: "crud-set"});
     assert.equal(updated.description, "updated");
 
@@ -145,6 +157,22 @@ describe("LocalDatasetStore", () => {
     });
     assert.deepEqual(saved.input, {text: "two"});
     assert.equal(saved.proofread, true);
+    const clearedDataset = await store.update(created.id, {
+      description: null,
+      expectedOutputSchema: null,
+      inputSchemaPromptName: null,
+    });
+    assert.isUndefined(clearedDataset.description);
+    assert.isUndefined(clearedDataset.expectedOutputSchema);
+    assert.isUndefined(clearedDataset.inputSchemaPromptName);
+    const clearedItem = await store.updateItem(created.id, item.id, {
+      expectedOutput: null,
+      metadata: null,
+      outcomeClass: null,
+    });
+    assert.isUndefined(clearedItem.expectedOutput);
+    assert.isUndefined(clearedItem.metadata);
+    assert.isUndefined(clearedItem.outcomeClass);
 
     await store.removeItem(created.id, item.id);
     await store.remove(created.id);

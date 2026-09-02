@@ -16,19 +16,19 @@ import {registerObsTrace} from "./models/obsTrace";
 import {LocalPromptStore} from "./promptStore";
 
 export interface DatasetWriteInput {
-  description?: string;
-  expectedOutputSchema?: Record<string, unknown>;
-  inputSchemaPromptName?: string;
+  description?: string | null;
+  expectedOutputSchema?: Record<string, unknown> | null;
+  inputSchemaPromptName?: string | null;
   name: string;
   tags?: string[];
 }
 
 export interface DatasetItemWriteInput {
-  expectedOutput?: unknown;
+  expectedOutput?: unknown | null;
   input: unknown;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
   origin?: "manual" | "synthetic" | "trace";
-  outcomeClass?: "fn" | "fp" | "tn" | "tp";
+  outcomeClass?: "fn" | "fp" | "tn" | "tp" | null;
   proofread?: boolean;
   sourceTraceId?: string;
   tags?: string[];
@@ -144,13 +144,17 @@ const toItemView = (doc: {
 const computeDatasetCounts = async (datasetId: string): Promise<DatasetCounts> => {
   const ObsDatasetItem = registerObsDatasetItem();
   const objectId = new mongoose.Types.ObjectId(datasetId);
-  const [total, human, needsReview] = await Promise.all([
+  const [total, human, auto, needsReview] = await Promise.all([
     ObsDatasetItem.countDocuments({datasetId: objectId}),
     ObsDatasetItem.countDocuments({datasetId: objectId, proofread: true}),
+    ObsDatasetItem.countDocuments({
+      datasetId: objectId,
+      origin: {$in: ["synthetic", "trace"]},
+    }),
     ObsDatasetItem.countDocuments({datasetId: objectId, proofread: false}),
   ]);
   return {
-    auto: needsReview,
+    auto,
     human,
     needsReview,
     total,
@@ -166,9 +170,9 @@ export class LocalDatasetStore {
     }
     try {
       const created = await registerObsDataset().create({
-        description: input.description,
-        expectedOutputSchema: input.expectedOutputSchema,
-        inputSchemaPromptName: input.inputSchemaPromptName,
+        description: input.description ?? undefined,
+        expectedOutputSchema: input.expectedOutputSchema ?? undefined,
+        inputSchemaPromptName: input.inputSchemaPromptName ?? undefined,
         name: input.name,
         tags: input.tags ?? [],
       });
@@ -208,9 +212,15 @@ export class LocalDatasetStore {
     if (!doc) {
       throw new APIError({status: 404, title: `Unknown dataset "${id}"`});
     }
-    doc.description = input.description ?? doc.description;
-    doc.expectedOutputSchema = input.expectedOutputSchema ?? doc.expectedOutputSchema;
-    doc.inputSchemaPromptName = input.inputSchemaPromptName ?? doc.inputSchemaPromptName;
+    if (input.description !== undefined) {
+      doc.description = input.description ?? undefined;
+    }
+    if (input.expectedOutputSchema !== undefined) {
+      doc.expectedOutputSchema = input.expectedOutputSchema ?? undefined;
+    }
+    if (input.inputSchemaPromptName !== undefined) {
+      doc.inputSchemaPromptName = input.inputSchemaPromptName ?? undefined;
+    }
     doc.name = input.name ?? doc.name;
     doc.tags = input.tags ?? doc.tags;
     await doc.save();
@@ -243,11 +253,11 @@ export class LocalDatasetStore {
     await this.validateItemInput(dataset, input.input, 1);
     const created = await registerObsDatasetItem().create({
       datasetId: dataset._id,
-      expectedOutput: input.expectedOutput,
+      expectedOutput: input.expectedOutput ?? undefined,
       input: input.input,
-      metadata: input.metadata,
+      metadata: input.metadata ?? undefined,
       origin: input.origin ?? "manual",
-      outcomeClass: input.outcomeClass,
+      outcomeClass: input.outcomeClass ?? undefined,
       proofread: input.proofread ?? false,
       sourceTraceId: input.sourceTraceId,
       tags: input.tags ?? [],
@@ -272,9 +282,15 @@ export class LocalDatasetStore {
       await this.validateItemInput(dataset, input.input, 1);
       doc.input = input.input;
     }
-    doc.expectedOutput = input.expectedOutput ?? doc.expectedOutput;
-    doc.metadata = input.metadata ?? doc.metadata;
-    doc.outcomeClass = input.outcomeClass ?? doc.outcomeClass;
+    if (input.expectedOutput !== undefined) {
+      doc.expectedOutput = input.expectedOutput ?? undefined;
+    }
+    if (input.metadata !== undefined) {
+      doc.metadata = input.metadata ?? undefined;
+    }
+    if (input.outcomeClass !== undefined) {
+      doc.outcomeClass = input.outcomeClass ?? undefined;
+    }
     if (input.proofread !== undefined) {
       doc.proofread = input.proofread;
     }
