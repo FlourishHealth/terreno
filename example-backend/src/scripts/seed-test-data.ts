@@ -4,7 +4,7 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import {LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
+import {LocalDatasetStore, LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
 import {
   APIError,
   ConsentForm,
@@ -82,13 +82,26 @@ const EXAMPLE_ORGANIZATION_ID = "org-example";
 export const EXAMPLE_SUMMARIZE_PROMPT = {
   config: {temperature: 0.3},
   folder: "examples",
+  inputSchema: {
+    properties: {text: {type: "string"}},
+    required: ["text"],
+    type: "object",
+  },
   name: "example-summarize",
+  outputSchema: {type: "string"},
   system: "Write one faithful, concise sentence that preserves the source meaning.",
   tags: ["example", "summarization"],
   template: "Summarize the following text:\n\n{{text}}",
   type: "chat" as const,
   variables: [{key: "text", label: "Source text", required: true}],
 };
+const EXAMPLE_SUMMARIZE_V2 = {
+  ...EXAMPLE_SUMMARIZE_PROMPT,
+  system:
+    "Write one faithful sentence of at most 20 words that preserves the source meaning.",
+};
+const EXAMPLE_DATASET_NAME = "example-gold";
+const EXAMPLE_EXPERIMENT_EVALUATOR_TEMPLATE = "schema-assert";
 const EXAMPLE_REVIEW_EVALUATOR_TEMPLATE = "correctness-human";
 
 const TEST_USERS: SeedUser[] = [
@@ -555,19 +568,65 @@ const seedObservability = async (context: SeedContext): Promise<void> => {
       version: prompt.latestVersion,
     });
   }
+  const latestPrompt = (
+    await promptStore.list({search: EXAMPLE_SUMMARIZE_PROMPT.name})
+  ).find((entry) => entry.name === EXAMPLE_SUMMARIZE_PROMPT.name);
+  if (!context.dryRun && (latestPrompt?.latestVersion ?? 0) < 2) {
+    await promptStore.createVersion(EXAMPLE_SUMMARIZE_PROMPT.name, EXAMPLE_SUMMARIZE_V2);
+  }
 
   const evaluatorStore = new LocalEvaluatorStore();
-  const evaluator = (await evaluatorStore.list()).find(
-    (entry) => entry.name === EXAMPLE_REVIEW_EVALUATOR_TEMPLATE
+  for (const templateName of [
+    EXAMPLE_REVIEW_EVALUATOR_TEMPLATE,
+    EXAMPLE_EXPERIMENT_EVALUATOR_TEMPLATE,
+  ]) {
+    const evaluator = (await evaluatorStore.list()).find((entry) => entry.name === templateName);
+    context.changes.push({
+      change: evaluator ? "unchanged" : "created",
+      count: 1,
+      key: JSON.stringify({name: templateName}),
+      model: "ObsEvaluator",
+    });
+    if (!context.dryRun && !evaluator) {
+      await evaluatorStore.installTemplate(templateName);
+    }
+  }
+
+  const datasetStore = new LocalDatasetStore(promptStore);
+  const existingDataset = (await datasetStore.list()).find(
+    (entry) => entry.name === EXAMPLE_DATASET_NAME
   );
   context.changes.push({
-    change: evaluator ? "unchanged" : "created",
+    change: existingDataset ? "unchanged" : "created",
     count: 1,
-    key: JSON.stringify({name: EXAMPLE_REVIEW_EVALUATOR_TEMPLATE}),
-    model: "ObsEvaluator",
+    key: JSON.stringify({name: EXAMPLE_DATASET_NAME}),
+    model: "ObsDataset",
   });
-  if (!context.dryRun && !evaluator) {
-    await evaluatorStore.installTemplate(EXAMPLE_REVIEW_EVALUATOR_TEMPLATE);
+  if (!context.dryRun) {
+    const dataset =
+      existingDataset ??
+      (await datasetStore.create({
+        inputSchemaPromptName: EXAMPLE_SUMMARIZE_PROMPT.name,
+        name: EXAMPLE_DATASET_NAME,
+        tags: ["example", "gold"],
+      }));
+    const items = await datasetStore.listItems(dataset.id);
+    if (items.length === 0) {
+      await datasetStore.importJson(dataset.id, [
+        {
+          expectedOutput: "Terreno provides a batteries-included TypeScript framework.",
+          input: {text: "Terreno is a batteries-included full-stack framework for TypeScript."},
+          proofread: true,
+          tags: ["framework"],
+        },
+        {
+          expectedOutput: "One React Native codebase ships to web, iOS, and Android.",
+          input: {text: "Terreno's universal app runs on web, iOS, and Android from one codebase."},
+          proofread: true,
+          tags: ["universal"],
+        },
+      ]);
+    }
   }
 };
 

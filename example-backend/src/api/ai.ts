@@ -232,7 +232,7 @@ const listAvailableModels = async (): Promise<SelectableModel[]> => {
   return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
 
-const getAiService = (): AIService | undefined => {
+export const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
     return aiServiceInstance;
   }
@@ -265,7 +265,7 @@ const getAiService = (): AIService | undefined => {
 };
 
 /** Create a LanguageModel on the server side (Vertex AI / Gemini Enterprise Agent Platform or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). Throws if the requested model is not in the configured allow-list. */
-const createServerModel = (modelId?: string) => {
+export const createServerModel = (modelId?: string): LanguageModel | undefined => {
   const vertexProvider = getVertexProvider();
   if (vertexProvider) {
     return vertexProvider.languageModel(modelId ?? resolveDefaultVertexModel(vertexProvider));

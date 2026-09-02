@@ -3,6 +3,7 @@ import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {
   AIAdminApp,
+  AIService,
   createLocalObservabilityPlugin,
   LangfuseApp,
   ObservabilityApp,
@@ -43,7 +44,7 @@ import mongoose from "mongoose";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes} from "./api/ai";
+import {addAiRoutes, createServerModel, getAiService} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
@@ -319,6 +320,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(new AIAdminApp())
       .register(
         new ObservabilityApp({
+          aiService: getAiService(),
+          aiServiceFactory: (modelId) => {
+            const model = createServerModel(modelId);
+            if (!model) {
+              return undefined;
+            }
+            return new AIService({model});
+          },
           plugins: [createLocalObservabilityPlugin()],
           priceMap: parseObservabilityPriceMap(process.env.AI_OBS_PRICE_MAP_JSON),
         })

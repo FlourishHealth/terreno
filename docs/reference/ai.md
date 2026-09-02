@@ -378,9 +378,10 @@ Register `ObservabilityApp` with at least a local plugin. Construction throws if
 
 The example backend always registers `createLocalObservabilityPlugin()` and passes the
 validated `AI_OBS_PRICE_MAP_JSON` object as `priceMap`. `bun run backend:seed` idempotently
-creates `examples/example-summarize` v1 with `production` on v1 and installs the human
-`correctness-human` evaluator. Invalid price JSON or negative/non-numeric prices fail startup
-with `AI_OBS_PRICE_MAP_JSON` in the error.
+creates `examples/example-summarize` with production on v1 and an experimental v2, installs
+`correctness-human` and `schema-assert`, and creates a two-item proofread `example-gold`
+dataset bound to the prompt input schema. Invalid price JSON or negative/non-numeric prices
+fail startup with `AI_OBS_PRICE_MAP_JSON` in the error.
 
 ### Local observability models
 

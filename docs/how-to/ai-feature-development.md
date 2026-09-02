@@ -6,8 +6,10 @@ Architecture: [AI observability](../explanation/ai-observability.md). Routes and
 
 Volume targets (how many gold items, class balance) live in the operator spreadsheet, not in Terreno. Use **tags** and **outcome class** so you can filter for balance.
 
-For a walkable phase 1 example, run `bun run backend:seed`: it installs
-`examples/example-summarize` v1 as `production` and the human `correctness-human` evaluator.
+For a walkable example, run `bun run backend:seed`: it installs
+`examples/example-summarize` with production on v1 and candidate v2, the human
+`correctness-human` and automatic `schema-assert` evaluators, and the proofread
+`example-gold` dataset.
 
 ## 1. Gather a gold dataset
 

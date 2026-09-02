@@ -1,5 +1,5 @@
 import {describe, it} from "bun:test";
-import {LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
+import {LocalDatasetStore, LocalEvaluatorStore, LocalPromptStore} from "@terreno/ai";
 import {ConsentForm, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
@@ -42,7 +42,7 @@ describe("seedDefaultData", () => {
       (entry) => entry.name === "example-summarize"
     );
     assert.equal(prompt?.folder, "examples");
-    assert.equal(prompt?.latestVersion, 1);
+    assert.equal(prompt?.latestVersion, 2);
     assert.equal(prompt?.production, 1);
     assert.equal(prompt?.type, "chat");
     const promptDetail = await promptStore.getDetail("example-summarize");
@@ -58,6 +58,16 @@ describe("seedDefaultData", () => {
     assert.equal(evaluator?.dimensions[0]?.dataType, "boolean");
     assert.isTrue(evaluator?.dimensions[0]?.required);
     assert.equal(evaluator?.runModes.liveSampleRate, 0);
+    const schemaEvaluator = (await new LocalEvaluatorStore().list()).find(
+      (entry) => entry.name === "schema-assert"
+    );
+    assert.equal(schemaEvaluator?.type, "json-assert");
+    const dataset = (await new LocalDatasetStore(promptStore).list()).find(
+      (entry) => entry.name === "example-gold"
+    );
+    assert.equal(dataset?.counts.total, 2);
+    assert.equal(dataset?.counts.human, 2);
+    assert.equal(dataset?.inputSchemaPromptName, "example-summarize");
     assert.equal(
       await CommsMessage.countDocuments({
         "metadata.demoSeed": true,

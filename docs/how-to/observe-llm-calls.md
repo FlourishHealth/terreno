@@ -68,7 +68,9 @@ Langfuse plugin is registered. Review is hidden when the local plugin is off.
 1. Set `MONGO_URI` to a replica set and the auth secrets from
    `example-backend/.env.example`.
 2. Run `bun run backend:seed`. The idempotent seed creates `examples/example-summarize`
-   v1 with `production` pointing to v1, plus the human `correctness-human` evaluator.
+   v1 with `production` pointing to v1 and candidate v2, plus the human
+   `correctness-human` evaluator, automatic `schema-assert` evaluator, and
+   two-item `example-gold` dataset.
 3. Start `bun run backend:dev` and `bun run frontend:web`, then sign in as the seeded
    admin.
 4. Open **AI Observability → Prompts** to inspect or save a new immutable version. Move

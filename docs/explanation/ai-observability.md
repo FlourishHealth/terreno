@@ -41,9 +41,10 @@ That loop is the product requirement, not an optional dashboard. Operator steps:
 
 ## Phase 1 reference loop
 
-The example backend always registers the local plugin. Its idempotent seed creates one
-registry prompt (`examples/example-summarize` v1 labelled `production`) and one human
-`correctness-human` evaluator. This makes the complete phase 1 loop walkable without Langfuse:
+The example backend always registers the local plugin. Its idempotent seed creates
+`examples/example-summarize` with production on v1 and an experimental v2, the human
+`correctness-human` evaluator, the automatic `schema-assert` evaluator, and a two-item
+`example-gold` dataset. This makes the review and experiment loops walkable without Langfuse:
 resolve the production prompt → emit a trace → inspect spans and sensitive I/O → send the
 trace to Review → record a human score.
 
