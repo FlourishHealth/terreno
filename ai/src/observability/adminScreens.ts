@@ -6,10 +6,12 @@ export const observabilityAdminScreens = ({localOn}: {localOn: boolean}): AdminC
   const screens: AdminCustomScreen[] = [
     {displayName: "Prompts", group: AI_OBSERVABILITY_GROUP, name: "ai-prompts"},
     {displayName: "Traces", group: AI_OBSERVABILITY_GROUP, name: "ai-traces"},
+    {displayName: "Evaluators", group: AI_OBSERVABILITY_GROUP, name: "ai-evaluators"},
+    {displayName: "Datasets", group: AI_OBSERVABILITY_GROUP, name: "ai-datasets"},
+    {displayName: "Experiments", group: AI_OBSERVABILITY_GROUP, name: "ai-experiments"},
   ];
-  if (!localOn) {
-    return screens;
+  if (localOn) {
+    screens.push({displayName: "Review queue", group: AI_OBSERVABILITY_GROUP, name: "ai-review"});
   }
-  screens.push({displayName: "Review queue", group: AI_OBSERVABILITY_GROUP, name: "ai-review"});
   return screens;
 };

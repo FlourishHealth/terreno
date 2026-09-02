@@ -51,19 +51,30 @@ const sensitiveTrace: TraceListItem = {
 };
 
 const idleHandlers = {
+  onAddToDataset: () => undefined,
   onClearSelection: () => undefined,
+  onDatasetChange: () => undefined,
+  onDismissDatasetModal: () => undefined,
   onEnqueueReview: () => undefined,
   onEvaluatorChange: () => undefined,
   onFiltersChange: () => undefined,
+  onOpenAddToDataset: () => undefined,
   onOpenTrace: () => undefined,
   onPageChange: () => undefined,
   onToggleSelect: () => undefined,
+};
+
+const datasetDefaults = {
+  datasetId: "",
+  datasetModalOpen: false,
+  datasetOptions: [],
 };
 
 describe("AiTracesListView", () => {
   it("renders the empty state", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiTracesListView
+        {...datasetDefaults}
         evaluatorId=""
         evaluators={[]}
         filters={emptyTraceFilters()}
@@ -81,6 +92,7 @@ describe("AiTracesListView", () => {
   it("renders an error row with the error line and prompt count", () => {
     const {getByText} = renderWithTheme(
       <AiTracesListView
+        {...datasetDefaults}
         evaluatorId=""
         evaluators={[]}
         filters={emptyTraceFilters()}
@@ -99,6 +111,7 @@ describe("AiTracesListView", () => {
   it("renders a sensitive badge on sensitive traces", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiTracesListView
+        {...datasetDefaults}
         evaluatorId=""
         evaluators={[]}
         filters={emptyTraceFilters()}
@@ -114,9 +127,10 @@ describe("AiTracesListView", () => {
     expect(getByText("2")).toBeTruthy();
   });
 
-  it("shows the bulk bar with a sensitive warning and a disabled dataset action", () => {
+  it("shows the bulk bar with a sensitive warning and an enabled dataset action", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiTracesListView
+        {...datasetDefaults}
         evaluatorId="eval-1"
         evaluators={[{id: "eval-1", name: "correctness"}]}
         filters={emptyTraceFilters()}
@@ -132,7 +146,7 @@ describe("AiTracesListView", () => {
     expect(getByTestId("ai-traces-sensitive-warning")).toBeTruthy();
     expect(getByText("1 selected trace is marked sensitive.")).toBeTruthy();
     const dataset = getByTestId("ai-traces-add-dataset");
-    expect(dataset.props.accessibilityState?.disabled ?? dataset.props.disabled).toBeTruthy();
+    expect(dataset.props.accessibilityState?.disabled ?? dataset.props.disabled).toBeFalsy();
     expect(getByTestId("ai-traces-send-review")).toBeTruthy();
     expect(getByTestId("ai-traces-clear-selection")).toBeTruthy();
   });

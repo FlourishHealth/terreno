@@ -20,6 +20,14 @@ export interface AiObservabilityScreenMeta {
 export const AI_OBSERVABILITY_GROUP = "AI Observability";
 
 export const AI_OBSERVABILITY_SCREENS: Record<string, AiObservabilityScreenMeta> = {
+  "ai-dataset-detail": {leaf: "Detail", section: "Datasets", title: "Dataset"},
+  "ai-datasets": {leaf: "List", section: "Datasets", title: "Datasets"},
+  "ai-evaluator-detail": {leaf: "Detail", section: "Evaluators", title: "Evaluator"},
+  "ai-evaluator-new": {leaf: "New", section: "Evaluators", title: "New evaluator"},
+  "ai-evaluators": {leaf: "List", section: "Evaluators", title: "Evaluators"},
+  "ai-experiment-new": {leaf: "New", section: "Experiments", title: "New experiment"},
+  "ai-experiment-results": {leaf: "Results", section: "Experiments", title: "Experiment results"},
+  "ai-experiments": {leaf: "List", section: "Experiments", title: "Experiments"},
   "ai-prompt-editor": {leaf: "Editor", section: "Prompts", title: "Prompt editor"},
   "ai-prompts": {leaf: "Library", section: "Prompts", title: "Prompts"},
   "ai-review": {leaf: "Queue", section: "Review", title: "Review queue"},
@@ -37,6 +45,9 @@ export interface AiObservabilityNavItem {
 export const AI_OBSERVABILITY_NAV_ITEMS: AiObservabilityNavItem[] = [
   {displayName: "Prompts", name: "ai-prompts", requiresLocal: false},
   {displayName: "Traces", name: "ai-traces", requiresLocal: false},
+  {displayName: "Evaluators", name: "ai-evaluators", requiresLocal: false},
+  {displayName: "Datasets", name: "ai-datasets", requiresLocal: false},
+  {displayName: "Experiments", name: "ai-experiments", requiresLocal: false},
   {displayName: "Review queue", name: "ai-review", requiresLocal: true},
 ];
 
@@ -81,6 +92,15 @@ const sectionHref = (section: string, routeBase: string): string => {
   }
   if (section === "Traces") {
     return `${prefix}/ai-traces`;
+  }
+  if (section === "Evaluators") {
+    return `${prefix}/ai-evaluators`;
+  }
+  if (section === "Datasets") {
+    return `${prefix}/ai-datasets`;
+  }
+  if (section === "Experiments") {
+    return `${prefix}/ai-experiments`;
   }
   return `${prefix}/ai-review`;
 };

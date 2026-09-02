@@ -36,6 +36,14 @@ const createApi = (): AdminApi => {
   const api = {
     enhanceEndpoints: () => api,
     injectEndpoints: () => ({
+      useAddTracesToAiObservabilityDatasetMutation: () => [
+        () => ({unwrap: async () => ({created: 1})}),
+        {isError: false, isLoading: false},
+      ],
+      useAiObservabilityDatasetsQuery: () => ({
+        data: [{counts: {auto: 0, human: 0, needsReview: 0, total: 0}, id: "ds-1", name: "gold"}],
+        isLoading: false,
+      }),
       useAiObservabilityEvaluatorsQuery: () => ({
         data: [{id: "eval-1", name: "correctness"}],
         isLoading: false,

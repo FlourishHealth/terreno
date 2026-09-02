@@ -7,6 +7,7 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   DateTimeField,
+  Modal,
   SelectField,
   Spinner,
   Text,
@@ -46,17 +47,26 @@ const statusOptions = [
 ];
 
 export interface AiTracesListViewProps {
+  addToDatasetError?: string;
+  datasetId: string;
+  datasetModalOpen: boolean;
+  datasetOptions: Array<{id: string; name: string}>;
   enqueueError?: string;
   evaluatorId: string;
   evaluators: EvaluatorOption[];
   filters: TraceListFilters;
+  isAddingToDataset?: boolean;
   isEnqueueing?: boolean;
   isLoading?: boolean;
   more?: boolean;
+  onAddToDataset: () => void;
   onClearSelection: () => void;
+  onDatasetChange: (id: string) => void;
+  onDismissDatasetModal: () => void;
   onEnqueueReview: () => void;
   onEvaluatorChange: (id: string) => void;
   onFiltersChange: (filters: TraceListFilters) => void;
+  onOpenAddToDataset: () => void;
   onOpenTrace: (id: string) => void;
   onPageChange: (page: number) => void;
   onToggleSelect: (id: string) => void;
@@ -78,17 +88,26 @@ const StatusDot: React.FC<{cellData: DataTableCellData}> = ({cellData}) => (
 );
 
 export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
+  addToDatasetError,
+  datasetId,
+  datasetModalOpen,
+  datasetOptions,
   enqueueError,
   evaluatorId,
   evaluators,
   filters,
+  isAddingToDataset,
   isEnqueueing,
   isLoading,
   more,
+  onAddToDataset,
   onClearSelection,
+  onDatasetChange,
+  onDismissDatasetModal,
   onEnqueueReview,
   onEvaluatorChange,
   onFiltersChange,
+  onOpenAddToDataset,
   onOpenTrace,
   onPageChange,
   onToggleSelect,
@@ -297,8 +316,8 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
             text="Send to review queue"
           />
           <Button
-            disabled
-            onClick={async () => undefined}
+            disabled={isAddingToDataset || selectedIds.length === 0}
+            onClick={onOpenAddToDataset}
             testID="ai-traces-add-dataset"
             text="Add to dataset"
             variant="secondary"
@@ -312,6 +331,42 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
         </Box>
       ) : undefined}
       {enqueueError ? <Text color="error">{enqueueError}</Text> : undefined}
+      {addToDatasetError ? (
+        <Text color="error" testID="ai-traces-add-dataset-error">
+          {addToDatasetError}
+        </Text>
+      ) : undefined}
+      <Modal
+        onDismiss={onDismissDatasetModal}
+        title="Add traces to dataset"
+        visible={datasetModalOpen}
+      >
+        <Box gap={3} padding={3} testID="ai-traces-dataset-modal">
+          {sensitiveCount > 0 ? (
+            <Text color="warning" testID="ai-traces-dataset-sensitive-warning">
+              {`${sensitiveCount} selected ${sensitiveCount === 1 ? "trace is" : "traces are"} marked sensitive.`}
+            </Text>
+          ) : undefined}
+          <SelectField
+            onChange={onDatasetChange}
+            options={
+              datasetOptions.length > 0
+                ? datasetOptions.map((entry) => ({label: entry.name, value: entry.id}))
+                : [{label: "No datasets", value: ""}]
+            }
+            testID="ai-traces-dataset-picker"
+            title="Dataset"
+            value={datasetId}
+          />
+          <Button
+            disabled={isAddingToDataset || !datasetId || selectedIds.length === 0}
+            loading={isAddingToDataset}
+            onClick={onAddToDataset}
+            testID="ai-traces-dataset-confirm"
+            text="Add selected traces"
+          />
+        </Box>
+      </Modal>
       {isLoading ? (
         <Box alignItems="center" padding={6} testID="ai-traces-loading">
           <Spinner />

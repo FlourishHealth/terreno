@@ -1,6 +1,8 @@
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
+import {unwrapDatasetList} from "../datasets/datasetTypes";
+import {useAiObservabilityDatasetsApi} from "../datasets/useAiObservabilityDatasetsApi";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {AiTracesListView} from "./AiTracesListView";
 import {
@@ -16,11 +18,15 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const {api, routeBase} = props;
   const {useEnqueueReviewMutation, useEvaluatorsQuery, useListQuery} =
     useAiObservabilityTracesApi(api);
+  const {useAddTracesMutation, useListQuery: useDatasetsQuery} = useAiObservabilityDatasetsApi(api);
   const [filters, setFilters] = useState<TraceListFilters>(emptyTraceFilters);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [evaluatorId, setEvaluatorId] = useState("");
   const [enqueueError, setEnqueueError] = useState("");
+  const [datasetModalOpen, setDatasetModalOpen] = useState(false);
+  const [datasetId, setDatasetId] = useState("");
+  const [addToDatasetError, setAddToDatasetError] = useState("");
 
   const {data, isError, isLoading} = useListQuery({
     ...filters,
@@ -28,10 +34,13 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
     page,
   });
   const {data: evaluatorsRaw} = useEvaluatorsQuery();
+  const {data: datasetsRaw} = useDatasetsQuery();
   const [enqueueReview, enqueueState] = useEnqueueReviewMutation();
+  const [addTraces, addTracesState] = useAddTracesMutation();
 
   const listed = useMemo(() => unwrapTraceList(data), [data]);
   const evaluators = useMemo(() => unwrapEvaluators(evaluatorsRaw), [evaluatorsRaw]);
+  const datasets = useMemo(() => unwrapDatasetList(datasetsRaw), [datasetsRaw]);
   const prefix = (routeBase ?? "").replace(/\/$/, "");
 
   // Use the first installed evaluator so Send to review queue does not require a hidden pick.
@@ -42,6 +51,15 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
     }
     setEvaluatorId(first.id);
   }, [evaluatorId, evaluators]);
+
+  // Default the dataset picker to the first dataset when the modal opens.
+  useEffect(() => {
+    const first = datasets[0];
+    if (datasetId || !first || !datasetModalOpen) {
+      return;
+    }
+    setDatasetId(first.id);
+  }, [datasetId, datasetModalOpen, datasets]);
 
   const handleFiltersChange = useCallback((next: TraceListFilters): void => {
     setFilters(next);
@@ -86,20 +104,50 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
     }
   }, [enqueueReview, evaluatorId, selectedIds]);
 
+  const handleOpenAddToDataset = useCallback((): void => {
+    setAddToDatasetError("");
+    setDatasetModalOpen(true);
+  }, []);
+
+  const handleAddToDataset = useCallback(async (): Promise<void> => {
+    if (!datasetId || selectedIds.length === 0) {
+      return;
+    }
+    setAddToDatasetError("");
+    try {
+      await addTraces({datasetId, traceIds: selectedIds}).unwrap();
+      setDatasetModalOpen(false);
+      setSelectedIds([]);
+    } catch {
+      setAddToDatasetError("Could not add traces to the dataset.");
+    }
+  }, [addTraces, datasetId, selectedIds]);
+
   return (
     <AiObservabilityChrome {...props} screenName="ai-traces">
       <AiTracesListView
+        addToDatasetError={addToDatasetError}
+        datasetId={datasetId}
+        datasetModalOpen={datasetModalOpen}
+        datasetOptions={datasets.map((entry) => ({id: entry.id, name: entry.name}))}
         enqueueError={enqueueError || (isError ? "Failed to load traces." : undefined)}
         evaluatorId={evaluatorId}
         evaluators={evaluators}
         filters={filters}
+        isAddingToDataset={addTracesState.isLoading}
         isEnqueueing={enqueueState.isLoading}
         isLoading={isLoading}
         more={listed.more}
+        onAddToDataset={handleAddToDataset}
         onClearSelection={handleClearSelection}
+        onDatasetChange={setDatasetId}
+        onDismissDatasetModal={() => {
+          setDatasetModalOpen(false);
+        }}
         onEnqueueReview={handleEnqueueReview}
         onEvaluatorChange={setEvaluatorId}
         onFiltersChange={handleFiltersChange}
+        onOpenAddToDataset={handleOpenAddToDataset}
         onOpenTrace={handleOpenTrace}
         onPageChange={setPage}
         onToggleSelect={handleToggleSelect}

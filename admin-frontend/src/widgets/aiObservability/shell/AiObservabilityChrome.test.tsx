@@ -62,11 +62,17 @@ describe("AI observability chrome", () => {
     expect(getAiObservabilityNavItems(true).map((item) => item.name)).toEqual([
       "ai-prompts",
       "ai-traces",
+      "ai-evaluators",
+      "ai-datasets",
+      "ai-experiments",
       "ai-review",
     ]);
     expect(getAiObservabilityNavItems(false).map((item) => item.name)).toEqual([
       "ai-prompts",
       "ai-traces",
+      "ai-evaluators",
+      "ai-datasets",
+      "ai-experiments",
     ]);
   });
 
@@ -131,8 +137,16 @@ describe("AI observability chrome", () => {
     expect(queryByText("Private review body")).toBeNull();
   });
 
-  it("registers phase 1 screen widgets including the review queue", () => {
+  it("registers phase 2 screen widgets including evaluators, datasets, and experiments", () => {
     expect(Object.keys(AI_OBSERVABILITY_WIDGETS).sort()).toEqual([
+      "ai-dataset-detail",
+      "ai-datasets",
+      "ai-evaluator-detail",
+      "ai-evaluator-new",
+      "ai-evaluators",
+      "ai-experiment-new",
+      "ai-experiment-results",
+      "ai-experiments",
       "ai-prompt-editor",
       "ai-prompts",
       "ai-review",
