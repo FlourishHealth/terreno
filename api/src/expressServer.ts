@@ -228,6 +228,12 @@ export interface AuthOptions {
   sendMail?: (message: AuthRecoveryMail) => Promise<void>;
   /** When true, unverified users receive 403 `email-not-verified` on login. Default false. */
   requireEmailVerification?: boolean;
+  /**
+   * After a successful JWT password reset, update the Better Auth credential hash
+   * and delete that user's Better Auth sessions. TerrenoApp wires this when
+   * BetterAuthApp is registered.
+   */
+  syncPasswordResetToBetterAuth?: (user: User, password: string) => Promise<void>;
 }
 
 export const cronjob = (

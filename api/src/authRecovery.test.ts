@@ -143,6 +143,38 @@ describe("password reset routes", () => {
       .expect(200);
   });
 
+  it("syncs a successful JWT reset to Better Auth when a bridge is configured", async () => {
+    const synced: Array<{email?: string; password: string}> = [];
+    const bridgedApp = new TerrenoApp({
+      authOptions: {
+        publicAppUrl: "https://app.example.com",
+        sendMail: async (message) => {
+          sentMail.push(message);
+        },
+        syncPasswordResetToBetterAuth: async (user, password) => {
+          synced.push({email: (user as {email?: string}).email, password});
+        },
+      },
+      skipListen: true,
+      userModel: UserModel,
+    }).build();
+
+    await supertest(bridgedApp)
+      .post("/auth/forgotPassword")
+      .send({email: "notAdmin@example.com"})
+      .expect(202);
+    const token = tokenFromResetUrl(sentMail[sentMail.length - 1]?.text ?? "");
+
+    await supertest(bridgedApp)
+      .post("/auth/resetPassword")
+      .send({password: "bridged-password-123", token})
+      .expect(200);
+
+    assert.equal(synced.length, 1);
+    assert.equal(synced[0]?.email, "notAdmin@example.com");
+    assert.equal(synced[0]?.password, "bridged-password-123");
+  });
+
   it("does not consume a reset token when the new password is too long", async () => {
     await supertest(app)
       .post("/auth/forgotPassword")

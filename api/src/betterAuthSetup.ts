@@ -91,6 +91,13 @@ export const createBetterAuthEmailHooks = (config: BetterAuthConfig) => {
     token: string
   ): Promise<void> => {
     const publicAppUrl = config.publicAppUrl ?? "";
+    if (!publicAppUrl) {
+      logger.error("[auth] publicAppUrl is required to send Better Auth recovery mail");
+      throw new APIError({
+        status: 501,
+        title: "publicAppUrl is required to send recovery mail",
+      });
+    }
     const rendered = (config.renderAuthMail ?? fallbackRenderAuthMail)({
       publicAppUrl,
       templateId,
@@ -225,6 +232,72 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
   // return type to a plugin-specific tuple that no longer matches the plugin-agnostic
   // BetterAuthInstance alias, though the runtime instance is a valid better-auth instance.
   return auth as unknown as BetterAuthInstance;
+};
+
+interface BetterAuthCredentialAccount {
+  providerId?: string;
+}
+
+interface BetterAuthUserLookup {
+  user?: {id?: string};
+}
+
+interface BetterAuthPasswordResetContext {
+  internalAdapter: {
+    createAccount: (account: {
+      accountId: string;
+      password: string;
+      providerId: string;
+      userId: string;
+    }) => Promise<unknown>;
+    deleteUserSessions: (userId: string) => Promise<unknown>;
+    findAccounts: (userId: string) => Promise<BetterAuthCredentialAccount[]>;
+    findUserByEmail: (email: string) => Promise<BetterAuthUserLookup | null>;
+    findUserById: (userId: string) => Promise<{id?: string} | null>;
+    updatePassword: (userId: string, password: string) => Promise<unknown>;
+  };
+  password: {hash: (password: string) => Promise<string>};
+}
+
+/**
+ * After JWT `POST /auth/resetPassword`, update the Better Auth credential hash
+ * (when that user exists) and delete Better Auth sessions so a dual-enrolled
+ * account cannot keep the old password or stolen sessions.
+ */
+export const applyJwtPasswordResetToBetterAuth = async (
+  auth: BetterAuthInstance,
+  user: {betterAuthId?: string; email?: string},
+  password: string
+): Promise<void> => {
+  const ctx = (await auth.$context) as BetterAuthPasswordResetContext;
+  let betterAuthUserId = typeof user.betterAuthId === "string" ? user.betterAuthId : "";
+  if (!betterAuthUserId && typeof user.email === "string" && user.email.length > 0) {
+    const found = await ctx.internalAdapter.findUserByEmail(user.email);
+    betterAuthUserId = found?.user?.id ?? "";
+  }
+  if (!betterAuthUserId) {
+    const byId = user.betterAuthId
+      ? await ctx.internalAdapter.findUserById(user.betterAuthId)
+      : null;
+    betterAuthUserId = byId?.id ?? "";
+  }
+  if (!betterAuthUserId) {
+    return;
+  }
+  const hashedPassword = await ctx.password.hash(password);
+  const accounts = await ctx.internalAdapter.findAccounts(betterAuthUserId);
+  const hasCredential = accounts.some((account) => account.providerId === "credential");
+  if (hasCredential) {
+    await ctx.internalAdapter.updatePassword(betterAuthUserId, hashedPassword);
+  } else {
+    await ctx.internalAdapter.createAccount({
+      accountId: betterAuthUserId,
+      password: hashedPassword,
+      providerId: "credential",
+      userId: betterAuthUserId,
+    });
+  }
+  await ctx.internalAdapter.deleteUserSessions(betterAuthUserId);
 };
 
 /**

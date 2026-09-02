@@ -773,6 +773,7 @@ export const addMeRoutes = (
       if (shouldResetEmailVerification) {
         doc.emailVerified = false;
         await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
+        await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "passwordReset");
       }
       await doc.save();
 

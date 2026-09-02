@@ -100,7 +100,10 @@ export const sendVerificationEmail = async (
 ): Promise<void> => {
   if (!authOptions?.publicAppUrl) {
     logger.error("[auth] publicAppUrl is required to send verification mail");
-    return;
+    throw new APIError({
+      status: 501,
+      title: "publicAppUrl is required to send verification mail",
+    });
   }
   if (isEmailVerified(user)) {
     return;
@@ -190,6 +193,9 @@ export const addAuthRecoveryRoutes = (
     await setPasswordForUser(user as unknown as HasSetPassword, password);
     incrementTokenEpoch(user);
     await (user as unknown as {save: () => Promise<unknown>}).save();
+    if (authOptions?.syncPasswordResetToBetterAuth) {
+      await authOptions.syncPasswordResetToBetterAuth(user, password);
+    }
     const tokens = await generateTokens(user, authOptions);
     return res.json({
       data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user._id},

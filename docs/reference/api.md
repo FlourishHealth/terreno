@@ -176,7 +176,7 @@ Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizat
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
 `oldPassword`, `token`, and `refreshToken` in request bodies and in URL query strings. Changing the mailbox through `PATCH /auth/me`
 sets `emailVerified` to false when the schema uses `emailVerificationPlugin` and
-invalidates unused `emailVerification` AuthTokens for that user; changing letter
+invalidates unused `emailVerification` and `passwordReset` AuthTokens for that user; changing letter
 casing alone does not.
 
 **AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
@@ -189,8 +189,11 @@ marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours 
 Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
 `getCommsService().sendMail`) so forgot-password can deliver the link
 `${publicAppUrl}/resetPassword?token=...`. Forgot-password skips issuing a token when
-`publicAppUrl` is missing. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
-`tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. Access
+`publicAppUrl` is missing. Authenticated `POST /auth/sendVerification` returns 501 in that
+case instead of 202. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
+`tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. When
+`BetterAuthApp` is registered, JWT reset also updates that user's Better Auth password
+and deletes Better Auth sessions. Access
 tokens stay valid until expiry (default 15m). `POST /resetPassword`
 matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
 
@@ -268,8 +271,11 @@ const server = app.start();
 
 Set `publicAppUrl`, `sendMail`, and `renderAuthMail` (from `@terreno/comms`) so Better Auth
 `sendResetPassword` / `sendVerificationEmail` use the same templates as JWT recovery mail.
-Password reset also sets `revokeSessionsOnPasswordReset`, so existing Better Auth sessions
-are deleted when that reset path succeeds. Optional `authMailTemplates` overrides
+Those hooks throw 501 and do not send when `publicAppUrl` is missing, so links are never
+relative. Password reset also sets `revokeSessionsOnPasswordReset`, so existing Better Auth sessions
+are deleted when that reset path succeeds. JWT `POST /auth/resetPassword` updates the
+Better Auth password and deletes those sessions when `BetterAuthApp` is registered.
+Optional `authMailTemplates` overrides
 subject/text/html per template id.
 
 **Endpoints (when enabled):**

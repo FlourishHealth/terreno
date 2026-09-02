@@ -8,6 +8,7 @@ import mongoose, {Schema} from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthUser} from "./betterAuth";
 import {
+  applyJwtPasswordResetToBetterAuth,
   createBetterAuth,
   createBetterAuthEmailHooks,
   createBetterAuthSessionMiddleware,
@@ -242,6 +243,69 @@ describe("createBetterAuth", () => {
       {subject: "resetPassword", text: "link-reset-token", to: "reset@example.com"},
       {subject: "verifyEmail", text: "link-verify-token", to: "verify@example.com"},
     ]);
+  });
+
+  it("does not send Better Auth recovery mail when publicAppUrl is missing", async () => {
+    await setup;
+    const sent: Array<{subject: string; to: string}> = [];
+    const hooks = createBetterAuthEmailHooks({
+      enabled: true,
+      sendMail: async (message) => {
+        sent.push({subject: message.subject, to: message.to});
+      },
+    });
+    assert.isDefined(hooks);
+    await expect(
+      hooks?.sendResetPassword({
+        token: "reset-token",
+        url: "https://better-auth.example/ignored",
+        user: {email: "reset@example.com"},
+      })
+    ).rejects.toThrow("publicAppUrl is required to send recovery mail");
+    await expect(
+      hooks?.sendVerificationEmail({
+        token: "verify-token",
+        url: "https://better-auth.example/ignored",
+        user: {email: "verify@example.com"},
+      })
+    ).rejects.toThrow("publicAppUrl is required to send recovery mail");
+    assert.deepEqual(sent, []);
+  });
+});
+
+describe("applyJwtPasswordResetToBetterAuth", () => {
+  it("updates the Better Auth credential hash and drops sessions", async () => {
+    await setup;
+    const auth = createBetterAuth({
+      config: {
+        baseURL: "http://localhost:3000",
+        enabled: true,
+        secret: "test-secret-at-least-32-characters-long",
+      },
+      mongoClient: getClient(),
+    });
+    const created = await auth.api.signUpEmail({
+      body: {
+        email: "dual@example.com",
+        name: "Dual User",
+        password: "old-password-123",
+      },
+    });
+    const betterAuthId = created.user.id;
+    await applyJwtPasswordResetToBetterAuth(
+      auth,
+      {betterAuthId, email: "dual@example.com"},
+      "new-password-123"
+    );
+    await expect(
+      auth.api.signInEmail({
+        body: {email: "dual@example.com", password: "old-password-123"},
+      })
+    ).rejects.toThrow();
+    const signedIn = await auth.api.signInEmail({
+      body: {email: "dual@example.com", password: "new-password-123"},
+    });
+    assert.isDefined(signedIn.user);
   });
 });
 

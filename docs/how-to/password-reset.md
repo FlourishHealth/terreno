@@ -31,7 +31,7 @@ authOptions: {
 | --- | --- | --- |
 | Forgot | `POST /auth/forgotPassword` | `{email}` → 202 |
 | Reset | `POST /auth/resetPassword` or `POST /resetPassword` | `{token, password}` or `{token, newPassword}` |
-| Send verify | `POST /auth/sendVerification` | authenticated → 202 |
+| Send verify | `POST /auth/sendVerification` | authenticated → 202 after delivery; 501 if `publicAppUrl` is missing |
 | Verify | `POST /auth/verifyEmail` | `{token}` |
 
 Reset links: `${publicAppUrl}/resetPassword?token=...`. Verify links: `${publicAppUrl}/verifyEmail?token=...`.
@@ -54,7 +54,7 @@ Pass `templates` to override subject/text/html. Variables: `resetUrl`, `verifyUr
 
 ## 4. Better Auth
 
-On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms`. That wires `sendResetPassword` and `sendVerificationEmail` to those templates.
+On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms`. That wires `sendResetPassword` and `sendVerificationEmail` to those templates. Those hooks do not send (they throw 501) when `publicAppUrl` is empty.
 
 ## 5. Frontend
 
@@ -64,6 +64,6 @@ On `BetterAuthConfig` set the same `publicAppUrl`, `sendMail`, and `renderAuthMa
 4. Show a profile banner when `emailVerified` is false, with Resend calling `POST /auth/sendVerification`.
 5. Add `/verifyEmail` that reads `token` from the query string. JWT apps call `POST /auth/verifyEmail`. Better Auth apps try `GET /verify-email?token=...` first, then the JWT route so either token type can complete.
 
-A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. Changing the mailbox through `PATCH /auth/me` also invalidates unused `emailVerification` tokens so a link from the old inbox cannot verify the new address. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
+A new `issueFor` for the same user and type invalidates earlier unused tokens of that type. Changing the mailbox through `PATCH /auth/me` also invalidates unused `emailVerification` and `passwordReset` tokens so a link from the old inbox cannot verify the new address or reset the password. `emailVerified` and `tokenEpoch` are privileged user fields: signup and `PATCH /auth/me` drop them.
 
-Better Auth password reset revokes that user's Better Auth sessions (`revokeSessionsOnPasswordReset`). Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken` in bodies and in URL query strings.
+Better Auth password reset revokes that user's Better Auth sessions (`revokeSessionsOnPasswordReset`). JWT `POST /auth/resetPassword` does the same for Better Auth when `BetterAuthApp` is registered, and updates the Better Auth password so dual-enrolled accounts cannot keep the old credential. Console mail in development prints length only; check `CommsMessage` / console adapter logs for delivery, not the raw token in logger output. Request logs redact `password`, `newPassword`, `oldPassword`, `token`, and `refreshToken` in bodies and in URL query strings.

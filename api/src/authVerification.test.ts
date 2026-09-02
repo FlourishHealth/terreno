@@ -133,6 +133,30 @@ describe("email verification gating", () => {
       .expect(500);
   });
 
+  it("returns 501 when resend cannot send because publicAppUrl is missing", async () => {
+    const noUrlApp = new TerrenoApp({
+      authOptions: {
+        sendMail: async (message) => {
+          openMail.push(message);
+        },
+      },
+      skipListen: true,
+      userModel: UserModel,
+    }).build();
+    const login = await supertest(noUrlApp)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const before = await AuthToken.countDocuments({type: "emailVerification"});
+
+    await supertest(noUrlApp)
+      .post("/auth/sendVerification")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .expect(501);
+    assert.equal(openMail.length, 0);
+    assert.equal(await AuthToken.countDocuments({type: "emailVerification"}), before);
+  });
+
   it("does not send verification mail when the user is already verified", async () => {
     const login = await supertest(openApp)
       .post("/auth/login")
@@ -188,5 +212,26 @@ describe("email verification gating", () => {
 
     const reloaded = await UserModel.findById(userId);
     assert.equal((reloaded as unknown as {emailVerified?: boolean})?.emailVerified, false);
+  });
+
+  it("rejects an old password-reset token after PATCH /auth/me changes the mailbox", async () => {
+    const login = await supertest(openApp)
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const userId = login.body.data.userId as string;
+    const accessToken = login.body.data.token as string;
+    const issued = await AuthToken.issueFor({_id: userId}, "passwordReset");
+
+    await supertest(openApp)
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${accessToken}`)
+      .send({email: "new-mailbox@example.com"})
+      .expect(200);
+
+    await supertest(openApp)
+      .post("/auth/resetPassword")
+      .send({password: "brand-new-password", token: issued.token})
+      .expect(400);
   });
 });

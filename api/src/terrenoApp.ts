@@ -7,7 +7,11 @@ import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {type BetterAuthInstance, createBetterAuthSessionMiddleware} from "./betterAuthSetup";
+import {
+  applyJwtPasswordResetToBetterAuth,
+  type BetterAuthInstance,
+  createBetterAuthSessionMiddleware,
+} from "./betterAuthSetup";
 import {
   ConfigurationApp,
   type ConfigurationAppOptions,
@@ -385,7 +389,11 @@ export class TerrenoApp {
       app.use(createRateLimitMiddleware(store, rateLimit));
     }
 
-    addAuthRoutes(app, options.userModel, options.authOptions);
+    if (!options.authOptions) {
+      options.authOptions = {};
+    }
+    const authOptions = options.authOptions;
+    addAuthRoutes(app, options.userModel, authOptions);
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -467,8 +475,14 @@ export class TerrenoApp {
         "getAuth" in registration &&
         typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
     ) as BetterAuthProvider | undefined;
+    const betterAuth = betterAuthPlugin?.ensureAuth?.() ?? betterAuthPlugin?.getAuth();
+    if (betterAuth) {
+      authOptions.syncPasswordResetToBetterAuth = async (user, password): Promise<void> => {
+        await applyJwtPasswordResetToBetterAuth(betterAuth, user, password);
+      };
+    }
     mountMCPServer(app, {
-      betterAuth: betterAuthPlugin?.getAuth(),
+      betterAuth,
       userModel: options.userModel,
     });
 
