@@ -141,7 +141,7 @@ JSON (auth already mounts urlencoded later; consolidating is allowed if tests st
 | `hmacSignature({secret, header, encoding?, algorithm?, timestampHeader?})` | Header vs HMAC of `rawBody`, or `${timestamp}.${rawBody}` when `timestampHeader` is set | Default SHA-256 hex; optional skew (300s) |
 | `stripeSignature({secret, toleranceSec?})` | `Stripe-Signature` `t=` / `v1=` | HMAC-SHA256 of `${t}.${rawBody}` |
 | `twilioSignature({authToken, url?})` | `X-Twilio-Signature`; URL + sorted POST params | HMAC-SHA1 base64 (Twilio validator) |
-| `sendgridEventSignature({publicKey})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}` |
+| `sendgridEventSignature({publicKey, toleranceSec?})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}`; default 300s skew |
 
 `url` for Twilio defaults to the public URL the provider was given (`X-Forwarded-Proto` /
 `Host` + original URL only when `trust proxy` is on — same rule as rate limiting). Apps

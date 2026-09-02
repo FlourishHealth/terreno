@@ -256,8 +256,34 @@ describe("sendgridEventSignature", () => {
     const res = await supertest(app)
       .post("/comms/webhooks/sendgrid")
       .set("Content-Type", "application/json")
-      .set("X-Twilio-Email-Event-Webhook-Timestamp", "1")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", String(DateTime.utc().toUnixInteger()))
       .send(`[{"sg_event_id":"sg_1","event":"delivered"}]`);
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects a timestamp outside the tolerance window", async () => {
+    const {publicKey, privateKey} = crypto.generateKeyPairSync("ec", {
+      namedCurve: "prime256v1",
+    });
+    const pem = publicKey.export({format: "pem", type: "spki"}).toString();
+    const app = buildApp({
+      path: "/comms/webhooks/sendgrid",
+      source: "sendgrid",
+      verify: sendgridEventSignature({publicKey: pem, toleranceSec: 300}),
+    });
+    const payload = `[{"sg_event_id":"sg_stale","event":"delivered"}]`;
+    const timestamp = String(DateTime.utc().toUnixInteger() - 301);
+    const signer = crypto.createSign("SHA256");
+    signer.update(timestamp);
+    signer.update(payload);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    const res = await supertest(app)
+      .post("/comms/webhooks/sendgrid")
+      .set("Content-Type", "application/json")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", timestamp)
+      .set("X-Twilio-Email-Event-Webhook-Signature", signature)
+      .send(payload);
     assert.equal(res.status, 401);
   });
 
@@ -270,7 +296,7 @@ describe("sendgridEventSignature", () => {
     const res = await supertest(app)
       .post("/comms/webhooks/sendgrid")
       .set("Content-Type", "application/json")
-      .set("X-Twilio-Email-Event-Webhook-Timestamp", "1")
+      .set("X-Twilio-Email-Event-Webhook-Timestamp", String(DateTime.utc().toUnixInteger()))
       .set("X-Twilio-Email-Event-Webhook-Signature", "AAAA")
       .send(`[{"sg_event_id":"sg_1","event":"delivered"}]`);
     assert.equal(res.status, 401);

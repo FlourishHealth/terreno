@@ -1024,7 +1024,8 @@ bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verifie
 without re-serializing `req.body`.
 
 Register inbound routes on `WebhooksApp`. Helpers: `hmacSignature`, `stripeSignature`,
-`twilioSignature`, `sendgridEventSignature`. Idempotency is `memory` or `mongo`
+`twilioSignature`, `sendgridEventSignature`. Timestamped HMAC, Stripe, and SendGrid
+reject timestamps outside a 300s window by default. Idempotency is `memory` or `mongo`
 (`webhookReceipts`). Paths are not added to `/openapi.json` and do not use JWT.
 
 ```typescript

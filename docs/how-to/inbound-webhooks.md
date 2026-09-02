@@ -63,7 +63,7 @@ Stripe billing webhooks stay on `billing-stripe` at `POST /billing/webhooks/stri
 | `hmacSignature({secret, header, timestampHeader?})` | caller-chosen | HMAC of `rawBody`, or `${timestamp}.${rawBody}` when `timestampHeader` is set. Optional skew (default 300s). |
 | `stripeSignature({secret, toleranceSec?})` | `Stripe-Signature` | HMAC-SHA256 of `${t}.${rawBody}`. Default 300s timestamp window. |
 | `twilioSignature({authToken, url})` | `X-Twilio-Signature` | HMAC-SHA1 base64 of callback URL + sorted POST fields. Form-urlencoded only. |
-| `sendgridEventSignature({publicKey})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}`. |
+| `sendgridEventSignature({publicKey, toleranceSec?})` | `X-Twilio-Email-Event-Webhook-Signature` + timestamp | ECDSA P-256 over `${timestamp}${rawBody}`. Default 300s timestamp window. |
 
 Invalid or missing signatures return `401` with `code: "webhook-signature-invalid"`.
 Missing `rawBody` returns `400` `webhook-body-missing`. Duplicate `(source, eventId)`
