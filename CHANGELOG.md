@@ -19,6 +19,223 @@ Upgrade notes for consumer action live in [`mcp-server/src/docs/upgrades/`](mcp-
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
+## [57.3.0] - 2026-09-02
+
+Upgrade note: [`mcp-server/src/docs/upgrades/57.3.0.md`](mcp-server/src/docs/upgrades/57.3.0.md).
+
+### Added
+
+- The lifecycle stages now ship as a Claude Code plugin. Add the marketplace with
+  `/plugin marketplace add FlourishHealth/terreno`, install with
+  `/plugin install terreno@terreno-plugins`, then invoke `/terreno:1-grow`. The marketplace
+  name is `terreno-plugins` so it does not collide with the plugin name `terreno` (Claude
+  Code's installer breaks when those names match). Claude Code takes a
+  plugin skill's command from the frontmatter `name`, so its shortened stage names
+  (`1-grow` … `5-taste`) ship as a generated copy at `plugins/terreno-claude/`
+  (`bun run skills:sync`). Cursor and `npx skills` are unchanged: plugin
+  `terreno-planning`, stages `terreno-1-grow` … `terreno-5-taste`.
+- The lifecycle stages now ship as a Codex plugin. Add the marketplace with
+  `codex plugin marketplace add FlourishHealth/terreno`, install with
+  `codex plugin install terreno-planning --source terreno-plugins`, then invoke
+  `$terreno-1-grow`. Codex uses the canonical `plugins/terreno-planning/` tree
+  (`.codex-plugin/plugin.json`) and the repo marketplace at
+  `.agents/plugins/marketplace.json`. Stage names match Cursor and `npx skills`.
+- `TwilioSmsProvider` at `@terreno/comms/adapters/twilioSms` (optional peer `twilio`). Sends
+  prefer a messaging service SID over a from-number, require valid E.164 destinations, classify
+  Twilio error codes, and store a console deep link on accepted sends. The example backend
+  registers the adapter when Twilio env vars are complete.
+- `TwilioVerifyProvider` at `@terreno/comms/adapters/twilioVerify` (optional peer `twilio`).
+  Starts and checks SMS/email OTP via a Verify service SID, classifies Twilio errors, redacts
+  destinations, never stores codes, and marks verification rows non-retryable. The example
+  backend registers the adapter when `TWILIO_VERIFY_SERVICE_SID` is set with account
+  credentials.
+- Admin comms dashboard: filter and inspect delivery logs, retry failed sends (including bulk retry
+  with a cap), and view per-provider failure rates. Created and attempt timestamps print in the
+  operator locale. List, stats, and bulk retry share a trailing 7-day window when dates are omitted.
+  Editing a filter while that window is implicit keeps both date bounds. Push
+  `beforeSend` cancel returns `loggedMessageId`. Retry returns the log row created by that send. Routes live on `@terreno/comms`; screens ship in
+  `@terreno/admin-frontend` as the `comms` custom screen.
+- `describeModel()` and `describeModelForRouter()` in `@terreno/api` walk Mongoose schemas once and expose a canonical `ModelDescription` field graph. OpenAPI (`getOpenApiSpecForModel`), admin `/admin/config` field metadata, and MCP Zod tool schemas now format that graph instead of independently walking `schema.paths` or mongoose-to-swagger. Map fields take their value kind from Mongoose `of` / `getEmbeddedSchemaType()` (not a date fallback).
+
+  Exports include `modelDescriptionToOpenApiSpec`, `modelDescriptionToAdminFields`, and `fieldDescriptionToZodType`. See `docs/explanation/schema-metadata.md`.
+- `ExpoPushProvider` at `@terreno/comms/adapters/expoPush` (optional peer
+  `expo-server-sdk`). `sendPush` returns one `SendResult` per token, chunks Expo
+  payloads, classifies ticket/receipt errors, and polls receipts. `DeviceNotRegistered`
+  deactivates `PushToken` rows via `CommsService.deactivatePushToken`. `MessageTooBig` is
+  `errorClass: config` and does not deactivate the token. `expo-server-sdk`
+  moved off `@terreno/api`. The example app requests notification permission, registers the device token after
+  login, and exposes a profile-screen test send (`POST /comms/dev/testPush`) in
+  non-production.
+- Added `create-github-issue` and `work-github-issues` skills plus a lifecycle
+  work-item GitHub form so agents can file pick-ready issues, confirm a plan,
+  post it as the Roast contract, then implement with Pick ⇄ Roast.
+- Opt-in HTTP rate limiting on `TerrenoApp` via `rateLimit: {}` (memory default; `redis` or `mongo` for shared buckets). Login and related auth routes use 20 requests / 15 minutes; other framework HTTP uses 600 / 15 minutes. Credential-exchange JWT routes ignore a stale access token. Trailing slashes and Express `req.path` drive the auth/api bucket. `trustProxy` defaults off (set `1` on Cloud Run). Omitted `rateLimit` is a no-op until Terreno 58. 429 is `APIError` `code: "rate-limit-exceeded"`. See `docs/how-to/rate-limiting.md`.
+- Inbound webhooks on `WebhooksApp`: raw-body capture, HMAC/Stripe/Twilio/SendGrid
+  verifiers (SendGrid ECDSA uses the same 300s timestamp window as Stripe), memory or
+  Mongo `webhookReceipts` idempotency. `CommsApp` mounts Twilio status/inbound and
+  SendGrid Event Webhook routes when passed the same plugin. `recordDeliveryEvent`
+  rethrows a failed `CommsMessage` save so webhook claims release. See
+  `docs/how-to/inbound-webhooks.md`.
+- `terreno_search_docs` and `terreno_get_component_docs` accept an optional
+  `version` so agents can search retained docs snapshots for the consumer's
+  `@terreno/*` lockstep version. Snapshot component pages match both hyphenated
+  camelCase filenames and concatenated generator slugs.
+- Pull requests now fail when a newly added workspace `.ts` or `.tsx` implementation
+  file is below 90% function coverage or 90% line coverage. Run
+  `bun run check:new-file-coverage --base=origin/master --threshold=90` locally.
+  The gate reuses each package's `bun test` file arguments so Playwright `*.spec.ts`
+  files are not collected. Glob arguments are expanded before spawn so packages such
+  as `example-frontend` still collect `*.test.ts` files. Globs that match no files
+  are omitted.
+- JWT and Better Auth password reset plus email verification: `POST /auth/forgotPassword` (always 202), `POST /auth/resetPassword`, `POST /auth/sendVerification`, and `POST /auth/verifyEmail`. Opt in with `emailVerificationPlugin`, `tokenEpoch`, `authOptions.publicAppUrl` / `sendMail`, and `@terreno/comms` `renderAuthMail`. Better Auth uses the same `publicAppUrl` and `sendMail`. `LoginScreen` accepts `onForgotPassword`. See `docs/how-to/password-reset.md`.
+- The `terreno-planning` Cursor plugin (`2.3.0`) adds two outer-loop skills beside the
+  five stages: `terreno-planning-loop` walks the approved task list (default Grow once,
+  then Pick once — Pick owns the pick-roast inner loop; pass `phases=` to restrict to
+  `grow`, `pick`, `roast`, `brew`, and/or `taste`), and `terreno-taste-sweep` finds the
+  author's open non-draft PRs that are conflicting or failing and reinvokes Taste until
+  each is mergeable or blocked.
+- `Popover` in `@terreno/ui` for previewing a document with loading, loaded, and error
+  states, an open action, and optional thumbs up/down feedback.
+- CI now fails production TypeScript that uses `function` declarations, `Date`/`Date.now()`, `throw new Error`, `console.log`, Mongoose `findOne`, or unsuppressed `as any`. Run `bun run check:source-rules`.
+- Upgrade notes format, 0.21.0–0.30.0 backfill, `terreno_get_upgrade_guide` coverage headers, versioning policy, `upgrading-terreno` skill, and changelog links to `mcp-server/src/docs/upgrades/`.
+
+### Changed
+
+- Brew and Taste now discover and observe product CI on every configured host, including
+  CircleCI and Buildkite, not only GitHub check runs. Waits use provider-native hooks such
+  as `gh pr checks --watch`, `circleci run watch`, and `bk build watch` where available,
+  with bounded polling only as fallback. Plugin `terreno-planning` is `2.4.0`.
+- Brew and Taste now sleep until async review bots such as Bugbot and CodeQL finish on
+  the current head, then continue so they can react in the same invocation. Ordinary
+  product CI still uses Taste `PENDING` and the outer loop. Plugin `terreno-planning` is
+  `2.2.0`.
+- PR GitHub Actions spend fewer minutes on docs, Playwright, Expo fingerprints,
+  Maestro, and the example-backend Docker check. Docs previews build only the
+  current version (unminified, no local search index) and reuse generated
+  TypeDoc/component MDX when the source hashes match. Docusaurus Faster
+  (Rspack) is on for PR and `master`; production still builds every versioned
+  tree.
+
+  CI pins Bun `1.4.0` instead of `latest`. Playwright e2e compiles the workspace
+  once per run and shares `dist/` with the spec shards. Example-backend CI
+  compiles `@terreno/*` deps in one process and watches `api/**`. The backend
+  Docker check rebuilds only when the image recipe changes; CD still builds
+  preview images from source.
+
+  Backend startup now defers sync index creation until after MongoDB connects.
+  This prevents import-time Mongoose buffering timeouts from blocking Cloud Run
+  containers before they begin listening. The example backend also avoids the
+  OpenTelemetry Mongoose patch that deadlocked index creation in Bun-compiled
+  binaries, keeps startup logging on Cloud Run's captured stdout instead of a
+  blocking network transport, and lets Better Auth-only realtime run without a
+  legacy JWT secret.
+- Architectural PR review and Maestro web E2E now run on CircleCI. Matching GitHub
+  workflows are retained with `on: []` for rollback. Cursor Approval Agent, Bugbot,
+  and Security Agent stay on GitHub (Cursor GitHub App automations, not repo
+  workflows).
+- CircleCI path filters start Netlify and GCP production and PR preview jobs.
+  Those jobs skip (exit 0) until `terreno-netlify` and `terreno-gcp` are filled.
+  GitHub Actions remains the live deployer in that window. After CircleCI
+  secrets exist and a deploy succeeds, set the GHA deploy workflows back to
+  `on: []` so terraform is not applied twice. Fork PRs skip CircleCI previews.
+  Preview cleanup on PR close uses GitHub `preview-cleanup.yml`.
+- CircleCI provides Netlify and GCP deploy jobs, semver-tag npm releases, and
+  manual preview cleanup, preview deploy, EAS development build, and
+  single-package publish operations. Automatic production deploy path triggers
+  stay paused until the Netlify contexts and GCP OIDC bootstrap pass manual
+  verification. Matching GitHub CI/CD workflows are retained with `on: []` for
+  rollback. CircleCI uses OIDC for GCP; no service-account JSON key is required.
+- `modelRouter` registers collections in one in-memory catalog keyed by route path. MCP, realtime, and sync read shared `ModelRouterOptions` from that catalog; `replaceCollectionOptions` updates every surface at once. Registry `clear*` helpers clear the whole catalog in tests.
+- `@terreno/api` RBAC routes now narrow path parameters at runtime instead of
+  relying on implicit `any`. `@terreno/ui` Hyperlink props (`linkify`, styles,
+  `injectViewProps`) and the Google Maps `window.google` global use concrete
+  types instead of `any`.
+- Root lint now rejects explicit `any` suppressions without a `noExplicitAny:` rationale.
+- `improve-rulesync` now keeps user-facing guidance in `docs/` and agent-facing
+  guidance in `.ai/` or rules, with cross-links instead of duplicated architecture.
+- Heavy optional `@terreno/ui` screens (`GPTChat`, `MarkdownEditor`, `ConsentFormScreen`, `AIRequestExplorer`, and the other named exports from `lazyBoundaries/heavyOptionalExports`) load through lazy boundaries so a root `@terreno/ui` import stays smaller. Named exports are unchanged.
+- MCP create, update, and delete tools run through the same `executeCreate` /
+  `executeUpdate` / `executeDelete` pipeline as REST and Sync. Permission denials
+  and hook failures use `APIError` titles in the MCP error envelope. User-role
+  stripping happens after hooks in the executor (MCP uses the registry model
+  name). `loadDocOr404` maps invalid document `_id` values to 404, not populate
+  `CastError`s.
+- Pick and Roast now run as an automated inner loop: implement one unblocked task, roast
+  it, then pick the next until the approved list is done. Roast never invokes Pick; Pick
+  owns continuation. Exactly one driver continues after each Roast. Later tasks rediscover
+  docs and skills. Brew starts only after every in-scope task has Roast `PASS`. Plugin
+  `terreno-planning` is `2.3.0`.
+- Planning plugin skills (five stages plus planning-loop and taste-sweep) are model-invocable. The lifecycle checker requires those skills omit `disable-model-invocation`.
+- Aligned README, docs landing, docs site tagline, agent context, MCP overview, and npm package descriptions on the canonical "Django/Rails for TypeScript — with universal app support" positioning.
+- CircleCI is enabled again for package CI, repo policies, and Playwright e2e
+  (`.circleci/config.yml` setup + path-filtering). Config-only PRs run a small
+  smoke slice; mixed PRs skip that slice so path-filtered jobs are not doubled.
+  E2E shards share one compile + `expo export`. `rulesync-check` runs only when
+  rule sources change. CircleCI deploy jobs are available through manual
+  parameters while automatic production path triggers remain paused. Matching
+  GitHub deploy workflows are retained with `on: []`. See `docs/how-to/circleci.md`.
+- Taste waits in-process for product CI with a GitHub CLI or CircleCI CLI watch loop.
+  Before any push it always pulls latest `master`, then runs `bun lint` (and affected
+  tests) in a fresh subagent with no parent conversation, then pushes and watches CI.
+  Plugin `terreno-planning` is `2.5.0`.
+
+### Deprecated
+
+- `modelRouter` `realtime` and `@terreno/rtk` cache-patching helpers (`realtimeList`,
+  `realtimeDocument`, `setRealtimeSocket`, `getRealtimeSocket`) are deprecated and will
+  be removed in Terreno **58**. Migrate collection live updates to `sync` +
+  `@terreno/syncdb`. `RealtimeApp` remains required for sync sockets. See
+  [migrate-rtk-to-syncdb.md](docs/how-to/migrate-rtk-to-syncdb.md) and
+  [remove-legacy-realtime.md](docs/tasks/remove-legacy-realtime.md).
+
+### Fixed
+
+- Admin custom screens now show a clickable back arrow by default. The shared
+  `AdminScreenPage` routes back to admin home reliably on web instead of depending on
+  browser history, and `Page` supports an explicit `onBack` handler.
+- Better Auth lazy User create no longer sets `oauthProvider: null` on email/password sign-up, so `strict: "throw"` User schemas without that field get `req.user` on the first authenticated request instead of 401.
+- CircleCI Playwright chaos e2e no longer force-restarts the sync client after
+  flaps. `goOnline` waiting for the Offline banner to hide is the reconnect
+  signal; `client.stop()` hung for 30s on the production static export.
+- CircleCI automatic Netlify and GCP production path triggers are paused until
+  their contexts and OIDC bootstrap pass manual verification. Netlify jobs now
+  validate credentials before expensive builds, docs builds avoid minification to
+  fit the available executor memory, and the Terraform configuration is formatted.
+- CircleCI no longer deploys the production demo from prerelease tags, Zoom
+  release notify reports failure when publish fails, Maestro keeps Xvfb alive as
+  a background step, and CircleCI OIDC can require the `terreno-gcp` context UUID
+  before GCP impersonation.
+- Taste can query CircleCI with `CIRCLECI_TOKEN` on the GitHub App project slug. The
+  new-file coverage job compiles the same workspace packages as example-backend CI.
+  The example profile form no longer resets the name field when `/auth/me` is refetched.
+- Example backend Cloud Run images include `expo-server-sdk` in the compiled
+  binary by injecting an `Expo` client into `ExpoPushProvider`. Preview deploys
+  no longer crash at boot with a missing optional peer.
+- GitHub `cd.yml` GCP preview jobs (`terraform-preview`,
+  `backend-deploy-preview`) and `preview-cleanup.yml` skip fork pull requests.
+  OIDC `id-token` is granted only on jobs that authenticate to GCP, not the
+  whole workflow. Fork PRs keep `repository: FlourishHealth/terreno` on the
+  token, so WIF would otherwise accept them.
+- Sync mutation date equality now parses date-only ISO strings as UTC and rejects invalid input instead of throwing. The unused datetime NumberPicker stores UTC ISO so Luxon can round-trip the picker value.
+- The `maestro-e2e` CI job now exports the example-frontend web bundle before starting the
+  example backend. That executor shares its memory with the mongo service container, and
+  bundling alongside a running backend got the export OOM-killed (`SIGKILL`) even though the
+  same export succeeds in `e2e-prepare`.
+- `bun run check:new-file-coverage` now expands the glob arguments it reads from a package's
+  `test` script before spawning `bun`, so packages without a `src/` directory (such as
+  `example-frontend`) no longer fail with "filters did not match any test files". Expo Router
+  route-structural entry files under `app/` (`index`, `_layout`, `+not-found`, and dynamic
+  segments) are exempt from the gate; the router mounts them by file path and the screens they
+  render are covered in their owning package.
+- JWT password reset now updates Better Auth credentials and sessions when both stacks are mounted, Better Auth password reset updates the JWT password and `tokenEpoch`, mailbox changes invalidate unused reset tokens even without `emailVerified`, authenticated verification resend returns 501 without a `publicAppUrl`, and Better Auth recovery hooks refuse to send relative links.
+- Select dropdown chevrons stay inside the field border in narrow selects on web. The `am`/`pm`
+  and timezone pickers in `DateTimeField` no longer render their chevrons far to the right of
+  their boxes.
+- Example backend Cloud Run images include `twilio` in the compiled binary by injecting
+  a Twilio client into the SMS and Verify adapters. Invalid SMS destinations return a
+  permanent `SendResult` instead of throwing, so the facade does not retry them. Partial
+  Twilio env in the example backend throws `APIError` at boot.
+
 ## [57.2.0] - 2026-08-24
 
 Upgrade note: [`mcp-server/src/docs/upgrades/57.2.0.md`](mcp-server/src/docs/upgrades/57.2.0.md).
