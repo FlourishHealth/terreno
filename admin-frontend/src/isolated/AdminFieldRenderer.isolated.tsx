@@ -1,9 +1,9 @@
 // noExplicitAny: test mocks use type-erased UI component stubs and field config literals
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../../ui/src/test-utils";
 import {fireEvent} from "@testing-library/react-native";
 import React from "react";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 
 mock.module("../AdminNestedArrayField", () => ({
   AdminNestedArrayField: ({title}: {title: string}) =>
