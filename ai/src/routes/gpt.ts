@@ -56,8 +56,8 @@ const readSessionId = (req: express.Request): string | undefined => {
 };
 
 const readSensitiveOverride = (value: unknown): boolean | undefined => {
-  if (typeof value === "boolean") {
-    return value;
+  if (value === true) {
+    return true;
   }
   return undefined;
 };
@@ -67,6 +67,26 @@ const readOptionalString = (value: unknown): string | undefined => {
     return value;
   }
   return undefined;
+};
+
+const readAdminPromptReference = ({
+  promptLabel,
+  promptName,
+  user,
+}: {
+  promptLabel: unknown;
+  promptName: unknown;
+  user?: {admin?: boolean};
+}): {promptLabel?: string; promptName?: string} => {
+  const name = readOptionalString(promptName);
+  const label = readOptionalString(promptLabel);
+  if (!name && !label) {
+    return {};
+  }
+  if (!user?.admin) {
+    throw new APIError({status: 403, title: "Prompt registry selection requires admin access"});
+  }
+  return {promptLabel: label, promptName: name};
 };
 
 /** Send a canned SSE demo response when no AI service is available. */
@@ -195,6 +215,11 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
         const sessionId = readOptionalString(bodySessionId) ?? readSessionId(req);
         const sensitiveOverride = readSensitiveOverride(sensitive);
+        const promptReference = readAdminPromptReference({
+          promptLabel,
+          promptName,
+          user: req.user as {admin?: boolean} | undefined,
+        });
 
         if (!prompt || typeof prompt !== "string") {
           throw new APIError({status: 400, title: "prompt is required"});
@@ -283,8 +308,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         }
 
         const observability = await aiService.resolveGenerateObservability({
-          promptLabel: readOptionalString(promptLabel),
-          promptName: readOptionalString(promptName),
+          ...promptReference,
           sensitive: sensitiveOverride,
           sessionId,
           systemPrompt: effectiveSystemPrompt,
@@ -741,6 +765,11 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
       const {text, promptLabel, promptName, sensitive} = req.body;
       const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
       const sessionId = readSessionId(req);
+      const promptReference = readAdminPromptReference({
+        promptLabel,
+        promptName,
+        user: req.user as {admin?: boolean} | undefined,
+      });
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});
@@ -752,8 +781,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
       }
 
       const result = await aiService.generateRemix({
-        promptLabel: readOptionalString(promptLabel),
-        promptName: readOptionalString(promptName),
+        ...promptReference,
         sensitive: readSensitiveOverride(sensitive),
         sessionId,
         text,

@@ -1,4 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
+import {SelectField} from "@terreno/ui";
+import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiTracesListView} from "./AiTracesListView";
@@ -149,5 +152,151 @@ describe("AiTracesListView", () => {
     expect(dataset.props.accessibilityState?.disabled ?? dataset.props.disabled).toBeFalsy();
     expect(getByTestId("ai-traces-send-review")).toBeTruthy();
     expect(getByTestId("ai-traces-clear-selection")).toBeTruthy();
+  });
+
+  it("toggles selection, filters, dataset modal, and pagination", async () => {
+    const onToggleSelect = mock(() => undefined);
+    const onFiltersChange = mock(() => undefined);
+    const onClearSelection = mock(() => undefined);
+    const onPageChange = mock(() => undefined);
+    const onAddToDataset = mock(() => undefined);
+    const onDismissDatasetModal = mock(() => undefined);
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiTracesListView
+        addToDatasetError="Could not add traces to the dataset."
+        datasetId="ds-1"
+        datasetModalOpen
+        datasetOptions={[{id: "ds-1", name: "gold"}]}
+        enqueueError="enqueue failed"
+        evaluatorId="eval-1"
+        evaluators={[{id: "eval-1", name: "correctness"}]}
+        filters={emptyTraceFilters()}
+        more
+        onAddToDataset={onAddToDataset}
+        onClearSelection={onClearSelection}
+        onDatasetChange={() => undefined}
+        onDismissDatasetModal={onDismissDatasetModal}
+        onEnqueueReview={() => undefined}
+        onEvaluatorChange={() => undefined}
+        onFiltersChange={onFiltersChange}
+        onOpenAddToDataset={() => undefined}
+        onOpenTrace={() => undefined}
+        onPageChange={onPageChange}
+        onToggleSelect={onToggleSelect}
+        page={1}
+        selectedIds={[okTrace.id]}
+        total={40}
+        traces={[okTrace]}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-traces-select-trace-ok-clickable"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onToggleSelect.mock.calls.length, 1);
+
+    fireEvent.changeText(getByTestId("ai-traces-filter-prompt"), "summarize");
+    assert.isAtLeast(onFiltersChange.mock.calls.length, 1);
+    fireEvent.press(getByTestId("ai-traces-filter-has-score"));
+    fireEvent.press(getByTestId("ai-traces-filter-sensitive"));
+
+    expect(getByText("enqueue failed")).toBeTruthy();
+    expect(getByTestId("ai-traces-add-dataset-error")).toBeTruthy();
+    expect(getByTestId("ai-traces-dataset-modal")).toBeTruthy();
+    expect(getByTestId("ai-traces-dataset-confirm")).toBeTruthy();
+    expect(getByText("40 traces · more pages")).toBeTruthy();
+  });
+
+  it("wires evaluator change, page change, and dataset modal dismiss", async () => {
+    const onEvaluatorChange = mock(() => undefined);
+    const onPageChange = mock(() => undefined);
+    const onDismissDatasetModal = mock(() => undefined);
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AiTracesListView
+        datasetId="ds-1"
+        datasetModalOpen
+        datasetOptions={[{id: "ds-1", name: "gold"}]}
+        evaluatorId="eval-1"
+        evaluators={[
+          {id: "eval-1", name: "correctness"},
+          {id: "eval-2", name: "tone"},
+        ]}
+        filters={emptyTraceFilters()}
+        more
+        onAddToDataset={() => undefined}
+        onClearSelection={() => undefined}
+        onDatasetChange={() => undefined}
+        onDismissDatasetModal={onDismissDatasetModal}
+        onEnqueueReview={() => undefined}
+        onEvaluatorChange={onEvaluatorChange}
+        onFiltersChange={() => undefined}
+        onOpenAddToDataset={() => undefined}
+        onOpenTrace={() => undefined}
+        onPageChange={onPageChange}
+        onToggleSelect={() => undefined}
+        page={1}
+        selectedIds={[okTrace.id]}
+        total={40}
+        traces={[okTrace]}
+      />
+    );
+    const evaluatorSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "ai-traces-evaluator"
+    );
+    assert.isDefined(evaluatorSelect);
+    fireEvent(evaluatorSelect!, "onChange", "eval-2");
+    assert.isAtLeast(onEvaluatorChange.mock.calls.length, 1);
+    const pageButtons = getByTestId("ai-traces-table.pagination").findAllByProps({
+      accessibilityLabel: "Pagination Number",
+    });
+    await act(async () => {
+      fireEvent.press(pageButtons[1]!);
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onPageChange.mock.calls.length, 1);
+    onDismissDatasetModal();
+    assert.equal(onDismissDatasetModal.mock.calls.length, 1);
+  });
+
+  it("wires time and status filters and opens traces from the table", async () => {
+    const onFiltersChange = mock(() => undefined);
+    const onOpenTrace = mock(() => undefined);
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AiTracesListView
+        {...datasetDefaults}
+        evaluatorId=""
+        evaluators={[]}
+        filters={emptyTraceFilters()}
+        onAddToDataset={() => undefined}
+        onClearSelection={() => undefined}
+        onDatasetChange={() => undefined}
+        onDismissDatasetModal={() => undefined}
+        onEnqueueReview={() => undefined}
+        onEvaluatorChange={() => undefined}
+        onFiltersChange={onFiltersChange}
+        onOpenAddToDataset={() => undefined}
+        onOpenTrace={onOpenTrace}
+        onPageChange={() => undefined}
+        onToggleSelect={() => undefined}
+        page={1}
+        selectedIds={[]}
+        total={1}
+        traces={[okTrace]}
+      />
+    );
+    fireEvent.changeText(getByTestId("ai-traces-filter-from"), "2026-09-01");
+    fireEvent.changeText(getByTestId("ai-traces-filter-to"), "2026-09-02");
+    const statusSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "ai-traces-filter-status"
+    );
+    fireEvent(statusSelect!, "onChange", "error");
+    fireEvent.changeText(getByTestId("ai-traces-filter-user"), "user-1");
+    fireEvent.changeText(getByTestId("ai-traces-filter-session"), "sess-1");
+    assert.isAtLeast(onFiltersChange.mock.calls.length, 3);
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-traces-open-trace-ok"));
+      await Promise.resolve();
+    });
+    assert.equal(onOpenTrace.mock.calls.length, 1);
   });
 });

@@ -5,7 +5,7 @@ import {assert} from "chai";
 import mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
-import {MemoryTraceSink} from "../observability/memorySinks";
+import {MemoryTraceSink} from "../observability/local/traceStore";
 import {ObservabilityApp, resetObservabilityApp} from "../observability/observabilityApp";
 import type {ObservabilityPlugin, PromptVersionRef} from "../observability/types";
 import {AIService, TemperaturePresets} from "./aiService";

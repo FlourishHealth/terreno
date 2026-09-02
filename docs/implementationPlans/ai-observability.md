@@ -415,7 +415,9 @@ Admin-only unless noted (`Permissions.IsAdmin`). OpenAPI via `createOpenApiBuild
 | GET | `/costs` | KPI row + by-model (`tokens only` when unpriced) + by-prompt |
 | GET | `/status` | Extended with sink health (last error per sink) and Langfuse deep-link bases |
 
-GPT routes pass `userId` / `sessionId` / `sensitive` / optional `promptName` + `promptLabel` into `AIService`.
+GPT routes pass `userId` / `sessionId` into `AIService`; request `sensitive: true` may upgrade handling,
+but `false` never downgrades a sensitive registry version. Client `promptName` + `promptLabel`
+selection is admin-only; application routes select production prompts server-side.
 Langfuse-primary prompt/dataset/experiment routes **proxy** the existing Langfuse admin routes rather than
 duplicating HTTP.
 

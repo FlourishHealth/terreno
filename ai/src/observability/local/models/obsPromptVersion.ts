@@ -1,4 +1,10 @@
-import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "@terreno/api";
+import {
+  APIError,
+  createdUpdatedPlugin,
+  findExactlyOne,
+  findOneOrNone,
+  isDeletedPlugin,
+} from "@terreno/api";
 import mongoose from "mongoose";
 
 import type {ObsPromptVersionDocument, ObsPromptVersionModel} from "../../../types/observability";
@@ -86,7 +92,7 @@ obsPromptVersionSchema.index({promptId: 1, version: 1}, {unique: true});
 
 obsPromptVersionSchema.pre("save", function () {
   if (!this.isNew) {
-    throw new Error("ObsPromptVersion documents are immutable");
+    throw new APIError({status: 400, title: "ObsPromptVersion documents are immutable"});
   }
 });
 

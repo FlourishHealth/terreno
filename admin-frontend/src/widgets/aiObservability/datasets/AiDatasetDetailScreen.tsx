@@ -33,20 +33,40 @@ export const AiDatasetDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
   );
 
   const handleAddItem = useCallback(
-    async ({expectedOutput, input}: {expectedOutput: string; input: string}): Promise<void> => {
+    async ({
+      expectedOutput,
+      input,
+    }: {
+      expectedOutput: string;
+      input: string;
+    }): Promise<string | undefined> => {
       if (!id) {
-        return;
+        return "Missing dataset id.";
       }
-      await createItem({
-        body: {
-          expectedOutput: JSON.parse(expectedOutput) as unknown,
-          input: JSON.parse(input) as unknown,
-          origin: "manual",
-          proofread: true,
-        },
-        datasetId: id,
-      }).unwrap();
-      refetchItems();
+      try {
+        await createItem({
+          body: {
+            expectedOutput: JSON.parse(expectedOutput) as unknown,
+            input: JSON.parse(input) as unknown,
+            origin: "manual",
+            proofread: true,
+          },
+          datasetId: id,
+        }).unwrap();
+        refetchItems();
+        return undefined;
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return "Input and expected output must be valid JSON.";
+        }
+        if (error && typeof error === "object" && "data" in error) {
+          const title = (error as {data?: {title?: string}}).data?.title;
+          if (title) {
+            return title;
+          }
+        }
+        return "Could not add dataset item.";
+      }
     },
     [createItem, id, refetchItems]
   );

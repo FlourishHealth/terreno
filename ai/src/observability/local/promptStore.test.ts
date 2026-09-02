@@ -93,4 +93,85 @@ describe("LocalPromptStore", () => {
       },
     ]);
   });
+
+  it("validates create/moveLabel inputs and resolves versions by label or number", async () => {
+    try {
+      await store.create({folder: "", name: "bad"});
+      expect.unreachable();
+    } catch (error) {
+      expect(String(error)).toMatch(/folder and name/);
+    }
+
+    await store.create({
+      folder: "examples",
+      name: "versioned",
+      system: "v1",
+      type: "text",
+    });
+    await store.createVersion("versioned", {system: "v2", type: "text"});
+
+    try {
+      await store.moveLabel("versioned", {label: "qa", version: 2});
+      expect.unreachable();
+    } catch (error) {
+      expect(String(error)).toMatch(/production or staging/);
+    }
+
+    try {
+      await store.moveLabel("versioned", {label: "production", version: 99});
+      expect.unreachable();
+    } catch (error) {
+      expect(String(error)).toMatch(/Unknown version 99/);
+    }
+
+    await store.create({
+      folder: "examples",
+      name: "duplicate",
+      system: "one",
+      type: "text",
+    });
+    try {
+      await store.create({folder: "examples", name: "duplicate", system: "two", type: "text"});
+      expect.unreachable();
+    } catch (error) {
+      expect(String(error)).toMatch(/already exists/);
+    }
+
+    expect(await store.getVersionByLabel("missing")).toBeUndefined();
+    expect((await store.getVersionByNumber("versioned", 2))?.system).toBe("v2");
+    expect(await store.getVersionByNumber("versioned", 99)).toBeUndefined();
+  });
+
+  it("compiles templates and runs playground generation with optional pricing", async () => {
+    await store.create({
+      folder: "examples",
+      name: "playground",
+      system: "System {{name}}",
+      template: "Hello {{name}}",
+      type: "text",
+      variables: [{key: "name", required: true}],
+    });
+    expect(store.compile({system: "", template: "Hi", variables: {}})).toEqual([
+      {content: "Hi", role: "user"},
+    ]);
+
+    const result = await store.runPlayground({
+      generator: {
+        generate: async () => {
+          return {inputTokens: 10, latencyMs: 12, output: "done", outputTokens: 5};
+        },
+      },
+      modelId: "mock-model",
+      name: "playground",
+      priceMap: {["mock-model"]: {inputPerMTok: 1, outputPerMTok: 2}},
+      variables: {name: "Ada"},
+      version: 1,
+    });
+    expect(result.output).toBe("done");
+    expect(result.costUsd).toBeCloseTo(0.00002);
+    expect(result.compiledMessages).toEqual([
+      {content: "System Ada", role: "system"},
+      {content: "Hello Ada", role: "user"},
+    ]);
+  });
 });

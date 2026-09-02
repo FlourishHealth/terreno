@@ -1,6 +1,6 @@
 import {Box, Spinner, Text} from "@terreno/ui";
 import {useLocalSearchParams} from "expo-router";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {AiExperimentResultsView} from "./AiExperimentResultsView";
@@ -23,13 +23,18 @@ export const AiExperimentResultsScreenWidget: React.FC<AdminScreenWidgetProps> =
   const [promoteVersion, setPromoteVersion] = useState(0);
   const [promoteConfirmOpen, setPromoteConfirmOpen] = useState(false);
   const [promoteError, setPromoteError] = useState("");
+  const initializedExperimentId = useRef<string | undefined>(undefined);
 
   // Default promote version to the highest compared version once results load.
   useEffect(() => {
     if (!experiment || experiment.versions.length === 0) {
       return;
     }
+    if (initializedExperimentId.current === experiment.id) {
+      return;
+    }
     const latest = experiment.versions[experiment.versions.length - 1] ?? 0;
+    initializedExperimentId.current = experiment.id;
     setSelectedVersion(latest);
     setPromoteVersion(latest);
   }, [experiment]);

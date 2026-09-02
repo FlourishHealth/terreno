@@ -3,7 +3,7 @@ import {assert} from "chai";
 import {DateTime} from "luxon";
 
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
-import {LocalDatasetStore} from "./datasetStore";
+import {LocalDatasetStore, throwOnDatasetImportErrors} from "./datasetStore";
 import {createLocalObservabilityBundle} from "./localPlugin";
 import {registerObsDataset} from "./models/obsDataset";
 import {registerObsDatasetItem} from "./models/obsDatasetItem";
@@ -54,6 +54,19 @@ describe("LocalDatasetStore", () => {
     }
   });
 
+  it("keeps reserved metadata fields out of a flat JSON row input", async () => {
+    const dataset = await store.create({name: "flat-json"});
+    const result = await store.importJson(dataset.id, [
+      {proofread: true, tags: ["gold"], text: "hello"},
+    ]);
+
+    assert.equal(result.created, 1);
+    const items = await store.listItems(dataset.id);
+    assert.deepEqual(items[0]?.input, {text: "hello"});
+    assert.equal(items[0]?.proofread, true);
+    assert.deepEqual(items[0]?.tags, ["gold"]);
+  });
+
   it("imports quoted CSV rows with nested input columns", async () => {
     const dataset = await store.create({name: "csv-set"});
     const csv = [
@@ -100,5 +113,85 @@ describe("LocalDatasetStore", () => {
     assert.equal(detail.counts.total, 2);
     assert.equal(detail.counts.human, 1);
     assert.equal(detail.counts.needsReview, 1);
+    const listed = await store.list();
+    assert.equal(
+      listed.some((row) => row.id === dataset.id),
+      true
+    );
+  });
+
+  it("supports dataset CRUD, duplicate protection, and item updates", async () => {
+    const created = await store.create({description: "gold", name: "crud-set", tags: ["a"]});
+    const updated = await store.update(created.id, {description: "updated", name: "crud-set"});
+    assert.equal(updated.description, "updated");
+
+    try {
+      await store.create({name: "crud-set"});
+      assert.fail("expected duplicate dataset rejection");
+    } catch (error) {
+      assert.match(String(error), /already exists/);
+    }
+
+    const item = await store.createItem(created.id, {
+      input: {text: "one"},
+      metadata: {source: "seed"},
+      proofread: false,
+      tags: ["gold"],
+    });
+    const saved = await store.updateItem(created.id, item.id, {
+      input: {text: "two"},
+      proofread: true,
+      tags: ["reviewed"],
+    });
+    assert.deepEqual(saved.input, {text: "two"});
+    assert.equal(saved.proofread, true);
+
+    await store.removeItem(created.id, item.id);
+    await store.remove(created.id);
+    try {
+      await store.get(created.id);
+      assert.fail("expected deleted dataset to 404");
+    } catch (error) {
+      assert.match(String(error), /Unknown dataset/);
+    }
+  });
+
+  it("wraps import validation errors and supports single-trace adds", async () => {
+    await promptStore.create({
+      folder: "examples",
+      inputSchema: {
+        properties: {text: {type: "string"}},
+        required: ["text"],
+        type: "object",
+      },
+      name: "import-bound",
+      type: "text",
+    });
+    await promptStore.moveLabel("import-bound", {label: "production", version: 1});
+    const dataset = await store.create({
+      inputSchemaPromptName: "import-bound",
+      name: "import-errors",
+    });
+    const failed = await store.importJson(dataset.id, [{text: 123}]);
+    try {
+      throwOnDatasetImportErrors(failed);
+      assert.fail("expected import validation throw");
+    } catch (error) {
+      assert.match(String(error), /Import failed on row/);
+    }
+
+    const trace = await registerObsTrace().create({
+      input: {text: "trace"},
+      name: "trace-add",
+      output: {answer: "ok"},
+      prompts: [],
+      startedAt: DateTime.utc().toJSDate(),
+      status: "ok",
+    });
+    const single = await store.addTraceToDataset({
+      datasetId: dataset.id,
+      traceId: String(trace._id),
+    });
+    assert.equal(single.sourceTraceId, String(trace._id));
   });
 });

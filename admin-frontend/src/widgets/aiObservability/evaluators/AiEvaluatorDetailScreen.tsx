@@ -1,5 +1,6 @@
 import {Box, Spinner, Text} from "@terreno/ui";
 import {useLocalSearchParams} from "expo-router";
+import {DateTime} from "luxon";
 import React, {useMemo} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
 import {unwrapExperimentList} from "../experiments/experimentTypes";
@@ -44,9 +45,15 @@ export const AiEvaluatorDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (
       return [];
     }
     const experiments = unwrapExperimentList(experimentsRaw);
+    const cutoff = DateTime.utc().minus({days: 30});
     return experiments
       .filter((experiment) => {
-        return experiment.evaluatorIds.includes(evaluator.id);
+        const created = DateTime.fromISO(experiment.created);
+        return (
+          experiment.evaluatorIds.includes(evaluator.id) &&
+          created.isValid &&
+          created.toMillis() >= cutoff.toMillis()
+        );
       })
       .map((experiment) => {
         return {

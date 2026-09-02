@@ -99,4 +99,35 @@ describe("observability trace routes", () => {
     const res = await agent.get("/ai/observability/traces");
     expect(res.status).toBe(403);
   });
+
+  it("validates trace list query params and score payloads", async () => {
+    const startedAt = DateTime.utc().toISO() ?? "";
+    const exported = await store.exportTrace({
+      id: "trace-query",
+      name: "query",
+      prompts: [{name: "summarize", version: 1}],
+      sensitive: false,
+      spans: [],
+      startedAt,
+      status: "ok",
+    });
+    const admin = await authAsUser(app, "admin");
+
+    const badBoolean = await admin.get("/ai/observability/traces?hasScore=maybe");
+    expect(badBoolean.status).toBe(400);
+
+    const badPage = await admin.get("/ai/observability/traces?page=0");
+    expect(badPage.status).toBe(400);
+
+    const filtered = await admin.get(
+      "/ai/observability/traces?flaggedForDataset=false&limit=5&page=1&status=ok"
+    );
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.data.map((row: {id: string}) => row.id)).toContain(exported.id);
+
+    const missingFields = await admin.post(`/ai/observability/traces/${exported.id}/scores`).send({
+      name: "quality",
+    });
+    expect(missingFields.status).toBe(400);
+  });
 });

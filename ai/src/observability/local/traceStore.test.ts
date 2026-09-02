@@ -3,12 +3,12 @@ import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
-import type {TraceRecord} from "../types";
+import type {ScoreRecord, TraceRecord} from "../types";
 import {createLocalObservabilityPlugin} from "./localPlugin";
 import {registerObsScore} from "./models/obsScore";
 import {registerObsSpan} from "./models/obsSpan";
 import {registerObsTrace} from "./models/obsTrace";
-import {LocalTraceStore} from "./traceStore";
+import {LocalTraceSink, LocalTraceStore, MemoryScoreSink, MemoryTraceSink} from "./traceStore";
 
 const iso = (msAgo: number): string => {
   return DateTime.utc().minus({milliseconds: msAgo}).toISO() ?? "";
@@ -184,5 +184,67 @@ describe("LocalTraceStore", () => {
     const page = await store.list({limit: 1, page: 2});
     expect(page.meta).toEqual({limit: 1, page: 2, total: 2});
     expect(page.data).toHaveLength(1);
+  });
+
+  it("returns score metadata on trace detail and exports through the sink wrapper", async () => {
+    const exported = await store.exportTrace(baseTrace());
+    await store.exportScore({
+      comment: "looks good",
+      confidence: 0.9,
+      dataType: "numeric",
+      evaluatorId: new mongoose.Types.ObjectId().toString(),
+      name: "quality",
+      source: "human",
+      spanId: "span-root",
+      traceId: exported.id,
+      value: 5,
+    });
+
+    const detail = await store.getDetail(exported.id);
+    expect(detail.scores).toEqual([
+      expect.objectContaining({
+        comment: "looks good",
+        confidence: 0.9,
+        dataType: "numeric",
+        name: "quality",
+        source: "human",
+        traceId: exported.id,
+        value: 5,
+      }),
+    ]);
+
+    const sink = new LocalTraceSink(store);
+    await sink.export(baseTrace({name: "sink"}));
+    expect(sink.store).toBe(store);
+    const listed = await store.list({limit: 10});
+    const sinkRow = listed.data.find((row) => row.name === "sink");
+    expect(sinkRow).toBeDefined();
+    const sinkDetail = await store.getDetail(sinkRow!.id);
+    expect(sinkDetail.name).toBe("sink");
+  });
+
+  it("throws when loading an unknown trace", async () => {
+    await expect(store.getDetail(new mongoose.Types.ObjectId().toString())).rejects.toThrow(
+      /Unknown trace/
+    );
+  });
+
+  it("buffers exported traces and scores in memory sinks", async () => {
+    const trace = baseTrace({id: "memory-trace"});
+    const score: ScoreRecord = {
+      dataType: "boolean",
+      name: "correct",
+      source: "human",
+      traceId: "memory-trace",
+      value: true,
+    };
+    const traceSink = new MemoryTraceSink();
+    const scoreSink = new MemoryScoreSink();
+
+    await traceSink.export(trace);
+    await scoreSink.export(score);
+
+    expect(traceSink.traces).toEqual([trace]);
+    expect(scoreSink.scores).toEqual([score]);
   });
 });

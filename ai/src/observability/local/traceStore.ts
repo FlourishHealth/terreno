@@ -412,3 +412,21 @@ export class LocalScoreSink implements ScoreSink {
     await this.store.exportScore(score);
   };
 }
+
+export class MemoryTraceSink implements TraceSink {
+  readonly traces: TraceRecord[] = [];
+
+  export(trace: TraceRecord): Promise<void> {
+    this.traces.push(trace);
+    return Promise.resolve();
+  }
+}
+
+export class MemoryScoreSink implements ScoreSink {
+  readonly scores: ScoreRecord[] = [];
+
+  export(score: ScoreRecord): Promise<void> {
+    this.scores.push(score);
+    return Promise.resolve();
+  }
+}

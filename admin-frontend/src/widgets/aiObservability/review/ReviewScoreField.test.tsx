@@ -26,6 +26,11 @@ describe("ReviewScoreField", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(onChange).toHaveBeenCalledWith(true);
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-review-score-correct-fail"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(onChange).toHaveBeenCalledWith(false);
   });
 
   it("renders numeric dimensions as a slider with range labels", () => {
@@ -43,6 +48,32 @@ describe("ReviewScoreField", () => {
     expect(getByText("1")).toBeTruthy();
     fireEvent(UNSAFE_getByType(SliderComponent), "valueChange", 0.8);
     expect(onChange).toHaveBeenCalledWith(0.8);
+  });
+
+  it("renders categorical free-text when range has no pipe-separated options", () => {
+    const onChange = mock(() => undefined);
+    const {getAllByDisplayValue} = renderWithTheme(
+      <ReviewScoreField
+        dimension={{dataType: "categorical", key: "label", range: "", required: true}}
+        onChange={onChange}
+        value=""
+      />
+    );
+    fireEvent.changeText(getAllByDisplayValue("")[0]!, "custom");
+    expect(onChange).toHaveBeenCalledWith("custom");
+  });
+
+  it("defaults numeric slider to range minimum when value is unset", () => {
+    const onChange = mock(() => undefined);
+    const {getByTestId, UNSAFE_getByType} = renderWithTheme(
+      <ReviewScoreField
+        dimension={{dataType: "numeric", key: "score", range: "1-5", required: true}}
+        onChange={onChange}
+      />
+    );
+    expect(getByTestId("ai-review-score-numeric-score")).toBeTruthy();
+    fireEvent(UNSAFE_getByType(SliderComponent), "valueChange", 3);
+    expect(onChange).toHaveBeenCalledWith(3);
   });
 
   it("renders categorical dimensions as selectable pills", async () => {

@@ -305,4 +305,104 @@ describe("LocalExperimentRunner", () => {
       assert.match(String(error), /aiServiceFactory|Unsupported modelOverride/);
     }
   });
+
+  it("lists experiments and evaluates mean gates with the default background runner", async () => {
+    const defaultRunner = new LocalExperimentRunner({
+      datasetStore,
+      evaluatorStore,
+      promptStore,
+    });
+    defaultRunner.configureAi({
+      aiService: {
+        generateJsonObject: async () => {
+          return {correct: true};
+        },
+        generateText: async () => {
+          return JSON.stringify({answer: "ok"});
+        },
+        modelId: "mock-model",
+      },
+    });
+
+    const dataset = await datasetStore.create({name: "mean-dataset"});
+    await datasetStore.createItem(dataset.id, {
+      input: {question: "score"},
+      proofread: true,
+    });
+    const evaluator = await evaluatorStore.create({
+      assertion: {constraint: "exists", path: "answer"},
+      dimensions: [{dataType: "boolean", key: "correct", required: true}],
+      name: "quality-score",
+      target: "generation span",
+      type: "json-assert",
+    });
+    const experiment = await defaultRunner.create({
+      datasetId: dataset.id,
+      evaluatorIds: [evaluator.id],
+      name: "mean-run",
+      promptName: "exp-prompt",
+      thresholds: [
+        {
+          aggregate: "mean",
+          dimension: "correct",
+          evaluatorName: "quality-score",
+          op: "gte",
+          value: 0.5,
+        },
+      ],
+      versions: [1, 2],
+    });
+    let detail = await defaultRunner.get(experiment.id);
+    for (let attempt = 0; attempt < 20 && detail.status === "running"; attempt += 1) {
+      await new Promise((resolvePromise) => {
+        setTimeout(resolvePromise, 25);
+      });
+      detail = await defaultRunner.get(experiment.id);
+    }
+    const listed = await defaultRunner.list();
+    assert.isAtLeast(listed.length, 1);
+    assert.equal(detail.status, "completed");
+    assert.equal(detail.results?.gates[0]?.aggregate, "mean");
+  });
+
+  it("marks experiments failed when generation throws", async () => {
+    const failingRunner = new LocalExperimentRunner({
+      datasetStore,
+      evaluatorStore,
+      promptStore,
+    });
+    failingRunner.configureAi({
+      aiService: {
+        generateJsonObject: async () => {
+          return {correct: true};
+        },
+        generateText: async () => {
+          throw new Error("generation failed");
+        },
+        modelId: "mock-model",
+      },
+    });
+    const dataset = await datasetStore.create({name: "fail-dataset"});
+    await datasetStore.createItem(dataset.id, {
+      input: {question: "boom"},
+      proofread: true,
+    });
+    const experiment = await failingRunner.create({
+      datasetId: dataset.id,
+      evaluatorIds: [],
+      name: "fail-run",
+      promptName: "exp-prompt",
+      versions: [1, 2],
+    });
+    let detail = await failingRunner.get(experiment.id);
+    for (let attempt = 0; attempt < 20 && detail.status === "running"; attempt += 1) {
+      await new Promise((resolvePromise) => {
+        setTimeout(resolvePromise, 25);
+      });
+      detail = await failingRunner.get(experiment.id);
+    }
+    const task = await BackgroundTask.findExactlyOne({_id: detail.backgroundTaskId});
+    assert.equal(task.status, "failed");
+    assert.include(task.error ?? "", "generation failed");
+  });
 });

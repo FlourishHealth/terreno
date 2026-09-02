@@ -97,8 +97,7 @@ export const EXAMPLE_SUMMARIZE_PROMPT = {
 };
 const EXAMPLE_SUMMARIZE_V2 = {
   ...EXAMPLE_SUMMARIZE_PROMPT,
-  system:
-    "Write one faithful sentence of at most 20 words that preserves the source meaning.",
+  system: "Write one faithful sentence of at most 20 words that preserves the source meaning.",
 };
 const EXAMPLE_DATASET_NAME = "example-gold";
 const EXAMPLE_EXPERIMENT_EVALUATOR_TEMPLATE = "schema-assert";
@@ -568,9 +567,9 @@ const seedObservability = async (context: SeedContext): Promise<void> => {
       version: prompt.latestVersion,
     });
   }
-  const latestPrompt = (
-    await promptStore.list({search: EXAMPLE_SUMMARIZE_PROMPT.name})
-  ).find((entry) => entry.name === EXAMPLE_SUMMARIZE_PROMPT.name);
+  const latestPrompt = (await promptStore.list({search: EXAMPLE_SUMMARIZE_PROMPT.name})).find(
+    (entry) => entry.name === EXAMPLE_SUMMARIZE_PROMPT.name
+  );
   if (!context.dryRun && (latestPrompt?.latestVersion ?? 0) < 2) {
     await promptStore.createVersion(EXAMPLE_SUMMARIZE_PROMPT.name, EXAMPLE_SUMMARIZE_V2);
   }

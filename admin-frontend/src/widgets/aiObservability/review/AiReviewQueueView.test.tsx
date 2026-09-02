@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiReviewQueueView} from "./AiReviewQueueView";
@@ -60,5 +61,64 @@ describe("AiReviewQueueView", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(onStart).toHaveBeenCalled();
+  });
+
+  it("renders loading, error retry, status tabs, and open controls", async () => {
+    const onRetry = mock(() => undefined);
+    const onStatusChange = mock(() => undefined);
+    const onOpenItem = mock(() => undefined);
+    const loading = renderWithTheme(
+      <AiReviewQueueView
+        counts={counts}
+        isLoading
+        items={[]}
+        onOpenItem={onOpenItem}
+        onRetry={onRetry}
+        onStart={() => undefined}
+        onStatusChange={onStatusChange}
+        status="pending"
+      />
+    );
+    expect(loading.getByTestId("ai-review-loading")).toBeTruthy();
+
+    const errored = renderWithTheme(
+      <AiReviewQueueView
+        counts={counts}
+        isError
+        items={[]}
+        onOpenItem={onOpenItem}
+        onRetry={onRetry}
+        onStart={() => undefined}
+        onStatusChange={onStatusChange}
+        status="pending"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(errored.getByText("Retry"));
+      await Promise.resolve();
+    });
+    expect(onRetry).toHaveBeenCalled();
+
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiReviewQueueView
+        counts={{...counts, done: 1, pending: 1}}
+        items={[item]}
+        onOpenItem={onOpenItem}
+        onRetry={onRetry}
+        onStart={() => undefined}
+        onStatusChange={onStatusChange}
+        status="pending"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByText("Done"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onStatusChange.mock.calls.length, 1);
+    await act(async () => {
+      fireEvent.press(getByText("Open"));
+      await Promise.resolve();
+    });
+    expect(onOpenItem).toHaveBeenCalled();
   });
 });

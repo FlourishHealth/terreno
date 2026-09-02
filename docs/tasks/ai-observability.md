@@ -28,7 +28,7 @@ Ships design screens: Prompts, Prompt editor (+ Playground), Traces, Trace detai
   - Acceptance: tests for emit, `skipTrace`, throwing sink, cost from price map, **no `costUsd` when the model is unpriced**, multi-step still logs `AIRequest`, resolved prompt body reaches the model with `skipTrace`, and missing registry/production label → 400 with no model call
 
 - [x] **Task 1.3**: GPT routes pass identity and sensitivity
-  - Delivers: `/gpt/prompt` sets `userId` from `req.user`, `sessionId` from body/header `x-ai-session-id`, and an explicit request `sensitive` override into `AIService`; `AIService` otherwise inherits `sensitive` from the resolved prompt version
+  - Delivers: `/gpt/prompt` sets `userId` from `req.user`, `sessionId` from body/header `x-ai-session-id`, and may upgrade sensitivity with request `sensitive: true`; client `false` never downgrades a sensitive prompt version. Client `promptName` / `promptLabel` selection is admin-only; app routes select production prompts server-side
   - Files: `ai/src/routes/gpt.ts`, route tests
   - Blocked by: 1.2
   - Docs: `docs/reference/ai.md` GPT section

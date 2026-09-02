@@ -1,8 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
-
-import {MemoryScoreSink} from "../memorySinks";
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
 import {LocalEvaluatorStore} from "./evaluatorStore";
 import {createLocalObservabilityPlugin} from "./localPlugin";
@@ -10,7 +8,7 @@ import {registerObsEvaluator} from "./models/obsEvaluator";
 import {registerObsReviewItem} from "./models/obsReviewItem";
 import {registerObsTrace} from "./models/obsTrace";
 import {LocalReviewStore} from "./reviewStore";
-import {LocalTraceStore} from "./traceStore";
+import {LocalTraceStore, MemoryScoreSink} from "./traceStore";
 
 describe("LocalReviewStore", () => {
   let reviewStore: LocalReviewStore;

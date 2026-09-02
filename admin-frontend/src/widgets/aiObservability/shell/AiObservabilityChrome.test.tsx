@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {Text} from "@terreno/ui";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse} from "../../../types";
@@ -105,6 +106,98 @@ describe("AI observability chrome", () => {
     expect(
       off.getByText("Local off · prompts:langfuse · datasets:langfuse · experiments:langfuse")
     ).toBeTruthy();
+  });
+
+  it("fetches loading and error states through the injected api", () => {
+    const loadingApi = {
+      enhanceEndpoints: () => loadingApi,
+      injectEndpoints: () => ({
+        useAiObservabilityStatusQuery: () => ({
+          data: undefined,
+          isError: false,
+          isLoading: true,
+        }),
+      }),
+    } as unknown as AdminApi;
+    const loading = renderWithTheme(<AiObservabilityStatusChip api={loadingApi} />);
+    expect(loading.getByText("Checking observability…")).toBeTruthy();
+
+    const errorApi = {
+      enhanceEndpoints: () => errorApi,
+      injectEndpoints: () => ({
+        useAiObservabilityStatusQuery: () => ({
+          data: undefined,
+          isError: true,
+          isLoading: false,
+        }),
+      }),
+    } as unknown as AdminApi;
+    const errored = renderWithTheme(<AiObservabilityStatusChip api={errorApi} />);
+    expect(errored.getByText("Observability unavailable")).toBeTruthy();
+
+    const unwrappedApi = {
+      enhanceEndpoints: () => unwrappedApi,
+      injectEndpoints: () => ({
+        useAiObservabilityStatusQuery: () => ({
+          data: localOnStatus,
+          isError: false,
+          isLoading: false,
+        }),
+      }),
+    } as unknown as AdminApi;
+    const unwrapped = renderWithTheme(<AiObservabilityStatusChip api={unwrappedApi} />);
+    expect(
+      unwrapped.getByText("Local on · prompts:local · datasets:local · experiments:local")
+    ).toBeTruthy();
+
+    const missingStatusApi = {
+      enhanceEndpoints: () => missingStatusApi,
+      injectEndpoints: () => ({
+        useAiObservabilityStatusQuery: () => ({
+          data: undefined,
+          isError: false,
+          isLoading: false,
+        }),
+      }),
+    } as unknown as AdminApi;
+    const missingStatus = renderWithTheme(<AiObservabilityStatusChip api={missingStatusApi} />);
+    expect(missingStatus.getByText("Observability unavailable")).toBeTruthy();
+  });
+
+  it("fetches status through the injected api when props are omitted", () => {
+    let statusQuery: (() => {method: string; url: string}) | undefined;
+    const api = {
+      enhanceEndpoints: () => api,
+      injectEndpoints: (config: {
+        endpoints: (build: {
+          query: (definition: {query: () => {method: string; url: string}}) => {
+            query: () => {method: string; url: string};
+          };
+        }) => Record<string, {query: () => {method: string; url: string}}>;
+      }) => {
+        const endpoints = config.endpoints({
+          query: (definition) => definition,
+        });
+        statusQuery = endpoints.aiObservabilityStatus?.query;
+        return {
+          useAiObservabilityStatusQuery: () => ({
+            data: {data: localOnStatus},
+            isError: false,
+            isLoading: false,
+          }),
+        };
+      },
+    } as unknown as AdminApi;
+    const fetched = renderWithTheme(<AiObservabilityStatusChip api={api} />);
+    expect(
+      fetched.getByText("Local on · prompts:local · datasets:local · experiments:local")
+    ).toBeTruthy();
+    assert.deepEqual(statusQuery?.(), {method: "GET", url: "/ai/observability/status"});
+  });
+
+  it("shows unavailable chip when api is omitted and no status props are passed", () => {
+    const missingApi = renderWithTheme(<AiObservabilityStatusChip />);
+    expect(missingApi.getByText("Observability unavailable")).toBeTruthy();
   });
 
   it("hides review queue content when the local plugin is off", () => {

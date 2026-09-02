@@ -1,4 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiTraceDetailView} from "./AiTraceDetailView";
@@ -62,5 +64,22 @@ describe("AiTraceDetailView", () => {
     expect(getByTestId("ai-trace-span-input")).toBeTruthy();
     expect(getByText("Input (sensitive)")).toBeTruthy();
     expect(queryByText("patient SSN 123-45-6789")).toBeNull();
+  });
+
+  it("selects spans and navigates back", async () => {
+    const onBack = mock(() => undefined);
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiTraceDetailView detail={detail} onBack={onBack} />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-trace-span-span-llm-clickable"));
+      await Promise.resolve();
+    });
+    expect(getByText("LLM · generate")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByText("Back to traces"));
+      await Promise.resolve();
+    });
+    assert.equal(onBack.mock.calls.length, 1);
   });
 });

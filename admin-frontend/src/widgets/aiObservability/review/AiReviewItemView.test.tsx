@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiReviewItemView} from "./AiReviewItemView";
@@ -79,5 +80,137 @@ describe("AiReviewItemView", () => {
     expect(onSubmit).toHaveBeenCalled();
     expect(onSkip).toHaveBeenCalled();
     expect(onAssign).toHaveBeenCalled();
+  });
+
+  it("shows non-pending copy, navigation buttons, submit error, and comment editing", async () => {
+    const onNext = mock(() => undefined);
+    const onPrevious = mock(() => undefined);
+    const onCommentChange = mock(() => undefined);
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiReviewItemView
+        comment="needs work"
+        detail={{...detail, status: "done"}}
+        isPending={false}
+        onAssign={() => undefined}
+        onCommentChange={onCommentChange}
+        onNext={onNext}
+        onPrevious={onPrevious}
+        onScoreChange={() => undefined}
+        onSkip={() => undefined}
+        onSubmit={() => undefined}
+        position={1}
+        scores={{correct: true}}
+        submitError="Could not submit this review."
+        totalPending={0}
+      />
+    );
+    expect(getByText(/not in pending queue/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByText("Previous"));
+      fireEvent.press(getByText("Next"));
+      await Promise.resolve();
+    });
+    expect(onPrevious).toHaveBeenCalled();
+    expect(onNext).toHaveBeenCalled();
+    expect(getByText("Could not submit this review.")).toBeTruthy();
+    fireEvent.changeText(getByTestId("ai-review-comment"), "updated");
+    expect(onCommentChange).toHaveBeenCalledWith("updated");
+  });
+
+  it("scores boolean dimensions when navigation handlers are absent", async () => {
+    const onScoreChange = mock(() => undefined);
+    const {getByTestId, getByText, UNSAFE_root} = renderWithTheme(
+      <AiReviewItemView
+        comment=""
+        detail={detail}
+        isPending
+        onAssign={() => undefined}
+        onCommentChange={() => undefined}
+        onScoreChange={onScoreChange}
+        onSkip={() => undefined}
+        onSubmit={() => undefined}
+        position={1}
+        scores={{}}
+        totalPending={1}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-review-score-correct-pass"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onScoreChange.mock.calls.length, 1);
+    expect(getByText("Previous")).toBeTruthy();
+    expect(getByText("Next")).toBeTruthy();
+    const navButtons = UNSAFE_root.findAllByProps({text: "Previous"}).filter(
+      (node) => typeof node.props.onClick === "function"
+    );
+    const nextButtons = UNSAFE_root.findAllByProps({text: "Next"}).filter(
+      (node) => typeof node.props.onClick === "function"
+    );
+    assert.isAtLeast(navButtons.length, 1);
+    assert.isAtLeast(nextButtons.length, 1);
+    navButtons[0]!.props.onClick();
+    nextButtons[0]!.props.onClick();
+  });
+
+  it("expands raw JSON accordion content", async () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiReviewItemView
+        comment=""
+        detail={detail}
+        isPending
+        onAssign={() => undefined}
+        onCommentChange={() => undefined}
+        onScoreChange={() => undefined}
+        onSkip={() => undefined}
+        onSubmit={() => undefined}
+        position={1}
+        scores={{}}
+        totalPending={1}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-review-raw-json.toggle"));
+      await Promise.resolve();
+    });
+    expect(getByText(/"input"/)).toBeTruthy();
+  });
+
+  it("shows saving state, instructions, raw JSON, and multi-dimension scoring", async () => {
+    const onScoreChange = mock(() => undefined);
+    const multiDetail: ReviewDetail = {
+      ...detail,
+      dimensions: [
+        {dataType: "boolean", key: "correct", required: true},
+        {dataType: "numeric", key: "helpfulness", range: "0-1", required: true},
+        {dataType: "categorical", key: "tone", range: "safe|unsafe", required: true},
+      ],
+      instructions: undefined,
+    };
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
+      <AiReviewItemView
+        comment=""
+        detail={multiDetail}
+        isPending
+        isSaving
+        onAssign={() => undefined}
+        onCommentChange={() => undefined}
+        onScoreChange={onScoreChange}
+        onSkip={() => undefined}
+        onSubmit={() => undefined}
+        position={2}
+        scores={{correct: true, helpfulness: 0.7}}
+        totalPending={3}
+      />
+    );
+    expect(getByText("Item 2 of 3 pending")).toBeTruthy();
+    expect(queryByText("Mark correct only when grounded.")).toBeNull();
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-review-score-tone-safe"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onScoreChange.mock.calls.length, 1);
+    const skip = getByTestId("ai-review-skip");
+    expect(skip.props.accessibilityState?.disabled ?? skip.props.disabled).toBeTruthy();
   });
 });

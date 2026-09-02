@@ -1,5 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 
 import {parseLcov} from "./check-coverage";
@@ -8,8 +10,10 @@ import {
   coverageRunArgs,
   evaluateNewFileCoverage,
   expandCoverageRunArgs,
+  filterCoverageSourceFiles,
   groupFilesByWorkspace,
   isCoverageSourceFile,
+  isInterfaceOnlySourceFile,
   parseNewFileCoverageArgs,
 } from "./check-new-file-coverage";
 
@@ -50,6 +54,58 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("admin-spa/app/+not-found.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/app/admin/SyncLabScreen.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
+  });
+});
+
+describe("isInterfaceOnlySourceFile", () => {
+  it("detects interface-only modules and keeps executable controllers", () => {
+    const interfaceOnly = `
+      import type mongoose from "mongoose";
+      export interface WidgetDocument {
+        name: string;
+      }
+    `;
+    const executable = `
+      export const listWidgets = async (): Promise<string[]> => {
+        return ["ok"];
+      };
+    `;
+    assert.isTrue(isInterfaceOnlySourceFile("types/widget.ts", interfaceOnly));
+    assert.isFalse(isInterfaceOnlySourceFile("api/widgets.ts", executable));
+  });
+});
+
+describe("filterCoverageSourceFiles", () => {
+  it("drops interface-only added files but keeps implementation modules", () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "terreno-coverage-filter-"));
+    try {
+      mkdirSync(join(repoRoot, "ai", "src", "types"), {recursive: true});
+      mkdirSync(join(repoRoot, "ai", "src", "observability"), {recursive: true});
+      writeFileSync(
+        join(repoRoot, "ai/src/types/observability.ts"),
+        "export interface ObsPrompt { name: string; }\n"
+      );
+      writeFileSync(
+        join(repoRoot, "ai/src/observability/datasetImport.ts"),
+        "export const parseDatasetJsonImport = () => [];\n"
+      );
+      assert.deepEqual(
+        filterCoverageSourceFiles({
+          files: ["ai/src/types/observability.ts", "ai/src/observability/datasetImport.ts"],
+          repoRoot,
+        }),
+        ["ai/src/observability/datasetImport.ts"]
+      );
+      assert.deepEqual(
+        filterCoverageSourceFiles({
+          files: ["ai/src/observability/deleted.ts"],
+          repoRoot,
+        }),
+        []
+      );
+    } finally {
+      rmSync(repoRoot, {force: true, recursive: true});
+    }
   });
 });
 
@@ -162,10 +218,17 @@ describe("coverageRunArgs", () => {
     assert.deepEqual(bunTestFileArgs("bun test && bun test ./src/isolated/*.isolated.ts"), []);
   });
 
-  it("falls back to src or unit-test globs when the script has no paths", () => {
+  it("reads file arguments after leading environment assignments", () => {
+    assert.deepEqual(
+      bunTestFileArgs("AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts"),
+      []
+    );
+  });
+
+  it("runs package test scripts as declared and otherwise falls back to test globs", () => {
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
-      ["src"]
+      []
     );
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
@@ -173,7 +236,7 @@ describe("coverageRunArgs", () => {
     );
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
-      ["--max-concurrency=1", "src"]
+      ["--max-concurrency=1"]
     );
   });
 });

@@ -250,8 +250,8 @@ GPT project with persistent context and memories.
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId`, `promptName`, `promptLabel`, `sensitive`, `sessionId`. Also reads `x-ai-session-id`. Passes `userId` from `req.user` into `AIService`; `sensitive` on the body overrides the resolved prompt version. |
-| `/gpt/remix` | POST | `IsAuthenticated` | Non-streaming text remix; body: `{text}` |
+| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId`, `promptName`, `promptLabel`, `sensitive`, `sessionId`. Also reads `x-ai-session-id`. Passes `userId` from `req.user` into `AIService`. Client prompt-registry selection is admin-only; app routes select production prompts server-side. Client `sensitive: true` may upgrade handling, but `false` never downgrades a sensitive prompt version. |
+| `/gpt/remix` | POST | `IsAuthenticated` | Non-streaming text remix. Client prompt-registry selection is admin-only and `sensitive: false` cannot downgrade a sensitive prompt. |
 | `/gpt/histories/:id/rating` | PATCH | `IsAuthenticated` | Rate a prompt; body: `{promptIndex, rating: "up" \| "down" \| null}` |
 | `/gpt/tools` | GET | `IsAuthenticated` | List builtin + MCP tools |
 

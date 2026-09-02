@@ -1,6 +1,11 @@
 import {describe, expect, it} from "bun:test";
 import {assert} from "chai";
-import {buildCsvImportPayload, buildJsonImportPayload, detectImportFormat} from "./datasetImport";
+import {
+  buildCsvImportPayload,
+  buildJsonImportPayload,
+  detectImportFormat,
+  parseImportText,
+} from "./datasetImport";
 
 describe("datasetImport helpers", () => {
   it("builds JSON import payload from an array", () => {
@@ -21,5 +26,18 @@ describe("datasetImport helpers", () => {
     expect(detectImportFormat("rows.csv", "a,b")).toBe("csv");
     expect(detectImportFormat("rows.json", '[{"input":{}}]')).toBe("json");
     expect(detectImportFormat("paste.txt", '[{"input":{}}]')).toBe("json");
+    expect(detectImportFormat("paste.txt", "input,expected\n{},{}")).toBe("csv");
+  });
+
+  it("wraps a single json object as one row", () => {
+    const payload = buildJsonImportPayload({input: {q: "hi"}});
+    assert.deepEqual(payload.body, {rows: [{input: {q: "hi"}}]});
+  });
+
+  it("routes parseImportText through csv and json builders", () => {
+    const csv = parseImportText("a,b", "csv");
+    assert.equal(csv.formatLabel, "csv");
+    const json = parseImportText('[{"input":{}}]', "json");
+    assert.equal(json.formatLabel, "json");
   });
 });

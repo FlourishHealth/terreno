@@ -73,4 +73,36 @@ describe("observability evaluator routes", () => {
     });
     expect(live.status).toBe(400);
   });
+
+  it("supports evaluator CRUD routes", async () => {
+    const agent = await authAsUser(app, "admin");
+    const listed = await agent.get("/ai/observability/evaluators");
+    expect(listed.status).toBe(200);
+
+    const created = await agent.post("/ai/observability/evaluators").send({
+      assertion: {constraint: "exists", path: "answer"},
+      confidenceAlertBelow: 0.6,
+      description: "route evaluator",
+      dimensions: [{dataType: "boolean", key: "correct", required: true}],
+      instructions: "Check it",
+      judgePromptName: "eval-judge-correctness",
+      name: "route-evaluator",
+      target: "generation span",
+      type: "llm-judge",
+    });
+    expect(created.status).toBe(201);
+    const evaluatorId = created.body.data.id as string;
+
+    const detail = await agent.get(`/ai/observability/evaluators/${evaluatorId}`);
+    expect(detail.status).toBe(200);
+
+    const updated = await agent.patch(`/ai/observability/evaluators/${evaluatorId}`).send({
+      description: "updated",
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.description).toBe("updated");
+
+    const deleted = await agent.delete(`/ai/observability/evaluators/${evaluatorId}`);
+    expect(deleted.status).toBe(204);
+  });
 });

@@ -1,4 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiPromptsListView} from "./AiPromptsListView";
@@ -106,5 +108,50 @@ describe("AiPromptsListView", () => {
       />
     );
     expect(getByTestId("ai-prompt-open-summarize")).toBeTruthy();
+  });
+
+  it("filters by folder and search and wires create modal fields", async () => {
+    const onFolderChange = mock(() => undefined);
+    const onSearchChange = mock(() => undefined);
+    const onCreate = mock(() => undefined);
+    const onRetry = mock(() => undefined);
+    const {getByTestId, getByText} = renderWithTheme(
+      <AiPromptsListView
+        createError="Name required"
+        createFolder="examples"
+        createName="new-prompt"
+        createOpen
+        createSystem="You are helpful"
+        createTemplate="Hi {{name}}"
+        folder=""
+        loadError="Failed to load prompts"
+        onCreate={onCreate}
+        onCreateFolderChange={() => undefined}
+        onCreateNameChange={() => undefined}
+        onCreateSystemChange={() => undefined}
+        onCreateTemplateChange={() => undefined}
+        onDismissCreate={() => undefined}
+        onFolderChange={onFolderChange}
+        onOpenCreate={() => undefined}
+        onOpenPrompt={() => undefined}
+        onRetry={onRetry}
+        onSearchChange={onSearchChange}
+        prompts={prompts}
+        search="summ"
+      />
+    );
+    fireEvent.changeText(getByTestId("ai-prompts-search"), "note");
+    assert.isAtLeast(onSearchChange.mock.calls.length, 1);
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-prompts-folder-examples"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onFolderChange.mock.calls.length, 1);
+    await act(async () => {
+      fireEvent.press(getByText("Retry"));
+      await Promise.resolve();
+    });
+    assert.equal(onRetry.mock.calls.length, 1);
+    expect(getByTestId("ai-prompts-create-form")).toBeTruthy();
   });
 });

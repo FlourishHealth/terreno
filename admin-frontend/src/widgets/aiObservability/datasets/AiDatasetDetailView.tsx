@@ -10,7 +10,7 @@ import {
   Text,
   TextArea,
 } from "@terreno/ui";
-import React, {useMemo, useState} from "react";
+import React, {useCallback, useMemo, useState} from "react";
 import {
   type DatasetItemRecord,
   type DatasetItemTab,
@@ -22,7 +22,7 @@ import {
 export interface AiDatasetDetailViewProps {
   dataset: DatasetRecord;
   items: DatasetItemRecord[];
-  onAddItem: (body: {expectedOutput: string; input: string}) => void;
+  onAddItem: (body: {expectedOutput: string; input: string}) => Promise<string | undefined>;
   onOpenExperiment: () => void;
   onOpenTrace?: (traceId: string) => void;
   routeBase: string;
@@ -62,6 +62,8 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
 }) => {
   const [tab, setTab] = useState<DatasetItemTab>("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
   const [inputText, setInputText] = useState("{}");
   const [expectedText, setExpectedText] = useState("{}");
 
@@ -105,6 +107,17 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   }, [filtered]);
 
   const selectedIndex = TAB_OPTIONS.indexOf(tab);
+  const handleAddItem = useCallback(async (): Promise<void> => {
+    setAddError("");
+    setIsAdding(true);
+    const error = await onAddItem({expectedOutput: expectedText, input: inputText});
+    setIsAdding(false);
+    if (error) {
+      setAddError(error);
+      return;
+    }
+    setAddOpen(false);
+  }, [expectedText, inputText, onAddItem]);
 
   return (
     <Box gap={4} testID="ai-dataset-detail">
@@ -120,6 +133,7 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
         <Box direction="row" gap={2}>
           <Button
             onClick={() => {
+              setAddError("");
               setAddOpen(true);
             }}
             testID="ai-dataset-add-item"
@@ -178,13 +192,12 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
             title="Expected output (JSON)"
             value={expectedText}
           />
-          <Button
-            onClick={() => {
-              onAddItem({expectedOutput: expectedText, input: inputText});
-              setAddOpen(false);
-            }}
-            text="Add item"
-          />
+          <Button loading={isAdding} onClick={handleAddItem} text="Add item" />
+          {addError ? (
+            <Text color="error" testID="ai-dataset-add-item-error">
+              {addError}
+            </Text>
+          ) : undefined}
         </Box>
       </Modal>
     </Box>

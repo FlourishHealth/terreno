@@ -1,4 +1,4 @@
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 
 export type ObservabilityCapability =
   | "datasets"
@@ -207,7 +207,7 @@ export const validateObservabilityConfig = (
 ): ObservabilityControlConfig => {
   const fail = (message: string): never => {
     logger.error(message);
-    throw new Error(message);
+    throw new APIError({status: 500, title: message});
   };
 
   if (options.control?.reviewQueue && options.control.reviewQueue !== "local") {

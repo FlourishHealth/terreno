@@ -177,4 +177,21 @@ describe("observability experiment routes", () => {
     expect(promoted.status).toBe(200);
     expect(promoted.body.data.version).toBe(2);
   });
+
+  it("lists experiments and returns estimates", async () => {
+    const admin = await authAsUser(app, "admin");
+    const fixtures = await seedExperimentFixtures(admin);
+
+    const listed = await admin.get("/ai/observability/experiments");
+    expect(listed.status).toBe(200);
+
+    const estimate = await admin.post("/ai/observability/experiments/estimate").send({
+      datasetId: fixtures.datasetId,
+      evaluatorIds: [fixtures.evaluatorId],
+      promptName: fixtures.promptName,
+      versions: [1, 2],
+    });
+    expect(estimate.status).toBe(200);
+    expect(estimate.body.data.generations).toBeGreaterThan(0);
+  });
 });

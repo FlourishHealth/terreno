@@ -85,6 +85,13 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
     });
   }, []);
 
+  const handlePromptChange = useCallback((nextPromptName: string): void => {
+    setPromptName(nextPromptName);
+    setVersions([]);
+    setEstimate(undefined);
+    setValidationError("");
+  }, []);
+
   const validate = useCallback((): boolean => {
     if (!name.trim()) {
       setValidationError("Experiment name is required.");
@@ -193,7 +200,7 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
         onIncludeUnproofreadChange={setIncludeUnproofread}
         onModelOverrideChange={setModelOverride}
         onNameChange={setName}
-        onPromptChange={setPromptName}
+        onPromptChange={handlePromptChange}
         onRun={handleRun}
         onStepChange={setStep}
         onVersionToggle={handleVersionToggle}

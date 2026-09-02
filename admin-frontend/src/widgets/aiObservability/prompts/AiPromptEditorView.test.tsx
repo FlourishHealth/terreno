@@ -1,5 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {SelectField} from "@terreno/ui";
+import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiPromptEditorView} from "./AiPromptEditorView";
@@ -8,6 +10,16 @@ import type {PromptDetail} from "./promptTypes";
 mock.module("expo-router", () => ({
   router: {push: mock(() => {})},
 }));
+
+const idleHandlers = {
+  isRunningPlayground: false,
+  isSaving: false,
+  isSettingProduction: false,
+  onRunPlayground: async () => undefined,
+  onSaveVersion: async () => undefined,
+  onSelectVersion: () => undefined,
+  onSetProduction: async () => undefined,
+};
 
 const detail: PromptDetail = {
   folder: "examples",
@@ -27,17 +39,21 @@ const detail: PromptDetail = {
       variables: [{key: "text", required: true}],
       version: 1,
     },
+    {
+      config: {temperature: 0.5},
+      sensitive: false,
+      system: "You summarize briefly.",
+      template: "Brief {{text}}",
+      type: "text",
+      variables: [{key: "text", required: true}],
+      version: 2,
+    },
   ],
 };
 
-const idleHandlers = {
-  isRunningPlayground: false,
-  isSaving: false,
-  isSettingProduction: false,
-  onRunPlayground: async () => undefined,
-  onSaveVersion: async () => undefined,
-  onSelectVersion: () => undefined,
-  onSetProduction: async () => undefined,
+const detailNoProduction: PromptDetail = {
+  ...detail,
+  labels: [{label: "latest", version: 2}],
 };
 
 describe("AiPromptEditorView", () => {
@@ -50,12 +66,16 @@ describe("AiPromptEditorView", () => {
     expect(queryByText("Save")).toBeNull();
   });
 
-  it("names the outgoing production version in the confirm copy", () => {
+  it("names the outgoing production version in the confirm copy", async () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiPromptEditorView detail={detail} selectedVersion={1} {...idleHandlers} />
     );
     expect(getByText(/outgoing production version is v1/)).toBeTruthy();
-    expect(getByTestId("ai-prompt-set-production")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-prompt-set-production"));
+      await Promise.resolve();
+    });
+    expect(getByTestId("ai-prompt-production-modal-copy")).toBeTruthy();
   });
 
   it("keeps Save this run to dataset disabled until phase 2", () => {
@@ -65,5 +85,128 @@ describe("AiPromptEditorView", () => {
     fireEvent.press(getByText("Playground"));
     const dataset = getByTestId("ai-prompt-save-run-dataset");
     expect(dataset.props.accessibilityState?.disabled ?? dataset.props.disabled).toBeTruthy();
+  });
+
+  it("switches versions, text type hides system, and wires save/production callbacks", async () => {
+    const onSaveVersion = mock(async () => undefined);
+    const onSetProduction = mock(async () => undefined);
+    const onSelectVersion = mock(() => undefined);
+    const v1 = renderWithTheme(
+      <AiPromptEditorView
+        detail={detail}
+        isRunningPlayground={false}
+        isSaving={false}
+        isSettingProduction={false}
+        onRunPlayground={async () => undefined}
+        onSaveVersion={onSaveVersion}
+        onSelectVersion={onSelectVersion}
+        onSetProduction={onSetProduction}
+        selectedVersion={1}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(v1.getByTestId("ai-prompt-version-2"));
+      await Promise.resolve();
+    });
+    expect(onSelectVersion).toHaveBeenCalledWith(2);
+    expect(v1.getByTestId("ai-prompt-dot-prod-1")).toBeTruthy();
+
+    const v2 = renderWithTheme(
+      <AiPromptEditorView
+        detail={detail}
+        isRunningPlayground={false}
+        isSaving={false}
+        isSettingProduction={false}
+        onRunPlayground={async () => undefined}
+        onSaveVersion={onSaveVersion}
+        onSelectVersion={onSelectVersion}
+        onSetProduction={onSetProduction}
+        selectedVersion={2}
+      />
+    );
+    expect(v2.queryByTestId("ai-prompt-system")).toBeNull();
+    expect(v2.getByTestId("ai-prompt-dot-latest-2")).toBeTruthy();
+    fireEvent.changeText(v2.getByTestId("ai-prompt-template"), "Brief {{text}} updated");
+    await act(async () => {
+      fireEvent.press(v2.getByTestId("ai-prompt-save-next"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onSaveVersion.mock.calls.length, 1);
+
+    await act(async () => {
+      fireEvent.press(v2.getByTestId("ai-prompt-set-production"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(v2.getByText("Set production"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onSetProduction.mock.calls.length, 1);
+  });
+
+  it("shows version-not-found, no-production badge, and inline errors", () => {
+    const missing = renderWithTheme(
+      <AiPromptEditorView detail={detail} selectedVersion={99} {...idleHandlers} />
+    );
+    expect(missing.getByText(/Version 99 was not found/)).toBeTruthy();
+
+    const noProd = renderWithTheme(
+      <AiPromptEditorView detail={detailNoProduction} selectedVersion={2} {...idleHandlers} />
+    );
+    expect(noProd.getByText("no production")).toBeTruthy();
+
+    const errors = renderWithTheme(
+      <AiPromptEditorView
+        detail={detail}
+        playgroundError="Playground failed"
+        productionError="Could not set production."
+        saveError="Could not save a new version."
+        selectedVersion={1}
+        {...idleHandlers}
+      />
+    );
+    expect(errors.getByText("Could not save a new version.")).toBeTruthy();
+    expect(errors.getByText("Could not set production.")).toBeTruthy();
+    fireEvent.press(errors.getByText("Playground"));
+    expect(errors.getByText("Playground failed")).toBeTruthy();
+  });
+
+  it("switches prompt type, saves text versions, and dismisses the production modal", async () => {
+    const onSaveVersion = mock(async () => undefined);
+    const onSetProduction = mock(async () => undefined);
+    const {getByTestId, getByText, UNSAFE_root} = renderWithTheme(
+      <AiPromptEditorView
+        detail={detail}
+        isRunningPlayground={false}
+        isSaving={false}
+        isSettingProduction={false}
+        onRunPlayground={async () => undefined}
+        onSaveVersion={onSaveVersion}
+        onSelectVersion={() => undefined}
+        onSetProduction={onSetProduction}
+        selectedVersion={1}
+      />
+    );
+    const typeSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.title === "Type"
+    );
+    fireEvent(typeSelect!, "onChange", "text");
+    fireEvent.changeText(getByTestId("ai-prompt-template"), "Plain text body");
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-prompt-save-next"));
+      await Promise.resolve();
+    });
+    assert.isAtLeast(onSaveVersion.mock.calls.length, 1);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-prompt-set-production"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Cancel"));
+      await Promise.resolve();
+    });
+    fireEvent.press(getByText("Editor"));
+    expect(getByTestId("ai-prompt-template")).toBeTruthy();
   });
 });

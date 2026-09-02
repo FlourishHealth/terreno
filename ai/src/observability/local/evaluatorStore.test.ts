@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import {EVALUATOR_TEMPLATES} from "../evaluatorTemplates";
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
 import {LocalEvaluatorStore} from "./evaluatorStore";
@@ -58,5 +59,80 @@ describe("LocalEvaluatorStore", () => {
     expect(installed.name).toBe("correctness-human");
     expect(installed.type).toBe("human");
     expect(installed.dimensions[0]?.dataType).toBe("boolean");
+  });
+
+  it("supports evaluator CRUD, lookup, and validation errors", async () => {
+    const created = await store.create({
+      assertion: {constraint: "exists", path: "answer"},
+      confidenceAlertBelow: 0.5,
+      description: "Checks answers",
+      dimensions: [{dataType: "boolean", key: "correct", required: true}],
+      instructions: "Score it",
+      name: "answer-check",
+      target: "generation span",
+      type: "json-assert",
+    });
+    const listed = await store.list();
+    assert.equal(
+      listed.some((row) => row.id === created.id),
+      true
+    );
+    assert.equal((await store.get(created.id)).name, created.name);
+    assert.equal((await store.getByName("answer-check"))?.id, created.id);
+
+    const updated = await store.update(created.id, {description: "Updated"});
+    assert.equal(updated.description, "Updated");
+    await store.remove(created.id);
+
+    try {
+      await store.get(created.id);
+      assert.fail("expected deleted evaluator to 404");
+    } catch (error) {
+      assert.match(String(error), /Unknown evaluator/);
+    }
+
+    try {
+      await store.create({
+        dimensions: [],
+        name: "missing-fields",
+        target: "full trace",
+        type: "human",
+      });
+      assert.fail("expected missing fields rejection");
+    } catch (error) {
+      assert.match(String(error), /name and dimensions/);
+    }
+
+    try {
+      await store.create({
+        dimensions: [{dataType: "boolean", key: "correct", required: true}],
+        judgePromptName: "missing-judge",
+        name: "bad-judge",
+        target: "generation span",
+        type: "llm-judge",
+      });
+      assert.fail("expected unknown judge prompt rejection");
+    } catch (error) {
+      assert.match(String(error), /Unknown judge prompt/);
+    }
+
+    try {
+      await store.create({
+        dimensions: [{dataType: "boolean", key: "correct", required: true}],
+        name: "bad-assert",
+        target: "generation span",
+        type: "json-assert",
+      });
+      assert.fail("expected json-assert path rejection");
+    } catch (error) {
+      assert.match(String(error), /assertion.path/);
+    }
+
+    try {
+      await store.installTemplate("missing-template");
+      assert.fail("expected unknown template rejection");
+    } catch (error) {
+      assert.match(String(error), /Unknown evaluator template/);
+    }
   });
 });

@@ -29,16 +29,12 @@ export interface EvaluatorExecutionResult {
 }
 
 const parseConstraintValue = (constraint: string): unknown => {
-  const prefix = "eq:";
-  if (constraint.startsWith(prefix)) {
-    const raw = constraint.slice(prefix.length).trim();
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return raw;
-    }
+  const raw = constraint.slice("eq:".length).trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
   }
-  return constraint;
 };
 
 const evaluatePathConstraint = (value: unknown, constraint: string): boolean => {

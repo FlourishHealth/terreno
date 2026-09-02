@@ -125,4 +125,52 @@ describe("observability dataset routes", () => {
     expect(csvFail.status).toBe(400);
     expect(csvFail.body.title ?? csvFail.body.message).toMatch(/Import failed on row/);
   });
+
+  it("supports dataset CRUD, item routes, and trace copy validation", async () => {
+    const admin = await authAsUser(app, "admin");
+    const listed = await admin.get("/ai/observability/datasets");
+    expect(listed.status).toBe(200);
+
+    const created = await admin.post("/ai/observability/datasets").send({name: "route-crud"});
+    expect(created.status).toBe(201);
+    const datasetId = created.body.data.id as string;
+
+    const detail = await admin.get(`/ai/observability/datasets/${datasetId}`);
+    expect(detail.status).toBe(200);
+
+    const updated = await admin.patch(`/ai/observability/datasets/${datasetId}`).send({
+      description: "updated",
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.description).toBe("updated");
+
+    const item = await admin.post(`/ai/observability/datasets/${datasetId}/items`).send({
+      input: {text: "hello"},
+      proofread: true,
+    });
+    expect(item.status).toBe(201);
+    const itemId = item.body.data.id as string;
+
+    const patched = await admin
+      .patch(`/ai/observability/datasets/${datasetId}/items/${itemId}`)
+      .send({proofread: false});
+    expect(patched.status).toBe(200);
+    expect(patched.body.data.proofread).toBe(false);
+
+    const missingCsv = await admin
+      .post(`/ai/observability/datasets/${datasetId}/import`)
+      .send({format: "csv"});
+    expect(missingCsv.status).toBe(400);
+
+    const missingTrace = await admin.post("/ai/observability/traces/add-to-dataset").send({});
+    expect(missingTrace.status).toBe(400);
+
+    const deletedItem = await admin.delete(
+      `/ai/observability/datasets/${datasetId}/items/${itemId}`
+    );
+    expect(deletedItem.status).toBe(204);
+
+    const deleted = await admin.delete(`/ai/observability/datasets/${datasetId}`);
+    expect(deleted.status).toBe(204);
+  });
 });

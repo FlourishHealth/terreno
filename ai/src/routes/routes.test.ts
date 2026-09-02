@@ -9,7 +9,7 @@ import type supertest from "supertest";
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
-import {MemoryTraceSink} from "../observability/memorySinks";
+import {MemoryTraceSink} from "../observability/local/traceStore";
 import {ObservabilityApp, resetObservabilityApp} from "../observability/observabilityApp";
 import type {ObservabilityPlugin} from "../observability/types";
 import {AIService} from "../service/aiService";
@@ -213,6 +213,15 @@ describe("AI Routes", () => {
       expect(res.status).toBe(400);
     });
 
+    it("forbids non-admin prompt registry selection", async () => {
+      const agent = await authAsUser(app, "notAdmin");
+      const res = await agent
+        .post("/gpt/remix")
+        .send({promptLabel: "latest", promptName: "private-prompt", text: "Hello"});
+
+      assert.equal(res.status, 403);
+    });
+
     it("returns demo response when no aiService configured", async () => {
       const demoApp = new TerrenoApp({
         configureApp: (router, options) => {
@@ -262,6 +271,55 @@ describe("AI Routes", () => {
 
       const histories = await GptHistory.find({});
       expect(histories.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("forbids non-admin prompt registry selection", async () => {
+      const agent = await authAsUser(app, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi", promptLabel: "latest", promptName: "private-prompt"});
+
+      assert.equal(res.status, 403);
+    });
+
+    it("does not let client sensitive false downgrade a sensitive prompt", async () => {
+      const sink = new MemoryTraceSink();
+      const plugin: ObservabilityPlugin = {
+        capabilities: new Set([
+          "datasets",
+          "experiments",
+          "prompts",
+          "reviewQueue",
+          "scores",
+          "traces",
+        ]),
+        datasetStore: {},
+        experimentRunner: {},
+        id: "local",
+        promptRegistry: {
+          get: async () => ({
+            body: "Sensitive system prompt",
+            label: "production",
+            name: "sensitive-prompt",
+            sensitive: true,
+            version: 1,
+          }),
+        },
+        reviewQueue: {},
+        traceSink: sink,
+      };
+      new ObservabilityApp({plugins: [plugin]});
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi", promptName: "sensitive-prompt", sensitive: false})
+        .buffer(true)
+        .parse(sseCollect);
+
+      assert.equal(res.status, 200);
+      assert.equal(sink.traces.length, 1);
+      assert.isTrue(sink.traces[0]?.sensitive);
     });
 
     it("emits a memory-sink trace with userId and sessionId", async () => {

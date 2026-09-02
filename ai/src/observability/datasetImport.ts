@@ -1,3 +1,4 @@
+import {APIError} from "@terreno/api";
 import {parse} from "csv-parse/sync";
 
 import {getValueAtPath, setValueAtPath} from "./jsonPath";
@@ -77,7 +78,7 @@ const coerceCellValue = (value: string): unknown => {
 
 const rowFromStructured = (row: StructuredDatasetImportRow): ParsedDatasetImportRow => {
   if (row.input === undefined) {
-    throw new Error("structured import row requires input");
+    throw new APIError({status: 400, title: "structured import row requires input"});
   }
   return {
     expectedOutput: row.expectedOutput,
@@ -90,9 +91,27 @@ const rowFromStructured = (row: StructuredDatasetImportRow): ParsedDatasetImport
 };
 
 const rowFromBareObject = (row: Record<string, unknown>): ParsedDatasetImportRow => {
+  const {expectedOutput, metadata, outcomeClass, proofread, tags, ...input} = row;
   return {
-    input: row,
-    tags: [],
+    expectedOutput,
+    input,
+    metadata:
+      metadata && typeof metadata === "object" && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>)
+        : undefined,
+    outcomeClass:
+      outcomeClass === "fn" ||
+      outcomeClass === "fp" ||
+      outcomeClass === "tn" ||
+      outcomeClass === "tp"
+        ? outcomeClass
+        : undefined,
+    proofread: typeof proofread === "boolean" ? proofread : undefined,
+    tags: Array.isArray(tags)
+      ? tags.filter((tag): tag is string => {
+          return typeof tag === "string";
+        })
+      : [],
   };
 };
 
@@ -151,21 +170,14 @@ const rowFromCsvRecord = (record: Record<string, string>): ParsedDatasetImportRo
 
 export const parseDatasetJsonImport = (payload: unknown): ParsedDatasetImportRow[] => {
   if (!Array.isArray(payload)) {
-    throw new Error("JSON import must be an array");
+    throw new APIError({status: 400, title: "JSON import must be an array"});
   }
   return payload.map((row, index) => {
     if (!row || typeof row !== "object" || Array.isArray(row)) {
-      throw new Error(`import row ${index + 1} must be an object`);
+      throw new APIError({status: 400, title: `import row ${index + 1} must be an object`});
     }
     const record = row as Record<string, unknown>;
-    const hasStructuredFields =
-      "input" in record ||
-      "expectedOutput" in record ||
-      "proofread" in record ||
-      "tags" in record ||
-      "outcomeClass" in record ||
-      "metadata" in record;
-    if (hasStructuredFields) {
+    if ("input" in record) {
       return rowFromStructured(record as StructuredDatasetImportRow);
     }
     return rowFromBareObject(record);
