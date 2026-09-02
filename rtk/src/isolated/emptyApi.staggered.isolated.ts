@@ -5,7 +5,7 @@ import {assert} from "chai";
 import {DateTime} from "luxon";
 
 // Force the web code paths regardless of which platform mock another test file installed.
-mock.module("./platform", () => ({IsWeb: true}));
+mock.module("../platform", () => ({IsWeb: true}));
 
 // Mutable async storage so each test controls what the token helpers read. Returns null by
 // default, matching the preload mock for the rest of the package.
@@ -23,8 +23,8 @@ mock.module("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-const {configureOfflineMutationEndpoints} = await import("./offlineGate");
-const {LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} = await import("./constants");
+const {configureOfflineMutationEndpoints} = await import("../offlineGate");
+const {LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} = await import("../constants");
 const {
   getBaseQuery,
   getFriendlyExpirationInfo,
@@ -32,7 +32,7 @@ const {
   refreshAuthToken,
   shouldShowStillThereModal,
   staggeredBaseQuery,
-} = await import("./emptyApi");
+} = await import("../emptyApi");
 
 const encodeSegment = (value: object): string =>
   Buffer.from(JSON.stringify(value)).toString("base64url");
