@@ -307,7 +307,12 @@ describe("runSeeds", () => {
     assert.equal(result.summary.unchanged, 0);
     assert.equal(result.summary.deleted, 0);
     assert.deepEqual(result.changes, [
-      {change: "unchanged", count: 0, key: JSON.stringify({key: "missing"}), model: "SeedRunnerWidget"},
+      {
+        change: "unchanged",
+        count: 0,
+        key: JSON.stringify({key: "missing"}),
+        model: "SeedRunnerWidget",
+      },
     ]);
   });
 
