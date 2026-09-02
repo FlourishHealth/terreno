@@ -66,7 +66,7 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 | `ENABLE_SWAGGER` | `@terreno/api` | ❌ | `false` | No | server |
 | `APP_ENV` | example-backend | ❌ | `development` | No | server |
 | `BACKEND_URL` | scripts, deploy | ❌ | — | No | server |
-| `FRONTEND_URL` | example-backend CORS | ❌ | auto | No | server |
+| `FRONTEND_URL` | example-backend CORS and `authOptions.publicAppUrl` | ❌ | `http://localhost:8082` | No | server |
 | `API_URL` | microservice split | ❌ | — | No | server |
 | `DISABLE_LOG_ALL_REQUESTS` | `@terreno/api` logging | ❌ | — | No | server |
 
@@ -136,19 +136,44 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM` | example-backend / `@terreno/comms` | ❌ | — | No | server |
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
+| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
+| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_MESSAGING_SERVICE_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_FROM_NUMBER` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_VERIFY_SERVICE_SID` | `@terreno/comms/adapters/twilioVerify` | ❌ | — | No | server |
 | `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
+| `PUBLIC_API_URL` | `@terreno/comms` Twilio webhooks | ❌ | — | No | server |
+| `COMMS_WEBHOOK_PUBLIC_URL` | `@terreno/comms` Twilio webhooks | ❌ | — | No | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
 When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvider`
 (optional peer `@sendgrid/mail`). Without a key, non-production environments keep the
 console mail provider; production leaves mail unconfigured until a provider is wired.
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
+`SENDGRID_WEBHOOK_VERIFICATION_KEY` (or constructor `webhookVerificationKey`) is the
+SendGrid Event Webhook ECDSA public key. Missing it skips `POST /comms/webhooks/sendgrid`.
+`PUBLIC_API_URL` or `COMMS_WEBHOOK_PUBLIC_URL` is the public HTTPS origin used to sign
+Twilio callbacks (no trailing slash). Missing it skips Twilio webhook routes.
 Sender identity must be verified in SendGrid before real delivery works.
+When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
+`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`, the example backend registers
+`TwilioSmsProvider` (optional peer `twilio`). A sender var without those credentials
+throws at startup. Shared account credentials without a sender do not enable SMS — they
+can still enable Verify when `TWILIO_VERIFY_SERVICE_SID` is set. Without an SMS sender,
+non-production keeps the console SMS provider; production omits SMS until a sender is wired.
+When `TWILIO_VERIFY_SERVICE_SID` is set with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`,
+the example backend registers `TwilioVerifyProvider`. A verify service SID without those
+credentials throws at startup. Without `TWILIO_VERIFY_SERVICE_SID`, non-production keeps
+the console verification provider; production omits verification until a provider is wired.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
-token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+token, Expo still accepts sends at a lower rate limit. The example backend also
+depends on `twilio` and injects a statically imported client into
+`TwilioSmsProvider` / `TwilioVerifyProvider` when those env vars are complete,
+so the compiled binary includes the SDK. Non-production also mounts `POST /comms/dev/testPush`
 for authenticated test sends.
 
 ## Observability
@@ -185,7 +210,12 @@ There is **no** `RATE_LIMIT_ENABLED` (or similar) read by `@terreno/api`. Apps t
 | `GOOGLE_CHAT_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
 | `ZOOM_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `ZOOM_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
-| `WEBHOOK_SECRET` | webhooks | ❌ | — | Yes | server |
+| `WEBHOOK_SECRET` | example-backend HMAC demo | ❌ | — | Yes | server |
+
+`WEBHOOK_SECRET` is read only by the example HMAC route (`POST /webhooks/example`).
+`@terreno/api` `WebhooksApp` does not read it. Twilio/SendGrid inbound paths use adapter
+secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
+[Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ## Admin SPA
 

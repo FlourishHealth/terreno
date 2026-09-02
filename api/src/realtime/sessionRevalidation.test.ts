@@ -1,5 +1,3 @@
-// noExplicitAny: test mocks use dynamic shapes for sockets, io, and models
-// biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets, io, and models
 /**
  * D1: socket session re-validation sweep.
  *   - revalidateSocketSession: expired/disabled/invalid-session detection per auth kind
@@ -10,7 +8,10 @@
 import {afterEach, describe, expect, it, mock} from "bun:test";
 import {DateTime} from "luxon";
 import mongoose, {model, Schema} from "mongoose";
-
+import type {Server} from "socket.io";
+import type {ModelRouterOptions} from "../api";
+import type {UserModel} from "../auth";
+import type {BetterAuthInstance} from "../betterAuthSetup";
 import {createdUpdatedPlugin, isDeletedPlugin} from "../plugins";
 import {clearSyncRegistry, registerSync} from "../sync/registry";
 import {syncPlugin} from "../sync/syncSeqPlugin";
@@ -24,12 +25,24 @@ import {
 } from "./sessionRevalidation";
 
 /** Minimal fake Mongoose model: findOneOrNoneFor falls back to `.find()` without the plugin. */
-const fakeUserModel = (users: Record<string, unknown>): any => ({
-  find: async (query: {_id: string}) => {
-    const user = users[query._id];
-    return user ? [user] : [];
-  },
-});
+const fakeUserModel = (users: Record<string, unknown>): UserModel =>
+  ({
+    find: async (query: {_id: string}) => {
+      const user = users[query._id];
+      return user ? [user] : [];
+    },
+  }) as unknown as UserModel;
+
+const fakeIo = (sockets: Map<string, RevalidatableSocket>): Server =>
+  ({sockets: {sockets}}) as unknown as Server;
+
+type LoadableSocket = Parameters<typeof loadFullUserForSocket>[0];
+const asLoadable = (socket: RevalidatableSocket): LoadableSocket =>
+  socket as unknown as LoadableSocket;
+
+const openPermissions = {
+  permissions: {create: [], delete: [], list: [], read: [], update: []},
+} as unknown as ModelRouterOptions<unknown>;
 
 /**
  * Real (but never persisted — no test DB round-trip needed) Mongoose models satisfying
@@ -44,7 +57,7 @@ revalTenantSchema.plugin(isDeletedPlugin);
 revalTenantSchema.plugin(createdUpdatedPlugin);
 revalTenantSchema.plugin(syncPlugin);
 const RevalTenantModel =
-  (mongoose.models.RevalSessionProject as mongoose.Model<any>) ||
+  (mongoose.models.RevalSessionProject as mongoose.Model<unknown>) ||
   model("RevalSessionProject", revalTenantSchema);
 
 const revalOwnerSchema = new Schema({
@@ -55,7 +68,7 @@ revalOwnerSchema.plugin(isDeletedPlugin);
 revalOwnerSchema.plugin(createdUpdatedPlugin);
 revalOwnerSchema.plugin(syncPlugin);
 const RevalOwnerModel =
-  (mongoose.models.RevalSessionTodo as mongoose.Model<any>) ||
+  (mongoose.models.RevalSessionTodo as mongoose.Model<unknown>) ||
   model("RevalSessionTodo", revalOwnerSchema);
 
 const makeSocket = (overrides: Partial<RevalidatableSocket> = {}): RevalidatableSocket => ({
@@ -106,7 +119,9 @@ describe("revalidateSocketSession", () => {
     });
     const outcome = await revalidateSocketSession(socket, {
       betterAuth: {
-        auth: {api: {getSession: async () => ({user: {id: "u1"}})}} as any,
+        auth: {
+          api: {getSession: async () => ({user: {id: "u1"}})},
+        } as unknown as BetterAuthInstance,
       },
     });
     expect(outcome).toBe("valid");
@@ -118,7 +133,7 @@ describe("revalidateSocketSession", () => {
       encodedToken: "revoked-session-token",
     });
     const outcome = await revalidateSocketSession(socket, {
-      betterAuth: {auth: {api: {getSession: async () => null}} as any},
+      betterAuth: {auth: {api: {getSession: async () => null}} as unknown as BetterAuthInstance},
     });
     expect(outcome).toBe("invalid-session");
   });
@@ -170,7 +185,7 @@ describe("reresolveSyncRoomsForSocket (D4)", () => {
     registerSync({
       config: {scope: {field: "organizationId", type: "tenant"}},
       model: RevalTenantModel,
-      options: {permissions: {create: [], delete: [], list: [], read: [], update: []}} as any,
+      options: openPermissions,
       routePath: "/projects",
     });
 
@@ -202,7 +217,7 @@ describe("reresolveSyncRoomsForSocket (D4)", () => {
     registerSync({
       config: {scope: {field: "organizationId", type: "tenant"}},
       model: RevalTenantModel,
-      options: {permissions: {create: [], delete: [], list: [], read: [], update: []}} as any,
+      options: openPermissions,
       routePath: "/projects",
     });
     const subscriptions = new Map<string, Set<string>>([
@@ -224,7 +239,7 @@ describe("reresolveSyncRoomsForSocket (D4)", () => {
     registerSync({
       config: {scope: {type: "owner"}},
       model: RevalOwnerModel,
-      options: {permissions: {create: [], delete: [], list: [], read: [], update: []}} as any,
+      options: openPermissions,
       routePath: "/todos",
     });
     const subscriptions = new Map<string, Set<string>>([
@@ -251,7 +266,7 @@ describe("runSessionRevalidationSweep", () => {
         id: "u1",
       },
     });
-    const io = {sockets: {sockets: new Map([["socket-1", socket]])}} as any;
+    const io = fakeIo(new Map([["socket-1", socket]]));
 
     await runSessionRevalidationSweep(io, {});
 
@@ -261,7 +276,7 @@ describe("runSessionRevalidationSweep", () => {
 
   it("disconnects a disabled user's socket", async () => {
     const socket = makeSocket({decodedToken: {authKind: "jwt", id: "u1"}});
-    const io = {sockets: {sockets: new Map([["socket-1", socket]])}} as any;
+    const io = fakeIo(new Map([["socket-1", socket]]));
 
     await runSessionRevalidationSweep(io, {
       userModel: fakeUserModel({u1: {_id: "u1", disabled: true}}),
@@ -279,7 +294,7 @@ describe("runSessionRevalidationSweep", () => {
         id: "u1",
       },
     });
-    const io = {sockets: {sockets: new Map([["socket-1", socket]])}} as any;
+    const io = fakeIo(new Map([["socket-1", socket]]));
 
     await runSessionRevalidationSweep(io, {});
 
@@ -305,16 +320,14 @@ describe("runSessionRevalidationSweep", () => {
         throw new Error("db unavailable");
       },
     };
-    const io = {
-      sockets: {
-        sockets: new Map([
-          ["socket-throws", throwing],
-          ["socket-expired", expired],
-        ]),
-      },
-    } as any;
+    const io = fakeIo(
+      new Map([
+        ["socket-throws", throwing],
+        ["socket-expired", expired],
+      ])
+    );
 
-    await runSessionRevalidationSweep(io, {userModel: throwingUserModel as any});
+    await runSessionRevalidationSweep(io, {userModel: throwingUserModel as unknown as UserModel});
 
     // The throwing socket's error is caught and logged; it is left connected rather
     // than disconnected on an ambiguous internal failure.
@@ -325,7 +338,7 @@ describe("runSessionRevalidationSweep", () => {
 
 describe("startSessionRevalidationSweep", () => {
   it("does not arm a timer when intervalMs is 0", () => {
-    const io = {sockets: {sockets: new Map()}} as any;
+    const io = fakeIo(new Map());
     const handle = startSessionRevalidationSweep(io, {intervalMs: 0});
     // No assertion beyond "does not throw" is possible without reaching into timer
     // internals; stop() must be a safe no-op either way.
@@ -333,7 +346,7 @@ describe("startSessionRevalidationSweep", () => {
   });
 
   it("returns a handle whose stop() clears the interval", () => {
-    const io = {sockets: {sockets: new Map()}} as any;
+    const io = fakeIo(new Map());
     const handle = startSessionRevalidationSweep(io, {intervalMs: 60_000});
     expect(() => handle.stop()).not.toThrow();
     // Calling stop() twice must also be safe.
@@ -348,7 +361,7 @@ describe("startSessionRevalidationSweep", () => {
     registerSync({
       config: {scope: {field: "organizationId", type: "tenant"}},
       model: RevalTenantModel,
-      options: {permissions: {create: [], delete: [], list: [], read: [], update: []}} as any,
+      options: openPermissions,
       routePath: "/projects",
     });
     const user = {_id: "u1", disabled: false};
@@ -360,7 +373,7 @@ describe("startSessionRevalidationSweep", () => {
       },
       decodedToken: {authKind: "jwt", id: "u1"},
     });
-    const io = {sockets: {sockets: new Map([["socket-1", socket]])}} as any;
+    const io = fakeIo(new Map([["socket-1", socket]]));
     let currentScopes = ["org-v1"];
 
     const handle = startSessionRevalidationSweep(io, () => ({
@@ -391,23 +404,23 @@ const settleFor = (ms: number): Promise<void> => new Promise((resolve) => setTim
 describe("loadFullUserForSocket (D2)", () => {
   it("populates socket.data.fullUser from the decoded token's id", async () => {
     const user = {_id: "u1", organizationIds: ["org-a"]};
-    const socket: any = {data: {}, decodedToken: {id: "u1"}, id: "socket-1"};
+    const socket = makeSocket({decodedToken: {id: "u1"}});
 
-    await loadFullUserForSocket(socket, fakeUserModel({u1: user}));
+    await loadFullUserForSocket(asLoadable(socket), fakeUserModel({u1: user}));
 
-    expect(socket.data.fullUser).toEqual(user);
+    expect(socket.data?.fullUser).toEqual(user);
   });
 
   it("is a no-op when no userModel is configured", async () => {
-    const socket: any = {data: {}, decodedToken: {id: "u1"}, id: "socket-1"};
-    await loadFullUserForSocket(socket, undefined);
-    expect(socket.data.fullUser).toBeUndefined();
+    const socket = makeSocket({decodedToken: {id: "u1"}});
+    await loadFullUserForSocket(asLoadable(socket), undefined);
+    expect(socket.data?.fullUser).toBeUndefined();
   });
 
   it("is a no-op when the decoded token has no id", async () => {
-    const socket: any = {data: {}, decodedToken: {}, id: "socket-1"};
-    await loadFullUserForSocket(socket, fakeUserModel({u1: {_id: "u1"}}));
-    expect(socket.data.fullUser).toBeUndefined();
+    const socket = makeSocket({decodedToken: {}});
+    await loadFullUserForSocket(asLoadable(socket), fakeUserModel({u1: {_id: "u1"}}));
+    expect(socket.data?.fullUser).toBeUndefined();
   });
 
   it("swallows a lookup error and leaves fullUser unset", async () => {
@@ -416,8 +429,8 @@ describe("loadFullUserForSocket (D2)", () => {
         throw new Error("db down");
       },
     };
-    const socket: any = {data: {}, decodedToken: {id: "u1"}, id: "socket-1"};
-    await loadFullUserForSocket(socket, throwingModel as any);
-    expect(socket.data.fullUser).toBeUndefined();
+    const socket = makeSocket({decodedToken: {id: "u1"}});
+    await loadFullUserForSocket(asLoadable(socket), throwingModel as unknown as UserModel);
+    expect(socket.data?.fullUser).toBeUndefined();
   });
 });

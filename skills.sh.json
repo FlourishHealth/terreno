@@ -25,6 +25,7 @@
         "mongoose-schema-safety",
         "generate-sdk",
         "building-terreno-apps",
+        "building-admin-interfaces",
         "backend-test-env",
         "ai-prompt-governance"
       ]
@@ -54,6 +55,7 @@
         "work-github-issues",
         "fix-conflicts",
         "release",
+        "upgrading-terreno",
         "deploy-gcp"
       ]
     },

@@ -9,10 +9,17 @@ import {
   parseComponentsFromTypeDoc,
 } from "../resources.js";
 import {chunkMarkdown, type MarkdownChunk} from "./chunker.js";
+import {
+  docVersionFromSourcePath,
+  listRetainedDocVersions,
+  resolveDocVersion,
+  snapshotComponentFileBases,
+} from "./docVersion.js";
 import {inferPackageTags, normalizePackageFilter} from "./inferPackages.js";
 
 export interface SearchableChunk extends MarkdownChunk {
   combined: string;
+  docVersion?: string;
 }
 
 interface IndexedDoc {
@@ -44,8 +51,11 @@ const walkMarkdownFiles = (dir: string, acc: string[] = []): string[] => {
     const full = join(dir, ent.name);
     if (ent.isDirectory()) {
       walkMarkdownFiles(full, acc);
-    } else if (ent.isFile() && extname(ent.name).toLowerCase() === ".md") {
-      acc.push(full);
+    } else if (ent.isFile()) {
+      const extension = extname(ent.name).toLowerCase();
+      if (extension === ".md" || extension === ".mdx") {
+        acc.push(full);
+      }
     }
   }
   return acc;
@@ -66,7 +76,11 @@ const loadAllChunks = (): SearchableChunk[] => {
       const tags = inferPackageTags(rel);
       const raw = readFileSync(abs, "utf-8");
       for (const c of chunkMarkdown(rel, raw, tags)) {
-        chunks.push({...c, combined: `${c.breadcrumb} ${c.title} ${c.text}`});
+        chunks.push({
+          ...c,
+          combined: `${c.breadcrumb} ${c.title} ${c.text}`,
+          docVersion: "next",
+        });
       }
     }
   }
@@ -77,8 +91,13 @@ const loadAllChunks = (): SearchableChunk[] => {
       const rel = relative(root, abs).replace(/\\/g, "/");
       const tags = inferPackageTags(rel);
       const raw = readFileSync(abs, "utf-8");
+      const docVersion = docVersionFromSourcePath(rel) ?? "next";
       for (const c of chunkMarkdown(rel, raw, tags)) {
-        chunks.push({...c, combined: `${c.breadcrumb} ${c.title} ${c.text}`});
+        chunks.push({
+          ...c,
+          combined: `${c.breadcrumb} ${c.title} ${c.text}`,
+          docVersion,
+        });
       }
     }
   }
@@ -91,7 +110,11 @@ const loadAllChunks = (): SearchableChunk[] => {
       const rel = `resources/ui-types-component/${comp.name}.md`;
       const tags = ["ui"];
       for (const c of chunkMarkdown(rel, md, tags)) {
-        chunks.push({...c, combined: `${c.breadcrumb} ${c.title} ${c.text}`});
+        chunks.push({
+          ...c,
+          combined: `${c.breadcrumb} ${c.title} ${c.text}`,
+          docVersion: "next",
+        });
       }
     }
   }
@@ -155,6 +178,7 @@ export interface SearchDocsParams {
   queries: string[];
   packages?: string[];
   tokenLimit?: number;
+  version?: string;
 }
 
 const approxCharsForTokens = (tokens: number): number => {
@@ -180,6 +204,41 @@ const chunkMatchesPackages = (chunk: SearchableChunk, normalizedFilters: string[
   return chunk.packageTags.some((t) => normalizedFilters.includes(t));
 };
 
+const chunkMatchesVersion = (chunk: SearchableChunk, resolvedVersion: string): boolean => {
+  const chunkVersion = chunk.docVersion ?? docVersionFromSourcePath(chunk.sourcePath);
+  if (resolvedVersion === "next") {
+    return chunkVersion === undefined || chunkVersion === "next";
+  }
+  return chunkVersion === resolvedVersion;
+};
+
+const stripMdxChrome = (raw: string): string => {
+  return raw
+    .split("\n")
+    .filter((line) => !line.startsWith("import ") && !line.includes("<ComponentDemo"))
+    .join("\n")
+    .trim();
+};
+
+const readSnapshotComponentMarkdown = (
+  docsRoot: string,
+  version: string,
+  componentName: string
+): string | undefined => {
+  const componentsDir = join(docsRoot, "versioned", version, "reference", "components");
+  if (!existsSync(componentsDir)) {
+    return undefined;
+  }
+  const files = readdirSync(componentsDir);
+  for (const base of snapshotComponentFileBases(componentName)) {
+    const match = files.find((fileName) => fileName.replace(/\.(mdx|md)$/i, "") === base);
+    if (match) {
+      return stripMdxChrome(readFileSync(join(componentsDir, match), "utf-8"));
+    }
+  }
+  return undefined;
+};
+
 export const searchDocs = (params: SearchDocsParams): string => {
   const queries = params.queries.map((q) => q.trim()).filter(Boolean);
   if (queries.length === 0) {
@@ -189,8 +248,11 @@ export const searchDocs = (params: SearchDocsParams): string => {
   const packageFilters = (params.packages ?? []).map(normalizePackageFilter).filter(Boolean);
   const tokenLimit = normalizeTokenLimit(params.tokenLimit);
   const charBudget = approxCharsForTokens(tokenLimit);
-
   const {chunks, index} = ensureIndex();
+  const resolved = resolveDocVersion({
+    requested: params.version,
+    retained: listRetainedDocVersions(getDocsRoot()),
+  });
   const scoreById = new Map<string, number>();
 
   for (const q of queries) {
@@ -211,6 +273,8 @@ export const searchDocs = (params: SearchDocsParams): string => {
     "# Terreno documentation search results",
     "",
     `Queries: ${queries.map((q) => JSON.stringify(q)).join(", ")}`,
+    `Docs version: ${resolved.version}`,
+    ...(resolved.note ? [`_${resolved.note}_`] : []),
     packageFilters.length
       ? `Package filter: ${packageFilters.join(", ")}`
       : "Package filter: (none — all packages)",
@@ -225,6 +289,9 @@ export const searchDocs = (params: SearchDocsParams): string => {
       continue;
     }
     if (!chunkMatchesPackages(chunk, packageFilters)) {
+      continue;
+    }
+    if (!chunkMatchesVersion(chunk, resolved.version)) {
       continue;
     }
     const rawBlock = [
@@ -267,10 +334,26 @@ export const searchDocs = (params: SearchDocsParams): string => {
   return lines.join("\n");
 };
 
-export const getComponentDocsMarkdown = (componentName: string): string => {
+export const getComponentDocsMarkdown = (componentName: string, version?: string): string => {
   const trimmed = componentName.trim();
   if (!trimmed) {
     return 'Pass `component` (e.g. "Button").';
+  }
+
+  const docsRoot = getDocsRoot();
+  const resolved = resolveDocVersion({
+    requested: version,
+    retained: listRetainedDocVersions(docsRoot),
+  });
+  const header = [`Docs version: ${resolved.version}`, resolved.note ? `_${resolved.note}_` : ""]
+    .filter(Boolean)
+    .join("\n");
+
+  if (resolved.version !== "next") {
+    const snapshot = readSnapshotComponentMarkdown(docsRoot, resolved.version, trimmed);
+    if (snapshot) {
+      return `${header}\n\n${snapshot}`;
+    }
   }
 
   const typeDoc = loadTypeDocJson();
@@ -290,17 +373,25 @@ export const getComponentDocsMarkdown = (componentName: string): string => {
   }
 
   let md = formatComponentMarkdown(chosen);
+  if (resolved.version !== "next") {
+    md = `${header}\n\n_No snapshot page for this component; showing current TypeDoc props._\n\n${md}`;
+  } else if (resolved.note) {
+    md = `${header}\n\n${md}`;
+  }
 
   const {chunks, index} = ensureIndex();
-  const extra = index.search(`${chosen.name} props`, {combineWith: "OR", fuzzy: 0.2}).slice(0, 3);
+  const extraHits = index.search(`${chosen.name} props`, {combineWith: "OR", fuzzy: 0.2});
   const chunkById = new Map<string, SearchableChunk>();
   for (const c of chunks) {
     chunkById.set(c.id, c);
   }
   const extras: string[] = [];
-  for (const hit of extra) {
+  for (const hit of extraHits) {
     const ch = chunkById.get(hit.id);
     if (!ch) {
+      continue;
+    }
+    if (!chunkMatchesVersion(ch, resolved.version)) {
       continue;
     }
     if (!ch.text.includes(chosen.name)) {
@@ -309,6 +400,9 @@ export const getComponentDocsMarkdown = (componentName: string): string => {
     extras.push(
       `### Related: ${ch.title}\n_Source: \`${ch.sourcePath}\`_\n\n${ch.text.slice(0, 1500)}`
     );
+    if (extras.length >= 3) {
+      break;
+    }
   }
   if (extras.length) {
     md += "\n\n## Related markdown excerpts\n\n";

@@ -269,6 +269,7 @@ const injectedRtkApi = api
             admin: queryArg.admin,
             created: queryArg.created,
             email: queryArg.email,
+            emailVerified: queryArg.emailVerified,
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
@@ -1918,11 +1919,15 @@ export type PostUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1943,11 +1948,15 @@ export type PostUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -1969,11 +1978,15 @@ export type GetUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -2017,11 +2030,15 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -2043,11 +2060,15 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -2070,11 +2091,15 @@ export type PatchUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -3924,11 +3949,15 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3949,11 +3978,15 @@ export type PostAdminUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -3975,11 +4008,15 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -4016,6 +4053,11 @@ export type GetAdminUsersArgs = {
     | {
         $in?: boolean[];
       };
+  emailVerified?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
   created?:
     | string
     | {
@@ -4045,11 +4087,15 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -4071,11 +4117,15 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -4098,11 +4148,15 @@ export type PatchAdminUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */

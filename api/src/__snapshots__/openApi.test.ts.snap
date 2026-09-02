@@ -233,6 +233,11 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "email": {
                                   "type": "string",
                                 },
+                                "emailVerified": {
+                                  "default": false,
+                                  "description": "Whether the user has verified their email address",
+                                  "type": "boolean",
+                                },
                                 "hash": {
                                   "type": "string",
                                 },
@@ -254,6 +259,11 @@ exports[`openApi gets the openapi.json 1`] = `
                                 },
                                 "salt": {
                                   "type": "string",
+                                },
+                                "tokenEpoch": {
+                                  "default": 0,
+                                  "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                  "type": "number",
                                 },
                                 "updated": {
                                   "description": "When this document was last updated",
@@ -348,6 +358,11 @@ exports[`openApi gets the openapi.json 1`] = `
                               "email": {
                                 "type": "string",
                               },
+                              "emailVerified": {
+                                "default": false,
+                                "description": "Whether the user has verified their email address",
+                                "type": "boolean",
+                              },
                               "hash": {
                                 "type": "string",
                               },
@@ -369,6 +384,11 @@ exports[`openApi gets the openapi.json 1`] = `
                               },
                               "salt": {
                                 "type": "string",
+                              },
+                              "tokenEpoch": {
+                                "default": 0,
+                                "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                "type": "number",
                               },
                               "updated": {
                                 "description": "When this document was last updated",
@@ -570,6 +590,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -591,6 +616,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -685,6 +715,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -706,6 +741,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -836,6 +876,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -857,6 +902,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -951,6 +1001,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -972,6 +1027,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1232,6 +1292,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -1253,6 +1318,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -1347,6 +1417,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1368,6 +1443,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1562,6 +1642,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1583,6 +1668,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1677,6 +1767,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -1698,6 +1793,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -1828,6 +1928,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -1849,6 +1954,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -1943,6 +2053,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1964,6 +2079,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -2301,6 +2421,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "email": {
                                   "type": "string",
                                 },
+                                "emailVerified": {
+                                  "default": false,
+                                  "description": "Whether the user has verified their email address",
+                                  "type": "boolean",
+                                },
                                 "hash": {
                                   "type": "string",
                                 },
@@ -2322,6 +2447,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 },
                                 "salt": {
                                   "type": "string",
+                                },
+                                "tokenEpoch": {
+                                  "default": 0,
+                                  "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                  "type": "number",
                                 },
                                 "updated": {
                                   "description": "When this document was last updated",
@@ -2416,6 +2546,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                               "email": {
                                 "type": "string",
                               },
+                              "emailVerified": {
+                                "default": false,
+                                "description": "Whether the user has verified their email address",
+                                "type": "boolean",
+                              },
                               "hash": {
                                 "type": "string",
                               },
@@ -2437,6 +2572,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                               },
                               "salt": {
                                 "type": "string",
+                              },
+                              "tokenEpoch": {
+                                "default": 0,
+                                "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                "type": "number",
                               },
                               "updated": {
                                 "description": "When this document was last updated",
@@ -2638,6 +2778,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -2659,6 +2804,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -2753,6 +2903,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -2774,6 +2929,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -2904,6 +3064,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -2925,6 +3090,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -3019,6 +3189,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3040,6 +3215,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3300,6 +3480,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -3321,6 +3506,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -3415,6 +3605,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3436,6 +3631,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3630,6 +3830,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3651,6 +3856,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3745,6 +3955,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -3766,6 +3981,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -3896,6 +4116,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -3917,6 +4142,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -4011,6 +4241,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -4032,6 +4267,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",

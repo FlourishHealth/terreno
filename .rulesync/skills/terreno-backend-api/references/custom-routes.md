@@ -44,22 +44,27 @@ export const addStatsRoutes = (router: Router, options?: OpenApiOptions): void =
 
 ## Webhooks
 
+Do not add inbound provider callbacks with `createOpenApiBuilder` or JWT
+`authenticateMiddleware`. Register them on `WebhooksApp` and verify `req.rawBody`.
+
 ```typescript
-router.post("/webhooks/stripe", [
-  createOpenApiBuilder(options)
-    .withTags(["webhooks"])
-    .withSummary("Stripe webhook handler")
-    .withResponse(200, {received: {type: "boolean"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  const signature = req.headers["stripe-signature"];
-  if (!signature) {
-    throw new APIError({status: 400, title: "Missing signature"});
-  }
-  // Verify and process...
-  return res.json({data: {received: true}});
-}));
+import {hmacSignature, WebhooksApp} from "@terreno/api";
+
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => undefined,
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
 ```
+
+Pass the same `WebhooksApp` into `CommsApp` before `webhooks.register` for Twilio and
+SendGrid. See `docs/how-to/inbound-webhooks.md`. Stripe billing stays
+`POST /billing/webhooks/stripe` on `billing-stripe`.
 
 ## Prefer modelRouter actions over custom routes
 

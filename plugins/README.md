@@ -14,9 +14,10 @@ copy as `terreno` (see [Hosts](#hosts)):
 | 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, confirm product CI on every discovered host, wait for review bots, then exit |
 | 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; before push: pull latest `master`, then `bun lint` in a no-context subagent, then push and watch |
 
-Each stage is `disable-model-invocation`: the outer loop or human invokes it explicitly.
-Grow, Brew, and Taste never own the full orchestration. Pick and Roast own the inner
-loop that implements one task, roasts it, then picks the next until the list is done.
+Stages and outer loops are model-invocable; descriptions keep Pick/Brew/Taste from firing
+on casual chat. Grow, Brew, and Taste never own the full orchestration. Pick and Roast own
+the inner loop that implements one task, roasts it, then picks the next until the list is
+done.
 
 Two additional skills are **outer loops**, not stages. They invoke the five transitions
 and persist state:

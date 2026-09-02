@@ -29,6 +29,7 @@ import type {LoginScreenProps} from "./loginTypes";
  *   ]}
  *   onSignUpPress={() => router.push("/signup")}
  *   onForgotPasswordPress={() => router.push("/forgot-password")}
+  // or onForgotPassword={() => router.push("/forgot-password")}
  * />
  * ```
  */
@@ -44,6 +45,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({
   onSignUpPress,
   forgotPasswordText = "Forgot password?",
   onForgotPasswordPress,
+  onForgotPassword,
   testID = "login-screen",
 }) => {
   const [formValues, setFormValues] = useState<Record<string, string>>(() => {
@@ -53,6 +55,8 @@ export const LoginScreen: FC<LoginScreenProps> = ({
     }
     return initial;
   });
+
+  const onForgotPasswordAction = onForgotPasswordPress ?? onForgotPassword;
 
   const handleFieldChange = useCallback((fieldName: string, value: string) => {
     setFormValues((prev) => ({...prev, [fieldName]: value}));
@@ -121,11 +125,11 @@ export const LoginScreen: FC<LoginScreenProps> = ({
             />
           </Box>
 
-          {Boolean(onForgotPasswordPress) && (
+          {Boolean(onForgotPasswordAction) && (
             <Box alignItems="center" marginTop={2}>
               <Button
                 disabled={loading}
-                onClick={onForgotPasswordPress!}
+                onClick={onForgotPasswordAction!}
                 testID={`${testID}-forgot-password`}
                 text={forgotPasswordText!}
                 variant="muted"

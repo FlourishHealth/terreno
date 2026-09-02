@@ -17,16 +17,15 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
- * Expo Router route-structural entry files under `app/`: `index`, `_layout`, `+not-found`, and
- * dynamic segments such as `[id]`. The router mounts these by file path, so they hold wiring
- * rather than logic and cannot be imported without the router runtime. Screens they render are
- * unit tested in their owning package and exercised end to end by Playwright. Ordinary modules
- * under `app/` stay gated.
+ * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
+ * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
+ * `verifyEmail`). Those recovery screens are Playwright e2e; submit logic lives in
+ * `lib/authRecoveryActions.ts`. Ordinary modules under `app/` stay gated.
  */
 const EXPO_ROUTER_ENTRY_PATTERN =
-  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\])\.tsx$/;
+  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\]|forgotPassword|resetPassword|verifyEmail)\.tsx$/;
 
 export interface NewFileCoverageFailure {
   path: string;

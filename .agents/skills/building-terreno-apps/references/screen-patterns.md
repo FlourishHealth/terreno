@@ -168,20 +168,23 @@ const TodoDetailScreen: React.FC = () => {
 
 ## Admin table screen
 
-Prefer `@terreno/admin-frontend` over hand-rolled tables:
+Prefer `@terreno/admin-frontend` over hand-rolled tables. Use `AdminScreenRouter` so
+custom screens and models share `[model]/index`. Full nav and custom-screen rules:
+skill `building-admin-interfaces`.
 
 ```tsx
-import {AdminModelTable} from "@terreno/admin-frontend";
+import {AdminScreenRouter} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import {terrenoApi} from "@/store/sdk";
 
 const AdminModelScreen: React.FC = () => {
-  const {modelName} = useLocalSearchParams<{modelName: string}>();
+  const {model} = useLocalSearchParams<{model: string}>();
   return (
-    <AdminModelTable
-      baseUrl="/admin"
+    <AdminScreenRouter
       api={terrenoApi}
-      modelName={modelName ?? ""}
+      apiBase="/admin"
+      name={model ?? ""}
+      routeBase="/admin"
     />
   );
 };

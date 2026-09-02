@@ -16,10 +16,12 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
+- [Receive inbound webhooks](inbound-webhooks.md) — HMAC, Stripe, Twilio, and SendGrid signatures on `WebhooksApp`
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
+- [Password reset and email verification](password-reset.md) — JWT routes, comms templates, Better Auth hooks
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
 - [Expose Model Context Protocol tools](expose-mcp-tools.md) — Turn `modelRouter` models into MCP tools an LLM can call
 - [Install agent skills](install-agent-skills.md) — `npx skills`, the Cursor plugin, the Codex plugin, or the Claude Code plugin
@@ -28,10 +30,12 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [GitHub issue lifecycle](github-issue-lifecycle.md) — Create pick-ready issues, post a Pick plan, Pick ⇄ Roast
 - [Call external APIs](call-external-apis.md) — Authenticated HTTP client, retries, and error normalization for third-party integrations
 - [Upgrade banner](upgrade-banner.md) — Soft warning and hard-block app update UX
+- [Upgrade Terreno](upgrade-terreno.md) — Lockstep `@terreno/*` bumps, note range, order, rollback
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
 
 ## Admin
 
+- [Build admin screens](build-admin-screens.md) — Screens, sidebar nav, `routeBase`, custom screens
 - [Add a model to the admin](admin-add-model.md) — `modelRouter({admin: ...})` setup
 - [Import pre-built admins](admin-import-prebuilt.md) — Plugin `adminContribution()` wiring
 - [Add a custom admin field widget](admin-custom-widget.md) — Custom field widgets

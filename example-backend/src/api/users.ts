@@ -25,7 +25,7 @@ export const usersRouter = modelRouter("/users", User as unknown as Model<UserDo
     group: "Demo: shared app data",
     hiddenFields: ["hash", "salt"],
     listDisplayLinks: ["email"],
-    listFields: ["email", "name", "admin", "created"],
+    listFields: ["email", "name", "admin", "emailVerified", "created"],
     pageSize: 50,
     readonlyFields: ["email"],
     recordTitleField: "name",

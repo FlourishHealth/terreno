@@ -394,11 +394,24 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("Decisions table")));
   });
 
+  it("rejects a stage that still disables model invocation", (): void => {
+    const errors = validateStageContent({
+      content: `${readStage("terreno-1-grow")}\ndisable-model-invocation: true`,
+      definition: {
+        directory: "terreno-1-grow",
+        nextMarkers: ["next: pick", "next: grow", "next: null"],
+        stage: "grow",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("must allow model invocation")));
+  });
+
   it("keeps planning-loop and taste-sweep as non-stage plugin skills", (): void => {
     for (const directory of ["terreno-planning-loop", "terreno-taste-sweep"] as const) {
       const content = readStage(directory);
       assert.include(content, `name: ${directory}`);
-      assert.include(content, "disable-model-invocation: true");
+      assert.notInclude(content, "disable-model-invocation: true");
       assert.include(content, "../../references/lifecycle-contract.md");
       assert.deepEqual(validateOuterLoopContent({content, directory}), []);
     }

@@ -28,7 +28,8 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - `createOpenApiBuilder`
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
-- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
+- `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
+- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
@@ -164,8 +165,45 @@ setupServer({
 - `POST /auth/signup` — Create user account
 - `POST /auth/login` — Authenticate with email/password
 - `POST /auth/refresh_token` — Refresh access token
+- `POST /auth/forgotPassword` — Always 202; mails a reset link only when the email exists
+- `POST /auth/resetPassword` — `{token, password}`; also aliased at `POST /resetPassword` for the RTK client
+- `POST /auth/sendVerification` — Authenticated; 202 only after delivery succeeds; mails a verification link when `emailVerified` is not true
+- `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
+
+Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
+`emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
+`oldPassword`, `token`, and `refreshToken` in request bodies and in URL query strings. Changing the mailbox through `PATCH /auth/me`
+invalidates unused `passwordReset` AuthTokens for that user even when the schema has no
+`emailVerified` field. When the schema uses `emailVerificationPlugin`, mailbox change also
+sets `emailVerified` to false and invalidates unused `emailVerification` tokens; changing letter
+casing alone does not.
+
+**AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
+`AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` invalidates other
+unused, unexpired tokens of that type for the same user, then returns a 32-byte hex
+plaintext once and stores only the SHA-256 hash. `AuthToken.consume(token, type)` atomically
+marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours for
+`emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`.
+
+Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
+`getCommsService().sendMail`) so forgot-password can deliver the link
+`${publicAppUrl}/resetPassword?token=...`. Forgot-password skips issuing a token when
+`publicAppUrl` is missing. Authenticated `POST /auth/sendVerification` returns 501 in that
+case instead of 202. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
+`tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. When
+`BetterAuthApp` is registered, JWT reset also updates that user's Better Auth password
+and deletes Better Auth sessions. Better Auth password reset updates the JWT password
+and `tokenEpoch` for the matching app User. Access
+tokens stay valid until expiry (default 15m). `POST /resetPassword`
+matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
+
+Add `tokenEpoch` (number, default 0) on the User schema so epoch bumps persist under
+`strict: "throw"`. See `example-backend` User. Opt in to `emailVerified` with
+`emailVerificationPlugin`. Set `authOptions.requireEmailVerification` to reject login
+with 403 `email-not-verified` until `POST /auth/verifyEmail`. Signup still returns JWTs
+and sends `${publicAppUrl}/verifyEmail?token=...` so the user can complete verification.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)
@@ -232,6 +270,15 @@ const app = new TerrenoApp({userModel: User});
 app.register(new BetterAuthApp({config: betterAuthConfig, userModel: User}));
 const server = app.start();
 ``````
+
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` (from `@terreno/comms`) so Better Auth
+`sendResetPassword` / `sendVerificationEmail` use the same templates as JWT recovery mail.
+Those hooks throw 501 and do not send when `publicAppUrl` is missing, so links are never
+relative. Password reset also sets `revokeSessionsOnPasswordReset`, so existing Better Auth sessions
+are deleted when that reset path succeeds. JWT `POST /auth/resetPassword` updates the
+Better Auth password and deletes those sessions when `BetterAuthApp` is registered.
+Optional `authMailTemplates` overrides
+subject/text/html per template id.
 
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup
@@ -437,6 +484,21 @@ userSchema.plugin(baseUserPlugin);
 // Adds:
 // - email: string (indexed)
 // - admin: boolean (default: false)
+``````
+
+### emailVerificationPlugin
+
+Opt-in `emailVerified` boolean for user schemas. Defaults to `false` so existing users stay
+unverified until they complete the verification flow. Apply this plugin; do not add the
+field by hand.
+
+``````typescript
+import {emailVerificationPlugin, type EmailVerified} from "@terreno/api";
+
+userSchema.plugin(emailVerificationPlugin);
+
+// Adds:
+// - emailVerified: boolean (default: false)
 ``````
 
 ### firebaseJWTPlugin
@@ -1018,6 +1080,35 @@ setupServer({
 - Clean separation of concerns
 
 ## Webhooks & Notifications
+
+JSON and `application/x-www-form-urlencoded` parsers on `TerrenoApp` copy the original
+bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verified
+without re-serializing `req.body`.
+
+Register inbound routes on `WebhooksApp`. Helpers: `hmacSignature`, `stripeSignature`,
+`twilioSignature`, `sendgridEventSignature`. Timestamped HMAC, Stripe, and SendGrid
+reject timestamps outside a 300s window by default. Idempotency is `memory` or `mongo`
+(`webhookReceipts`). Paths are not added to `/openapi.json` and do not use JWT.
+
+```typescript
+import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
+
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => {
+    // process event
+  },
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
+```
+
+Call `webhooks.claim` / `webhooks.release` from a handler when one HTTP body contains
+nested ids (SendGrid `sg_event_id`). Operator guide: [Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ### Slack Notifications
 

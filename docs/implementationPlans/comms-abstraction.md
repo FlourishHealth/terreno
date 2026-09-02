@@ -58,7 +58,7 @@ consumer apps install only the SDKs they use.
 | Provider throws | Facade never rethrows from `sendMail` / `sendSms` / `sendPushToUser` / `startVerification` / `checkVerification`. A throwing provider becomes `errorClass: "transient"`, `errorCode: "provider-throw"`, then follows the same retry rules |
 | Push retry | Retry **only tokens** whose first `SendResult` is `errorClass: "transient"` via a second `sendPush`; merge. Do not re-send accepted tokens |
 | Push prune | Deactivate when `errorClass === "permanent"` **or** `isPermanentFailure === true` (shipped alias; adapters may set both) |
-| Delivery / opt-out intake | `CommsService.recordDeliveryEvent` / `recordOptOut` update the matching log row (by `providerMessageId`) and invoke hooks. Missing rows: `logger.warn`, still fire the hook |
+| Delivery / opt-out intake | `CommsService.recordDeliveryEvent` / `recordOptOut` update the matching log row (by `providerMessageId`) and invoke hooks. Missing rows: `logger.warn`, still fire the hook. Save failures: `logger.warn` then rethrow |
 | Payload expiry | `payloadExpiresAt` on the row. Mongo TTL indexes must **not** be used (they would delete the log). `CommsMessage.clearExpiredPayloads()` unsets `payload` only; `logSend` / `appendAttempt` call it best-effort (limit 50) |
 | `checkVerification` | Log a verification row; no inline retry; never persist the code |
 

@@ -76,7 +76,8 @@ keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Push payloads omit tokens.
 Verification start stores `{channel}` only; verification checks store no payload.
 `recordDeliveryEvent` writes `status`, `errorCode`, and `errorClass` onto the matching
-row (`opened` does not change status). Expired payloads are unset, not deleted.
+row (`opened` does not change status). Missing rows log a warning and still fire the hook.
+A failed row save logs a warning and **throws** so webhook claims can release and retry.
 
 ## Provider contracts
 
@@ -97,8 +98,11 @@ bun add @sendgrid/mail
 ```
 
 ```typescript
+import {TerrenoApp, WebhooksApp} from "@terreno/api";
 import {CommsApp} from "@terreno/comms";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+const webhooks = new WebhooksApp();
 
 new TerrenoApp({userModel: User})
   .register(
@@ -109,12 +113,15 @@ new TerrenoApp({userModel: User})
         fromEmail: "notifications@example.com",
         fromName: "Terreno",
         // sandboxMode defaults to true when NODE_ENV === "test"
+        // webhookVerificationKey defaults to SENDGRID_WEBHOOK_VERIFICATION_KEY
       }),
+      webhooks,
       onError: async (_context, result) => {
         console.error("mail failed", result.errorCode, result.errorClass);
       },
     })
   )
+  .register(webhooks)
   .start();
 ```
 
@@ -131,6 +138,111 @@ row.
 2. Verify the from domain (or single sender) in SendGrid.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
+
+Pass the same `WebhooksApp` into `CommsApp` **before** registering it. With
+`SendGridMailProvider` this mounts `POST {basePath}/webhooks/sendgrid` (default
+`/comms/webhooks/sendgrid`). The handler verifies ECDSA (`SENDGRID_WEBHOOK_VERIFICATION_KEY`
+or constructor `webhookVerificationKey`), claims each `sg_event_id`, correlates
+`sg_message_id` prefixes to stored `x-message-id`, and maps `delivered` / `bounce` /
+`dropped` / `open` plus opt-outs (`spamreport`, `unsubscribe`, `group_unsubscribe`).
+Missing verification key skips the route and logs an error. Full operator setup is in
+the inbound webhooks how-to.
+
+### Twilio SMS adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {TerrenoApp, WebhooksApp} from "@terreno/api";
+import {CommsApp} from "@terreno/comms";
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+const webhooks = new WebhooksApp();
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      sms: new TwilioSmsProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // Prefer TWILIO_MESSAGING_SERVICE_SID; fall back to TWILIO_FROM_NUMBER
+      }),
+      webhookPublicUrl: process.env.PUBLIC_API_URL,
+      webhooks,
+      onError: async (_context, result) => {
+        console.error("sms failed", result.errorCode, result.errorClass);
+      },
+    })
+  )
+  .register(webhooks)
+  .start();
+```
+
+Pass the same `WebhooksApp` into `CommsApp` **before** `webhooks` is registered so the
+plugin can add routes, then mount it. With `TwilioSmsProvider` this registers
+`POST {basePath}/webhooks/twilio/status` and `POST {basePath}/webhooks/twilio/inbound`
+(default `basePath` `/comms`). Status callbacks map `delivered` / `undelivered` /
+`failed` (including `ErrorCode` `21610` → `permanent`) onto `CommsMessage`. Inbound
+`STOP` / `START` call `recordOptOut` with `reason: "sms-stop"` / `"sms-start"`.
+`statusCallbackUrl` defaults to the public status URL. Missing auth token or public URL
+(`webhookPublicUrl`, `PUBLIC_API_URL`, or `COMMS_WEBHOOK_PUBLIC_URL`) skips those routes
+and logs an error. Full operator setup is in the inbound webhooks how-to.
+
+`TwilioSmsProvider` fails fast at construction when account SID or auth token is missing.
+Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers return
+`accepted: false` with `errorClass: permanent` and `errorCode: twilio-invalid-destination`
+before any Twilio call, so the facade does not retry. Send failures never throw through
+`sendSms`; they return `accepted: false` with Twilio `errorCode` / `errorClass`
+(`permanent` | `transient` | `config`). Permanent codes (including 21610 STOP) are not
+retried. Accepted sends store `providerMessageId` and `metadata.consoleUrl` for the
+Twilio SMS log.
+
+The example backend registers this adapter when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. A sender
+without credentials throws at startup. Account credentials without a sender skip SMS so
+Verify-only configs can share `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`. Unconfigured
+environments keep the console SMS provider (or omit SMS in production). `twilio` is an
+optional peer — apps that do not send SMS do not install it. Apps that ship
+`bun build --compile` (the example Cloud Run image) must inject a Twilio client
+(static `import twilio from "twilio"`). The adapters' default
+`createRequire("twilio")` is not bundled into that binary.
+
+### Twilio Verify adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {CommsApp} from "@terreno/comms";
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      verification: new TwilioVerifyProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // verifyServiceSid defaults to TWILIO_VERIFY_SERVICE_SID
+      }),
+    })
+  )
+  .start();
+```
+
+`TwilioVerifyProvider` fails fast at construction when account SID, auth token, or
+`TWILIO_VERIFY_SERVICE_SID` is missing. `startVerification` supports `sms` and `email`.
+`checkVerification` returns `valid: true` only for Verify status `approved`; `pending`,
+`expired`, and max-attempt states return `valid: false` with those reasons. Start failures
+are classified (`config` / `transient` / `permanent`) and never throw through the facade.
+Verification `CommsMessage` rows redact the destination, never store the OTP, and are not
+retryable from admin. Accepted starts store `metadata.consoleUrl` for the Verify service.
+
+The example backend registers this adapter when `TWILIO_VERIFY_SERVICE_SID` is set together
+with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`. A verify service SID without those
+credentials throws at startup. Unconfigured environments keep the console verification
+provider (or omit verification in production). Verify's email channel needs a Twilio Verify
+email integration; that setup is not automated.
 
 ### Expo push adapter
 
@@ -213,7 +325,8 @@ Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `
 Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
 only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
-and `errorClass` onto the matching row (`opened` does not change status).
+and `errorClass` onto the matching row (`opened` does not change status). Missing rows warn;
+save failures throw after a warning so inbound webhook claims can retry.
 
 `beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
 `onError` fire after every channel outcome. `onRetry` fires once before the inline retry when
@@ -272,3 +385,9 @@ const message = renderTemplate({
   },
 });
 ```
+
+Auth mail helpers `renderAuthMail()` and `DEFAULT_AUTH_MAIL_TEMPLATES` render reset and
+verify links as `${publicAppUrl}/resetPassword?token=...` and
+`${publicAppUrl}/verifyEmail?token=...`. Pass `templates` to override subject/text/html
+per template id (`resetPassword` | `verifyEmail`). Variables: `resetUrl`, `verifyUrl`,
+`publicAppUrl`, `token`.

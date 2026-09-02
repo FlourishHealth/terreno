@@ -406,29 +406,29 @@ modelRouter(Model, {
 
 ### Webhook Authentication
 
-Verify webhook signatures instead of JWT:
+Verify signatures on `WebhooksApp` using `req.rawBody`. Do not `JSON.stringify(req.body)`
+and do not put webhook POSTs in OpenAPI.
 
-``````typescript
-import crypto from "crypto";
+```typescript
+import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
 
-router.post("/webhook", asyncHandler(async (req, res) => {
-  const signature = req.headers["x-signature"];
-  const payload = JSON.stringify(req.body);
-  const expected = crypto
-    .createHmac("sha256", process.env.WEBHOOK_SECRET!)
-    .update(payload)
-    .digest("hex");
-  
-  if (signature !== expected) {
-    throw new APIError({status: 401, title: "Invalid signature"});
-  }
-  
-  // Process webhook
-}));
-``````
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => undefined,
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
+```
+
+See [Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ## Learn More
 
+- [Receive inbound webhooks](../how-to/inbound-webhooks.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Create a model](../how-to/create-a-model.md)
 - [API reference](../reference/api.md)

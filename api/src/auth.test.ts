@@ -1007,14 +1007,16 @@ describe("privileged user fields", () => {
     setSystemTime();
   });
 
-  it("drops admin, roles, and organizationIds, keeping other fields", () => {
+  it("drops admin, roles, organizationIds, emailVerified, and tokenEpoch, keeping other fields", () => {
     const sanitized = stripPrivilegedUserFields(
       {
         admin: true,
         age: 42,
+        emailVerified: true,
         name: "Someone",
         organizationIds: ["other-tenant"],
         roles: ["superadmin"],
+        tokenEpoch: 99,
       },
       "test"
     );
@@ -1026,8 +1028,14 @@ describe("privileged user fields", () => {
     expect(stripPrivilegedUserFields({name: "Someone"}, "test")).toEqual({name: "Someone"});
   });
 
-  it("lists admin, roles, and organizationIds as privileged", () => {
-    expect([...PRIVILEGED_USER_FIELDS]).toEqual(["admin", "roles", "organizationIds"]);
+  it("lists admin, roles, organizationIds, emailVerified, and tokenEpoch as privileged", () => {
+    expect([...PRIVILEGED_USER_FIELDS]).toEqual([
+      "admin",
+      "roles",
+      "organizationIds",
+      "emailVerified",
+      "tokenEpoch",
+    ]);
   });
 
   it("omits privileged User fields from ordinary RBAC modelRouter writes", () => {
@@ -1071,14 +1079,18 @@ describe("privileged user fields", () => {
       .send({
         admin: true,
         email: "escalate@example.com",
+        emailVerified: true,
         organizationIds: ["other-tenant"],
         password: "Password123!",
+        tokenEpoch: 99,
       })
       .expect(200);
 
     const created = await UserModel.findOne({email: "escalate@example.com"});
     expect(created).toBeTruthy();
     expect((created as unknown as {admin?: boolean})?.admin).toBe(false);
+    expect((created as unknown as {emailVerified?: boolean})?.emailVerified).toBe(false);
+    expect((created as unknown as {tokenEpoch?: number})?.tokenEpoch ?? 0).toBe(0);
     expect(
       (created as unknown as {organizationIds?: string[]})?.organizationIds ?? []
     ).not.toContain("other-tenant");
@@ -1107,15 +1119,61 @@ describe("privileged user fields", () => {
     await agent
       .patch("/auth/me")
       .set("authorization", `Bearer ${token}`)
-      .send({admin: true, name: "Renamed", organizationIds: ["other-tenant"]})
+      .send({
+        admin: true,
+        emailVerified: true,
+        name: "Renamed",
+        organizationIds: ["other-tenant"],
+        tokenEpoch: 99,
+      })
       .expect(200);
 
     const reloaded = await UserModel.findById(notAdminId);
     expect((reloaded as unknown as {admin?: boolean})?.admin).toBe(false);
+    expect((reloaded as unknown as {emailVerified?: boolean})?.emailVerified).toBe(false);
+    expect((reloaded as unknown as {tokenEpoch?: number})?.tokenEpoch ?? 0).toBe(0);
     expect((reloaded as unknown as {name?: string})?.name).toBe("Renamed");
     expect(
       (reloaded as unknown as {organizationIds?: string[]})?.organizationIds ?? []
     ).not.toContain("other-tenant");
+  });
+
+  it("clears email verification when PATCH /auth/me changes the mailbox", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.findByIdAndUpdate(notAdminId, {$set: {emailVerified: true}});
+
+    await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "unproven@example.com"})
+      .expect(200);
+
+    const reloaded = await UserModel.findById(notAdminId);
+    expect((reloaded as unknown as {emailVerified?: boolean})?.emailVerified).toBe(false);
+  });
+
+  it("keeps email verification for a casing-only email update", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.findByIdAndUpdate(notAdminId, {$set: {emailVerified: true}});
+
+    await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "NOTADMIN@EXAMPLE.COM"})
+      .expect(200);
+
+    const reloaded = await UserModel.findById(notAdminId);
+    expect((reloaded as unknown as {emailVerified?: boolean})?.emailVerified).toBe(true);
   });
 });
 
