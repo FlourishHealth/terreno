@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -70,6 +70,7 @@ const baseExperiment: ExperimentRecord = {
 };
 
 let detailData: ExperimentRecord = baseExperiment;
+let detailIsError = false;
 
 let promoteShouldFail = true;
 
@@ -85,7 +86,7 @@ const refetch = mock(() => undefined);
 const injectedHooks = {
   useAiObservabilityExperimentQuery: () => ({
     data: detailData,
-    isError: false,
+    isError: detailIsError,
     isLoading: false,
     refetch,
   }),
@@ -114,6 +115,15 @@ const widgetProps = {
 };
 
 describe("AiExperimentResultsScreenWidget", () => {
+  beforeEach(() => {
+    detailData = baseExperiment;
+    detailIsError = false;
+    experimentId = "exp-1";
+    promoteShouldFail = true;
+    promoteImpl.mockClear();
+    refetch.mockClear();
+  });
+
   it("shows loading then running progress", () => {
     const loadingApi = {
       enhanceEndpoints: () => loadingApi,
@@ -206,6 +216,61 @@ describe("AiExperimentResultsScreenWidget", () => {
     expect(view.getByTestId("ai-experiment-promote-blocked")).toBeTruthy();
   });
 
+  it("shows query errors", () => {
+    detailIsError = true;
+
+    const view = renderWithTheme(<AiExperimentResultsScreenWidget {...widgetProps} />);
+
+    assert.exists(view.getByText("Failed to load experiment results."));
+  });
+
+  it("surfaces promote API errors and dismisses the confirmation", async () => {
+    detailData = {
+      ...baseExperiment,
+      results: {
+        ...baseExperiment.results!,
+        gates: baseExperiment.results?.gates.filter((gate) => gate.version === 2) ?? [],
+      },
+      status: "completed",
+    };
+    const view = renderWithTheme(<AiExperimentResultsScreenWidget {...widgetProps} />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-promote"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByText("Promote"));
+      await Promise.resolve();
+    });
+    assert.exists(view.getByTestId("ai-experiment-promote-error"));
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-promote"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByText("Cancel"));
+      await Promise.resolve();
+    });
+    assert.notExists(view.queryByText("Confirm promote"));
+  });
+
+  it("refetches when the polling interval fires", () => {
+    const originalSetInterval = globalThis.setInterval;
+    globalThis.setInterval = ((handler: TimerHandler): number => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    }) as typeof globalThis.setInterval;
+    try {
+      renderWithTheme(<AiExperimentResultsScreenWidget {...widgetProps} />);
+      assert.isAtLeast(refetch.mock.calls.length, 1);
+    } finally {
+      globalThis.setInterval = originalSetInterval;
+    }
+  });
+
   it("promotes a passing version", async () => {
     promoteShouldFail = false;
     refetch.mockClear();
@@ -248,6 +313,5 @@ describe("AiExperimentResultsScreenWidget", () => {
     const missing = renderWithTheme(<AiExperimentResultsScreenWidget {...widgetProps} />);
     expect(missing.getByText("Missing experiment id.")).toBeTruthy();
     missing.unmount();
-    experimentId = "exp-1";
   });
 });
