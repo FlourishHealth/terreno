@@ -1,7 +1,6 @@
 ---
 name: terreno-taste-sweep
 description: Outer loop over open PRs you authored that currently have a merge conflict or a failing product-CI job on any discovered host (GitHub Actions, CircleCI, Buildkite, and similar). Isolates each PR and reinvokes Taste until mergeable or blocked. Skip drafts and already-green PRs.
-disable-model-invocation: true
 ---
 
 # Taste sweep — drive broken PRs to mergeable

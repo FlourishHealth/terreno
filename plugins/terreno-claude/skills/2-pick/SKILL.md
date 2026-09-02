@@ -1,7 +1,6 @@
 ---
 name: 2-pick
 description: Implement one approved IP/task slice with behavior-focused TDD, then roast it and pick the next unblocked task until the approved list is done. Not for planning, skipping Roast, or PR submission.
-disable-model-invocation: true
 ---
 
 # Pick — build

@@ -1,7 +1,6 @@
 ---
 name: 5-taste
 description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks or harness subscriptions until async review bots (Bugbot, CodeQL) finish, inspect product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), mergeability, and reviews, act on what is actionable, emit state, and exit. The outer loop owns product-CI waiting and reinvocation.
-disable-model-invocation: true
 ---
 
 # Taste — react
