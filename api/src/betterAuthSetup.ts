@@ -12,7 +12,7 @@ import {bearer} from "better-auth/plugins";
 import type {Application, NextFunction, Request, Response} from "express";
 import type {Db} from "mongodb";
 import mongoose from "mongoose";
-import type {UserModel} from "./auth";
+import {type HasSetPassword, setPasswordForUser, type UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {APIError} from "./errors";
 import type {AuthRecoveryMail} from "./expressServer";
@@ -184,6 +184,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
   }
 
   const emailHooks = createBetterAuthEmailHooks(config);
+  const userModel = options.userModel;
 
   const auth = betterAuth({
     advanced: config.crossDomainCookies
@@ -202,6 +203,16 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
       enabled: true,
       revokeSessionsOnPasswordReset: true,
       ...(emailHooks ? {sendResetPassword: emailHooks.sendResetPassword} : {}),
+      ...(userModel
+        ? {
+            onPasswordReset: async (
+              {user}: {user: {email?: string; id?: string}},
+              request?: PasswordResetRequestLike
+            ): Promise<void> => {
+              await applyBetterAuthPasswordResetToJwt(userModel, user, request);
+            },
+          }
+        : {}),
     },
     ...(emailHooks
       ? {
@@ -298,6 +309,75 @@ export const applyJwtPasswordResetToBetterAuth = async (
     });
   }
   await ctx.internalAdapter.deleteUserSessions(betterAuthUserId);
+};
+
+interface PasswordResetRequestLike {
+  body?: unknown;
+  clone?: () => {json: () => Promise<unknown>};
+}
+
+const passwordFromUnknown = (value: unknown): string => {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+  const record = value as Record<string, unknown>;
+  const candidate = record.newPassword ?? record.password;
+  if (typeof candidate !== "string") {
+    return "";
+  }
+  return candidate;
+};
+
+export const readPasswordFromBetterAuthResetRequest = async (
+  request: PasswordResetRequestLike | undefined
+): Promise<string> => {
+  if (!request) {
+    return "";
+  }
+  const attached = passwordFromUnknown(request.body);
+  if (attached.length > 0) {
+    return attached;
+  }
+  if (typeof request.clone !== "function") {
+    return "";
+  }
+  try {
+    return passwordFromUnknown(await request.clone().json());
+  } catch {
+    return "";
+  }
+};
+
+/**
+ * After Better Auth password reset, update the JWT/passport hash and bump
+ * `tokenEpoch` so a dual-enrolled account cannot keep the old password or
+ * outstanding refresh tokens.
+ */
+export const applyBetterAuthPasswordResetToJwt = async (
+  userModel: UserModel,
+  betterAuthUser: {email?: string; id?: string},
+  request: PasswordResetRequestLike | undefined
+): Promise<void> => {
+  const betterAuthId = typeof betterAuthUser.id === "string" ? betterAuthUser.id : "";
+  const email = typeof betterAuthUser.email === "string" ? betterAuthUser.email : "";
+  let appUser = betterAuthId ? await findOneOrNoneFor(userModel, {betterAuthId} as never) : null;
+  if (!appUser && email.length > 0) {
+    appUser = await findOneOrNoneFor(userModel, {email} as never);
+  }
+  if (!appUser) {
+    return;
+  }
+  const password = await readPasswordFromBetterAuthResetRequest(request);
+  if (!password) {
+    logger.error("[auth] Better Auth password reset did not include a password to sync to JWT");
+    throw new APIError({
+      status: 500,
+      title: "Password reset could not sync to JWT credentials",
+    });
+  }
+  await setPasswordForUser(appUser as unknown as HasSetPassword, password);
+  appUser.tokenEpoch = (appUser.tokenEpoch ?? 0) + 1;
+  await appUser.save();
 };
 
 /**

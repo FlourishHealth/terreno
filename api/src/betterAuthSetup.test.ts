@@ -3,9 +3,11 @@ import {assert} from "chai";
 import express, {type Request, type Response} from "express";
 import {MongoMemoryServer} from "mongodb-memory-server";
 import mongoose, {Schema} from "mongoose";
+import passportLocalMongoose from "passport-local-mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {
+  applyBetterAuthPasswordResetToJwt,
   applyJwtPasswordResetToBetterAuth,
   type BetterAuthInstance,
   createBetterAuth,
@@ -16,6 +18,7 @@ import {
   hasBetterAuthSession,
   type MongoClientLike,
   mountBetterAuthRoutes,
+  readPasswordFromBetterAuthResetRequest,
   setupBetterAuthUserSync,
   syncBetterAuthUser,
 } from "./betterAuthSetup";
@@ -33,6 +36,7 @@ let conn: mongoose.Connection;
 let mongod: MongoMemoryServer;
 let TestUser: UserModel;
 let StrictUser: UserModel;
+let DualAuthUser: UserModel;
 
 // Simple user schema for testing
 const testUserSchema = new Schema({
@@ -42,6 +46,21 @@ const testUserSchema = new Schema({
   name: {type: String},
   oauthProvider: {type: String},
 });
+
+const dualAuthUserSchema = new Schema({
+  admin: {default: false, type: Boolean},
+  betterAuthId: {type: String},
+  email: {required: true, type: String},
+  name: {type: String},
+  tokenEpoch: {default: 0, type: Number},
+});
+dualAuthUserSchema.plugin(
+  passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
+  {
+    usernameCaseInsensitive: true,
+    usernameField: "email",
+  }
+);
 
 const strictUserSchema = new Schema(
   {
@@ -60,6 +79,7 @@ const setup = (async () => {
   await conn.asPromise();
   TestUser = conn.model("BetterAuthTestUser", testUserSchema) as UserModel;
   StrictUser = conn.model("BetterAuthStrictUser", strictUserSchema) as UserModel;
+  DualAuthUser = conn.model("BetterAuthDualUser", dualAuthUserSchema) as UserModel;
 })();
 
 // Helper to get the mongo client from our separate connection
@@ -74,6 +94,7 @@ afterEach(async () => {
   await setup;
   await TestUser.deleteMany({});
   await StrictUser.deleteMany({});
+  await DualAuthUser.deleteMany({});
 });
 
 describe("createBetterAuth", () => {
@@ -217,6 +238,26 @@ describe("createBetterAuth", () => {
     assert.isTrue(options?.emailAndPassword?.revokeSessionsOnPasswordReset);
   });
 
+  it("wires JWT password sync when a user model is provided", async () => {
+    await setup;
+    const config: BetterAuthConfig = {
+      baseURL: "http://localhost:3000",
+      enabled: true,
+      secret: "test-secret-at-least-32-characters-long",
+    };
+    const auth = createBetterAuth({
+      config,
+      mongoClient: getClient(),
+      userModel: DualAuthUser,
+    });
+    const options = (
+      auth as {
+        options?: {emailAndPassword?: {onPasswordReset?: unknown}};
+      }
+    ).options;
+    assert.isFunction(options?.emailAndPassword?.onPasswordReset);
+  });
+
   it("sends reset and verification mail through the injected renderer", async () => {
     await setup;
     const renderedCalls: Array<{templateId: string; token: string}> = [];
@@ -314,6 +355,71 @@ describe("applyJwtPasswordResetToBetterAuth", () => {
       body: {email: "dual@example.com", password: "new-password-123"},
     });
     assert.isDefined(signedIn.user);
+  });
+});
+
+describe("readPasswordFromBetterAuthResetRequest", () => {
+  it("reads newPassword from a JSON request body", async () => {
+    const request = new Request("http://localhost/api/auth/reset-password", {
+      body: JSON.stringify({newPassword: "synced-password-123", token: "reset-token"}),
+      headers: {"Content-Type": "application/json"},
+      method: "POST",
+    });
+    const password = await readPasswordFromBetterAuthResetRequest(request);
+    assert.equal(password, "synced-password-123");
+  });
+});
+
+describe("applyBetterAuthPasswordResetToJwt", () => {
+  it("updates the JWT password and tokenEpoch", async () => {
+    await setup;
+    const registerable = DualAuthUser as unknown as {
+      authenticate: () => (
+        email: string,
+        password: string
+      ) => Promise<{user: unknown; error?: Error}>;
+      register: (
+        user: {betterAuthId: string; email: string},
+        password: string
+      ) => Promise<{tokenEpoch?: number}>;
+    };
+    await registerable.register(
+      {betterAuthId: "ba-dual-1", email: "dual-jwt@example.com"},
+      "old-password-123"
+    );
+    const request = new Request("http://localhost/api/auth/reset-password", {
+      body: JSON.stringify({newPassword: "new-password-123"}),
+      headers: {"Content-Type": "application/json"},
+      method: "POST",
+    });
+    await applyBetterAuthPasswordResetToJwt(
+      DualAuthUser,
+      {email: "dual-jwt@example.com", id: "ba-dual-1"},
+      request
+    );
+    const authenticate = registerable.authenticate();
+    const oldPassword = await authenticate("dual-jwt@example.com", "old-password-123");
+    assert.isNotOk(oldPassword.user);
+    const newPassword = await authenticate("dual-jwt@example.com", "new-password-123");
+    assert.isDefined(newPassword.user);
+    const reloaded = await DualAuthUser.findOne({email: "dual-jwt@example.com"});
+    assert.equal(reloaded?.tokenEpoch, 1);
+  });
+
+  it("skips JWT sync when no app user exists", async () => {
+    await setup;
+    const request = new Request("http://localhost/api/auth/reset-password", {
+      body: JSON.stringify({newPassword: "new-password-123"}),
+      headers: {"Content-Type": "application/json"},
+      method: "POST",
+    });
+    await applyBetterAuthPasswordResetToJwt(
+      DualAuthUser,
+      {email: "missing-jwt@example.com", id: "ba-missing"},
+      request
+    );
+    const missing = await DualAuthUser.findOne({email: "missing-jwt@example.com"});
+    assert.isNull(missing);
   });
 });
 

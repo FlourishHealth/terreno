@@ -766,14 +766,14 @@ export const addMeRoutes = (
     // }
     try {
       const update = stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me");
-      const shouldResetEmailVerification =
-        userModel.schema.path("emailVerified") !== undefined &&
-        isEmailUpdateChangingMailbox(doc.email, update.email);
+      const isMailboxChange = isEmailUpdateChangingMailbox(doc.email, update.email);
       Object.assign(doc, update);
-      if (shouldResetEmailVerification) {
-        doc.emailVerified = false;
-        await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
+      if (isMailboxChange) {
         await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "passwordReset");
+        if (userModel.schema.path("emailVerified") !== undefined) {
+          doc.emailVerified = false;
+          await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
+        }
       }
       await doc.save();
 

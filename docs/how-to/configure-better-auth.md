@@ -95,7 +95,9 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 Set `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms` so password-reset and
 email-verification mail match the JWT recovery templates. The hooks throw 501 and do not send when
 `publicAppUrl` is missing. JWT `POST /auth/resetPassword` updates the Better Auth password and
-deletes Better Auth sessions when this plugin is registered.
+deletes Better Auth sessions when this plugin is registered. Better Auth password reset updates
+the JWT password and `tokenEpoch` for the matching app User so dual-enrolled accounts cannot keep
+the old passport hash.
 
 ```typescript
 import {getCommsService, renderAuthMail} from "@terreno/comms";

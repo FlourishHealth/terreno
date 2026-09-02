@@ -1,9 +1,11 @@
 import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type express from "express";
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
+import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
+import type {UserModel as AuthUserModel} from "./auth";
 import {AuthToken} from "./authTokens";
 import {TerrenoApp} from "./terrenoApp";
 import {setupDb, UserModel} from "./tests";
@@ -233,5 +235,59 @@ describe("email verification gating", () => {
       .post("/auth/resetPassword")
       .send({password: "brand-new-password", token: issued.token})
       .expect(400);
+  });
+
+  it("invalidates unused password-reset tokens on mailbox change without emailVerified", async () => {
+    const jwtResetOnlySchema = new Schema({
+      email: {type: String},
+      tokenEpoch: {default: 0, type: Number},
+    });
+    jwtResetOnlySchema.plugin(
+      passportLocalMongoose as unknown as (
+        schema: Schema,
+        options?: Record<string, unknown>
+      ) => void,
+      {
+        usernameCaseInsensitive: true,
+        usernameField: "email",
+      }
+    );
+    const JwtResetOnlyUser = (mongoose.models.JwtResetOnlyUser ??
+      mongoose.model("JwtResetOnlyUser", jwtResetOnlySchema)) as AuthUserModel;
+    await JwtResetOnlyUser.deleteMany({});
+    const registerable = JwtResetOnlyUser as unknown as {
+      register: (
+        user: {email: string},
+        password: string
+      ) => Promise<{_id: {toString: () => string}}>;
+    };
+    const user = await registerable.register({email: "reset-only@example.com"}, "password");
+    const userId = String(user._id);
+    const app = new TerrenoApp({
+      authOptions: {
+        publicAppUrl: "https://app.example.com",
+        sendMail: async () => undefined,
+      },
+      skipListen: true,
+      userModel: JwtResetOnlyUser,
+    }).build();
+    const login = await supertest(app)
+      .post("/auth/login")
+      .send({email: "reset-only@example.com", password: "password"})
+      .expect(200);
+    const accessToken = login.body.data.token as string;
+    const issued = await AuthToken.issueFor({_id: userId}, "passwordReset");
+
+    await supertest(app)
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${accessToken}`)
+      .send({email: "new-reset-only@example.com"})
+      .expect(200);
+
+    await supertest(app)
+      .post("/auth/resetPassword")
+      .send({password: "brand-new-password", token: issued.token})
+      .expect(400);
+    assert.equal(JwtResetOnlyUser.schema.path("emailVerified"), undefined);
   });
 });

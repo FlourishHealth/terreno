@@ -175,8 +175,9 @@ setupServer({
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
 `oldPassword`, `token`, and `refreshToken` in request bodies and in URL query strings. Changing the mailbox through `PATCH /auth/me`
-sets `emailVerified` to false when the schema uses `emailVerificationPlugin` and
-invalidates unused `emailVerification` and `passwordReset` AuthTokens for that user; changing letter
+invalidates unused `passwordReset` AuthTokens for that user even when the schema has no
+`emailVerified` field. When the schema uses `emailVerificationPlugin`, mailbox change also
+sets `emailVerified` to false and invalidates unused `emailVerification` tokens; changing letter
 casing alone does not.
 
 **AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
@@ -193,7 +194,8 @@ Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
 case instead of 202. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
 `tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. When
 `BetterAuthApp` is registered, JWT reset also updates that user's Better Auth password
-and deletes Better Auth sessions. Access
+and deletes Better Auth sessions. Better Auth password reset updates the JWT password
+and `tokenEpoch` for the matching app User. Access
 tokens stay valid until expiry (default 15m). `POST /resetPassword`
 matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
 
