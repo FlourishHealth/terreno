@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-01T21:44:15.361Z.
+> dates are promised. Last updated: 2026-09-02T06:32:38.052Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -22,7 +22,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
 - [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Planned)
 - [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, Planned)
-- [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, Planned)
+- [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, In Progress)
 - [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Planned) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
@@ -47,6 +47,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### docs
 
 - [AI-first tutorials](https://github.com/FlourishHealth/terreno/issues/1010) (Feature, Planned) — IP: [docs-tutorials-ai-first](docs/implementationPlans/docs-tutorials-ai-first.md)
+- [Documentation site and versioning](https://github.com/FlourishHealth/terreno/issues/1086) (Feature, In Progress) — IP: [docs-site-and-versioning](docs/implementationPlans/docs-site-and-versioning.md)
 - [Dogfooding run and launch blog post](https://github.com/FlourishHealth/terreno/issues/1015) (Improvement, Planned) — IP: [build-terreno-app-validation](docs/implementationPlans/build-terreno-app-validation.md)
 - [Reference documentation coverage](https://github.com/FlourishHealth/terreno/issues/1009) (Improvement, Shipped) — IP: [docs-reference-coverage](docs/implementationPlans/docs-reference-coverage.md)
 
