@@ -1,29 +1,37 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, describe, expect, it, mock} from "bun:test";
 import {assert} from "chai";
-import express from "express";
+import express, {type Request, type Response} from "express";
 import {MongoMemoryServer} from "mongodb-memory-server";
 import mongoose, {Schema} from "mongoose";
 import type {UserModel} from "./auth";
-import type {BetterAuthConfig, BetterAuthUser} from "./betterAuth";
+import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {
   applyJwtPasswordResetToBetterAuth,
+  type BetterAuthInstance,
   createBetterAuth,
   createBetterAuthEmailHooks,
   createBetterAuthSessionMiddleware,
   getBetterAuthSession,
   getMongoClientFromMongoose,
   hasBetterAuthSession,
+  type MongoClientLike,
   mountBetterAuthRoutes,
   setupBetterAuthUserSync,
   syncBetterAuthUser,
 } from "./betterAuthSetup";
 
+type SessionRequest = Request & {betterAuthSession?: BetterAuthSessionData};
+const makeReq = (overrides: Partial<SessionRequest> = {}): SessionRequest =>
+  ({headers: {}, ...overrides}) as SessionRequest;
+const makeRes = (): Response => ({}) as Response;
+const setGetSession = (auth: BetterAuthInstance, getSession: () => unknown): void => {
+  (auth.api as unknown as {getSession: () => unknown}).getSession = getSession;
+};
+
 // Use a separate connection to avoid conflict with bunSetup.ts preload
 let conn: mongoose.Connection;
 let mongod: MongoMemoryServer;
-let TestUser: any;
+let TestUser: UserModel;
 let StrictUser: UserModel;
 
 // Simple user schema for testing
@@ -50,12 +58,12 @@ const setup = (async () => {
   mongod = await MongoMemoryServer.create();
   conn = mongoose.createConnection(mongod.getUri());
   await conn.asPromise();
-  TestUser = conn.model("BetterAuthTestUser", testUserSchema);
+  TestUser = conn.model("BetterAuthTestUser", testUserSchema) as UserModel;
   StrictUser = conn.model("BetterAuthStrictUser", strictUserSchema) as UserModel;
 })();
 
 // Helper to get the mongo client from our separate connection
-const getClient = () => (conn as any).client;
+const getClient = (): MongoClientLike => conn.getClient();
 
 afterAll(async () => {
   await conn?.close();
@@ -324,7 +332,7 @@ describe("syncBetterAuthUser", () => {
   it("creates a new user when none exists", async () => {
     await setup;
     const baUser = makeBetterAuthUser();
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(TestUser, baUser);
 
     expect(result).toBeDefined();
     expect(result.email).toBe("test@example.com");
@@ -348,7 +356,7 @@ describe("syncBetterAuthUser", () => {
   it("sets oauthProvider on create when a provider is passed", async () => {
     await setup;
     const baUser = makeBetterAuthUser({email: "oauth-create@example.com"});
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser, "google");
+    const result = await syncBetterAuthUser(TestUser, baUser, "google");
 
     assert.equal(result.oauthProvider, "google");
     const saved = await TestUser.findOne({email: "oauth-create@example.com"}).lean();
@@ -364,7 +372,7 @@ describe("syncBetterAuthUser", () => {
     });
 
     const baUser = makeBetterAuthUser({email: "new@example.com", name: "New Name"});
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(TestUser, baUser);
 
     expect(result.email).toBe("new@example.com");
     expect(result.name).toBe("New Name");
@@ -382,7 +390,7 @@ describe("syncBetterAuthUser", () => {
     });
 
     const baUser = makeBetterAuthUser();
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(TestUser, baUser);
 
     expect(result.betterAuthId).toBe("ba-user-123");
     expect(result.email).toBe("test@example.com");
@@ -399,7 +407,7 @@ describe("syncBetterAuthUser", () => {
     });
 
     const baUser = makeBetterAuthUser();
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser, "google");
+    const result = await syncBetterAuthUser(TestUser, baUser, "google");
 
     expect(result.oauthProvider).toBe("google");
   });
@@ -407,7 +415,7 @@ describe("syncBetterAuthUser", () => {
   it("uses email prefix as name when name is null", async () => {
     await setup;
     const baUser = makeBetterAuthUser({name: null});
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(TestUser, baUser);
 
     expect(result.name).toBe("test");
   });
@@ -421,7 +429,7 @@ describe("syncBetterAuthUser", () => {
     });
 
     const baUser = makeBetterAuthUser({name: null});
-    const result = await syncBetterAuthUser(TestUser as UserModel, baUser);
+    const result = await syncBetterAuthUser(TestUser, baUser);
 
     expect(result.name).toBe("Keep This Name");
   });
@@ -451,8 +459,8 @@ describe("createBetterAuthSessionMiddleware", () => {
 
     const auth = createBetterAuth({config, mongoClient: getClient()});
     const middleware = createBetterAuthSessionMiddleware(auth);
-    const req = {headers: {}} as any;
-    const res = {} as any;
+    const req = makeReq();
+    const res = makeRes();
     const next = mock(() => {});
 
     await middleware(req, res, next);
@@ -473,13 +481,13 @@ describe("createBetterAuthSessionMiddleware", () => {
 
     // Override getSession to throw
     const origGetSession = auth.api.getSession;
-    (auth.api as any).getSession = () => {
+    setGetSession(auth, () => {
       throw new Error("Session error");
-    };
+    });
 
     const middleware = createBetterAuthSessionMiddleware(auth);
-    const req = {headers: {}} as any;
-    const res = {} as any;
+    const req = makeReq();
+    const res = makeRes();
     const next = mock(() => {});
 
     await middleware(req, res, next);
@@ -487,7 +495,7 @@ describe("createBetterAuthSessionMiddleware", () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(req.user).toBeUndefined();
 
-    (auth.api as any).getSession = origGetSession;
+    setGetSession(auth, origGetSession);
   });
 
   it("attaches basic user data when no userModel is provided", async () => {
@@ -510,11 +518,11 @@ describe("createBetterAuthSessionMiddleware", () => {
     };
 
     // Override getSession to return mock session
-    (auth.api as any).getSession = async () => mockSession;
+    setGetSession(auth, async () => mockSession);
 
     const middleware = createBetterAuthSessionMiddleware(auth);
-    const req = {headers: {}} as any;
-    const res = {} as any;
+    const req = makeReq();
+    const res = makeRes();
     const next = mock(() => {});
 
     await middleware(req, res, next);
@@ -553,11 +561,11 @@ describe("createBetterAuthSessionMiddleware", () => {
       },
     };
 
-    (auth.api as any).getSession = async () => mockSession;
+    setGetSession(auth, async () => mockSession);
 
-    const middleware = createBetterAuthSessionMiddleware(auth, TestUser as UserModel);
-    const req = {headers: {}} as any;
-    const res = {} as any;
+    const middleware = createBetterAuthSessionMiddleware(auth, TestUser);
+    const req = makeReq();
+    const res = makeRes();
     const next = mock(() => {});
 
     await middleware(req, res, next);
@@ -587,11 +595,11 @@ describe("createBetterAuthSessionMiddleware", () => {
       },
     };
 
-    (auth.api as any).getSession = async () => mockSession;
+    setGetSession(auth, async () => mockSession);
 
-    const middleware = createBetterAuthSessionMiddleware(auth, TestUser as UserModel);
-    const req = {headers: {}} as any;
-    const res = {} as any;
+    const middleware = createBetterAuthSessionMiddleware(auth, TestUser);
+    const req = makeReq();
+    const res = makeRes();
     const next = mock(() => {});
 
     await middleware(req, res, next);
@@ -699,25 +707,27 @@ describe("getMongoClientFromMongoose", () => {
 
 describe("getBetterAuthSession", () => {
   it("returns null when no session is set", () => {
-    const req = {} as any;
+    const req = makeReq();
     expect(getBetterAuthSession(req)).toBeNull();
   });
 
   it("returns session data when set", () => {
-    const sessionData = {session: {id: "s1"}, user: {id: "u1"}} as any;
-    const req = {betterAuthSession: sessionData} as any;
+    const sessionData = {session: {id: "s1"}, user: {id: "u1"}} as unknown as BetterAuthSessionData;
+    const req = makeReq({betterAuthSession: sessionData});
     expect(getBetterAuthSession(req)).toBe(sessionData);
   });
 });
 
 describe("hasBetterAuthSession", () => {
   it("returns false when no session is set", () => {
-    const req = {} as any;
+    const req = makeReq();
     expect(hasBetterAuthSession(req)).toBe(false);
   });
 
   it("returns true when session is set", () => {
-    const req = {betterAuthSession: {session: {}, user: {}}} as any;
+    const req = makeReq({
+      betterAuthSession: {session: {}, user: {}} as unknown as BetterAuthSessionData,
+    });
     expect(hasBetterAuthSession(req)).toBe(true);
   });
 });
@@ -733,6 +743,6 @@ describe("setupBetterAuthUserSync", () => {
 
     const auth = createBetterAuth({config, mongoClient: getClient()});
 
-    expect(() => setupBetterAuthUserSync(auth, TestUser as UserModel)).not.toThrow();
+    expect(() => setupBetterAuthUserSync(auth, TestUser)).not.toThrow();
   });
 });
