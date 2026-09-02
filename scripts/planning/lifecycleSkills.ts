@@ -146,8 +146,8 @@ export const validateStageContent = ({
     errors.push(`${prefix}: frontmatter name must match its canonical directory`);
   }
 
-  if (!content.includes("disable-model-invocation: true")) {
-    errors.push(`${prefix}: lifecycle skills must be explicitly invoked`);
+  if (content.includes("disable-model-invocation: true")) {
+    errors.push(`${prefix}: lifecycle skills must allow model invocation`);
   }
 
   if (!content.includes("../../references/lifecycle-contract.md")) {
@@ -425,6 +425,9 @@ export const validateOuterLoopContent = ({
   directory: string;
 }): string[] => {
   const errors: string[] = [];
+  if (content.includes("disable-model-invocation: true")) {
+    errors.push(`${directory}: outer-loop skills must allow model invocation`);
+  }
   if (!content.includes("../../references/product-ci.md")) {
     errors.push(`${directory}: outer loop must load the product-CI procedure`);
   }
