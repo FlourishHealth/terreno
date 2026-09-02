@@ -59,9 +59,27 @@ const SeedSoftWidget =
   (mongoose.models.SeedRunnerSoftWidget as mongoose.Model<SeedSoftWidgetDocument> | undefined) ??
   mongoose.model<SeedSoftWidgetDocument>("SeedRunnerSoftWidget", seedSoftWidgetSchema);
 
+interface SeedDatedWidgetDocument {
+  key: string;
+  label: string;
+  note?: string | null;
+  publishedAt?: Date;
+}
+
+const seedDatedWidgetSchema = new Schema<SeedDatedWidgetDocument>({
+  key: {description: "Stable seed key", required: true, type: String},
+  label: {description: "Seeded display label", required: true, type: String},
+  note: {description: "Optional note", type: String},
+  publishedAt: {description: "Publish timestamp", type: Date},
+});
+const SeedDatedWidget =
+  (mongoose.models.SeedRunnerDatedWidget as mongoose.Model<SeedDatedWidgetDocument> | undefined) ??
+  mongoose.model<SeedDatedWidgetDocument>("SeedRunnerDatedWidget", seedDatedWidgetSchema);
+
 afterEach(async () => {
   await SeedWidget.deleteMany({});
   await SeedSoftWidget.deleteMany({});
+  await SeedDatedWidget.deleteMany({});
   process.env.NODE_ENV = "test";
 });
 
@@ -231,6 +249,144 @@ describe("runSeeds", () => {
     assert.equal(unchanged.summary.updated, 0);
   });
 
+  it("treats null and Date seed values as unchanged after Mongoose stores them", async () => {
+    const step: SeedStep = {
+      name: "widgets",
+      run: async (context) => {
+        await context.upsert(
+          SeedDatedWidget,
+          {key: "dated"},
+          {label: "Dated", note: null, publishedAt: new Date("2024-01-02T03:04:05.000Z")}
+        );
+      },
+    };
+    const created = await runSeeds({name: "test", steps: [step]});
+    const unchanged = await runSeeds({name: "test", steps: [step]});
+
+    assert.equal(created.summary.created, 1);
+    assert.equal(unchanged.summary.unchanged, 1);
+    assert.equal(unchanged.summary.updated, 0);
+  });
+
+  it("hard-deletes duplicate documents when the model has no soft delete", async () => {
+    await SeedDatedWidget.create({key: "dup", label: "First"});
+    await SeedDatedWidget.create({key: "dup", label: "Second"});
+
+    const result = await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.upsert(SeedDatedWidget, {key: "dup"}, {label: "Canonical"});
+          },
+        },
+      ],
+    });
+
+    assert.equal(result.summary.deleted, 1);
+    assert.equal(result.summary.updated, 1);
+    const remaining = await SeedDatedWidget.find({key: "dup"});
+    assert.equal(remaining.length, 1);
+    assert.equal(remaining[0]?.label, "Canonical");
+  });
+
+  it("reports deleteMany as unchanged when nothing matches", async () => {
+    const result = await runSeeds({
+      name: "test",
+      steps: [
+        {
+          name: "widgets",
+          run: async (context) => {
+            await context.deleteMany(SeedWidget, {key: "missing"});
+          },
+        },
+      ],
+    });
+
+    assert.equal(result.summary.unchanged, 0);
+    assert.equal(result.summary.deleted, 0);
+    assert.deepEqual(result.changes, [
+      {change: "unchanged", count: 0, key: JSON.stringify({key: "missing"}), model: "SeedRunnerWidget"},
+    ]);
+  });
+
+  it("rejects duplicate step names", async () => {
+    let thrown: unknown;
+    try {
+      await runSeeds({
+        name: "test",
+        steps: [
+          {name: "same", run: async () => {}},
+          {name: "same", run: async () => {}},
+        ],
+      });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    assert.instanceOf(thrown, APIError);
+    assert.equal((thrown as APIError).title, "Seed step names must be unique");
+  });
+
+  it("rejects unknown --only steps with the available step names", async () => {
+    let thrown: unknown;
+    try {
+      await runSeeds({
+        name: "test",
+        only: ["nope"],
+        steps: [
+          {name: "one", run: async () => {}},
+          {name: "two", run: async () => {}},
+        ],
+      });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    assert.instanceOf(thrown, APIError);
+    assert.equal((thrown as APIError).status, 400);
+    assert.equal((thrown as APIError).title, "Unknown seed step");
+    assert.include((thrown as APIError).detail ?? "", "one, two");
+  });
+
+  it("rejects dependency cycles when selecting steps", async () => {
+    let thrown: unknown;
+    try {
+      await runSeeds({
+        name: "test",
+        only: ["a"],
+        steps: [
+          {dependsOn: ["b"], name: "a", run: async () => {}},
+          {dependsOn: ["a"], name: "b", run: async () => {}},
+        ],
+      });
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    assert.instanceOf(thrown, APIError);
+    assert.equal((thrown as APIError).title, "Seed step dependency cycle");
+    assert.equal((thrown as APIError).detail, "a -> b -> a");
+  });
+
+  it("includes a shared dependency only once", async () => {
+    const calls: string[] = [];
+    const result = await runSeeds({
+      name: "test",
+      only: ["left", "right"],
+      steps: [
+        {name: "base", run: async () => void calls.push("base")},
+        {dependsOn: ["base"], name: "left", run: async () => void calls.push("left")},
+        {dependsOn: ["base"], name: "right", run: async () => void calls.push("right")},
+        {name: "skipped", run: async () => void calls.push("skipped")},
+      ],
+    });
+
+    assert.deepEqual(result.steps, ["base", "left", "right"]);
+    assert.deepEqual(calls, ["base", "left", "right"]);
+  });
+
   it("blocks production resets unless forced and explicitly allowed", async () => {
     process.env.NODE_ENV = "production";
 
@@ -296,6 +452,45 @@ describe("runSeedCli", () => {
     assert.include(help.help ?? "", "--reset");
     assert.isFalse(didConnect);
     assert.equal(invalid.exitCode, 2);
+    assert.include(invalid.help ?? "", "Unknown option(s): --wat");
+  });
+
+  it("parses --only=<step> and returns exit code 1 when seeding fails", async () => {
+    const calls: string[] = [];
+    const ok = await runSeedCli({
+      argv: ["--only=two"],
+      name: "bun run seed",
+      steps: [
+        {name: "one", run: async () => void calls.push("one")},
+        {name: "two", run: async () => void calls.push("two")},
+      ],
+    });
+    assert.equal(ok.exitCode, 0);
+    assert.deepEqual(calls, ["two"]);
+
+    const errors: string[] = [];
+    const failed = await runSeedCli({
+      argv: [],
+      log: {
+        catch: () => {},
+        debug: () => {},
+        error: (message: string) => void errors.push(message),
+        info: () => {},
+        warn: () => {},
+      },
+      name: "bun run seed",
+      steps: [
+        {
+          name: "boom",
+          run: async () => {
+            throw new Error("seed exploded");
+          },
+        },
+      ],
+    });
+    assert.equal(failed.exitCode, 1);
+    assert.isUndefined(failed.result);
+    assert.deepEqual(errors, ["Seed failed: seed exploded"]);
   });
 });
 
