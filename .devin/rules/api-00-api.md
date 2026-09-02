@@ -41,6 +41,7 @@ src/
   transformers.ts        # Data serialization (deprecated, use hooks)
   utils.ts               # isValidObjectId, checkModelsStrict
   notifiers/             # Slack, Google Chat, Zoom integrations
+  webhooks/              # WebhooksApp, rawBody, verifiers, idempotency
   tests.ts               # Test models and helpers
   tests/bunSetup.ts      # Test environment setup
 ```
@@ -72,6 +73,12 @@ Methods:
 - `start()` — Build and start server
 
 `rateLimit` on `TerrenoApp` is **opt-in**. Omit it to leave HTTP unlimited (Terreno 58 defaults on). Empty `{}` enables memory buckets: auth 20 / 15 min (login, signup, refresh, GitHub OAuth, Better Auth sign-in / sign-up / reset-password / OAuth callback); api 600 / 15 min. Paths ignore a trailing slash. JWT login/signup/refresh skip expired access tokens. `store: "redis"` needs `VALKEY_URL` then `REDIS_URL`. `store: "mongo"` uses `rateLimitHits`. The framework does **not** read `RATE_LIMIT_ENABLED`. Operator guide: `docs/how-to/rate-limiting.md`.
+
+Inbound HTTP callbacks use `WebhooksApp` (`webhooks.route` then `app.register(webhooks)`).
+Verify `req.rawBody` with `hmacSignature` / `stripeSignature` / `twilioSignature` /
+`sendgridEventSignature`. Do not `JSON.stringify(req.body)`. Do not put webhook POSTs in
+OpenAPI or behind JWT. Do not skip rate-limit paths. Operator guide:
+`docs/how-to/inbound-webhooks.md`.
 
 ### setupServer (Legacy)
 

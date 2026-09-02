@@ -203,4 +203,23 @@ export * from "./types/consentForm";
 export * from "./types/consentResponse";
 export * from "./utils";
 export * from "./versionCheckPlugin";
+export type {
+  WebhookClaimArgs,
+  WebhookClaimResult,
+  WebhookIdempotencyStore,
+} from "./webhooks/idempotency/memoryStore";
+export {createMemoryIdempotencyStore} from "./webhooks/idempotency/memoryStore";
+export {type HmacSignatureOptions, hmacSignature} from "./webhooks/verifiers/hmac";
+export {
+  type SendgridEventSignatureOptions,
+  sendgridEventSignature,
+} from "./webhooks/verifiers/sendgrid";
+export {type StripeSignatureOptions, stripeSignature} from "./webhooks/verifiers/stripe";
+export {type TwilioSignatureOptions, twilioSignature} from "./webhooks/verifiers/twilio";
+export {
+  type WebhookHandlerContext,
+  type WebhookRouteOptions,
+  WebhooksApp,
+  type WebhooksAppOptions,
+} from "./webhooks/webhooksApp";
 export {z} from "./zodOpenApi";

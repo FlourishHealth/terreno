@@ -16,6 +16,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
+- [Receive inbound webhooks](inbound-webhooks.md) — HMAC, Stripe, Twilio, and SendGrid signatures on `WebhooksApp`
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API

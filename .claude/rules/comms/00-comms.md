@@ -41,7 +41,9 @@ await getCommsService().sendMail({
 - Permanent push failures set `errorClass: "permanent"` and/or `isPermanentFailure: true`;
   either one deactivates the token.
 - `beforeSend` may mutate or cancel; throwing hooks are logged and never change the send.
-- `recordDeliveryEvent` / `recordOptOut` are the adapter intake for callbacks (no HTTP in core).
+- `recordDeliveryEvent` / `recordOptOut` are the adapter intake for callbacks. HTTP lives
+  on `WebhooksApp` via `CommsApp({webhooks})` (Twilio status/inbound, SendGrid Event
+  Webhook). Omit `webhooks` to keep the send path without inbound routes.
 - Transient `errorClass` retries once on mail, SMS, verification start, and failed push tokens.
 - `checkVerification` does not retry. Provider throws become `errorCode: "provider-throw"`.
 - Payloads are retained `retainPayloadDays` (default 30) after `redactPayload`; `0` stores none.
@@ -132,6 +134,10 @@ and web skip `POST /comms/pushTokens`.
 - `POST /comms/messages/:id/retry`: admin-only re-send; linked row; stable 400 `code`s.
 - `POST /comms/messages/retryMany`: admin-only bulk retry, cap 100, `{retried, skipped}`.
 - `GET /comms/stats`: admin-only channel × provider × status aggregation (default 7d).
+- `POST /comms/webhooks/twilio/status` and `.../inbound`: Twilio signed; registered when
+  `CommsApp` receives `webhooks` and `TwilioSmsProvider`.
+- `POST /comms/webhooks/sendgrid`: SendGrid Event Webhook ECDSA; registered when `webhooks`
+  and `SendGridMailProvider` plus a verification key.
 - Admin UI: `COMMS_ADMIN_WIDGETS` in `@terreno/admin-frontend`; screen name `comms`.
 
 An active push token cannot transfer between users. Its owner must deactivate it before another

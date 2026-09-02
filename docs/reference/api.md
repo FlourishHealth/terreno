@@ -1019,6 +1019,35 @@ setupServer({
 
 ## Webhooks & Notifications
 
+JSON and `application/x-www-form-urlencoded` parsers on `TerrenoApp` copy the original
+bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verified
+without re-serializing `req.body`.
+
+Register inbound routes on `WebhooksApp`. Helpers: `hmacSignature`, `stripeSignature`,
+`twilioSignature`, `sendgridEventSignature`. Timestamped HMAC, Stripe, and SendGrid
+reject timestamps outside a 300s window by default. Idempotency is `memory` or `mongo`
+(`webhookReceipts`). Paths are not added to `/openapi.json` and do not use JWT.
+
+```typescript
+import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
+
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => {
+    // process event
+  },
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
+```
+
+Call `webhooks.claim` / `webhooks.release` from a handler when one HTTP body contains
+nested ids (SendGrid `sg_event_id`). Operator guide: [Receive inbound webhooks](../how-to/inbound-webhooks.md).
+
 ### Slack Notifications
 
 ``````typescript

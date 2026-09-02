@@ -60,6 +60,7 @@ import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
@@ -171,6 +172,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }).configure(AppConfiguration);
 
     registerUsersTodoStatusTool();
+
+    // Build inbound webhooks before CommsApp so Twilio/SendGrid routes can be added,
+    // then register the plugin after CommsApp so those routes are mounted.
+    const inboundWebhooks = createExampleInboundWebhooks();
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
@@ -301,6 +306,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : undefined;
       const verificationProvider =
         twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());
+      const inboundWebhookPublicUrl = (
+        process.env.PUBLIC_API_URL ??
+        process.env.COMMS_WEBHOOK_PUBLIC_URL ??
+        ""
+      ).replace(/\/$/, "");
 
       terraApp.register(
         new CommsApp(
@@ -311,6 +321,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 ...(verificationProvider ? {verification: verificationProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 push: pushProvider,
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
@@ -318,10 +330,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 push: pushProvider,
                 sms: smsProvider ?? new ConsoleSmsProvider(),
                 verification: verificationProvider ?? new ConsoleVerificationProvider(),
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
         )
       );
     }
+
+    terraApp.register(inboundWebhooks);
 
     terraApp
       .register(

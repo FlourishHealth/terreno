@@ -76,7 +76,8 @@ keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Push payloads omit tokens.
 Verification start stores `{channel}` only; verification checks store no payload.
 `recordDeliveryEvent` writes `status`, `errorCode`, and `errorClass` onto the matching
-row (`opened` does not change status). Expired payloads are unset, not deleted.
+row (`opened` does not change status). Missing rows log a warning and still fire the hook.
+A failed row save logs a warning and **throws** so webhook claims can release and retry.
 
 ## Provider contracts
 
@@ -97,8 +98,11 @@ bun add @sendgrid/mail
 ```
 
 ```typescript
+import {TerrenoApp, WebhooksApp} from "@terreno/api";
 import {CommsApp} from "@terreno/comms";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+const webhooks = new WebhooksApp();
 
 new TerrenoApp({userModel: User})
   .register(
@@ -109,12 +113,15 @@ new TerrenoApp({userModel: User})
         fromEmail: "notifications@example.com",
         fromName: "Terreno",
         // sandboxMode defaults to true when NODE_ENV === "test"
+        // webhookVerificationKey defaults to SENDGRID_WEBHOOK_VERIFICATION_KEY
       }),
+      webhooks,
       onError: async (_context, result) => {
         console.error("mail failed", result.errorCode, result.errorClass);
       },
     })
   )
+  .register(webhooks)
   .start();
 ```
 
@@ -132,6 +139,15 @@ row.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
 
+Pass the same `WebhooksApp` into `CommsApp` **before** registering it. With
+`SendGridMailProvider` this mounts `POST {basePath}/webhooks/sendgrid` (default
+`/comms/webhooks/sendgrid`). The handler verifies ECDSA (`SENDGRID_WEBHOOK_VERIFICATION_KEY`
+or constructor `webhookVerificationKey`), claims each `sg_event_id`, correlates
+`sg_message_id` prefixes to stored `x-message-id`, and maps `delivered` / `bounce` /
+`dropped` / `open` plus opt-outs (`spamreport`, `unsubscribe`, `group_unsubscribe`).
+Missing verification key skips the route and logs an error. Full operator setup is in
+the inbound webhooks how-to.
+
 ### Twilio SMS adapter
 
 ```bash
@@ -139,8 +155,11 @@ bun add twilio
 ```
 
 ```typescript
+import {TerrenoApp, WebhooksApp} from "@terreno/api";
 import {CommsApp} from "@terreno/comms";
 import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+const webhooks = new WebhooksApp();
 
 new TerrenoApp({userModel: User})
   .register(
@@ -149,13 +168,26 @@ new TerrenoApp({userModel: User})
         // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
         // Prefer TWILIO_MESSAGING_SERVICE_SID; fall back to TWILIO_FROM_NUMBER
       }),
+      webhookPublicUrl: process.env.PUBLIC_API_URL,
+      webhooks,
       onError: async (_context, result) => {
         console.error("sms failed", result.errorCode, result.errorClass);
       },
     })
   )
+  .register(webhooks)
   .start();
 ```
+
+Pass the same `WebhooksApp` into `CommsApp` **before** `webhooks` is registered so the
+plugin can add routes, then mount it. With `TwilioSmsProvider` this registers
+`POST {basePath}/webhooks/twilio/status` and `POST {basePath}/webhooks/twilio/inbound`
+(default `basePath` `/comms`). Status callbacks map `delivered` / `undelivered` /
+`failed` (including `ErrorCode` `21610` → `permanent`) onto `CommsMessage`. Inbound
+`STOP` / `START` call `recordOptOut` with `reason: "sms-stop"` / `"sms-start"`.
+`statusCallbackUrl` defaults to the public status URL. Missing auth token or public URL
+(`webhookPublicUrl`, `PUBLIC_API_URL`, or `COMMS_WEBHOOK_PUBLIC_URL`) skips those routes
+and logs an error. Full operator setup is in the inbound webhooks how-to.
 
 `TwilioSmsProvider` fails fast at construction when account SID or auth token is missing.
 Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers return
@@ -293,7 +325,8 @@ Delivery attempts are stored in `CommsMessage`. Recipient values are stored as `
 Mail payloads keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and
 `dynamicTemplateData`. SMS payloads keep `to` and `body`. Verification start keeps `{channel}`
 only; verification checks store no payload. `recordDeliveryEvent` writes `status`, `errorCode`,
-and `errorClass` onto the matching row (`opened` does not change status).
+and `errorClass` onto the matching row (`opened` does not change status). Missing rows warn;
+save failures throw after a warning so inbound webhook claims can retry.
 
 `beforeSend` may replace the message or cancel the send (`status: "cancelled"`). `onSend` and
 `onError` fire after every channel outcome. `onRetry` fires once before the inline retry when

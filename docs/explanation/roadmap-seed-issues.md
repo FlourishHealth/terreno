@@ -467,15 +467,18 @@ equivalents, and sends the emails through `@terreno/comms`.
 **Title:** `Inbound webhook framework`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`inbound-webhooks`, Status=`Planned`
+
+**GitHub:** https://github.com/FlourishHealth/terreno/issues/1172
 
 Terreno has outbound notifiers (Slack, Google Chat, Zoom) but no framework for receiving
 webhooks from external services. Adds a plugin for registering webhook endpoints with
 signature verification, raw-body handling, idempotency/replay protection, and event
-dispatch — required by Stripe billing and by Twilio/Expo delivery status callbacks.
+dispatch — required by Stripe billing and by Twilio/SendGrid delivery status callbacks
+(Expo push polls receipts and does not use this plugin).
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/inbound-webhooks.md)
+- **Tasks:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/inbound-webhooks.md)
 - **RTK flag:** None
 - **Depends on:** —
 
