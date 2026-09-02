@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-02T19:37:17.736Z.
+> dates are promised. Last updated: 2026-09-02T19:48:37.865Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -33,10 +33,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
 - [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, Planned)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
-
-### auth
-
-- [Password reset and email verification](https://github.com/FlourishHealth/terreno/issues/1023) (Feature, Planned) — IP: [password-reset-and-email-verification](docs/implementationPlans/password-reset-and-email-verification.md)
 
 ### mcp
 
