@@ -159,7 +159,7 @@ describe("createBetterAuth", () => {
     const auth = createBetterAuth({config, mongoClient: getClient()});
 
     const response = await auth.handler(
-      new Request("https://api.example.com/api/auth/sign-up/email", {
+      new globalThis.Request("https://api.example.com/api/auth/sign-up/email", {
         body: JSON.stringify({
           email: "cross-domain-cookie@example.com",
           name: "Cross Domain",
@@ -360,7 +360,7 @@ describe("applyJwtPasswordResetToBetterAuth", () => {
 
 describe("readPasswordFromBetterAuthResetRequest", () => {
   it("reads newPassword from a JSON request body", async () => {
-    const request = new Request("http://localhost/api/auth/reset-password", {
+    const request = new globalThis.Request("http://localhost/api/auth/reset-password", {
       body: JSON.stringify({newPassword: "synced-password-123", token: "reset-token"}),
       headers: {"Content-Type": "application/json"},
       method: "POST",
@@ -387,7 +387,7 @@ describe("applyBetterAuthPasswordResetToJwt", () => {
       {betterAuthId: "ba-dual-1", email: "dual-jwt@example.com"},
       "old-password-123"
     );
-    const request = new Request("http://localhost/api/auth/reset-password", {
+    const request = new globalThis.Request("http://localhost/api/auth/reset-password", {
       body: JSON.stringify({newPassword: "new-password-123"}),
       headers: {"Content-Type": "application/json"},
       method: "POST",
@@ -408,7 +408,7 @@ describe("applyBetterAuthPasswordResetToJwt", () => {
 
   it("skips JWT sync when no app user exists", async () => {
     await setup;
-    const request = new Request("http://localhost/api/auth/reset-password", {
+    const request = new globalThis.Request("http://localhost/api/auth/reset-password", {
       body: JSON.stringify({newPassword: "new-password-123"}),
       headers: {"Content-Type": "application/json"},
       method: "POST",
