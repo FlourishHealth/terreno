@@ -2,6 +2,8 @@ export * from "./actions";
 export * from "./adminTypes";
 export * from "./api";
 export * from "./auth";
+export * from "./authRecovery";
+export * from "./authTokens";
 export * from "./betterAuth";
 export * from "./betterAuthApp";
 export * from "./betterAuthSetup";

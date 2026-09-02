@@ -187,7 +187,7 @@ JWT + Passport-based auth with multiple strategies: Email/Password, GitHub OAuth
 Key functions:
 
 - `setupAuth(app, userModel)` — Configures Passport (JWT, Local, Anonymous strategies)
-- `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`
+- `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`, `/auth/forgotPassword`, `/auth/resetPassword`, `/auth/sendVerification`, `/auth/verifyEmail`
 - `addMeRoutes(app, userModel)` — GET/PATCH `/auth/me`
 - `authenticateMiddleware(anonymous?)` — Returns auth middleware
 - `signupUser(userModel, email, password, body?)` — Register user
@@ -197,6 +197,10 @@ Endpoints:
 - `POST /auth/signup` — User registration
 - `POST /auth/login` — Authenticate with email/password
 - `POST /auth/refresh_token` — Refresh access token
+- `POST /auth/forgotPassword` — Always 202; mails a reset link when the user exists
+- `POST /auth/resetPassword` — Consume a one-time token; also `POST /resetPassword`
+- `POST /auth/sendVerification` — Authenticated re-send of the verify link
+- `POST /auth/verifyEmail` — `{token}` sets `emailVerified`
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
@@ -495,6 +499,7 @@ Rules:
 | `isDeletedPlugin` | `deleted` | Soft delete (auto-filtered from queries) |
 | `isDisabledPlugin` | `disabled` | Returns 401 for disabled users |
 | `baseUserPlugin` | `admin`, `email` | Base user fields |
+| `emailVerificationPlugin` | `emailVerified` | Opt-in email verification flag (default false) |
 | `findExactlyOne` | static method | Throws if 0 or multiple matches |
 | `findOneOrNone` | static method | Throws if multiple matches |
 | `upsertPlugin` | static method | Create or update atomically |

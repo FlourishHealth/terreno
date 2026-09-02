@@ -66,7 +66,7 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 | `ENABLE_SWAGGER` | `@terreno/api` | ❌ | `false` | No | server |
 | `APP_ENV` | example-backend | ❌ | `development` | No | server |
 | `BACKEND_URL` | scripts, deploy | ❌ | — | No | server |
-| `FRONTEND_URL` | example-backend CORS | ❌ | auto | No | server |
+| `FRONTEND_URL` | example-backend CORS and `authOptions.publicAppUrl` | ❌ | `http://localhost:8082` | No | server |
 | `API_URL` | microservice split | ❌ | — | No | server |
 | `DISABLE_LOG_ALL_REQUESTS` | `@terreno/api` logging | ❌ | — | No | server |
 

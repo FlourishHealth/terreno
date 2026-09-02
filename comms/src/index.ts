@@ -24,8 +24,13 @@ export type {
   PushTokenSchema,
   PushTokenStatics,
 } from "./modelTypes";
-export type {MessageTemplate, RenderTemplateOptions} from "./templates";
-export {renderTemplate} from "./templates";
+export type {
+  AuthMailTemplateId,
+  MessageTemplate,
+  RenderAuthMailOptions,
+  RenderTemplateOptions,
+} from "./templates";
+export {DEFAULT_AUTH_MAIL_TEMPLATES, renderAuthMail, renderTemplate} from "./templates";
 export type {
   BeforeSendResult,
   CheckVerificationOptions,

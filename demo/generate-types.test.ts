@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {existsSync} from "fs";
+import {existsSync, unlinkSync} from "fs";
 import {join} from "path";
 
 const TYPES_FILE_PATH = join(__dirname, "ui-types-documentation.json");
@@ -19,28 +19,46 @@ const ensureTypesFileExists = async (): Promise<void> => {
   }
 };
 
+const TYPES_BACKUP_PATH = `${TYPES_FILE_PATH}.bak`;
+
+const restoreTypesBackup = async (): Promise<void> => {
+  if (!existsSync(TYPES_BACKUP_PATH)) {
+    return;
+  }
+  await Bun.write(TYPES_FILE_PATH, await Bun.file(TYPES_BACKUP_PATH).text());
+  unlinkSync(TYPES_BACKUP_PATH);
+};
+
 describe("generate-types", () => {
-  it("should generate the ui-types-documentation.json file", async () => {
-    // First, delete the file if it exists to test generation
-    if (existsSync(TYPES_FILE_PATH)) {
-      await Bun.write(TYPES_FILE_PATH + ".bak", await Bun.file(TYPES_FILE_PATH).text());
-    }
+  it(
+    "should generate the ui-types-documentation.json file",
+    async () => {
+      // First, delete the file if it exists to test generation
+      if (existsSync(TYPES_FILE_PATH)) {
+        await Bun.write(TYPES_BACKUP_PATH, await Bun.file(TYPES_FILE_PATH).text());
+      }
 
-    // Run the generate-types script
-    const proc = Bun.spawn(["bun", "run", "generate-types"], {
-      cwd: __dirname,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+      try {
+        // Run the generate-types script
+        const proc = Bun.spawn(["bun", "run", "generate-types"], {
+          cwd: __dirname,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
 
-    const exitCode = await proc.exited;
+        const exitCode = await proc.exited;
 
-    // Check that the command succeeded
-    expect(exitCode).toBe(0);
+        // Check that the command succeeded
+        expect(exitCode).toBe(0);
 
-    // Check that the file was created
-    expect(existsSync(TYPES_FILE_PATH)).toBe(true);
-  });
+        // Check that the file was created
+        expect(existsSync(TYPES_FILE_PATH)).toBe(true);
+      } finally {
+        await restoreTypesBackup();
+      }
+    },
+    30000
+  );
 
   it("should generate valid JSON", async () => {
     await ensureTypesFileExists();

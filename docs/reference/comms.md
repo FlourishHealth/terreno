@@ -385,3 +385,9 @@ const message = renderTemplate({
   },
 });
 ```
+
+Auth mail helpers `renderAuthMail()` and `DEFAULT_AUTH_MAIL_TEMPLATES` render reset and
+verify links as `${publicAppUrl}/resetPassword?token=...` and
+`${publicAppUrl}/verifyEmail?token=...`. Pass `templates` to override subject/text/html
+per template id (`resetPassword` | `verifyEmail`). Variables: `resetUrl`, `verifyUrl`,
+`publicAppUrl`, `token`.

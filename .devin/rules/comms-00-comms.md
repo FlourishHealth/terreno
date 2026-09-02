@@ -28,6 +28,9 @@ await getCommsService().sendMail({
 });
 ```
 
+Auth mail: `renderAuthMail({publicAppUrl, templateId: "resetPassword" | "verifyEmail", token})`.
+Pass `templates` to override. See `docs/how-to/password-reset.md`.
+
 ## Provider contracts
 
 - `MailProvider.sendMail()` returns one `SendResult`.

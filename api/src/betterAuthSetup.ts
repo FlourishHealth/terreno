@@ -12,9 +12,10 @@ import {bearer} from "better-auth/plugins";
 import type {Application, NextFunction, Request, Response} from "express";
 import type {Db} from "mongodb";
 import mongoose from "mongoose";
-import type {UserModel} from "./auth";
+import {type HasSetPassword, setPasswordForUser, type UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {APIError} from "./errors";
+import type {AuthRecoveryMail} from "./expressServer";
 import {logger} from "./logger";
 import {findOneOrNoneFor} from "./plugins";
 import {updateRequestContextFromRequest} from "./requestContext";
@@ -37,6 +38,103 @@ export interface CreateBetterAuthOptions {
   mongoClient: MongoClientLike;
   userModel?: UserModel;
 }
+
+const FALLBACK_AUTH_MAIL = {
+  resetPassword: {
+    html: '<p><a href="{{resetUrl}}">Reset your password</a></p>',
+    subject: "Reset your password",
+    text: "Reset your password using this link: {{resetUrl}}",
+  },
+  verifyEmail: {
+    html: '<p><a href="{{verifyUrl}}">Verify your email</a></p>',
+    subject: "Verify your email",
+    text: "Verify your email using this link: {{verifyUrl}}",
+  },
+} as const;
+
+const interpolateMail = (value: string, data: Record<string, string>): string =>
+  value.replace(/{{\s*([A-Za-z0-9_]+)\s*}}/g, (_match: string, key: string): string => {
+    return data[key] ?? "";
+  });
+
+const fallbackRenderAuthMail = ({
+  publicAppUrl,
+  templateId,
+  token,
+  templates,
+}: {
+  publicAppUrl: string;
+  templateId: "resetPassword" | "verifyEmail";
+  token: string;
+  templates?: BetterAuthConfig["authMailTemplates"];
+}): {html?: string; subject: string; text?: string} => {
+  const template = templates?.[templateId] ?? FALLBACK_AUTH_MAIL[templateId];
+  const base = publicAppUrl.replace(/\/$/, "");
+  const resetUrl = `${base}/resetPassword?token=${encodeURIComponent(token)}`;
+  const verifyUrl = `${base}/verifyEmail?token=${encodeURIComponent(token)}`;
+  const data = {publicAppUrl: base, resetUrl, token, verifyUrl};
+  return {
+    html: template.html === undefined ? undefined : interpolateMail(template.html, data),
+    subject: interpolateMail(template.subject, data),
+    text: template.text === undefined ? undefined : interpolateMail(template.text, data),
+  };
+};
+
+export const createBetterAuthEmailHooks = (config: BetterAuthConfig) => {
+  if (!config.sendMail) {
+    return undefined;
+  }
+  const sendMail = config.sendMail;
+  const deliver = async (
+    templateId: "resetPassword" | "verifyEmail",
+    user: {email: string},
+    token: string
+  ): Promise<void> => {
+    const publicAppUrl = config.publicAppUrl ?? "";
+    if (!publicAppUrl) {
+      logger.error("[auth] publicAppUrl is required to send Better Auth recovery mail");
+      throw new APIError({
+        status: 501,
+        title: "publicAppUrl is required to send recovery mail",
+      });
+    }
+    const rendered = (config.renderAuthMail ?? fallbackRenderAuthMail)({
+      publicAppUrl,
+      templateId,
+      templates: config.authMailTemplates,
+      token,
+    });
+    const message: AuthRecoveryMail = {
+      html: rendered.html,
+      subject: rendered.subject,
+      text: rendered.text ?? "",
+      to: user.email,
+    };
+    await sendMail(message);
+  };
+  return {
+    sendResetPassword: async ({
+      token,
+      user,
+    }: {
+      token: string;
+      url: string;
+      user: {email: string};
+    }): Promise<void> => {
+      await deliver("resetPassword", user, token);
+    },
+    sendVerificationEmail: async ({
+      token,
+      user,
+    }: {
+      token: string;
+      url: string;
+      user: {email: string};
+    }): Promise<void> => {
+      await deliver("verifyEmail", user, token);
+    },
+  };
+};
 
 /**
  * Creates a Better Auth instance with MongoDB adapter.
@@ -85,6 +183,9 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     };
   }
 
+  const emailHooks = createBetterAuthEmailHooks(config);
+  const userModel = options.userModel;
+
   const auth = betterAuth({
     advanced: config.crossDomainCookies
       ? {
@@ -100,7 +201,27 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     database: mongodbAdapter(mongoClient.db()),
     emailAndPassword: {
       enabled: true,
+      revokeSessionsOnPasswordReset: true,
+      ...(emailHooks ? {sendResetPassword: emailHooks.sendResetPassword} : {}),
+      ...(userModel
+        ? {
+            onPasswordReset: async (
+              {user}: {user: {email?: string; id?: string}},
+              request?: PasswordResetRequestLike
+            ): Promise<void> => {
+              await applyBetterAuthPasswordResetToJwt(userModel, user, request);
+            },
+          }
+        : {}),
     },
+    ...(emailHooks
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            sendVerificationEmail: emailHooks.sendVerificationEmail,
+          },
+        }
+      : {}),
     // The bearer plugin lets clients authenticate with `Authorization: Bearer <sessionToken>`
     // instead of the signed session cookie. Required for cross-origin/native clients and for
     // websocket handshakes (RealtimeApp's Better Auth socket validator forwards the handshake
@@ -122,6 +243,141 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
   // return type to a plugin-specific tuple that no longer matches the plugin-agnostic
   // BetterAuthInstance alias, though the runtime instance is a valid better-auth instance.
   return auth as unknown as BetterAuthInstance;
+};
+
+interface BetterAuthCredentialAccount {
+  providerId?: string;
+}
+
+interface BetterAuthUserLookup {
+  user?: {id?: string};
+}
+
+interface BetterAuthPasswordResetContext {
+  internalAdapter: {
+    createAccount: (account: {
+      accountId: string;
+      password: string;
+      providerId: string;
+      userId: string;
+    }) => Promise<unknown>;
+    deleteUserSessions: (userId: string) => Promise<unknown>;
+    findAccounts: (userId: string) => Promise<BetterAuthCredentialAccount[]>;
+    findUserByEmail: (email: string) => Promise<BetterAuthUserLookup | null>;
+    findUserById: (userId: string) => Promise<{id?: string} | null>;
+    updatePassword: (userId: string, password: string) => Promise<unknown>;
+  };
+  password: {hash: (password: string) => Promise<string>};
+}
+
+/**
+ * After JWT `POST /auth/resetPassword`, update the Better Auth credential hash
+ * (when that user exists) and delete Better Auth sessions so a dual-enrolled
+ * account cannot keep the old password or stolen sessions.
+ */
+export const applyJwtPasswordResetToBetterAuth = async (
+  auth: BetterAuthInstance,
+  user: {betterAuthId?: string; email?: string},
+  password: string
+): Promise<void> => {
+  const ctx = (await auth.$context) as BetterAuthPasswordResetContext;
+  let betterAuthUserId = typeof user.betterAuthId === "string" ? user.betterAuthId : "";
+  if (!betterAuthUserId && typeof user.email === "string" && user.email.length > 0) {
+    const found = await ctx.internalAdapter.findUserByEmail(user.email);
+    betterAuthUserId = found?.user?.id ?? "";
+  }
+  if (!betterAuthUserId) {
+    const byId = user.betterAuthId
+      ? await ctx.internalAdapter.findUserById(user.betterAuthId)
+      : null;
+    betterAuthUserId = byId?.id ?? "";
+  }
+  if (!betterAuthUserId) {
+    return;
+  }
+  const hashedPassword = await ctx.password.hash(password);
+  const accounts = await ctx.internalAdapter.findAccounts(betterAuthUserId);
+  const hasCredential = accounts.some((account) => account.providerId === "credential");
+  if (hasCredential) {
+    await ctx.internalAdapter.updatePassword(betterAuthUserId, hashedPassword);
+  } else {
+    await ctx.internalAdapter.createAccount({
+      accountId: betterAuthUserId,
+      password: hashedPassword,
+      providerId: "credential",
+      userId: betterAuthUserId,
+    });
+  }
+  await ctx.internalAdapter.deleteUserSessions(betterAuthUserId);
+};
+
+interface PasswordResetRequestLike {
+  body?: unknown;
+  clone?: () => {json: () => Promise<unknown>};
+}
+
+const passwordFromUnknown = (value: unknown): string => {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+  const record = value as Record<string, unknown>;
+  const candidate = record.newPassword ?? record.password;
+  if (typeof candidate !== "string") {
+    return "";
+  }
+  return candidate;
+};
+
+export const readPasswordFromBetterAuthResetRequest = async (
+  request: PasswordResetRequestLike | undefined
+): Promise<string> => {
+  if (!request) {
+    return "";
+  }
+  const attached = passwordFromUnknown(request.body);
+  if (attached.length > 0) {
+    return attached;
+  }
+  if (typeof request.clone !== "function") {
+    return "";
+  }
+  try {
+    return passwordFromUnknown(await request.clone().json());
+  } catch {
+    return "";
+  }
+};
+
+/**
+ * After Better Auth password reset, update the JWT/passport hash and bump
+ * `tokenEpoch` so a dual-enrolled account cannot keep the old password or
+ * outstanding refresh tokens.
+ */
+export const applyBetterAuthPasswordResetToJwt = async (
+  userModel: UserModel,
+  betterAuthUser: {email?: string; id?: string},
+  request: PasswordResetRequestLike | undefined
+): Promise<void> => {
+  const betterAuthId = typeof betterAuthUser.id === "string" ? betterAuthUser.id : "";
+  const email = typeof betterAuthUser.email === "string" ? betterAuthUser.email : "";
+  let appUser = betterAuthId ? await findOneOrNoneFor(userModel, {betterAuthId} as never) : null;
+  if (!appUser && email.length > 0) {
+    appUser = await findOneOrNoneFor(userModel, {email} as never);
+  }
+  if (!appUser) {
+    return;
+  }
+  const password = await readPasswordFromBetterAuthResetRequest(request);
+  if (!password) {
+    logger.error("[auth] Better Auth password reset did not include a password to sync to JWT");
+    throw new APIError({
+      status: 500,
+      title: "Password reset could not sync to JWT credentials",
+    });
+  }
+  await setPasswordForUser(appUser as unknown as HasSetPassword, password);
+  appUser.tokenEpoch = (appUser.tokenEpoch ?? 0) + 1;
+  await appUser.save();
 };
 
 /**
