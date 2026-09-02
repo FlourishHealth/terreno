@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.4.0`)
+Plugin: `terreno-planning` (`2.5.0`)
 
 All five skills are explicitly invoked (`disable-model-invocation: true`). Grow, Brew,
 and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -14,7 +14,7 @@ stages; they are not stages and must not appear as `stage` values.
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
-| `terreno-5-taste` | PR + current state | one current-head reaction after review-bot wait, observing every discovered CI host | null or fresh Taste |
+| `terreno-5-taste` | PR + current state | one current-head reaction; before push: pull latest `master`, lint in a no-context subagent, then watch CI | null or fresh Taste |
 
 Outer loops (not stages):
 
@@ -39,17 +39,22 @@ Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and the compact `v: 2` schem
 [`execution-state.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
 Chat and PRs show `status` / `next` / `action`; the YAML lives in a Details toggle.
 
-The outer loop owns state persistence, product-CI waiting, Grow/Brew/Taste invocation,
-retries, and escalation. Pick owns the
+The outer loop owns state persistence, Taste `PENDING` reinvocation, Grow/Brew/Taste
+invocation, retries, and escalation. Pick owns the
 [pick-roast inner loop](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/pick-roast-loop.md):
 one task, roast it, next task. Roast never invokes Pick. Do not start the next task
 until Roast PASS. Exactly one driver continues after each Roast. Brew and Taste wait
 until async review bots (Bugbot, CodeQL, and similar) on the current head have reported,
-preferring provider CLI watch hooks or harness event subscriptions over sleep polling,
-then continue; they do not wait for ordinary product CI. Taste observes product CI on
-every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), not only
-GitHub checks. A documented not-applicable host counts as skipped; an unexplained
-untriggered host prevents Brew `PASS`. Brew still does not execute Taste.
+preferring provider CLI watch hooks or harness event subscriptions over sleep polling.
+Taste then waits in a loop for product CI using GitHub CLI (`gh pr checks --watch`,
+`gh run watch`) or CircleCI CLI (`circleci run watch`) until jobs are terminal or the
+wait times out. Before any push, Taste always pulls latest `master`, then spawns a
+fresh subagent with no parent conversation to run `bun lint` in each affected package
+and the locally affected tests, then pushes and watches product CI.
+Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
+Buildkite, and similar), not only GitHub checks. A documented not-applicable host
+counts as skipped; an unexplained untriggered host prevents Brew `PASS`. Brew still
+does not execute Taste.
 
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
 `Verification` are the only visible PR sections; optional detail is expandable; comments
@@ -73,10 +78,19 @@ Or install the same five stages as a host plugin:
 | Host | Plugin | Stage names | Invoke Grow |
 | --- | --- | --- | --- |
 | Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+| Codex | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `$terreno-1-grow` |
 | Claude Code | `terreno` | `1-grow` … `5-taste` | `/terreno:1-grow` |
 | `npx skills` | — | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
 
-Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Claude Code:
+Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Codex:
+
+```text
+codex plugin marketplace add FlourishHealth/terreno
+codex plugin install terreno-planning --source terreno-plugins
+```
+
+Codex reads [`.agents/plugins/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.agents/plugins/marketplace.json)
+and `.codex-plugin/plugin.json` on the canonical plugin. Claude Code:
 
 ```text
 /plugin marketplace add FlourishHealth/terreno

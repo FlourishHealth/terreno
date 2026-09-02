@@ -21,6 +21,11 @@ registerSimpleMongoPreload({
     process.env.BETTER_AUTH_SECRET = "terreno-example-test-better-auth-secret-32";
     process.env.BETTER_AUTH_URL = "http://localhost:4000";
     process.env.COMMS_ENABLED = "true";
+    Reflect.deleteProperty(process.env, "TWILIO_ACCOUNT_SID");
+    Reflect.deleteProperty(process.env, "TWILIO_AUTH_TOKEN");
+    Reflect.deleteProperty(process.env, "TWILIO_FROM_NUMBER");
+    Reflect.deleteProperty(process.env, "TWILIO_MESSAGING_SERVICE_SID");
+    Reflect.deleteProperty(process.env, "TWILIO_VERIFY_SERVICE_SID");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
   },

@@ -1,0 +1,22 @@
+{
+  "name": "terreno-planning",
+  "version": "2.5.0",
+  "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, Taste waits for review bots and product CI with gh/circleci. Before push: pull latest master, bun lint in a no-context subagent, then watch. Outer loops: planning-loop and taste-sweep.",
+  "author": {
+    "name": "Terreno",
+    "email": "terreno@flourish.health",
+    "url": "https://github.com/FlourishHealth/terreno"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
+  "repository": "https://github.com/FlourishHealth/terreno",
+  "license": "MIT",
+  "keywords": ["terreno", "planning", "sdlc", "implementation", "review", "tdd"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Terreno Planning",
+    "shortDescription": "Grow, Pick, Roast, Brew, and Taste lifecycle stages",
+    "developerName": "Terreno",
+    "category": "Development & Workflow",
+    "websiteURL": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md"
+  }
+}

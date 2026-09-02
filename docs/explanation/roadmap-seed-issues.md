@@ -390,7 +390,7 @@ catalog.
 **Title:** `Comms adapter — Twilio Verify (OTP)`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-verify`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-verify`, Status=`Shipped`
 
 Implements the `@terreno/comms` verification provider on Twilio Verify for SMS and email
 one-time codes. This is the delivery channel for phone verification and for the future MFA

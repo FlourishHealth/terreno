@@ -276,10 +276,12 @@ Better Auth automatically:
 User model fields for Better Auth:
 ```typescript
 {
-  betterAuthId: {type: String, index: true},  // Better Auth user ID
-  oauthProvider: {type: String},               // OAuth provider name
+  betterAuthId: {type: String, index: true},  // Required — Better Auth user ID
+  oauthProvider: {type: String},               // Only when using social OAuth
 }
 ```
+
+`syncBetterAuthUser` writes `oauthProvider` only when a provider string is passed. Email/password create omits the key so `strict: "throw"` schemas without the field succeed.
 
 ### Environment Variables
 

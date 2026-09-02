@@ -132,16 +132,14 @@ export interface BuildListQueryResult {
  * Anything else is rejected rather than silently dropped so the calling LLM can correct
  * itself instead of receiving results for a query it did not ask for.
  */
-export const buildListQuery = ({
+export const buildListQuery = <T>({
   args,
   config,
   options,
 }: {
   args: MCPToolArgs;
   config: MCPConfig;
-  // noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  options: ModelRouterOptions<any>;
+  options: ModelRouterOptions<T>;
 }): BuildListQueryResult => {
   const query: Record<string, unknown> = {...(options.defaultQueryParams ?? {})};
   const excludeFields = config.excludeFields ?? [];

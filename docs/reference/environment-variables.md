@@ -137,6 +137,11 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
+| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_MESSAGING_SERVICE_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_FROM_NUMBER` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_VERIFY_SERVICE_SID` | `@terreno/comms/adapters/twilioVerify` | ❌ | — | No | server |
 | `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
@@ -145,10 +150,23 @@ When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvi
 console mail provider; production leaves mail unconfigured until a provider is wired.
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
 Sender identity must be verified in SendGrid before real delivery works.
+When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
+`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`, the example backend registers
+`TwilioSmsProvider` (optional peer `twilio`). A sender var without those credentials
+throws at startup. Shared account credentials without a sender do not enable SMS — they
+can still enable Verify when `TWILIO_VERIFY_SERVICE_SID` is set. Without an SMS sender,
+non-production keeps the console SMS provider; production omits SMS until a sender is wired.
+When `TWILIO_VERIFY_SERVICE_SID` is set with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`,
+the example backend registers `TwilioVerifyProvider`. A verify service SID without those
+credentials throws at startup. Without `TWILIO_VERIFY_SERVICE_SID`, non-production keeps
+the console verification provider; production omits verification until a provider is wired.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
-token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+token, Expo still accepts sends at a lower rate limit. The example backend also
+depends on `twilio` and injects a statically imported client into
+`TwilioSmsProvider` / `TwilioVerifyProvider` when those env vars are complete,
+so the compiled binary includes the SDK. Non-production also mounts `POST /comms/dev/testPush`
 for authenticated test sends.
 
 ## Observability

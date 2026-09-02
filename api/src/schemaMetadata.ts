@@ -314,10 +314,8 @@ const applyWriteMasks = (
   );
 };
 
-export const describeModel = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const describeModel = <T>(
+  model: Model<T>,
   options: DescribeModelOptions = {}
 ): ModelDescription => {
   const fields: Record<string, FieldDescription> = {};
@@ -341,10 +339,8 @@ export const describeModel = (
   };
 };
 
-export const describeModelForRouter = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const describeModelForRouter = <T>(
+  model: Model<T>,
   options: DescribeModelForRouterOptions = {}
 ): ModelDescription => {
   const description = describeModel(model, options);

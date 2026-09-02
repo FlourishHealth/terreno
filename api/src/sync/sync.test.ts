@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {model, Schema} from "mongoose";
 import {type ModelRouterOptions, modelRouter} from "../api";
@@ -73,32 +71,32 @@ unregisteredSchema.plugin(syncPlugin);
 const UnregisteredModel = model<SyncStuff>("SyncUnregistered", unregisteredSchema);
 
 // Missing isDeletedPlugin — registration must throw.
-const noDeleteSchema = new Schema({
+const noDeleteSchema = new Schema<SyncStuff>({
   name: {description: "The name of the item", type: String},
   ownerId: {description: "The user who owns this item", type: String},
 });
 noDeleteSchema.plugin(syncPlugin);
-const NoDeleteModel = model("SyncNoDelete", noDeleteSchema);
+const NoDeleteModel = model<SyncStuff>("SyncNoDelete", noDeleteSchema);
 
 // Missing syncPlugin — registration must throw.
-const noPluginSchema = new Schema({
+const noPluginSchema = new Schema<SyncStuff>({
   name: {description: "The name of the item", type: String},
   ownerId: {description: "The user who owns this item", type: String},
 });
 noPluginSchema.plugin(isDeletedPlugin);
-const NoPluginModel = model("SyncNoPlugin", noPluginSchema);
+const NoPluginModel = model<SyncStuff>("SyncNoPlugin", noPluginSchema);
 
-const stubOptions = {
+const stubOptions = <T>(): ModelRouterOptions<T> => ({
   permissions: {create: [], delete: [], list: [], read: [], update: []},
-} as unknown as ModelRouterOptions<any>;
+});
 
 const ownerConfig: SyncConfig = {scope: {type: "owner"}};
 
 const registerStuff = (config: SyncConfig = ownerConfig): void => {
   registerSync({
     config,
-    model: SyncStuffModel as any,
-    options: stubOptions,
+    model: SyncStuffModel,
+    options: stubOptions<SyncStuff>(),
     routePath: "/syncStuff",
   });
 };
@@ -205,8 +203,8 @@ describe("registerSync validation", () => {
     expect(() =>
       registerSync({
         config: ownerConfig,
-        model: NoDeleteModel as any,
-        options: stubOptions,
+        model: NoDeleteModel,
+        options: stubOptions<SyncStuff>(),
         routePath: "/noDelete",
       })
     ).toThrow(/soft delete/);
@@ -216,8 +214,8 @@ describe("registerSync validation", () => {
     expect(() =>
       registerSync({
         config: ownerConfig,
-        model: NoPluginModel as any,
-        options: stubOptions,
+        model: NoPluginModel,
+        options: stubOptions<SyncStuff>(),
         routePath: "/noPlugin",
       })
     ).toThrow(/syncPlugin/);
@@ -227,8 +225,8 @@ describe("registerSync validation", () => {
     expect(() =>
       registerSync({
         config: {scope: {field: "workspaceId", type: "tenant"}},
-        model: SyncStuffModel as any,
-        options: stubOptions,
+        model: SyncStuffModel,
+        options: stubOptions<SyncStuff>(),
         routePath: "/syncStuff",
       })
     ).toThrow(/workspaceId/);
@@ -248,7 +246,9 @@ describe("registerSync validation", () => {
 
   it("updateSyncRegistryOptions replaces options on an existing entry", () => {
     registerStuff();
-    const updatedOptions = {permissions: {list: []}} as ModelRouterOptions<unknown>;
+    const updatedOptions = {
+      permissions: {list: []},
+    } as unknown as ModelRouterOptions<unknown>;
     updateSyncRegistryOptions("/syncStuff", updatedOptions);
     expect(getSyncRegistry()[0]?.options).toBe(updatedOptions);
   });
@@ -256,14 +256,16 @@ describe("registerSync validation", () => {
   it("updateSyncRegistryOptions no-ops when the route path is not registered", () => {
     registerStuff();
     const originalOptions = getSyncRegistry()[0]?.options;
-    updateSyncRegistryOptions("/missing", {permissions: {}} as ModelRouterOptions<unknown>);
+    updateSyncRegistryOptions("/missing", {
+      permissions: {},
+    } as unknown as ModelRouterOptions<unknown>);
     expect(getSyncRegistry()[0]?.options).toBe(originalOptions);
   });
 
   it("makes bulkWrite throw on the registered model (it bypasses every plugin guard)", () => {
     registerStuff();
     expect(() =>
-      (SyncStuffModel as any).bulkWrite([
+      SyncStuffModel.bulkWrite([
         {updateOne: {filter: {_id: "any"}, update: {$set: {name: "nope"}}}},
       ])
     ).toThrow(/bulkWrite is not supported on sync-enabled model SyncStuff/);
@@ -299,8 +301,8 @@ describe("modelRouter sync option", () => {
   });
 
   it("registers the model for sync in the three-argument form", () => {
-    const registration = modelRouter("/syncStuff", SyncStuffModel as any, {
-      ...stubOptions,
+    const registration = modelRouter("/syncStuff", SyncStuffModel, {
+      ...stubOptions<SyncStuff>(),
       sync: ownerConfig,
     });
     expect((registration as {__type: string}).__type).toBe("modelRouter");
@@ -308,7 +310,7 @@ describe("modelRouter sync option", () => {
   });
 
   it("does not register in the two-argument form", () => {
-    modelRouter(SyncStuffModel as any, {...stubOptions, sync: ownerConfig});
+    modelRouter(SyncStuffModel, {...stubOptions<SyncStuff>(), sync: ownerConfig});
     expect(findSyncEntryByCollectionTag("syncStuff")).toBeUndefined();
   });
 
@@ -398,7 +400,7 @@ describe("syncPlugin seq stamping", () => {
   });
 
   it("does not consume a seq when validation fails", async () => {
-    await expect(SyncStuffModel.create({ownerId: "u1"} as any)).rejects.toThrow();
+    await expect(SyncStuffModel.create({ownerId: "u1"} as unknown as SyncStuff)).rejects.toThrow();
     const doc = await SyncStuffModel.create({name: "valid", ownerId: "u1"});
     expect(doc._syncSeq).toBe(1);
   });

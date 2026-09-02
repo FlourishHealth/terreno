@@ -1,11 +1,12 @@
 import {type ConsentHistoryEntry, generateConsentHistoryPdf} from "@terreno/admin-frontend";
 import {Box, Button, Card, Heading, Page, Text} from "@terreno/ui";
+import {DateTime} from "luxon";
 import {useCallback, useState} from "react";
 
 const SAMPLE_ENTRY: ConsentHistoryEntry = {
   _id: "sample-pdf-test-001",
   agreed: true,
-  agreedAt: new Date().toISOString(),
+  agreedAt: DateTime.now().toISO() ?? "",
   checkboxValues: {"0": true, "1": false},
   contentSnapshot:
     "By agreeing to this form, you consent to the collection and processing of your data as described in our Privacy Policy. This includes the use of cookies and similar technologies for analytics and personalization purposes.",
@@ -23,7 +24,7 @@ const SAMPLE_ENTRY: ConsentHistoryEntry = {
   formVersionSnapshot: 1,
   ipAddress: "192.168.1.1",
   locale: "en-US",
-  signedAt: new Date().toISOString(),
+  signedAt: DateTime.now().toISO() ?? "",
   userAgent: "Mozilla/5.0 (Example Browser)",
 };
 

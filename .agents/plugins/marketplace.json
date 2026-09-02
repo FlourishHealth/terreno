@@ -1,0 +1,21 @@
+{
+  "name": "terreno-plugins",
+  "interface": {
+    "displayName": "Terreno"
+  },
+  "plugins": [
+    {
+      "name": "terreno-planning",
+      "source": {
+        "source": "local",
+        "path": "./plugins/terreno-planning"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Five bounded transitions plus outer loops; before push Taste pulls latest master, lints in a no-context subagent, then watches product CI with gh/circleci."
+    }
+  ]
+}

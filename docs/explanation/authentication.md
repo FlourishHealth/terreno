@@ -35,7 +35,10 @@ Modern session-based authentication with built-in social OAuth support.
 3. Backend redirects to OAuth provider or validates credentials
 4. Better Auth creates session in MongoDB
 5. Frontend receives session cookie (web) or bearer session token (native)
-6. Session middleware populates `req.user` for subsequent requests
+6. On the first authenticated request, session middleware looks up the app `User` by `betterAuthId` and creates it if missing (`syncBetterAuthUser`)
+7. `req.user` is that app document for subsequent `modelRouter` permissions
+
+Email/password create omits `oauthProvider`. Apps that never use social login can keep `strict: "throw"` without declaring that field. OAuth create sets `oauthProvider` and the User schema must declare it.
 
 **Key properties:**
 - Session-based (cookies / bearer session) vs. stateless JWT

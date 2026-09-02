@@ -1,8 +1,9 @@
 # Async review bots
 
 Brew and Taste **wait in-process** until async review bots on the current head have
-reported, then continue the stage so they can react. Product test CI is not this wait:
-if only lint/unit/e2e jobs remain, Taste still emits `PENDING` and the outer loop waits.
+reported, then continue the stage so they can react. Product test CI is a separate
+Taste wait: follow [`product-ci.md`](product-ci.md) after this procedure, using GitHub
+CLI or CircleCI CLI in a watch loop until jobs are terminal or that wait times out.
 
 ## What counts
 
@@ -60,7 +61,9 @@ primitive and record why no hook applied. Do not busy-spin.
 ## Bounds
 
 - This wait is only for review bots, never "until all CI is green."
-- After Taste pushes a fix, wait again for review bots on the new head, then act on
-  those results **once** in this invocation. A further push after that second act emits
-  `PENDING` (`next: taste`); the outer loop owns later cycles.
-- Unbounded watching of product CI on every discovered host remains outer-loop work.
+- After Taste pushes a fix, wait again for review bots on the new head, then run the
+  product-CI wait loop, then act on those results **once** in this invocation. A further
+  push after that second act emits `PENDING` (`next: taste`); the outer loop owns later
+  cycles.
+- Product CI uses Taste's bounded watch loop (`gh` / `circleci`), not this review-bot
+  procedure. Unfiltered `gh pr checks --watch` belongs there, not here.

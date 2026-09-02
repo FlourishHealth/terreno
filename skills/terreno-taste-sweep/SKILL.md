@@ -89,7 +89,8 @@ invokes Taste, waits, and reports.
    - Work exclusively inside `<worktree-path>` on `<headRefName>` (base `<baseRefName>`).
    - Qualifying reason is conflict / failing-ci / both.
    - **Loop:** invoke `terreno-5-taste` against this PR until `PASS` or `BLOCKED`.
-     Taste is not itself a loop.
+     Taste is one reactive iteration; it may wait in-process for review bots and
+     product CI, but this sweep owns reinvocation.
    - **PASS** → stop (success).
    - **BLOCKED** → stop; record the exact `block` reason and required action.
    - **PENDING** → for at most `wait` seconds if present (otherwise 120), prefer the

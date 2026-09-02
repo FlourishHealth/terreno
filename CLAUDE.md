@@ -38,12 +38,14 @@ The reusable planning plugin uses five bounded transitions:
 **Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
 **Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
-product-CI waiting, retry, stop, and escalation.
-Brew and Taste also wait until review bots such as Bugbot or CodeQL finish so they can
-react in the same invocation, preferring provider CLI watch hooks or harness event
-subscriptions over sleep polling. Taste observes product CI on every discovered host
-(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. See
-`plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+retry, stop, and escalation. Taste waits in-process for review bots and for product
+CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
+then spawns a no-context subagent to run `bun lint` in affected packages and locally
+affected tests, then pushes and watches CI. Brew also waits until
+review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
+Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
+Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
+`docs/reference/lifecycle-plugin.md`.
 
 Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
 project commands and domain conventions belong there, not in the portable plugin.
@@ -56,9 +58,11 @@ same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
 `bun run skills:sync`. The same five stages install as the Cursor plugin
-`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`), or
-as the Claude Code plugin `terreno` via `/plugin marketplace add FlourishHealth/terreno`
-then `/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
+`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
+as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
+(invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
+`/plugin marketplace add FlourishHealth/terreno` then
+`/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
 `plugins/terreno-claude/` is generated; never hand-edit it.
 
 ## Development

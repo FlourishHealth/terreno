@@ -24,6 +24,7 @@ import {baseUrl} from "@terreno/rtk";
 import type {SyncStatus} from "@terreno/syncdb";
 import {SyncDbProvider, useSyncDbClient} from "@terreno/syncdb/react";
 import {Badge, BooleanField, Box, Button, Card, Heading, NumberField, Text} from "@terreno/ui";
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
@@ -142,7 +143,7 @@ const SyncLabContent: React.FC = () => {
       const status = client.getSyncStatus();
       const localCount = client.store.listEntities({collection: SYNC_LAB_COLLECTION}).length;
       const stats = client.debug?.getStats();
-      const nowMs = Date.now();
+      const nowMs = DateTime.now().toMillis();
 
       let deltaRate = 0;
       let mutateRate = 0;

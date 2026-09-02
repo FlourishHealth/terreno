@@ -278,8 +278,35 @@ export const validateStageContent = ({
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
-    if (!content.includes("If step 8 did not push")) {
+    if (!content.includes("If step 9 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
+    }
+    if (!content.includes("latest `master`")) {
+      errors.push(`${prefix}: Taste must pull latest master before lint and push`);
+    }
+    if (!content.includes("Before any push, in this order")) {
+      errors.push(`${prefix}: Taste must order before-push as pull, then lint, then watch`);
+    }
+    if (!content.includes("fresh subagent")) {
+      errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
+    }
+    if (!content.includes("no parent conversation")) {
+      errors.push(`${prefix}: Taste's lint/test subagent must have no parent conversation`);
+    }
+    if (!content.includes("bun lint")) {
+      errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    }
+    if (!content.includes("locally affected tests")) {
+      errors.push(`${prefix}: Taste must run locally affected tests before push`);
+    }
+    if (!content.includes("gh pr checks <pr> --watch")) {
+      errors.push(`${prefix}: Taste must wait for GitHub product CI with gh pr checks --watch`);
+    }
+    if (!content.includes("circleci run watch --sha <sha>")) {
+      errors.push(`${prefix}: Taste must wait for CircleCI with circleci run watch`);
+    }
+    if (!content.includes("watch → snapshot cycle in a loop")) {
+      errors.push(`${prefix}: Taste must wait for product CI in a watch loop`);
     }
     for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
@@ -358,8 +385,8 @@ export const validateProductCiContract = (content: string): string[] => {
       errors.push(`product-CI procedure is missing non-blocking stage query: ${nonBlockingQuery}`);
     }
   }
-  if (!content.includes("These hooks belong to outer loops only")) {
-    errors.push("product-CI procedure must reserve blocking watch hooks for outer loops");
+  if (!content.includes("Taste waits in-process with these blocking watch hooks")) {
+    errors.push("product-CI procedure must wait in-process in Taste with blocking watch hooks");
   }
   if (!content.includes("Never emit Brew `PASS`")) {
     errors.push("product-CI procedure must reject unexplained untriggered hosts");
@@ -522,6 +549,73 @@ export const validateClaudePluginHost = ({
   return errors;
 };
 
+/**
+ * Codex installs the canonical plugin: `.codex-plugin/plugin.json` plus a repo
+ * marketplace at `.agents/plugins/marketplace.json`. Stage names stay
+ * `terreno-<n>-<stage>` (`$terreno-1-grow`).
+ */
+export const validateCodexPluginHost = ({
+  rootDirectory,
+}: ValidateLifecyclePluginOptions): string[] => {
+  const errors: string[] = [];
+  const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
+  const cursorManifest = JSON.parse(
+    readFileSync(join(pluginDirectory, ".cursor-plugin/plugin.json"), "utf8")
+  ) as {description?: string; name?: string; version?: string};
+  const codexManifest = JSON.parse(
+    readFileSync(join(pluginDirectory, ".codex-plugin/plugin.json"), "utf8")
+  ) as {description?: string; name?: string; skills?: string; version?: string};
+  const codexMarketplace = JSON.parse(
+    readFileSync(join(rootDirectory, ".agents/plugins/marketplace.json"), "utf8")
+  ) as {
+    name?: string;
+    plugins?: Array<{
+      category?: string;
+      name?: string;
+      policy?: {authentication?: string; installation?: string};
+      source?: {path?: string; source?: string};
+    }>;
+  };
+
+  if (codexManifest.name !== "terreno-planning") {
+    errors.push("Codex plugin name must be terreno-planning");
+  }
+  if (codexManifest.version !== cursorManifest.version) {
+    errors.push("Codex and Cursor plugin versions must match");
+  }
+  if (codexManifest.description !== cursorManifest.description) {
+    errors.push("Codex and Cursor plugin descriptions must match");
+  }
+  if (codexManifest.skills !== "./skills/") {
+    errors.push("Codex plugin skills path must be ./skills/");
+  }
+  if (codexMarketplace.name !== "terreno-plugins") {
+    errors.push("Codex marketplace name must be terreno-plugins");
+  }
+
+  const [codexEntry] = codexMarketplace.plugins ?? [];
+  if (codexEntry?.name !== "terreno-planning") {
+    errors.push("Codex marketplace must publish the plugin as terreno-planning");
+  }
+  if (codexEntry?.source?.source !== "local") {
+    errors.push("Codex marketplace source.source must be local");
+  }
+  if (codexEntry?.source?.path !== "./plugins/terreno-planning") {
+    errors.push("Codex marketplace source.path must be ./plugins/terreno-planning");
+  }
+  if (codexEntry?.policy?.installation !== "AVAILABLE") {
+    errors.push("Codex marketplace policy.installation must be AVAILABLE");
+  }
+  if (codexEntry?.policy?.authentication !== "ON_INSTALL") {
+    errors.push("Codex marketplace policy.authentication must be ON_INSTALL");
+  }
+  if (codexEntry?.category !== "Development & Workflow") {
+    errors.push("Codex marketplace category must be Development & Workflow");
+  }
+
+  return errors;
+};
+
 export const validateLifecyclePlugin = ({
   rootDirectory,
 }: ValidateLifecyclePluginOptions): string[] => {
@@ -613,6 +707,15 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes("/plugin install terreno@terreno-plugins")) {
     errors.push("plugins/README.md must document Claude Code install as terreno@terreno-plugins");
   }
+  if (!pluginReadme.includes(".agents/plugins/marketplace.json")) {
+    errors.push("plugins/README.md must document the Codex marketplace");
+  }
+  if (!pluginReadme.includes("codex plugin marketplace add FlourishHealth/terreno")) {
+    errors.push("plugins/README.md must document Codex marketplace install");
+  }
+  if (!pluginReadme.includes("codex plugin install terreno-planning --source terreno-plugins")) {
+    errors.push("plugins/README.md must document Codex install as terreno-planning");
+  }
 
   const pullRequestTemplate = readFileSync(
     join(rootDirectory, ".github/PULL_REQUEST_TEMPLATE.md"),
@@ -631,12 +734,15 @@ export const validateLifecyclePlugin = ({
 
   const pluginFiles = [
     join(pluginDirectory, ".cursor-plugin/plugin.json"),
+    join(pluginDirectory, ".codex-plugin/plugin.json"),
     join(rootDirectory, ".cursor-plugin/marketplace.json"),
+    join(rootDirectory, ".agents/plugins/marketplace.json"),
     join(rootDirectory, "CONTRIBUTING.md"),
   ];
   const canonicalText = pluginFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 
   errors.push(...validateClaudePluginHost({rootDirectory}));
+  errors.push(...validateCodexPluginHost({rootDirectory}));
 
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (canonicalText.includes(retiredIdentifier)) {

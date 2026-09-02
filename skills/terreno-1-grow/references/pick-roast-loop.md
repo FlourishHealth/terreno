@@ -1,9 +1,10 @@
 # Pick–Roast inner loop
 
 Pick and Roast run as one automated inner loop until the approved task list is done.
-The outer loop still owns Grow, Brew, Taste, persistence, product-CI waiting, and
-escalation. It does not wait between Pick and Roast, and it does not wait for a human to
-reinvoke the next frontier task.
+The outer loop still owns Grow, Brew, Taste, persistence, Taste `PENDING` reinvocation,
+and escalation. Taste waits in-process for product CI on the current head. The outer
+loop does not wait between Pick and Roast, and it does not wait for a human to reinvoke
+the next frontier task.
 
 ```text
 Grow PASS

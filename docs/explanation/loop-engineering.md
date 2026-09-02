@@ -43,11 +43,14 @@ returns. Each Roast cycle still reconstructs from artifacts and prefers a fresh 
 That is how the inner loop stays automated without turning Roast into a self-review or
 a second driver.
 
-The outer loop decides **when, who, what next, when to retry, when to wait on product
-CI, and when to escalate**. Stages decide how to perform one transition correctly. Pick
-continues the inner loop until the approved task list is done. Roast never invokes Pick.
-Brew and Taste additionally wait while async review bots are running, preferring
-provider CLI watch hooks or harness event subscriptions over timer polling.
+The outer loop decides **when, who, what next, when to retry Taste `PENDING`, and when
+to escalate**. Stages decide how to perform one transition correctly. Pick continues
+the inner loop until the approved task list is done. Roast never invokes Pick. Brew and
+Taste additionally wait while async review bots are running, preferring provider CLI
+watch hooks or harness event subscriptions over timer polling. Taste also waits in a
+loop for product CI with `gh` or `circleci` until jobs are terminal or the wait times
+out. Before any push it always pulls latest `master`, then lints in a no-context
+subagent, then pushes and watches CI.
 
 Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
 (Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
@@ -65,16 +68,19 @@ Taste. Neither is a sixth stage.
 | Taste | What is actionable on the current PR head now? | CI on every discovered host, mergeability, reviews, bounded fixes |
 
 Roast is not another implementation review. It independently proves or disproves
-acceptance criteria. Taste is not a resident watcher of product CI. It waits until async
-review bots (Bugbot, CodeQL, and similar) on the current head have reported, preferring
-targeted hooks such as `gh run watch <run-id>`, then observes jobs on every discovered CI
-host (GitHub Actions, CircleCI, Buildkite, and similar), acts, emits `PASS`, `FAIL`,
-`BLOCKED`, or `PENDING`, and exits.
+acceptance criteria. Taste is one reactive iteration, not an unbounded fix-until-green
+daemon. It waits until async review bots (Bugbot, CodeQL, and similar) on the current
+head have reported, then waits in a loop for product CI using GitHub CLI
+(`gh pr checks --watch`, `gh run watch`) or CircleCI CLI (`circleci run watch`) until
+jobs are terminal or the wait times out. Before any push it always pulls latest
+`master`, then proves `bun lint` and affected tests in a fresh subagent with no parent
+conversation, then pushes and watches CI. It emits `PASS`, `FAIL`, `BLOCKED`, or
+`PENDING`, and exits.
 
-An outer loop may watch all product checks. Brew/Taste review-bot waits use only hooks
-targeted to the matched bot so ordinary CI cannot extend the in-stage wait. A host with
-a documented path/config reason not to run is terminal `skipped`; an unexplained missing
-run is never green.
+Brew review-bot waits use only hooks targeted to the matched bot so ordinary CI cannot
+extend Brew. Taste's product-CI wait uses unfiltered GitHub/CircleCI watches on purpose.
+A host with a documented path/config reason not to run is terminal `skipped`; an
+unexplained missing run is never green.
 
 ## Portable plugin, local knowledge
 
@@ -128,12 +134,12 @@ contain chain-of-thought or transcripts.
   driver continues after each Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
-- Taste `PENDING` lets the outer loop wait on remaining product CI (any discovered host)
-  or a review-bot timeout, then invoke fresh Taste against current state. The loop uses
-  native provider watch hooks or harness subscriptions where available and a timer only
-  as fallback.
-- Brew and Taste wait in-process while Bugbot, CodeQL, or similar review bots are
-  running, preferring native hooks, then continue without a loop reinvocation.
+- Taste `PENDING` is for review-bot timeout, product-CI wait timeout, or a second
+  post-fix push. The outer loop then uses native provider watch hooks or harness
+  subscriptions where available and a timer only as fallback, then invokes fresh Taste.
+- Brew waits in-process while Bugbot, CodeQL, or similar review bots are running.
+  Taste waits in-process for those bots and for product CI (`gh` / `circleci` watch
+  loop), then continues without a loop reinvocation unless it timed out.
 - Human decisions are `BLOCKED`, never arbitrary retries.
 - Taste `PASS` requires all current-head jobs on every discovered CI host
   terminal/non-failing, no conflicts, and no actionable review findings.

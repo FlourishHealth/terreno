@@ -156,6 +156,7 @@ workflows:
             plugins/.* run-repo-policies true
             .cursor-plugin/.* run-repo-policies true
             \.claude-plugin/.* run-repo-policies true
+            \.agents/plugins/.* run-repo-policies true
             .rulesync/skills/.* run-repo-policies true
             skills/.* run-repo-policies true
             skills\.sh\.json run-repo-policies true

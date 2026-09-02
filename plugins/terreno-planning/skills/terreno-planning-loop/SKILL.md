@@ -126,7 +126,8 @@ to review on the current PR; it does not walk the task list.
 If Taste emits `FAIL` or `PASS`, stop. If Taste emits `PENDING`, honor
 `wait` / `next`. During that bound, prefer the product-CI provider's native watch hook
 or a harness event subscription; use a timer only when no hook applies. Invoke fresh
-Taste as soon as the hook returns.
+Taste as soon as the hook returns. Taste already waited in-process for CI on the
+previous invocation; `PENDING` means that wait timed out or a second push landed.
 
 ## Isolation and hosts
 

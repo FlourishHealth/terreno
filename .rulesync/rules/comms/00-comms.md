@@ -63,6 +63,37 @@ new CommsApp({
 Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
 fast when the key is missing. Errors return classified `SendResult` values and never throw.
 
+### Twilio SMS (`@terreno/comms/adapters/twilioSms`)
+
+```typescript
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+new CommsApp({
+  sms: new TwilioSmsProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and a sender
+(`TWILIO_MESSAGING_SERVICE_SID` preferred, else `TWILIO_FROM_NUMBER`). Invalid destinations
+return `errorClass: permanent` (`errorCode: twilio-invalid-destination`) before the API.
+Send failures return classified `SendResult` values and never throw. Apps that
+`bun build --compile` must inject a Twilio client (static `import twilio from "twilio"`).
+
+### Twilio Verify (`@terreno/comms/adapters/twilioVerify`)
+
+```typescript
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new CommsApp({
+  verification: new TwilioVerifyProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and
+`TWILIO_VERIFY_SERVICE_SID`. Constructor fails fast when any of those is missing. Check
+results map `approved` to `valid: true`; `pending` / `expired` / `max-attempts` stay invalid.
+Verification rows never store OTP codes and are not retryable.
+
 ### Expo push (`@terreno/comms/adapters/expoPush`)
 
 ```typescript
