@@ -1,7 +1,6 @@
 ---
 name: terreno-3-roast
 description: Independently prove or disprove the current task against its IP criteria, then return. Do not pick or start the next task. Pick owns the inner loop. Use after Pick, preferably in a fresh context; not for fixing implementation code.
-disable-model-invocation: true
 ---
 
 # Roast — prove

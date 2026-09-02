@@ -1,7 +1,6 @@
 ---
 name: terreno-planning-loop
 description: Drive the planning plugin from the current task list, optionally restricting which stages run (Grow, Pick, Roast, Brew, Taste). Not a sixth stage — an outer loop that invokes existing stage skills. Use when asked to run the planning loop, walk the task list, or restrict work to selected phases.
-disable-model-invocation: true
 ---
 
 # Planning loop (outer driver)
