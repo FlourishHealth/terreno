@@ -30,7 +30,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: 1.1, 1.2
   - Acceptance: config YAML lists both jobs; `bun run admin-frontend:test` and `bun run admin-backend:test` work from repo root
 
-- [ ] **Task 1.4**: Shard existing admin Playwright specs into CI
+- [x] **Task 1.4**: Shard existing admin Playwright specs into CI
   - Delivers: `example-frontend/e2e/admin-home.spec.ts`, `admin-form.spec.ts`, `admin-table-search-filter.spec.ts`, `admin-table-bulk-actions.spec.ts`, `admin-custom-screens.spec.ts`, `admin-comms-back.spec.ts` (and siblings that exist) run in the CircleCI Playwright matrix, not only `admin.spec.ts`
   - Files: `.circleci/continue-config.yml`, any e2e project config
   - Blocked by: none

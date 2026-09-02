@@ -157,7 +157,7 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Run admin script CLI | `example-backend-script-runner` |
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
-| E2E · `<spec>` | `e2e` (matrix `spec`) |
+| E2E · `<spec>` | `e2e` (matrix `spec`, including `admin` plus `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, `admin-comms-back`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
 | _(new)_ CircleCI path-filter parity | `circleci-parity` |
