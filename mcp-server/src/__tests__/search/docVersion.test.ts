@@ -2,7 +2,13 @@ import {describe, expect, test} from "bun:test";
 import {mkdirSync, rmSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
 
-import {listRetainedDocVersions, resolveDocVersion} from "../../search/docVersion.js";
+import {
+  generatorSlugifyComponentName,
+  listRetainedDocVersions,
+  resolveDocVersion,
+  slugifyComponentName,
+  snapshotComponentFileBases,
+} from "../../search/docVersion.js";
 
 describe("resolveDocVersion", () => {
   test("omitted or blank version resolves to next", () => {
@@ -61,6 +67,18 @@ describe("resolveDocVersion", () => {
     });
     expect(tilde.version).toBe("0.19.0");
     expect(tilde.note).toContain("0.19.1");
+  });
+});
+
+describe("snapshotComponentFileBases", () => {
+  test("includes hyphenated camelCase and concatenated generator slugs", () => {
+    expect(slugifyComponentName("UserInactivity")).toBe("user-inactivity");
+    expect(generatorSlugifyComponentName("UserInactivity")).toBe("userinactivity");
+    expect(snapshotComponentFileBases("UserInactivity")).toEqual([
+      "user-inactivity",
+      "userinactivity",
+    ]);
+    expect(snapshotComponentFileBases("Text field")).toEqual(["text-field"]);
   });
 });
 

@@ -267,6 +267,18 @@ describe("docIndex", () => {
     expect(out).not.toContain("No snapshot page");
   });
 
+  test("getComponentDocsMarkdown matches concatenated generator slugs", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "userinactivity.mdx"),
+      ["# UserInactivity", "", "snapshotUserInactivityToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("UserInactivity", "0.19.0");
+    expect(out).toContain("snapshotUserInactivityToken");
+    expect(out).not.toContain("No snapshot page");
+  });
+
   test("related excerpts keep the requested version when older copies score higher", () => {
     const typeDoc = {
       children: [
