@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use UNSAFE_root traversal and mock.calls access for assertions
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {LocaleContentEditor} from "./LocaleContentEditor";
 
 const press = async (el: ReactTestInstance): Promise<void> => {

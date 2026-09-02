@@ -21,6 +21,12 @@ parameters:
   run-ui:
     type: boolean
     default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
   run-ui-demo:
     type: boolean
     default: false
@@ -532,6 +538,44 @@ jobs:
             bun run compile
             bun run types
             bun run test:ci
+
+  admin-backend-ci:
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test admin-backend
+          working_directory: ~/project/admin-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  admin-frontend-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: ui
+      - run:
+          name: Lint / compile / test admin-frontend
+          working_directory: ~/project/admin-frontend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
 
   syncdb-ci:
     executor: node22
@@ -1702,6 +1746,16 @@ workflows:
     jobs:
       - ui-ci
       - ui-demo-typecheck
+
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - admin-backend-ci
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - admin-frontend-ci
 
   # Mirror GHA ui-demo-ci: only when demo changed and ui did not.
   ui-demo:

@@ -24,7 +24,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: none
   - Acceptance: coverage report no longer attributes `@terreno/test` files; `adminApp.ts` and package source still ≥95%; `cd admin-backend && bun test --coverage` green
 
-- [ ] **Task 1.3**: CircleCI jobs for admin packages
+- [x] **Task 1.3**: CircleCI jobs for admin packages
   - Delivers: `admin-backend-ci` and `admin-frontend-ci` in continue-config; root script `admin-frontend:test`; both jobs in the required workflow
   - Files: `.circleci/continue-config.yml`, `package.json`
   - Blocked by: 1.1, 1.2

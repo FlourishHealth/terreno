@@ -94,6 +94,8 @@ workflows:
             mcp-server/.* run-mcp-server true
             scripts/check-coverage\.ts run-api true
             scripts/check-coverage\.ts run-rtk true
+            scripts/check-coverage\.ts run-admin-backend true
+            scripts/check-coverage\.ts run-admin-frontend true
             scripts/check-coverage\.ts run-mcp-server true
             scripts/check-coverage\.ts run-syncdb true
             scripts/check-coverage\.ts run-new-file-coverage true
@@ -108,8 +110,10 @@ workflows:
             api/.* run-example-backend-script true
             ai/.* run-example-backend true
             ai/.* run-example-backend-script true
+            admin-backend/.* run-admin-backend true
             admin-backend/.* run-example-backend true
             admin-backend/.* run-example-backend-script true
+            admin-frontend/.* run-admin-frontend true
             admin-frontend/.* run-example-backend true
             admin-frontend/.* run-example-backend-script true
             admin-spa/.* run-example-backend true
