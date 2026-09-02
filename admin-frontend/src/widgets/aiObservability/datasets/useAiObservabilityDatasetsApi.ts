@@ -33,10 +33,12 @@ interface QueryOptions {
   skip?: boolean;
 }
 
-const createDatasetsApi = (api: AdminApi) => {
+export const createDatasetsApi = (api: AdminApi) => {
   const tagged =
     typeof api.enhanceEndpoints === "function"
-      ? api.enhanceEndpoints({addTagTypes: ["aiObservabilityDatasets"]})
+      ? api.enhanceEndpoints({
+          addTagTypes: ["aiObservabilityDatasets", "aiObservabilityDatasetItems"],
+        })
       : api;
   return tagged.injectEndpoints({
     endpoints: (build: EndpointBuilder) => ({
@@ -109,7 +111,10 @@ const createDatasetsApi = (api: AdminApi) => {
         }),
       }),
       [ADD_TRACES_KEY]: build.mutation({
-        invalidatesTags: ["aiObservabilityDatasets"],
+        invalidatesTags: (_result, _error, body: {datasetId: string}) => [
+          {id: body.datasetId, type: "aiObservabilityDatasets"},
+          {id: body.datasetId, type: "aiObservabilityDatasetItems"},
+        ],
         query: (body: {datasetId: string; traceIds: string[]}) => ({
           body,
           method: "POST",
