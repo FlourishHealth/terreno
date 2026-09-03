@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 3.1**.
+**Status:** Approved — frontier **Task 4.1**.
 
 ## Instructions for the implementing agent
 
@@ -65,7 +65,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ### Phase 3: Example-backend admin
 
-- [ ] **Task 3.1**: Enable flag + admin model registration
+- [x] **Task 3.1**: Enable flag + admin model registration
   - Delivers: `mcpServiceTokens: {enabled: true, publicMcpUrl: …}` on example `TerrenoApp`; `AdminApp` model entry — listFields, create/update disabled, admin delete → revoke; `responseHandler` strips `tokenHash`
   - Files: `example-backend/src/server.ts`, `example-backend/src/api/mcpServiceTokensAdmin.ts` (if preDelete hook extracted), `example-backend/src/tests/mcpServiceTokens.admin.test.ts`
   - Blocked by: Task 2.2
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1, 2.2, 2.3. Current: **Task 3.1**.
+Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1. Current: **Task 4.1**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3
