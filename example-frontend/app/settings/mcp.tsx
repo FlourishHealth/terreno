@@ -116,12 +116,16 @@ const McpSettingsScreen: React.FC = () => {
     }
     setCreateError(null);
     try {
-      const result = await createToken({
+      const result = (await createToken({
         ...(expiresAt ? {expiresAt} : {}),
         name: trimmedName,
-      }).unwrap();
-      const token = result.data?.token;
-      const mcpUrl = result.data?.mcpUrl;
+      }).unwrap()) as {
+        data?: {mcpUrl?: string; token?: string};
+        mcpUrl?: string;
+        token?: string;
+      };
+      const token = result.token ?? result.data?.token;
+      const mcpUrl = result.mcpUrl ?? result.data?.mcpUrl;
       if (!token || !mcpUrl) {
         setCreateError("Create succeeded but the token was not returned");
         return;
