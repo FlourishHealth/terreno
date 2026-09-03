@@ -130,4 +130,51 @@ describe("TerrenoApp mcpServiceTokens", () => {
     const res = await supertest(app).get("/openapi.json");
     assert.equal(res.body.paths["/mcp/service-tokens"].post.operationId, "createMcpServiceToken");
   });
+
+  it("authenticates GET and POST /mcp with the same service token", async () => {
+    const app = new TerrenoApp({
+      mcpServiceTokens: true,
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(noteRouter())
+      .build();
+
+    const agent = await authAsUser(app, "notAdmin");
+    const created = await agent.post("/mcp/service-tokens").send({name: "Perplexity probe"});
+    const mcpToken = created.body.data.token as string;
+    const jwtListed = await agent
+      .post("/mcp")
+      .set("accept", "application/json, text/event-stream")
+      .send({id: 2, jsonrpc: "2.0", method: "tools/list", params: {}});
+
+    const probe = await supertest(app)
+      .get("/mcp")
+      .set("Authorization", `Bearer ${mcpToken}`)
+      .set("accept", "application/json, text/event-stream");
+    const initialized = await supertest(app)
+      .post("/mcp")
+      .set("Authorization", `Bearer ${mcpToken}`)
+      .set("accept", "application/json, text/event-stream")
+      .send({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "initialize",
+        params: {
+          capabilities: {},
+          clientInfo: {name: "perplexity", version: "0"},
+          protocolVersion: "2024-11-05",
+        },
+      });
+    const listed = await supertest(app)
+      .post("/mcp")
+      .set("Authorization", `Bearer ${mcpToken}`)
+      .set("accept", "application/json, text/event-stream")
+      .send({id: 2, jsonrpc: "2.0", method: "tools/list", params: {}});
+
+    assert.notEqual(probe.status, 401);
+    assert.include(initialized.text, "terreno-api-mcp");
+    assert.include(listed.text, "tokenmcpnotes_list");
+    assert.include(jwtListed.text, "tokenmcpnotes_list");
+  });
 });
