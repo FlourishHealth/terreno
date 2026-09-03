@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 5.1**.
+**Status:** Approved — all in-scope tasks Roast PASS. **next: brew**.
 
 ## Instructions for the implementing agent
 
@@ -96,7 +96,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ### Phase 5: Documentation
 
-- [ ] **Task 5.1**: Operator docs + cross-links
+- [x] **Task 5.1**: Operator docs + cross-links
   - Delivers: complete `docs/how-to/connect-mcp-service-token.md` (Perplexity form table, JSON snippet, curl); update `docs/how-to/expose-mcp-tools.md` auth section; `docs/explanation/authentication.md` short subsection; note sibling OAuth in `app-mcp-server.md` cross-link only
   - Files: docs listed above
   - Blocked by: Task 2.3, Task 4.2
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2. Current: **Task 5.1**.
+Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2, 5.1. Frontier: none. **next: brew**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3
