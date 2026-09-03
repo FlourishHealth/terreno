@@ -155,7 +155,7 @@ const {mcpServiceToken, token} = await McpServiceToken.issueFor(
 
 The token begins with `mcp_` followed by 32 random bytes encoded as hex. `verify(token)` returns `null` for unknown, expired, or revoked tokens. `revokeForUser(user, tokenId)` records `revokedAt`, and `countActiveForUser(userId)` excludes expired or revoked records. Never return or log `tokenHash` or the plaintext token outside the initial issue result.
 
-Self-serve HTTP routes live at `/mcp/service-tokens`. Mount them with `addMcpServiceTokenRoutes(app, {publicMcpUrl})` (TerrenoApp will do this when `mcpServiceTokens` is enabled). They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
+Self-serve HTTP routes live at `/mcp/service-tokens`. Mount them with `addMcpServiceTokenRoutes(app, {publicMcpUrl, openApi})`. Pass the TerrenoApp OpenAPI bundle as `openApi` so the paths appear in `/openapi.json`. They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
 
 | Method | Path | Body / params | Response |
 | --- | --- | --- | --- |
