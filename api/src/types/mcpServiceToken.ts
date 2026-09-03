@@ -6,7 +6,9 @@ export interface McpServiceTokenIssueOptions {
   name: string;
 }
 
-export type McpServiceTokenMethods = Record<string, never>;
+export interface McpServiceTokenMethods {
+  deleteOne: (this: McpServiceTokenDocument) => Promise<McpServiceTokenDocument>;
+}
 
 export interface McpServiceTokenStatics
   extends FindExactlyOnePlugin<McpServiceTokenDocument>,

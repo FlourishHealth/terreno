@@ -104,4 +104,26 @@ describe("McpServiceToken", () => {
 
     assert.equal(await McpServiceToken.countActiveForUser(userId), 1);
   });
+
+  it("revokes on document deleteOne instead of removing the row", async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const issued = await McpServiceToken.issueFor({_id: userId}, {name: "Admin delete"});
+
+    await issued.mcpServiceToken.deleteOne();
+
+    const stored = await McpServiceToken.findById(issued.mcpServiceToken._id);
+    assert.isDefined(stored?.revokedAt);
+    assert.isNull(await McpServiceToken.verify(issued.token));
+  });
+
+  it("revokes on query deleteOne used by admin DELETE", async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const issued = await McpServiceToken.issueFor({_id: userId}, {name: "Query delete"});
+
+    await McpServiceToken.deleteOne({_id: issued.mcpServiceToken._id});
+
+    const stored = await McpServiceToken.findById(issued.mcpServiceToken._id);
+    assert.isDefined(stored?.revokedAt);
+    assert.isNull(await McpServiceToken.verify(issued.token));
+  });
 });

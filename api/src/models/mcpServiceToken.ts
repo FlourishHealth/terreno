@@ -67,6 +67,33 @@ mcpServiceTokenSchema.plugin(createdUpdatedPlugin);
 mcpServiceTokenSchema.plugin(findOneOrNone);
 mcpServiceTokenSchema.plugin(findExactlyOne);
 
+const revokeInsteadOfDelete = async (
+  doc: McpServiceTokenDocument | null
+): Promise<McpServiceTokenDocument | null> => {
+  if (!doc) {
+    return null;
+  }
+  if (!doc.revokedAt) {
+    doc.set("revokedAt", DateTime.now().toJSDate());
+    await doc.save();
+  }
+  return doc;
+};
+
+mcpServiceTokenSchema.methods = {
+  ...mcpServiceTokenSchema.methods,
+  async deleteOne(this: McpServiceTokenDocument): Promise<McpServiceTokenDocument> {
+    const revoked = await revokeInsteadOfDelete(this);
+    return revoked ?? this;
+  },
+};
+
+mcpServiceTokenSchema.pre("deleteOne", {document: false, query: true}, async function () {
+  const existing = await this.model.findOne(this.getFilter());
+  await revokeInsteadOfDelete(existing as McpServiceTokenDocument | null);
+  this.setQuery({_id: {$exists: false}});
+});
+
 mcpServiceTokenSchema.statics = {
   ...mcpServiceTokenSchema.statics,
   async countActiveForUser(
