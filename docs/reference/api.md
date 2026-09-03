@@ -155,6 +155,16 @@ const {mcpServiceToken, token} = await McpServiceToken.issueFor(
 
 The token begins with `mcp_` followed by 32 random bytes encoded as hex. `verify(token)` returns `null` for unknown, expired, or revoked tokens. `revokeForUser(user, tokenId)` records `revokedAt`, and `countActiveForUser(userId)` excludes expired or revoked records. Never return or log `tokenHash` or the plaintext token outside the initial issue result.
 
+Self-serve HTTP routes live at `/mcp/service-tokens`. Mount them with `addMcpServiceTokenRoutes(app, {publicMcpUrl})` (TerrenoApp will do this when `mcpServiceTokens` is enabled). They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
+
+| Method | Path | Body / params | Response |
+| --- | --- | --- | --- |
+| POST | `/mcp/service-tokens` | `{name, expiresAt?}` | `{data: {id, name, token, tokenPrefix, mcpUrl, expiresAt, created}}` |
+| GET | `/mcp/service-tokens` | `?page&limit` | `{data, page, limit, total, more}` — no `token` or `tokenHash` |
+| DELETE | `/mcp/service-tokens/:id` | — | `{data: {id, revokedAt}}` — owner only |
+
+`expiresAt` is an optional ISO-8601 datetime (Luxon `DateTime.fromISO`). Omit it for a token that does not expire. Create returns `mcpUrl` from `publicMcpUrl`, else `BETTER_AUTH_URL`, else the request host, with `/mcp` appended when missing. An 11th **active** token for the same user is `400`. Revoke and cross-owner access are `404`. List includes revoked rows for the owner so the UI can show history.
+
 ## Authentication
 
 @terreno/api includes built-in authentication with multiple strategies:

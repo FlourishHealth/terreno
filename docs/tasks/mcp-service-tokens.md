@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 1.1**.
+**Status:** Approved — frontier **Task 2.1**.
 
 ## Instructions for the implementing agent
 
@@ -106,9 +106,9 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ---
 
-## Frontier after Approve
+## Frontier
 
-Unblocked: **Task 1.1**.
+Completed: 1.1, 1.2. Current: **Task 2.1**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3
