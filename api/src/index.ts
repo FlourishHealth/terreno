@@ -45,6 +45,7 @@ export type {
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
+export * from "./models/mcpServiceToken";
 export * from "./models/versionConfig";
 export * from "./notifiers/googleChatNotifier";
 export * from "./notifiers/slackNotifier";

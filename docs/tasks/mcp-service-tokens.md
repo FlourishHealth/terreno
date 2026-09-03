@@ -17,7 +17,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ### Phase 1: Model and MCP auth
 
-- [ ] **Task 1.1**: `McpServiceToken` model + types
+- [x] **Task 1.1**: `McpServiceToken` model + types
   - Delivers: Mongoose model with issue/verify/revoke/count statics; SHA-256 hash; `mcp_` + 32-byte hex secret; field descriptions on every path
   - Files: `api/src/models/mcpServiceToken.ts`, `api/src/types/mcpServiceToken.ts`, `api/src/models/mcpServiceToken.test.ts`, `api/src/index.ts`
   - Blocked by: none
