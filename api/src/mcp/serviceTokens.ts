@@ -19,6 +19,25 @@ export interface McpServiceTokenRoutesOptions {
   publicMcpUrl?: string;
 }
 
+export type McpServiceTokensAppOption =
+  | boolean
+  | {
+      enabled: boolean;
+      publicMcpUrl?: string;
+    };
+
+export const resolveMcpServiceTokensOption = (
+  option: McpServiceTokensAppOption | undefined
+): {enabled: boolean; publicMcpUrl?: string} => {
+  if (option === true) {
+    return {enabled: true};
+  }
+  if (option && typeof option === "object" && option.enabled === true) {
+    return {enabled: true, publicMcpUrl: option.publicMcpUrl};
+  }
+  return {enabled: false};
+};
+
 const bearerFromRequest = (req: Request): string | undefined => {
   const authorization = req.headers.authorization;
   if (typeof authorization !== "string") {

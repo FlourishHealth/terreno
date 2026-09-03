@@ -32,6 +32,8 @@ export {
   addMcpServiceTokenRoutes,
   MAX_ACTIVE_MCP_SERVICE_TOKENS,
   type McpServiceTokenRoutesOptions,
+  type McpServiceTokensAppOption,
+  resolveMcpServiceTokensOption,
 } from "./mcp/serviceTokens";
 export {
   generateAllTools,
