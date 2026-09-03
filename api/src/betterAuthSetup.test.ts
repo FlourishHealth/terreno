@@ -421,6 +421,268 @@ describe("applyBetterAuthPasswordResetToJwt", () => {
     const missing = await DualAuthUser.findOne({email: "missing-jwt@example.com"});
     assert.isNull(missing);
   });
+
+  it("throws when the reset request does not carry a password", async () => {
+    await setup;
+    await DualAuthUser.create({
+      betterAuthId: "ba-dual-nopw",
+      email: "nopw-jwt@example.com",
+    });
+    const request = new globalThis.Request("http://localhost/api/auth/reset-password", {
+      body: JSON.stringify({token: "reset-token"}),
+      headers: {"Content-Type": "application/json"},
+      method: "POST",
+    });
+    await expect(
+      applyBetterAuthPasswordResetToJwt(
+        DualAuthUser,
+        {email: "nopw-jwt@example.com", id: "ba-dual-nopw"},
+        request
+      )
+    ).rejects.toThrow("Password reset could not sync to JWT credentials");
+  });
+});
+
+describe("readPasswordFromBetterAuthResetRequest edge cases", () => {
+  it("returns an empty string when there is no request", async () => {
+    assert.equal(await readPasswordFromBetterAuthResetRequest(undefined), "");
+  });
+
+  it("reads password from an already-parsed body", async () => {
+    assert.equal(
+      await readPasswordFromBetterAuthResetRequest({body: {password: "attached-pw"}}),
+      "attached-pw"
+    );
+  });
+
+  it("returns an empty string when the body is not an object and clone is unavailable", async () => {
+    assert.equal(await readPasswordFromBetterAuthResetRequest({body: "raw"}), "");
+  });
+
+  it("returns an empty string when the body has no string password", async () => {
+    assert.equal(await readPasswordFromBetterAuthResetRequest({body: {newPassword: 42}}), "");
+  });
+
+  it("returns an empty string when cloning the request fails to parse JSON", async () => {
+    const request = {
+      clone: () => ({
+        json: async (): Promise<unknown> => {
+          throw new Error("bad json");
+        },
+      }),
+    };
+    assert.equal(await readPasswordFromBetterAuthResetRequest(request), "");
+  });
+});
+
+describe("createBetterAuthEmailHooks fallback rendering", () => {
+  it("renders the built-in templates with interpolated links", async () => {
+    const sent: Array<{html?: string; subject: string; text: string; to: string}> = [];
+    const hooks = createBetterAuthEmailHooks({
+      enabled: true,
+      publicAppUrl: "https://app.example.com/",
+      sendMail: async (message) => {
+        sent.push(message);
+      },
+    });
+    assert.isDefined(hooks);
+    await hooks?.sendResetPassword({
+      token: "a b",
+      url: "ignored",
+      user: {email: "reset@example.com"},
+    });
+    await hooks?.sendVerificationEmail({
+      token: "v",
+      url: "ignored",
+      user: {email: "verify@example.com"},
+    });
+    assert.lengthOf(sent, 2);
+    assert.equal(sent[0].subject, "Reset your password");
+    assert.equal(sent[0].to, "reset@example.com");
+    assert.include(sent[0].text, "https://app.example.com/resetPassword?token=a%20b");
+    assert.include(sent[0].html ?? "", 'href="https://app.example.com/resetPassword?token=a%20b"');
+    assert.equal(sent[1].subject, "Verify your email");
+    assert.include(sent[1].text, "https://app.example.com/verifyEmail?token=v");
+  });
+
+  it("uses custom templates and tolerates missing html/text and unknown keys", async () => {
+    const sent: Array<{html?: string; subject: string; text: string; to: string}> = [];
+    const hooks = createBetterAuthEmailHooks({
+      authMailTemplates: {
+        resetPassword: {subject: "Reset for {{ publicAppUrl }} {{unknownKey}}"},
+      },
+      enabled: true,
+      publicAppUrl: "https://app.example.com",
+      sendMail: async (message) => {
+        sent.push(message);
+      },
+    });
+    await hooks?.sendResetPassword({
+      token: "t",
+      url: "ignored",
+      user: {email: "reset@example.com"},
+    });
+    assert.lengthOf(sent, 1);
+    assert.equal(sent[0].subject, "Reset for https://app.example.com ");
+    assert.isUndefined(sent[0].html);
+    assert.equal(sent[0].text, "");
+  });
+
+  it("returns undefined when sendMail is not configured", () => {
+    assert.isUndefined(createBetterAuthEmailHooks({enabled: true}));
+  });
+});
+
+describe("createBetterAuth email and password-reset wiring", () => {
+  const baseConfig: BetterAuthConfig = {
+    baseURL: "http://localhost:3000",
+    enabled: true,
+    secret: "test-secret-at-least-32-characters-long",
+  };
+
+  it("enables email verification when mail hooks are configured", async () => {
+    await setup;
+    const auth = createBetterAuth({
+      config: {
+        ...baseConfig,
+        publicAppUrl: "https://app.example.com",
+        sendMail: async () => {},
+      },
+      mongoClient: getClient(),
+    });
+    const options = (
+      auth as {
+        options?: {
+          emailAndPassword?: {sendResetPassword?: unknown};
+          emailVerification?: {sendOnSignUp?: boolean; sendVerificationEmail?: unknown};
+        };
+      }
+    ).options;
+    assert.isTrue(options?.emailVerification?.sendOnSignUp);
+    assert.isFunction(options?.emailVerification?.sendVerificationEmail);
+    assert.isFunction(options?.emailAndPassword?.sendResetPassword);
+  });
+
+  it("syncs the JWT password through the onPasswordReset hook", async () => {
+    await setup;
+    const auth = createBetterAuth({
+      config: baseConfig,
+      mongoClient: getClient(),
+      userModel: DualAuthUser,
+    });
+    const registerable = DualAuthUser as unknown as {
+      register: (user: {betterAuthId: string; email: string}, password: string) => Promise<unknown>;
+    };
+    await registerable.register(
+      {betterAuthId: "ba-hook-1", email: "hook@example.com"},
+      "old-password-123"
+    );
+    const options = (
+      auth as {
+        options?: {
+          emailAndPassword?: {
+            onPasswordReset?: (
+              data: {user: {email?: string; id?: string}},
+              request?: Request
+            ) => Promise<void>;
+          };
+        };
+      }
+    ).options;
+    const request = new globalThis.Request("http://localhost/api/auth/reset-password", {
+      body: JSON.stringify({newPassword: "hooked-password-123"}),
+      headers: {"Content-Type": "application/json"},
+      method: "POST",
+    });
+    await options?.emailAndPassword?.onPasswordReset?.(
+      {user: {email: "hook@example.com", id: "ba-hook-1"}},
+      request as unknown as Request
+    );
+    const reloaded = await DualAuthUser.findOne({email: "hook@example.com"});
+    assert.equal(reloaded?.tokenEpoch, 1);
+  });
+});
+
+describe("applyJwtPasswordResetToBetterAuth lookups", () => {
+  const makeAuth = (): BetterAuthInstance =>
+    createBetterAuth({
+      config: {
+        baseURL: "http://localhost:3000",
+        enabled: true,
+        secret: "test-secret-at-least-32-characters-long",
+      },
+      mongoClient: getClient(),
+    });
+
+  it("finds the Better Auth user by email when betterAuthId is missing", async () => {
+    await setup;
+    const auth = makeAuth();
+    await auth.api.signUpEmail({
+      body: {email: "by-email@example.com", name: "By Email", password: "old-password-123"},
+    });
+    await applyJwtPasswordResetToBetterAuth(
+      auth,
+      {email: "by-email@example.com"},
+      "new-password-123"
+    );
+    const signedIn = await auth.api.signInEmail({
+      body: {email: "by-email@example.com", password: "new-password-123"},
+    });
+    assert.isDefined(signedIn.user);
+  });
+
+  it("falls back to findUserById and no-ops when the user does not exist", async () => {
+    await setup;
+    const auth = makeAuth();
+    const ctx = (await auth.$context) as {
+      internalAdapter: {
+        findUserByEmail: (email: string) => Promise<unknown>;
+        findUserById: (id: string) => Promise<unknown>;
+      };
+    };
+    const emailCalls: string[] = [];
+    const idCalls: string[] = [];
+    ctx.internalAdapter.findUserByEmail = async (email: string): Promise<null> => {
+      emailCalls.push(email);
+      return null;
+    };
+    ctx.internalAdapter.findUserById = async (id: string): Promise<null> => {
+      idCalls.push(id);
+      return null;
+    };
+    await applyJwtPasswordResetToBetterAuth(
+      auth,
+      {betterAuthId: "", email: "ghost@example.com"},
+      "new-password-123"
+    );
+    assert.deepEqual(emailCalls, ["ghost@example.com"]);
+    assert.deepEqual(idCalls, []);
+  });
+
+  it("creates a credential account when the user only has a social account", async () => {
+    await setup;
+    const auth = makeAuth();
+    const ctx = (await auth.$context) as {
+      internalAdapter: {
+        createUser: (user: {email: string; emailVerified: boolean; name: string}) => Promise<{
+          id: string;
+        }>;
+        findAccounts: (userId: string) => Promise<Array<{providerId?: string}>>;
+      };
+    };
+    const created = await ctx.internalAdapter.createUser({
+      email: "social@example.com",
+      emailVerified: true,
+      name: "Social",
+    });
+    await applyJwtPasswordResetToBetterAuth(auth, {betterAuthId: created.id}, "new-password-123");
+    const accounts = await ctx.internalAdapter.findAccounts(created.id);
+    assert.isTrue(accounts.some((account) => account.providerId === "credential"));
+    const signedIn = await auth.api.signInEmail({
+      body: {email: "social@example.com", password: "new-password-123"},
+    });
+    assert.isDefined(signedIn.user);
+  });
 });
 
 describe("syncBetterAuthUser", () => {
