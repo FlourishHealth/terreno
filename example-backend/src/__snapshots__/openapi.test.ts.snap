@@ -9485,6 +9485,28 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
+                      "properties": {
+                        "output": {
+                          "type": "string",
+                        },
+                        "stages": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                              },
+                              "status": {
+                                "type": "string",
+                              },
+                            },
+                            "type": "object",
+                          },
+                          "type": "array",
+                        },
+                        "traceId": {
+                          "type": "string",
+                        },
+                      },
                       "type": "object",
                     },
                   },
@@ -9536,6 +9558,21 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "The user is not allowed to perform this action on any document",
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
           },
         },
         "summary": "Run a multi-stage observability workflow and export one nested trace",

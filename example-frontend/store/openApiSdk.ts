@@ -2680,7 +2680,14 @@ export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
 };
 export type PostAiObservabilityTracesByIdScoresArgs = string;
 export type PostAiObservabilityTracesTestMultiStageRes = /** status 200 Success */ {
-  data?: object;
+  data?: {
+    output?: string;
+    stages?: {
+      name?: string;
+      status?: string;
+    }[];
+    traceId?: string;
+  };
 };
 export type PostAiObservabilityTracesTestMultiStageArgs = {
   input?: string;
