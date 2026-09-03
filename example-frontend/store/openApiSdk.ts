@@ -2681,7 +2681,12 @@ export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
 export type PostAiObservabilityTracesByIdScoresArgs = string;
 export type PostAiObservabilityTracesTestMultiStageRes = /** status 200 Success */ {
   data?: {
-    output?: string;
+    output?: {
+      keywords?: string[];
+      metrics?: object;
+      phrase?: string;
+      sentence?: string;
+    };
     stages?: {
       name?: string;
       status?: string;

@@ -139,6 +139,7 @@ export interface ObservabilityGenerateClient {
     schemaName?: string;
     skipTrace?: boolean;
     systemPrompt?: string;
+    temperature?: number;
     userId?: import("mongoose").Types.ObjectId;
   }) => Promise<OBJECT>;
   generateText: (options: {

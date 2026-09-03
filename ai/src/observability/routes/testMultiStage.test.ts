@@ -8,7 +8,25 @@ import {createLocalObservabilityPlugin} from "../local/localPlugin";
 import {registerObsSpan} from "../local/models/obsSpan";
 import {registerObsTrace} from "../local/models/obsTrace";
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
+import {
+  OBS_TEST_MULTI_STAGE_CALL_1_SCHEMA_NAME,
+  OBS_TEST_MULTI_STAGE_CALL_2_SCHEMA_NAME,
+  OBS_TEST_MULTI_STAGE_FINAL_SCHEMA_NAME,
+} from "../testMultiStageSchemas";
 import type {ObservabilityGenerateClient, SpanKind} from "../types";
+
+const call1Output = {phrase: "alpha phrase"};
+const call2Output = {keywords: ["beta", "gamma"]};
+const finalOutput = {
+  keywords: ["beta", "gamma"],
+  metrics: {
+    call1: {charCount: 12, wordCount: 2},
+    call2: {charCount: 11, wordCount: 2},
+    combinedCharCount: 23,
+  },
+  phrase: "alpha phrase",
+  sentence: "combined output",
+};
 
 const createFakeAiService = (
   behavior: Partial<ObservabilityGenerateClient> & {
@@ -16,21 +34,23 @@ const createFakeAiService = (
   } = {}
 ): ObservabilityGenerateClient => {
   return {
-    generateJsonObject: async () => ({}) as never,
-    generateText: mock(async ({systemPrompt}) => {
-      if (behavior.failOn && systemPrompt?.includes(behavior.failOn)) {
+    generateJsonObject: mock(async ({schemaName}) => {
+      if (behavior.failOn && schemaName === behavior.failOn) {
         throw new Error(`failed on ${behavior.failOn}`);
       }
-      if (systemPrompt?.includes("Summarize the user input")) {
-        return "alpha phrase";
+      if (schemaName === OBS_TEST_MULTI_STAGE_CALL_1_SCHEMA_NAME) {
+        return call1Output as never;
       }
-      if (systemPrompt?.includes("List two keywords")) {
-        return "beta, gamma";
+      if (schemaName === OBS_TEST_MULTI_STAGE_CALL_2_SCHEMA_NAME) {
+        return call2Output as never;
       }
-      if (systemPrompt?.includes("Combine the stage-one phrase")) {
-        return "combined output";
+      if (schemaName === OBS_TEST_MULTI_STAGE_FINAL_SCHEMA_NAME) {
+        return finalOutput as never;
       }
-      return "unexpected";
+      throw new Error(`unexpected schema ${schemaName}`);
+    }),
+    generateText: mock(async () => {
+      throw new Error("multi-stage workflow must use generateJsonObject");
     }),
     modelId: "fake-observability-model",
     ...behavior,
@@ -75,7 +95,8 @@ describe("observability test-multi-stage route", () => {
     });
     expect(res.status).toBe(200);
     assert.isString(res.body.data.traceId);
-    assert.equal(res.body.data.output, "combined output");
+    assert.equal(res.body.data.output.sentence, "combined output");
+    assert.deepEqual(res.body.data.output.keywords, ["beta", "gamma"]);
     assert.equal(res.body.data.stages.length, 4);
 
     const detail = await agent.get(`/ai/observability/traces/${res.body.data.traceId}`);
@@ -83,7 +104,12 @@ describe("observability test-multi-stage route", () => {
     assert.equal(detail.body.data.name, "test-multi-stage");
     assert.equal(flattenKinds(detail.body.data.spans).join(","), "CHAIN,LLM,LLM,TOOL,LLM");
     assert.equal(detail.body.data.spans[0].children[0].parentSpanId, detail.body.data.spans[0].id);
-    assert.equal(detail.body.data.output, "combined output");
+    assert.equal(detail.body.data.output.sentence, "combined output");
+    assert.equal(
+      detail.body.data.spans[0].children[0].input.schemaName,
+      OBS_TEST_MULTI_STAGE_CALL_1_SCHEMA_NAME
+    );
+    assert.isOk(detail.body.data.spans[0].children[0].input.outputSchema);
   });
 
   it("returns 403 for non-admin callers", async () => {
@@ -107,7 +133,7 @@ describe("observability test-multi-stage route", () => {
   });
 
   it("exports an error trace and rethrows when a child LLM stage fails", async () => {
-    const failingService = createFakeAiService({failOn: "List two keywords"});
+    const failingService = createFakeAiService({failOn: OBS_TEST_MULTI_STAGE_CALL_2_SCHEMA_NAME});
     const plugin = createLocalObservabilityPlugin();
     const failingApp = new TerrenoApp({skipListen: true, userModel: UserModel})
       .register(new ObservabilityApp({aiService: failingService, plugins: [plugin]}))
@@ -134,7 +160,7 @@ describe("observability test-multi-stage route", () => {
   });
 
   it("exports the completed child stages when final synthesis fails", async () => {
-    const failingService = createFakeAiService({failOn: "Combine the stage-one phrase"});
+    const failingService = createFakeAiService({failOn: OBS_TEST_MULTI_STAGE_FINAL_SCHEMA_NAME});
     const plugin = createLocalObservabilityPlugin();
     const failingApp = new TerrenoApp({skipListen: true, userModel: UserModel})
       .register(new ObservabilityApp({aiService: failingService, plugins: [plugin]}))

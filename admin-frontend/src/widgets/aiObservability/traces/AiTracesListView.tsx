@@ -207,7 +207,8 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
           <Box flex="grow" gap={1} maxWidth="100%" minWidth={0}>
             <Text bold>Trace smoke test</Text>
             <Text color="secondaryDark" size="sm">
-              Runs two GPT calls, a tool stage, and a final combining GPT call as one nested trace.
+              Runs two schema-validated GPT calls, a tool stage, and a final schema-validated
+              combining GPT call as one nested trace.
             </Text>
           </Box>
           <Button

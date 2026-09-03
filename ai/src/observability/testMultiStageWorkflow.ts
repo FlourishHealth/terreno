@@ -1,13 +1,28 @@
 import {randomUUID} from "node:crypto";
+import type {FlexibleSchema} from "ai";
 import {DateTime} from "luxon";
 import type mongoose from "mongoose";
-
-import {TemperaturePresets} from "../service/aiService";
 import {
   OBS_TEST_MULTI_STAGE_CALL_1_SYSTEM,
   OBS_TEST_MULTI_STAGE_CALL_2_SYSTEM,
   OBS_TEST_MULTI_STAGE_FINAL_SYSTEM,
 } from "../service/prompts";
+import type {
+  ObsTestMultiStageCall1Output,
+  ObsTestMultiStageCall2Output,
+  ObsTestMultiStageFinalOutput,
+} from "../types";
+import {
+  OBS_TEST_MULTI_STAGE_CALL_1_OUTPUT_SCHEMA,
+  OBS_TEST_MULTI_STAGE_CALL_1_SCHEMA_NAME,
+  OBS_TEST_MULTI_STAGE_CALL_2_OUTPUT_SCHEMA,
+  OBS_TEST_MULTI_STAGE_CALL_2_SCHEMA_NAME,
+  OBS_TEST_MULTI_STAGE_FINAL_OUTPUT_SCHEMA,
+  OBS_TEST_MULTI_STAGE_FINAL_SCHEMA_NAME,
+  obsTestMultiStageCall1Schema,
+  obsTestMultiStageCall2Schema,
+  obsTestMultiStageFinalSchema,
+} from "./testMultiStageSchemas";
 import type {ObservabilityGenerateClient, SpanRecord, TraceRecord} from "./types";
 
 export interface TestMultiStageStageSummary {
@@ -17,7 +32,7 @@ export interface TestMultiStageStageSummary {
 }
 
 export interface TestMultiStageWorkflowResult {
-  output: string;
+  output: ObsTestMultiStageFinalOutput;
   stages: TestMultiStageStageSummary[];
   traceId?: string;
 }
@@ -70,7 +85,7 @@ const buildTrace = (params: {
   childSpans: SpanRecord[];
   errorSummary?: string;
   input: string;
-  output?: string;
+  output?: unknown;
   status: "error" | "ok";
   traceStart: number;
   userId?: mongoose.Types.ObjectId;
@@ -109,8 +124,85 @@ const buildTrace = (params: {
     startedAt: toIsoUtc(params.traceStart),
     status: params.status,
     userId: params.userId?.toString(),
-    ...(params.errorSummary ? {errorSummary: params.errorSummary} : {}),
+    ...(params.errorSummary ? {error: params.errorSummary} : {}),
   };
+};
+
+const runLlmObjectStage = async <OBJECT>(params: {
+  aiService: ObservabilityGenerateClient;
+  childSpans: SpanRecord[];
+  exportTrace: TestMultiStageWorkflowParams["exportTrace"];
+  name: string;
+  prompt: string;
+  schema: FlexibleSchema<OBJECT>;
+  schemaDescription: string;
+  schemaName: string;
+  stages: TestMultiStageStageSummary[];
+  systemPrompt: string;
+  outputSchema: Record<string, unknown>;
+  traceStart: number;
+  userId?: mongoose.Types.ObjectId;
+  workflowInput: string;
+}): Promise<OBJECT> => {
+  const startedAt = DateTime.now().toMillis();
+  const spanInput = {
+    outputSchema: params.outputSchema,
+    prompt: params.prompt,
+    schemaName: params.schemaName,
+  };
+  try {
+    const output = await params.aiService.generateJsonObject({
+      prompt: params.prompt,
+      schema: params.schema,
+      schemaDescription: params.schemaDescription,
+      schemaName: params.schemaName,
+      skipTrace: true,
+      systemPrompt: params.systemPrompt,
+      userId: params.userId,
+    });
+    const endedAt = DateTime.now().toMillis();
+    params.childSpans.push(
+      buildChildSpan({
+        endedAt,
+        input: spanInput,
+        kind: "LLM",
+        name: params.name,
+        output,
+        startedAt,
+        status: "ok",
+        traceStart: params.traceStart,
+      })
+    );
+    params.stages.push({name: params.name, output, status: "ok"});
+    return output;
+  } catch (error) {
+    const endedAt = DateTime.now().toMillis();
+    const message = error instanceof Error ? error.message : String(error);
+    params.childSpans.push(
+      buildChildSpan({
+        endedAt,
+        error: message,
+        input: spanInput,
+        kind: "LLM",
+        name: params.name,
+        output: undefined,
+        startedAt,
+        status: "error",
+        traceStart: params.traceStart,
+      })
+    );
+    params.stages.push({name: params.name, status: "error"});
+    const trace = buildTrace({
+      childSpans: params.childSpans,
+      errorSummary: message,
+      input: params.workflowInput,
+      status: "error",
+      traceStart: params.traceStart,
+      userId: params.userId,
+    });
+    await params.exportTrace(trace);
+    throw error;
+  }
 };
 
 export const runTestMultiStageWorkflow = async (
@@ -120,69 +212,46 @@ export const runTestMultiStageWorkflow = async (
   const childSpans: SpanRecord[] = [];
   const stages: TestMultiStageStageSummary[] = [];
 
-  const runLlmStage = async (name: string, systemPrompt: string): Promise<string> => {
-    const startedAt = DateTime.now().toMillis();
-    try {
-      const output = await params.aiService.generateText({
-        prompt: params.input,
-        skipTrace: true,
-        systemPrompt,
-        temperature: TemperaturePresets.DETERMINISTIC,
-        userId: params.userId,
-      });
-      const endedAt = DateTime.now().toMillis();
-      childSpans.push(
-        buildChildSpan({
-          endedAt,
-          input: params.input,
-          kind: "LLM",
-          name,
-          output,
-          startedAt,
-          status: "ok",
-          traceStart,
-        })
-      );
-      stages.push({name, output, status: "ok"});
-      return output;
-    } catch (error) {
-      const endedAt = DateTime.now().toMillis();
-      const message = error instanceof Error ? error.message : String(error);
-      childSpans.push(
-        buildChildSpan({
-          endedAt,
-          error: message,
-          input: params.input,
-          kind: "LLM",
-          name,
-          output: undefined,
-          startedAt,
-          status: "error",
-          traceStart,
-        })
-      );
-      stages.push({name, status: "error"});
-      const trace = buildTrace({
-        childSpans,
-        errorSummary: message,
-        input: params.input,
-        status: "error",
-        traceStart,
-        userId: params.userId,
-      });
-      await params.exportTrace(trace);
-      throw error;
-    }
-  };
+  const call1Output = await runLlmObjectStage<ObsTestMultiStageCall1Output>({
+    aiService: params.aiService,
+    childSpans,
+    exportTrace: params.exportTrace,
+    name: "call-1",
+    outputSchema: OBS_TEST_MULTI_STAGE_CALL_1_OUTPUT_SCHEMA,
+    prompt: params.input,
+    schema: obsTestMultiStageCall1Schema,
+    schemaDescription: "Short phrase summary of the user input",
+    schemaName: OBS_TEST_MULTI_STAGE_CALL_1_SCHEMA_NAME,
+    stages,
+    systemPrompt: OBS_TEST_MULTI_STAGE_CALL_1_SYSTEM,
+    traceStart,
+    userId: params.userId,
+    workflowInput: params.input,
+  });
+  const call2Output = await runLlmObjectStage<ObsTestMultiStageCall2Output>({
+    aiService: params.aiService,
+    childSpans,
+    exportTrace: params.exportTrace,
+    name: "call-2",
+    outputSchema: OBS_TEST_MULTI_STAGE_CALL_2_OUTPUT_SCHEMA,
+    prompt: params.input,
+    schema: obsTestMultiStageCall2Schema,
+    schemaDescription: "Exactly two keywords from the user input",
+    schemaName: OBS_TEST_MULTI_STAGE_CALL_2_SCHEMA_NAME,
+    stages,
+    systemPrompt: OBS_TEST_MULTI_STAGE_CALL_2_SYSTEM,
+    traceStart,
+    userId: params.userId,
+    workflowInput: params.input,
+  });
 
-  const call1Output = await runLlmStage("call-1", OBS_TEST_MULTI_STAGE_CALL_1_SYSTEM);
-  const call2Output = await runLlmStage("call-2", OBS_TEST_MULTI_STAGE_CALL_2_SYSTEM);
-
+  const call1Text = call1Output.phrase;
+  const call2Text = call2Output.keywords.join(", ");
   const toolStartedAt = DateTime.now().toMillis();
   const toolOutput = {
-    call1: computeTextMetrics(call1Output),
-    call2: computeTextMetrics(call2Output),
-    combinedCharCount: call1Output.length + call2Output.length,
+    call1: computeTextMetrics(call1Text),
+    call2: computeTextMetrics(call2Text),
+    combinedCharCount: call1Text.length + call2Text.length,
   };
   const toolEndedAt = DateTime.now().toMillis();
   childSpans.push(
@@ -200,61 +269,25 @@ export const runTestMultiStageWorkflow = async (
   stages.push({name: "text-metrics", output: toolOutput, status: "ok"});
 
   const finalPrompt =
-    `Stage one phrase: ${call1Output}\n` +
-    `Stage two keywords: ${call2Output}\n` +
+    `Stage one phrase: ${call1Output.phrase}\n` +
+    `Stage two keywords: ${JSON.stringify(call2Output.keywords)}\n` +
     `Text metrics: ${JSON.stringify(toolOutput)}`;
-  const finalStartedAt = DateTime.now().toMillis();
-  let finalOutput = "";
-  try {
-    finalOutput = await params.aiService.generateText({
-      prompt: finalPrompt,
-      skipTrace: true,
-      systemPrompt: OBS_TEST_MULTI_STAGE_FINAL_SYSTEM,
-      temperature: TemperaturePresets.DETERMINISTIC,
-      userId: params.userId,
-    });
-    const finalEndedAt = DateTime.now().toMillis();
-    childSpans.push(
-      buildChildSpan({
-        endedAt: finalEndedAt,
-        input: finalPrompt,
-        kind: "LLM",
-        name: "final",
-        output: finalOutput,
-        startedAt: finalStartedAt,
-        status: "ok",
-        traceStart,
-      })
-    );
-    stages.push({name: "final", output: finalOutput, status: "ok"});
-  } catch (error) {
-    const finalEndedAt = DateTime.now().toMillis();
-    const message = error instanceof Error ? error.message : String(error);
-    childSpans.push(
-      buildChildSpan({
-        endedAt: finalEndedAt,
-        error: message,
-        input: finalPrompt,
-        kind: "LLM",
-        name: "final",
-        output: undefined,
-        startedAt: finalStartedAt,
-        status: "error",
-        traceStart,
-      })
-    );
-    stages.push({name: "final", status: "error"});
-    const trace = buildTrace({
-      childSpans,
-      errorSummary: message,
-      input: params.input,
-      status: "error",
-      traceStart,
-      userId: params.userId,
-    });
-    await params.exportTrace(trace);
-    throw error;
-  }
+  const finalOutput = await runLlmObjectStage<ObsTestMultiStageFinalOutput>({
+    aiService: params.aiService,
+    childSpans,
+    exportTrace: params.exportTrace,
+    name: "final",
+    outputSchema: OBS_TEST_MULTI_STAGE_FINAL_OUTPUT_SCHEMA,
+    prompt: finalPrompt,
+    schema: obsTestMultiStageFinalSchema,
+    schemaDescription: "Combined sentence plus echoed phrase, keywords, and metrics",
+    schemaName: OBS_TEST_MULTI_STAGE_FINAL_SCHEMA_NAME,
+    stages,
+    systemPrompt: OBS_TEST_MULTI_STAGE_FINAL_SYSTEM,
+    traceStart,
+    userId: params.userId,
+    workflowInput: params.input,
+  });
 
   const trace = buildTrace({
     childSpans,

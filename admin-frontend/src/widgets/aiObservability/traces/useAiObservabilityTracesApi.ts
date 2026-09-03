@@ -17,7 +17,12 @@ export interface TraceListQueryArgs extends TraceListFilters {
 }
 
 export interface TestMultiStageTraceResult {
-  output: string;
+  output: {
+    keywords: string[];
+    metrics: unknown;
+    phrase: string;
+    sentence: string;
+  };
   stages: Array<{name: string; output?: unknown; status: "error" | "ok"}>;
   traceId?: string;
 }

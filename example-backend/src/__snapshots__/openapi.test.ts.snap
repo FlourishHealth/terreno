@@ -9487,7 +9487,24 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "data": {
                       "properties": {
                         "output": {
-                          "type": "string",
+                          "properties": {
+                            "keywords": {
+                              "items": {
+                                "type": "string",
+                              },
+                              "type": "array",
+                            },
+                            "metrics": {
+                              "type": "object",
+                            },
+                            "phrase": {
+                              "type": "string",
+                            },
+                            "sentence": {
+                              "type": "string",
+                            },
+                          },
+                          "type": "object",
                         },
                         "stages": {
                           "items": {

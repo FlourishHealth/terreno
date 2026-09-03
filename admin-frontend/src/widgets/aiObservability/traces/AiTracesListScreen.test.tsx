@@ -63,7 +63,7 @@ const testMultiStageMutation = mock(() => ({
     if (multiStageShouldFail) {
       throw {data: {title: "AIService is not configured for observability"}};
     }
-    return {output: "combined", stages: [], traceId: "trace-multi-stage"};
+    return {output: {sentence: "combined"}, stages: [], traceId: "trace-multi-stage"};
   },
 }));
 

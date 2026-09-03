@@ -239,6 +239,27 @@ export interface GenerateJsonObjectOptions<OBJECT> extends GenerateObservability
   userId?: mongoose.Types.ObjectId;
 }
 
+export interface ObsTestMultiStageCall1Output {
+  phrase: string;
+}
+
+export interface ObsTestMultiStageCall2Output {
+  keywords: string[];
+}
+
+export interface ObsTestMultiStageMetrics {
+  call1: {charCount: number; wordCount: number};
+  call2: {charCount: number; wordCount: number};
+  combinedCharCount: number;
+}
+
+export interface ObsTestMultiStageFinalOutput {
+  keywords: string[];
+  metrics: ObsTestMultiStageMetrics;
+  phrase: string;
+  sentence: string;
+}
+
 export interface GenerateJsonArrayOptions<ELEMENT> extends GenerateObservabilityOptions {
   /** Schema for each array element. */
   element: import("ai").FlexibleSchema<ELEMENT>;

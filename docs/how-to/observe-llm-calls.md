@@ -63,6 +63,10 @@ Phase 1 admin ships **Prompts**, **Traces**, and **Review**. Datasets, Evaluator
 Experiments screens arrive in phase 2. **Open in Langfuse** appears in phase 3 when the
 Langfuse plugin is registered. Review is hidden when the local plugin is off.
 
+On **Traces**, **Run multi-stage trace test** (local sink only) runs two schema-backed
+`generateJsonObject` calls, a deterministic tool stage, and a final schema-backed combine
+call, then opens the nested trace. Each LLM span input includes `outputSchema`.
+
 ## Run the example locally
 
 1. Set `MONGO_URI` to a replica set and the auth secrets from

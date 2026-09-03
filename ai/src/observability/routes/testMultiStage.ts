@@ -37,7 +37,15 @@ export const addObservabilityTestMultiStageRoutes = (
         .withResponse(200, {
           data: {
             properties: {
-              output: {type: "string"},
+              output: {
+                properties: {
+                  keywords: {items: {type: "string"}, type: "array"},
+                  metrics: {type: "object"},
+                  phrase: {type: "string"},
+                  sentence: {type: "string"},
+                },
+                type: "object",
+              },
               stages: {
                 items: {
                   properties: {
