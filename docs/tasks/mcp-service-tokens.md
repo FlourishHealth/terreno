@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 4.1**.
+**Status:** Approved — frontier **Task 4.2**.
 
 ## Instructions for the implementing agent
 
@@ -77,7 +77,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ### Phase 4: Example-frontend settings UI
 
-- [ ] **Task 4.1**: SDK codegen for service-token routes
+- [x] **Task 4.1**: SDK codegen for service-token routes
   - Delivers: regenerated `openApiSdk` hooks for POST/GET/DELETE `/mcp/service-tokens`
   - Files: `example-frontend/store/openApiSdk.ts` (generated), `example-frontend/openapi-config.ts` (only if path filter needed)
   - Blocked by: Task 2.1
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1. Current: **Task 4.1**.
+Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 4.1. Current: **Task 4.2**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3

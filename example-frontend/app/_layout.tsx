@@ -298,6 +298,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="resetPassword" />
       <Stack.Screen name="verifyEmail" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 
