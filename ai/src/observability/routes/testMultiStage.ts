@@ -42,8 +42,7 @@ export const addObservabilityTestMultiStageRoutes = (
                 items: {
                   properties: {
                     name: {type: "string"},
-                    output: {},
-                    status: {enum: ["error", "ok"], type: "string"},
+                    status: {type: "string"},
                   },
                   type: "object",
                 },
