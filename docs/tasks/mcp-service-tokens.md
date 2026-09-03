@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 4.2**.
+**Status:** Approved — frontier **Task 5.1**.
 
 ## Instructions for the implementing agent
 
@@ -84,7 +84,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Skills: `generate-sdk`
   - Acceptance: TypeScript compiles; hooks callable from settings screen
 
-- [ ] **Task 4.2**: `/settings/mcp` screen
+- [x] **Task 4.2**: `/settings/mcp` screen
   - Delivers: create form (name, optional expiry), copy-once modal (URL + token + JSON snippet), list with revoke, link from Profile
   - Files: `example-frontend/app/settings/_layout.tsx`, `example-frontend/app/settings/mcp.tsx`, `example-frontend/app/(tabs)/profile.tsx`
   - Blocked by: Task 4.1
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 4.1. Current: **Task 4.2**.
+Completed: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2. Current: **Task 5.1**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3

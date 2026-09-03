@@ -48,9 +48,17 @@ to work while clients migrate.
 
 ### 3. Call the tools
 
-Point any MCP client at `POST /mcp` with the user's `Authorization: Bearer <token>` header. Both JWT and Better Auth sessions are accepted; the resolved user is what the permission checks run against, so an LLM can never see more than that user could see over REST. For a static key that is not a session JWT, enable `mcpServiceTokens` and follow [Connect an MCP client with a service token](connect-mcp-service-token.md).
+Point any MCP client at `POST /mcp`. Auth order on the Bearer header is:
 
-Authentication is required by default, matching REST. A tool call with no resolvable user is refused before any permission check unless the model router sets `allowAnonymous: true` — the same flag REST passes to `authenticateMiddleware`. That matters for read-only helpers like `IsAuthenticatedOrReadOnly`, which would otherwise pass for an anonymous `list`. Disabled accounts are refused too, as they are over HTTP.
+1. `mcp_…` service token, when `mcpServiceTokens` is enabled
+2. Better Auth session
+3. JWT
+
+The resolved user is what permission checks run against, so an LLM never sees more than that user could see over REST. Mint and paste a static key with [Connect an MCP client with a service token](connect-mcp-service-token.md).
+
+`initialize` and `tools/list` are the unauthenticated catalog. Identity is enforced on `tools/call`. GET `/mcp` is Streamable HTTP **405** (`Method not allowed.`) — there is no GET SSE stream; Perplexity still uses that 405 as a successful probe.
+
+Authentication is required by default, matching REST. A tool call with no resolvable user is refused before any permission check unless the model router sets `allowAnonymous: true` — the same flag REST passes to `authenticateMiddleware`. That matters for read-only helpers like `IsAuthenticatedOrReadOnly`, which would otherwise pass for an anonymous `list`. Disabled accounts are refused too, as they are over HTTP. Service tokens are MCP-only: they are rejected on `/mcp/service-tokens` and are not accepted on REST, sync, or admin.
 
 To run the same tools in-process (for example inside a chat route), use `getMCPTools`:
 
