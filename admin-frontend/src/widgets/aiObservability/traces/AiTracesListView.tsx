@@ -201,7 +201,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   return (
     <Box gap={3} testID="ai-traces-list">
       <Box direction="row" gap={3} justifyContent="between" wrap>
-        <Box gap={1}>
+        <Box flex="grow" gap={1} maxWidth="100%" minWidth={0}>
           <Text bold>Trace smoke test</Text>
           <Text color="secondaryDark" size="sm">
             Runs two GPT calls, a tool stage, and a final combining GPT call as one nested trace.
