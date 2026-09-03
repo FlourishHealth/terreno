@@ -33,14 +33,60 @@ describe("McpServiceToken", () => {
       {expiresAt: DateTime.now().minus({minute: 1}).toJSDate(), name: "Expired"}
     );
 
-    await McpServiceToken.revokeForUser({_id: userId}, revoked.mcpServiceToken._id);
+    const revokedToken = await McpServiceToken.revokeForUser(
+      {_id: userId},
+      revoked.mcpServiceToken._id
+    );
 
     assert.equal(
       (await McpServiceToken.verify(active.token))?._id.toString(),
       active.mcpServiceToken._id.toString()
     );
+    assert.isDefined(revokedToken?.revokedAt);
     assert.isNull(await McpServiceToken.verify(revoked.token));
     assert.isNull(await McpServiceToken.verify(expired.token));
+    assert.isNull(await McpServiceToken.verify("mcp_unknown"));
+  });
+
+  it("allows only the owner to revoke an active token once", async () => {
+    const ownerId = new mongoose.Types.ObjectId();
+    const otherUserId = new mongoose.Types.ObjectId();
+    const issued = await McpServiceToken.issueFor({_id: ownerId}, {name: "Owner token"});
+
+    assert.isNull(
+      await McpServiceToken.revokeForUser({_id: otherUserId}, issued.mcpServiceToken._id)
+    );
+
+    const revoked = await McpServiceToken.revokeForUser({_id: ownerId}, issued.mcpServiceToken._id);
+    assert.equal(revoked?._id.toString(), issued.mcpServiceToken._id.toString());
+    assert.instanceOf(revoked?.revokedAt, Date);
+
+    assert.isNull(await McpServiceToken.revokeForUser({_id: ownerId}, issued.mcpServiceToken._id));
+    assert.isNull(
+      await McpServiceToken.revokeForUser({_id: ownerId}, new mongoose.Types.ObjectId())
+    );
+  });
+
+  it("enforces unique token hashes", async () => {
+    const tokenHash = "same-hash";
+    const tokenFields = {
+      name: "Duplicate",
+      tokenHash,
+      tokenPrefix: "duplicate",
+      userId: new mongoose.Types.ObjectId(),
+    };
+
+    await McpServiceToken.create(tokenFields);
+
+    let error: unknown;
+    try {
+      await McpServiceToken.create(tokenFields);
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    assert.instanceOf(error, Error);
+    assert.match(error.message, /duplicate key/i);
   });
 
   it("counts only active tokens for a user", async () => {
