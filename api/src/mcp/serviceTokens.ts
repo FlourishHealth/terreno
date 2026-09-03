@@ -2,7 +2,7 @@ import type {Application, NextFunction, Request, Response} from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
-import {asyncHandler} from "../api";
+import {asyncHandler, type OpenApiMiddleware} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {BadRequestError, NotFoundError, UnauthorizedError} from "../errors";
 import {McpServiceToken} from "../models/mcpServiceToken";
@@ -15,6 +15,7 @@ const DEFAULT_LIST_LIMIT = 100;
 const MAX_LIST_LIMIT = 100;
 
 export interface McpServiceTokenRoutesOptions {
+  openApi?: OpenApiMiddleware;
   publicMcpUrl?: string;
 }
 
@@ -123,15 +124,27 @@ const toListItem = (doc: McpServiceTokenDocument): Record<string, unknown> => {
 
 const serviceTokenGuards = [rejectMcpServiceTokenBearer, authenticateMiddleware()];
 
+const createdTokenFields = {
+  created: {type: "string"},
+  expiresAt: {type: "string"},
+  id: {type: "string"},
+  mcpUrl: {type: "string"},
+  name: {type: "string"},
+  token: {type: "string"},
+  tokenPrefix: {type: "string"},
+};
+
 export const addMcpServiceTokenRoutes = (
   app: Application,
   options: McpServiceTokenRoutesOptions = {}
 ): void => {
+  const openApiOptions = {openApi: options.openApi};
+
   app.post(
     "/mcp/service-tokens",
     [
       ...serviceTokenGuards,
-      createOpenApiBuilder({})
+      createOpenApiBuilder(openApiOptions)
         .withTags(["mcp"])
         .withOperationId("createMcpServiceToken")
         .withSummary("Create an MCP service token")
@@ -150,13 +163,10 @@ export const addMcpServiceTokenRoutes = (
           },
         })
         .withResponse(200, {
-          created: {type: "string"},
-          expiresAt: {type: "string"},
-          id: {type: "string"},
-          mcpUrl: {type: "string"},
-          name: {type: "string"},
-          token: {type: "string"},
-          tokenPrefix: {type: "string"},
+          data: {
+            properties: createdTokenFields,
+            type: "object",
+          },
         })
         .build(),
     ],
@@ -193,7 +203,7 @@ export const addMcpServiceTokenRoutes = (
     "/mcp/service-tokens",
     [
       ...serviceTokenGuards,
-      createOpenApiBuilder({})
+      createOpenApiBuilder(openApiOptions)
         .withTags(["mcp"])
         .withOperationId("listMcpServiceTokens")
         .withSummary("List MCP service tokens")
@@ -237,15 +247,20 @@ export const addMcpServiceTokenRoutes = (
     "/mcp/service-tokens/:id",
     [
       ...serviceTokenGuards,
-      createOpenApiBuilder({})
+      createOpenApiBuilder(openApiOptions)
         .withTags(["mcp"])
         .withOperationId("revokeMcpServiceToken")
         .withSummary("Revoke an MCP service token")
         .withDescription("Sets revokedAt on a token owned by the signed-in user.")
         .withPathParameter("id", {type: "string"})
         .withResponse(200, {
-          id: {type: "string"},
-          revokedAt: {type: "string"},
+          data: {
+            properties: {
+              id: {type: "string"},
+              revokedAt: {type: "string"},
+            },
+            type: "object",
+          },
         })
         .build(),
     ],

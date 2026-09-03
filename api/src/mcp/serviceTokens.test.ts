@@ -6,9 +6,10 @@ import mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {addAuthRoutes, setupAuth} from "../auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "../auth";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {McpServiceToken} from "../models/mcpServiceToken";
+import {TerrenoApp} from "../terrenoApp";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {addMcpServiceTokenRoutes, MAX_ACTIVE_MCP_SERVICE_TOKENS} from "./serviceTokens";
 
@@ -154,5 +155,35 @@ describe("MCP service token routes", () => {
       `/mcp/service-tokens/${new mongoose.Types.ObjectId().toString()}`
     );
     assert.equal(res.status, 404);
+  });
+});
+
+describe("MCP service token OpenAPI", () => {
+  it("documents create, list, and revoke on /openapi.json", async () => {
+    const app = new TerrenoApp({
+      configureApp: (router, options) => {
+        addMcpServiceTokenRoutes(router, {
+          openApi: options?.openApi,
+          publicMcpUrl: PUBLIC_MCP_URL,
+        });
+      },
+      skipListen: true,
+      userModel: UserModel as unknown as AuthUserModel,
+    }).build();
+
+    const res = await supertest(app).get("/openapi.json");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.paths["/mcp/service-tokens"].post.operationId, "createMcpServiceToken");
+    assert.equal(res.body.paths["/mcp/service-tokens"].get.operationId, "listMcpServiceTokens");
+    assert.equal(
+      res.body.paths["/mcp/service-tokens/{id}"].delete.operationId,
+      "revokeMcpServiceToken"
+    );
+    assert.equal(
+      res.body.paths["/mcp/service-tokens"].post.responses["200"].content["application/json"].schema
+        .properties.data.type,
+      "object"
+    );
   });
 });
