@@ -457,7 +457,7 @@ describe("array operation errors", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => undefined as unknown as Food,
+        preUpdate: () => null,
       })
     );
     _server = supertest(app);
@@ -673,7 +673,7 @@ describe("array operation with undefined preUpdate return", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => undefined as unknown as Food,
+        preUpdate: () => null,
       })
     );
     _server = supertest(app);
