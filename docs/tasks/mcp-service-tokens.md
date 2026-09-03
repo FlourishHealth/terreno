@@ -25,7 +25,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Skills: `mongoose-schema-safety`, `terreno-backend-api`
   - Acceptance: `issueFor` returns plaintext once; `verify` finds active token; respects `revokedAt` and `expiresAt`; `countActiveForUser` correct; duplicate hash impossible
 
-- [ ] **Task 1.2**: Service token branch in `extractUserFromHeaders`
+- [x] **Task 1.2**: Service token branch in `extractUserFromHeaders`
   - Delivers: when `mcpServiceTokens` enabled and bearer starts with `mcp_`, resolve user via model verify; update `lastUsedAt`; order before Better Auth and JWT
   - Files: `api/src/mcp/auth.ts`, `api/src/mcp/auth.test.ts`, `api/src/mcp/types.ts` (extend `MCPAuthContext` if needed)
   - Blocked by: Task 1.1
