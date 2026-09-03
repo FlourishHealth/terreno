@@ -64,6 +64,7 @@ const idleHandlers = {
   onOpenAddToDataset: () => undefined,
   onOpenTrace: () => undefined,
   onPageChange: () => undefined,
+  onRunTestMultiStage: () => undefined,
   onToggleSelect: () => undefined,
 };
 
@@ -90,6 +91,31 @@ describe("AiTracesListView", () => {
     );
     expect(getByTestId("ai-traces-empty")).toBeTruthy();
     expect(getByText("No traces match these filters.")).toBeTruthy();
+  });
+
+  it("runs the multi-stage trace smoke action", async () => {
+    const onRunTestMultiStage = mock(() => undefined);
+    const {getByTestId} = renderWithTheme(
+      <AiTracesListView
+        {...datasetDefaults}
+        evaluatorId=""
+        evaluators={[]}
+        filters={emptyTraceFilters()}
+        page={1}
+        selectedIds={[]}
+        total={0}
+        traces={[]}
+        {...idleHandlers}
+        onRunTestMultiStage={onRunTestMultiStage}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-traces-run-multi-stage"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    assert.equal(onRunTestMultiStage.mock.calls.length, 1);
   });
 
   it("renders an error row with the error line and prompt count", () => {
@@ -277,6 +303,7 @@ describe("AiTracesListView", () => {
         onOpenAddToDataset={() => undefined}
         onOpenTrace={onOpenTrace}
         onPageChange={() => undefined}
+        onRunTestMultiStage={() => undefined}
         onToggleSelect={() => undefined}
         page={1}
         selectedIds={[]}

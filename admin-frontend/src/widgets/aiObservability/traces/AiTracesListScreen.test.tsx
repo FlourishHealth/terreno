@@ -38,6 +38,7 @@ let listState = {
 
 let enqueueShouldFail = false;
 let addTracesShouldFail = false;
+let multiStageShouldFail = false;
 
 const enqueueMutation = mock(() => ({
   unwrap: async () => {
@@ -54,6 +55,15 @@ const addTracesMutation = mock(() => ({
       throw new Error("add failed");
     }
     return {created: 1};
+  },
+}));
+
+const testMultiStageMutation = mock(() => ({
+  unwrap: async () => {
+    if (multiStageShouldFail) {
+      throw {data: {title: "AIService is not configured for observability"}};
+    }
+    return {output: "combined", stages: [], traceId: "trace-multi-stage"};
   },
 }));
 
@@ -98,6 +108,10 @@ const injectedHooks = {
     enqueueMutation,
     {isError: false, isLoading: false},
   ],
+  useRunAiObservabilityTestMultiStageMutation: () => [
+    testMultiStageMutation,
+    {isError: false, isLoading: false},
+  ],
 };
 
 const stableApi: AdminApi = {
@@ -127,6 +141,34 @@ describe("AiTracesScreenWidget", () => {
     };
     const loadedView = renderWithTheme(<AiTracesScreenWidget {...widgetProps} />);
     expect(loadedView.getByTestId("ai-traces-table")).toBeTruthy();
+  });
+
+  it("runs a multi-stage trace and opens its detail", async () => {
+    multiStageShouldFail = false;
+    routerPush.mockClear();
+    const view = renderWithTheme(<AiTracesScreenWidget {...widgetProps} />);
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-run-multi-stage"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    assert.equal(testMultiStageMutation.mock.calls.length, 1);
+    assert.include(String(routerPush.mock.calls[0]?.[0]), "trace-multi-stage");
+  });
+
+  it("shows the multi-stage endpoint error", async () => {
+    multiStageShouldFail = true;
+    const view = renderWithTheme(<AiTracesScreenWidget {...widgetProps} />);
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-run-multi-stage"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(view.getByTestId("ai-traces-multi-stage-error")).toHaveTextContent(
+      "AIService is not configured"
+    );
   });
 
   it("selects traces, enqueues review, and adds to a dataset", async () => {

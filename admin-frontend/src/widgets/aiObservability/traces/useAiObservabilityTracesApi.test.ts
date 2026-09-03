@@ -38,6 +38,7 @@ const createApiDouble = () => {
         useAiObservabilityTraceQuery: mock(() => ({isLoading: false})),
         useAiObservabilityTracesQuery: mock(() => ({isLoading: false})),
         useEnqueueAiObservabilityReviewMutation: mock(() => [mock(() => ({})), {}]),
+        useRunAiObservabilityTestMultiStageMutation: mock(() => [mock(() => ({})), {}]),
       };
     },
   } as unknown as AdminApi;
@@ -99,6 +100,11 @@ describe("useAiObservabilityTracesApi", () => {
       method: "POST",
       url: "/ai/observability/traces/review",
     });
+    expect(endpoints.runAiObservabilityTestMultiStage.query({} as never)).toEqual({
+      body: {input: "Compare two perspectives on local-first AI observability."},
+      method: "POST",
+      url: "/ai/observability/traces/test-multi-stage",
+    });
   });
 
   it("exposes trace hooks for list and detail screens", () => {
@@ -108,5 +114,6 @@ describe("useAiObservabilityTracesApi", () => {
     expect(typeof result.current.useDetailQuery).toBe("function");
     expect(typeof result.current.useEvaluatorsQuery).toBe("function");
     expect(typeof result.current.useEnqueueReviewMutation).toBe("function");
+    expect(typeof result.current.useTestMultiStageMutation).toBe("function");
   });
 });

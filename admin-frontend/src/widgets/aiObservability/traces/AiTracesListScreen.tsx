@@ -16,7 +16,7 @@ import {useAiObservabilityTracesApi} from "./useAiObservabilityTracesApi";
 
 export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
   const {api, routeBase} = props;
-  const {useEnqueueReviewMutation, useEvaluatorsQuery, useListQuery} =
+  const {useEnqueueReviewMutation, useEvaluatorsQuery, useListQuery, useTestMultiStageMutation} =
     useAiObservabilityTracesApi(api);
   const {useAddTracesMutation, useListQuery: useDatasetsQuery} = useAiObservabilityDatasetsApi(api);
   const [filters, setFilters] = useState<TraceListFilters>(emptyTraceFilters);
@@ -27,6 +27,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const [datasetModalOpen, setDatasetModalOpen] = useState(false);
   const [datasetId, setDatasetId] = useState("");
   const [addToDatasetError, setAddToDatasetError] = useState("");
+  const [multiStageError, setMultiStageError] = useState("");
 
   const {data, isError, isLoading} = useListQuery({
     ...filters,
@@ -37,6 +38,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const {data: datasetsRaw} = useDatasetsQuery();
   const [enqueueReview, enqueueState] = useEnqueueReviewMutation();
   const [addTraces, addTracesState] = useAddTracesMutation();
+  const [runTestMultiStage, testMultiStageState] = useTestMultiStageMutation();
 
   const listed = useMemo(() => unwrapTraceList(data), [data]);
   const evaluators = useMemo(() => unwrapEvaluators(evaluatorsRaw), [evaluatorsRaw]);
@@ -123,6 +125,24 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
     }
   }, [addTraces, datasetId, selectedIds]);
 
+  const handleRunTestMultiStage = useCallback(async (): Promise<void> => {
+    setMultiStageError("");
+    try {
+      const result = await runTestMultiStage().unwrap();
+      if (!result.traceId) {
+        setMultiStageError("The workflow ran, but no local trace id was returned.");
+        return;
+      }
+      router.push(`${prefix}/ai-trace-detail?id=${encodeURIComponent(result.traceId)}`);
+    } catch (error) {
+      const title =
+        error && typeof error === "object" && "data" in error
+          ? (error as {data?: {title?: string}}).data?.title
+          : undefined;
+      setMultiStageError(title ?? "Could not run the multi-stage trace test.");
+    }
+  }, [prefix, runTestMultiStage]);
+
   return (
     <AiObservabilityChrome {...props} screenName="ai-traces">
       <AiTracesListView
@@ -137,7 +157,9 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         isAddingToDataset={addTracesState.isLoading}
         isEnqueueing={enqueueState.isLoading}
         isLoading={isLoading}
+        isRunningMultiStage={testMultiStageState.isLoading}
         more={listed.more}
+        multiStageError={multiStageError}
         onAddToDataset={handleAddToDataset}
         onClearSelection={handleClearSelection}
         onDatasetChange={setDatasetId}
@@ -150,6 +172,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         onOpenAddToDataset={handleOpenAddToDataset}
         onOpenTrace={handleOpenTrace}
         onPageChange={setPage}
+        onRunTestMultiStage={handleRunTestMultiStage}
         onToggleSelect={handleToggleSelect}
         page={page}
         pageSize={listed.limit}

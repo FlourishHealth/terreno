@@ -8,10 +8,17 @@ const LIST_KEY = "aiObservabilityTraces";
 const DETAIL_KEY = "aiObservabilityTrace";
 const EVALUATORS_KEY = "aiObservabilityEvaluators";
 const REVIEW_KEY = "enqueueAiObservabilityReview";
+const TEST_MULTI_STAGE_KEY = "runAiObservabilityTestMultiStage";
 
 export interface TraceListQueryArgs extends TraceListFilters {
   limit?: number;
   page?: number;
+}
+
+export interface TestMultiStageTraceResult {
+  output: string;
+  stages: Array<{name: string; output?: unknown; status: "error" | "ok"}>;
+  traceId?: string;
 }
 
 const listParams = (args: TraceListQueryArgs): Record<string, unknown> => {
@@ -86,6 +93,14 @@ const createTracesApi = (api: AdminApi) => {
           url: "/ai/observability/traces/review",
         }),
       }),
+      [TEST_MULTI_STAGE_KEY]: build.mutation({
+        invalidatesTags: ["aiObservabilityTraces"],
+        query: () => ({
+          body: {input: "Compare two perspectives on local-first AI observability."},
+          method: "POST",
+          url: "/ai/observability/traces/test-multi-stage",
+        }),
+      }),
     }),
     overrideExisting: true,
   });
@@ -126,5 +141,9 @@ export const useAiObservabilityTracesApi = (api: AdminApi) => {
       isLoading: boolean;
       refetch: () => void;
     },
+    useTestMultiStageMutation: hooks.useRunAiObservabilityTestMultiStageMutation as () => [
+      () => {unwrap: () => Promise<TestMultiStageTraceResult>},
+      {isError: boolean; isLoading: boolean},
+    ],
   };
 };

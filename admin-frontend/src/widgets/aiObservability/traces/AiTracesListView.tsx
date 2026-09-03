@@ -58,7 +58,9 @@ export interface AiTracesListViewProps {
   isAddingToDataset?: boolean;
   isEnqueueing?: boolean;
   isLoading?: boolean;
+  isRunningMultiStage?: boolean;
   more?: boolean;
+  multiStageError?: string;
   onAddToDataset: () => void;
   onClearSelection: () => void;
   onDatasetChange: (id: string) => void;
@@ -69,6 +71,7 @@ export interface AiTracesListViewProps {
   onOpenAddToDataset: () => void;
   onOpenTrace: (id: string) => void;
   onPageChange: (page: number) => void;
+  onRunTestMultiStage: () => void;
   onToggleSelect: (id: string) => void;
   page: number;
   pageSize?: number;
@@ -99,7 +102,9 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   isAddingToDataset,
   isEnqueueing,
   isLoading,
+  isRunningMultiStage,
   more,
+  multiStageError,
   onAddToDataset,
   onClearSelection,
   onDatasetChange,
@@ -110,6 +115,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   onOpenAddToDataset,
   onOpenTrace,
   onPageChange,
+  onRunTestMultiStage,
   onToggleSelect,
   page,
   pageSize = 20,
@@ -194,6 +200,26 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
 
   return (
     <Box gap={3} testID="ai-traces-list">
+      <Box direction="row" gap={3} justifyContent="between" wrap>
+        <Box gap={1}>
+          <Text bold>Trace smoke test</Text>
+          <Text color="secondaryDark" size="sm">
+            Runs two GPT calls, a tool stage, and a final combining GPT call as one nested trace.
+          </Text>
+        </Box>
+        <Button
+          loading={isRunningMultiStage}
+          onClick={onRunTestMultiStage}
+          testID="ai-traces-run-multi-stage"
+          text="Run multi-stage trace test"
+          variant="secondary"
+        />
+      </Box>
+      {multiStageError ? (
+        <Text color="error" testID="ai-traces-multi-stage-error">
+          {multiStageError}
+        </Text>
+      ) : undefined}
       <Box gap={2} testID="ai-traces-filters">
         <Box direction="row" gap={2} testID="ai-traces-time-filters" wrap>
           <Box flex="grow" minWidth={320}>
