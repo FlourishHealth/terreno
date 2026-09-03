@@ -29,6 +29,11 @@ export {
 export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
 export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
 export {
+  addMcpServiceTokenRoutes,
+  MAX_ACTIVE_MCP_SERVICE_TOKENS,
+  type McpServiceTokenRoutesOptions,
+} from "./mcp/serviceTokens";
+export {
   generateAllTools,
   generateToolsForEntry,
   getAllMCPTools,
