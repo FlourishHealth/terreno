@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 2.2**.
+**Status:** Approved — frontier **Task 2.3**.
 
 ## Instructions for the implementing agent
 
@@ -45,7 +45,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Skills: `terreno-backend-api`, `update-docs`
   - Acceptance: supertest covers happy path, cap, owner isolation, create response includes `mcpUrl` + one-time `token`; list omits hash and plaintext
 
-- [ ] **Task 2.2**: `TerrenoAppOptions.mcpServiceTokens`
+- [x] **Task 2.2**: `TerrenoAppOptions.mcpServiceTokens`
   - Delivers: `{enabled, publicMcpUrl?}` or boolean shorthand; mounts routes when enabled; passes flag into `MCPAuthContext`
   - Files: `api/src/terrenoApp.ts`, `api/src/terrenoApp.test.ts` (or service token integration test)
   - Blocked by: Task 1.2, Task 2.1
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1. Current: **Task 2.2**.
+Completed: 1.1, 1.2, 2.1, 2.2. Current: **Task 2.3**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3

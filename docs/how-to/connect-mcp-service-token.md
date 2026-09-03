@@ -35,7 +35,13 @@ The JSON `data.token` value is shown **once**. List and revoke never return it. 
 
 ## 3. Call `/mcp`
 
+Perplexity probes with GET, then initializes with POST. Use the same Bearer for both.
+
 ```bash
+curl -X GET "$API/mcp" \
+  -H "Authorization: Bearer mcp_…" \
+  -H "Accept: application/json, text/event-stream"
+
 curl -X POST "$API/mcp" \
   -H "Authorization: Bearer mcp_…" \
   -H "Accept: application/json, text/event-stream" \
