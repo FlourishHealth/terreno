@@ -1,20 +1,28 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {
+  authAsUser,
+  type Food,
+  type FoodCategory,
+  FoodModel,
+  getBaseServer,
+  setupDb,
+  UserModel,
+} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
+
+type TestUser = Awaited<ReturnType<typeof setupDb>>[number];
 
 describe("model array operations", () => {
   let _server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: TestUser;
   let spinach: Food;
   let apple: Food;
   let agent: TestAgent;
@@ -56,8 +64,8 @@ describe("model array operations", () => {
     ]);
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
@@ -197,8 +205,12 @@ describe("model array operations", () => {
       .expect(200);
 
     // Verify the updated category has a newer timestamp
-    const updatedCategory = res.body.data.categories.find((c: any) => c._id === firstCategoryId);
-    const unchangedCategory = res.body.data.categories.find((c: any) => c._id === secondCategoryId);
+    const updatedCategory = res.body.data.categories.find(
+      (c: FoodCategory) => c._id === firstCategoryId
+    );
+    const unchangedCategory = res.body.data.categories.find(
+      (c: FoodCategory) => c._id === secondCategoryId
+    );
 
     if (!updatedCategory || !unchangedCategory) {
       throw new Error("Failed to find categories in response");
@@ -213,13 +225,13 @@ describe("model array operations", () => {
   });
 
   it("array operations call postUpdate with different copy of document", async () => {
-    let postUpdateDoc: any;
-    let postUpdatePrevDoc: any;
+    let postUpdateDoc: Food | undefined;
+    let postUpdatePrevDoc: Food | undefined;
     let postUpdateCalled = false;
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
@@ -231,7 +243,7 @@ describe("model array operations", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        postUpdate: async (doc: any, _cleanedBody: any, _request: any, prevValue: any) => {
+        postUpdate: async (doc, _cleanedBody, _request, prevValue) => {
           postUpdateDoc = doc;
           postUpdatePrevDoc = prevValue;
           postUpdateCalled = true;
@@ -282,10 +294,10 @@ describe("model array operations", () => {
 
     // Verify the content is different (category updated)
     const updatedCategory = postUpdateDoc.categories.find(
-      (c: any) => c._id.toString() === categoryId.toString()
+      (c: FoodCategory) => c._id.toString() === categoryId.toString()
     );
     const prevCategory = postUpdatePrevDoc.categories.find(
-      (c: any) => c._id.toString() === categoryId.toString()
+      (c: FoodCategory) => c._id.toString() === categoryId.toString()
     );
 
     expect(updatedCategory.name).toBe("Updated Category");
@@ -308,10 +320,10 @@ describe("model array operations", () => {
 
     // Verify the content is different (category removed)
     const remainingCategories = postUpdateDoc.categories.filter(
-      (c: any) => c._id.toString() === categoryId.toString()
+      (c: FoodCategory) => c._id.toString() === categoryId.toString()
     );
     const prevCategories = postUpdatePrevDoc.categories.filter(
-      (c: any) => c._id.toString() === categoryId.toString()
+      (c: FoodCategory) => c._id.toString() === categoryId.toString()
     );
 
     expect(remainingCategories).toHaveLength(0);
@@ -319,13 +331,13 @@ describe("model array operations", () => {
   });
 
   it("array operations with string arrays call postUpdate with different copy", async () => {
-    let postUpdateDoc: any;
-    let postUpdatePrevDoc: any;
+    let postUpdateDoc: Food | undefined;
+    let postUpdatePrevDoc: Food | undefined;
     let postUpdateCalled = false;
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
@@ -337,7 +349,7 @@ describe("model array operations", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        postUpdate: async (doc: any, _cleanedBody: any, _request: any, prevValue: any) => {
+        postUpdate: async (doc, _cleanedBody, _request, prevValue) => {
           postUpdateDoc = doc;
           postUpdatePrevDoc = prevValue;
           postUpdateCalled = true;
@@ -385,7 +397,7 @@ describe("model array operations", () => {
 describe("array operation errors", () => {
   let _server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: TestUser;
   let apple: Food;
   let agent: TestAgent;
 
@@ -406,8 +418,8 @@ describe("array operation errors", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
   });
 
   it("array operation preUpdate returning undefined throws error", async () => {
@@ -422,7 +434,7 @@ describe("array operation errors", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => undefined as any,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     _server = supertest(app);
@@ -445,7 +457,7 @@ describe("array operation errors", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => null,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     _server = supertest(app);
@@ -601,7 +613,7 @@ describe("array operation errors", () => {
 describe("array operation with undefined preUpdate return", () => {
   let _server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: TestUser;
   let apple: Food;
   let agent: TestAgent;
 
@@ -622,8 +634,8 @@ describe("array operation with undefined preUpdate return", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
   });
 
   it("array operation preUpdate returning undefined for array POST throws error", async () => {
@@ -638,7 +650,7 @@ describe("array operation with undefined preUpdate return", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => undefined as any,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     _server = supertest(app);
@@ -661,7 +673,7 @@ describe("array operation with undefined preUpdate return", () => {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
-        preUpdate: () => null,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     _server = supertest(app);

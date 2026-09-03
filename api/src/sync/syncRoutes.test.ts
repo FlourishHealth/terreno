@@ -1,12 +1,10 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {model, Schema, Types} from "mongoose";
+import {type Model, model, Schema, Types} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {type ModelRouterOptions, modelRouter} from "../api";
-import {addAuthRoutes, setupAuth} from "../auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "../auth";
 import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
@@ -69,6 +67,17 @@ routeBannerSchema.plugin(createdUpdatedPlugin);
 routeBannerSchema.plugin(syncPlugin);
 const RouteBannerModel = model<RouteBanner>("SyncRouteBanner", routeBannerSchema);
 
+interface SnapshotEntity {
+  id: string;
+  seq: number;
+  data: {name: string};
+}
+
+interface MutationResult {
+  type: string;
+  ack: {seq: number};
+}
+
 const authedOptions = {
   permissions: {
     create: [Permissions.IsAuthenticated],
@@ -77,7 +86,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 const adminOnlyOptions = {
   permissions: {
@@ -87,7 +96,7 @@ const adminOnlyOptions = {
     read: [Permissions.IsAdmin],
     update: [Permissions.IsAdmin],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 // The shared test database can be dropped by another test file mid-suite
 // (configurationPlugin.test.ts drops it in an afterAll); rebuild the unique indexes the
@@ -116,13 +125,13 @@ describe("sync routes", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: RouteStuffModel as any,
+      model: RouteStuffModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/routeStuff",
     });
     registerSync({
       config: {scope: {field: "orgId", type: "tenant"}},
-      model: RouteProjectModel as any,
+      model: RouteProjectModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/routeProjects",
     });
@@ -136,8 +145,8 @@ describe("sync routes", () => {
     ]);
 
     app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({
       getUserScopes: () => ["org1"],
     }).register(app);
@@ -193,7 +202,7 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
@@ -217,8 +226,11 @@ describe("sync routes", () => {
         .expect(200);
       expect(res.body.stream).toBe(ownerStream());
       expect(res.body.entities).toHaveLength(2);
-      expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["mine 1", "mine 2"]);
-      expect(res.body.entities.map((e: any) => e.seq)).toEqual([1, 2]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.data.name)).toEqual([
+        "mine 1",
+        "mine 2",
+      ]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.seq)).toEqual([1, 2]);
       expect(res.body.cursor).toBe(2);
       expect(res.body.hasMore).toBe(false);
       // C1/C7 response fields present.
@@ -244,8 +256,8 @@ describe("sync routes", () => {
         .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}&cursor=${cursor}`)
         .expect(200);
       expect(res.body.entities).toHaveLength(2);
-      const updated = res.body.entities.find((e: any) => e.id === String(doc1._id));
-      const tombstone = res.body.entities.find((e: any) => e.id === String(doc2._id));
+      const updated = res.body.entities.find((e: SnapshotEntity) => e.id === String(doc1._id));
+      const tombstone = res.body.entities.find((e: SnapshotEntity) => e.id === String(doc2._id));
       expect(updated.data.name).toBe("first updated");
       expect(updated.deleted).toBe(false);
       expect(tombstone.deleted).toBe(true);
@@ -276,7 +288,7 @@ describe("sync routes", () => {
       expect(page3.body.hasMore).toBe(false);
 
       const names = [...page1.body.entities, ...page2.body.entities, ...page3.body.entities].map(
-        (e: any) => e.data.name
+        (e: SnapshotEntity) => e.data.name
       );
       expect(names).toEqual(["item 1", "item 2", "item 3", "item 4", "item 5"]);
     });
@@ -304,8 +316,8 @@ describe("sync routes", () => {
 
     it("500s for tenant collections when no getUserScopes resolver is configured", async () => {
       const bareApp = getBaseServer();
-      setupAuth(bareApp as any, UserModel as any);
-      addAuthRoutes(bareApp as any, UserModel as any);
+      setupAuth(bareApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(bareApp, UserModel as unknown as AuthUserModel);
       new SyncApp().register(bareApp);
       const bareAgent = await authAsUser(bareApp, "notAdmin");
       await bareAgent.get("/sync/snapshot?stream=routeProjects%7Ctenant%3Aorg1").expect(500);
@@ -315,10 +327,10 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {
-          responseHandler: (doc) => ({redactedName: `x-${(doc as any).name}`}),
+          responseHandler: (doc) => ({redactedName: `x-${(doc as RouteStuff).name}`}),
           scope: {type: "owner"},
         },
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/routeStuff",
       });
@@ -500,7 +512,7 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
@@ -556,13 +568,13 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: {
           ...authedOptions,
           preCreate: () => {
             throw new APIError({status: 500, title: "database exploded"});
           },
-        } as unknown as ModelRouterOptions<any>,
+        } as unknown as ModelRouterOptions<unknown>,
         routePath: "/routeStuff",
       });
       const res = await agent
@@ -624,8 +636,8 @@ describe("sync routes", () => {
       const mutations = Array.from({length: 5}, (_v, i) => create(`batch-http-${i}`, `item ${i}`));
       const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
       expect(res.body.results).toHaveLength(5);
-      expect(res.body.results.every((r: any) => r.type === "ack")).toBe(true);
-      const seqs = res.body.results.map((r: any) => r.ack.seq);
+      expect(res.body.results.every((r: MutationResult) => r.type === "ack")).toBe(true);
+      const seqs = res.body.results.map((r: MutationResult) => r.ack.seq);
       expect(seqs).toEqual([1, 2, 3, 4, 5]);
     });
 
@@ -737,7 +749,7 @@ describe("sync routes", () => {
       const atCap = await agent
         .get(`/sync/entities?collection=routeStuff&ids=${ids.slice(0, MAX_ENTITY_FETCH).join(",")}`)
         .expect(200);
-      expect(atCap.body.entities.map((e: any) => e.id)).toEqual([String(doc._id)]);
+      expect(atCap.body.entities.map((e: SnapshotEntity) => e.id)).toEqual([String(doc._id)]);
     });
   });
 
@@ -768,20 +780,23 @@ describe("sync routes", () => {
 
     /** Register the banner model for sync + REST with the given queryFilter and re-auth. */
     const setupBanners = async (
-      queryFilter: ModelRouterOptions<any>["queryFilter"]
+      queryFilter: ModelRouterOptions<unknown>["queryFilter"]
     ): Promise<{bannerAgent: TestAgent}> => {
-      const bannerOptions = {...authedOptions, queryFilter} as ModelRouterOptions<any>;
+      const bannerOptions = {...authedOptions, queryFilter} as ModelRouterOptions<unknown>;
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "broadcast"}},
-        model: RouteBannerModel as any,
+        model: RouteBannerModel as unknown as Model<unknown>,
         options: bannerOptions,
         routePath: "/routeBanners",
       });
       const bannerApp = getBaseServer();
-      setupAuth(bannerApp as any, UserModel as any);
-      addAuthRoutes(bannerApp as any, UserModel as any);
-      bannerApp.use("/routeBanners", modelRouter(RouteBannerModel as any, bannerOptions));
+      setupAuth(bannerApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(bannerApp, UserModel as unknown as AuthUserModel);
+      bannerApp.use(
+        "/routeBanners",
+        modelRouter(RouteBannerModel as unknown as Model<unknown>, bannerOptions)
+      );
       new SyncApp().register(bannerApp);
       return {bannerAgent: await authAsUser(bannerApp, "notAdmin")};
     };
@@ -796,13 +811,13 @@ describe("sync routes", () => {
       await RouteBannerModel.create({name: "theirs", ownerId: "someoneElse"});
 
       const rest = await bannerAgent.get("/routeBanners").expect(200);
-      const restIds = rest.body.data.map((d: any) => String(d._id));
+      const restIds = rest.body.data.map((d: RouteBanner) => String(d._id));
       expect(restIds).toEqual([String(mine._id)]);
 
       const snapshot = await bannerAgent
         .get(`/sync/snapshot?stream=${encodeURIComponent(bannerStream)}`)
         .expect(200);
-      expect(snapshot.body.entities.map((e: any) => e.id)).toEqual(restIds);
+      expect(snapshot.body.entities.map((e: SnapshotEntity) => e.id)).toEqual(restIds);
     });
 
     it("filters GET /sync/entities by the queryFilter", async () => {
@@ -852,7 +867,7 @@ describe("sync routes", () => {
           scope: {type: "owner"},
           snapshotFilter: () => ({name: "keep"}),
         },
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/routeStuff",
       });
@@ -862,7 +877,7 @@ describe("sync routes", () => {
       const res = await agent
         .get(`/sync/snapshot?stream=${encodeURIComponent(`routeStuff|owner:${notAdminId}`)}`)
         .expect(200);
-      expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["keep"]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.data.name)).toEqual(["keep"]);
     });
   });
 });
