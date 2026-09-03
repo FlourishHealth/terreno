@@ -11,6 +11,7 @@ const hashToken = (token: string): string => createHash("sha256").update(token).
 describe("McpServiceToken", () => {
   beforeEach(async () => {
     await McpServiceToken.deleteMany({});
+    await McpServiceToken.syncIndexes();
   });
 
   it("issues an mcp_ token and stores only its SHA-256 hash", async () => {
