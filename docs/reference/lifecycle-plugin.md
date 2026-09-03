@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.5.0`)
+Plugin: `terreno-planning` (`2.6.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -12,7 +12,7 @@ stages; they are not stages and must not appear as `stage` values.
 | --- | --- | --- | --- |
 | `terreno-1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map | Pick (enters inner loop) |
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
-| `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick |
+| `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick; pass a task-scoped briefing; do not spawn two unconstrained reviewers |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
 | `terreno-5-taste` | PR + current state | one current-head reaction; before push: pull latest `master`, lint in a no-context subagent, then watch CI | null or fresh Taste |
 

@@ -209,6 +209,12 @@ export const validateStageContent = ({
     if (!content.includes("Roast never invokes Pick")) {
       errors.push(`${prefix}: Pick must treat Roast as prove-only`);
     }
+    if (!content.includes("../../references/subagent-briefing.md")) {
+      errors.push(`${prefix}: must load the subagent briefing contract`);
+    }
+    if (!content.includes("task-scoped briefing")) {
+      errors.push(`${prefix}: must pass a task-scoped briefing to Roast and reviewers`);
+    }
   }
 
   if (definition.stage === "roast") {
@@ -220,6 +226,15 @@ export const validateStageContent = ({
     }
     if (!content.includes("Pick owns the inner loop")) {
       errors.push(`${prefix}: Roast must name Pick as the inner-loop driver`);
+    }
+    if (!content.includes("../../references/subagent-briefing.md")) {
+      errors.push(`${prefix}: must load the subagent briefing contract`);
+    }
+    if (!content.includes("Do not spawn two unconstrained reviewers")) {
+      errors.push(`${prefix}: must forbid unconstrained dual reviewers`);
+    }
+    if (!content.includes("task-scoped briefing")) {
+      errors.push(`${prefix}: must require a task-scoped briefing`);
     }
   }
 
@@ -701,6 +716,9 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes("pick-roast-loop.md")) {
     errors.push("plugins/README.md must document the pick-roast inner loop");
   }
+  if (!pluginReadme.includes("subagent-briefing.md")) {
+    errors.push("plugins/README.md must document the subagent briefing contract");
+  }
   if (!pluginReadme.includes(".claude-plugin/marketplace.json")) {
     errors.push("plugins/README.md must document the Claude Code marketplace");
   }
@@ -832,6 +850,12 @@ export const validateLifecyclePlugin = ({
   }
   if (pickRoastLoop.includes("entry Roast may invoke Pick")) {
     errors.push("pick-roast loop must not let entry Roast invoke Pick");
+  }
+  if (!pickRoastLoop.includes("subagent-briefing.md")) {
+    errors.push("pick-roast loop must load the subagent briefing contract");
+  }
+  if (!pickRoastLoop.includes("Do not ask Roast or its children to rediscover")) {
+    errors.push("pick-roast loop must forbid Roast children from rediscovering the repo");
   }
 
   const executionSchema = JSON.parse(

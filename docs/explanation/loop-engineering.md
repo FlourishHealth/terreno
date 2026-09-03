@@ -39,9 +39,9 @@ implementer's assumptions; Taste can react to the current PR head rather than an
 green result.
 
 Pick continues across tasks in one invocation. Roast proves the current task and
-returns. Each Roast cycle still reconstructs from artifacts and prefers a fresh context.
-That is how the inner loop stays automated without turning Roast into a self-review or
-a second driver.
+returns. Each Roast cycle still reconstructs from artifacts and prefers a fresh context
+with a task-scoped briefing (criteria, file list, and patch). Fresh context is for
+independence, not for two children to each reload the repository.
 
 The outer loop decides **when, who, what next, when to retry Taste `PENDING`, and when
 to escalate**. Stages decide how to perform one transition correctly. Pick continues

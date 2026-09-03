@@ -5,7 +5,7 @@
     "email": "terreno@flourish.health"
   },
   "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "metadata": {
     "pluginRoot": "plugins"
   },

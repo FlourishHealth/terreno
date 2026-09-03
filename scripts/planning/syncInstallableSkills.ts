@@ -162,6 +162,77 @@ const listSkillDirectories = (directory: string): string[] =>
 export const rewriteSharedPluginLinks = (content: string): string =>
   content.replaceAll(SHARED_PLUGIN_REFERENCE_PREFIX, "references/");
 
+const SHARED_PLUGIN_REFERENCE_HREF =
+  /\.\.\/\.\.\/references\/([A-Za-z0-9._-]+\.(?:md|json))/g;
+
+export const listSharedPluginReferenceHrefs = (content: string): string[] => {
+  const names = new Set<string>();
+  for (const match of content.matchAll(SHARED_PLUGIN_REFERENCE_HREF)) {
+    names.add(match[1]);
+  }
+  return [...names].sort();
+};
+
+const collectMarkdownAndJsonFiles = (directory: string, files: string[] = []): string[] => {
+  if (!existsSync(directory)) {
+    return files;
+  }
+
+  for (const entry of readdirSync(directory, {withFileTypes: true})) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      collectMarkdownAndJsonFiles(path, files);
+      continue;
+    }
+    if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".json"))) {
+      files.push(path);
+    }
+  }
+  return files;
+};
+
+export const collectLinkedPluginReferences = ({
+  pluginReferences,
+  skillSource,
+}: {
+  pluginReferences: string;
+  skillSource: string;
+}): string[] => {
+  const names = new Set<string>();
+  for (const filePath of collectMarkdownAndJsonFiles(skillSource)) {
+    for (const name of listSharedPluginReferenceHrefs(readFileSync(filePath, "utf8"))) {
+      names.add(name);
+    }
+  }
+
+  for (const name of names) {
+    if (!existsSync(join(pluginReferences, name))) {
+      throw new Error(`missing plugin reference ${name} linked from ${skillSource}`);
+    }
+  }
+
+  return [...names].sort();
+};
+
+const copyLinkedPluginReferences = ({
+  destination,
+  pluginReferences,
+  skillSource,
+}: {
+  destination: string;
+  pluginReferences: string;
+  skillSource: string;
+}): void => {
+  const names = collectLinkedPluginReferences({pluginReferences, skillSource});
+  if (names.length === 0) {
+    return;
+  }
+  mkdirSync(destination, {recursive: true});
+  for (const name of names) {
+    cpSync(join(pluginReferences, name), join(destination, name));
+  }
+};
+
 const writeCopiedTree = ({
   destination,
   source,
@@ -291,9 +362,10 @@ export const buildInstallableSkillsTree = ({
       source: join(pluginSkills, skillName),
       transformMarkdown: rewriteSharedPluginLinks,
     });
-    writeCopiedTree({
+    copyLinkedPluginReferences({
       destination: join(skillDestination, "references"),
-      source: pluginReferences,
+      pluginReferences,
+      skillSource: join(pluginSkills, skillName),
     });
   }
 

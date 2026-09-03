@@ -36,7 +36,7 @@ Two invocable outer-loop skills ship beside the five stages. They are not stages
 
 ## Invocation packet
 
-Give each fresh agent:
+Give each fresh agent a [task-scoped briefing](subagent-briefing.md):
 
 1. lifecycle skill path/name
 2. IP and task path
@@ -44,9 +44,11 @@ Give each fresh agent:
 4. branch and current PR (if any)
 5. previous stage result and referenced evidence
 6. pointer to repository architecture docs for the affected area
+7. this slice's criteria, file list, and patch — not a request to rediscover the catalog
 
-The stage discovers repository skills itself. The loop may suggest known skills but must
-not replace stage-level discovery.
+The stage discovers repository skills itself, matching this slice's files. The loop may
+suggest known skills but must not replace stage-level discovery. Roast and its children
+must not spawn two unconstrained reviewers.
 
 Invoking Pick is enough to run the inner loop until the approved task list is done.
 Invoking Roast proves the current task only and emits `next: pick` or `next: brew`.

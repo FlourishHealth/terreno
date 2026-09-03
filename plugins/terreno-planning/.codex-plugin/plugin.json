@@ -1,6 +1,6 @@
 {
   "name": "terreno-planning",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, Taste waits for review bots and product CI with gh/circleci. Before push: pull latest master, bun lint in a no-context subagent, then watch. Outer loops: planning-loop and taste-sweep.",
   "author": {
     "name": "Terreno",

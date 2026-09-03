@@ -35,8 +35,10 @@ At the start of every stage:
 
 1. Inspect skills exposed by the harness and repository (for example skill catalogs and
    repository skill directories).
-2. Match their descriptions to the affected domains and the current stage.
-3. Load applicable skills before acting. Record their names in `skills`.
+2. Match their descriptions to the **files and criteria in this slice**, not the whole
+   catalog.
+3. Load applicable `SKILL.md` files before acting. Record their names in `skills`.
+   Do not load sibling lifecycle references this stage did not name.
 4. If repository instructions require a capability and it is unavailable, return
    `BLOCKED`; never silently skip it.
 5. If no skill applies, infer conventions from repository instructions, existing code,
@@ -44,6 +46,9 @@ At the start of every stage:
 
 Do not assume any particular supporting skill name exists. Lifecycle skills describe
 portable method; repository skills describe the repository.
+
+When spawning a fresh subagent, pass a [task-scoped briefing](subagent-briefing.md)
+instead of asking the child to rediscover the repository.
 
 ## Documentation
 
