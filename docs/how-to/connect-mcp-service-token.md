@@ -18,6 +18,8 @@ new TerrenoApp({
 
 `mcpServiceTokens: true` is the same as `{enabled: true}`. Off (omitted or `enabled: false`) does not mount `/mcp/service-tokens` and does not accept `mcp_` Bearer credentials on `/mcp`.
 
+The example backend enables this with `publicMcpUrl` from `PUBLIC_API_URL` or `BETTER_AUTH_URL`. Admins list and revoke tokens at `/admin/mcp-service-tokens` (create/update off; delete sets `revokedAt`).
+
 Pass `publicMcpUrl` so create responses include a copy-paste MCP URL (`…/mcp` is appended when missing).
 
 ## 2. Mint a token

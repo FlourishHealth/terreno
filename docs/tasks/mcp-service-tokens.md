@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 2.3**.
+**Status:** Approved — frontier **Task 3.1**.
 
 ## Instructions for the implementing agent
 
@@ -53,7 +53,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Skills: `terreno-backend-api`, `update-docs`
   - Acceptance: app with flag on serves routes and accepts `mcp_` on `/mcp`; flag off serves neither
 
-- [ ] **Task 2.3**: End-to-end MCP call with service token
+- [x] **Task 2.3**: End-to-end MCP call with service token
   - Delivers: integration test — mint token, `POST /mcp` JSON-RPC `tools/call` with Bearer, assert the same owner-visible result as a session JWT
   - Files: extend `api/src/mcp/server.test.ts` or `serviceTokens.test.ts`
   - Blocked by: Task 2.2
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2, 2.1, 2.2. Current: **Task 2.3**.
+Completed: 1.1, 1.2, 2.1, 2.2, 2.3. Current: **Task 3.1**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3
