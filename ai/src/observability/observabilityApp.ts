@@ -1,4 +1,4 @@
-import type {AdminContribution, TerrenoPlugin} from "@terreno/api";
+import {type AdminContribution, logger, type TerrenoPlugin} from "@terreno/api";
 import type express from "express";
 
 import {observabilityAdminScreens} from "./adminScreens";
@@ -14,6 +14,7 @@ import {addObservabilityExperimentRoutes} from "./routes/experiments";
 import {addObservabilityPromptRoutes} from "./routes/prompts";
 import {addObservabilityReviewRoutes} from "./routes/review";
 import {addObservabilityStatusRoutes} from "./routes/status";
+import {addObservabilityTestMultiStageRoutes} from "./routes/testMultiStage";
 import {addObservabilityTraceRoutes} from "./routes/traces";
 import {isLocalObservabilityPluginOn} from "./status";
 import type {
@@ -24,6 +25,7 @@ import type {
   ObservabilityPlugin,
   PromptRegistry,
   ScoreSink,
+  TraceRecord,
   TraceSink,
 } from "./types";
 import {validateObservabilityConfig} from "./types";
@@ -73,6 +75,25 @@ export class ObservabilityApp implements TerrenoPlugin {
     return this.plugins.flatMap((plugin) => {
       return plugin.traceSink ? [plugin.traceSink] : [];
     });
+  }
+
+  async exportTrace(trace: TraceRecord): Promise<string | undefined> {
+    const results = await Promise.allSettled(
+      this.traceSinks.map((sink) => {
+        return sink.export(trace);
+      })
+    );
+    let persistedId: string | undefined;
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Observability TraceSink.export failed", {error: result.reason});
+        continue;
+      }
+      if (!persistedId && result.value?.id) {
+        persistedId = result.value.id;
+      }
+    }
+    return persistedId;
   }
 
   adminContribution(): AdminContribution {
@@ -148,5 +169,12 @@ export class ObservabilityApp implements TerrenoPlugin {
         store: localPlugin.traceSink.store,
       });
     }
+    addObservabilityTestMultiStageRoutes(app, {
+      aiService: this.aiService,
+      exportTrace: (trace) => {
+        return this.exportTrace(trace);
+      },
+      openApi,
+    });
   }
 }

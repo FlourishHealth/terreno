@@ -61,3 +61,11 @@ With the local plugin registered and primaries set to `local`, the control plane
 - **Experiments** — compare 2–3 prompt versions on a dataset with optional `modelOverride` (requires `aiServiceFactory` on `ObservabilityApp`), evaluator thresholds (defaulting to the SOP gates), **per-version gate tiles** (`gates[].version`), outlier/low-confidence item ids, and version-scoped promote (**409** when the selected version's gates fail). Unproofread items are excluded unless `includeUnproofread` is true. Local runs compile exact prompt versions and call `AIService.generateText` with compiled `prompt` + `systemPrompt` (no `promptName`/`promptLabel`). `ObservabilityApp` wires the local experiment runner from `aiService` at register time.
 
 Operator UI for datasets and experiments ships in tasks 2.7–2.9; routes and stores are live for API clients and tests today.
+
+## GPT tool spans and nested traces
+
+`/gpt/prompt` streams tool rounds to the client **and** records them in observability traces. Each provider `tool-call` / `tool-result` pair becomes a `TOOL` span (input args, cleaned output, timing, `parentSpanId` on the chain root). When tools run, the exported trace uses a `CHAIN` root wrapping those `TOOL` children instead of a lone `LLM` span. Plain `AIService.generate*` calls without tool children still log a single `LLM` root.
+
+## Admin multi-stage trace smoke test
+
+`POST /ai/observability/traces/test-multi-stage` (admin-only) exercises a real multi-stage workflow through the configured `ObservabilityApp.aiService`: two LLM passes (`skipTrace: true`), a deterministic local `text-metrics` tool stage, then a final synthesis LLM call. System prompts live in `OBS_TEST_MULTI_STAGE_*` constants in `ai/src/service/prompts.ts` (never inline). The handler exports one parent `TraceRecord` via `ObservabilityApp.exportTrace` with child span order `LLM`, `LLM`, `TOOL`, `LLM` and returns `{traceId, output, stages}` so operators can open the persisted trace in admin. Missing `aiService` → **503**; child failure exports an error trace then propagates the error.

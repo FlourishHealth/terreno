@@ -738,6 +738,45 @@ describe("AIService", () => {
       expect("costUsd" in (sink.traces[0].usage ?? {})).toBe(false);
     });
 
+    it("exports a CHAIN root with TOOL children when childSpans are provided", async () => {
+      const sink = new MemoryTraceSink();
+      registerLocalApp({traceSink: sink});
+      const model = createMockModel("Hello world");
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const observability = await service.resolveGenerateObservability({});
+
+      await service.recordGenerate({
+        childSpans: [
+          {
+            durationMs: 5,
+            endedAt: "2026-01-01T00:00:00.005Z",
+            id: "tool-span",
+            input: {q: "hello"},
+            kind: "TOOL",
+            name: "search",
+            output: {results: ["item1"]},
+            startedAt: "2026-01-01T00:00:00.000Z",
+            status: "ok",
+          },
+        ],
+        observability,
+        prompt: "search",
+        requestType: "general",
+        response: "done",
+        responseTime: 12,
+        startTime: Date.parse("2026-01-01T00:00:00.000Z"),
+      });
+
+      assert.equal(sink.traces.length, 1);
+      assert.equal(sink.traces[0].spans[0]?.kind, "CHAIN");
+      assert.equal(sink.traces[0].spans.length, 2);
+      const toolSpan = sink.traces[0].spans.find((span) => span.kind === "TOOL");
+      assert.isDefined(toolSpan);
+      assert.equal(toolSpan?.parentSpanId, sink.traces[0].spans[0]?.id);
+      assert.deepEqual(toolSpan?.input, {q: "hello"});
+      assert.deepEqual(toolSpan?.output, {results: ["item1"]});
+    });
+
     it("does not export a trace when skipTrace is true", async () => {
       const sink = new MemoryTraceSink();
       registerLocalApp({traceSink: sink});

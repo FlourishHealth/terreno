@@ -72,6 +72,7 @@ export type {
   ScoreRecord,
   ScoreSink,
   SpanRecord,
+  TraceExportResult,
   TraceRecord,
   TraceSink,
 } from "./observability/types";

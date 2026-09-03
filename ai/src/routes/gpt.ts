@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import {
   APIError,
   asyncHandler,
@@ -14,6 +15,7 @@ import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
+import type {SpanRecord} from "../observability/types";
 import {AIService} from "../service/aiService";
 import {TITLE_GENERATION_PROMPT} from "../service/prompts";
 import type {
@@ -68,6 +70,17 @@ const readOptionalString = (value: unknown): string | undefined => {
   }
   return undefined;
 };
+
+const toIsoUtc = (millis: number): string => {
+  return DateTime.fromMillis(millis, {zone: "utc"}).toISO() ?? "";
+};
+
+interface PendingToolCall {
+  args: unknown;
+  spanId: string;
+  startedAt: number;
+  toolName: string;
+}
 
 const readAdminPromptReference = ({
   promptLabel,
@@ -389,6 +402,8 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         let fullResponse = "";
         const generatedImages: Array<{mimeType: string; url: string}> = [];
         const startTime = DateTime.now().toMillis();
+        const pendingToolCalls = new Map<string, PendingToolCall>();
+        const toolSpans: SpanRecord[] = [];
         try {
           logger.debug("Starting streamText", {model: modelId, supportsTools});
           const telemetry = createTelemetryConfig({
@@ -490,24 +505,35 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               }
             } else if (part.type === "tool-call") {
               stepHasToolCall = true;
+              const toolCallId = part.toolCallId as string;
+              const toolName = part.toolName as string;
+              const toolStartedAt = DateTime.now().toMillis();
+              pendingToolCalls.set(toolCallId, {
+                args: part.input,
+                spanId: randomUUID(),
+                startedAt: toolStartedAt,
+                toolName,
+              });
               res.write(
                 `data: ${JSON.stringify({
                   toolCall: {
                     args: part.input,
-                    toolCallId: part.toolCallId,
-                    toolName: part.toolName,
+                    toolCallId,
+                    toolName,
                   },
                 })}\n\n`
               );
               // Persist tool call in history
               history.prompts.push({
                 args: part.input as Record<string, unknown>,
-                text: `Tool call: ${part.toolName as string}`,
-                toolCallId: part.toolCallId as string,
-                toolName: part.toolName as string,
+                text: `Tool call: ${toolName}`,
+                toolCallId,
+                toolName,
                 type: "tool-call",
               });
             } else if (part.type === "tool-result") {
+              const toolCallId = part.toolCallId as string;
+              const toolName = part.toolName as string;
               const toolResult = part.output as Record<string, unknown> | undefined;
 
               // If the tool result contains file data, send it as a separate file SSE event
@@ -529,22 +555,39 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
 
               // Strip fileData from result before sending/storing to avoid bloating the SSE and DB
               const {fileData: _fileData, ...cleanResult} = toolResult ?? {};
+              const pending = pendingToolCalls.get(toolCallId);
+              const toolEndedAt = DateTime.now().toMillis();
+              if (pending) {
+                toolSpans.push({
+                  durationMs: toolEndedAt - pending.startedAt,
+                  endedAt: toIsoUtc(toolEndedAt),
+                  id: pending.spanId,
+                  input: pending.args,
+                  kind: "TOOL",
+                  name: pending.toolName,
+                  output: cleanResult,
+                  startedAt: toIsoUtc(pending.startedAt),
+                  startOffsetMs: pending.startedAt - startTime,
+                  status: "ok",
+                });
+                pendingToolCalls.delete(toolCallId);
+              }
 
               res.write(
                 `data: ${JSON.stringify({
                   toolResult: {
                     result: cleanResult,
-                    toolCallId: part.toolCallId,
-                    toolName: part.toolName,
+                    toolCallId,
+                    toolName,
                   },
                 })}\n\n`
               );
               // Persist tool result in history (without the large file data)
               history.prompts.push({
                 result: cleanResult as unknown,
-                text: `Tool result: ${part.toolName as string}`,
-                toolCallId: part.toolCallId as string,
-                toolName: part.toolName as string,
+                text: `Tool result: ${toolName}`,
+                toolCallId,
+                toolName,
                 type: "tool-result",
               });
             }
@@ -603,6 +646,7 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
 
           try {
             await aiService.recordGenerate({
+              childSpans: toolSpans.length > 0 ? toolSpans : undefined,
               observability,
               prompt,
               requestType: "general",

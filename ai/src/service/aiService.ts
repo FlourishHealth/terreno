@@ -324,8 +324,109 @@ export class AIService {
     };
   }
 
+  private buildTraceRecord(params: {
+    error?: string;
+    childSpans?: SpanRecord[];
+    inputTokens?: number;
+    metadata?: Record<string, unknown>;
+    observability: ResolvedObservability;
+    outputTokens?: number;
+    prompt: string;
+    requestType: AIRequestType;
+    response?: string;
+    responseTime: number;
+    startTime: number;
+    userId?: mongoose.Types.ObjectId;
+  }): TraceRecord {
+    const modelId = getModelId(this.model);
+    const priceMap = params.observability.priceMap;
+    const app = getObservabilityApp();
+    const effectivePriceMap = priceMap ?? app?.priceMap;
+    const costUsd = computeCostUsd({
+      inputTokens: params.inputTokens,
+      modelId,
+      outputTokens: params.outputTokens,
+      priceMap: effectivePriceMap,
+    });
+    const usage = {
+      inputTokens: params.inputTokens,
+      model: modelId,
+      outputTokens: params.outputTokens,
+      ...(costUsd === undefined ? {} : {costUsd}),
+    };
+    const status = params.error ? "error" : "ok";
+    const startedAt = toIsoUtc(params.startTime);
+    const endedAt = toIsoUtc(params.startTime + params.responseTime);
+    const spanName = params.observability.promptRef?.name ?? params.requestType;
+    const childSpans = params.childSpans ?? [];
+    let spans: SpanRecord[];
+
+    if (childSpans.length > 0) {
+      const rootId = randomUUID();
+      const rootSpan: SpanRecord = {
+        durationMs: params.responseTime,
+        endedAt,
+        id: rootId,
+        input: params.prompt,
+        kind: "CHAIN",
+        name: spanName,
+        output: params.response,
+        startedAt,
+        status,
+        usage,
+        ...(params.error ? {error: params.error} : {}),
+      };
+      spans = [
+        rootSpan,
+        ...childSpans.map((child) => {
+          return {
+            ...child,
+            parentSpanId: child.parentSpanId ?? rootId,
+          };
+        }),
+      ];
+    } else {
+      spans = [
+        {
+          durationMs: params.responseTime,
+          endedAt,
+          id: randomUUID(),
+          input: params.prompt,
+          kind: "LLM",
+          name: spanName,
+          output: params.response,
+          startedAt,
+          status,
+          usage,
+          ...(params.error ? {error: params.error} : {}),
+        },
+      ];
+    }
+
+    const promptRef = params.observability.promptRef;
+    return {
+      endedAt,
+      id: randomUUID(),
+      input: params.prompt,
+      name: spanName,
+      output: params.response,
+      prompts: promptRef
+        ? [{label: promptRef.label, name: promptRef.name, version: promptRef.version}]
+        : [],
+      sensitive: params.observability.sensitive,
+      sessionId: params.observability.sessionId,
+      spans,
+      startedAt,
+      status,
+      usage,
+      userId: params.userId?.toString(),
+      ...(params.error ? {errorSummary: params.error} : {}),
+    };
+  }
+
   private async logRequestAndTrace(params: {
     error?: string;
+    childSpans?: SpanRecord[];
     inputTokens?: number;
     metadata?: Record<string, unknown>;
     observability: ResolvedObservability;
@@ -359,55 +460,19 @@ export class AIService {
       return;
     }
 
-    const modelId = getModelId(this.model);
-    const priceMap = params.observability.priceMap ?? app.priceMap;
-    const costUsd = computeCostUsd({
+    const trace = this.buildTraceRecord({
+      childSpans: params.childSpans,
+      error: params.error,
       inputTokens: params.inputTokens,
-      modelId,
+      observability: params.observability,
       outputTokens: params.outputTokens,
-      priceMap,
+      prompt: params.prompt,
+      requestType: params.requestType,
+      response: params.response,
+      responseTime: params.responseTime,
+      startTime: params.startTime,
+      userId: params.userId,
     });
-    const usage = {
-      inputTokens: params.inputTokens,
-      model: modelId,
-      outputTokens: params.outputTokens,
-      ...(costUsd === undefined ? {} : {costUsd}),
-    };
-    const status = params.error ? "error" : "ok";
-    const startedAt = toIsoUtc(params.startTime);
-    const endedAt = toIsoUtc(params.startTime + params.responseTime);
-    const span: SpanRecord = {
-      durationMs: params.responseTime,
-      endedAt,
-      id: randomUUID(),
-      input: params.prompt,
-      kind: "LLM",
-      name: params.observability.promptRef?.name ?? params.requestType,
-      output: params.response,
-      startedAt,
-      status,
-      usage,
-      ...(params.error ? {error: params.error} : {}),
-    };
-    const promptRef = params.observability.promptRef;
-    const trace: TraceRecord = {
-      endedAt,
-      id: randomUUID(),
-      input: params.prompt,
-      name: span.name,
-      output: params.response,
-      prompts: promptRef
-        ? [{label: promptRef.label, name: promptRef.name, version: promptRef.version}]
-        : [],
-      sensitive: params.observability.sensitive,
-      sessionId: params.observability.sessionId,
-      spans: [span],
-      startedAt,
-      status,
-      usage,
-      userId: params.userId?.toString(),
-      ...(params.error ? {errorSummary: params.error} : {}),
-    };
 
     const results = await Promise.allSettled(
       app.traceSinks.map((sink) => {
@@ -428,6 +493,7 @@ export class AIService {
   }
 
   async recordGenerate(params: {
+    childSpans?: SpanRecord[];
     error?: string;
     inputTokens?: number;
     metadata?: Record<string, unknown>;

@@ -413,7 +413,11 @@ fail startup with `AI_OBS_PRICE_MAP_JSON` in the error.
 
 Missing registry, missing prompt, or missing label throws `APIError` 400 and does not call the model. Sink `export` failures are logged and never fail generate.
 
-When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs. `GET /ai/observability/status` is always mounted so admin chrome can read plugin ids, capabilities, primaries, and `localOn`.
+**GPT tool spans:** `/gpt/prompt` collects streamed `tool-call` / `tool-result` events into `TOOL` child spans (name = tool name, input = args, output = cleaned result with large `fileData` stripped). When any tool span is present, `AIService.recordGenerate` exports one trace with a `CHAIN` root plus `TOOL` children linked by `parentSpanId`. Ordinary `generateText` / JSON helpers without `childSpans` still emit a single `LLM` root span.
+
+`ObservabilityApp.exportTrace(trace)` fans out to every `TraceSink` (best-effort) and returns the first persisted `{id}` from sinks that support it (for example `LocalTraceSink`). `TraceSink.export` may return `TraceExportResult` (`{id?: string}`) or `void`; `MemoryTraceSink` remains in-memory only.
+
+When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs and the multi-stage trace smoke endpoint. `GET /ai/observability/status` is always mounted so admin chrome can read plugin ids, capabilities, primaries, and `localOn`.
 
 | Method | Path | Behavior |
 | --- | --- | --- |
@@ -435,6 +439,7 @@ When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only
 | GET | `/ai/observability/traces` | Admin list. Query `from`, `to`, `prompt`, `status`, `userId`, `sessionId`, `hasScore`, `sensitive`, `flaggedForDataset`, `page`, `limit`. Body is `{data, page, limit, more, total}` so pagination survives RTK `{data}` unwrap. Each row includes `spanCount` and `scoreCount`. `prompts.length` is the `N prompts` count |
 | GET | `/ai/observability/traces/:id` | Span tree (kind, offsets, durations, I/O, cost) plus scores. `errorSummary` is the first span with `status: "error"` |
 | POST | `/ai/observability/traces/:id/scores` | Persist a score and fan out to every `ScoreSink` |
+| POST | `/ai/observability/traces/test-multi-stage` | Admin-only smoke workflow. Requires `aiService` on `ObservabilityApp` (**503** when missing). Body `{input?: string}` (defaults to a built-in sample). Runs two `AIService.generateText` calls with `skipTrace: true`, a deterministic local `text-metrics` `TOOL` stage, then a final synthesis call; exports exactly one parent trace with ordered child spans `LLM`, `LLM`, `TOOL`, `LLM` under a `CHAIN` root. Returns `{traceId, output, stages[]}` for admin navigation. Child LLM failures export an error trace then rethrow |
 
 `createLocalObservabilityPlugin()` registers `ObsEvaluator` with the other local models.
 

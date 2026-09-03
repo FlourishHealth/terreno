@@ -400,8 +400,8 @@ export class LocalTraceSink implements TraceSink {
     this.store = store;
   }
 
-  export = async (trace: TraceRecord): Promise<void> => {
-    await this.store.exportTrace(trace);
+  export = async (trace: TraceRecord): Promise<{id: string}> => {
+    return this.store.exportTrace(trace);
   };
 }
 
@@ -416,9 +416,9 @@ export class LocalScoreSink implements ScoreSink {
 export class MemoryTraceSink implements TraceSink {
   readonly traces: TraceRecord[] = [];
 
-  export(trace: TraceRecord): Promise<void> {
+  export(trace: TraceRecord): Promise<undefined> {
     this.traces.push(trace);
-    return Promise.resolve();
+    return Promise.resolve(undefined);
   }
 }
 

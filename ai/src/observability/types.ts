@@ -89,8 +89,12 @@ export interface PromptRegistry {
   get: (args: {label?: string; name: string}) => Promise<PromptVersionRef | undefined>;
 }
 
+export interface TraceExportResult {
+  id?: string;
+}
+
 export interface TraceSink {
-  export: (trace: TraceRecord) => Promise<void>;
+  export: (trace: TraceRecord) => Promise<TraceExportResult | undefined>;
 }
 
 export interface ScoreSink {
@@ -141,6 +145,7 @@ export interface ObservabilityGenerateClient {
     prompt: string;
     skipTrace?: boolean;
     systemPrompt?: string;
+    temperature?: number;
     userId?: import("mongoose").Types.ObjectId;
   }) => Promise<string>;
 }

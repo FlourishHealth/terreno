@@ -756,6 +756,25 @@ describe("AI Routes", () => {
     });
 
     it("forwards model tool-call and tool-result stream events via SSE", async () => {
+      const sink = new MemoryTraceSink();
+      const plugin: ObservabilityPlugin = {
+        capabilities: new Set([
+          "datasets",
+          "experiments",
+          "prompts",
+          "reviewQueue",
+          "scores",
+          "traces",
+        ]),
+        datasetStore: {},
+        experimentRunner: {},
+        id: "local",
+        promptRegistry: {get: async () => undefined},
+        reviewQueue: {},
+        traceSink: sink,
+      };
+      new ObservabilityApp({plugins: [plugin]});
+
       const toolModel = {
         doGenerate: mock(async () => ({
           content: [{text: "ok", type: "text" as const}],
@@ -780,13 +799,13 @@ describe("AI Routes", () => {
                 type: "tool-call" as const,
               });
               controller.enqueue({
-                output: {
+                providerExecuted: true,
+                result: {
                   fileData: "data:application/pdf;base64,AAAA",
                   filename: "result.pdf",
                   mimeType: "application/pdf",
                   results: ["item1"],
                 },
-                providerExecuted: true,
                 toolCallId: "tc1",
                 toolName: "search",
                 type: "tool-result" as const,
@@ -828,6 +847,20 @@ describe("AI Routes", () => {
       const body = (res as SseResponse).body;
       expect(body).toContain("toolCall");
       expect(body).toContain("toolResult");
+      assert.equal(sink.traces.length, 1);
+      const trace = sink.traces[0];
+      assert.equal(trace.spans[0]?.kind, "CHAIN");
+      assert.equal(trace.spans.length, 2);
+      const toolSpan = trace.spans.find((span) => span.kind === "TOOL");
+      assert.isDefined(toolSpan);
+      assert.equal(toolSpan?.name, "search");
+      assert.deepEqual(toolSpan?.input, {q: "hello"});
+      assert.deepEqual(toolSpan?.output, {
+        filename: "result.pdf",
+        mimeType: "application/pdf",
+        results: ["item1"],
+      });
+      assert.equal(toolSpan?.parentSpanId, trace.spans[0]?.id);
     });
 
     it("emits a file SSE event when a tool execution returns fileData", async () => {
