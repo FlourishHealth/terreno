@@ -21,7 +21,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Delivers: Mongoose model with issue/verify/revoke/count statics; SHA-256 hash; `mcp_` + 32-byte hex secret; field descriptions on every path
   - Files: `api/src/models/mcpServiceToken.ts`, `api/src/types/mcpServiceToken.ts`, `api/src/models/mcpServiceToken.test.ts`, `api/src/index.ts`
   - Blocked by: none
-  - Docs: none (reference lands in Task 2.2)
+  - Docs: `docs/reference/api.md` (exported model contract)
   - Skills: `mongoose-schema-safety`, `terreno-backend-api`
   - Acceptance: `issueFor` returns plaintext once; `verify` finds active token; respects `revokedAt` and `expiresAt`; `countActiveForUser` correct; duplicate hash impossible
 

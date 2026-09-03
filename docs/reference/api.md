@@ -139,6 +139,22 @@ Cross-model tools use `registerMCPTool` (see the example backend's `users_todo_s
 
 Create, update, and delete tools share REST permission, hook, and persistence semantics: they call the same `executeCreate` / `executeUpdate` / `executeDelete` pipeline. MCP error results use `APIError.title` (for example `Create not allowed`, `preCreate hook error`). User-role stripping for RBAC User writes happens in the executor after hooks; MCP supplies the registry `modelName` for that check. List and read stay MCP handlers. `excludeFields` and `mcpResponseHandler` still apply after the executor returns. Invalid ids on instance writes 404 only when the document `_id` cannot be cast, not when a populate ref fails.
 
+### MCP service token model
+
+`McpServiceToken` stores the hashed credential records used by the optional MCP service-token feature. It is not a `modelRouter` model: consumer-facing create, list, and revoke routes are registered only by the `mcpServiceTokens` TerrenoApp option.
+
+```typescript
+import {McpServiceToken} from "@terreno/api";
+
+const {mcpServiceToken, token} = await McpServiceToken.issueFor(
+  {_id: user._id},
+  {name: "Perplexity"}
+);
+// Store or show `token` once. Only its SHA-256 hash is persisted.
+```
+
+The token begins with `mcp_` followed by 32 random bytes encoded as hex. `verify(token)` returns `null` for unknown, expired, or revoked tokens. `revokeForUser(user, tokenId)` records `revokedAt`, and `countActiveForUser(userId)` excludes expired or revoked records. Never return or log `tokenHash` or the plaintext token outside the initial issue result.
+
 ## Authentication
 
 @terreno/api includes built-in authentication with multiple strategies:
