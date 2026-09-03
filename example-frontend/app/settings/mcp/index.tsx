@@ -13,9 +13,14 @@ import {
   useToast,
 } from "@terreno/ui";
 import {useRouter} from "expo-router";
-import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
+import {
+  buildMcpClientSnippet,
+  copyMcpText,
+  formatMcpTimestamp,
+  issuedTokenFromCreateResult,
+} from "@/lib/mcpSettingsHelpers";
 import {
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
@@ -36,41 +41,6 @@ interface IssuedMcpServiceToken {
   mcpUrl: string;
   token: string;
 }
-
-const formatTimestamp = (value?: string | null): string => {
-  if (!value) {
-    return "—";
-  }
-  const parsed = DateTime.fromISO(value);
-  if (!parsed.isValid) {
-    return "—";
-  }
-  return parsed.toLocaleString(DateTime.DATETIME_SHORT);
-};
-
-const buildClientSnippet = (mcpUrl: string, token: string): string => {
-  return JSON.stringify(
-    {
-      mcpServers: {
-        "my-app": {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          url: mcpUrl,
-        },
-      },
-    },
-    null,
-    2
-  );
-};
-
-const copyText = async (value: string): Promise<void> => {
-  if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-    throw new Error("Clipboard is not available");
-  }
-  await navigator.clipboard.writeText(value);
-};
 
 const McpSettingsScreen: React.FC = () => {
   const router = useRouter();
@@ -99,7 +69,7 @@ const McpSettingsScreen: React.FC = () => {
   const handleCopy = useCallback(
     async (value: string, label: string): Promise<void> => {
       try {
-        await copyText(value);
+        await copyMcpText(value);
         toast.success(`${label} copied`);
       } catch {
         toast.error(`Could not copy ${label}`);
@@ -124,13 +94,12 @@ const McpSettingsScreen: React.FC = () => {
         mcpUrl?: string;
         token?: string;
       };
-      const token = result.token ?? result.data?.token;
-      const mcpUrl = result.mcpUrl ?? result.data?.mcpUrl;
-      if (!token || !mcpUrl) {
+      const issuedToken = issuedTokenFromCreateResult(result);
+      if (!issuedToken) {
         setCreateError("Create succeeded but the token was not returned");
         return;
       }
-      setIssued({mcpUrl, token});
+      setIssued(issuedToken);
       setName("");
       setExpiresAt("");
     } catch (error: unknown) {
@@ -161,7 +130,7 @@ const McpSettingsScreen: React.FC = () => {
     [revokeToken, toast]
   );
 
-  const issuedSnippet = issued ? buildClientSnippet(issued.mcpUrl, issued.token) : "";
+  const issuedSnippet = issued ? buildMcpClientSnippet(issued.mcpUrl, issued.token) : "";
 
   return (
     <Page backButton onBack={handleBack} scroll title="MCP connections">
@@ -223,11 +192,11 @@ const McpSettingsScreen: React.FC = () => {
                       {token.name ?? "Unnamed"} {isRevoked ? "(revoked)" : ""}
                     </Text>
                     <Text color="secondaryLight" size="sm">
-                      Prefix mcp_{token.tokenPrefix} · created {formatTimestamp(token.created)}
+                      Prefix mcp_{token.tokenPrefix} · created {formatMcpTimestamp(token.created)}
                     </Text>
                     <Text color="secondaryLight" size="sm">
-                      Last used {formatTimestamp(token.lastUsedAt)} · expires{" "}
-                      {formatTimestamp(token.expiresAt)}
+                      Last used {formatMcpTimestamp(token.lastUsedAt)} · expires{" "}
+                      {formatMcpTimestamp(token.expiresAt)}
                     </Text>
                     {!isRevoked ? (
                       <Button

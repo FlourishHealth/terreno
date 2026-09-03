@@ -2,7 +2,7 @@ import {createHash, randomBytes} from "node:crypto";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
-import {createdUpdatedPlugin, findExactlyOne, findOneOrNone} from "../plugins";
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, findOneOrNoneFor} from "../plugins";
 import type {McpServiceTokenDocument, McpServiceTokenModel} from "../types/mcpServiceToken";
 
 export type {
@@ -89,7 +89,7 @@ mcpServiceTokenSchema.methods = {
 };
 
 mcpServiceTokenSchema.pre("deleteOne", {document: false, query: true}, async function () {
-  const existing = await this.model.findOne(this.getFilter());
+  const existing = await findOneOrNoneFor(this.model, this.getFilter());
   await revokeInsteadOfDelete(existing as McpServiceTokenDocument | null);
   this.setQuery({_id: {$exists: false}});
 });
