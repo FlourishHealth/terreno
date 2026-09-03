@@ -975,6 +975,17 @@ const injectedRtkApi = api
           url: `/ai/observability/traces/review`,
         }),
       }),
+      postAiObservabilityTracesTestMultiStage: build.mutation<
+        PostAiObservabilityTracesTestMultiStageRes,
+        PostAiObservabilityTracesTestMultiStageArgs
+      >({
+        invalidatesTags: ["observability"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/ai/observability/traces/test-multi-stage`,
+        }),
+      }),
       postCommsDevTestPush: build.mutation<PostCommsDevTestPushRes, PostCommsDevTestPushArgs>({
         invalidatesTags: ["comms"],
         query: (queryArg) => ({
@@ -2668,6 +2679,12 @@ export type PostAiObservabilityTracesByIdScoresRes = /** status 201 Success */ {
   data?: object;
 };
 export type PostAiObservabilityTracesByIdScoresArgs = string;
+export type PostAiObservabilityTracesTestMultiStageRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostAiObservabilityTracesTestMultiStageArgs = {
+  input?: string;
+};
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -4283,6 +4300,7 @@ export const {
   useGetAiObservabilityTracesQuery,
   useGetAiObservabilityTracesByIdQuery,
   usePostAiObservabilityTracesByIdScoresMutation,
+  usePostAiObservabilityTracesTestMultiStageMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminAuditLogsBulkPatchMutation,
