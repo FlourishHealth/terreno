@@ -131,7 +131,7 @@ describe("TerrenoApp mcpServiceTokens", () => {
     assert.equal(res.body.paths["/mcp/service-tokens"].post.operationId, "createMcpServiceToken");
   });
 
-  it("authenticates GET and POST /mcp with the same service token", async () => {
+  it("returns 405 on GET /mcp and authenticates POST initialize and tools/list with a service token", async () => {
     const app = new TerrenoApp({
       mcpServiceTokens: true,
       skipListen: true,
@@ -152,6 +152,14 @@ describe("TerrenoApp mcpServiceTokens", () => {
       .get("/mcp")
       .set("Authorization", `Bearer ${mcpToken}`)
       .set("accept", "application/json, text/event-stream");
+    const unauthenticatedGet = await supertest(app)
+      .get("/mcp")
+      .set("accept", "application/json, text/event-stream");
+    const bogusCall = await supertest(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer mcp_deadbeef")
+      .set("accept", "application/json, text/event-stream")
+      .send(toolsCallBody);
     const initialized = await supertest(app)
       .post("/mcp")
       .set("Authorization", `Bearer ${mcpToken}`)
@@ -172,7 +180,10 @@ describe("TerrenoApp mcpServiceTokens", () => {
       .set("accept", "application/json, text/event-stream")
       .send({id: 2, jsonrpc: "2.0", method: "tools/list", params: {}});
 
-    assert.notEqual(probe.status, 401);
+    assert.equal(probe.status, 405);
+    assert.equal(unauthenticatedGet.status, 405);
+    assert.equal(probe.body.error.message, "Method not allowed.");
+    assert.include(bogusCall.text, "Permission denied: authentication required");
     assert.include(initialized.text, "terreno-api-mcp");
     assert.include(listed.text, "tokenmcpnotes_list");
     assert.include(jwtListed.text, "tokenmcpnotes_list");

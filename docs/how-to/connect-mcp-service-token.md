@@ -35,7 +35,7 @@ The JSON `data.token` value is shown **once**. List and revoke never return it. 
 
 ## 3. Call `/mcp`
 
-Perplexity probes with GET, then initializes with POST. Use the same Bearer for both.
+Perplexity probes with GET, then initializes with POST. Send the same Bearer on both. GET does **not** authenticate: Streamable HTTP has no GET SSE stream here, so the handler answers `405` with `{"jsonrpc":"2.0","error":{"code":-32000,"message":"Method not allowed."}}` whether or not the key is valid. That 405 is the expected probe. POST `initialize` is the call that authenticates.
 
 ```bash
 curl -X GET "$API/mcp" \
