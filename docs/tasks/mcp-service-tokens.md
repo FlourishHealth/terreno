@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/mcp-service-tokens.md)
 
-**Status:** Approved — frontier **Task 2.1**.
+**Status:** Approved — frontier **Task 2.2**.
 
 ## Instructions for the implementing agent
 
@@ -37,7 +37,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ### Phase 2: Self-serve routes and TerrenoApp flag
 
-- [ ] **Task 2.1**: `/mcp/service-tokens` HTTP routes
+- [x] **Task 2.1**: `/mcp/service-tokens` HTTP routes
   - Delivers: POST create (cap 10), GET list (owner), DELETE revoke (owner); OpenAPI via `createOpenApiBuilder`; reject `mcp_` bearer on these routes
   - Files: `api/src/mcp/serviceTokens.ts`, `api/src/mcp/serviceTokens.test.ts`, `api/src/index.ts`
   - Blocked by: Task 1.1
@@ -108,7 +108,7 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
 
 ## Frontier
 
-Completed: 1.1, 1.2. Current: **Task 2.1**.
+Completed: 1.1, 1.2, 2.1. Current: **Task 2.2**.
 
 ```
 1.1 → 1.2 → 2.2 → 2.3

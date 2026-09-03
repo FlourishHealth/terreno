@@ -100,6 +100,22 @@ new TerrenoApp({
 
 Skip: `GET /health`, `/healthz`, `/openapi.json`, `/swagger` (trailing slashes and letter case ignored). 429 is `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and `RateLimit` / `RateLimit-Policy`. JWT login/signup/refresh ignore a stale access token. Operator guide: [Rate limiting](../how-to/rate-limiting.md).
 
+### MCP service tokens
+
+Opt-in. Omitted or `enabled: false` leaves `/mcp/service-tokens` unmounted and ignores `mcp_` Bearer credentials on `/mcp`.
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  mcpServiceTokens: {
+    enabled: true,
+    publicMcpUrl: process.env.PUBLIC_API_URL,
+  },
+});
+```
+
+`mcpServiceTokens: true` is `{enabled: true}`. When enabled, TerrenoApp mounts the self-serve routes (passing its OpenAPI bundle) and sets `mcpServiceTokens` on MCP auth. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
 ### setupServer (Legacy)
 
 Callback-based pattern:
@@ -141,7 +157,7 @@ Create, update, and delete tools share REST permission, hook, and persistence se
 
 ### MCP service token model
 
-`McpServiceToken` stores the hashed credential records used by the optional MCP service-token feature. It is not a `modelRouter` model: consumer-facing create, list, and revoke routes are registered only by the `mcpServiceTokens` TerrenoApp option.
+`McpServiceToken` stores the hashed credential records used by the optional MCP service-token feature. It is not a `modelRouter` model: consumer-facing create, list, and revoke routes are registered only when `mcpServiceTokens` is enabled on `TerrenoApp`.
 
 ```typescript
 import {McpServiceToken} from "@terreno/api";
@@ -155,7 +171,7 @@ const {mcpServiceToken, token} = await McpServiceToken.issueFor(
 
 The token begins with `mcp_` followed by 32 random bytes encoded as hex. `verify(token)` returns `null` for unknown, expired, or revoked tokens. `revokeForUser(user, tokenId)` records `revokedAt`, and `countActiveForUser(userId)` excludes expired or revoked records. Never return or log `tokenHash` or the plaintext token outside the initial issue result.
 
-Self-serve HTTP routes live at `/mcp/service-tokens`. Mount them with `addMcpServiceTokenRoutes(app, {publicMcpUrl, openApi})`. Pass the TerrenoApp OpenAPI bundle as `openApi` so the paths appear in `/openapi.json`. They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
+Self-serve HTTP routes live at `/mcp/service-tokens`. `TerrenoApp` mounts them when `mcpServiceTokens` is enabled, passing its OpenAPI bundle. You can also call `addMcpServiceTokenRoutes(app, {publicMcpUrl, openApi})` yourself. They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
 
 | Method | Path | Body / params | Response |
 | --- | --- | --- | --- |
@@ -163,7 +179,7 @@ Self-serve HTTP routes live at `/mcp/service-tokens`. Mount them with `addMcpSer
 | GET | `/mcp/service-tokens` | `?page&limit` | `{data, page, limit, total, more}` — no `token` or `tokenHash` |
 | DELETE | `/mcp/service-tokens/:id` | — | `{data: {id, revokedAt}}` — owner only |
 
-`expiresAt` is an optional ISO-8601 datetime (Luxon `DateTime.fromISO`). Omit it for a token that does not expire. Create returns `mcpUrl` from `publicMcpUrl`, else `BETTER_AUTH_URL`, else the request host, with `/mcp` appended when missing. An 11th **active** token for the same user is `400`. Revoke and cross-owner access are `404`. List includes revoked rows for the owner so the UI can show history.
+`expiresAt` is an optional ISO-8601 datetime (Luxon `DateTime.fromISO`). Omit it for a token that does not expire. Create returns `mcpUrl` from `publicMcpUrl`, else `BETTER_AUTH_URL`, else the request host, with `/mcp` appended when missing. An 11th **active** token for the same user is `400`. Revoke and cross-owner access are `404`. List includes revoked rows for the owner so the UI can show history. Default page size is 100 (maximum 100).
 
 ## Authentication
 

@@ -48,7 +48,7 @@ to work while clients migrate.
 
 ### 3. Call the tools
 
-Point any MCP client at `POST /mcp` with the user's `Authorization: Bearer <token>` header. Both JWT and Better Auth sessions are accepted; the resolved user is what the permission checks run against, so an LLM can never see more than that user could see over REST.
+Point any MCP client at `POST /mcp` with the user's `Authorization: Bearer <token>` header. Both JWT and Better Auth sessions are accepted; the resolved user is what the permission checks run against, so an LLM can never see more than that user could see over REST. For a static key that is not a session JWT, enable `mcpServiceTokens` and follow [Connect an MCP client with a service token](connect-mcp-service-token.md).
 
 Authentication is required by default, matching REST. A tool call with no resolvable user is refused before any permission check unless the model router sets `allowAnonymous: true` — the same flag REST passes to `authenticateMiddleware`. That matters for read-only helpers like `IsAuthenticatedOrReadOnly`, which would otherwise pass for an anonymous `list`. Disabled accounts are refused too, as they are over HTTP.
 
