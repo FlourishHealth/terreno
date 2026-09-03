@@ -132,4 +132,33 @@ describe("observability test-multi-stage route", () => {
     );
     assert.equal(failedSpan?.status, "error");
   });
+
+  it("exports the completed child stages when final synthesis fails", async () => {
+    const failingService = createFakeAiService({failOn: "Combine the stage-one phrase"});
+    const plugin = createLocalObservabilityPlugin();
+    const failingApp = new TerrenoApp({skipListen: true, userModel: UserModel})
+      .register(new ObservabilityApp({aiService: failingService, plugins: [plugin]}))
+      .build();
+    const agent = await authAsUser(failingApp, "admin");
+
+    const res = await agent.post("/ai/observability/traces/test-multi-stage").send({
+      input: "fail on final stage",
+    });
+
+    expect(res.status).toBe(500);
+    const listed = await agent.get("/ai/observability/traces?status=error&limit=5");
+    const traceId = listed.body.data[0].id as string;
+    const detail = await agent.get(`/ai/observability/traces/${traceId}`);
+    const children = detail.body.data.spans[0].children as Array<{
+      kind: SpanKind;
+      name: string;
+      status: string;
+    }>;
+    assert.deepEqual(
+      children.map((span) => span.kind),
+      ["LLM", "LLM", "TOOL", "LLM"]
+    );
+    assert.equal(children.at(-1)?.name, "final");
+    assert.equal(children.at(-1)?.status, "error");
+  });
 });
