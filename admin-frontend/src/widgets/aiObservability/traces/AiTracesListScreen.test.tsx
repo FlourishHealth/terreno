@@ -167,7 +167,7 @@ describe("AiTracesScreenWidget", () => {
     });
 
     expect(view.getByTestId("ai-traces-multi-stage-error")).toHaveTextContent(
-      "AIService is not configured"
+      "AIService is not configured for observability"
     );
   });
 
