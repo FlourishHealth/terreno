@@ -76,6 +76,7 @@ export interface AiTracesListViewProps {
   page: number;
   pageSize?: number;
   selectedIds: string[];
+  showMultiStageTest?: boolean;
   total: number;
   traces: TraceListItem[];
 }
@@ -120,6 +121,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   page,
   pageSize = 20,
   selectedIds,
+  showMultiStageTest,
   total,
   traces,
 }) => {
@@ -200,22 +202,24 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
 
   return (
     <Box gap={3} testID="ai-traces-list">
-      <Box direction="row" gap={3} justifyContent="between" wrap>
-        <Box flex="grow" gap={1} maxWidth="100%" minWidth={0}>
-          <Text bold>Trace smoke test</Text>
-          <Text color="secondaryDark" size="sm">
-            Runs two GPT calls, a tool stage, and a final combining GPT call as one nested trace.
-          </Text>
+      {showMultiStageTest ? (
+        <Box direction="row" gap={3} justifyContent="between" wrap>
+          <Box flex="grow" gap={1} maxWidth="100%" minWidth={0}>
+            <Text bold>Trace smoke test</Text>
+            <Text color="secondaryDark" size="sm">
+              Runs two GPT calls, a tool stage, and a final combining GPT call as one nested trace.
+            </Text>
+          </Box>
+          <Button
+            loading={isRunningMultiStage}
+            onClick={onRunTestMultiStage}
+            testID="ai-traces-run-multi-stage"
+            text="Run multi-stage trace test"
+            variant="secondary"
+          />
         </Box>
-        <Button
-          loading={isRunningMultiStage}
-          onClick={onRunTestMultiStage}
-          testID="ai-traces-run-multi-stage"
-          text="Run multi-stage trace test"
-          variant="secondary"
-        />
-      </Box>
-      {multiStageError ? (
+      ) : undefined}
+      {showMultiStageTest && multiStageError ? (
         <Text color="error" testID="ai-traces-multi-stage-error">
           {multiStageError}
         </Text>

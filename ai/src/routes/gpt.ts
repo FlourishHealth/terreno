@@ -696,10 +696,12 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
 
           try {
             await aiService.recordGenerate({
+              childSpans: toolSpans.length > 0 ? toolSpans : undefined,
               error: error instanceof Error ? error.message : String(error),
               observability,
               prompt,
               requestType: "general",
+              response: fullResponse || undefined,
               responseTime: DateTime.now().toMillis() - startTime,
               startTime,
               userId: userId ?? undefined,

@@ -4,6 +4,7 @@ import type {AdminScreenWidgetProps} from "../../../types";
 import {unwrapDatasetList} from "../datasets/datasetTypes";
 import {useAiObservabilityDatasetsApi} from "../datasets/useAiObservabilityDatasetsApi";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
+import {unwrapObservabilityStatus} from "../shell/aiObservabilityNav";
 import {AiTracesListView} from "./AiTracesListView";
 import {
   emptyTraceFilters,
@@ -16,8 +17,13 @@ import {useAiObservabilityTracesApi} from "./useAiObservabilityTracesApi";
 
 export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
   const {api, routeBase} = props;
-  const {useEnqueueReviewMutation, useEvaluatorsQuery, useListQuery, useTestMultiStageMutation} =
-    useAiObservabilityTracesApi(api);
+  const {
+    useEnqueueReviewMutation,
+    useEvaluatorsQuery,
+    useListQuery,
+    useStatusQuery,
+    useTestMultiStageMutation,
+  } = useAiObservabilityTracesApi(api);
   const {useAddTracesMutation, useListQuery: useDatasetsQuery} = useAiObservabilityDatasetsApi(api);
   const [filters, setFilters] = useState<TraceListFilters>(emptyTraceFilters);
   const [page, setPage] = useState(1);
@@ -36,6 +42,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   });
   const {data: evaluatorsRaw} = useEvaluatorsQuery();
   const {data: datasetsRaw} = useDatasetsQuery();
+  const {data: statusRaw} = useStatusQuery();
   const [enqueueReview, enqueueState] = useEnqueueReviewMutation();
   const [addTraces, addTracesState] = useAddTracesMutation();
   const [runTestMultiStage, testMultiStageState] = useTestMultiStageMutation();
@@ -43,6 +50,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const listed = useMemo(() => unwrapTraceList(data), [data]);
   const evaluators = useMemo(() => unwrapEvaluators(evaluatorsRaw), [evaluatorsRaw]);
   const datasets = useMemo(() => unwrapDatasetList(datasetsRaw), [datasetsRaw]);
+  const status = useMemo(() => unwrapObservabilityStatus(statusRaw), [statusRaw]);
   const prefix = (routeBase ?? "").replace(/\/$/, "");
 
   // Use the first installed evaluator so Send to review queue does not require a hidden pick.
@@ -177,6 +185,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         page={page}
         pageSize={listed.limit}
         selectedIds={selectedIds}
+        showMultiStageTest={status?.localOn === true}
         total={listed.total}
         traces={listed.data}
       />

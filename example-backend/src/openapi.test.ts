@@ -110,6 +110,7 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/ai/observability/status"]?.get).toBeDefined();
     expect(res.body.paths["/ai/observability/prompts"]?.get).toBeDefined();
     expect(res.body.paths["/ai/observability/traces"]?.get).toBeDefined();
+    expect(res.body.paths["/ai/observability/traces/test-multi-stage"]?.post).toBeDefined();
     expect(res.body.paths["/ai/observability/review"]?.get).toBeDefined();
   });
 

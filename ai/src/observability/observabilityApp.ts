@@ -168,13 +168,13 @@ export class ObservabilityApp implements TerrenoPlugin {
         openApi,
         store: localPlugin.traceSink.store,
       });
+      addObservabilityTestMultiStageRoutes(app, {
+        aiService: this.aiService,
+        exportTrace: (trace) => {
+          return this.exportTrace(trace);
+        },
+        openApi,
+      });
     }
-    addObservabilityTestMultiStageRoutes(app, {
-      aiService: this.aiService,
-      exportTrace: (trace) => {
-        return this.exportTrace(trace);
-      },
-      openApi,
-    });
   }
 }

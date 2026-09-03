@@ -9,6 +9,7 @@ const DETAIL_KEY = "aiObservabilityTrace";
 const EVALUATORS_KEY = "aiObservabilityEvaluators";
 const REVIEW_KEY = "enqueueAiObservabilityReview";
 const TEST_MULTI_STAGE_KEY = "runAiObservabilityTestMultiStage";
+const STATUS_KEY = "aiObservabilityStatus";
 
 export interface TraceListQueryArgs extends TraceListFilters {
   limit?: number;
@@ -101,6 +102,12 @@ const createTracesApi = (api: AdminApi) => {
           url: "/ai/observability/traces/test-multi-stage",
         }),
       }),
+      [STATUS_KEY]: build.query({
+        query: () => ({
+          method: "GET",
+          url: "/ai/observability/status",
+        }),
+      }),
     }),
     overrideExisting: true,
   });
@@ -140,6 +147,11 @@ export const useAiObservabilityTracesApi = (api: AdminApi) => {
       isError: boolean;
       isLoading: boolean;
       refetch: () => void;
+    },
+    useStatusQuery: hooks.useAiObservabilityStatusQuery as () => {
+      data?: unknown;
+      isError: boolean;
+      isLoading: boolean;
     },
     useTestMultiStageMutation: hooks.useRunAiObservabilityTestMultiStageMutation as () => [
       () => {unwrap: () => Promise<TestMultiStageTraceResult>},

@@ -84,6 +84,7 @@ describe("AiTracesListView", () => {
         filters={emptyTraceFilters()}
         page={1}
         selectedIds={[]}
+        showMultiStageTest
         total={0}
         traces={[]}
         {...idleHandlers}
@@ -103,6 +104,7 @@ describe("AiTracesListView", () => {
         filters={emptyTraceFilters()}
         page={1}
         selectedIds={[]}
+        showMultiStageTest
         total={0}
         traces={[]}
         {...idleHandlers}
@@ -116,6 +118,24 @@ describe("AiTracesListView", () => {
     });
 
     assert.equal(onRunTestMultiStage.mock.calls.length, 1);
+  });
+
+  it("hides the multi-stage smoke action without local trace storage", () => {
+    const {queryByTestId} = renderWithTheme(
+      <AiTracesListView
+        {...datasetDefaults}
+        evaluatorId=""
+        evaluators={[]}
+        filters={emptyTraceFilters()}
+        page={1}
+        selectedIds={[]}
+        total={0}
+        traces={[]}
+        {...idleHandlers}
+      />
+    );
+
+    assert.notExists(queryByTestId("ai-traces-run-multi-stage"));
   });
 
   it("renders an error row with the error line and prompt count", () => {

@@ -284,7 +284,7 @@ create a version; **Save this run to dataset** stays disabled until phase 2.
 `ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
 sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count
 warning, **Clear**, and **Add to dataset** (opens a dataset picker modal; sensitive traces show a
-warning before bulk add). **Run multi-stage trace test** calls the admin-only smoke endpoint and
+warning before bulk add). When local trace storage is on, **Run multi-stage trace test** calls the admin-only smoke endpoint and
 opens the resulting detail: two LLM stages, one deterministic tool span, and a final combining LLM
 stage under one CHAIN root. Rows show a status dot,
 `sensitive` badge, error line, `N prompts`, span count, tokens, cost, latency, score count, and

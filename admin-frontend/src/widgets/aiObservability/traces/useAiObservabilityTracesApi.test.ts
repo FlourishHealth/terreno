@@ -35,6 +35,7 @@ const createApiDouble = () => {
       Object.assign(endpoints, build(builder));
       return {
         useAiObservabilityEvaluatorsQuery: mock(() => ({isLoading: false})),
+        useAiObservabilityStatusQuery: mock(() => ({isLoading: false})),
         useAiObservabilityTraceQuery: mock(() => ({isLoading: false})),
         useAiObservabilityTracesQuery: mock(() => ({isLoading: false})),
         useEnqueueAiObservabilityReviewMutation: mock(() => [mock(() => ({})), {}]),
@@ -105,6 +106,10 @@ describe("useAiObservabilityTracesApi", () => {
       method: "POST",
       url: "/ai/observability/traces/test-multi-stage",
     });
+    expect(endpoints.aiObservabilityStatus.query({} as never)).toEqual({
+      method: "GET",
+      url: "/ai/observability/status",
+    });
   });
 
   it("exposes trace hooks for list and detail screens", () => {
@@ -115,5 +120,6 @@ describe("useAiObservabilityTracesApi", () => {
     expect(typeof result.current.useEvaluatorsQuery).toBe("function");
     expect(typeof result.current.useEnqueueReviewMutation).toBe("function");
     expect(typeof result.current.useTestMultiStageMutation).toBe("function");
+    expect(typeof result.current.useStatusQuery).toBe("function");
   });
 });

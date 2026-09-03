@@ -34,7 +34,27 @@ export const addObservabilityTestMultiStageRoutes = (
         .withRequestBody({
           input: {type: "string"},
         })
-        .withResponse(200, {data: {type: "object"}})
+        .withResponse(200, {
+          data: {
+            properties: {
+              output: {type: "string"},
+              stages: {
+                items: {
+                  properties: {
+                    name: {type: "string"},
+                    output: {},
+                    status: {enum: ["error", "ok"], type: "string"},
+                  },
+                  type: "object",
+                },
+                type: "array",
+              },
+              traceId: {type: "string"},
+            },
+            type: "object",
+          },
+        })
+        .withResponse(503, {title: {type: "string"}})
         .build(),
     ],
     asyncHandler(async (req, res) => {

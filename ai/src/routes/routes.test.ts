@@ -811,6 +811,20 @@ describe("AI Routes", () => {
                 type: "tool-result" as const,
               });
               controller.enqueue({
+                input: {id: "second"},
+                providerExecuted: true,
+                toolCallId: "tc2",
+                toolName: "lookup",
+                type: "tool-call" as const,
+              });
+              controller.enqueue({
+                providerExecuted: true,
+                result: {value: "second-result"},
+                toolCallId: "tc2",
+                toolName: "lookup",
+                type: "tool-result" as const,
+              });
+              controller.enqueue({
                 finishReason: "stop" as const,
                 type: "finish" as const,
                 usage: {inputTokens: 3, outputTokens: 3},
@@ -830,6 +844,7 @@ describe("AI Routes", () => {
             aiService: new AIService({model: toolModel as unknown as LanguageModel}),
             openApiOptions: options,
             tools: {
+              lookup: {description: "Lookup item"} as unknown as Tool,
               search: {description: "Web search"} as unknown as Tool,
             },
           });
@@ -850,8 +865,13 @@ describe("AI Routes", () => {
       assert.equal(sink.traces.length, 1);
       const trace = sink.traces[0];
       assert.equal(trace.spans[0]?.kind, "CHAIN");
-      assert.equal(trace.spans.length, 2);
-      const toolSpan = trace.spans.find((span) => span.kind === "TOOL");
+      assert.equal(trace.spans.length, 3);
+      const toolSpans = trace.spans.filter((span) => span.kind === "TOOL");
+      assert.sameMembers(
+        toolSpans.map((span) => span.name),
+        ["search", "lookup"]
+      );
+      const toolSpan = toolSpans.find((span) => span.name === "search");
       assert.isDefined(toolSpan);
       assert.equal(toolSpan?.name, "search");
       assert.deepEqual(toolSpan?.input, {q: "hello"});
@@ -861,6 +881,10 @@ describe("AI Routes", () => {
         results: ["item1"],
       });
       assert.equal(toolSpan?.parentSpanId, trace.spans[0]?.id);
+      assert.equal(
+        toolSpans.find((span) => span.name === "lookup")?.parentSpanId,
+        trace.spans[0]?.id
+      );
     });
 
     it("emits a file SSE event when a tool execution returns fileData", async () => {
@@ -1315,6 +1339,72 @@ describe("AI Routes", () => {
   });
 
   describe("GPT Prompt error handling", () => {
+    it("preserves completed tool spans when the stream later fails", async () => {
+      const sink = new MemoryTraceSink();
+      const plugin: ObservabilityPlugin = {
+        capabilities: new Set([
+          "datasets",
+          "experiments",
+          "prompts",
+          "reviewQueue",
+          "scores",
+          "traces",
+        ]),
+        datasetStore: {},
+        experimentRunner: {},
+        id: "local",
+        promptRegistry: {get: async () => undefined},
+        reviewQueue: {},
+        traceSink: sink,
+      };
+      new ObservabilityApp({plugins: [plugin]});
+      streamTextOverride = () =>
+        ({
+          files: Promise.resolve([]),
+          fullStream: (async function* () {
+            yield {type: "start-step"};
+            yield {
+              input: {query: "before failure"},
+              toolCallId: "tc-error",
+              toolName: "search",
+              type: "tool-call",
+            };
+            yield {
+              output: {items: ["one"]},
+              toolCallId: "tc-error",
+              toolName: "search",
+              type: "tool-result",
+            };
+            throw new Error("stream failed after tool");
+          })(),
+        }) as unknown as StreamTextResult;
+      const errApp = new TerrenoApp({
+        configureApp: (router, options) => {
+          addGptRoutes(router, {
+            aiService,
+            openApiOptions: options,
+            tools: {search: {description: "Search"} as unknown as Tool},
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      }).build();
+      const agent = await authAsUser(errApp, "notAdmin");
+
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Search, then fail"})
+        .buffer(true)
+        .parse(sseCollect);
+
+      assert.equal(res.status, 200);
+      assert.equal(sink.traces.length, 1);
+      assert.equal(sink.traces[0]?.status, "error");
+      const toolSpan = sink.traces[0]?.spans.find((span) => span.kind === "TOOL");
+      assert.deepEqual(toolSpan?.input, {query: "before failure"});
+      assert.deepEqual(toolSpan?.output, {items: ["one"]});
+    });
+
     it("sends an outer SSE error when error handling itself fails after streaming starts", async () => {
       streamTextOverride = () =>
         ({
