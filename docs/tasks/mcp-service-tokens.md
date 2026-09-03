@@ -54,12 +54,12 @@ Plan: [`docs/implementationPlans/mcp-service-tokens.md`](../implementationPlans/
   - Acceptance: app with flag on serves routes and accepts `mcp_` on `/mcp`; flag off serves neither
 
 - [ ] **Task 2.3**: End-to-end MCP call with service token
-  - Delivers: integration test — mint token, `POST /mcp` JSON-RPC `tools/list` with Bearer, assert tool names match session user
+  - Delivers: integration test — mint token, `POST /mcp` JSON-RPC `tools/call` with Bearer, assert the same owner-visible result as a session JWT
   - Files: extend `api/src/mcp/server.test.ts` or `serviceTokens.test.ts`
   - Blocked by: Task 2.2
-  - Docs: `docs/how-to/connect-mcp-service-token.md` (curl `initialize` example)
+  - Docs: `docs/how-to/connect-mcp-service-token.md` (GET 405 probe + POST `initialize` / `tools/call`)
   - Skills: `terreno-backend-api`, `update-docs`
-  - Acceptance: GET and POST `/mcp` both authenticate with same token (Perplexity probe + initialize)
+  - Acceptance: GET `/mcp` returns Streamable-HTTP JSON-RPC 405; POST `tools/call` with `mcp_` acts as the owner; invalid `mcp_` is denied
 
 ---
 

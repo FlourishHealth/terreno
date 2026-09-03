@@ -67,7 +67,7 @@ When this is done, an operator can:
 - Self-serve routes live at **`/mcp/service-tokens`** (session/JWT only).
 - Admin CRUD at **`/admin/mcp-service-tokens`** via `AdminApp` (list + revoke; create/update disabled).
 - `mcpUrl` in create response: `{publicApiUrl}/mcp` from new optional `mcpServiceTokens.publicMcpUrl` or `BETTER_AUTH_URL` / request host fallback.
-- Perplexity: `app.all("/mcp")` must accept the same Bearer on **GET and POST** (already true).
+- Perplexity: GET `/mcp` is a Streamable-HTTP **405** (no GET SSE stream). POST `initialize` / `tools/list` are unauthenticated catalog in the stateless handler. Identity is enforced on **`tools/call`**. Send the same Bearer on GET and POST anyway.
 
 ## Architecture
 
@@ -276,6 +276,6 @@ See [`docs/tasks/mcp-service-tokens.md`](../tasks/mcp-service-tokens.md).
 | Valid token: `tools/list` as owner user | Supertest MCP handler or `invokeMCPTool`-style test |
 | Session JWT cannot call self-serve routes with `mcp_` only | Route test |
 | Admin lists all users' tokens; admin revoke blocks MCP | Admin integration test |
-| Perplexity-shaped GET+POST `/mcp` with same Bearer succeed | curl test in how-to |
+| Perplexity-shaped GET `/mcp` is JSON-RPC 405; POST `tools/call` with same Bearer acts as owner | HTTP integration test + how-to |
 | Example `/settings/mcp` create-copy-revoke flow | Manual UI + artifact |
 | Docs: Perplexity form fields + JSON snippet | Doc review |

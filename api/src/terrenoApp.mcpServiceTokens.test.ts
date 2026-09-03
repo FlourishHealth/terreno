@@ -131,7 +131,8 @@ describe("TerrenoApp mcpServiceTokens", () => {
     assert.equal(res.body.paths["/mcp/service-tokens"].post.operationId, "createMcpServiceToken");
   });
 
-  it("returns 405 on GET /mcp and authenticates POST initialize and tools/list with a service token", async () => {
+  it("lets a minted service token call tools as the owner while GET /mcp stays 405", async () => {
+    await TokenMcpNote.create({title: "Visible note"});
     const app = new TerrenoApp({
       mcpServiceTokens: true,
       skipListen: true,
@@ -143,49 +144,30 @@ describe("TerrenoApp mcpServiceTokens", () => {
     const agent = await authAsUser(app, "notAdmin");
     const created = await agent.post("/mcp/service-tokens").send({name: "Perplexity probe"});
     const mcpToken = created.body.data.token as string;
-    const jwtListed = await agent
+
+    const jwtCall = await agent
       .post("/mcp")
       .set("accept", "application/json, text/event-stream")
-      .send({id: 2, jsonrpc: "2.0", method: "tools/list", params: {}});
-
-    const probe = await supertest(app)
-      .get("/mcp")
+      .send(toolsCallBody);
+    const tokenCall = await supertest(app)
+      .post("/mcp")
       .set("Authorization", `Bearer ${mcpToken}`)
-      .set("accept", "application/json, text/event-stream");
-    const unauthenticatedGet = await supertest(app)
-      .get("/mcp")
-      .set("accept", "application/json, text/event-stream");
+      .set("accept", "application/json, text/event-stream")
+      .send(toolsCallBody);
     const bogusCall = await supertest(app)
       .post("/mcp")
       .set("Authorization", "Bearer mcp_deadbeef")
       .set("accept", "application/json, text/event-stream")
       .send(toolsCallBody);
-    const initialized = await supertest(app)
-      .post("/mcp")
+    const probe = await supertest(app)
+      .get("/mcp")
       .set("Authorization", `Bearer ${mcpToken}`)
-      .set("accept", "application/json, text/event-stream")
-      .send({
-        id: 1,
-        jsonrpc: "2.0",
-        method: "initialize",
-        params: {
-          capabilities: {},
-          clientInfo: {name: "perplexity", version: "0"},
-          protocolVersion: "2024-11-05",
-        },
-      });
-    const listed = await supertest(app)
-      .post("/mcp")
-      .set("Authorization", `Bearer ${mcpToken}`)
-      .set("accept", "application/json, text/event-stream")
-      .send({id: 2, jsonrpc: "2.0", method: "tools/list", params: {}});
+      .set("accept", "application/json, text/event-stream");
 
-    assert.equal(probe.status, 405);
-    assert.equal(unauthenticatedGet.status, 405);
-    assert.equal(probe.body.error.message, "Method not allowed.");
+    assert.include(jwtCall.text, "Visible note");
+    assert.include(tokenCall.text, "Visible note");
     assert.include(bogusCall.text, "Permission denied: authentication required");
-    assert.include(initialized.text, "terreno-api-mcp");
-    assert.include(listed.text, "tokenmcpnotes_list");
-    assert.include(jwtListed.text, "tokenmcpnotes_list");
+    assert.equal(probe.status, 405);
+    assert.equal(probe.body.error.message, "Method not allowed.");
   });
 });
