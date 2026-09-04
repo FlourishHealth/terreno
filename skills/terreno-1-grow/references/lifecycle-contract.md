@@ -147,6 +147,9 @@ Each invocation:
 5. Replace `last`, merge artifact references, and set `next`.
 6. Emit the same result to the caller so the loop can persist it elsewhere.
 
+When `terreno-pick-roast-loop` is driving, append the schema-defined `ledger` entry
+between steps 5 and 6.
+
 These six state operations are mandatory whenever a stage says “update execution state.”
 Every result also includes a concrete `action`, even when `next` is `null`. For
 `BLOCKED`, set `next.human: true` only when the blocker is a human decision/policy gate;

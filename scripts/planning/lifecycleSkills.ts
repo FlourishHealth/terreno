@@ -460,6 +460,7 @@ export const validateOuterLoopContent = ({
       "Never invoke Brew or Taste",
       "Do not silently run Grow",
       "next.stage",
+      "same task-scoped briefing every time",
     ]) {
       if (!content.includes(marker)) {
         errors.push(`${directory}: missing continuous-loop marker ${marker}`);

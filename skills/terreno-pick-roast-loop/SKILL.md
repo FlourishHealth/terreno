@@ -52,8 +52,8 @@ human-facing report until completion or a genuine human gate.
 
 1. **Reconstruct once.** Read the approved task graph and execution state. Identify the
    next incomplete or failed task. Verify branch/head and prior attempts.
-2. **Invoke the named stage.** At loop start, default to Pick. On recovery, invoke
-   `next.stage` from durable state: Pick for implementation/rework, or Roast when Pick
+2. **Invoke the named stage.** After reconstructing, invoke `next.stage` when it is set;
+   otherwise default to Pick. Use Pick for implementation/rework, or Roast when Pick
    completed the task but exited before proof. Pass the current task, exact prior
    evidence, and the same task-scoped briefing. Pick owns normal task → Roast →
    next-task progression.
@@ -73,8 +73,9 @@ human-facing report until completion or a genuine human gate.
    new evidence. Never repeat the same failed command/approach. After two focused
    failures for the same task and stage with no new hypothesis, classify the underlying
    decision or capability honestly instead of looping.
-5. **Continue silently.** Keep invoking only the stage named by durable state until
-   every task passes Roast or a stop condition below is reached.
+5. **Continue silently.** Repeat steps 2–4, invoking only the stage named by durable
+   state and passing the same task-scoped briefing every time, until every task passes
+   Roast or a stop condition below is reached.
 
 ## Genuine human gate
 
