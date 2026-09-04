@@ -1,8 +1,8 @@
 # Lifecycle contract
 
 Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration loop.
-`terreno-planning-loop` and `terreno-taste-sweep` are invocable outer loops; they
-must not be recorded as `stage` values.
+`terreno-pick-roast-loop`, `terreno-planning-loop`, and `terreno-taste-sweep` are
+invocable outer loops; they must not be recorded as `stage` values.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -172,6 +172,11 @@ Human gates include unresolved product semantics, architecture/security/data own
 destructive or irreversible operations, permissions, public compatibility, significant
 scope growth, and policy-required approval. Include options, tradeoffs, evidence, and a
 recommended default when appropriate.
+
+An outer loop requesting human input must first summarize the overall plan state,
+completed work, failed/recovered attempts, decisive evidence, options and impact, and a
+recommended default. It ends with one exact question. Objective engineering failures
+are not human gates while a concrete safe action remains.
 
 Bounded engineering retries must be hypothesis-driven. Taste waits in-process for
 async review bots and for product CI (bounded watch loop). The outer loop reinvokes

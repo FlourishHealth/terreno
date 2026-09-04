@@ -52,10 +52,17 @@ loop for product CI with `gh` or `circleci` until jobs are terminal or the wait 
 out. Before any push it always pulls latest `master`, then lints in a no-context
 subagent, then pushes and watches CI.
 
-Invocable outer loops in the plugin: `/terreno-planning-loop` runs Grow, then Pick
-(Pick owns the pick-roast inner loop), then optional Brew/Taste; pass `phases=` to
-restrict. `/terreno-taste-sweep` drives the author's broken open PRs by reinvoking
-Taste. Neither is a sixth stage.
+Invocable outer loops in the plugin:
+
+- `/terreno-pick-roast-loop` works an approved plan until every task passes Roast or a
+  genuine human decision is required. It keeps one run ledger and reports all task,
+  retry, evidence, and risk details at the end. A human question includes the overall
+  state, options/impact, and recommendation.
+- `/terreno-planning-loop` runs Grow, then Pick (Pick owns the pick-roast inner loop),
+  then optional Brew/Taste; pass `phases=` to restrict.
+- `/terreno-taste-sweep` drives the author's broken open PRs by reinvoking Taste.
+
+None is a sixth stage.
 
 ## The five transitions
 
@@ -134,6 +141,10 @@ contain chain-of-thought or transcripts.
   driver continues after each Roast. Do not pick every task and roast once.
 - Roast failure returns exact expected/actual evidence to Pick for the same task.
 - Engineering retries require a new hypothesis and preserve failed approaches.
+- The focused Pick–Roast outer loop continues through ordinary implementation, test,
+  lint, and Roast failures while a concrete safe engineering action remains. It asks
+  for human input only when evidence cannot choose a product, architecture, security,
+  data, destructive, compatibility, permission, or policy outcome.
 - Taste `PENDING` is for review-bot timeout, product-CI wait timeout, or a second
   post-fix push. The outer loop then uses native provider watch hooks or harness
   subscriptions where available and a timer only as fallback, then invokes fresh Taste.

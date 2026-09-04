@@ -29,7 +29,8 @@ export const CANONICAL_PLUGIN_DIRECTORY = "plugins/terreno-planning";
 export const CLAUDE_PLUGIN_DIRECTORY = "plugins/terreno-claude";
 export const CLAUDE_PLUGIN_NAME = "terreno";
 
-const LONG_STAGE_NAME_PATTERN = /terreno-([1-5]-[a-z]+)/g;
+const LONG_SKILL_NAME_PATTERN =
+  /terreno-([1-5]-[a-z]+|pick-roast-loop|planning-loop|taste-sweep)/g;
 
 const CLAUDE_PLUGIN_README = `# Terreno Claude Code plugin
 
@@ -44,24 +45,30 @@ named \`terreno\`, so Grow is \`/terreno:1-grow\`.
 | \`${CANONICAL_PLUGIN_DIRECTORY}/skills/\` | Stage procedure and contracts |
 | \`${CANONICAL_PLUGIN_DIRECTORY}/references/\` | Shared lifecycle references |
 
-Cursor and \`npx skills\` keep the canonical \`terreno-1-grow\` … \`terreno-5-taste\` names.
+Cursor and \`npx skills\` keep the canonical \`terreno-*\` names.
 `;
 
 export const shortenStageName = (stageName: string): string =>
-  stageName.replace(LONG_STAGE_NAME_PATTERN, "$1");
+  stageName.replace(LONG_SKILL_NAME_PATTERN, "$1");
 
 export const rewriteStageNames = (contents: string): string =>
-  contents.replace(LONG_STAGE_NAME_PATTERN, "$1");
+  contents.replace(LONG_SKILL_NAME_PATTERN, "$1");
 
 const CANONICAL_STAGE_DIRECTORY = /^terreno-[1-5]-/;
+const CANONICAL_OUTER_LOOP_DIRECTORIES = new Set([
+  "terreno-pick-roast-loop",
+  "terreno-planning-loop",
+  "terreno-taste-sweep",
+]);
 
-/** Numbered Grow–Taste stages only. Outer loops stay Cursor/`npx skills`. */
+/** Numbered Grow–Taste stages plus the invocable outer loops. */
 const listStageDirectories = (skillsDirectory: string): string[] =>
   readdirSync(skillsDirectory, {withFileTypes: true})
     .filter(
       (entry) =>
         entry.isDirectory() &&
-        CANONICAL_STAGE_DIRECTORY.test(entry.name) &&
+        (CANONICAL_STAGE_DIRECTORY.test(entry.name) ||
+          CANONICAL_OUTER_LOOP_DIRECTORIES.has(entry.name)) &&
         existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
     )
     .map((entry) => entry.name)

@@ -19,11 +19,12 @@ on casual chat. Grow, Brew, and Taste never own the full orchestration. Pick and
 the inner loop that implements one task, roasts it, then picks the next until the list is
 done.
 
-Two additional skills are **outer loops**, not stages. They invoke the five transitions
+Three additional skills are **outer loops**, not stages. They invoke the five transitions
 and persist state:
 
 | Skill | Loop |
 | --- | --- |
+| **Pick–Roast loop** (`terreno-pick-roast-loop`) | Work an approved plan through every Pick/Roast retry, collect one run ledger, and stop only when complete or genuinely blocked on human input. |
 | **Planning loop** (`terreno-planning-loop`) | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns pick-roast). Pass `phases=` to restrict. |
 | **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
 
@@ -59,6 +60,12 @@ The shared result/state format and outer state machine live in:
 
 Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details toggle in
 chat and on the PR. Humans read `status`, `next`, and `action`.
+
+The focused `terreno-pick-roast-loop` is the implementation autopilot: it keeps
+recovering from objective Pick/Roast failures while an evidence-backed engineering
+action remains. It reports the complete task/attempt ledger once at completion. When a
+human decision is genuinely required, it first explains the plan state, work completed,
+decisive evidence, options, impact, and recommendation, then asks one exact question.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
 invoke Pick once; it pick-roasts each frontier task in sequence. `terreno-planning-loop`
@@ -134,13 +141,13 @@ are removed; invoke the canonical stages directly.
 
 ## Hosts
 
-| Host | Plugin | Marketplace | Invoke Grow |
+| Host | Plugin | Marketplace | Invoke Pick–Roast loop |
 | --- | --- | --- | --- |
-| Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-1-grow` |
-| Codex | `terreno-planning` | [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) | `$terreno-1-grow` |
-| Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:1-grow` |
+| Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-pick-roast-loop` |
+| Codex | `terreno-planning` | [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) | `$terreno-pick-roast-loop` |
+| Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:pick-roast-loop` |
 
-Cursor and Codex also ship outer loops `terreno-planning-loop` and `terreno-taste-sweep`.
+All three hosts ship continuous Pick–Roast, phase-planning, and Taste-sweep outer loops.
 
 Claude Code install:
 
@@ -164,5 +171,6 @@ Cursor, Codex, and `npx skills`. Codex reads `.codex-plugin/plugin.json` in that
 directory. Claude Code resolves a plugin skill's command from the frontmatter `name`, so
 its shortened names cannot live in the shared stage files. `terreno-claude/` is a
 **generated** Claude-only copy: same procedure, stage names shortened to `1-grow` …
-`5-taste`, published under the plugin name `terreno` so the namespaced command is
-`/terreno:1-grow`. Regenerate it with `bun run skills:sync`; never hand-edit it.
+`5-taste`, outer loops shortened to `pick-roast-loop`, `planning-loop`, and
+`taste-sweep`, published under the plugin name `terreno`. Regenerate it with
+`bun run skills:sync`; never hand-edit it.

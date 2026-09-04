@@ -443,14 +443,33 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("must allow model invocation")));
   });
 
-  it("keeps planning-loop and taste-sweep as non-stage plugin skills", (): void => {
-    for (const directory of ["terreno-planning-loop", "terreno-taste-sweep"] as const) {
+  it("keeps all outer loops as non-stage plugin skills", (): void => {
+    for (const directory of [
+      "terreno-pick-roast-loop",
+      "terreno-planning-loop",
+      "terreno-taste-sweep",
+    ] as const) {
       const content = readStage(directory);
       assert.include(content, `name: ${directory}`);
       assert.notInclude(content, "disable-model-invocation: true");
       assert.include(content, "../../references/lifecycle-contract.md");
       assert.deepEqual(validateOuterLoopContent({content, directory}), []);
     }
+  });
+
+  it("rejects a Pick-Roast outer loop that stops on ordinary failures", (): void => {
+    const content = readStage("terreno-pick-roast-loop")
+      .replace("Ordinary test failures", "Test failures")
+      .replace("one exact question", "a question")
+      .replace("Do not stream a recap after each cycle", "Stream every cycle");
+    const errors = validateOuterLoopContent({
+      content,
+      directory: "terreno-pick-roast-loop",
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("Ordinary test failures")));
+    assert.isTrue(errors.some((error) => error.includes("one exact question")));
+    assert.isTrue(errors.some((error) => error.includes("Do not stream a recap")));
   });
 
   it("rejects outer loops that use timers before native CI hooks", (): void => {

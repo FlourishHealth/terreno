@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "2.6.0",
+    "version": "2.7.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions plus outer loops; before push Taste pulls latest master, lints in a no-context subagent, then watches product CI with gh/circleci."
+      "description": "Five bounded transitions plus a continuous Pick-Roast loop that stops only for completion or a genuine human gate, phase planning, and Taste/CI loops."
     }
   ]
 }

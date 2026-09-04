@@ -11,4 +11,4 @@ named `terreno`, so Grow is `/terreno:1-grow`.
 | `plugins/terreno-planning/skills/` | Stage procedure and contracts |
 | `plugins/terreno-planning/references/` | Shared lifecycle references |
 
-Cursor and `npx skills` keep the canonical `terreno-1-grow` … `terreno-5-taste` names.
+Cursor and `npx skills` keep the canonical `terreno-*` names.

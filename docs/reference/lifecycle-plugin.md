@@ -1,12 +1,12 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.6.0`)
+Plugin: `terreno-planning` (`2.7.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
 approved task list is done. Roast proves the current task and returns.
-`terreno-planning-loop` and `terreno-taste-sweep` are outer loops that invoke those
-stages; they are not stages and must not appear as `stage` values.
+`terreno-pick-roast-loop`, `terreno-planning-loop`, and `terreno-taste-sweep` are outer
+loops that invoke those stages; they are not stages and must not appear as `stage` values.
 
 | Skill | Preconditions | Primary output | PASS next |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ Outer loops (not stages):
 
 | Skill | What it walks | Default |
 | --- | --- | --- |
+| `terreno-pick-roast-loop` | Approved task list through Pick/Roast recovery | Continue every actionable engineering retry; report once when all tasks pass or a genuine human gate is reached. |
 | `terreno-planning-loop` | Approved task list | Grow once, then Pick once (inner pick-roast loop). Pass `phases=` to restrict (`grow`, `pick`, `roast`, `brew`, `taste`). |
 | `terreno-taste-sweep` | Author's open broken PRs | Isolate each conflicting or failing (any discovered CI host) non-draft PR and reinvoke Taste until mergeable or blocked. |
 
@@ -56,6 +57,14 @@ Buildkite, and similar), not only GitHub checks. A documented not-applicable hos
 counts as skipped; an unexplained untriggered host prevents Brew `PASS`. Brew still
 does not execute Taste.
 
+The focused Pick–Roast outer loop does not run Grow, Brew, Taste, or product CI. It
+keeps a durable ledger of every task, Roast result, retry hypothesis, check, artifact,
+docs update, and residual risk, then presents that report once. It asks the human only
+for an actual product/architecture/security/data/destructive/policy decision or
+unreplaceable credential. Before asking, it gives the overall goal/state, completed
+work, decisive evidence, two to four options with impact, and a recommendation; the
+message ends with one exact question.
+
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
 `Verification` are the only visible PR sections; optional detail is expandable; comments
 are reserved for blocked decisions or non-obvious review resolutions.
@@ -73,14 +82,14 @@ Install the published skill set (lifecycle stages, outer loops, plus repo and pa
 npx skills add FlourishHealth/terreno
 ```
 
-Or install the same five stages as a host plugin:
+Or install the same five stages and three outer loops as a host plugin:
 
-| Host | Plugin | Stage names | Invoke Grow |
+| Host | Plugin | Stage names | Invoke Pick–Roast loop |
 | --- | --- | --- | --- |
-| Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
-| Codex | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste` | `$terreno-1-grow` |
-| Claude Code | `terreno` | `1-grow` … `5-taste` | `/terreno:1-grow` |
-| `npx skills` | — | `terreno-1-grow` … `terreno-5-taste` | `/terreno-1-grow` |
+| Cursor | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste`, outer loops | `/terreno-pick-roast-loop` |
+| Codex | `terreno-planning` | `terreno-1-grow` … `terreno-5-taste`, outer loops | `$terreno-pick-roast-loop` |
+| Claude Code | `terreno` | `1-grow` … `5-taste`, outer loops | `/terreno:pick-roast-loop` |
+| `npx skills` | — | Canonical stage and outer-loop names | `/terreno-pick-roast-loop` |
 
 Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Codex:
 

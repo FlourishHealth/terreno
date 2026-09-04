@@ -11,7 +11,7 @@ This directory is generated. Canonical sources:
 
 | Source | Owns |
 | --- | --- |
-| `plugins/terreno-planning/skills/` | Grow, Pick, Roast, Brew, Taste, plus planning-loop and taste-sweep |
+| `plugins/terreno-planning/skills/` | Grow, Pick, Roast, Brew, Taste, plus continuous Pick-Roast, planning, and taste-sweep loops |
 | `.rulesync/skills/` | Repository and domain skills |
 | `<package>/.ai/skills/` | Published package skills (overlay the repo copies) |
 

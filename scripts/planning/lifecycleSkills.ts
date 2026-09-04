@@ -80,7 +80,11 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
   },
 ];
 
-const OUTER_LOOP_DIRECTORIES = ["terreno-planning-loop", "terreno-taste-sweep"] as const;
+const OUTER_LOOP_DIRECTORIES = [
+  "terreno-pick-roast-loop",
+  "terreno-planning-loop",
+  "terreno-taste-sweep",
+] as const;
 
 const REQUIRED_SECTIONS = [
   "## Preconditions",
@@ -443,6 +447,26 @@ export const validateOuterLoopContent = ({
   if (content.includes("disable-model-invocation: true")) {
     errors.push(`${directory}: outer-loop skills must allow model invocation`);
   }
+  if (directory === "terreno-pick-roast-loop") {
+    for (const marker of [
+      "../../references/pick-roast-loop.md",
+      "genuine human decision",
+      "Run ledger",
+      "Completion report",
+      "Do not stream a recap after each cycle",
+      "Ordinary test failures",
+      "one exact question",
+      "Never invoke Brew or Taste",
+    ]) {
+      if (!content.includes(marker)) {
+        errors.push(`${directory}: missing continuous-loop marker ${marker}`);
+      }
+    }
+    if (content.includes("../../references/product-ci.md")) {
+      errors.push(`${directory}: focused Pick-Roast loop must not load product CI`);
+    }
+    return errors;
+  }
   if (!content.includes("../../references/product-ci.md")) {
     errors.push(`${directory}: outer loop must load the product-CI procedure`);
   }
@@ -509,9 +533,10 @@ export const validateClaudePluginHost = ({
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  const expectedClaudeStages = STAGE_DEFINITIONS.map(({directory}) =>
-    directory.replace(/^terreno-/, "")
-  ).sort();
+  const expectedClaudeStages = [
+    ...STAGE_DEFINITIONS.map(({directory}) => directory.replace(/^terreno-/, "")),
+    ...OUTER_LOOP_DIRECTORIES.map((directory) => directory.replace(/^terreno-/, "")),
+  ].sort();
   if (JSON.stringify(claudeStages) !== JSON.stringify(expectedClaudeStages)) {
     errors.push(
       `Claude plugin stages must be exactly ${expectedClaudeStages.join(", ")}; found ${claudeStages.join(", ")}`
@@ -526,6 +551,14 @@ export const validateClaudePluginHost = ({
     if (!content.includes(`name: ${stageDirectory}`)) {
       errors.push(`Claude stage ${stageDirectory} frontmatter name must be ${stageDirectory}`);
     }
+  }
+
+  const claudeContinuousLoop = readFileSync(
+    join(claudeDirectory, "skills/pick-roast-loop/SKILL.md"),
+    "utf8"
+  );
+  if (!claudeContinuousLoop.includes("genuine human decision")) {
+    errors.push("Claude pick-roast-loop must preserve the genuine human gate");
   }
 
   const claudePick = readFileSync(
