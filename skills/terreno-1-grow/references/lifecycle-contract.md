@@ -126,6 +126,11 @@ transcripts.
 The IP and task file remain authoritative for design and scope. Execution state is a
 small loop-owned handoff, not another plan.
 
+The focused Pick–Roast outer loop may add the schema-defined `ledger` array. Each entry
+records one Pick or Roast task attempt, head, status, summary/evidence, and optional
+files, checks, artifacts, docs, hypothesis, and risks. It is the source for the single
+completion or human-gate report.
+
 Use an existing repository convention when present. Otherwise use
 `.terreno/pipeline/<ip-or-task-slug>.json`, conforming to
 [`execution-state.schema.json`](execution-state.schema.json). The outer loop must preserve

@@ -1,6 +1,6 @@
 ---
 name: terreno-pick-roast-loop
-description: Drive an approved plan through every Pick–Roast cycle until all tasks pass or a genuine human decision is required. Continue through recoverable engineering failures, keep a complete run ledger, and when input is required present the overall state, options, recommendation, and exact question. Not for Grow, Brew, Taste, or CI monitoring.
+description: Drive an approved plan through every Pick–Roast cycle until all tasks pass or a genuine human decision is required. Continue through recoverable engineering failures, keep a complete run ledger, and when input is required present the overall state, completed work and evidence, options, recommendation, and exact question. Not for Grow, Brew, Taste, or CI monitoring.
 ---
 
 # Pick–Roast loop (outer recovery driver)
@@ -12,7 +12,8 @@ engineering work remaining.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`pick-roast inner loop`](references/pick-roast-loop.md), and
-[`subagent briefing`](references/subagent-briefing.md).
+[`subagent briefing`](references/subagent-briefing.md). The ledger must conform
+to [`execution-state.schema.json`](references/execution-state.schema.json).
 
 ## Scope
 
@@ -33,8 +34,8 @@ invent acceptance criteria.
 
 ## Run ledger
 
-Create one compact ledger in execution state before invoking a stage. Append after every
-Pick/Roast result:
+Create one compact `ledger` array in execution state before invoking a stage. Append one
+schema-valid entry after every Pick/Roast result:
 
 - task id and short outcome
 - attempt number and head SHA
@@ -51,13 +52,18 @@ human-facing report until completion or a genuine human gate.
 
 1. **Reconstruct once.** Read the approved task graph and execution state. Identify the
    next incomplete or failed task. Verify branch/head and prior attempts.
-2. **Invoke Pick.** Pass the current task, exact prior Roast evidence, and a task-scoped
-   briefing. Pick owns normal task → Roast → next-task progression.
+2. **Invoke the named stage.** At loop start, default to Pick. On recovery, invoke
+   `next.stage` from durable state: Pick for implementation/rework, or Roast when Pick
+   completed the task but exited before proof. Pass the current task, exact prior
+   evidence, and the same task-scoped briefing. Pick owns normal task → Roast →
+   next-task progression.
 3. **Consume the result.** Update the ledger, then classify:
    - `PASS` with all tasks Roast-passed → finish with `next: brew`.
    - `FAIL` with `next: pick` or `next: roast` and a concrete engineering action →
-     reinvoke that stage in a fresh context with prior evidence.
-   - `BLOCKED` with `block.kind: human` or `next.human: true` → present the human gate.
+     reinvoke that stage in a fresh context with prior evidence and the same
+     task-scoped briefing.
+   - `BLOCKED` with a `block` entry whose `kind` is `human`, or `next.human: true` →
+     present the human gate.
    - `BLOCKED` for environment/access/external state → attempt safe autonomous
      remediation or a bounded retry when a new hypothesis exists. Never relabel it
      `human` merely to stop.
@@ -65,8 +71,8 @@ human-facing report until completion or a genuine human gate.
      blocked; do not ask the human a decision question unless they can actually decide it.
 4. **Bound retries by evidence.** A retry must add a new hypothesis, changed setup, or
    new evidence. Never repeat the same failed command/approach. After two focused
-   failures with no new hypothesis, classify the underlying decision or capability
-   honestly instead of looping.
+   failures for the same task and stage with no new hypothesis, classify the underlying
+   decision or capability honestly instead of looping.
 5. **Continue silently.** Keep invoking only the stage named by durable state until
    every task passes Roast or a stop condition below is reached.
 
@@ -135,4 +141,4 @@ action: Submit the fully Roast-verified plan with Brew.
 
 For a human gate, use `status: BLOCKED`, `next: null`, and an `ask` entry containing
 the exact question, recommendation, and options. For a non-human terminal blocker, use
-`block.kind: environment`, `access`, or `external` and omit `ask`.
+a `block` array entry with `kind: environment`, `access`, or `external`, and omit `ask`.

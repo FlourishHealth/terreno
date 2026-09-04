@@ -450,6 +450,7 @@ export const validateOuterLoopContent = ({
   if (directory === "terreno-pick-roast-loop") {
     for (const marker of [
       "../../references/pick-roast-loop.md",
+      "../../references/execution-state.schema.json",
       "genuine human decision",
       "Run ledger",
       "Completion report",
@@ -457,6 +458,8 @@ export const validateOuterLoopContent = ({
       "Ordinary test failures",
       "one exact question",
       "Never invoke Brew or Taste",
+      "Do not silently run Grow",
+      "next.stage",
     ]) {
       if (!content.includes(marker)) {
         errors.push(`${directory}: missing continuous-loop marker ${marker}`);
@@ -893,13 +896,33 @@ export const validateLifecyclePlugin = ({
 
   const executionSchema = JSON.parse(
     readFileSync(join(pluginDirectory, "references/execution-state.schema.json"), "utf8")
-  ) as {properties?: {stage?: {enum?: string[]}; v?: {const?: number}}};
+  ) as {
+    properties?: {
+      ledger?: {
+        items?: {
+          properties?: {stage?: {enum?: string[]}};
+          required?: string[];
+        };
+        type?: string;
+      };
+      stage?: {enum?: string[]};
+      v?: {const?: number};
+    };
+  };
   const executionStages = executionSchema.properties?.stage?.enum ?? [];
   if (executionSchema.properties?.v?.const !== 2) {
     errors.push("execution-state schema v must be 2");
   }
   if (JSON.stringify(executionStages) !== JSON.stringify(LIFECYCLE_STAGES)) {
     errors.push("execution-state schema stage values do not match canonical lifecycle");
+  }
+  const ledger = executionSchema.properties?.ledger;
+  if (
+    ledger?.type !== "array" ||
+    !ledger.items?.required?.includes("ev") ||
+    JSON.stringify(ledger.items?.properties?.stage?.enum) !== JSON.stringify(["pick", "roast"])
+  ) {
+    errors.push("execution-state schema must define the Pick-Roast run ledger");
   }
 
   return errors;

@@ -37,6 +37,29 @@
         }
       }
     },
+    "ledger": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task", "stage", "attempt", "sha", "status", "summary", "ev"],
+        "properties": {
+          "task": {"type": "string"},
+          "stage": {"enum": ["pick", "roast"]},
+          "attempt": {"type": "integer", "minimum": 1},
+          "sha": {"type": "string"},
+          "status": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+          "summary": {"type": "string"},
+          "hypothesis": {"type": "string"},
+          "files": {"type": "array", "items": {"type": "string"}},
+          "checks": {"type": "array", "items": {"type": "string"}},
+          "artifacts": {"type": "array", "items": {"type": "string"}},
+          "docs": {"type": "array", "items": {"type": "string"}},
+          "risks": {"type": "array", "items": {"type": "string"}},
+          "ev": {"type": "string"}
+        }
+      }
+    },
     "next": {
       "type": "object",
       "additionalProperties": false,

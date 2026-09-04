@@ -461,7 +461,9 @@ describe("lifecycle skill architecture", (): void => {
     const content = readStage("terreno-pick-roast-loop")
       .replace("Ordinary test failures", "Test failures")
       .replace("one exact question", "a question")
-      .replace("Do not stream a recap after each cycle", "Stream every cycle");
+      .replace("Do not stream a recap after each cycle", "Stream every cycle")
+      .replace("next.stage", "always-pick")
+      .replace("../../references/execution-state.schema.json", "missing-state-schema");
     const errors = validateOuterLoopContent({
       content,
       directory: "terreno-pick-roast-loop",
@@ -470,6 +472,8 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("Ordinary test failures")));
     assert.isTrue(errors.some((error) => error.includes("one exact question")));
     assert.isTrue(errors.some((error) => error.includes("Do not stream a recap")));
+    assert.isTrue(errors.some((error) => error.includes("next.stage")));
+    assert.isTrue(errors.some((error) => error.includes("execution-state.schema.json")));
   });
 
   it("rejects outer loops that use timers before native CI hooks", (): void => {
