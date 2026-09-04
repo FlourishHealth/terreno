@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn} from "bun:test";
 import {assert} from "chai";
 import express from "express";
@@ -37,7 +35,7 @@ const decodeTokenPayload = <T extends Record<string, unknown>>(token: string): T
 
 describe("auth tests", () => {
   let app: express.Application;
-  let admin: any;
+  let admin: Awaited<ReturnType<typeof setupDb>>[number];
   let contextEvents: Array<{
     currentSessionId?: string;
     requestId?: string;
@@ -148,7 +146,7 @@ describe("auth tests", () => {
     app = new TerrenoApp({
       configureApp: addRoutes,
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -212,7 +210,7 @@ describe("auth tests", () => {
     const getRes = await agent.get("/food").expect(200);
 
     expect(getRes.body.data).toHaveLength(4);
-    expect(getRes.body.data.find((f: any) => f.name === "Peas")).toBeDefined();
+    expect(getRes.body.data.find((f: Food) => f.name === "Peas")).toBeDefined();
 
     const updateRes = await agent
       .patch(`/food/${food._id}`)
@@ -391,7 +389,7 @@ describe("auth tests", () => {
     const getRes = await agent.get("/food").expect(200);
 
     expect(getRes.body.data).toHaveLength(4);
-    const food = getRes.body.data.find((f: any) => f.name === "Apple");
+    const food = getRes.body.data.find((f: Food) => f.name === "Apple");
     expect(food).toBeDefined();
 
     const updateRes = await agent
@@ -431,7 +429,7 @@ describe("auth tests", () => {
       message: "Password or username is incorrect",
     });
     let user = await UserModel.findById(admin._id);
-    expect((user as any)?.attempts).toBe(1);
+    expect((user as unknown as {attempts: number} | null)?.attempts).toBe(1);
     res = await agent
       .post("/auth/login")
       .send({email: "admin@example.com", password: "wrong"})
@@ -441,7 +439,7 @@ describe("auth tests", () => {
       message: "Password or username is incorrect",
     });
     user = await UserModel.findById(admin._id);
-    expect((user as any)?.attempts).toBe(2);
+    expect((user as unknown as {attempts: number} | null)?.attempts).toBe(2);
     res = await agent
       .post("/auth/login")
       .send({email: "admin@example.com", password: "wrong"})
@@ -451,7 +449,7 @@ describe("auth tests", () => {
       message: "Account locked due to too many failed login attempts",
     });
     user = await UserModel.findById(admin._id);
-    expect((user as any)?.attempts).toBe(3);
+    expect((user as unknown as {attempts: number} | null)?.attempts).toBe(3);
 
     // Logging in with correct password fails because account is locked
     res = await agent
@@ -464,7 +462,7 @@ describe("auth tests", () => {
     });
     user = await UserModel.findById(admin._id);
     // Not incremented
-    expect((user as any)?.attempts).toBe(3);
+    expect((user as unknown as {attempts: number} | null)?.attempts).toBe(3);
   });
 
   it("refresh token allows refresh of auth token", async () => {
@@ -538,8 +536,8 @@ describe("auth tests", () => {
 
 describe("custom auth options", () => {
   let app: express.Application;
-  let admin: any;
-  let notAdmin: any;
+  let admin: Awaited<ReturnType<typeof setupDb>>[number];
+  let notAdmin: Awaited<ReturnType<typeof setupDb>>[number];
 
   beforeEach(async () => {
     // Reset to real time - don't freeze time here as passport-local-mongoose
@@ -569,7 +567,7 @@ describe("custom auth options", () => {
       }),
     ]);
     app = getBaseServer();
-    addAuthRoutes(app, UserModel as any, {
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel, {
       // custom refresh token logic based on admin or non admin
       generateTokenExpiration: (user?: {admin: boolean}) => {
         if (user?.admin) {
@@ -578,8 +576,8 @@ describe("custom auth options", () => {
         return "365d";
       },
     });
-    setupAuth(app, UserModel as any);
-    addMeRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addMeRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(
       "/food",
       modelRouter(FoodModel, {
@@ -734,29 +732,29 @@ describe("generateTokens edge cases", () => {
   });
 
   it("includes custom payload from generateJWTPayload option", async () => {
-    const jwtLib = await import("jsonwebtoken");
-
     const user = {_id: "user-123"};
     const result = await generateTokens(user, {
       generateJWTPayload: (u) => ({customField: "customValue", userId: u._id}),
     });
 
     expect(result.token).toBeDefined();
-    const decoded = jwtLib.decode(result.token as string) as any;
+    const decoded = decodeTokenPayload<{customField?: string; exp: number; id?: string}>(
+      result.token as string
+    );
     expect(decoded.customField).toBe("customValue");
     expect(decoded.id).toBe("user-123");
   });
 
   it("uses custom token expiration from generateTokenExpiration option", async () => {
-    const jwtLib = await import("jsonwebtoken");
-
     const user = {_id: "user-123"};
     const result = await generateTokens(user, {
       generateTokenExpiration: () => "1h",
     });
 
     expect(result.token).toBeDefined();
-    const decoded = jwtLib.decode(result.token as string) as any;
+    const decoded = decodeTokenPayload<{customField?: string; exp: number; id?: string}>(
+      result.token as string
+    );
     // Check that exp is roughly 1 hour from now (within 5 seconds tolerance)
     const expectedExp = Math.floor(Date.now() / 1000) + 3600;
     expect(decoded.exp).toBeGreaterThan(expectedExp - 5);
@@ -764,15 +762,15 @@ describe("generateTokens edge cases", () => {
   });
 
   it("uses custom refresh token expiration from generateRefreshTokenExpiration option", async () => {
-    const jwtLib = await import("jsonwebtoken");
-
     const user = {_id: "user-123"};
     const result = await generateTokens(user, {
       generateRefreshTokenExpiration: () => "7d",
     });
 
     expect(result.refreshToken).toBeDefined();
-    const decoded = jwtLib.decode(result.refreshToken as string) as any;
+    const decoded = decodeTokenPayload<{customField?: string; exp: number; id?: string}>(
+      result.refreshToken as string
+    );
     // Check that exp is roughly 7 days from now
     const expectedExp = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
     expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
@@ -792,20 +790,22 @@ describe("generateTokens edge cases", () => {
   });
 
   it("uses TOKEN_EXPIRES_IN from env when valid", async () => {
-    const jwtLib = await import("jsonwebtoken");
     process.env.TOKEN_EXPIRES_IN = "2h";
     const result = await generateTokens({_id: "user-123"});
-    const decoded = jwtLib.decode(result.token as string) as any;
+    const decoded = decodeTokenPayload<{customField?: string; exp: number; id?: string}>(
+      result.token as string
+    );
     const expectedExp = Math.floor(Date.now() / 1000) + 2 * 3600;
     expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
     expect(decoded.exp).toBeLessThan(expectedExp + 10);
   });
 
   it("uses REFRESH_TOKEN_EXPIRES_IN from env when valid", async () => {
-    const jwtLib = await import("jsonwebtoken");
     process.env.REFRESH_TOKEN_EXPIRES_IN = "1h";
     const result = await generateTokens({_id: "user-123"});
-    const decoded = jwtLib.decode(result.refreshToken as string) as any;
+    const decoded = decodeTokenPayload<{customField?: string; exp: number; id?: string}>(
+      result.refreshToken as string
+    );
     const expectedExp = Math.floor(Date.now() / 1000) + 3600;
     expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
     expect(decoded.exp).toBeLessThan(expectedExp + 10);
@@ -904,7 +904,7 @@ describe("addAuthRoutes /refresh_token error paths", () => {
     const [adminUser] = await setupDb();
     const jwtLib = (await import("jsonwebtoken")).default;
     const validToken = jwtLib.sign(
-      {id: (adminUser as any)._id.toString()},
+      {id: adminUser._id.toString()},
       process.env.REFRESH_TOKEN_SECRET as string
     );
     const res = await agent
@@ -926,7 +926,7 @@ describe("addMeRoutes edge cases", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -946,13 +946,11 @@ describe("addMeRoutes edge cases", () => {
   it("GET /auth/me returns 404 when user is deleted after auth", async () => {
     const [_admin, notAdmin] = await setupDb();
     const jwtLib = (await import("jsonwebtoken")).default;
-    const token = jwtLib.sign(
-      {id: (notAdmin as any)._id.toString()},
-      process.env.TOKEN_SECRET as string,
-      {issuer: process.env.TOKEN_ISSUER}
-    );
+    const token = jwtLib.sign({id: notAdmin._id.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
     // Delete the user so findById returns null
-    await UserModel.deleteOne({_id: (notAdmin as any)._id});
+    await UserModel.deleteOne({_id: notAdmin._id});
     const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
     // Either 404 (user not found in /me handler) or 401 (auth middleware rejects)
     expect([401, 404]).toContain(res.status);
@@ -998,7 +996,7 @@ describe("privileged user fields", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1201,7 +1199,7 @@ describe("Secret prefix authorization bypass", () => {
         );
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1266,7 +1264,7 @@ describe("refresh_token without REFRESH_TOKEN_SECRET", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1332,7 +1330,7 @@ describe("JWT cookie extraction and /me routes edge cases", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1380,7 +1378,7 @@ describe("login error and disabled user paths", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1428,7 +1426,7 @@ describe("PATCH /me route edge cases", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1488,7 +1486,7 @@ describe("JWT strategy createAnonymousUser path", () => {
         );
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1559,7 +1557,7 @@ describe("decodeJWTMiddleware error paths", () => {
         );
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1646,7 +1644,7 @@ describe("signup disabled", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1816,7 +1814,7 @@ describe("auth error paths when the user lookup fails", () => {
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as AuthUserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -1857,7 +1855,7 @@ describe("auth error paths when the user lookup fails", () => {
       const errApp = new TerrenoApp({
         configureApp: () => {},
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel as unknown as AuthUserModel,
       }).build();
       const errAgent = supertest.agent(errApp);
       const res = await errAgent
