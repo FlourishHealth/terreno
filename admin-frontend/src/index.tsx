@@ -30,7 +30,7 @@ export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from ".
 export {AdminShellLayout, type AdminShellLayoutProps} from "./AdminShellLayout";
 export {AdminVersionConfig} from "./AdminVersionConfig";
 export {isAdminPageForbiddenError} from "./adminPageAccess";
-export {groupAdminModelsByGroup} from "./adminShellNav";
+export {groupAdminCustomScreens, groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {ConsentFormEditor} from "./ConsentFormEditor";
@@ -88,6 +88,15 @@ export {
   AI_ADMIN_WIDGETS,
   AIRequestsScreenWidget,
 } from "./widgets/AIRequestsScreenWidget";
+export {
+  AI_OBSERVABILITY_WIDGETS,
+  AiPromptEditorScreenWidget,
+  AiPromptsScreenWidget,
+  AiReviewItemScreenWidget,
+  AiReviewScreenWidget,
+  AiTraceDetailScreenWidget,
+  AiTracesScreenWidget,
+} from "./widgets/aiObservability/shell/AiObservabilityScreenWidgets";
 export {
   BUILT_IN_FIELD_WIDGETS,
   BUILT_IN_HOME_WIDGETS,

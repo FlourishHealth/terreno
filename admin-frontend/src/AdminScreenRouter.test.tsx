@@ -1,8 +1,8 @@
 // noExplicitAny: test harness doubles for AdminScreenRouter routing and config mocks
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 mock.module("expo-router", () => ({

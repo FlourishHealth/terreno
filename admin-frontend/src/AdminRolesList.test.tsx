@@ -2,10 +2,10 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {SelectField} from "@terreno/ui";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminRolesField} from "./AdminRolesField";
 import {AdminRolesList} from "./AdminRolesList";
 import type {AdminApi} from "./types";

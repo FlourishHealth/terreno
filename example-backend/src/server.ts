@@ -1,7 +1,13 @@
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
-import {AIAdminApp, LangfuseApp} from "@terreno/ai";
+import {
+  AIAdminApp,
+  AIService,
+  createLocalObservabilityPlugin,
+  LangfuseApp,
+  ObservabilityApp,
+} from "@terreno/ai";
 import {
   BetterAuthApp,
   backfillAdmins,
@@ -41,7 +47,7 @@ import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes} from "./api/ai";
+import {addAiRoutes, createServerModel, getAiService} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
@@ -60,6 +66,7 @@ import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {parseObservabilityPriceMap} from "./utils/observabilityConfig";
 import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
@@ -366,6 +373,20 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         })
       )
       .register(new AIAdminApp())
+      .register(
+        new ObservabilityApp({
+          aiService: getAiService(),
+          aiServiceFactory: (modelId) => {
+            const model = createServerModel(modelId);
+            if (!model) {
+              return undefined;
+            }
+            return new AIService({model});
+          },
+          plugins: [createLocalObservabilityPlugin()],
+          priceMap: parseObservabilityPriceMap(process.env.AI_OBS_PRICE_MAP_JSON),
+        })
+      )
       .register(
         new AdminApp({
           accessControl: access,

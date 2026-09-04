@@ -107,7 +107,7 @@ agents. The current high-value composition points include:
 | --- | --- |
 | Backend/API/data | `terreno-backend-api`, `mongoose-schema-safety`, `backend-test-env`, `generate-sdk`, `terreno-data-fetching` |
 | UI/app | `terreno-ui`, `building-terreno-apps`, `building-native-ui`, `verify-ui-changes` |
-| AI/prompts | `ai-prompt-governance` |
+| AI/prompts | `ai-prompt-governance` — new features also follow [Develop an AI feature](../how-to/ai-feature-development.md) |
 | Docs/submission | `update-docs`, `commit`, `create-pr`, `fix-conflicts` |
 | GitHub issues | `create-github-issue`, `work-github-issues` (Pick plan comment is the Roast contract) |
 | Deployment/runtime | `deploy-gcp`, Expo deployment/workflow skills |

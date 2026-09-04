@@ -4,6 +4,7 @@ import {existsSync, mkdtempSync, readFileSync, rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, relative, resolve, sep} from "node:path";
 import {Glob} from "bun";
+import ts from "typescript";
 
 import {
   type CoverageSummary,
@@ -65,6 +66,82 @@ export const isCoverageSourceFile = (path: string): boolean => {
   );
 };
 
+const isTypeOnlyImport = (node: ts.ImportDeclaration): boolean => {
+  const importClause = node.importClause;
+  if (!importClause) {
+    return false;
+  }
+  if (importClause.isTypeOnly) {
+    return true;
+  }
+  if (importClause.name) {
+    return false;
+  }
+  const bindings = importClause.namedBindings;
+  if (!bindings) {
+    return false;
+  }
+  if (ts.isNamespaceImport(bindings)) {
+    return false;
+  }
+  return bindings.elements.every((element) => {
+    return element.isTypeOnly;
+  });
+};
+
+const isTypeOnlyExport = (node: ts.ExportDeclaration): boolean => {
+  if (node.isTypeOnly) {
+    return true;
+  }
+  if (!node.exportClause || !ts.isNamedExports(node.exportClause)) {
+    return false;
+  }
+  return node.exportClause.elements.every((element) => {
+    return element.isTypeOnly;
+  });
+};
+
+const isTypeOnlyModuleBlock = (body: ts.ModuleBlock): boolean => {
+  return body.statements.every((statement) => {
+    return isTypeOnlyTopLevelStatement(statement);
+  });
+};
+
+const isTypeOnlyTopLevelStatement = (statement: ts.Statement): boolean => {
+  if (
+    ts.isInterfaceDeclaration(statement) ||
+    ts.isTypeAliasDeclaration(statement) ||
+    ts.isEmptyStatement(statement)
+  ) {
+    return true;
+  }
+  if (ts.isImportDeclaration(statement)) {
+    return isTypeOnlyImport(statement);
+  }
+  if (ts.isExportDeclaration(statement)) {
+    return isTypeOnlyExport(statement);
+  }
+  if (ts.isModuleDeclaration(statement) && statement.body && ts.isModuleBlock(statement.body)) {
+    return isTypeOnlyModuleBlock(statement.body);
+  }
+  return false;
+};
+
+/**
+ * True when a source file contains no executable runtime statements — only type/interface
+ * declarations and type-only imports/exports. Such files never appear in LCOV output.
+ */
+export const isInterfaceOnlySourceFile = (
+  filePath: string,
+  sourceText = readFileSync(filePath, "utf8")
+): boolean => {
+  const kind = filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, kind);
+  return sourceFile.statements.every((statement) => {
+    return isTypeOnlyTopLevelStatement(statement);
+  });
+};
+
 const normalizePath = (path: string): string => path.split(sep).join("/");
 
 const findFileCoverage = (
@@ -121,16 +198,38 @@ const getWorkspaceNames = (repoRoot: string): Set<string> => {
   return new Set(packageJson.workspaces ?? []);
 };
 
+export const filterCoverageSourceFiles = ({
+  files,
+  repoRoot,
+}: {
+  files: readonly string[];
+  repoRoot: string;
+}): string[] => {
+  return files.filter((path) => {
+    if (!isCoverageSourceFile(path)) {
+      return false;
+    }
+    const absolutePath = resolve(repoRoot, path);
+    if (!existsSync(absolutePath)) {
+      return false;
+    }
+    return !isInterfaceOnlySourceFile(absolutePath);
+  });
+};
+
 const getAddedSourceFiles = (repoRoot: string, base: string): string[] => {
   const output = execFileSync(
     "git",
     ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`],
     {cwd: repoRoot, encoding: "utf8"}
   );
-  return output
-    .split("\n")
-    .map((path) => path.trim())
-    .filter((path) => path.length > 0 && isCoverageSourceFile(path));
+  return filterCoverageSourceFiles({
+    files: output
+      .split("\n")
+      .map((path) => path.trim())
+      .filter((path) => path.length > 0),
+    repoRoot,
+  });
 };
 
 export const groupFilesByWorkspace = ({
@@ -173,12 +272,27 @@ export const bunTestFileArgs = (testScript: string | undefined): string[] => {
   if (!testScript) {
     return [];
   }
-  const firstCommand = testScript.split("&&")[0]?.trim() ?? "";
+  const firstCommand = (testScript.split("&&")[0]?.trim() ?? "").replace(
+    /^(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*/,
+    ""
+  );
   const match = firstCommand.match(/^bun(?:x)?\s+test(?:\s+(.*))?$/);
   if (!match?.[1]) {
     return [];
   }
-  return match[1].split(/\s+/).filter((token) => token.length > 0 && !token.startsWith("-"));
+  const tokens = match[1].split(/\s+/);
+  const files: string[] = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === "--preload" || token === "--coverage-dir" || token === "--coverage-reporter") {
+      index += 1;
+      continue;
+    }
+    if (token.length > 0 && !token.startsWith("-")) {
+      files.push(token);
+    }
+  }
+  return files;
 };
 
 export const coverageRunArgs = ({
@@ -197,6 +311,8 @@ export const coverageRunArgs = ({
   const fileArgs = bunTestFileArgs(testScript);
   if (fileArgs.length > 0) {
     args.push(...fileArgs);
+  } else if (testScript) {
+    return args;
   } else if (hasSrcDir) {
     args.push("src");
   } else {

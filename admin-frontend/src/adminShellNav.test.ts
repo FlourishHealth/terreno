@@ -1,6 +1,6 @@
 import {describe, expect, it} from "bun:test";
 
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {groupAdminCustomScreens, groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminModelConfig} from "./types";
 
 const stubModel = (name: string, displayName: string, group?: string): AdminModelConfig =>
@@ -25,5 +25,25 @@ describe("groupAdminModelsByGroup", () => {
     expect(groups[0]?.models.map((m) => m.name)).toEqual(["C"]);
     expect(groups[1]?.models.map((m) => m.name)).toEqual(["A"]);
     expect(groups[2]?.models.map((m) => m.name)).toEqual(["B"]);
+  });
+});
+
+describe("groupAdminCustomScreens", () => {
+  it("keeps ungrouped screens separate from named groups", () => {
+    const result = groupAdminCustomScreens([
+      {displayName: "AI Requests", name: "ai-requests"},
+      {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+      {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+    ]);
+    expect(result.ungrouped.map((screen) => screen.name)).toEqual(["ai-requests"]);
+    expect(result.grouped).toEqual([
+      {
+        group: "AI Observability",
+        screens: [
+          {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+          {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+        ],
+      },
+    ]);
   });
 });

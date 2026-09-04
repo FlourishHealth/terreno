@@ -187,6 +187,9 @@ export interface AdminCustomScreenConfig {
   name: string;
   /** Optional subtitle or help text shown with the screen card in the admin UI */
   description?: string;
+  /** Sidebar heading. Screens without a group stay under "Screens". */
+  group?: string;
+  icon?: string;
   /** RBAC or custom authorization for exposing this screen in admin metadata/navigation. */
   adminAccess?: Pick<AdminAccessConfig, "authorize" | "resource"> & {action?: string};
 }
@@ -944,6 +947,8 @@ export class AdminApp {
                 properties: {
                   description: {type: "string"},
                   displayName: {type: "string"},
+                  group: {type: "string"},
+                  icon: {type: "string"},
                   name: {type: "string"},
                 },
                 type: "object",

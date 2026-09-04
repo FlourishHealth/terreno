@@ -261,3 +261,67 @@ import {CommsDashboardScreenWidget, CommsMessageDetail} from "@terreno/admin-fro
 The list screen persists filters in the URL (`channel`, `provider`, `status`, `errorClass`, `q`,
 `startDate`, `endDate`, `page`) and calls `/comms/messages`, `/comms/stats`, and
 `/comms/messages/retryMany`.
+
+### AI Observability chrome
+
+`ObservabilityApp` contributes grouped custom screens (`group: "AI Observability"`): `ai-prompts`,
+`ai-traces`, `ai-evaluators`, `ai-datasets`, `ai-experiments`, and `ai-review` when the local
+plugin is on. `AI Requests` (`ai-requests`) stays ungrouped. Widgets also register detail routes:
+`ai-prompt-editor`, `ai-trace-detail`, `ai-review-item`, `ai-evaluator-detail`, `ai-evaluator-new`,
+`ai-dataset-detail`, `ai-experiment-new`, and `ai-experiment-results`.
+
+Every observability screen wraps `AiObservabilityChrome`: breadcrumbs
+`Admin / AI Observability / <Section> / <leaf>` and a status chip from
+`GET /ai/observability/status` (`Local on|off` plus active primaries). Review queue nav and the
+review screen body hide when `localOn` is false.
+
+`ai-prompts` lists prompts with a folder rail, search, type badge, latest vs production columns
+(tooltips), 7-day usage, and **Create prompt**. `ai-prompt-editor?name=` is the versioned editor:
+version rail with production/latest dots, Editor / Playground tabs, **Save as vN+1**, and
+**Set vN as production…** (modal names the outgoing version). Playground **Run once** does not
+create a version; **Save this run to dataset** stays disabled until phase 2.
+
+`ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
+sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count
+warning, **Clear**, and **Add to dataset** (opens a dataset picker modal; sensitive traces show a
+warning before bulk add). When local trace storage is on, **Run multi-stage trace test** calls the admin-only smoke endpoint and
+opens the resulting detail: two schema-validated LLM stages, one deterministic tool span, and a
+final schema-validated combining LLM stage under one CHAIN root. LLM span input includes
+`outputSchema`. Rows show a status dot,
+`sensitive` badge, error line, `N prompts`, span count, tokens, cost, latency, score count, and
+**Open**. Pagination uses `page` / `limit` / `more` / `total`.
+`ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),
+right span detail with **collapsed** sensitive I/O, and scores (value + source).
+
+`ai-review` shows Pending / In progress / Done / Skipped tabs with counts. Each tab is
+oldest-first and lists the trace action, prompt, assignee, waiting time, and status.
+**Start reviewing — oldest first** opens the first pending item; the empty state names both
+Traces intake and manual **Assign to me** assignment.
+
+`ai-review-item?id=` shows "Item N of M pending", previous/next navigation, read-only
+**What the AI was given** / **What the AI wrote** panels, collapsed long fields with word
+counts, reviewer notes, and a collapsed Raw JSON disclosure. Score controls come from evaluator
+dimensions (numeric slider, boolean Pass / Fail, categorical pills). Actions are
+**Submit & next**, **Skip**, and **Assign to me**; completion toasts report the remaining count
+or **Queue clear**.
+
+`ai-evaluators` lists evaluators with type badge, dimension summary, target, and run-mode chips.
+**Create evaluator** opens `ai-evaluator-new` with type (human / JSON assert / LLM judge), target,
+dimension builder, type-specific config (judge prompt name, assertion path/constraint, or reviewer
+instructions), live-sampling rate, and inline schema-mismatch errors naming the missing dimension
+key. `ai-evaluator-detail?id=` shows dimensions, type-specific config, run modes, and a **Used by**
+table derived from recent experiments.
+
+`ai-datasets` lists datasets with item counts, provenance bar, input-schema binding, and updated
+time. **New dataset** creates a dataset; **Import** on each row accepts `.json` or `.csv` via
+`FilePickerButton` (local URI read) or paste, posting `{rows}` for JSON or `{format:'csv',content}`
+for CSV. `ai-dataset-detail?id=` shows counts, schema binding, tabs **All / Human / Auto / Needs
+review**, an items table (input, expected, provenance, trace link), **Add item**, and **Run
+experiment** navigation.
+
+`ai-experiments` lists experiments with status, running progress, and cost. **New experiment**
+opens a four-step wizard (dataset with counts, prompt versions tagged latest/production/superseded,
+evaluators, review & run with estimate). `includeUnproofread` and optional model override are on
+the wizard. `ai-experiment-results?id=` polls while pending/running, shows gate tiles per version,
+failing gate count, outliers, a side-by-side per-item output table (failed rows first from the
+API), and **Promote to production** with a confirm modal; promote is blocked when gates fail (409).

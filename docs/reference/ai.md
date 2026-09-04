@@ -15,6 +15,7 @@ AI service layer for Terreno backends: provider-agnostic chat via the Vercel AI 
 - [Route registrars](#route-registrars)
 - [AiApp plugin](#aiapp-plugin)
 - [LangfuseApp plugin](#langfuseapp-plugin)
+- [Observability](#observability)
 - [Langfuse integration](#langfuse-integration)
 - [FileStorageService](#filestorageservice)
 - [MCPService](#mcpservice)
@@ -249,8 +250,8 @@ GPT project with persistent context and memories.
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId` |
-| `/gpt/remix` | POST | `IsAuthenticated` | Non-streaming text remix; body: `{text}` |
+| `/gpt/prompt` | POST | `IsAuthenticated` | SSE streaming chat; body: `prompt`, optional `historyId`, `systemPrompt`, `attachments`, `model`, `projectId`, `promptName`, `promptLabel`, `sensitive`, `sessionId`. Also reads `x-ai-session-id`. Passes `userId` from `req.user` into `AIService`. Client prompt-registry selection is admin-only; app routes select production prompts server-side. Client `sensitive: true` may upgrade handling, but `false` never downgrades a sensitive prompt version. |
+| `/gpt/remix` | POST | `IsAuthenticated` | Non-streaming text remix. Client prompt-registry selection is admin-only and `sensitive: false` cannot downgrade a sensitive prompt. |
 | `/gpt/histories/:id/rating` | PATCH | `IsAuthenticated` | Rate a prompt; body: `{promptIndex, rating: "up" \| "down" \| null}` |
 | `/gpt/tools` | GET | `IsAuthenticated` | List builtin + MCP tools |
 
@@ -369,6 +370,110 @@ new LangfuseApp({
 
 Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
 
+## Observability
+
+In-app prompt versions, nested traces, evaluators, datasets, experiments, review queue, and in-app feedback. Operator loop: [Develop an AI feature](../how-to/ai-feature-development.md). Register plugins: [Observe LLM calls](../how-to/observe-llm-calls.md). Why two planes: [AI observability](../explanation/ai-observability.md). Locked design: [implementation plan](../implementationPlans/ai-observability.md).
+
+Register `ObservabilityApp` with at least a local plugin. Construction throws if `experiments.primary !== datasets.primary`, if `reviewQueue` is not `local`, or if a control primary has no matching plugin. Defaults for all four primaries are `local`. Construction also registers the app as the process singleton (`getObservabilityApp()`). Call `resetObservabilityApp()` in tests. `createLocalObservabilityPlugin()` registers the local Mongo models (`ObsPrompt`, `ObsPromptVersion`, `ObsPromptLabel`, `ObsTrace`, `ObsSpan`, `ObsScore`) on the default connection.
+
+The example backend always registers `createLocalObservabilityPlugin()` and passes the
+validated `AI_OBS_PRICE_MAP_JSON` object as `priceMap`. `bun run backend:seed` idempotently
+creates `examples/example-summarize` with production on v1 and an experimental v2, installs
+`correctness-human` and `schema-assert`, and creates a two-item proofread `example-gold`
+dataset bound to the prompt input schema. Invalid price JSON or negative/non-numeric prices
+fail startup with `AI_OBS_PRICE_MAP_JSON` in the error.
+
+### Local observability models
+
+| Model | Role |
+| --- | --- |
+| `ObsPrompt` | Named prompt (`name` unique) with `folder` and `tags[]` |
+| `ObsPromptVersion` | Immutable `vN` body, `variables[]`, schemas, `sensitive` (default false), `config` |
+| `ObsPromptLabel` | Movable labels; unique `(promptId, label)` |
+| `ObsTrace` | Root trace: user, session, status, `errorSummary`, `sensitive`, `prompts[]`, usage |
+| `ObsSpan` | Nested span with `kind`, `status`, optional `error`, offsets, usage |
+| `ObsScore` | Scores on a trace/span; many per trace, **no unique index** |
+| `ObsEvaluator` | Evaluator: `type` (`human` \| `llm-judge` \| `json-assert`), `target`, `dimensions[]`, `runModes`, `instructions`, `judgePromptName` (judge), `assertion` (json-assert), `confidenceAlertBelow` (default 0.7) |
+| `ObsReviewItem` | Review queue item: status, evaluator, trace, reason, scores, comment |
+| `ObsDataset` | Named dataset with optional `inputSchemaPromptName` and `expectedOutputSchema` |
+| `ObsDatasetItem` | Item with `input`, `expectedOutput`, `origin`, `proofread`, `tags`, `outcomeClass`, `sourceTraceId`, `metadata` |
+| `ObsExperiment` | Compares 2–3 prompt versions on a dataset with thresholds and aggregates |
+| `ObsExperimentItem` | Per dataset row: outputs per version, evaluator score maps, gate failure flags |
+
+`AIService` generate methods:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `promptName` | unset | Resolve `PromptRegistry.get({name, label})` **before** the model call, even when `skipTrace` is true |
+| `promptLabel` | `"production"` | Label used with `promptName` |
+| `skipTrace` | `false` | Skip `TraceSink.export` only; prompt resolve and `AIRequest` still run |
+| `sensitive` | inherited | Explicit value wins; otherwise the resolved prompt version's `sensitive` |
+| `sessionId` / `userId` | unset | Copied onto the exported trace |
+| `priceMap` | app `priceMap` | Per-call override; `costUsd` is omitted when the model is unpriced |
+
+Missing registry, missing prompt, or missing label throws `APIError` 400 and does not call the model. Sink `export` failures are logged and never fail generate.
+
+**GPT tool spans:** `/gpt/prompt` collects streamed `tool-call` / `tool-result` events into `TOOL` child spans (name = tool name, input = args, output = cleaned result with large `fileData` stripped). When any tool span is present, `AIService.recordGenerate` exports one trace with a `CHAIN` root plus `TOOL` children linked by `parentSpanId`. Ordinary `generateText` / JSON helpers without `childSpans` still emit a single `LLM` root span.
+
+`ObservabilityApp.exportTrace(trace)` fans out to every `TraceSink` (best-effort) and returns the first persisted `{id}` from sinks that support it (for example `LocalTraceSink`). `TraceSink.export` may return `TraceExportResult` (`{id?: string}`) or `void`; `MemoryTraceSink` remains in-memory only.
+
+When `prompts.primary` is `local`, `ObservabilityApp.register` mounts admin-only prompt routes at `/ai/observability`. Pass `aiService` on `ObservabilityApp` for playground runs and the multi-stage trace smoke endpoint. `GET /ai/observability/status` is always mounted so admin chrome can read plugin ids, capabilities, primaries, and `localOn`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/status` | Admin chrome. `{plugins, primaries, localOn}` — drives the status chip and hides Review when `localOn` is false |
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/prompts` | List. Query `folder`, `search`, `include=usage7d` (7-day calls/cost). `production` is `"—"` until a production label exists |
+| POST | `/ai/observability/prompts` | Create prompt in a folder as immutable v1 (`latest` label) |
+| GET | `/ai/observability/prompts/:name` | Prompt + versions + labels |
+| POST | `/ai/observability/prompts/:name/versions` | Create `vN+1`; never mutates an existing version |
+| POST | `/ai/observability/prompts/:name/labels` | Move `production` or `staging`; `outgoingVersion` is the previous pointer |
+| POST | `/ai/observability/prompts/:name/playground` | Compile `{{var}}` + one `AIService` call; returns compiled messages, output, latency, tokens, cost; creates no version |
+
+`PromptRegistry.get({name, label})` (default label `production`) reads the labelled local version. `createLocalObservabilityPlugin()` wires `LocalPromptStore` as that registry and local `TraceSink` / `ScoreSink`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/traces` | Admin list. Query `from`, `to`, `prompt`, `status`, `userId`, `sessionId`, `hasScore`, `sensitive`, `flaggedForDataset`, `page`, `limit`. Body is `{data, page, limit, more, total}` so pagination survives RTK `{data}` unwrap. Each row includes `spanCount` and `scoreCount`. `prompts.length` is the `N prompts` count |
+| GET | `/ai/observability/traces/:id` | Span tree (kind, offsets, durations, I/O, cost) plus scores. `errorSummary` is the first span with `status: "error"` |
+| POST | `/ai/observability/traces/:id/scores` | Persist a score and fan out to every `ScoreSink` |
+| POST | `/ai/observability/traces/test-multi-stage` | Admin-only smoke workflow, registered only with the local trace sink. Requires `aiService` on `ObservabilityApp` (**503** when missing). Body `{input?: string}` (defaults to a built-in sample). Runs two `AIService.generateJsonObject` calls with `skipTrace: true` and named JSON output schemas (`obs-test-multi-stage-call-1` / `call-2`), a deterministic local `text-metrics` `TOOL` stage, then a final `generateJsonObject` synthesis against `obs-test-multi-stage-final`; exports exactly one parent trace with ordered child spans `LLM`, `LLM`, `TOOL`, `LLM` under a `CHAIN` root. LLM span input includes `outputSchema`. Returns `{traceId, output, stages[]}` where `output` is the final schema object (`sentence`, `phrase`, `keywords`, `metrics`). Child LLM failures export an error trace then rethrow |
+
+`createLocalObservabilityPlugin()` registers `ObsEvaluator` with the other local models.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/ai/observability/evaluators/templates` | Seeded templates: `llm-judge` (`correctness`, `hallucination`, `helpfulness`, `toxicity`), `json-assert` (`schema-assert`), and human queue variants (`correctness-human`, …) |
+| POST | `/ai/observability/evaluators/templates/:name` | Install a template by name as an immutable-named evaluator |
+| GET/POST | `/ai/observability/evaluators` | List / create. `llm-judge` requires `judgePromptName`; create rejects when the judge prompt `outputSchema` omits a required dimension (400 names the key). `json-assert` supports `assertion` (`path` + `constraint`) or built-in output-schema mode. Human + `liveSampleRate > 0` → 400 |
+| GET/PATCH/DELETE | `/ai/observability/evaluators/:id` | Read / update / soft-delete |
+| POST | `/ai/observability/traces/review` | Enqueue one or many traces against a human evaluator (`reason: "manual"`) |
+| GET | `/ai/observability/review` | Queue by `status` with counts; oldest-first. Response includes `more: false` so RTK preserves the count envelope. Rows include `traceName`, `promptName`, assignee, reason, and enqueue time |
+| GET | `/ai/observability/review/:id` | Item + evaluator dimensions + `given` / `wrote` panels and `rawInput` / `rawOutput` for the Raw JSON disclosure |
+| POST | `/ai/observability/review/:id` | `submit` (scores via ScoreSinks, status `done`), `skip`, or `assign` |
+
+`createLocalObservabilityPlugin()` wires `LocalDatasetStore` and `LocalExperimentRunner` when datasets/experiments primaries are `local`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET/POST | `/ai/observability/datasets` | List (includes `humanCount`, `autoCount`, `needsReviewCount`) / create |
+| GET/PATCH/DELETE | `/ai/observability/datasets/:id` | Detail (with counts) / update / soft-delete. PATCH `null` clears optional dataset fields; omitted fields stay unchanged |
+| GET/POST | `/ai/observability/datasets/:id/items` | List / create items |
+| PATCH/DELETE | `/ai/observability/datasets/:id/items/:itemId` | Update labels (`expectedOutput`, `proofread`, `tags`, `outcomeClass`) / delete (does not touch the source trace). PATCH `null` clears optional item fields |
+| POST | `/ai/observability/datasets/:id/import` | **JSON:** body is an array of bare input objects, or structured rows with `input` / `expectedOutput` / `proofread` / `tags` / `outcomeClass` / `metadata`. **CSV:** `Content-Type: text/csv` with raw CSV body, or JSON `{format: "csv", content: "..."}`. Plain columns map to `input`; plain `input` / `expectedOutput` cells accept JSON values; `input.foo` and `expectedOutput.foo` nest fields; reserved `proofread`, `tags`, `outcomeClass` map metadata. Rows validate against the dataset's bound prompt `inputSchema` when `inputSchemaPromptName` is set; 400 reports row number and JSON path |
+| POST | `/ai/observability/traces/add-to-dataset` | `{datasetId, traceId \| traceIds[]}`. Copies span I/O; `origin: "trace"`; `sourceTraceId` set; **sensitive traces always `proofread: false`** |
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| POST | `/ai/observability/experiments/estimate` | `{datasetId, promptName, versions[], evaluatorIds[], modelOverride?}` → generation count, USD, wall-clock estimate |
+| GET/POST | `/ai/observability/experiments` | List / create. Body: dataset, 2–3 version numbers, evaluator ids, optional `thresholds[]` (defaults to `SOP_DEFAULT_THRESHOLDS`), `modelOverride`, `includeUnproofread` (default false). Local primary always enqueues `BackgroundTask` (even one item) |
+| GET | `/ai/observability/experiments/:id` | Status, progress, per-version aggregates, gate pass/fail (`gates[].version`), `outlierItemIds`, `lowConfidenceItemIds`, per-item side-by-side (**failed rows first**) |
+| POST | `/ai/observability/experiments/:id/promote` | `{version}` moves the `production` label when **that version's** gates pass; **409** while any gate for the selected version fails |
+
+Authenticated `POST /ai/observability/traces/:id/feedback` records thumbs, outcome class, and flag-for-dataset (phase 2.6).
+
 ## Langfuse integration
 
 Low-level exports (also used by `addGptRoutes` when `langfuseSystemPromptName` is set):
@@ -480,6 +585,7 @@ Legacy `setupServer` pattern: call `addGptHistoryRoutes`, `addGptRoutes`, etc. i
 |----------|---------|-------------|
 | `GOOGLE_VERTEX_PROJECT` | `createVertexProvider` | GCP project for Vertex models |
 | `GOOGLE_VERTEX_LOCATION` | `createVertexProvider` | Vertex region (default `us-central1`) |
+| `AI_OBS_PRICE_MAP_JSON` | `ObservabilityApp` | JSON model map with non-negative `inputPerMTok` / `outputPerMTok`; omitted models have tokens but no USD cost |
 | `LANGFUSE_PUBLIC_KEY` | `LangfuseApp` | Langfuse public key |
 | `LANGFUSE_SECRET_KEY` | `LangfuseApp` | Langfuse secret key |
 | `LANGFUSE_BASE_URL` | Langfuse client | Langfuse host URL |

@@ -1,0 +1,108 @@
+import {Box, Spinner, Text} from "@terreno/ui";
+import {useLocalSearchParams} from "expo-router";
+import {DateTime} from "luxon";
+import React, {useMemo} from "react";
+import type {AdminScreenWidgetProps} from "../../../types";
+import {unwrapExperimentList} from "../experiments/experimentTypes";
+import {useAiObservabilityExperimentsApi} from "../experiments/useAiObservabilityExperimentsApi";
+import {unwrapPromptDetail} from "../prompts/promptTypes";
+import {useAiObservabilityPromptsApi} from "../prompts/useAiObservabilityPromptsApi";
+import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
+import {AiEvaluatorDetailView} from "./AiEvaluatorPanels";
+import {type EvaluatorUsageRow, unwrapEvaluatorRecord} from "./evaluatorTypes";
+import {useAiObservabilityEvaluatorsApi} from "./useAiObservabilityEvaluatorsApi";
+
+export const AiEvaluatorDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
+  const {api, routeBase} = props;
+  const params = useLocalSearchParams<{id?: string | string[]}>();
+  const idParam = params.id;
+  const id = Array.isArray(idParam) ? idParam[0] : idParam;
+  const {useDetailQuery} = useAiObservabilityEvaluatorsApi(api);
+  const {useListQuery: useExperimentsQuery} = useAiObservabilityExperimentsApi(api);
+  const {useDetailQuery: usePromptDetailQuery} = useAiObservabilityPromptsApi(api);
+  const {data, isError, isLoading} = useDetailQuery(id ?? "", {skip: !id});
+  const {data: experimentsRaw} = useExperimentsQuery();
+  const evaluator = useMemo(() => unwrapEvaluatorRecord(data), [data]);
+  const prefix = (routeBase ?? "").replace(/\/$/, "");
+  const backHref = `${prefix}/ai-evaluators`;
+
+  const {data: promptDetailRaw} = usePromptDetailQuery(evaluator?.judgePromptName ?? "", {
+    skip: !evaluator?.judgePromptName,
+  });
+  const promptDetail = useMemo(() => unwrapPromptDetail(promptDetailRaw), [promptDetailRaw]);
+  const judgeOutputSchema = useMemo(() => {
+    if (!promptDetail) {
+      return undefined;
+    }
+    const production = promptDetail.labels.find((label) => label.label === "production");
+    const versionNumber = production?.version ?? promptDetail.versions[0]?.version;
+    const version = promptDetail.versions.find((entry) => entry.version === versionNumber);
+    return version?.outputSchema;
+  }, [promptDetail]);
+
+  const usageRows = useMemo((): EvaluatorUsageRow[] => {
+    if (!evaluator) {
+      return [];
+    }
+    const experiments = unwrapExperimentList(experimentsRaw);
+    const cutoff = DateTime.utc().minus({days: 30});
+    return experiments
+      .filter((experiment) => {
+        const created = DateTime.fromISO(experiment.created);
+        return (
+          experiment.evaluatorIds.includes(evaluator.id) &&
+          created.isValid &&
+          created.toMillis() >= cutoff.toMillis()
+        );
+      })
+      .map((experiment) => {
+        return {
+          costUsd: experiment.results?.totalCostUsd,
+          experimentId: experiment.id,
+          experimentName: experiment.name,
+          runs: experiment.results?.progress.total ?? 0,
+        };
+      });
+  }, [evaluator, experimentsRaw]);
+
+  if (!id) {
+    return (
+      <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-evaluator-detail">
+        <Box padding={4}>
+          <Text>Missing evaluator id.</Text>
+        </Box>
+      </AiObservabilityChrome>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-evaluator-detail">
+        <Box alignItems="center" padding={4} testID="ai-evaluator-detail-loading">
+          <Spinner />
+        </Box>
+      </AiObservabilityChrome>
+    );
+  }
+
+  if (isError || !evaluator) {
+    return (
+      <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-evaluator-detail">
+        <Box padding={4}>
+          <Text color="error">Failed to load evaluator.</Text>
+        </Box>
+      </AiObservabilityChrome>
+    );
+  }
+
+  return (
+    <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-evaluator-detail">
+      <AiEvaluatorDetailView
+        evaluator={evaluator}
+        judgeOutputSchema={judgeOutputSchema}
+        routeBase={prefix}
+        usageRows={usageRows}
+      />
+    </AiObservabilityChrome>
+  );
+};

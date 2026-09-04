@@ -1,13 +1,13 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse, AdminModelConfig} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});
@@ -382,5 +382,32 @@ describe("AdminShell", () => {
     expect(queryByText("Screens")).toBeNull();
     expect(queryByText("Tools")).toBeNull();
     expect(getByText("Platform")).toBeTruthy();
+  });
+
+  it("renders grouped custom screens separately from ungrouped Screens", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "AI Requests", name: "ai-requests"},
+        {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+        {displayName: "Traces", group: "AI Observability", name: "ai-traces"},
+        {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+      ],
+    };
+
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(getByTestId("admin-shell-nav-group-ai-observability")).toBeTruthy();
+    expect(getByText("AI Observability")).toBeTruthy();
+    expect(getByTestId("admin-shell-nav-screen-ai-prompts-clickable")).toBeTruthy();
+    expect(getByTestId("admin-shell-nav-screen-ai-review-clickable")).toBeTruthy();
+    expect(getByTestId("admin-shell-nav-screens")).toBeTruthy();
+    expect(getByTestId("admin-shell-nav-screen-ai-requests-clickable")).toBeTruthy();
   });
 });

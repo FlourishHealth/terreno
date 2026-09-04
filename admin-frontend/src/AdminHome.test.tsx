@@ -1,9 +1,9 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 mock.module("expo-router", () => ({
