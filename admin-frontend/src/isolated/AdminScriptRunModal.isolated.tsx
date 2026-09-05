@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 import type {AdminApi} from "../types";
 
 // Mock @terreno/ui so the Modal renders its children inline. The real Modal
@@ -14,10 +14,10 @@ mock.module("@terreno/ui", () => {
   const ReactMod = require("react");
   const Box = ({children, ...rest}: Record<string, unknown>) =>
     ReactMod.createElement(RN.View, rest, children);
-  const Button = ({text, onClick, testID}: Record<string, unknown>) =>
+  const Button = ({disabled, text, onClick, testID}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
-      {onPress: onClick, testID},
+      {disabled, onPress: onClick, testID},
       ReactMod.createElement(RN.Text, {}, text)
     );
   const Heading = ({children}: Record<string, unknown>) =>
@@ -34,8 +34,13 @@ mock.module("@terreno/ui", () => {
     ReactMod.createElement(RN.Text, {}, value as string);
   const Banner = ({text}: Record<string, unknown>) =>
     ReactMod.createElement(RN.Text, {}, text as string);
-  const TextField = ({value, placeholder}: Record<string, unknown>) =>
-    ReactMod.createElement(RN.Text, {}, (value as string) || (placeholder as string) || "");
+  const TextField = ({onChange, value, placeholder}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.TextInput, {
+      onChangeText: onChange,
+      placeholder,
+      testID: "mock-output-search",
+      value,
+    });
   return {Badge, Banner, Box, Button, Heading, Icon, Modal, Spinner, Text, TextField};
 });
 
@@ -665,5 +670,79 @@ describe("AdminScriptRunModal", () => {
         visible={false}
       />
     );
+  });
+
+  it("renders, filters, searches, and exports a completed history run", async () => {
+    state.task = {
+      data: {
+        task: {
+          _id: "history-1",
+          completedAt: "2026-09-01T10:00:02.000Z",
+          created: "2026-09-01T10:00:00.000Z",
+          isDryRun: true,
+          result: ["updated todo", "ERROR failed todo"],
+          startedAt: "2026-09-01T10:00:00.000Z",
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    const clickedDownloads: string[] = [];
+    const originalDocument = globalThis.document;
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        createElement: () => ({
+          click: () => clickedDownloads.push("clicked"),
+          download: "",
+          href: "",
+        }),
+      },
+    });
+    URL.createObjectURL = () => "blob:test";
+    URL.revokeObjectURL = () => undefined;
+
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        historyTaskId="history-1"
+        onDismiss={() => undefined}
+        scriptDescription="Historical run"
+        scriptName="migrate"
+        visible
+      />
+    );
+    await waitTicks();
+
+    expect(getByText("Historical run")).toBeDefined();
+    expect(getByText("updated todo")).toBeDefined();
+    await act(async () => {
+      fireEvent.press(getByText("Errors (1)"));
+    });
+    expect(getByText("ERROR failed todo")).toBeDefined();
+    await act(async () => {
+      fireEvent.changeText(getByTestId("mock-output-search"), "missing");
+    });
+    expect(getByText("No output lines match this filter.")).toBeDefined();
+    await act(async () => {
+      fireEvent.press(getByText("Export CSV"));
+      fireEvent.press(getByText("Export JSON"));
+    });
+    expect(clickedDownloads).toHaveLength(2);
+
+    if (originalDocument === undefined) {
+      Reflect.deleteProperty(globalThis, "document");
+    } else {
+      Object.defineProperty(globalThis, "document", {
+        configurable: true,
+        value: originalDocument,
+      });
+    }
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
   });
 });

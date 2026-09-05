@@ -10,10 +10,12 @@
  *  - the returned hook functions correspond to the generated hook names
  */
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../../ui/src/test-utils";
 import React from "react";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 import {useAdminApi} from "../useAdminApi";
+import {useAdminBackgroundTaskMutation} from "../useAdminBackgroundTask";
 import {useAdminConfig} from "../useAdminConfig";
+import {normalizeRoles, normalizeStatements, useAdminRoles} from "../useAdminRoles";
 import {useAdminScripts} from "../useAdminScripts";
 import {useConfigurationApi} from "../useConfigurationApi";
 import {useDocumentStorageApi} from "../useDocumentStorageApi";
@@ -201,6 +203,7 @@ describe("useAdminScripts", () => {
     expect(injected.adminRunScript).toBeDefined();
     expect(injected.adminGetScriptTask).toBeDefined();
     expect(injected.adminCancelScriptTask).toBeDefined();
+    expect(injected.adminListScriptRuns).toBeDefined();
 
     const runDef = injected.adminRunScript;
     expect(runDef.query({name: "migrate", wetRun: false})).toEqual({
@@ -222,9 +225,135 @@ describe("useAdminScripts", () => {
     });
     expect(cancelDef.invalidatesTags).toEqual(["admin_scriptTask", "admin_scriptRuns"]);
 
+    const listDef = injected.adminListScriptRuns;
+    expect(listDef.query()).toEqual({
+      method: "GET",
+      url: "/admin/scripts/runs?page=1&limit=25",
+    });
+    expect(listDef.query({limit: 10, name: "migrate", page: 2})).toEqual({
+      method: "GET",
+      url: "/admin/scripts/runs?page=2&limit=10&name=migrate",
+    });
+    expect(listDef.providesTags).toEqual(["admin_scriptRuns"]);
     expect(typeof result.useRunScriptMutation).toBe("function");
     expect(typeof result.useGetScriptTaskQuery).toBe("function");
     expect(typeof result.useCancelScriptTaskMutation).toBe("function");
+    expect(typeof result.useListScriptRunsQuery).toBe("function");
+  });
+
+  it("returns safe script hooks when endpoint injection is unavailable", async () => {
+    const result = runHook(() => useAdminScripts({} as never, "/admin"));
+
+    expect(await result.useCancelScriptTaskMutation()[0]("task-1").unwrap()).toEqual({});
+    expect(result.useGetScriptTaskQuery("task-1")).toEqual({
+      data: undefined,
+      error: null,
+      isLoading: false,
+    });
+    expect(result.useListScriptRunsQuery()).toEqual({
+      data: undefined,
+      error: null,
+      isFetching: false,
+      isLoading: false,
+    });
+    expect(
+      await result.useRunScriptMutation()[0]({name: "migrate", wetRun: false}).unwrap()
+    ).toEqual({taskId: ""});
+  });
+});
+
+describe("useAdminRoles", () => {
+  it("injects RBAC endpoints outside the admin base", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminRoles(api, "/admin"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+
+    expect(
+      injected.adminCreateRbacRole.query({
+        displayName: "Operators",
+        name: "operator",
+        permissions: {todos: ["read"]},
+      })
+    ).toEqual({
+      body: {
+        displayName: "Operators",
+        name: "operator",
+        permissions: {todos: ["read"]},
+      },
+      method: "POST",
+      url: "/rbac/roles",
+    });
+    expect(injected.adminListRbacRoles.query()).toEqual({method: "GET", url: "/rbac/roles"});
+    expect(injected.adminListRbacStatements.query()).toEqual({
+      method: "GET",
+      url: "/rbac/statements",
+    });
+    expect(
+      injected.adminUpdateRbacRole.query({
+        changes: {displayName: "Operators", permissions: {}},
+        roleName: "operator/admin",
+      })
+    ).toEqual({
+      body: {displayName: "Operators", permissions: {}},
+      method: "PATCH",
+      url: "/rbac/roles/operator%2Fadmin",
+    });
+    expect(typeof result.useCreateRoleMutation).toBe("function");
+    expect(typeof result.useListRolesQuery).toBe("function");
+    expect(typeof result.useListStatementsQuery).toBe("function");
+    expect(typeof result.useUpdateRoleMutation).toBe("function");
+  });
+
+  it("uses safe empty hooks when RTK injection is unavailable", async () => {
+    const result = runHook(() => useAdminRoles({} as never, "/admin"));
+
+    expect(result.useListRolesQuery()).toMatchObject({data: undefined, isLoading: false});
+    expect(result.useListStatementsQuery()).toMatchObject({data: undefined, isLoading: false});
+    await expect(
+      result.useCreateRoleMutation()[0]({displayName: "x", name: "x", permissions: {}}).unwrap()
+    ).rejects.toThrow("Role management API is unavailable");
+    await expect(
+      result
+        .useUpdateRoleMutation()[0]({
+          changes: {displayName: "x", permissions: {}},
+          roleName: "x",
+        })
+        .unwrap()
+    ).rejects.toThrow("Role management API is unavailable");
+    expect(normalizeRoles([{displayName: "x", name: "x"}])).toHaveLength(1);
+    expect(normalizeRoles({data: [{displayName: "x", name: "x"}]})).toHaveLength(1);
+    expect(normalizeRoles(undefined)).toEqual([]);
+    expect(normalizeStatements({data: {statements: {todos: ["read"]}}})).toEqual({
+      todos: ["read"],
+    });
+    expect(normalizeStatements(undefined)).toEqual({});
+  });
+});
+
+describe("useAdminBackgroundTaskMutation", () => {
+  it("injects a background-task request at a normalized admin root", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminBackgroundTaskMutation(api, "/admin/"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+
+    expect(
+      injected.adminPostBackgroundTask.query({
+        ids: ["todo-1"],
+        kind: "bulk-patch",
+        resourceRoute: "todos",
+      })
+    ).toEqual({
+      body: {
+        ids: ["todo-1"],
+        kind: "bulk-patch",
+        resourceRoute: "todos",
+      },
+      method: "POST",
+      url: "/admin/background-tasks",
+    });
+    expect(injected.adminPostBackgroundTask.invalidatesTags).toEqual([]);
+    expect(typeof result[0]).toBe("function");
+    expect(result[1]).toEqual({isLoading: false});
   });
 });
 

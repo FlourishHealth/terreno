@@ -1,13 +1,13 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse, AdminModelConfig} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});
@@ -142,6 +142,27 @@ describe("AdminShell", () => {
     expect(getByTestId("admin-shell-forbidden")).toBeTruthy();
     expect(queryByTestId("admin-shell-error")).toBeNull();
     expect(queryByTestId("admin-shell-sidebar")).toBeNull();
+  });
+
+  it("shows loading and generic error states", () => {
+    configState.isLoading = true;
+    let rendered = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(rendered.getByTestId("admin-shell-loading")).toBeTruthy();
+    rendered.unmount();
+
+    configState.isLoading = false;
+    configState.config = null;
+    configState.error = new Error("network");
+    rendered = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(rendered.getByTestId("admin-shell-error")).toBeTruthy();
   });
 
   it("hides the fixed sidebar and shows a hamburger header below 768px", () => {
@@ -279,6 +300,54 @@ describe("AdminShell", () => {
       fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
     });
     expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AdminAuditLog");
+  });
+
+  it("renders top chrome and navigates every desktop sidebar section", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [{displayName: "Reports", name: "reports"}],
+    };
+    const {getByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        breadcrumbs={[{href: "/admin", label: "Home"}, {label: "Todos"}]}
+        configurationPath="/configuration"
+        footer={<React.Fragment>Signed in</React.Fragment>}
+        headerActions={<React.Fragment>New item</React.Fragment>}
+        rolesPath="/roles"
+        routeBase="/console/"
+        sidebarVariant="clinical"
+        versionConfigPath="/version"
+      >
+        <React.Fragment>Content</React.Fragment>
+      </AdminShell>
+    );
+
+    expect(getByTestId("admin-shell-top-bar")).toBeTruthy();
+    for (const testID of [
+      "admin-shell-nav-model-Todo-clickable",
+      "admin-shell-nav-screen-reports-clickable",
+      "admin-shell-nav-scripts-clickable",
+      "admin-shell-nav-roles-clickable",
+      "admin-shell-nav-version-clickable",
+      "admin-shell-nav-configuration-clickable",
+    ]) {
+      await act(async () => {
+        fireEvent.press(getByTestId(testID));
+      });
+    }
+
+    expect(mockRouterPush.mock.calls.map((call) => call[0])).toEqual([
+      "/console/Todo",
+      "/console/reports",
+      "/console/__scripts",
+      "/console/roles",
+      "/console/version",
+      "/configuration",
+    ]);
   });
 
   it("hides built-in platform tools denied by backend RBAC metadata", () => {

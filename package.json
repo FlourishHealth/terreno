@@ -169,6 +169,7 @@
     "admin-backend:test": "bun run --filter '@terreno/admin-backend' test",
     "admin-frontend:compile": "bun run --filter '@terreno/admin-frontend' compile",
     "admin-frontend:lint": "bun run --filter '@terreno/admin-frontend' lint",
+    "admin-frontend:test": "bun run --filter '@terreno/admin-frontend' test",
     "admin-spa:build": "bun run --filter '@terreno/admin-spa' build:web",
     "admin-spa:compile": "bun run --filter '@terreno/admin-spa' compile",
     "admin-spa:lint": "bun run --filter '@terreno/admin-spa' lint",

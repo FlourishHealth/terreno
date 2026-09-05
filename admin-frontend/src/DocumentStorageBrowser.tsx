@@ -14,8 +14,7 @@ import {
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Platform, Image as RNImage, useWindowDimensions} from "react-native";
-import {WebView} from "react-native-webview";
+import {Platform} from "react-native";
 
 import {AdminScreenPage} from "./AdminScreenPage";
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
@@ -55,11 +54,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [viewerFile, setViewerFile] = useState<DocumentFile | null>(null);
-  const [viewerBlobUrl, setViewerBlobUrl] = useState<string | null>(null);
-  const [isViewLoading, setIsViewLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const viewerBlobUrlRef = useRef<string | null>(null);
 
   const {
     useListQuery,
@@ -89,15 +84,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [createFolder] = useCreateFolderMutation();
   const [downloadFile] = useLazyDownloadQuery();
 
-  // Revoke blob URL on unmount
-  useEffect(() => {
-    return () => {
-      if (viewerBlobUrlRef.current) {
-        URL.revokeObjectURL(viewerBlobUrlRef.current);
-      }
-    };
-  }, []);
-
   // Detect 503 "not configured" responses
   useEffect(() => {
     if (isError && error) {
@@ -124,46 +110,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
 
   const handleBreadcrumbClick = useCallback((prefix: string) => {
     setCurrentPrefix(prefix);
-  }, []);
-
-  const handleViewFile = useCallback(
-    async (file: DocumentFile) => {
-      setViewerFile(file);
-      setViewerBlobUrl(null);
-      setIsViewLoading(true);
-      try {
-        const blob = await downloadFile(file.fullPath).unwrap();
-        if (Platform.OS === "web") {
-          const url = URL.createObjectURL(blob as Blob);
-          viewerBlobUrlRef.current = url;
-          setViewerBlobUrl(url);
-        } else {
-          // Convert to base64 data URI for React Native
-          const dataUri = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob as Blob);
-          });
-          setViewerBlobUrl(dataUri);
-        }
-      } catch (err) {
-        console.error("Failed to load file preview:", err);
-      } finally {
-        setIsViewLoading(false);
-      }
-    },
-    [downloadFile]
-  );
-
-  const handleViewerClose = useCallback(() => {
-    // Only blob: URLs need revocation; base64 data URIs do not
-    if (Platform.OS === "web" && viewerBlobUrlRef.current) {
-      URL.revokeObjectURL(viewerBlobUrlRef.current);
-      viewerBlobUrlRef.current = null;
-    }
-    setViewerFile(null);
-    setViewerBlobUrl(null);
   }, []);
 
   const handleDownload = useCallback(
@@ -308,13 +254,9 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       if (file && onFileSelect) {
         return <Link onClick={() => onFileSelect(file)} text={name} />;
       }
-      // TODO: re-enable file preview in a follow-up PR
-      // if (file && Platform.OS === "web" && isViewable(file.contentType)) {
-      //   return <Link onClick={() => handleViewFile(file)} text={name} />;
-      // }
       return <Text>{name}</Text>;
     },
-    [handleFolderClick, handleViewFile, onFileSelect]
+    [handleFolderClick, onFileSelect]
   );
 
   const DocumentActionsCell: React.FC<{
@@ -417,74 +359,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
 
     return rows;
   }, [listData]);
-
-  const {height: windowHeight} = useWindowDimensions();
-  const nativeViewerHeight = Math.floor(windowHeight * 0.6);
-
-  const renderViewerContent = () => {
-    if (isViewLoading) {
-      return (
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
-      );
-    }
-    if (!viewerBlobUrl) {
-      return (
-        <Box alignItems="center" padding={4}>
-          <Text color="error">Failed to load preview.</Text>
-        </Box>
-      );
-    }
-
-    const contentType = viewerFile?.contentType ?? "";
-
-    if (Platform.OS === "web") {
-      if (contentType.startsWith("image/")) {
-        return (
-          <Box alignItems="center">
-            <img
-              alt={viewerFile?.name}
-              src={viewerBlobUrl}
-              style={{maxHeight: "70vh", maxWidth: "100%", objectFit: "contain"}}
-            />
-          </Box>
-        );
-      }
-      if (contentType.startsWith("video/")) {
-        return (
-          <Box alignItems="center">
-            <video controls src={viewerBlobUrl} style={{maxHeight: "70vh", maxWidth: "100%"}}>
-              <track kind="captions" />
-            </video>
-          </Box>
-        );
-      }
-      // PDF and text/plain — render in iframe
-      return (
-        <iframe
-          src={viewerBlobUrl}
-          style={{border: "none", height: "70vh", width: "100%"}}
-          title={viewerFile?.name}
-        />
-      );
-    }
-
-    // React Native
-    if (contentType.startsWith("image/")) {
-      return (
-        <RNImage
-          resizeMode="contain"
-          source={{uri: viewerBlobUrl}}
-          style={{height: nativeViewerHeight, width: "100%"}}
-        />
-      );
-    }
-    // PDFs, videos, and text — use WebView with the data URI
-    return (
-      <WebView source={{uri: viewerBlobUrl}} style={{height: nativeViewerHeight, width: "100%"}} />
-    );
-  };
 
   const headerRow = (
     <Box alignItems="center" direction="row" padding={2}>
@@ -610,17 +484,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     >
       {headerRow}
       {renderContent()}
-
-      <Modal
-        onDismiss={handleViewerClose}
-        primaryButtonOnClick={handleViewerClose}
-        primaryButtonText="Close"
-        size="lg"
-        title={viewerFile?.name ?? "Preview"}
-        visible={viewerFile !== null}
-      >
-        {renderViewerContent()}
-      </Modal>
 
       <Modal
         onDismiss={handleNewFolderModalDismiss}

@@ -1,9 +1,10 @@
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
 
 mock.module("expo-router", () => ({
-  router: {push: () => {}},
+  router: {push: () => undefined},
 }));
 
 import {AdminBreadcrumbs} from "./AdminBreadcrumbs";
@@ -19,9 +20,12 @@ describe("AdminBreadcrumbs", () => {
   });
 
   it("exposes an accessible control for linked segments", () => {
-    const {getByHintText} = renderWithTheme(
+    const {getByHintText, getByTestId} = renderWithTheme(
       <AdminBreadcrumbs segments={[{href: "/", label: "Admin"}, {label: "Todos"}]} />
     );
     expect(getByHintText("Navigate to Admin")).toBeTruthy();
+    act(() => {
+      fireEvent.press(getByTestId("admin-breadcrumb-link-0-clickable"));
+    });
   });
 });
