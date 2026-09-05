@@ -44,6 +44,7 @@ import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
+import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -170,6 +171,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         disableFileLogging: isDeployed,
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
+      },
+      mcpServiceTokens: {
+        enabled: true,
+        publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
@@ -387,6 +392,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             title: "Example administration",
           },
           models: [
+            mcpServiceTokenAdminModel,
             {
               adminAccess: {},
               displayName: "Audit log",
