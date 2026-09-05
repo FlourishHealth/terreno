@@ -462,7 +462,9 @@ describe("lifecycle skill architecture", (): void => {
       .replace("Ordinary test failures", "Test failures")
       .replace("one exact question", "a question")
       .replace("Do not stream a recap after each cycle", "Stream every cycle")
-      .replace("next.stage", "always-pick")
+      .replaceAll("next.stage", "always-pick")
+      .replace("only when it is pick or roast", "whenever next is set")
+      .replace("Do not invoke Brew", "May invoke Brew")
       .replace("same task-scoped briefing every time", "briefing is optional")
       .replace("../../references/execution-state.schema.json", "missing-state-schema");
     const errors = validateOuterLoopContent({
@@ -474,6 +476,8 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("one exact question")));
     assert.isTrue(errors.some((error) => error.includes("Do not stream a recap")));
     assert.isTrue(errors.some((error) => error.includes("next.stage")));
+    assert.isTrue(errors.some((error) => error.includes("only when it is pick or roast")));
+    assert.isTrue(errors.some((error) => error.includes("Do not invoke Brew")));
     assert.isTrue(errors.some((error) => error.includes("same task-scoped briefing")));
     assert.isTrue(errors.some((error) => error.includes("execution-state.schema.json")));
   });

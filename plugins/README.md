@@ -24,7 +24,7 @@ and persist state:
 
 | Skill | Loop |
 | --- | --- |
-| **Pick–Roast loop** (`terreno-pick-roast-loop`) | Work an approved plan through every Pick/Roast retry, collect one run ledger, and stop only when complete or genuinely blocked on human input. |
+| **Pick–Roast loop** (`terreno-pick-roast-loop`) | Work an approved plan through every Pick/Roast retry, resume only Pick or Roast, collect one run ledger, and stop only when complete or genuinely blocked on human input. |
 | **Planning loop** (`terreno-planning-loop`) | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns pick-roast). Pass `phases=` to restrict. |
 | **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
 

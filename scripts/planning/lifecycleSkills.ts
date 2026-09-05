@@ -492,6 +492,8 @@ export const validateOuterLoopContent = ({
       "Never invoke Brew or Taste",
       "Do not silently run Grow",
       "next.stage",
+      "only when it is pick or roast",
+      "Do not invoke Brew",
       "same task-scoped briefing every time",
     ]) {
       if (!content.includes(marker)) {

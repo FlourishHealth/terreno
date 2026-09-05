@@ -52,11 +52,15 @@ human-facing report until completion or a genuine human gate.
 
 1. **Reconstruct once.** Read the approved task graph and execution state. Identify the
    next incomplete or failed task. Verify branch/head and prior attempts.
-2. **Invoke the named stage.** After reconstructing, invoke `next.stage` when it is set;
-   otherwise default to Pick. Use Pick for implementation/rework, or Roast when Pick
-   completed the task but exited before proof. Pass the current task, exact prior
-   evidence, and the same task-scoped briefing. Pick owns normal task → Roast →
-   next-task progression.
+2. **Invoke the named stage.** After reconstructing, invoke `next.stage` only when it is pick or roast.
+   Use Pick for implementation/rework, or Roast when Pick completed the task but
+   exited before proof. Pass the current task, exact prior evidence, and the same
+   task-scoped briefing. Pick owns normal task → Roast → next-task progression.
+   - If `next.stage` is `brew`, or every in-scope task already Roast-passed, finish
+     with `next: brew`. Do not invoke Brew.
+   - If `next.stage` is `taste` or `grow`, stop with `FAIL`. This loop does not run
+     those stages.
+   - If `next.stage` is unset, default to Pick.
 3. **Consume the result.** Update the ledger, then classify:
    - `PASS` with all tasks Roast-passed → finish with `next: brew`.
    - `FAIL` with `next: pick` or `next: roast` and a concrete engineering action →

@@ -58,7 +58,9 @@ counts as skipped; an unexplained untriggered host prevents Brew `PASS`. Brew st
 does not execute Taste.
 
 The focused Pick–Roast outer loop does not run Grow, Brew, Taste, or product CI. It
-keeps a schema-defined execution-state `ledger` entry for every Pick/Roast task attempt,
+resumes only `pick` or `roast` from durable `next.stage`; a stored `brew` finishes the
+loop without launching Brew, and `taste` or `grow` is `FAIL`. It keeps a
+schema-defined execution-state `ledger` entry for every Pick/Roast task attempt,
 including head/status/evidence and optional retry hypothesis, files, checks, artifacts,
 docs, and risks, then presents that report once. It asks the human only
 for an actual product/architecture/security/data/destructive/policy decision or
