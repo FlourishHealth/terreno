@@ -42,7 +42,8 @@ named \`terreno\`, so Grow is \`/terreno:1-grow\`.
 
 | Source | Owns |
 | --- | --- |
-| \`${CANONICAL_PLUGIN_DIRECTORY}/skills/\` | Stage procedure and contracts |
+| \`${CANONICAL_PLUGIN_DIRECTORY}/skills/\` | Lifecycle and Terreno app workflows |
+| \`${CANONICAL_PLUGIN_DIRECTORY}/agents/\` | Reusable verification agents |
 | \`${CANONICAL_PLUGIN_DIRECTORY}/references/\` | Shared lifecycle references |
 
 Cursor and \`npx skills\` keep the canonical \`terreno-*\` names.
@@ -54,21 +55,12 @@ export const shortenStageName = (stageName: string): string =>
 export const rewriteStageNames = (contents: string): string =>
   contents.replace(LONG_SKILL_NAME_PATTERN, "$1");
 
-const CANONICAL_STAGE_DIRECTORY = /^terreno-[1-5]-/;
-const CANONICAL_OUTER_LOOP_DIRECTORIES = new Set([
-  "terreno-pick-roast-loop",
-  "terreno-planning-loop",
-  "terreno-taste-sweep",
-]);
-
-/** Numbered Grow–Taste stages plus the invocable outer loops. */
-const listStageDirectories = (skillsDirectory: string): string[] =>
+/** Every canonical plugin skill; lifecycle names are shortened for Claude commands. */
+const listSkillDirectories = (skillsDirectory: string): string[] =>
   readdirSync(skillsDirectory, {withFileTypes: true})
     .filter(
       (entry) =>
         entry.isDirectory() &&
-        (CANONICAL_STAGE_DIRECTORY.test(entry.name) ||
-          CANONICAL_OUTER_LOOP_DIRECTORIES.has(entry.name)) &&
         existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
     )
     .map((entry) => entry.name)
@@ -114,6 +106,7 @@ const buildClaudeManifest = (rootDirectory: string): string => {
     license: "MIT",
     keywords: cursorManifest.keywords,
     skills: "./skills/",
+    agents: ["./agents/"],
     metadata: {compatibility: cursorManifest.compatibility},
   };
 
@@ -127,6 +120,7 @@ export const buildClaudePluginFiles = ({
 }): GeneratedFile[] => {
   const canonicalDirectory = join(rootDirectory, CANONICAL_PLUGIN_DIRECTORY);
   const canonicalSkills = join(canonicalDirectory, "skills");
+  const canonicalAgents = join(canonicalDirectory, "agents");
   const canonicalReferences = join(canonicalDirectory, "references");
   const files: GeneratedFile[] = [
     {contents: buildClaudeManifest(rootDirectory), path: ".claude-plugin/plugin.json"},
@@ -134,15 +128,22 @@ export const buildClaudePluginFiles = ({
     {contents: CLAUDE_PLUGIN_README, path: "README.md"},
   ];
 
-  for (const stageName of listStageDirectories(canonicalSkills)) {
-    const shortName = shortenStageName(stageName);
-    for (const relativePath of listFilesRecursively(join(canonicalSkills, stageName))) {
-      const contents = readFileSync(join(canonicalSkills, stageName, relativePath), "utf8");
+  for (const skillName of listSkillDirectories(canonicalSkills)) {
+    const shortName = shortenStageName(skillName);
+    for (const relativePath of listFilesRecursively(join(canonicalSkills, skillName))) {
+      const contents = readFileSync(join(canonicalSkills, skillName, relativePath), "utf8");
       files.push({
         contents: relativePath.endsWith(".md") ? rewriteStageNames(contents) : contents,
         path: `skills/${shortName}/${relativePath}`,
       });
     }
+  }
+
+  for (const relativePath of listFilesRecursively(canonicalAgents)) {
+    files.push({
+      contents: readFileSync(join(canonicalAgents, relativePath), "utf8"),
+      path: `agents/${relativePath}`,
+    });
   }
 
   for (const relativePath of listFilesRecursively(canonicalReferences)) {

@@ -1,6 +1,6 @@
 # Terreno plugins
 
-## `terreno-planning` — loop-engineering lifecycle
+## `terreno-planning` — lifecycle plus Terreno app workflows
 
 The reusable plugin exposes exactly five bounded lifecycle transitions. Cursor and Codex
 install it as `terreno-planning`; Claude Code installs the generated `terreno-claude/`
@@ -40,10 +40,11 @@ IP + task + execution state
 current evidence
 ```
 
-The plugin owns portable stage method and transition contracts. Repository-local skills
-own exact commands, frameworks, architecture, test environments, generated-code rules,
-safety policies, and gotchas. Every stage discovers available project skills by
-description; no Terreno-specific skill name is a plugin dependency.
+The plugin owns portable stage method and transition contracts plus reusable Terreno app
+workflows: backend/API, UI, data fetching, schema safety, SDK generation, admin, prompt
+governance, docs, upgrades, deployment, and UI verification. Repository-local skills
+own this monorepo's roadmap, release, maintenance, and other project-only operations.
+Every stage discovers applicable skills by description.
 
 The shared result/state format and outer state machine live in:
 
@@ -100,21 +101,23 @@ It does not reinvoke Pick between roasted tasks.
 
 ## Repository integration
 
-Terreno's project skills remain canonical under `.rulesync/skills/` and are generated for
-supported agent ecosystems with `bun run rules`. They are not bundled into this plugin.
-Examples include API/UI/data conventions, test environments, schema safety, prompt
-governance, documentation, and runtime/UI verification.
+Reusable Terreno framework skills are canonical under
+`plugins/terreno-planning/skills/` and install with the lifecycle. The plugin also ships
+`pre-commit` and `ui-verifier` agents. Terreno-repository-only skills remain canonical
+under `.rulesync/skills/` and are generated for supported agent ecosystems with
+`bun run rules`.
 
-Install the same set (plugin stages plus repo and package skills) with:
+Install the generated skill set directly with:
 
 ```bash
 npx skills add FlourishHealth/terreno
 bun run skills:sync
 ```
 
-`skills/` is generated: `.rulesync/skills/` first, then plugin stages, then
-`<package>/.ai/skills/` overlays. Stages read architecture docs first and update them
-in the same slice; see
+`skills/` is generated from `.rulesync/skills/` and the combined plugin; plugin skills
+are authoritative when names overlap. Package `.ai/skills/` remain available to package
+and MCP tooling but do not overlay the installable tree. Stages read architecture docs
+first and update them in the same slice; see
 [`documentation-contract.md`](terreno-planning/references/documentation-contract.md).
 
 Validate the plugin architecture with:

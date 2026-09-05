@@ -86,6 +86,38 @@ const OUTER_LOOP_DIRECTORIES = [
   "terreno-taste-sweep",
 ] as const;
 
+const PLUGIN_APP_SKILL_DIRECTORIES = [
+  "ai-prompt-governance",
+  "backend-test-env",
+  "building-admin-interfaces",
+  "building-terreno-apps",
+  "deploy-gcp",
+  "generate-sdk",
+  "mongoose-schema-safety",
+  "terreno-backend-api",
+  "terreno-data-fetching",
+  "terreno-ui",
+  "update-docs",
+  "upgrading-terreno",
+  "verify-ui-changes",
+] as const;
+
+const PLUGIN_AGENT_NAMES = ["pre-commit", "ui-verifier"] as const;
+
+const REMOVED_SKILL_DIRECTORIES = [
+  "add-app-clip",
+  "building-native-ui",
+  "commit",
+  "create-pr",
+  "eas-update-insights",
+  "expo-brownfield",
+  "expo-module",
+  "expo-observe",
+  "expo-tailwind-setup",
+  "expo-ui",
+  "native-data-fetching",
+] as const;
+
 const REQUIRED_SECTIONS = [
   "## Preconditions",
   "## Inputs",
@@ -495,7 +527,13 @@ export const validateClaudePluginHost = ({
   const claudeDirectory = join(rootDirectory, "plugins/terreno-claude");
   const claudeManifest = JSON.parse(
     readFileSync(join(claudeDirectory, ".claude-plugin/plugin.json"), "utf8")
-  ) as {description?: string; name?: string; skills?: string; version?: string};
+  ) as {
+    agents?: string[];
+    description?: string;
+    name?: string;
+    skills?: string;
+    version?: string;
+  };
   const cursorManifest = JSON.parse(
     readFileSync(
       join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
@@ -517,6 +555,9 @@ export const validateClaudePluginHost = ({
   }
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
+  }
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
+    errors.push("Claude plugin agents path must be ./agents/");
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {
@@ -540,6 +581,7 @@ export const validateClaudePluginHost = ({
   const expectedClaudeStages = [
     ...STAGE_DEFINITIONS.map(({directory}) => directory.replace(/^terreno-/, "")),
     ...OUTER_LOOP_DIRECTORIES.map((directory) => directory.replace(/^terreno-/, "")),
+    ...PLUGIN_APP_SKILL_DIRECTORIES,
   ].sort();
   if (JSON.stringify(claudeStages) !== JSON.stringify(expectedClaudeStages)) {
     errors.push(
@@ -563,6 +605,16 @@ export const validateClaudePluginHost = ({
   );
   if (!claudeContinuousLoop.includes("genuine human decision")) {
     errors.push("Claude pick-roast-loop must preserve the genuine human gate");
+  }
+
+  const claudeAgents = readdirSync(join(claudeDirectory, "agents"), {withFileTypes: true})
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name.replace(/\.md$/, ""))
+    .sort();
+  if (JSON.stringify(claudeAgents) !== JSON.stringify([...PLUGIN_AGENT_NAMES].sort())) {
+    errors.push(
+      `Claude plugin agents must be exactly ${PLUGIN_AGENT_NAMES.join(", ")}; found ${claudeAgents.join(", ")}`
+    );
   }
 
   const claudePick = readFileSync(
@@ -677,6 +729,43 @@ export const validateLifecyclePlugin = ({
   const errors: string[] = [];
   const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
   const skillsDirectory = join(rootDirectory, "plugins/terreno-planning/skills");
+  const pluginManifest = JSON.parse(
+    readFileSync(join(pluginDirectory, ".cursor-plugin/plugin.json"), "utf8")
+  ) as {agents?: string[]};
+  if (JSON.stringify(pluginManifest.agents) !== JSON.stringify(["agents"])) {
+    errors.push("Cursor plugin agents path must be agents");
+  }
+
+  for (const directory of PLUGIN_APP_SKILL_DIRECTORIES) {
+    if (!existsSync(join(skillsDirectory, directory, "SKILL.md"))) {
+      errors.push(`plugin Terreno app skill is missing: ${directory}`);
+    }
+  }
+  for (const directory of REMOVED_SKILL_DIRECTORIES) {
+    if (
+      existsSync(join(rootDirectory, ".rulesync/skills", directory)) ||
+      existsSync(join(skillsDirectory, directory)) ||
+      existsSync(join(rootDirectory, "skills", directory))
+    ) {
+      errors.push(`removed skill still exists: ${directory}`);
+    }
+  }
+
+  const pluginAgents = readdirSync(join(pluginDirectory, "agents"), {withFileTypes: true})
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name.replace(/\.md$/, ""))
+    .sort();
+  if (JSON.stringify(pluginAgents) !== JSON.stringify([...PLUGIN_AGENT_NAMES].sort())) {
+    errors.push(
+      `plugin agents must be exactly ${PLUGIN_AGENT_NAMES.join(", ")}; found ${pluginAgents.join(", ")}`
+    );
+  }
+  for (const agentName of PLUGIN_AGENT_NAMES) {
+    if (existsSync(join(rootDirectory, ".rulesync/subagents", `${agentName}.md`))) {
+      errors.push(`plugin agent still duplicated in rulesync: ${agentName}`);
+    }
+  }
+
   const actualStageDirectories = readdirSync(skillsDirectory, {withFileTypes: true})
     .filter((entry) => entry.isDirectory() && /^terreno-\d-/.test(entry.name))
     .map((entry) => entry.name)

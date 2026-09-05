@@ -40,6 +40,11 @@ describe("Claude plugin sync", (): void => {
     assert.include(paths, "skills/pick-roast-loop/SKILL.md");
     assert.include(paths, "skills/planning-loop/SKILL.md");
     assert.include(paths, "skills/taste-sweep/SKILL.md");
+    assert.include(paths, "skills/terreno-backend-api/SKILL.md");
+    assert.include(paths, "skills/terreno-ui/SKILL.md");
+    assert.include(paths, "skills/verify-ui-changes/SKILL.md");
+    assert.include(paths, "agents/pre-commit.md");
+    assert.include(paths, "agents/ui-verifier.md");
     assert.include(paths, "references/lifecycle-contract.md");
     assert.include(paths, "references/pick-roast-loop.md");
     assert.notInclude(paths, "skills/terreno-1-grow/SKILL.md");
@@ -66,7 +71,7 @@ describe("Claude plugin sync", (): void => {
 
     const manifest = JSON.parse(
       files.find(({path}) => path === ".claude-plugin/plugin.json")?.contents ?? "{}"
-    ) as {name: string; skills: string; version: string};
+    ) as {agents: string[]; name: string; skills: string; version: string};
     const cursorManifest = JSON.parse(
       readFileSync(
         resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
@@ -76,6 +81,7 @@ describe("Claude plugin sync", (): void => {
 
     assert.equal(manifest.name, "terreno");
     assert.equal(manifest.skills, "./skills/");
+    assert.deepEqual(manifest.agents, ["./agents/"]);
     assert.equal(manifest.version, cursorManifest.version);
   });
 });

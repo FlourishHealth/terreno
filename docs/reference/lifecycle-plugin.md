@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.7.0`)
+Plugin: `terreno-planning` (`2.8.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -77,13 +77,13 @@ when user-visible or architectural behavior ships without matching docs. Brew an
 observe product CI per
 [product-ci.md](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/product-ci.md).
 
-Install the published skill set (lifecycle stages, outer loops, plus repo and package skills):
+Install the published skill set directly:
 
 ```bash
 npx skills add FlourishHealth/terreno
 ```
 
-Or install the same five stages and three outer loops as a host plugin:
+Or install the combined lifecycle and Terreno app plugin:
 
 | Host | Plugin | Stage names | Invoke Pick–Roast loop |
 | --- | --- | --- | --- |
@@ -110,11 +110,15 @@ and `.codex-plugin/plugin.json` on the canonical plugin. Claude Code:
 Claude Code resolves a plugin skill's command from the frontmatter `name`, so the short
 names ship as a generated Claude-only copy at
 [`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
-Stage procedure, contracts, and references are identical to the canonical
-`plugins/terreno-planning/skills/` tree.
+Stage procedure, Terreno app skills, contracts, agents, and references are generated
+from the canonical `plugins/terreno-planning/` tree.
 
 Regenerate the committed `skills/` tree and the Claude plugin with `bun run skills:sync`.
-Package skills under `<package>/.ai/skills/` overlay the repo copies.
+Plugin skills are authoritative when names overlap. Package skills under
+`<package>/.ai/skills/` remain package/MCP inputs and do not overlay the installable
+tree.
 
-Exact commands and domain conventions are supplied by repository-local skills discovered
-at stage start; they are not bundled into the lifecycle plugin.
+The plugin bundles reusable backend/API, UI, data-fetching, schema, SDK, admin, prompt,
+docs, upgrade, deployment, and UI-verification workflows, plus `pre-commit` and
+`ui-verifier` agents. Repository-local skills supply only project-specific roadmap,
+release, and maintenance conventions discovered at stage start.

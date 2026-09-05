@@ -89,11 +89,11 @@ extend Brew. Taste's product-CI wait uses unfiltered GitHub/CircleCI watches on 
 A host with a documented path/config reason not to run is terminal `skipped`; an
 unexplained missing run is never green.
 
-## Portable plugin, local knowledge
+## Combined plugin, local knowledge
 
-The reusable plugin defines contracts, invariants, evidence, and transitions. Repo-local
-skills define exact API/UI/database patterns, commands, test environments, generated
-code, deployment, and safety rules.
+The reusable plugin defines contracts, invariants, evidence, and transitions and bundles
+Terreno's reusable API/UI/data/schema/admin/docs/upgrade/deploy workflows. Repo-local
+skills define only project-specific roadmap, release, and maintenance operations.
 
 Each stage inspects available skills and loads those whose descriptions match the
 affected domain. A useful skill is optional when absent; a capability required by
@@ -102,20 +102,21 @@ repository policy is a hard gate and produces `BLOCKED` if unavailable.
 Stages also load architecture docs before acting. Docs are the design; code implements
 them. Missing docs for a user-visible or architectural change is `FAIL`.
 
-This lets the same Pick method compose with backend API and test-environment knowledge,
-while Roast composes with UI conventions and real-app verification.
+This lets the same plugin install provide Pick/Roast plus backend API, test-environment,
+UI, and real-app verification knowledge in consumer projects.
 
-### Terreno's current project-skill layer
+### Terreno's bundled skill layer
 
-The canonical sources remain under `.rulesync/skills/` and are generated for supported
-agents. The current high-value composition points include:
+Reusable framework skills are canonical inside `plugins/terreno-planning/skills/`.
+Repository-only skills remain under `.rulesync/skills/`. High-value composition points
+include:
 
 | Domain | Repo-local skills stages may discover |
 | --- | --- |
 | Backend/API/data | `terreno-backend-api`, `mongoose-schema-safety`, `backend-test-env`, `generate-sdk`, `terreno-data-fetching` |
-| UI/app | `terreno-ui`, `building-terreno-apps`, `building-native-ui`, `verify-ui-changes` |
+| UI/app | `terreno-ui`, `building-terreno-apps`, `verify-ui-changes` |
 | AI/prompts | `ai-prompt-governance` |
-| Docs/submission | `update-docs`, `commit`, `create-pr`, `fix-conflicts` |
+| Docs/submission | `update-docs`, Brew, `fix-conflicts` |
 | GitHub issues | `create-github-issue`, `work-github-issues` (Pick plan comment is the Roast contract) |
 | Deployment/runtime | `deploy-gcp`, Expo deployment/workflow skills |
 

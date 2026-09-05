@@ -5,6 +5,7 @@ import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
   buildInstallableSkillsTree,
+  rewritePluginLinksForInstallable,
   rewriteSharedPluginLinks,
   syncInstallableSkills,
   validateSkillGroupings,
@@ -25,7 +26,16 @@ describe("installable skills sync", (): void => {
     );
   });
 
-  it("overlays package skills on top of rulesync copies", (): void => {
+  it("rewrites plugin-root docs links for the installable tree", (): void => {
+    assert.equal(
+      rewritePluginLinksForInstallable(
+        "[skill](../../../../docs/reference/api.md) [ref](../../../../../docs/reference/ui.md)"
+      ),
+      "[skill](../../docs/reference/api.md) [ref](../../../docs/reference/ui.md)"
+    );
+  });
+
+  it("uses the combined plugin as the installable Terreno skill source", (): void => {
     const fixtureRoot = mkdtempSync(join(tmpdir(), "terreno-skills-"));
     try {
       writeFile(
@@ -35,6 +45,10 @@ describe("installable skills sync", (): void => {
       writeFile(
         join(fixtureRoot, "plugins/terreno-planning/skills/terreno-1-grow/SKILL.md"),
         "Read [lifecycle](../../references/lifecycle-contract.md)\n"
+      );
+      writeFile(
+        join(fixtureRoot, "plugins/terreno-planning/skills/mongoose-schema-safety/SKILL.md"),
+        "from-plugin\n"
       );
       writeFile(
         join(fixtureRoot, "plugins/terreno-planning/references/lifecycle-contract.md"),
@@ -54,7 +68,7 @@ describe("installable skills sync", (): void => {
 
       assert.equal(
         readFileSync(join(destination, "mongoose-schema-safety/SKILL.md"), "utf8"),
-        "from-package\n"
+        "from-plugin\n"
       );
       assert.equal(
         readFileSync(join(destination, "terreno-1-grow/SKILL.md"), "utf8"),

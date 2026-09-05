@@ -21,14 +21,6 @@ interface SkillGroup {
   title: string;
 }
 
-const PACKAGE_SKILL_OWNERS = [
-  "api",
-  "ui",
-  "rtk",
-  "admin-backend",
-  "admin-frontend",
-] as const;
-
 const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
 
 export const SKILL_GROUPS: SkillGroup[] = [
@@ -76,11 +68,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
   },
   {
     title: "GitHub and shipping",
-    description: "Commit, PR, review, verification, release, and deploy workflows.",
+    description: "Review, verification, issue, release, and deploy workflows.",
     skills: [
-      "commit",
       "create-github-issue",
-      "create-pr",
       "respond-to-review",
       "verify-ui-changes",
       "work-github-issues",
@@ -104,21 +94,12 @@ export const SKILL_GROUPS: SkillGroup[] = [
   },
   {
     title: "Expo and native",
-    description: "Expo, native modules, and platform-specific app skills.",
+    description: "Non-conflicting Expo deployment and platform workflows.",
     skills: [
-      "add-app-clip",
-      "building-native-ui",
-      "eas-update-insights",
       "expo-api-routes",
-      "expo-brownfield",
       "expo-cicd-workflows",
       "expo-deployment",
       "expo-dev-client",
-      "expo-module",
-      "expo-observe",
-      "expo-tailwind-setup",
-      "expo-ui",
-      "native-data-fetching",
       "upgrading-expo",
       "use-dom",
     ],
@@ -138,9 +119,10 @@ This directory is generated. Canonical sources:
 
 | Source | Owns |
 | --- | --- |
-| \`plugins/terreno-planning/skills/\` | Grow, Pick, Roast, Brew, Taste, plus continuous Pick-Roast, planning, and taste-sweep loops |
-| \`.rulesync/skills/\` | Repository and domain skills |
-| \`<package>/.ai/skills/\` | Published package skills (overlay the repo copies) |
+| \`plugins/terreno-planning/skills/\` | Lifecycle, Terreno app, docs, upgrade, deploy, and UI-verification workflows |
+| \`plugins/terreno-planning/agents/\` | Pre-commit and UI verification agents |
+| \`.rulesync/skills/\` | Terreno-repository-only and optional non-conflicting Expo skills |
+| \`<package>/.ai/skills/\` | Package/MCP-specific copies; not installable overlays |
 
 Regenerate with \`bun run skills:sync\`. Human-facing docs stay the architecture source;
 follow \`update-docs\` and the lifecycle documentation contract.
@@ -162,6 +144,13 @@ const listSkillDirectories = (directory: string): string[] =>
 
 export const rewriteSharedPluginLinks = (content: string): string =>
   content.replaceAll(SHARED_PLUGIN_REFERENCE_PREFIX, "references/");
+
+export const rewritePluginLinksForInstallable = (content: string): string =>
+  rewriteSharedPluginLinks(content)
+    .replaceAll("../../../../../docs/", "../../../docs/")
+    .replaceAll("../../../../docs/", "../../docs/")
+    .replaceAll("../../../../../.github/", "../../../.github/")
+    .replaceAll("../../../../.github/", "../../.github/");
 
 const SHARED_PLUGIN_REFERENCE_HREF =
   /\.\.\/\.\.\/references\/([A-Za-z0-9._-]+\.(?:md|json))/g;
@@ -361,23 +350,13 @@ export const buildInstallableSkillsTree = ({
     writeCopiedTree({
       destination: skillDestination,
       source: join(pluginSkills, skillName),
-      transformMarkdown: rewriteSharedPluginLinks,
+      transformMarkdown: rewritePluginLinksForInstallable,
     });
     copyLinkedPluginReferences({
       destination: join(skillDestination, "references"),
       pluginReferences,
       skillSource: join(pluginSkills, skillName),
     });
-  }
-
-  for (const packageName of PACKAGE_SKILL_OWNERS) {
-    const packageSkills = join(rootDirectory, packageName, ".ai/skills");
-    for (const skillName of listSkillDirectories(packageSkills)) {
-      writeCopiedTree({
-        destination: join(destination, skillName),
-        source: join(packageSkills, skillName),
-      });
-    }
   }
 
   writeFileSync(join(destination, "README.md"), INSTALLABLE_README);

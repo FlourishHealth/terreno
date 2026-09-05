@@ -53,8 +53,9 @@ Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
 `docs/reference/lifecycle-plugin.md`.
 
-Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
-project commands and domain conventions belong there, not in the portable plugin.
+The installed planning plugin also ships the reusable Terreno app, docs, upgrade,
+deployment, and verification skills used by consumer projects. Repository-only roadmap,
+release, and maintenance workflows remain under `.rulesync/skills/`.
 
 ## Documentation
 
@@ -63,7 +64,7 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`. The same five stages install as the Cursor plugin
+`bun run skills:sync`. The combined lifecycle and Terreno app skill set installs as the Cursor plugin
 `terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
 as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
 (invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
