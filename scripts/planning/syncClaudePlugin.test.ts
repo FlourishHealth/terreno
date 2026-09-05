@@ -15,6 +15,7 @@ describe("Claude plugin sync", (): void => {
   it("shortens canonical stage names", (): void => {
     assert.equal(shortenStageName("terreno-1-grow"), "1-grow");
     assert.equal(shortenStageName("terreno-5-taste"), "5-taste");
+    assert.equal(shortenStageName("terreno-pick-roast-loop"), "pick-roast-loop");
   });
 
   it("rewrites stage frontmatter without touching the plugin directory name", (): void => {
@@ -36,13 +37,19 @@ describe("Claude plugin sync", (): void => {
     assert.include(paths, "skills/2-pick/SKILL.md");
     assert.include(paths, "skills/3-roast/SKILL.md");
     assert.include(paths, "skills/5-taste/SKILL.md");
+    assert.include(paths, "skills/pick-roast-loop/SKILL.md");
+    assert.include(paths, "skills/planning-loop/SKILL.md");
+    assert.include(paths, "skills/taste-sweep/SKILL.md");
+    assert.include(paths, "skills/terreno-backend-api/SKILL.md");
+    assert.include(paths, "skills/terreno-ui/SKILL.md");
+    assert.include(paths, "skills/verify-ui-changes/SKILL.md");
+    assert.include(paths, "agents/pre-commit.md");
+    assert.include(paths, "agents/ui-verifier.md");
     assert.include(paths, "references/lifecycle-contract.md");
     assert.include(paths, "references/pick-roast-loop.md");
     assert.notInclude(paths, "skills/terreno-1-grow/SKILL.md");
     assert.notInclude(paths, "skills/terreno-planning-loop/SKILL.md");
     assert.notInclude(paths, "skills/terreno-taste-sweep/SKILL.md");
-    assert.notInclude(paths, "skills/planning-loop/SKILL.md");
-    assert.notInclude(paths, "skills/taste-sweep/SKILL.md");
 
     const grow = files.find(({path}) => path === "skills/1-grow/SKILL.md");
     assert.include(grow?.contents ?? "", "name: 1-grow");
@@ -58,9 +65,13 @@ describe("Claude plugin sync", (): void => {
     assert.include(roast?.contents ?? "", "Pick owns the inner loop");
     assert.include(roast?.contents ?? "", "Roast never invokes Pick");
 
+    const continuousLoop = files.find(({path}) => path === "skills/pick-roast-loop/SKILL.md");
+    assert.include(continuousLoop?.contents ?? "", "name: pick-roast-loop");
+    assert.include(continuousLoop?.contents ?? "", "genuine human decision");
+
     const manifest = JSON.parse(
       files.find(({path}) => path === ".claude-plugin/plugin.json")?.contents ?? "{}"
-    ) as {name: string; skills: string; version: string};
+    ) as {agents: string[]; name: string; skills: string; version: string};
     const cursorManifest = JSON.parse(
       readFileSync(
         resolve(ROOT_DIRECTORY, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
@@ -70,6 +81,7 @@ describe("Claude plugin sync", (): void => {
 
     assert.equal(manifest.name, "terreno");
     assert.equal(manifest.skills, "./skills/");
+    assert.deepEqual(manifest.agents, ["./agents/"]);
     assert.equal(manifest.version, cursorManifest.version);
   });
 });

@@ -260,6 +260,23 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("treat Roast as prove-only")));
   });
 
+  it("rejects Pick that skips the subagent briefing contract", (): void => {
+    const content = readStage("terreno-2-pick")
+      .replace("../../references/subagent-briefing.md", "missing-briefing")
+      .replaceAll("task-scoped briefing", "full-repo rediscovery");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-2-pick",
+        nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
+        stage: "pick",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("subagent briefing contract")));
+    assert.isTrue(errors.some((error) => error.includes("task-scoped briefing")));
+  });
+
   it("rejects Roast that invokes Pick or dual-drives the loop", (): void => {
     const content = readStage("terreno-3-roast")
       .replaceAll("Exactly one driver continues", "Both stages continue")
@@ -277,6 +294,25 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("single inner-loop driver")));
     assert.isTrue(errors.some((error) => error.includes("never invoke Pick")));
     assert.isTrue(errors.some((error) => error.includes("Pick as the inner-loop driver")));
+  });
+
+  it("rejects Roast that skips the subagent briefing contract", (): void => {
+    const content = readStage("terreno-3-roast")
+      .replace("../../references/subagent-briefing.md", "missing-briefing")
+      .replaceAll("Do not spawn two unconstrained reviewers", "Spawn two unconstrained reviewers")
+      .replaceAll("task-scoped briefing", "full-repo rediscovery");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-3-roast",
+        nextMarkers: ["next: brew", "next: pick", "next: null"],
+        stage: "roast",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("subagent briefing contract")));
+    assert.isTrue(errors.some((error) => error.includes("unconstrained dual reviewers")));
+    assert.isTrue(errors.some((error) => error.includes("task-scoped briefing")));
   });
 
   it("rejects Roast that does not continue the inner loop", (): void => {
@@ -407,14 +443,43 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("must allow model invocation")));
   });
 
-  it("keeps planning-loop and taste-sweep as non-stage plugin skills", (): void => {
-    for (const directory of ["terreno-planning-loop", "terreno-taste-sweep"] as const) {
+  it("keeps all outer loops as non-stage plugin skills", (): void => {
+    for (const directory of [
+      "terreno-pick-roast-loop",
+      "terreno-planning-loop",
+      "terreno-taste-sweep",
+    ] as const) {
       const content = readStage(directory);
       assert.include(content, `name: ${directory}`);
       assert.notInclude(content, "disable-model-invocation: true");
       assert.include(content, "../../references/lifecycle-contract.md");
       assert.deepEqual(validateOuterLoopContent({content, directory}), []);
     }
+  });
+
+  it("rejects a Pick-Roast outer loop that stops on ordinary failures", (): void => {
+    const content = readStage("terreno-pick-roast-loop")
+      .replace("Ordinary test failures", "Test failures")
+      .replace("one exact question", "a question")
+      .replace("Do not stream a recap after each cycle", "Stream every cycle")
+      .replaceAll("next.stage", "always-pick")
+      .replace("only when it is pick or roast", "whenever next is set")
+      .replace("Do not invoke Brew", "May invoke Brew")
+      .replace("same task-scoped briefing every time", "briefing is optional")
+      .replace("../../references/execution-state.schema.json", "missing-state-schema");
+    const errors = validateOuterLoopContent({
+      content,
+      directory: "terreno-pick-roast-loop",
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("Ordinary test failures")));
+    assert.isTrue(errors.some((error) => error.includes("one exact question")));
+    assert.isTrue(errors.some((error) => error.includes("Do not stream a recap")));
+    assert.isTrue(errors.some((error) => error.includes("next.stage")));
+    assert.isTrue(errors.some((error) => error.includes("only when it is pick or roast")));
+    assert.isTrue(errors.some((error) => error.includes("Do not invoke Brew")));
+    assert.isTrue(errors.some((error) => error.includes("same task-scoped briefing")));
+    assert.isTrue(errors.some((error) => error.includes("execution-state.schema.json")));
   });
 
   it("rejects outer loops that use timers before native CI hooks", (): void => {

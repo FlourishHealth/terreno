@@ -1,8 +1,8 @@
 # Lifecycle contract
 
 Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration loop.
-`terreno-planning-loop` and `terreno-taste-sweep` are invocable outer loops; they
-must not be recorded as `stage` values.
+`terreno-pick-roast-loop`, `terreno-planning-loop`, and `terreno-taste-sweep` are
+invocable outer loops; they must not be recorded as `stage` values.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -35,8 +35,10 @@ At the start of every stage:
 
 1. Inspect skills exposed by the harness and repository (for example skill catalogs and
    repository skill directories).
-2. Match their descriptions to the affected domains and the current stage.
-3. Load applicable skills before acting. Record their names in `skills`.
+2. Match their descriptions to the **files and criteria in this slice**, not the whole
+   catalog.
+3. Load applicable `SKILL.md` files before acting. Record their names in `skills`.
+   Do not load sibling lifecycle references this stage did not name.
 4. If repository instructions require a capability and it is unavailable, return
    `BLOCKED`; never silently skip it.
 5. If no skill applies, infer conventions from repository instructions, existing code,
@@ -44,6 +46,9 @@ At the start of every stage:
 
 Do not assume any particular supporting skill name exists. Lifecycle skills describe
 portable method; repository skills describe the repository.
+
+When spawning a fresh subagent, pass a [task-scoped briefing](subagent-briefing.md)
+instead of asking the child to rediscover the repository.
 
 ## Documentation
 
@@ -121,6 +126,11 @@ transcripts.
 The IP and task file remain authoritative for design and scope. Execution state is a
 small loop-owned handoff, not another plan.
 
+The focused Pick–Roast outer loop may add the schema-defined `ledger` array. Each entry
+records one Pick or Roast task attempt, head, status, summary/evidence, and optional
+files, checks, artifacts, docs, hypothesis, and risks. It is the source for the single
+completion or human-gate report.
+
 Use an existing repository convention when present. Otherwise use
 `.terreno/pipeline/<ip-or-task-slug>.json`, conforming to
 [`execution-state.schema.json`](execution-state.schema.json). The outer loop must preserve
@@ -136,6 +146,9 @@ Each invocation:
 4. Perform the stage.
 5. Replace `last`, merge artifact references, and set `next`.
 6. Emit the same result to the caller so the loop can persist it elsewhere.
+
+When `terreno-pick-roast-loop` is driving, append the schema-defined `ledger` entry
+between steps 5 and 6.
 
 These six state operations are mandatory whenever a stage says “update execution state.”
 Every result also includes a concrete `action`, even when `next` is `null`. For
@@ -167,6 +180,11 @@ Human gates include unresolved product semantics, architecture/security/data own
 destructive or irreversible operations, permissions, public compatibility, significant
 scope growth, and policy-required approval. Include options, tradeoffs, evidence, and a
 recommended default when appropriate.
+
+An outer loop requesting human input must first summarize the overall plan state,
+completed work, failed/recovered attempts, decisive evidence, options and impact, and a
+recommended default. It ends with one exact question. Objective engineering failures
+are not human gates while a concrete safe action remains.
 
 Bounded engineering retries must be hypothesis-driven. Taste waits in-process for
 async review bots and for product CI (bounded watch loop). The outer loop reinvokes

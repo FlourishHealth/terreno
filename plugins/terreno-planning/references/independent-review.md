@@ -7,8 +7,11 @@ Review a pinned branch diff without changing code. Keep two axes separate:
 2. **IP/spec:** missing, partial, incorrect, or unrequested behavior; promised tests/docs
    absent; acceptance criteria not met.
 
-Resolve the fixed point and complete diff/commit list. Give each axis to a fresh reviewer
-when the harness supports it. Require the rule or quoted requirement plus concrete
+Resolve the fixed point. The **parent** builds one [task-scoped briefing](subagent-briefing.md):
+current task, criteria, file list, and the patch for those files only. Give each axis
+to a fresh reviewer **with that briefing** when the harness supports it. Reviewers must
+not rediscover skills, load unnamed lifecycle references, run a full-branch `git diff`,
+or spawn nested reviewers. Require the rule or quoted requirement plus concrete
 file/hunk evidence for every finding. Tool-enforced formatting is not a review finding.
 
 Rank severity only within an axis. A clean review has no unresolved material finding in

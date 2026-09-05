@@ -29,7 +29,8 @@ export const CANONICAL_PLUGIN_DIRECTORY = "plugins/terreno-planning";
 export const CLAUDE_PLUGIN_DIRECTORY = "plugins/terreno-claude";
 export const CLAUDE_PLUGIN_NAME = "terreno";
 
-const LONG_STAGE_NAME_PATTERN = /terreno-([1-5]-[a-z]+)/g;
+const LONG_SKILL_NAME_PATTERN =
+  /terreno-([1-5]-[a-z]+|pick-roast-loop|planning-loop|taste-sweep)/g;
 
 const CLAUDE_PLUGIN_README = `# Terreno Claude Code plugin
 
@@ -41,27 +42,25 @@ named \`terreno\`, so Grow is \`/terreno:1-grow\`.
 
 | Source | Owns |
 | --- | --- |
-| \`${CANONICAL_PLUGIN_DIRECTORY}/skills/\` | Stage procedure and contracts |
+| \`${CANONICAL_PLUGIN_DIRECTORY}/skills/\` | Lifecycle and Terreno app workflows |
+| \`${CANONICAL_PLUGIN_DIRECTORY}/agents/\` | Reusable verification agents |
 | \`${CANONICAL_PLUGIN_DIRECTORY}/references/\` | Shared lifecycle references |
 
-Cursor and \`npx skills\` keep the canonical \`terreno-1-grow\` … \`terreno-5-taste\` names.
+Cursor and \`npx skills\` keep the canonical \`terreno-*\` names.
 `;
 
 export const shortenStageName = (stageName: string): string =>
-  stageName.replace(LONG_STAGE_NAME_PATTERN, "$1");
+  stageName.replace(LONG_SKILL_NAME_PATTERN, "$1");
 
 export const rewriteStageNames = (contents: string): string =>
-  contents.replace(LONG_STAGE_NAME_PATTERN, "$1");
+  contents.replace(LONG_SKILL_NAME_PATTERN, "$1");
 
-const CANONICAL_STAGE_DIRECTORY = /^terreno-[1-5]-/;
-
-/** Numbered Grow–Taste stages only. Outer loops stay Cursor/`npx skills`. */
-const listStageDirectories = (skillsDirectory: string): string[] =>
+/** Every canonical plugin skill; lifecycle names are shortened for Claude commands. */
+const listSkillDirectories = (skillsDirectory: string): string[] =>
   readdirSync(skillsDirectory, {withFileTypes: true})
     .filter(
       (entry) =>
         entry.isDirectory() &&
-        CANONICAL_STAGE_DIRECTORY.test(entry.name) &&
         existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
     )
     .map((entry) => entry.name)
@@ -107,6 +106,7 @@ const buildClaudeManifest = (rootDirectory: string): string => {
     license: "MIT",
     keywords: cursorManifest.keywords,
     skills: "./skills/",
+    agents: ["./agents/"],
     metadata: {compatibility: cursorManifest.compatibility},
   };
 
@@ -120,6 +120,7 @@ export const buildClaudePluginFiles = ({
 }): GeneratedFile[] => {
   const canonicalDirectory = join(rootDirectory, CANONICAL_PLUGIN_DIRECTORY);
   const canonicalSkills = join(canonicalDirectory, "skills");
+  const canonicalAgents = join(canonicalDirectory, "agents");
   const canonicalReferences = join(canonicalDirectory, "references");
   const files: GeneratedFile[] = [
     {contents: buildClaudeManifest(rootDirectory), path: ".claude-plugin/plugin.json"},
@@ -127,15 +128,22 @@ export const buildClaudePluginFiles = ({
     {contents: CLAUDE_PLUGIN_README, path: "README.md"},
   ];
 
-  for (const stageName of listStageDirectories(canonicalSkills)) {
-    const shortName = shortenStageName(stageName);
-    for (const relativePath of listFilesRecursively(join(canonicalSkills, stageName))) {
-      const contents = readFileSync(join(canonicalSkills, stageName, relativePath), "utf8");
+  for (const skillName of listSkillDirectories(canonicalSkills)) {
+    const shortName = shortenStageName(skillName);
+    for (const relativePath of listFilesRecursively(join(canonicalSkills, skillName))) {
+      const contents = readFileSync(join(canonicalSkills, skillName, relativePath), "utf8");
       files.push({
         contents: relativePath.endsWith(".md") ? rewriteStageNames(contents) : contents,
         path: `skills/${shortName}/${relativePath}`,
       });
     }
+  }
+
+  for (const relativePath of listFilesRecursively(canonicalAgents)) {
+    files.push({
+      contents: readFileSync(join(canonicalAgents, relativePath), "utf8"),
+      path: `agents/${relativePath}`,
+    });
   }
 
   for (const relativePath of listFilesRecursively(canonicalReferences)) {

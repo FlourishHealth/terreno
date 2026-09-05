@@ -27,16 +27,17 @@ preferring provider CLI watch hooks or harness subscriptions. Taste then waits i
 for product CI using GitHub CLI or CircleCI CLI until jobs are terminal or the wait
 times out. The loop does not need to reinvoke for those in-process waits.
 
-Two invocable outer-loop skills ship beside the five stages. They are not stages:
+Three invocable outer-loop skills ship beside the five stages. They are not stages:
 
 | Skill | Loop |
 | --- | --- |
+| `terreno-pick-roast-loop` | Drive an approved plan through recoverable Pick/Roast failures, accumulate one run ledger, and stop only at completion or a genuine human gate. |
 | `terreno-planning-loop` | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns the pick-roast inner loop). Pass `phases=` (`grow`, `pick`, `roast`, `brew`, `taste`) to restrict. |
 | `terreno-taste-sweep` | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
 
 ## Invocation packet
 
-Give each fresh agent:
+Give each fresh agent a [task-scoped briefing](subagent-briefing.md):
 
 1. lifecycle skill path/name
 2. IP and task path
@@ -44,13 +45,22 @@ Give each fresh agent:
 4. branch and current PR (if any)
 5. previous stage result and referenced evidence
 6. pointer to repository architecture docs for the affected area
+7. this slice's criteria, file list, and patch — not a request to rediscover the catalog
 
-The stage discovers repository skills itself. The loop may suggest known skills but must
-not replace stage-level discovery.
+The stage discovers repository skills itself, matching this slice's files. The loop may
+suggest known skills but must not replace stage-level discovery. Roast and its children
+must not spawn two unconstrained reviewers.
 
 Invoking Pick is enough to run the inner loop until the approved task list is done.
 Invoking Roast proves the current task only and emits `next: pick` or `next: brew`.
 Roast never invokes Pick. Do not start the next task until Roast PASS. Exactly one driver continues after each current-task Roast: Pick owns the inner loop.
+
+`terreno-pick-roast-loop` adds recovery around those bounded invocations. It reinvokes
+the named stage when a concrete engineering action remains, but it does not repeat a
+failed approach without a new hypothesis. It keeps cycle details in execution state and
+presents one complete report at the end. At a human gate, the report must explain the
+overall goal/state, completed work, decisive evidence, options and impact, recommendation,
+then end with one exact question. It never invokes Grow, Brew, Taste, or product CI.
 
 ## Feature profile (formerly Grind)
 

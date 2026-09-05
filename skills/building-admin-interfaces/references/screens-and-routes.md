@@ -1,6 +1,6 @@
 # Screens and routes
 
-Canonical steps: [Build admin screens](../../../../docs/how-to/build-admin-screens.md).
+Canonical steps: [Build admin screens](../../../docs/how-to/build-admin-screens.md).
 
 ## Embedded host (`example-frontend/app/admin`)
 

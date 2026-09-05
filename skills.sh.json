@@ -4,13 +4,14 @@
   "groupings": [
     {
       "title": "Lifecycle",
-      "description": "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus planning-loop and taste-sweep outer loops.",
+      "description": "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus continuous Pick-Roast, planning, and taste-sweep outer loops.",
       "skills": [
         "terreno-1-grow",
         "terreno-2-pick",
         "terreno-3-roast",
         "terreno-4-brew",
         "terreno-5-taste",
+        "terreno-pick-roast-loop",
         "terreno-planning-loop",
         "terreno-taste-sweep"
       ]
@@ -45,11 +46,9 @@
     },
     {
       "title": "GitHub and shipping",
-      "description": "Commit, PR, review, verification, release, and deploy workflows.",
+      "description": "Review, verification, issue, release, and deploy workflows.",
       "skills": [
-        "commit",
         "create-github-issue",
-        "create-pr",
         "respond-to-review",
         "verify-ui-changes",
         "work-github-issues",
@@ -73,21 +72,12 @@
     },
     {
       "title": "Expo and native",
-      "description": "Expo, native modules, and platform-specific app skills.",
+      "description": "Non-conflicting Expo deployment and platform workflows.",
       "skills": [
-        "add-app-clip",
-        "building-native-ui",
-        "eas-update-insights",
         "expo-api-routes",
-        "expo-brownfield",
         "expo-cicd-workflows",
         "expo-deployment",
         "expo-dev-client",
-        "expo-module",
-        "expo-observe",
-        "expo-tailwind-setup",
-        "expo-ui",
-        "native-data-fetching",
         "upgrading-expo",
         "use-dom"
       ]
