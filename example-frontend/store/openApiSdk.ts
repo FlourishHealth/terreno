@@ -13,9 +13,11 @@ export const addTagTypes = [
   "users",
   "admin",
   "featureflags",
+  "mcpservicetokens",
   "adminauditlogs",
   "consentforms",
   "consentresponses",
+  "mcp",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -23,6 +25,14 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      createMcpServiceToken: build.mutation<CreateMcpServiceTokenRes, CreateMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/mcp/service-tokens`,
+        }),
+      }),
       deleteAdminConsentFormsById: build.mutation<
         DeleteAdminConsentFormsByIdRes,
         DeleteAdminConsentFormsByIdArgs
@@ -41,6 +51,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/feature-flags/${queryArg}`,
+        }),
+      }),
+      deleteAdminMcpServiceTokensById: build.mutation<
+        DeleteAdminMcpServiceTokensByIdRes,
+        DeleteAdminMcpServiceTokensByIdArgs
+      >({
+        invalidatesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/mcp-service-tokens/${queryArg}`,
         }),
       }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
@@ -204,6 +224,36 @@ const injectedRtkApi = api
       >({
         providesTags: ["featureflags"],
         query: (queryArg) => ({url: `/admin/feature-flags/${queryArg}`}),
+      }),
+      getAdminMcpServiceTokens: build.query<
+        GetAdminMcpServiceTokensRes,
+        GetAdminMcpServiceTokensArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            created: queryArg.created,
+            expiresAt: queryArg.expiresAt,
+            lastUsedAt: queryArg.lastUsedAt,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            revokedAt: queryArg.revokedAt,
+            sort: queryArg.sort,
+            tokenPrefix: queryArg.tokenPrefix,
+            userId: queryArg.userId,
+          },
+          url: `/admin/mcp-service-tokens/`,
+        }),
+      }),
+      getAdminMcpServiceTokensById: build.query<
+        GetAdminMcpServiceTokensByIdRes,
+        GetAdminMcpServiceTokensByIdArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({url: `/admin/mcp-service-tokens/${queryArg}`}),
       }),
       getAdminTodos: build.query<GetAdminTodosRes, GetAdminTodosArgs>({
         providesTags: ["todos"],
@@ -419,6 +469,16 @@ const injectedRtkApi = api
         providesTags: ["users"],
         query: (queryArg) => ({url: `/users/${queryArg}`}),
       }),
+      listMcpServiceTokens: build.query<ListMcpServiceTokensRes, ListMcpServiceTokensArgs>({
+        providesTags: ["mcp"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/mcp/service-tokens`,
+        }),
+      }),
       patchAdminConsentFormsById: build.mutation<
         PatchAdminConsentFormsByIdRes,
         PatchAdminConsentFormsByIdArgs
@@ -580,6 +640,17 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/admin/feature-flags/bulk-patch`,
+        }),
+      }),
+      postAdminMcpServiceTokensBulkPatch: build.mutation<
+        PostAdminMcpServiceTokensBulkPatchRes,
+        PostAdminMcpServiceTokensBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/mcp-service-tokens/bulk-patch`,
         }),
       }),
       postAdminTodos: build.mutation<PostAdminTodosRes, PostAdminTodosArgs>({
@@ -757,6 +828,13 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/users/`,
+        }),
+      }),
+      revokeMcpServiceToken: build.mutation<RevokeMcpServiceTokenRes, RevokeMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/mcp/service-tokens/${queryArg}`,
         }),
       }),
       todosBulkComplete: build.mutation<TodosBulkCompleteRes, TodosBulkCompleteArgs>({
@@ -2219,6 +2297,143 @@ export type PostAdminBackgroundTasksArgs = {
   /** Optional admin model route this task relates to */
   resourceRoute?: string;
 };
+export type PostAdminMcpServiceTokensBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminMcpServiceTokensBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminMcpServiceTokensRes = /** status 200 Successful list */ {
+  data?: {
+    /** When this MCP service token expires; unset when it does not expire */
+    expiresAt?: string;
+    /** When this MCP service token most recently authenticated an MCP request */
+    lastUsedAt?: string;
+    /** User-provided label identifying the MCP service token */
+    name: string;
+    /** When this MCP service token was revoked; unset while it remains active */
+    revokedAt?: string;
+    /** SHA-256 hash of the full MCP service token plaintext */
+    tokenHash: string;
+    /** First eight characters after mcp_ used to identify the token safely */
+    tokenPrefix: string;
+    /** The user this MCP service token acts as */
+    userId: string;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminMcpServiceTokensArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  name?:
+    | string
+    | {
+        $in?: string[];
+      };
+  tokenPrefix?:
+    | string
+    | {
+        $in?: string[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  lastUsedAt?:
+    | string
+    | {
+        /** When this MCP service token most recently authenticated an MCP request */
+        $gt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $gte?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $lt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $lte?: string;
+      };
+  expiresAt?:
+    | string
+    | {
+        /** When this MCP service token expires; unset when it does not expire */
+        $gt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $gte?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lte?: string;
+      };
+  revokedAt?:
+    | string
+    | {
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gte?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lte?: string;
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminMcpServiceTokensByIdRes = /** status 200 Successful read */ {
+  /** When this MCP service token expires; unset when it does not expire */
+  expiresAt?: string;
+  /** When this MCP service token most recently authenticated an MCP request */
+  lastUsedAt?: string;
+  /** User-provided label identifying the MCP service token */
+  name: string;
+  /** When this MCP service token was revoked; unset while it remains active */
+  revokedAt?: string;
+  /** SHA-256 hash of the full MCP service token plaintext */
+  tokenHash: string;
+  /** First eight characters after mcp_ used to identify the token safely */
+  tokenPrefix: string;
+  /** The user this MCP service token acts as */
+  userId: string;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+};
+export type GetAdminMcpServiceTokensByIdArgs = string;
+export type DeleteAdminMcpServiceTokensByIdRes = unknown;
+export type DeleteAdminMcpServiceTokensByIdArgs = string;
 export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3672,6 +3887,41 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type CreateMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    created?: string;
+    expiresAt?: string;
+    id?: string;
+    mcpUrl?: string;
+    name?: string;
+    token?: string;
+    tokenPrefix?: string;
+  };
+};
+export type CreateMcpServiceTokenArgs = {
+  /** Optional ISO-8601 expiry; omit for a token that does not expire */
+  expiresAt?: string;
+  /** User-visible label for this token */
+  name: string;
+};
+export type ListMcpServiceTokensRes = /** status 200 Success */ {
+  data?: any;
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type ListMcpServiceTokensArgs = {
+  page?: number;
+  limit?: number;
+};
+export type RevokeMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    id?: string;
+    revokedAt?: string;
+  };
+};
+export type RevokeMcpServiceTokenArgs = string;
 export type ApiError = {
   /** An application-specific error code, expressed as a string value. */
   code?: string;
@@ -3752,6 +4002,10 @@ export const {
   useDeleteFeatureFlagsFlagsByIdMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
+  usePostAdminMcpServiceTokensBulkPatchMutation,
+  useGetAdminMcpServiceTokensQuery,
+  useGetAdminMcpServiceTokensByIdQuery,
+  useDeleteAdminMcpServiceTokensByIdMutation,
   usePostAdminAuditLogsBulkPatchMutation,
   useGetAdminAuditLogsQuery,
   useGetAdminAuditLogsByIdQuery,
@@ -3781,4 +4035,7 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useCreateMcpServiceTokenMutation,
+  useListMcpServiceTokensQuery,
+  useRevokeMcpServiceTokenMutation,
 } = injectedRtkApi;

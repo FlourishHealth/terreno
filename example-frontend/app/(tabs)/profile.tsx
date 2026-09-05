@@ -192,6 +192,10 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
+  const handleNavigateToMcp = useCallback((): void => {
+    router.push("/settings/mcp");
+  }, [router]);
+
   const handleSendTestPush = useCallback(async (): Promise<void> => {
     setTestPushError(null);
     setTestPushMessage(null);
@@ -486,6 +490,13 @@ const ProfileScreen: React.FC = () => {
               testID="profile-logout-button"
               text="Logout"
               variant="destructive"
+            />
+            <Button
+              iconName="plug"
+              onClick={handleNavigateToMcp}
+              testID="profile-mcp-button"
+              text="MCP connections"
+              variant="secondary"
             />
           </Box>
         </Card>

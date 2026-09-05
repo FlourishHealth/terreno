@@ -433,6 +433,7 @@
         "@terreno/syncdb": "workspace:*",
         "@terreno/ui": "workspace:*",
         "expo": "catalog:",
+        "expo-clipboard": "catalog:",
         "expo-constants": "catalog:",
         "expo-crypto": "catalog:",
         "expo-dev-client": "catalog:",
