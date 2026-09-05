@@ -63,6 +63,8 @@ Claude Code stages, app skills, and agents come from the generated copy at
 | Plugin agents | `pre-commit`, `ui-verifier` |
 
 `skills.sh.json` at the repo root groups those names on [skills.sh](https://skills.sh).
+Cursor and Claude Code load the bundled plugin agents. Codex loads the combined skill
+set but does not currently expose plugin-defined agents.
 
 ## Keep copies in sync (Terreno maintainers)
 

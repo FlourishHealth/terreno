@@ -750,6 +750,14 @@ export const validateLifecyclePlugin = ({
       errors.push(`removed skill still exists: ${directory}`);
     }
   }
+  const skillsLock = JSON.parse(
+    readFileSync(join(rootDirectory, "skills-lock.json"), "utf8")
+  ) as {skills?: Record<string, unknown>};
+  for (const directory of REMOVED_SKILL_DIRECTORIES) {
+    if (directory in (skillsLock.skills ?? {})) {
+      errors.push(`removed skill still exists in skills-lock.json: ${directory}`);
+    }
+  }
 
   const pluginAgents = readdirSync(join(pluginDirectory, "agents"), {withFileTypes: true})
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))

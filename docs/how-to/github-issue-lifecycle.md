@@ -40,8 +40,8 @@ product/security/architecture decision.
 
 ## After Roast PASS
 
-Inner-loop PASS does not open a PR. Invoke `/terreno-4-brew` (or `/create-pr`) when
-you want the draft PR.
+Inner-loop PASS does not open a PR. Invoke `/terreno-4-brew` when you want the draft
+PR.
 
 ## Related
 

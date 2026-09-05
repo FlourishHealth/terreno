@@ -151,6 +151,8 @@ are removed; invoke the canonical stages directly.
 | Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:pick-roast-loop` |
 
 All three hosts ship continuous Pick–Roast, phase-planning, and Taste-sweep outer loops.
+Cursor and Claude Code also load the bundled `pre-commit` and `ui-verifier` agents;
+Codex currently consumes the combined skills without plugin-defined agents.
 
 Claude Code install:
 

@@ -120,5 +120,6 @@ tree.
 
 The plugin bundles reusable backend/API, UI, data-fetching, schema, SDK, admin, prompt,
 docs, upgrade, deployment, and UI-verification workflows, plus `pre-commit` and
-`ui-verifier` agents. Repository-local skills supply only project-specific roadmap,
-release, and maintenance conventions discovered at stage start.
+`ui-verifier` agents on Cursor and Claude Code. Codex consumes the combined skills
+without plugin-defined agents. Repository-local skills supply only project-specific
+roadmap, release, and maintenance conventions discovered at stage start.
