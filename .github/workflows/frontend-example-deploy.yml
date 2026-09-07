@@ -24,6 +24,11 @@ on:
       - ".github/workflows/frontend-example-deploy.yml"
   workflow_dispatch:
 
+concurrency:
+  group: example-frontend-deploy-${{ github.ref }}
+  # Superseded PR previews are disposable; production and manual deploys must finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-changes:
     name: Check for relevant changes

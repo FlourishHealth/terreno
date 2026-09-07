@@ -28,6 +28,11 @@ on:
       - ".github/workflows/docs-deploy.yml"
       - "netlify.toml"
 
+concurrency:
+  group: docs-deploy-${{ github.ref }}
+  # Superseded PR previews are disposable; production deploys must finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-changes:
     name: Check for relevant changes
