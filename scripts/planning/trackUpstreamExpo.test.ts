@@ -1,8 +1,11 @@
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {
   compareExpoVersions,
   decideProbe,
+  isResumableLoop,
   maxExpoVersion,
   parseExpoVersion,
   pickUpstreamCandidate,
@@ -14,10 +17,21 @@ import {
 
 const trackedOnMaster = (): TrackedState => ({
   expoVersion: "57.0.14",
+  loopStatus: "idle",
   npmTag: "latest",
   releaseBranch: null,
   sdkLine: "57.0.0",
   updatedAt: "2026-09-07T00:00:00.000Z",
+});
+
+const trackedOnRelease = (overrides: Partial<TrackedState> = {}): TrackedState => ({
+  expoVersion: "58.0.0-preview.1",
+  loopStatus: "open",
+  npmTag: "next",
+  releaseBranch: "release-58.0.0",
+  sdkLine: "58.0.0",
+  updatedAt: "2026-09-08T00:00:00.000Z",
+  ...overrides,
 });
 
 describe("track-upstream-expo compare", (): void => {
@@ -59,9 +73,9 @@ describe("track-upstream-expo compare", (): void => {
     assert.deepEqual(candidate, {npmTag: "next", version: "58.0.0-preview.1"});
   });
 
-  it("fails closed when nothing is newer than tracked or the release branch", (): void => {
+  it("fails closed when the same beta is already tracked and the loop is ready", (): void => {
     const none = decideProbe({
-      branchTrackedExpo: "58.0.0-preview.1",
+      branchTracked: trackedOnRelease({loopStatus: "ready"}),
       existingReleaseBranches: ["release-58.0.0"],
       masterCatalogExpo: "57.0.14",
       npmTags: {latest: "57.0.14", next: "58.0.0-preview.1"},
@@ -69,11 +83,41 @@ describe("track-upstream-expo compare", (): void => {
     });
     assert.equal(none.action, "none");
     assert.include(none.reason, "Already tracking");
+    assert.isFalse(isResumableLoop("ready"));
+    assert.isFalse(isResumableLoop("idle"));
+  });
+
+  it("resumes an open loop on the same beta", (): void => {
+    const resumed = decideProbe({
+      branchTracked: trackedOnRelease({loopStatus: "open"}),
+      existingReleaseBranches: ["release-58.0.0"],
+      masterCatalogExpo: "57.0.14",
+      npmTags: {latest: "57.0.14", next: "58.0.0-preview.1"},
+      tracked: trackedOnMaster(),
+    });
+    assert.equal(resumed.action, "resume-loop");
+    assert.equal(resumed.releaseBranch, "release-58.0.0");
+    assert.equal(resumed.expoVersion, "58.0.0-preview.1");
+    assert.isTrue(isResumableLoop("open"));
+    assert.isTrue(isResumableLoop("blocked"));
+  });
+
+  it("resumes an in-flight loop when npm has no newer major", (): void => {
+    const resumed = decideProbe({
+      branchTracked: trackedOnRelease({loopStatus: "blocked"}),
+      existingReleaseBranches: ["release-58.0.0"],
+      masterCatalogExpo: "57.0.14",
+      npmTags: {latest: "57.0.14"},
+      tracked: trackedOnMaster(),
+    });
+    assert.equal(resumed.action, "resume-loop");
+    assert.equal(resumed.loopStatus, "blocked");
+    assert.include(resumed.reason, "release-58.0.0");
   });
 
   it("creates the release branch from a stable next major on latest", (): void => {
     const created = decideProbe({
-      branchTrackedExpo: null,
+      branchTracked: null,
       existingReleaseBranches: [],
       masterCatalogExpo: "57.0.14",
       npmTags: {latest: "58.0.0"},
@@ -82,11 +126,12 @@ describe("track-upstream-expo compare", (): void => {
     assert.equal(created.action, "create-branch");
     assert.equal(created.releaseBranch, "release-58.0.0");
     assert.equal(created.npmTag, "latest");
+    assert.equal(created.loopStatus, "open");
   });
 
   it("creates release-58.0.0 for the first 58 beta", (): void => {
     const created = decideProbe({
-      branchTrackedExpo: null,
+      branchTracked: null,
       existingReleaseBranches: ["release-56.0.0"],
       masterCatalogExpo: "57.0.14",
       npmTags: {latest: "57.0.14", next: "58.0.0-preview.1"},
@@ -99,20 +144,32 @@ describe("track-upstream-expo compare", (): void => {
 
   it("continues the existing branch for a newer preview", (): void => {
     const continued = decideProbe({
-      branchTrackedExpo: "58.0.0-preview.1",
+      branchTracked: trackedOnRelease(),
       existingReleaseBranches: ["release-58.0.0"],
       masterCatalogExpo: "57.0.14",
       npmTags: {latest: "57.0.14", next: "58.0.0-preview.2"},
-      tracked: {
-        ...trackedOnMaster(),
-        expoVersion: "58.0.0-preview.1",
-        npmTag: "next",
-        releaseBranch: "release-58.0.0",
-        sdkLine: "58.0.0",
-      },
+      tracked: trackedOnRelease(),
     });
     assert.equal(continued.action, "continue-branch");
     assert.equal(continued.expoVersion, "58.0.0-preview.2");
     assert.equal(maxExpoVersion(["58.0.0-preview.1", "57.0.14"]), "58.0.0-preview.1");
+  });
+
+  it("keeps the committed loop log headings", (): void => {
+    const log = readFileSync(
+      resolve(import.meta.dir, "../track-upstream-expo/loop-log.md"),
+      "utf8"
+    );
+    for (const heading of [
+      "## Status",
+      "## Next",
+      "## Open",
+      "## Tried (newest first)",
+      "## Do not retry",
+      "## Worked",
+      "## Release notes draft",
+    ]) {
+      assert.include(log, heading);
+    }
   });
 });

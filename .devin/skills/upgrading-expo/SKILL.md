@@ -16,9 +16,11 @@ description: Guidelines for upgrading Expo SDK versions and fixing dependency is
 
 Beta versions use `.preview` suffix (e.g., `55.0.0-preview.2`), published under `@next` tag.
 
-Terreno morning watch for a **new SDK major** (create/continue `release-X.Y.Z`,
-fail fast when nothing is newer): skill `track-upstream-expo`. This skill is
-the upgrade mechanics once that job has a target version.
+Terreno morning watch for a **new SDK major** (create/continue/resume
+`release-X.Y.Z`, fail fast when idle and nothing is newer): skill
+`track-upstream-expo`. This skill is the upgrade mechanics once that job has a
+target version. The running try/fix/release-notes log is
+`scripts/track-upstream-expo/loop-log.md`.
 
 Check if latest is beta: https://exp.host/--/api/v2/versions (look for `-preview` in `expoVersion`)
 

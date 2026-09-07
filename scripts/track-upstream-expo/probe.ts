@@ -4,6 +4,8 @@ import {
   type ProbeResult,
   type TrackedState,
   decideProbe,
+  isResumableLoop,
+  parseExpoVersion,
   pickUpstreamCandidate,
   releaseBranchFromSdkLine,
   sdkLineFromExpoVersion,
@@ -79,7 +81,7 @@ const listRemoteReleaseBranches = (): string[] => {
     .filter((name): name is string => Boolean(name));
 };
 
-const readBranchTrackedExpo = (releaseBranch: string): string | null => {
+const readBranchTracked = (releaseBranch: string): TrackedState | null => {
   const result = Bun.spawnSync(
     ["git", "show", `origin/${releaseBranch}:scripts/track-upstream-expo/tracked.json`],
     {
@@ -92,11 +94,49 @@ const readBranchTrackedExpo = (releaseBranch: string): string | null => {
     return null;
   }
   try {
-    const tracked = JSON.parse(result.stdout.toString()) as TrackedState;
-    return tracked.expoVersion ?? null;
+    return JSON.parse(result.stdout.toString()) as TrackedState;
   } catch {
     return null;
   }
+};
+
+const findBranchTracked = ({
+  candidateBranch,
+  existingReleaseBranches,
+  masterCatalogExpo,
+  tracked,
+}: {
+  candidateBranch: string | null;
+  existingReleaseBranches: string[];
+  masterCatalogExpo: string;
+  tracked: TrackedState;
+}): TrackedState | null => {
+  if (candidateBranch) {
+    const fromCandidate = readBranchTracked(candidateBranch);
+    if (fromCandidate) {
+      return fromCandidate;
+    }
+  }
+  if (tracked.releaseBranch) {
+    const fromTracked = readBranchTracked(tracked.releaseBranch);
+    if (fromTracked) {
+      return fromTracked;
+    }
+  }
+  const masterMajor = parseExpoVersion(masterCatalogExpo).major;
+  for (const releaseBranch of [...existingReleaseBranches].sort().reverse()) {
+    const remote = readBranchTracked(releaseBranch);
+    if (!remote) {
+      continue;
+    }
+    if (parseExpoVersion(remote.sdkLine || remote.expoVersion).major <= masterMajor) {
+      continue;
+    }
+    if (isResumableLoop(remote.loopStatus)) {
+      return remote;
+    }
+  }
+  return null;
 };
 
 export const runProbe = async (): Promise<{exitCode: number; result: ProbeResult}> => {
@@ -108,9 +148,14 @@ export const runProbe = async (): Promise<{exitCode: number; result: ProbeResult
   const candidateBranch = candidate
     ? releaseBranchFromSdkLine(sdkLineFromExpoVersion(candidate.version))
     : null;
-  const branchTrackedExpo = candidateBranch ? readBranchTrackedExpo(candidateBranch) : null;
+  const branchTracked = findBranchTracked({
+    candidateBranch,
+    existingReleaseBranches,
+    masterCatalogExpo,
+    tracked,
+  });
   const result = decideProbe({
-    branchTrackedExpo,
+    branchTracked,
     existingReleaseBranches,
     masterCatalogExpo,
     npmTags,

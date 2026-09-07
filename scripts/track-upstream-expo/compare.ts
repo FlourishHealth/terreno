@@ -1,5 +1,10 @@
+export const LOOP_STATUSES = ["blocked", "idle", "open", "ready"] as const;
+
+export type LoopStatus = (typeof LOOP_STATUSES)[number];
+
 export interface TrackedState {
   expoVersion: string;
+  loopStatus: LoopStatus;
   npmTag: "canary" | "latest" | "next";
   releaseBranch: string | null;
   sdkLine: string;
@@ -14,7 +19,7 @@ export interface ParsedExpoVersion {
 }
 
 export interface ProbeInput {
-  branchTrackedExpo: string | null;
+  branchTracked: TrackedState | null;
   existingReleaseBranches: string[];
   masterCatalogExpo: string;
   npmTags: Record<string, string>;
@@ -22,8 +27,9 @@ export interface ProbeInput {
 }
 
 export interface ProbeResult {
-  action: "continue-branch" | "create-branch" | "none";
+  action: "continue-branch" | "create-branch" | "none" | "resume-loop";
   expoVersion: string | null;
+  loopStatus: LoopStatus | null;
   npmTag: string | null;
   reason: string;
   releaseBranch: string | null;
@@ -150,47 +156,103 @@ export const pickUpstreamCandidate = ({
   );
 };
 
+export const isResumableLoop = (loopStatus: LoopStatus | null | undefined): boolean => {
+  return loopStatus === "blocked" || loopStatus === "open";
+};
+
+const noneResult = ({
+  expoVersion,
+  loopStatus,
+  npmTag,
+  reason,
+  releaseBranch,
+  sdkLine,
+}: {
+  expoVersion: string | null;
+  loopStatus: LoopStatus | null;
+  npmTag: string | null;
+  reason: string;
+  releaseBranch: string | null;
+  sdkLine: string | null;
+}): ProbeResult => {
+  return {
+    action: "none",
+    expoVersion,
+    loopStatus,
+    npmTag,
+    reason,
+    releaseBranch,
+    sdkLine,
+  };
+};
+
 export const decideProbe = ({
-  branchTrackedExpo,
+  branchTracked,
   existingReleaseBranches,
   masterCatalogExpo,
   npmTags,
   tracked,
 }: ProbeInput): ProbeResult => {
   const candidate = pickUpstreamCandidate({masterCatalogExpo, npmTags});
+  const inFlight = branchTracked ?? (tracked.releaseBranch ? tracked : null);
+
   if (!candidate) {
-    return {
-      action: "none",
+    if (inFlight && isResumableLoop(inFlight.loopStatus) && inFlight.releaseBranch) {
+      return {
+        action: "resume-loop",
+        expoVersion: inFlight.expoVersion,
+        loopStatus: inFlight.loopStatus,
+        npmTag: inFlight.npmTag,
+        reason: `Resume ${inFlight.loopStatus} loop on ${inFlight.releaseBranch} at ${inFlight.expoVersion}`,
+        releaseBranch: inFlight.releaseBranch,
+        sdkLine: inFlight.sdkLine,
+      };
+    }
+    return noneResult({
       expoVersion: null,
+      loopStatus: tracked.loopStatus,
       npmTag: null,
       reason: `No Expo SDK major newer than catalog ${stripVersionRange(masterCatalogExpo)}`,
-      releaseBranch: null,
-      sdkLine: null,
-    };
+      releaseBranch: tracked.releaseBranch,
+      sdkLine: tracked.sdkLine,
+    });
   }
 
   const sdkLine = sdkLineFromExpoVersion(candidate.version);
   const releaseBranch = releaseBranchFromSdkLine(sdkLine);
   const knownVersions = [tracked.expoVersion, stripVersionRange(masterCatalogExpo)];
-  if (branchTrackedExpo) {
-    knownVersions.push(branchTrackedExpo);
+  if (branchTracked?.expoVersion) {
+    knownVersions.push(branchTracked.expoVersion);
   }
   const effectiveTracked = maxExpoVersion(knownVersions);
   if (compareExpoVersions(candidate.version, effectiveTracked) <= 0) {
-    return {
-      action: "none",
+    const loopStatus = branchTracked?.loopStatus ?? tracked.loopStatus;
+    if (isResumableLoop(loopStatus)) {
+      return {
+        action: "resume-loop",
+        expoVersion: effectiveTracked,
+        loopStatus,
+        npmTag: candidate.npmTag,
+        reason: `Resume ${loopStatus} loop on ${releaseBranch} at ${effectiveTracked}`,
+        releaseBranch,
+        sdkLine,
+      };
+    }
+    return noneResult({
       expoVersion: candidate.version,
+      loopStatus,
       npmTag: candidate.npmTag,
-      reason: `Already tracking ${effectiveTracked} (candidate ${candidate.version})`,
+      reason: `Already tracking ${effectiveTracked} (candidate ${candidate.version}); loop ${loopStatus}`,
       releaseBranch,
       sdkLine,
-    };
+    });
   }
 
   const branchExists = existingReleaseBranches.includes(releaseBranch);
   return {
     action: branchExists ? "continue-branch" : "create-branch",
     expoVersion: candidate.version,
+    loopStatus: "open",
     npmTag: candidate.npmTag,
     reason: branchExists
       ? `Newer ${candidate.npmTag} ${candidate.version} on existing ${releaseBranch}`
@@ -202,12 +264,14 @@ export const decideProbe = ({
 
 export const nextTrackedState = ({
   expoVersion,
+  loopStatus,
   npmTag,
   releaseBranch,
   sdkLine,
   updatedAt,
 }: {
   expoVersion: string;
+  loopStatus: LoopStatus;
   npmTag: TrackedState["npmTag"];
   releaseBranch: string;
   sdkLine: string;
@@ -215,6 +279,7 @@ export const nextTrackedState = ({
 }): TrackedState => {
   return {
     expoVersion,
+    loopStatus,
     npmTag,
     releaseBranch,
     sdkLine,
