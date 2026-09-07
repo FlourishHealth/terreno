@@ -18,5 +18,18 @@
       "Bash(grep *)",
       "Fetch(*)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.rulesync/hooks/quality-check.sh",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
   }
 }

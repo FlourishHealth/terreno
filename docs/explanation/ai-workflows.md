@@ -43,6 +43,15 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 
 ### Code Quality Workflows
 
+#### Agent quality hooks
+**Trigger:** An agent reaches its stop event
+**Purpose:** Prevents an agent from finishing with lint or TypeScript errors
+
+Rulesync generates native stop hooks for Cursor, Claude Code, GitHub Copilot, and Devin
+from `.rulesync/hooks.json`. Every generated hook runs the shared
+`.rulesync/hooks/quality-check.sh` command, which executes both `bun run lint` and
+`bun run compile` and fails when either check fails.
+
 #### Daily JSDoc Improver
 **Trigger:** Daily schedule + push to master  
 **Purpose:** Systematically improves JSDoc documentation across the codebase
@@ -177,7 +186,8 @@ Ensures preview environments don't accumulate and waste resources.
 
 ### Single Source of Truth
 - **Documentation:** Code is truth, docs must reflect it
-- **Rules:** `.rulesync/rules/` is truth, generated files derive from it
+- **Agent configuration:** `.rulesync/rules/`, `.rulesync/skills/`, and
+  `.rulesync/hooks.json` are truth; generated files derive from them
 - **Tests:** Implementation is truth, tests verify it
 
 ### Fail Fast

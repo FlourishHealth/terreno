@@ -9,5 +9,6 @@ verification skills alongside the lifecycle. It also ships `pre-commit` and
 favor of Brew. Conflicting or unused Expo skills (`native-data-fetching`,
 `building-native-ui`, `expo-ui`, App Clip, brownfield, Observe, Tailwind setup,
 EAS update insights, and Expo module authoring) are no longer distributed. Taste's
-pre-push hook runs lint, typecheck, and affected tests for every supported host. Plugin
-`terreno-planning` is `2.8.0`.
+pre-push gate runs lint, typecheck, and affected tests for every supported host.
+Rulesync now also generates native stop hooks for Cursor, Claude Code, GitHub Copilot,
+and Devin that run repository lint and typecheck. Plugin `terreno-planning` is `2.8.0`.
