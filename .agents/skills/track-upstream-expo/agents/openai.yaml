@@ -1,0 +1,4 @@
+interface:
+  display_name: "Track upstream Expo"
+  short_description: "Morning probe for a newer Expo SDK beta; fail fast if none, otherwise work on release-X.Y.Z"
+  default_prompt: "Use $track-upstream-expo. Run bun run expo:track-probe first. If it exits 1, stop. If it exits 0, create or continue the reported release-* branch, upgrade Expo, and bump native fingerprint dependencies on that branch only."
