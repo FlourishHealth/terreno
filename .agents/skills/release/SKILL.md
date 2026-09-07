@@ -100,7 +100,8 @@ Organize the commits — never ship the raw auto-generated list. Order sections 
 Rules:
 
 - Lead with breaking changes, then features, then fixes. Omit empty sections.
-- `[coverage]`, `[alignRules]`, lockfile updates, dependabot bumps, and similar mechanical commits go in the collapsed **Tests & housekeeping** section, one line each.
+- `[coverage]`, `[alignRules]`, lockfile updates, `update-dependencies` bumps, and similar mechanical commits go in the collapsed **Tests & housekeeping** section, one line each.
+- Expo SDK, React Native, and other `isFingerprintSkip` packages are **not** bumped by `update-dependencies`. Include those native upgrades in this release (see `upgrading-expo`).
 - Merge commits that belong to one feature (e.g. an IP/plan commit plus its implementation) into a single bullet.
 - Describe user-facing impact, not implementation detail. Keep `(#123)` PR references — GitHub autolinks them.
 

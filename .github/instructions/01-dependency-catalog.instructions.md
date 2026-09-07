@@ -23,7 +23,9 @@ When you add, upgrade, or move a dependency:
 2. **If a dependency becomes shared** (a second package starts using it), add it
    to the root `catalog` and switch every consumer to `"catalog:"`.
 3. **To bump a shared dependency**, change the version in the root `catalog` once
-   — never edit the version in individual packages.
+   — never edit the version in individual packages. Recurring bumps use the
+   `update-dependencies` skill (`docs/how-to/update-dependencies.md`): an
+   exercise test is required; Expo fingerprint changes wait for a release.
 4. **Single-use dependencies** (used by exactly one package) may keep a raw
    version range and do **not** need a catalog entry.
 5. **Keep the `catalog` entries sorted** alphabetically by package name.

@@ -15,6 +15,22 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 7
+    # Native/Expo packages change the Expo fingerprint. Agents bump those only
+    # during a release (update-dependencies skill + fingerprintRisk.ts). Keep
+    # this ignore list aligned with isFingerprintSkip.
+    ignore:
+      - dependency-name: "@expo/config-plugins"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: "@react-native-community/slider"
+      - dependency-name: "@react-native-picker/picker"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "@shopify/flash-list"
+      - dependency-name: "@shopify/react-native-skia"
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
     groups:
       root:
         applies-to: version-updates
