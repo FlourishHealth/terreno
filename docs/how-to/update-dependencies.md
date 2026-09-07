@@ -1,40 +1,42 @@
 # Update dependencies
 
-Use the `update-dependencies` skill (`/update-dependencies`) instead of merging a Dependabot PR that you have not proven.
+This runs **daily**. Use `/update-dependencies`. There is one rolling PR; later days push to it and rewrite its ledger instead of opening new PRs.
 
 ```bash
-# From latest master, clean tree
+gh pr list --state open --search "terreno-update-dependencies in:body" \
+  --json number,url,headRefName
 bun outdated
 ```
 
-Then follow the skill: one package per PR, an **exercise test** that imports that package, and **unchanged** Expo fingerprints for `example-frontend` and `demo`.
+Prove each bump with an **exercise test** that imports that package. Keep Expo fingerprints for `example-frontend` and `demo` unchanged. Skip `isFingerprintSkip` names until a release.
 
-Why this shape: [Dependency management](../explanation/dependency-management.md). Native Expo/React Native bumps wait for a release (`upgrading-expo`).
+Why: [Dependency management](../explanation/dependency-management.md). Native Expo/React Native bumps wait for `upgrading-expo`.
 
 ## Do now
 
-1. Inventory with `bun outdated`. Skip anything `isFingerprintSkip` in `scripts/planning/fingerprintRisk.ts` (`expo`, `expo-*`, `react-native`, most `react-native-*`, native community modules).
-2. Confirm a test file imports the package. If none exists, add a tracer test that imports the real module, then bump.
-3. Change the root `catalog` pin when the package is shared; keep workspace `"catalog:"`. Run `bun install`.
-4. Re-run that exercise test. Recompute iOS and Android fingerprints for `example-frontend` and `demo`. Revert if a hash moved.
-5. Open one PR whose body names the exercise test command and the four unchanged hashes.
+1. Find the open PR whose body contains `<!-- terreno-update-dependencies -->`. Checkout `chore/update-dependencies` and rebase onto `origin/master`. If none exists, that branch is created on this run.
+2. Inventory with `bun outdated`. Retry **Failed** rows from the PR body first. Skip `isFingerprintSkip` in `scripts/planning/fingerprintRisk.ts`.
+3. For each candidate: confirm a test imports the package (add a tracer if needed), bump the catalog pin or single-use version, `bun install`, re-run that test, recompute fingerprints. Revert only that bump on failure.
+4. Commit each success on the same branch. Push. Update the **same** PR body: Last run, Landed, Failed, Skipped, Deferred to release. Do not `gh pr create` when that PR is already open.
+5. Read the ledger tomorrow; do not start a new PR.
 
 ## Guardrails
 
 | Rule | Action |
 | --- | --- |
-| Fingerprint would change | Revert. Defer to a release. Never add `fingerprint-acknowledged` to land it. |
-| No test imports the package | Write the tracer test first. Do not bump on `test:ci` alone. |
-| Published < 7 days ago (non-CVE) | Wait. Compromised npm packages are often yanked quickly. |
-| Major version | Allowed only if fingerprints match and the exercise test passes. Do not auto-merge. |
-| Dependabot grouped catalog PR | Do not merge if it includes a skip-list package. Redo with this how-to. |
+| Open rolling PR already exists | Push to `chore/update-dependencies` and edit that body |
+| Fingerprint would change | Revert that bump. Defer to a release. Never add `fingerprint-acknowledged` |
+| No test imports the package | Write the tracer test first. Do not bump on `test:ci` alone |
+| Published < 7 days ago (non-CVE) | Skip; log under Skipped |
+| Major version | May land on the rolling PR if tests + fingerprints pass; no auto-merge |
+| Dependabot extra PRs | Do not merge skip-list packages; fold JS bumps into the rolling PR |
 
 ## Fingerprints
 
-`example-frontend` and `demo` use `fingerprint.config.js`. Hash with `eas fingerprint:generate` when `EXPO_TOKEN` is set, otherwise `bunx @expo/fingerprint <app-dir>`. Compare against a baseline taken **before** `bun install`.
+`example-frontend` and `demo` use `fingerprint.config.js`. Hash with `eas fingerprint:generate` when `EXPO_TOKEN` is set, otherwise `bunx @expo/fingerprint <app-dir>`. Take a baseline after rebase, before new installs. After each successful bump, the new hashes become the baseline for the next package.
 
 `eas.json` Bun pins feed the fingerprint. Do not bump them here.
 
 ## Dependabot still runs
 
-GitHub Dependabot remains configured in `.github/dependabot.yml` (weekly Actions, monthly bun groups, 7-day cooldown). Root catalog ignores native/Expo packages so auto-merge cannot land a fingerprint change. Treat Dependabot as a signal; land updates through this guide.
+GitHub Dependabot remains in `.github/dependabot.yml`. Root catalog ignores native/Expo packages. Treat Dependabot as a signal; land updates on the rolling PR from this guide.

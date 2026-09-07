@@ -3,6 +3,10 @@ import {resolve} from "node:path";
 import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {isFingerprintSkip} from "./fingerprintRisk.ts";
+import {
+  UPDATE_DEPENDENCIES_BRANCH,
+  UPDATE_DEPENDENCIES_PR_MARKER,
+} from "./updateDependenciesPr.ts";
 
 const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
 
@@ -66,5 +70,26 @@ describe("update-dependencies skill", (): void => {
     assert.match(skill, /fingerprint/i);
     assert.match(skill, /release/i);
     assert.include(skill, "docs/explanation/dependency-management.md");
+  });
+
+  it("reuses one daily rolling PR and keeps a worked/failed ledger", (): void => {
+    const skill = readFileSync(
+      resolve(ROOT_DIRECTORY, ".rulesync/skills/update-dependencies/SKILL.md"),
+      "utf8"
+    );
+    const rolling = readFileSync(
+      resolve(ROOT_DIRECTORY, ".rulesync/skills/update-dependencies/references/rolling-pr.md"),
+      "utf8"
+    );
+
+    assert.include(skill, UPDATE_DEPENDENCIES_BRANCH);
+    assert.include(skill, UPDATE_DEPENDENCIES_PR_MARKER);
+    assert.include(skill, "Ledger");
+    assert.match(skill, /daily/i);
+    assert.notInclude(skill, "One bump per PR");
+    assert.include(rolling, UPDATE_DEPENDENCIES_BRANCH);
+    assert.include(rolling, UPDATE_DEPENDENCIES_PR_MARKER);
+    assert.match(rolling, /Failed/);
+    assert.match(rolling, /Landed/);
   });
 });

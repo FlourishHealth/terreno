@@ -9,7 +9,7 @@ fingerprints frozen until a release.
 | Layer | Job |
 | --- | --- |
 | **Bun catalog** | One version for every dependency shared by two or more workspace packages (`catalog:` in manifests) |
-| **`update-dependencies` skill** | Inventory, 7-day cooldown, exercise test, fingerprint freeze, one PR per package |
+| **`update-dependencies` skill** | Daily rolling PR on `chore/update-dependencies`: cooldown, exercise test, fingerprint freeze, ledger of landed/failed |
 | **Dependabot** | Backup signal for bun + GitHub Actions. Native/Expo catalog names are ignored so auto-merge cannot change the fingerprint |
 | **Release + `upgrading-expo`** | Expo SDK, React Native, and other native-module bumps |
 
@@ -78,9 +78,15 @@ JavaScript packages, GitHub Actions, and a few Expo JS-only names may update. Me
 
 Frontend ignores catalog-managed names so those PRs do not duplicate the root catalog. Root ignores fingerprint-skip names. `dependabot-auto-merge.yml` still squash-merges Dependabot PRs when required checks pass. Do not merge a Dependabot PR that includes a skip-list package; redo it with [Update dependencies](../how-to/update-dependencies.md).
 
+## Daily rolling PR
+
+The skill runs every day against **one** open PR (`<!-- terreno-update-dependencies -->`, branch `chore/update-dependencies`). A later run rebases that branch, retries **Failed** rows, appends **Landed** / **Failed** / **Skipped**, and pushes to the same head. It does not open a second PR while that one is open. After merge, the next day may open the next rolling PR.
+
+Each package is still proven alone (exercise test + fingerprint) before it stays on the branch. Failures are reverted and kept in the PR body so the next day does not rediscover them from scratch.
+
 ## Best practices
 
-- One package (or one catalog pin) per PR.
+- One rolling PR; many proven commits on that branch.
 - Majors: exercise test + fingerprint freeze; no auto-merge.
 - Security: skip cooldown; do not skip tests or fingerprints.
 - New feature dependencies belong in that feature's slice, not this maintenance path.
