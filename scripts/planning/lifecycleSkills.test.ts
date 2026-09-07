@@ -144,11 +144,12 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
-  it("rejects Taste that skips the fresh lint/test subagent or product-CI wait loop", (): void => {
+  it("rejects Taste that skips the fresh lint/typecheck/test subagent or product-CI wait loop", (): void => {
     const content = readStage("terreno-5-taste")
       .replaceAll("fresh subagent", "same conversation")
       .replaceAll("no parent conversation", "full parent context")
       .replaceAll("bun lint", "repo lint")
+      .replaceAll("typecheck script", "build script")
       .replaceAll("locally affected tests", "the full suite")
       .replaceAll("latest `master`", "latest origin")
       .replaceAll("Before any push, in this order", "Before any push, optionally")
@@ -167,12 +168,15 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("fresh subagent")));
     assert.isTrue(errors.some((error) => error.includes("no parent conversation")));
     assert.isTrue(errors.some((error) => error.includes("bun lint")));
+    assert.isTrue(errors.some((error) => error.includes("typecheck")));
     assert.isTrue(errors.some((error) => error.includes("locally affected tests")));
     assert.isTrue(errors.some((error) => error.includes("gh pr checks --watch")));
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("watch loop")));
     assert.isTrue(errors.some((error) => error.includes("latest master")));
-    assert.isTrue(errors.some((error) => error.includes("pull, then lint, then watch")));
+    assert.isTrue(
+      errors.some((error) => error.includes("pull, then lint and typecheck, then watch"))
+    );
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {

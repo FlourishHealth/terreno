@@ -89,7 +89,8 @@ per-task results in execution state, and continues to the next frontier task.
 until Bugbot, CodeQL, and similar review bots have reported, then waits in a loop for
 product CI with `gh` or `circleci`, then acts. Before any push it always pulls latest
 `master`, then spawns a fresh subagent with no parent conversation to run `bun lint` in
-affected packages and the locally affected tests, then pushes and watches CI.
+affected packages, run each package's typecheck, and run the locally affected tests,
+then pushes and watches CI.
 
 ## UI scenario
 
@@ -109,8 +110,8 @@ affected packages and the locally affected tests, then pushes and watches CI.
 2. Taste waits if those bots are still running, then runs the product-CI wait loop
    (`gh pr checks --watch` / `gh run watch` / `circleci run watch`) until jobs on SHA A
    are terminal. It sees a branch-caused CI failure, fixes it, always pulls latest
-   `master`, proves `bun lint` and affected tests in a fresh subagent with no parent
-   conversation, pushes SHA B, then watches review bots and product CI on B, and acts
+   `master`, proves lint, typecheck, and affected tests in a fresh subagent with no
+   parent conversation, pushes SHA B, then watches review bots and product CI on B, and acts
    once on those results. A further push emits `PENDING` and exits.
 3. The outer loop uses the same native watch hook only when Taste timed out or pushed a
    second fix (falling back to the requested timer), then invokes fresh Taste. It sees

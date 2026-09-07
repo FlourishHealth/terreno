@@ -8,5 +8,6 @@ verification skills alongside the lifecycle. It also ships `pre-commit` and
 `ui-verifier` agents. The redundant `commit` and `create-pr` skills are removed in
 favor of Brew. Conflicting or unused Expo skills (`native-data-fetching`,
 `building-native-ui`, `expo-ui`, App Clip, brownfield, Observe, Tailwind setup,
-EAS update insights, and Expo module authoring) are no longer distributed. Plugin
+EAS update insights, and Expo module authoring) are no longer distributed. Taste's
+pre-push hook runs lint, typecheck, and affected tests for every supported host. Plugin
 `terreno-planning` is `2.8.0`.
