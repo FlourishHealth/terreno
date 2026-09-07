@@ -12,8 +12,8 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ master ]
+  # GitHub default code scanning covers every master push. Keep this custom
+  # workflow as an independent weekly scan without duplicating push analysis.
   schedule:
     - cron: '29 10 * * 4'
 
