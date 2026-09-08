@@ -19,7 +19,7 @@
     "expo-splash-screen": "catalog:",
     "expo-status-bar": "catalog:",
     "express": "catalog:",
-    "http-proxy-middleware": "^3.0.3",
+    "http-proxy-middleware": "^4.2.0",
     "luxon": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
