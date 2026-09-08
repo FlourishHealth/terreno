@@ -60,6 +60,7 @@ Claude Code stages, app skills, and agents come from the generated copy at
 | Terreno apps | backend, UI, admin interfaces, data, schema, SDK, prompts, upgrades, deployment |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
 | GitHub | issues, review, UI verification, release, dependency updates |
+| Expo and native | `track-upstream-expo`, `upgrading-expo`, deployment / EAS skills |
 | Plugin agents | `pre-commit`, `ui-verifier` |
 
 `skills.sh.json` at the repo root groups those names on [skills.sh](https://skills.sh).
@@ -87,6 +88,14 @@ bun run check:lifecycle-skills
 ```
 
 Do not hand-edit `skills/`.
+
+## Keep native hooks in sync
+
+Repository-level hooks are canonical in `.rulesync/hooks.json`; shared commands live in
+`.rulesync/hooks/`. Run `bun run rules` after either changes. Rulesync generates the
+native stop-hook configuration for Cursor, Claude Code, GitHub Copilot, and Devin. The
+committed quality hook runs both `bun run lint` and `bun run compile` before
+an agent finishes.
 
 ## Write human docs with the skills
 

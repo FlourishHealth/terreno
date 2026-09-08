@@ -333,10 +333,12 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before lint and push`);
+      errors.push(`${prefix}: Taste must pull latest master before lint, typecheck, and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(`${prefix}: Taste must order before-push as pull, then lint, then watch`);
+      errors.push(
+        `${prefix}: Taste must order before-push as pull, then lint and typecheck, then watch`
+      );
     }
     if (!content.includes("fresh subagent")) {
       errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
@@ -346,6 +348,9 @@ export const validateStageContent = ({
     }
     if (!content.includes("bun lint")) {
       errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    }
+    if (!content.includes("typecheck script")) {
+      errors.push(`${prefix}: Taste must run a typecheck in each affected package`);
     }
     if (!content.includes("locally affected tests")) {
       errors.push(`${prefix}: Taste must run locally affected tests before push`);

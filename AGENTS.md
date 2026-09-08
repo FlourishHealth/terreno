@@ -43,8 +43,8 @@ The reusable planning plugin uses five bounded transitions:
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
-then spawns a no-context subagent to run `bun lint` in affected packages and locally
-affected tests, then pushes and watches CI. Brew also waits until
+then spawns a no-context subagent to run lint, typecheck, and locally affected tests in
+affected packages, then pushes and watches CI. Brew also waits until
 review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
 Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
