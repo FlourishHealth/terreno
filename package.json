@@ -220,6 +220,7 @@
     "demo:lint": "bun run --filter 'terreno-demo' lint",
     "demo:start": "bun run --filter 'terreno-demo' start",
     "demo:web": "bun run --filter 'terreno-demo' web",
+    "expo:track-probe": "bun scripts/track-upstream-expo/probe.ts",
     "feature-flags:compile": "bun run --filter '@terreno/feature-flags' compile",
     "feature-flags:lint": "bun run --filter '@terreno/feature-flags' lint",
     "feature-flags:test": "bun run --filter '@terreno/feature-flags' test",
