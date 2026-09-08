@@ -20,6 +20,12 @@ types, dependencies, binaries, and duplicate exports. dependency-cruiser rejects
 cycles and production imports from test or isolated modules while reporting orphan
 modules.
 
+Knip ignores `**/dist/**` so analysis reports the same findings whether or not the
+workspace has been compiled. CI analyzes a fresh checkout and never builds, while local
+development runs `bun run bootstrap`; without that exclusion, each package's compiled
+`dist/*.d.ts` entry point contributes unlisted-dependency findings that CI can never
+reproduce.
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The
