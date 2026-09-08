@@ -20,6 +20,10 @@ types, dependencies, binaries, and duplicate exports. dependency-cruiser rejects
 cycles and production imports from test or isolated modules while reporting orphan
 modules.
 
+Knip analyzes source rather than generated package output. `knip.jsonc` excludes
+`dist/` directories so local compile artifacts cannot create machine-dependent
+findings.
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The
