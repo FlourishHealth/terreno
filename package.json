@@ -124,7 +124,7 @@
     "dependency-cruiser": "^18.2.0",
     "knip": "^6.34.0",
     "luxon": "catalog:",
-    "rulesync": "^9.6.3",
+    "rulesync": "^9.8.0",
     "simple-git-hooks": "^2.14.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",

@@ -13,7 +13,7 @@
         "dependency-cruiser": "^18.2.0",
         "knip": "^6.34.0",
         "luxon": "catalog:",
-        "rulesync": "^9.6.3",
+        "rulesync": "^9.8.0",
         "simple-git-hooks": "^2.14.0",
         "ts-node": "^10.9.2",
         "tsx": "^4.23.13",
@@ -4976,7 +4976,7 @@
 
     "rtlcss": ["rtlcss@4.3.0", "", { "dependencies": { "escalade": "^3.1.1", "picocolors": "^1.0.0", "postcss": "^8.4.21", "strip-json-comments": "^3.1.1" }, "bin": { "rtlcss": "bin/rtlcss.js" } }, "sha512-FI+pHEn7Wc4NqKXMXFM+VAYKEj/mRIcW4h24YVwVtyjI+EqGrLc2Hx/Ny0lrZ21cBWU2goLy36eqMcNj3AQJig=="],
 
-    "rulesync": ["rulesync@9.6.3", "", { "dependencies": { "@modelcontextprotocol/sdk": "1.29.0", "@octokit/request-error": "7.1.0", "@octokit/rest": "22.0.1", "@toon-format/toon": "2.3.0", "@valibot/to-json-schema": "1.7.1", "commander": "15.0.0", "effect": "3.21.4", "es-toolkit": "1.49.0", "fastmcp": "4.4.0", "globby": "16.2.1", "gray-matter": "4.0.3", "js-yaml": "5.2.1", "jsonc-parser": "3.3.1", "smol-toml": "1.7.0", "sury": "10.0.4", "zod": "4.4.3" }, "bin": { "rulesync": "dist/cli/index.js" } }, "sha512-KVSFksiQ5gR05veZLCpccVPI//4RbBGmef9DQfS9lZV+Uq3knnvZDQ4RRmi26gBkMXwuEpiQWfJipVXXtk99ww=="],
+    "rulesync": ["rulesync@9.8.0", "", { "dependencies": { "@modelcontextprotocol/sdk": "1.29.0", "@octokit/request-error": "7.1.0", "@octokit/rest": "22.0.1", "@toon-format/toon": "2.3.0", "@valibot/to-json-schema": "1.7.1", "commander": "15.0.0", "effect": "3.21.4", "es-toolkit": "1.49.0", "fastmcp": "4.4.0", "globby": "16.2.1", "gray-matter": "4.0.3", "js-yaml": "5.2.1", "jsonc-parser": "3.3.1", "smol-toml": "1.7.0", "sury": "10.0.4", "zod": "4.4.3" }, "bin": { "rulesync": "dist/cli/index.js" } }, "sha512-olhQcj5l0C0CUHyC2Yooa6TCKkd8FH8gppi0iw++YgYf8/vtKSuafDFwIicl7kqWy/icAq62KTSHii8n/c5fVA=="],
 
     "run-applescript": ["run-applescript@7.1.0", "", {}, "sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q=="],
 
