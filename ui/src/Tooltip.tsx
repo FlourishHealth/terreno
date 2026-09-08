@@ -33,6 +33,12 @@ interface Measurement {
   idealPosition?: TooltipPosition;
 }
 
+interface TooltipPlacement {
+  finalPosition: TooltipPosition;
+  left: number;
+  top: number;
+}
+
 interface ChildrenProps {
   onClick?: () => void;
   onHoverIn?: () => void;
@@ -44,7 +50,7 @@ export const getTooltipPosition = ({
   tooltip,
   measured,
   idealPosition,
-}: Measurement): {} | {left: number; top: number; finalPosition: TooltipPosition} => {
+}: Measurement): Partial<TooltipPlacement> => {
   if (!measured) {
     console.debug("No measurements for child yet, cannot show tooltip yet.");
     return {};
@@ -268,7 +274,7 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
           measured: true,
           tooltip: {...layout},
         });
-        if ("finalPosition" in position) {
+        if (position.finalPosition) {
           setFinalPosition(position.finalPosition);
         }
       });
@@ -337,6 +343,11 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
     return children;
   }
 
+  const placement = measurement.measured
+    ? getTooltipPosition({...(measurement as Measurement), idealPosition})
+    : {};
+  const isPositioned = placement.left !== undefined && placement.top !== undefined;
+
   return (
     <View>
       {visible && (
@@ -344,9 +355,13 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
           <View
             onLayout={handleOnLayout}
             style={{
+              // The trigger is measured on the first layout pass, so keep the tooltip
+              // off screen until then instead of flashing it in the top left corner.
+              left: isPositioned ? placement.left : -9999,
+              opacity: isPositioned ? 1 : 0,
               position: "absolute",
+              top: isPositioned ? placement.top : -9999,
               zIndex: 999,
-              ...getTooltipPosition({...(measurement as Measurement), idealPosition}),
             }}
           >
             {includeArrow && isWeb && (
@@ -361,7 +376,6 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
                 display: "flex",
                 flexShrink: 1,
                 maxWidth: 320,
-                opacity: measurement.measured ? 1 : 0,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
               }}
