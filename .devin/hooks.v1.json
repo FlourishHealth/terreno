@@ -4,7 +4,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": ".rulesync/hooks/quality-check.sh",
+          "command": ".rulesync/hooks/quality-check.sh devin",
           "timeout": 300
         }
       ]

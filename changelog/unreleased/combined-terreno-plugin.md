@@ -11,4 +11,6 @@ favor of Brew. Conflicting or unused Expo skills (`native-data-fetching`,
 EAS update insights, and Expo module authoring) are no longer distributed. Taste's
 pre-push gate runs lint, typecheck, and affected tests for every supported host.
 Rulesync now also generates native stop hooks for Cursor, Claude Code, GitHub Copilot,
-and Devin that run repository lint and typecheck. Plugin `terreno-planning` is `2.8.0`.
+and Devin that run repository lint and typecheck, emit each host's blocking JSON
+protocol, and avoid repeated checks on structured Stop-hook retries. Plugin
+`terreno-planning` is `2.8.0`.

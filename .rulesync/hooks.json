@@ -1,15 +1,54 @@
 {
   "version": 1,
-  "hooks": {
-    "stop": [
-      {
-        "command": ".rulesync/hooks/quality-check.sh",
-        "description": "Run repository lint and typecheck before the agent stops",
-        "failClosed": true,
-        "loop_limit": 1,
-        "name": "lint-and-typecheck",
-        "timeout": 300
-      }
-    ]
+  "hooks": {},
+  "cursor": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh cursor",
+          "description": "Run repository lint and typecheck before the agent stops",
+          "failClosed": true,
+          "loop_limit": 1,
+          "name": "lint-and-typecheck",
+          "timeout": 300
+        }
+      ]
+    }
+  },
+  "claudecode": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh claudecode",
+          "description": "Run repository lint and typecheck before the agent stops",
+          "name": "lint-and-typecheck",
+          "timeout": 300
+        }
+      ]
+    }
+  },
+  "copilot": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh copilot",
+          "description": "Run repository lint and typecheck before the agent stops",
+          "name": "lint-and-typecheck",
+          "timeout": 300
+        }
+      ]
+    }
+  },
+  "devin": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh devin",
+          "description": "Run repository lint and typecheck before the agent stops",
+          "name": "lint-and-typecheck",
+          "timeout": 300
+        }
+      ]
+    }
   }
 }

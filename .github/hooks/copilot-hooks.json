@@ -4,7 +4,7 @@
     "agentStop": [
       {
         "type": "command",
-        "bash": ".rulesync/hooks/quality-check.sh",
+        "bash": ".rulesync/hooks/quality-check.sh copilot",
         "timeoutSec": 300
       }
     ]

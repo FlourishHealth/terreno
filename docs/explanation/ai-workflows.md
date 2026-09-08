@@ -50,7 +50,10 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 Rulesync generates native stop hooks for Cursor, Claude Code, GitHub Copilot, and Devin
 from `.rulesync/hooks.json`. Every generated hook runs the shared
 `.rulesync/hooks/quality-check.sh` command, which executes both `bun run lint` and
-`bun run compile` and fails when either check fails.
+`bun run compile`. It keeps stdout machine-readable: Cursor receives a
+`followup_message`, while Claude Code, Copilot, and Devin receive a blocking
+`decision` with a reason. Check output stays on stderr, and retry-triggered Stop hooks
+do not run the commands again.
 
 #### Daily JSDoc Improver
 **Trigger:** Daily schedule + push to master  

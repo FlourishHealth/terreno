@@ -3,7 +3,7 @@
   "hooks": {
     "stop": [
       {
-        "command": ".rulesync/hooks/quality-check.sh",
+        "command": ".rulesync/hooks/quality-check.sh cursor",
         "timeout": 300,
         "loop_limit": 1,
         "failClosed": true
