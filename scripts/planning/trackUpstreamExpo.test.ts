@@ -14,6 +14,11 @@ import {
   stripVersionRange,
   type TrackedState,
 } from "../track-upstream-expo/compare.ts";
+import {
+  ORIGIN_RELEASE_BRANCH_FETCH_REFSPEC,
+  originFetchCommand,
+  originTrackedShowSpec,
+} from "../track-upstream-expo/remoteTracked.ts";
 
 const trackedOnMaster = (): TrackedState => ({
   expoVersion: "57.0.14",
@@ -153,6 +158,23 @@ describe("track-upstream-expo compare", (): void => {
     assert.equal(continued.action, "continue-branch");
     assert.equal(continued.expoVersion, "58.0.0-preview.2");
     assert.equal(maxExpoVersion(["58.0.0-preview.1", "57.0.14"]), "58.0.0-preview.1");
+  });
+
+  it("fetches remote release-* refs before git show", (): void => {
+    assert.deepEqual(originFetchCommand(), [
+      "git",
+      "fetch",
+      "--no-tags",
+      "origin",
+      ORIGIN_RELEASE_BRANCH_FETCH_REFSPEC,
+    ]);
+    assert.equal(
+      originTrackedShowSpec("release-58.0.0"),
+      "origin/release-58.0.0:scripts/track-upstream-expo/tracked.json"
+    );
+    assert.throws((): void => {
+      originTrackedShowSpec("origin/release-58.0.0");
+    }, /Invalid release branch/);
   });
 
   it("keeps the committed loop log headings", (): void => {

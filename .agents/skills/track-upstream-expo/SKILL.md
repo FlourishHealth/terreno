@@ -53,8 +53,10 @@ bun run expo:track-probe
 Completion: stopped on exit `1`, or JSON has `action`, `releaseBranch`,
 `expoVersion`, `loopStatus`.
 
-Tracker: `scripts/track-upstream-expo/tracked.json`. The probe also reads that
-file from `origin/<releaseBranch>`.
+Tracker: `scripts/track-upstream-expo/tracked.json`. The probe fetches
+`origin` `release-*` refs, then reads that file from
+`origin/<releaseBranch>` so a master-only checkout still sees an in-flight
+loop.
 
 ## Step 2: Branch
 

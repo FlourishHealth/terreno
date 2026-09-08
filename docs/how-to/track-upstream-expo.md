@@ -22,13 +22,14 @@ bun run expo:track-probe
 | `2` | Probe broke (network/git). Fix that; do not skip. |
 
 The probe ignores patches of the current catalog major. It watches
-`expo@next` and `expo@latest` for a **higher major**, then checks
-`loopStatus` on `origin/<releaseBranch>`.
+`expo@next` and `expo@latest` for a **higher major**, fetches `origin`
+`release-*` refs, then reads `loopStatus` from
+`origin/<releaseBranch>:scripts/track-upstream-expo/tracked.json`.
 
-State:
+State files (in the repo, not linked from this page):
 
-- [`scripts/track-upstream-expo/tracked.json`](../../scripts/track-upstream-expo/tracked.json) — `expoVersion`, `loopStatus`
-- [`scripts/track-upstream-expo/loop-log.md`](../../scripts/track-upstream-expo/loop-log.md) — tries, failures, release-notes draft
+- `scripts/track-upstream-expo/tracked.json` — `expoVersion`, `loopStatus`
+- `scripts/track-upstream-expo/loop-log.md` — tries, failures, release-notes draft
 
 ## 2. Branch name
 

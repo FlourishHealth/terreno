@@ -11,6 +11,7 @@ import {
   sdkLineFromExpoVersion,
   stripVersionRange,
 } from "./compare.ts";
+import {originFetchCommand, originTrackedShowSpec} from "./remoteTracked.ts";
 
 const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
 const TRACKED_PATH = resolve(import.meta.dir, "tracked.json");
@@ -81,15 +82,30 @@ const listRemoteReleaseBranches = (): string[] => {
     .filter((name): name is string => Boolean(name));
 };
 
+const fetchOriginReleaseBranches = (): void => {
+  const result = Bun.spawnSync(originFetchCommand(), {
+    cwd: ROOT_DIRECTORY,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.toString();
+    throw new Error(`git fetch release-* failed: ${stderr || result.exitCode}`);
+  }
+};
+
 const readBranchTracked = (releaseBranch: string): TrackedState | null => {
-  const result = Bun.spawnSync(
-    ["git", "show", `origin/${releaseBranch}:scripts/track-upstream-expo/tracked.json`],
-    {
-      cwd: ROOT_DIRECTORY,
-      stderr: "pipe",
-      stdout: "pipe",
-    }
-  );
+  let showSpec: string;
+  try {
+    showSpec = originTrackedShowSpec(releaseBranch);
+  } catch {
+    return null;
+  }
+  const result = Bun.spawnSync(["git", "show", showSpec], {
+    cwd: ROOT_DIRECTORY,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
   if (result.exitCode !== 0) {
     return null;
   }
@@ -144,6 +160,9 @@ export const runProbe = async (): Promise<{exitCode: number; result: ProbeResult
   const masterCatalogExpo = readMasterCatalogExpo();
   const npmTags = await fetchNpmTags();
   const existingReleaseBranches = listRemoteReleaseBranches();
+  if (existingReleaseBranches.length > 0) {
+    fetchOriginReleaseBranches();
+  }
   const candidate = pickUpstreamCandidate({masterCatalogExpo, npmTags});
   const candidateBranch = candidate
     ? releaseBranchFromSdkLine(sdkLineFromExpoVersion(candidate.version))
