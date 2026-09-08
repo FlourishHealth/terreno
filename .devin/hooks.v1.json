@@ -1,0 +1,25 @@
+{
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bun run analyze:full",
+          "timeout": 120
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bun run analyze:fast",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
+}

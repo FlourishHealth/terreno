@@ -1,0 +1,27 @@
+{
+  "rulesync": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run analyze:full",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run analyze:fast",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

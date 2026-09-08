@@ -121,8 +121,11 @@
     "@types/chai": "^5.2.3",
     "bun-types": "^1.4.0",
     "chai": "catalog:",
+    "dependency-cruiser": "^18.2.0",
+    "knip": "^6.34.0",
     "luxon": "catalog:",
     "rulesync": "^9.6.3",
+    "simple-git-hooks": "^2.14.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.12",
     "zod": "catalog:"
@@ -188,6 +191,10 @@
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
     "bootstrap": "bun install && bun run compile",
     "bootstrap:update": "bun install && bun run compile",
+    "analyze:baseline": "bun run scripts/static-analysis/full.ts --write-baseline",
+    "analyze:fast": "bun run scripts/static-analysis/fast.ts",
+    "analyze:full": "bun run scripts/static-analysis/full.ts",
+    "analyze:staged": "bun run scripts/static-analysis/fast.ts --staged",
     "check": "bun run check:no-barrel-imports && bun run check:explicit-any:baseline && bun run check:lifecycle-skills && bun run check:source-rules",
     "check:changelog": "bun run scripts/changelog/check.ts",
     "check:circleci-parity": "bun run scripts/check-circleci-parity/check.ts",
@@ -239,6 +246,7 @@
     "mcp:dev": "bun run --filter '@terreno/mcp' dev",
     "mcp:lint": "bun run --filter '@terreno/mcp' lint",
     "mcp:start": "bun run --filter '@terreno/mcp' start",
+    "prepare": "simple-git-hooks",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
@@ -272,6 +280,9 @@
     "website:start": "bun run --filter '@terreno/website' start"
   },
   "version": "1.0.0",
+  "simple-git-hooks": {
+    "pre-commit": "bun run analyze:staged"
+  },
   "workspaces": [
     "admin-backend",
     "admin-frontend",

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignoreIssues": {
+    "**/generated/**": ["exports", "types"],
+    "**/openApiSdk.ts": ["exports", "types"],
+    "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
+  },
+  "workspaces": {
+    "mcp-server": {
+      // Knip 6.34 expects Bun's `test.preload` to be an array, while this package
+      // uses Bun's valid scalar form. Tests remain in the project graph.
+      "bun": false
+    }
+  }
+}

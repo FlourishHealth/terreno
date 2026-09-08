@@ -28,10 +28,10 @@ Analyzes code diffs after each merge to identify:
 **Purpose:** Keeps AI assistant rules synchronized with codebase changes
 
 Maintains the single source of truth in `.rulesync/rules/` and ensures:
-- `.cursorrules` (Cursor IDE)
-- `.windsurfrules` (Windsurf IDE)
-- `AGENTS.md` (Claude Code, Copilot)
+- `.cursor/rules/`, skills, agents, and hooks (Cursor)
+- `CLAUDE.md`, `.claude/rules/`, skills, agents, and hooks (Claude Code)
 - `.github/copilot-instructions.md` (GitHub Copilot)
+- Native hooks for Codex CLI, Copilot CLI, Antigravity CLI, and Devin
 
 **Workflow:**
 1. Detects package changes, new APIs, or convention updates
@@ -42,6 +42,18 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 **Key insight:** Rule files are code — they must be kept in sync with implementation.
 
 ### Code Quality Workflows
+
+#### Agent Static Analysis
+**Trigger:** Agent file edit, agent stop, Git pre-commit, and pull request  
+**Purpose:** Prevents new unused code and dependency-graph regressions
+
+Biome checks changed files after edits and staged files before commits. Knip and
+dependency-cruiser analyze the full repository when an agent stops and in CircleCI.
+Rulesync translates the canonical `.rulesync/hooks.json` configuration for each supported
+agent host.
+
+Existing findings are ratcheted so the checks reject new debt without requiring unrelated
+cleanup. See [Static analysis](static-analysis.md).
 
 #### Daily JSDoc Improver
 **Trigger:** Daily schedule + push to master  

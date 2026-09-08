@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "bun run analyze:full",
+        "timeout": 120,
+        "type": "command"
+      }
+    ]
+  },
+  "antigravity-cli": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "write_file|replace",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "claudecode": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "Edit|Write",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "codexcli": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "apply_patch|Edit|Write",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "copilot": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "copilotcli": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "cursor": {
+    "hooks": {
+      "afterFileEdit": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "devin": {
+    "hooks": {
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "Edit|Write",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  }
+}

@@ -1,24 +1,4 @@
 {
-  "permissions": {
-    "allow": [
-      "Read",
-      "Write",
-      "Edit",
-      "Bash(git *)",
-      "Bash(npm *)",
-      "Bash(pytest *)",
-      "Bash(bun *)",
-      "Bash(bunx *)",
-      "Bash(npx *)",
-      "Bash(gh *)",
-      "Bash(wc *)",
-      "Bash(ls *)",
-      "Bash(cat *)",
-      "Bash(echo *)",
-      "Bash(grep *)",
-      "Fetch(*)"
-    ]
-  },
   "hooks": {
     "Stop": [
       {
@@ -33,7 +13,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "apply_patch|Edit|Write",
         "hooks": [
           {
             "type": "command",

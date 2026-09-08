@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "type": "command",
+        "command": "bun run analyze:full",
+        "timeout": 120
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "type": "command",
+        "command": "bun run analyze:fast",
+        "timeout": 30
+      }
+    ]
+  }
+}
