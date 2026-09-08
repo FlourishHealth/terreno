@@ -1,4 +1,4 @@
-import {existsSync, readFileSync, readdirSync} from "node:fs";
+import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
 export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
@@ -36,41 +36,22 @@ const PR_FORBIDDEN_HEADINGS = [
 const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     directory: "terreno-1-grow",
-    nextMarkers: [
-      "next: pick",
-      "next: grow",
-      "next: null",
-    ],
+    nextMarkers: ["next: pick", "next: grow", "next: null"],
     stage: "grow",
   },
   {
     directory: "terreno-2-pick",
-    nextMarkers: [
-      "next: roast",
-      "next: pick",
-      "next: brew",
-      "next: null",
-    ],
+    nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
     stage: "pick",
   },
   {
     directory: "terreno-3-roast",
-    nextMarkers: [
-      "next: brew",
-      "next: pick",
-      "next: null",
-    ],
+    nextMarkers: ["next: brew", "next: pick", "next: null"],
     stage: "roast",
   },
   {
     directory: "terreno-4-brew",
-    nextMarkers: [
-      "next: taste",
-      "next: pick",
-      "next: roast",
-      "next: brew",
-      "next: null",
-    ],
+    nextMarkers: ["next: taste", "next: pick", "next: roast", "next: brew", "next: null"],
     stage: "brew",
   },
   {
@@ -208,9 +189,7 @@ export const validateStageContent = ({
 
   for (const marker of PORTABILITY_MARKERS) {
     if (content.includes(marker)) {
-      errors.push(
-        `${prefix}: repository-specific marker belongs in a project skill: ${marker}`
-      );
+      errors.push(`${prefix}: repository-specific marker belongs in a project skill: ${marker}`);
     }
   }
 
@@ -315,7 +294,9 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must load the product-CI procedure`);
     }
     if (!content.includes("not only GitHub checks")) {
-      errors.push(`${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`);
+      errors.push(
+        `${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`
+      );
     }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Taste must wait in-process for running review bots`);
@@ -366,9 +347,7 @@ export const validateStageContent = ({
     }
     for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
-        errors.push(
-          `${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`
-        );
+        errors.push(`${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`);
       }
     }
   }
@@ -542,10 +521,7 @@ export const validateClaudePluginHost = ({
     version?: string;
   };
   const cursorManifest = JSON.parse(
-    readFileSync(
-      join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
-      "utf8"
-    )
+    readFileSync(join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"), "utf8")
   ) as {description?: string; version?: string};
   const claudeMarketplace = JSON.parse(
     readFileSync(join(rootDirectory, ".claude-plugin/marketplace.json"), "utf8")
@@ -624,14 +600,8 @@ export const validateClaudePluginHost = ({
     );
   }
 
-  const claudePick = readFileSync(
-    join(claudeDirectory, "skills/2-pick/SKILL.md"),
-    "utf8"
-  );
-  const claudeRoast = readFileSync(
-    join(claudeDirectory, "skills/3-roast/SKILL.md"),
-    "utf8"
-  );
+  const claudePick = readFileSync(join(claudeDirectory, "skills/2-pick/SKILL.md"), "utf8");
+  const claudeRoast = readFileSync(join(claudeDirectory, "skills/3-roast/SKILL.md"), "utf8");
   const claudePickRoastLoop = readFileSync(
     join(claudeDirectory, "references/pick-roast-loop.md"),
     "utf8"
@@ -757,9 +727,9 @@ export const validateLifecyclePlugin = ({
       errors.push(`removed skill still exists: ${directory}`);
     }
   }
-  const skillsLock = JSON.parse(
-    readFileSync(join(rootDirectory, "skills-lock.json"), "utf8")
-  ) as {skills?: Record<string, unknown>};
+  const skillsLock = JSON.parse(readFileSync(join(rootDirectory, "skills-lock.json"), "utf8")) as {
+    skills?: Record<string, unknown>;
+  };
   for (const directory of REMOVED_SKILL_DIRECTORIES) {
     if (directory in (skillsLock.skills ?? {})) {
       errors.push(`removed skill still exists in skills-lock.json: ${directory}`);
@@ -832,10 +802,7 @@ export const validateLifecyclePlugin = ({
   );
   errors.push(...validateDocumentationContract(documentationContract));
 
-  const productCi = readFileSync(
-    join(pluginDirectory, "references/product-ci.md"),
-    "utf8"
-  );
+  const productCi = readFileSync(join(pluginDirectory, "references/product-ci.md"), "utf8");
   errors.push(...validateProductCiContract(productCi));
 
   const asyncReviewBots = readFileSync(
@@ -912,10 +879,7 @@ export const validateLifecyclePlugin = ({
     }
   }
 
-  const migrationDocumentation = readFileSync(
-    join(rootDirectory, "plugins/README.md"),
-    "utf8"
-  );
+  const migrationDocumentation = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (!migrationDocumentation.includes(retiredIdentifier)) {
       errors.push(`migration documentation is missing retired identifier ${retiredIdentifier}`);
@@ -938,7 +902,10 @@ export const validateLifecyclePlugin = ({
   if (resultSchema.properties?.v?.const !== 2) {
     errors.push("stage-result schema v must be 2");
   }
-  if (JSON.stringify(resultSchema.required) !== JSON.stringify(["v", "stage", "status", "next", "action"])) {
+  if (
+    JSON.stringify(resultSchema.required) !==
+    JSON.stringify(["v", "stage", "status", "next", "action"])
+  ) {
     errors.push("stage-result schema must require only v, stage, status, next, action");
   }
   if (JSON.stringify(schemaStages) !== JSON.stringify(LIFECYCLE_STAGES)) {

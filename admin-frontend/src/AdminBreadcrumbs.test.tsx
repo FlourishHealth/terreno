@@ -1,6 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
 
 mock.module("expo-router", () => ({
   router: {push: () => {}},

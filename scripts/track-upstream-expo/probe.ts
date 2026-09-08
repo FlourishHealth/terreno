@@ -1,15 +1,15 @@
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {
-  type ProbeResult,
-  type TrackedState,
   decideProbe,
   isResumableLoop,
+  type ProbeResult,
   parseExpoVersion,
   pickUpstreamCandidate,
   releaseBranchFromSdkLine,
   sdkLineFromExpoVersion,
   stripVersionRange,
+  type TrackedState,
 } from "./compare.ts";
 import {originFetchCommand, originTrackedShowSpec} from "./remoteTracked.ts";
 

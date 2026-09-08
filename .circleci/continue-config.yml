@@ -838,6 +838,19 @@ jobs:
           name: Test source-rules scanner
           command: bun test scripts/check-source-rules/
 
+  static-analysis:
+    docker:
+      - image: cimg/node:22.14
+    resource_class: medium
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Test and run static-analysis ratchets
+          command: |
+            bun test scripts/static-analysis/
+            bun run analyze:full
+
   explicit-any:
     executor: node22
     steps:
@@ -1755,6 +1768,7 @@ workflows:
     jobs:
       - no-barrel-imports
       - source-rules
+      - static-analysis
       - explicit-any
       - lifecycle-skills
       - license-coverage

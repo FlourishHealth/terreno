@@ -1,9 +1,9 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminScriptList} from "./AdminScriptList";
 import type {AdminApi, AdminConfigResponse} from "./types";
 

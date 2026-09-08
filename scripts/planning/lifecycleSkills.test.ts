@@ -1,7 +1,7 @@
+import {describe, it} from "bun:test";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {assert} from "chai";
-import {describe, it} from "bun:test";
 import {
   validateAsyncReviewBotsContract,
   validateClaudePluginHost,
@@ -120,7 +120,9 @@ describe("lifecycle skill architecture", (): void => {
     });
 
     assert.isTrue(errors.some((error) => error.includes("async review-bot wait")));
-    assert.isTrue(errors.some((error) => error.includes("wait in-process for running review bots")));
+    assert.isTrue(
+      errors.some((error) => error.includes("wait in-process for running review bots"))
+    );
   });
 
   it("rejects Brew that skips product CI host discovery", (): void => {
@@ -337,10 +339,7 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects a missing non-pass transition marker", (): void => {
-    const content = readStage("terreno-1-grow").replace(
-      "next: grow",
-      "missing-grow-retry"
-    );
+    const content = readStage("terreno-1-grow").replace("next: grow", "missing-grow-retry");
     const errors = validateStageContent({
       content,
       definition: {

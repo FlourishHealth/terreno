@@ -8,6 +8,13 @@
         "loop_limit": 1,
         "failClosed": true
       }
+    ],
+    "afterFileEdit": [
+      {
+        "type": "command",
+        "command": "bun run analyze:fast",
+        "timeout": 30
+      }
     ]
   }
 }

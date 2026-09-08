@@ -28,10 +28,10 @@ Analyzes code diffs after each merge to identify:
 **Purpose:** Keeps AI assistant rules synchronized with codebase changes
 
 Maintains the single source of truth in `.rulesync/rules/` and ensures:
-- `.cursorrules` (Cursor IDE)
-- `.windsurfrules` (Windsurf IDE)
-- `AGENTS.md` (Claude Code, Copilot)
+- `.cursor/rules/`, skills, agents, and hooks (Cursor)
+- `CLAUDE.md`, `.claude/rules/`, skills, agents, and hooks (Claude Code)
 - `.github/copilot-instructions.md` (GitHub Copilot)
+- Native hooks for Codex CLI, Copilot CLI, Antigravity CLI, and Devin
 
 **Workflow:**
 1. Detects package changes, new APIs, or convention updates
@@ -43,17 +43,18 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 
 ### Code Quality Workflows
 
-#### Agent quality hooks
-**Trigger:** An agent reaches its stop event
-**Purpose:** Prevents an agent from finishing with lint or TypeScript errors
+#### Agent quality and static-analysis hooks
+**Trigger:** Agent file edit, agent stop, Git pre-commit, and pull request  
+**Purpose:** Prevents lint, typecheck, unused-code, and dependency-graph regressions
 
-Rulesync generates native stop hooks for Cursor, Claude Code, GitHub Copilot, and Devin
-from `.rulesync/hooks.json`. Every generated hook runs the shared
-`.rulesync/hooks/quality-check.sh` command, which executes both `bun run lint` and
-`bun run compile`. It keeps stdout machine-readable: Cursor receives a
-`followup_message`, while Claude Code, Copilot, and Devin receive a blocking
-`decision` with a reason. Check output stays on stderr, and retry-triggered Stop hooks
-do not run the commands again.
+Rulesync generates native hooks from `.rulesync/hooks.json`. Biome checks changed files
+after edits and staged files before commits. At agent stop,
+`.rulesync/hooks/quality-check.sh` runs lint, TypeScript compilation, Knip, and
+dependency-cruiser. It keeps stdout machine-readable for each host and prevents
+retry-triggered Stop hooks from rerunning the commands.
+
+Existing findings are ratcheted so the checks reject new debt without requiring unrelated
+cleanup. See [Static analysis](static-analysis.md).
 
 #### Daily JSDoc Improver
 **Trigger:** Daily schedule + push to master  

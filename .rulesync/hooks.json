@@ -1,16 +1,22 @@
 {
   "version": 1,
   "hooks": {},
-  "cursor": {
+  "antigravity-cli": {
     "hooks": {
       "stop": [
         {
-          "command": ".rulesync/hooks/quality-check.sh cursor",
-          "description": "Run repository lint and typecheck before the agent stops",
-          "failClosed": true,
-          "loop_limit": 1,
-          "name": "lint-and-typecheck",
+          "command": ".rulesync/hooks/quality-check.sh antigravity-cli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
           "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "write_file|replace",
+          "timeout": 30,
+          "type": "command"
         }
       ]
     }
@@ -20,9 +26,37 @@
       "stop": [
         {
           "command": ".rulesync/hooks/quality-check.sh claudecode",
-          "description": "Run repository lint and typecheck before the agent stops",
-          "name": "lint-and-typecheck",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
           "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "Edit|Write",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "codexcli": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh codexcli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "apply_patch|Edit|Write",
+          "timeout": 30,
+          "type": "command"
         }
       ]
     }
@@ -32,9 +66,56 @@
       "stop": [
         {
           "command": ".rulesync/hooks/quality-check.sh copilot",
-          "description": "Run repository lint and typecheck before the agent stops",
-          "name": "lint-and-typecheck",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
           "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "copilotcli": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh copilotcli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "cursor": {
+    "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh cursor",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "failClosed": true,
+          "loop_limit": 1,
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
+      "afterFileEdit": [
+        {
+          "command": "bun run analyze:fast",
+          "timeout": 30,
+          "type": "command"
         }
       ]
     }
@@ -44,9 +125,17 @@
       "stop": [
         {
           "command": ".rulesync/hooks/quality-check.sh devin",
-          "description": "Run repository lint and typecheck before the agent stops",
-          "name": "lint-and-typecheck",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
           "timeout": 300
+        }
+      ],
+      "postToolUse": [
+        {
+          "command": "bun run analyze:fast",
+          "matcher": "Edit|Write",
+          "timeout": 30,
+          "type": "command"
         }
       ]
     }

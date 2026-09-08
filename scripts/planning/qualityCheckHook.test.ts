@@ -1,6 +1,6 @@
+import {describe, it} from "bun:test";
 import {spawnSync} from "node:child_process";
 import {join} from "node:path";
-import {describe, it} from "bun:test";
 import {assert} from "chai";
 
 interface HookResult {
@@ -11,14 +11,24 @@ interface HookResult {
 
 const repositoryRoot = join(import.meta.dir, "../..");
 const qualityCheckScript = join(repositoryRoot, ".rulesync/hooks/quality-check.sh");
-const hookHosts = ["cursor", "claudecode", "copilot", "devin"] as const;
+const hookHosts = [
+  "antigravity-cli",
+  "claudecode",
+  "codexcli",
+  "copilot",
+  "copilotcli",
+  "cursor",
+  "devin",
+] as const;
 
 const runHook = ({
+  analysisStatus = 0,
   hookHost,
   hookInput = "{}",
   lintStatus,
   typecheckStatus,
 }: {
+  analysisStatus?: number;
   hookHost: (typeof hookHosts)[number];
   hookInput?: string;
   lintStatus: number;
@@ -34,6 +44,10 @@ bun() {
     echo "typecheck output" >&2
     return "$TYPECHECK_STATUS"
   fi
+  if [[ "$*" == "run analyze:full" ]]; then
+    echo "analysis output" >&2
+    return "$ANALYSIS_STATUS"
+  fi
   return 99
 }
 export -f bun
@@ -44,6 +58,7 @@ exec "$QUALITY_CHECK_SCRIPT" "$HOOK_HOST"
     encoding: "utf8",
     env: {
       ...process.env,
+      ANALYSIS_STATUS: String(analysisStatus),
       HOOK_HOST: hookHost,
       LINT_STATUS: String(lintStatus),
       QUALITY_CHECK_SCRIPT: qualityCheckScript,
@@ -68,29 +83,40 @@ describe("quality-check hook", (): void => {
       assert.deepEqual(JSON.parse(result.stdout), {});
       assert.include(result.stderr, "lint output");
       assert.include(result.stderr, "typecheck output");
+      assert.include(result.stderr, "analysis output");
     }
   });
 
   it("returns a Cursor follow-up when either check fails", (): void => {
-    const result = runHook({hookHost: "cursor", lintStatus: 7, typecheckStatus: 9});
+    const result = runHook({
+      analysisStatus: 11,
+      hookHost: "cursor",
+      lintStatus: 7,
+      typecheckStatus: 9,
+    });
 
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), {
       followup_message:
-        "Lint or typecheck failed (lint=7, typecheck=9). Fix the reported errors before stopping.",
+        "Quality checks failed (lint=7, typecheck=9, analysis=11). Fix the reported errors before stopping.",
     });
-    assert.include(result.stderr, "Quality checks failed: lint=7 typecheck=9");
+    assert.include(result.stderr, "Quality checks failed: lint=7 typecheck=9 analysis=11");
   });
 
-  it("returns a blocking decision for Claude Code, Copilot, and Devin", (): void => {
-    for (const hookHost of ["claudecode", "copilot", "devin"] as const) {
-      const result = runHook({hookHost, lintStatus: 7, typecheckStatus: 9});
+  it("returns a blocking decision for structured non-Cursor hosts", (): void => {
+    for (const hookHost of hookHosts.filter((host) => host !== "cursor")) {
+      const result = runHook({
+        analysisStatus: 11,
+        hookHost,
+        lintStatus: 7,
+        typecheckStatus: 9,
+      });
 
       assert.equal(result.status, 0, result.stderr);
       assert.deepEqual(JSON.parse(result.stdout), {
         decision: "block",
         reason:
-          "Lint or typecheck failed (lint=7, typecheck=9). Fix the reported errors before stopping.",
+          "Quality checks failed (lint=7, typecheck=9, analysis=11). Fix the reported errors before stopping.",
       });
     }
   });

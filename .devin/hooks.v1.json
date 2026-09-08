@@ -9,5 +9,17 @@
         }
       ]
     }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bun run analyze:fast",
+          "timeout": 30
+        }
+      ]
+    }
   ]
 }

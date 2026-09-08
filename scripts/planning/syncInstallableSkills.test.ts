@@ -1,8 +1,8 @@
+import {describe, it} from "bun:test";
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import {assert} from "chai";
-import {describe, it} from "bun:test";
 import {
   buildInstallableSkillsTree,
   rewritePluginLinksForInstallable,
@@ -75,15 +75,10 @@ describe("installable skills sync", (): void => {
         "Read [lifecycle](references/lifecycle-contract.md)\n"
       );
       assert.equal(
-        readFileSync(
-          join(destination, "terreno-1-grow/references/lifecycle-contract.md"),
-          "utf8"
-        ),
+        readFileSync(join(destination, "terreno-1-grow/references/lifecycle-contract.md"), "utf8"),
         "lifecycle\n"
       );
-      assert.isFalse(
-        existsSync(join(destination, "terreno-1-grow/references/product-ci.md"))
-      );
+      assert.isFalse(existsSync(join(destination, "terreno-1-grow/references/product-ci.md")));
     } finally {
       rmSync(fixtureRoot, {force: true, recursive: true});
     }
