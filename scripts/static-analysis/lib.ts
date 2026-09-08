@@ -81,9 +81,13 @@ export const groupFilesByBiomeDirectory = ({
       workspacePath.length > 0 &&
       (doesConfigExist(join(workspaceDirectory, "biome.json")) ||
         doesConfigExist(join(workspaceDirectory, "biome.jsonc")));
-    const cwd = hasWorkspaceConfig ? workspaceDirectory : repoRoot;
-    const relativeFile = hasWorkspaceConfig ? workspacePath.join("/") : file;
-    groups.set(cwd, [...(groups.get(cwd) ?? []), relativeFile]);
+    if (!hasWorkspaceConfig) {
+      continue;
+    }
+    groups.set(workspaceDirectory, [
+      ...(groups.get(workspaceDirectory) ?? []),
+      workspacePath.join("/"),
+    ]);
   }
 
   return [...groups.entries()]

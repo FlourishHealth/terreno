@@ -2,11 +2,7 @@
 import {existsSync} from "node:fs";
 import {join} from "node:path";
 
-import {
-  groupFilesByBiomeDirectory,
-  parseChangedFileOutput,
-  selectAnalyzableFiles,
-} from "./lib";
+import {groupFilesByBiomeDirectory, parseChangedFileOutput, selectAnalyzableFiles} from "./lib";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
 
@@ -37,14 +33,7 @@ const collectFiles = ({isStaged}: {isStaged: boolean}): string[] => {
 
 const runBiome = ({cwd, files}: {cwd: string; files: string[]}): number => {
   const result = Bun.spawnSync({
-    cmd: [
-      "bunx",
-      "biome",
-      "check",
-      "--reporter=concise",
-      "--no-errors-on-unmatched",
-      ...files,
-    ],
+    cmd: ["bunx", "biome", "check", "--reporter=concise", "--no-errors-on-unmatched", ...files],
     cwd,
     stderr: "inherit",
     stdout: "inherit",
@@ -57,12 +46,12 @@ const main = (): void => {
   const files = selectAnalyzableFiles(collectFiles({isStaged}), (file): boolean =>
     existsSync(join(REPO_ROOT, file))
   );
-  if (files.length === 0) {
+  const runs = groupFilesByBiomeDirectory({files, repoRoot: REPO_ROOT});
+  if (runs.length === 0) {
     console.info("Biome: no changed analyzable files.");
     return;
   }
 
-  const runs = groupFilesByBiomeDirectory({files, repoRoot: REPO_ROOT});
   for (const run of runs) {
     const exitCode = runBiome(run);
     if (exitCode !== 0) {
@@ -70,7 +59,8 @@ const main = (): void => {
     }
   }
 
-  console.info(`Biome: ${files.length} changed file(s) passed.`);
+  const checkedFileCount = runs.reduce((count, run) => count + run.files.length, 0);
+  console.info(`Biome: ${checkedFileCount} changed file(s) passed.`);
 };
 
 if (import.meta.main) {

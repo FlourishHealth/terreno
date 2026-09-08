@@ -5,9 +5,9 @@ import {
   compareKnipBaseline,
   fingerprintKnipReport,
   groupFilesByBiomeDirectory,
+  type KnipBaseline,
   parseChangedFileOutput,
   selectAnalyzableFiles,
-  type KnipBaseline,
 } from "./lib";
 
 describe("static-analysis helpers", (): void => {
@@ -29,14 +29,15 @@ describe("static-analysis helpers", (): void => {
 
   test("groups files under their nearest workspace Biome config", (): void => {
     const runs = groupFilesByBiomeDirectory({
-      doesConfigExist: (path): boolean => path === "/repo/api/biome.jsonc",
+      doesConfigExist: (path): boolean =>
+        path === "/repo/api/biome.jsonc" || path === "/repo/scripts/biome.jsonc",
       files: ["package.json", "api/src/a.ts", "scripts/check.ts"],
       repoRoot: "/repo",
     });
 
     assert.deepEqual(runs, [
-      {cwd: "/repo", files: ["package.json", "scripts/check.ts"]},
       {cwd: "/repo/api", files: ["src/a.ts"]},
+      {cwd: "/repo/scripts", files: ["check.ts"]},
     ]);
   });
 
