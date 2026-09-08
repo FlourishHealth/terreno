@@ -80,7 +80,9 @@ Frontend ignores catalog-managed names so those PRs do not duplicate the root ca
 
 ## Daily rolling PR
 
-The skill runs every day against **one** open PR (`<!-- terreno-update-dependencies -->`, branch `chore/update-dependencies`). A later run rebases that branch, retries **Failed** rows, appends **Landed** / **Failed** / **Skipped**, and pushes to the same head. It does not open a second PR while that one is open. After merge, the next day may open the next rolling PR.
+The skill runs every day against **one trusted** open PR: exact same-repository head `chore/update-dependencies`, base `master`, and `isCrossRepository: false`. The marker `<!-- terreno-update-dependencies -->` and title are display metadata, not trust signals. Forks that copy them are ignored.
+
+A later run merges current master into that branch without rewriting history, retries **Failed** rows, appends **Landed** / **Failed** / **Skipped**, and pushes to the same head. It does not open a second trusted PR while that one is open. After merge, the next day may open the next rolling PR.
 
 Each package is still proven alone (exercise test + fingerprint) before it stays on the branch. Failures are reverted and kept in the PR body so the next day does not rediscover them from scratch.
 

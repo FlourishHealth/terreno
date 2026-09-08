@@ -23,7 +23,7 @@ Native SDK upgrades: `upgrading-expo` and `release`, never this skill.
 
 1. **Fingerprint freeze.** Do not bump a package when `isFingerprintSkip(name)` is true. Do not edit `eas.json`, Expo config plugins, `app.json` native fields, or native project files. After every allowed bump, recompute fingerprints for `example-frontend` and `demo`; if either hash changes, revert **that bump** (keep earlier proven bumps) and log it as failed.
 2. **Exercise test.** Do not keep an update unless a test that imports the bumped package ran and passed **after** the bump. Workspace `test:ci` is not enough by itself. If no such test exists, write a tracer-bullet test first, then bump.
-3. **One rolling PR.** Branch `chore/update-dependencies`. If an open PR already has `<!-- terreno-update-dependencies -->` (or that head/title), push to it and edit its body. Do not `gh pr create` a second dependency PR.
+3. **One trusted rolling PR.** Reuse only a same-repository PR whose head is exactly `chore/update-dependencies`, base is `master`, and `isTrustedRollingPr` passes. Marker/title matches never establish trust. Ignore fork candidates; never checkout, copy, edit, close, or comment on them. Do not create a second trusted dependency PR.
 4. **Ledger.** Every run appends what landed, failed, skipped, and deferred. Prior failure rows stay until that package lands or a human drops them. Details: [`references/rolling-pr.md`](references/rolling-pr.md).
 5. **7-day cooldown** for non-security npm publishes. Security advisories skip the wait; they still need an exercise test and a fingerprint freeze.
 6. **Catalog once.** Shared versions change only in the root `package.json` `catalog`. Workspace manifests keep `"catalog:"`. See `.rulesync/rules/01-dependency-catalog.md`.
@@ -44,9 +44,9 @@ Native SDK upgrades: `upgrading-expo` and `release`, never this skill.
 
 ### 1. Attach the rolling PR
 
-Follow [`references/rolling-pr.md`](references/rolling-pr.md): find the open marked PR, rebase `chore/update-dependencies` onto `origin/master`, restore the ledger from the current PR body.
+Follow [`references/rolling-pr.md`](references/rolling-pr.md): find the trusted same-repository PR, merge `origin/master` into `chore/update-dependencies` without rewriting history, and restore the ledger from the trusted PR body.
 
-Completion: at most one open marked PR identified (or none, to create after the first write); branch is rebased; yesterday's Landed/Failed/Skipped tables are in hand.
+Completion: at most one trusted open PR identified (or none, to create after the first write); forks/spoofs are ignored; branch contains current master; yesterday's Landed/Failed/Skipped tables are in hand.
 
 ### 2. Inventory
 
@@ -96,7 +96,7 @@ Completion: every candidate this run is in Landed, Failed, Skipped, or Deferred;
 
 ### 5. Push and update the same PR
 
-Push `chore/update-dependencies`. If an open marked PR exists, update its body ledger (do not open another). If none exists, create one with the marker and skeleton in [`references/rolling-pr.md`](references/rolling-pr.md).
+Push `chore/update-dependencies`. If a trusted open PR exists, update its body ledger (do not open another). If none exists, create one from the canonical branch in the base repository with the marker and skeleton in [`references/rolling-pr.md`](references/rolling-pr.md).
 
 Majors that landed stay on the rolling PR; say so in Last run. Do not enable auto-merge for a run that includes a major.
 

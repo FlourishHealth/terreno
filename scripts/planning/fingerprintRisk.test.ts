@@ -4,6 +4,7 @@ import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {isFingerprintSkip} from "./fingerprintRisk.ts";
 import {
+  isTrustedRollingPr,
   UPDATE_DEPENDENCIES_BRANCH,
   UPDATE_DEPENDENCIES_PR_MARKER,
 } from "./updateDependenciesPr.ts";
@@ -83,7 +84,6 @@ describe("update-dependencies skill", (): void => {
     );
 
     assert.include(skill, UPDATE_DEPENDENCIES_BRANCH);
-    assert.include(skill, UPDATE_DEPENDENCIES_PR_MARKER);
     assert.include(skill, "Ledger");
     assert.match(skill, /daily/i);
     assert.notInclude(skill, "One bump per PR");
@@ -91,5 +91,49 @@ describe("update-dependencies skill", (): void => {
     assert.include(rolling, UPDATE_DEPENDENCIES_PR_MARKER);
     assert.match(rolling, /Failed/);
     assert.match(rolling, /Landed/);
+  });
+
+  it("trusts only the canonical branch in the base repository", (): void => {
+    const repository = {name: "terreno", ownerLogin: "FlourishHealth"};
+    const candidate = {
+      baseRefName: "master",
+      headRefName: UPDATE_DEPENDENCIES_BRANCH,
+      headRepositoryName: "terreno",
+      headRepositoryOwnerLogin: "FlourishHealth",
+      isCrossRepository: false,
+    };
+
+    assert.isTrue(isTrustedRollingPr(candidate, repository));
+    assert.isFalse(
+      isTrustedRollingPr({...candidate, isCrossRepository: true}, repository)
+    );
+    assert.isFalse(
+      isTrustedRollingPr(
+        {...candidate, headRepositoryOwnerLogin: "untrusted-fork-owner"},
+        repository
+      )
+    );
+    assert.isFalse(
+      isTrustedRollingPr({...candidate, headRefName: "spoofed-branch"}, repository)
+    );
+  });
+
+  it("keeps react-native-web eligible for root Dependabot updates", (): void => {
+    const dependabot = readFileSync(
+      resolve(ROOT_DIRECTORY, ".github/dependabot.yml"),
+      "utf8"
+    );
+    const rootUpdates = dependabot.slice(
+      dependabot.indexOf("# Maintain dependencies for root package.json"),
+      dependabot.indexOf("# Maintain dependencies for backend packages")
+    );
+
+    assert.notInclude(rootUpdates, 'dependency-name: "react-native-*"');
+    assert.notInclude(rootUpdates, 'dependency-name: "react-native-web"');
+    for (const packageName of catalogPackageNames().filter(
+      (name) => name.startsWith("react-native-") && isFingerprintSkip(name)
+    )) {
+      assert.include(rootUpdates, `dependency-name: "${packageName}"`);
+    }
   });
 });

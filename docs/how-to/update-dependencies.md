@@ -3,8 +3,10 @@
 This runs **daily**. Use `/update-dependencies`. There is one rolling PR; later days push to it and rewrite its ledger instead of opening new PRs.
 
 ```bash
-gh pr list --state open --search "terreno-update-dependencies in:body" \
-  --json number,url,headRefName
+REPOSITORY="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+OWNER="${REPOSITORY%%/*}"
+gh pr list --state open --head "$OWNER:chore/update-dependencies" \
+  --json number,url,baseRefName,headRefName,headRepository,headRepositoryOwner,isCrossRepository
 bun outdated
 ```
 
@@ -14,7 +16,7 @@ Why: [Dependency management](../explanation/dependency-management.md). Native Ex
 
 ## Do now
 
-1. Find the open PR whose body contains `<!-- terreno-update-dependencies -->`. Checkout `chore/update-dependencies` and rebase onto `origin/master`. If none exists, that branch is created on this run.
+1. Find the same-repository PR with exact head `chore/update-dependencies`, base `master`, and `isCrossRepository: false`. Marker/title matches are not trust signals; ignore forks. Merge `origin/master` without rewriting history. If no trusted PR exists, create the canonical branch on this run.
 2. Inventory with `bun outdated`. Retry **Failed** rows from the PR body first. Skip `isFingerprintSkip` in `scripts/planning/fingerprintRisk.ts`.
 3. For each candidate: confirm a test imports the package (add a tracer if needed), bump the catalog pin or single-use version, `bun install`, re-run that test, recompute fingerprints. Revert only that bump on failure.
 4. Commit each success on the same branch. Push. Update the **same** PR body: Last run, Landed, Failed, Skipped, Deferred to release. Do not `gh pr create` when that PR is already open.
@@ -24,7 +26,8 @@ Why: [Dependency management](../explanation/dependency-management.md). Native Ex
 
 | Rule | Action |
 | --- | --- |
-| Open rolling PR already exists | Push to `chore/update-dependencies` and edit that body |
+| Trusted rolling PR already exists | Push to its same-repository `chore/update-dependencies` head and edit that body |
+| Fork copies marker/title/branch | Ignore it; never checkout, copy, edit, close, or comment on it |
 | Fingerprint would change | Revert that bump. Defer to a release. Never add `fingerprint-acknowledged` |
 | No test imports the package | Write the tracer test first. Do not bump on `test:ci` alone |
 | Published < 7 days ago (non-CVE) | Skip; log under Skipped |
