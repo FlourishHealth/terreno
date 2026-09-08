@@ -88,6 +88,14 @@ bun run check:lifecycle-skills
 
 Do not hand-edit `skills/`.
 
+## Keep native hooks in sync
+
+Repository-level hooks are canonical in `.rulesync/hooks.json`; shared commands live in
+`.rulesync/hooks/`. Run `bun run rules` after either changes. Rulesync generates the
+native stop-hook configuration for Cursor, Claude Code, GitHub Copilot, and Devin. The
+committed quality hook runs both `bun run lint` and `bun run compile` before
+an agent finishes.
+
 ## Write human docs with the skills
 
 Skills read architecture docs before changing code. After a user-visible or architectural

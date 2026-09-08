@@ -81,8 +81,8 @@ daemon. It waits until async review bots (Bugbot, CodeQL, and similar) on the cu
 head have reported, then waits in a loop for product CI using GitHub CLI
 (`gh pr checks --watch`, `gh run watch`) or CircleCI CLI (`circleci run watch`) until
 jobs are terminal or the wait times out. Before any push it always pulls latest
-`master`, then proves `bun lint` and affected tests in a fresh subagent with no parent
-conversation, then pushes and watches CI. It emits `PASS`, `FAIL`, `BLOCKED`, or
+`master`, then proves lint, typecheck, and affected tests in a fresh subagent with no
+parent conversation, then pushes and watches CI. It emits `PASS`, `FAIL`, `BLOCKED`, or
 `PENDING`, and exits.
 
 Brew review-bot waits use only hooks targeted to the matched bot so ordinary CI cannot

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": ".rulesync/hooks/quality-check.sh copilot",
+        "timeoutSec": 300
+      }
+    ]
+  }
+}
