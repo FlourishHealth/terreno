@@ -126,16 +126,22 @@ Abort this issue (do not code) if:
 - An assignee exists who is not you
 - More than one assignee
 
-On abort, **release this run's claim** so later pickups can see the issue. If you are the only assignee, restore the queue label:
+On abort, **release this run's claim**, then re-read assignees:
+
+```bash
+gh issue edit "$NUMBER" --remove-assignee "@me"
+gh issue view "$NUMBER" --json assignees,labels
+```
+
+If **no assignees remain**, put the issue back on the queue (this covers overlapping claims that already dropped `status:ready-for-dev`):
 
 ```bash
 gh issue edit "$NUMBER" \
-  --remove-assignee "@me" \
   --remove-label "status:in-progress" \
   --add-label "status:ready-for-dev"
 ```
 
-If another assignee remains, only `--remove-assignee "@me"`. Do not strip their `status:in-progress`. Comment that this run released a contested claim.
+If another assignee remains, leave their `status:in-progress` and do not restore `status:ready-for-dev`. Comment that this run released a contested claim.
 
 If aborted because of a race, try the next candidate once. If every claim fails, stop.
 
