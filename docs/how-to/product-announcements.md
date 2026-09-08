@@ -47,7 +47,7 @@ Place it after consent/onboarding wrappers if you use `ConsentNavigator`.
 
 ## Media in markdown
 
-Paste YouTube or Loom URLs in the announcement `body`. `MarkdownView` renders them as embeds (iframe on web, WebView on native).
+Paste YouTube or Loom URLs in the announcement `body` using markdown links or images, for example `[Watch the demo](https://www.youtube.com/watch?v=...)`. `MarkdownView` renders them as embeds (iframe on web, WebView on native).
 
 ## Example app
 

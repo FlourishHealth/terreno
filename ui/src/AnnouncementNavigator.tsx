@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo} from "react";
+import React, {useCallback, useEffect, useMemo, useRef} from "react";
 
 import {AnnouncementScreen} from "./AnnouncementScreen";
 import {Box} from "./Box";
@@ -49,6 +49,32 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
   );
 
   const current = pending?.current ?? null;
+  const currentAnnouncementId = current?.id;
+  const currentAnnouncementVersion = current?.version;
+  const recordedImpressionKeysRef = useRef<Set<string>>(new Set());
+
+  // Record one impression per announcement version while it is the current modal item.
+  useEffect(() => {
+    if (!currentAnnouncementId || currentAnnouncementVersion === undefined) {
+      return;
+    }
+    const impressionKey = `${currentAnnouncementId}:${currentAnnouncementVersion}`;
+    if (recordedImpressionKeysRef.current.has(impressionKey)) {
+      return;
+    }
+    recordedImpressionKeysRef.current.add(impressionKey);
+
+    const recordCurrentImpression = async (): Promise<void> => {
+      try {
+        await recordImpression(currentAnnouncementId);
+      } catch (impressionError) {
+        console.warn("[AnnouncementNavigator] Failed to record impression", {impressionError});
+      }
+    };
+
+    void recordCurrentImpression();
+  }, [currentAnnouncementId, currentAnnouncementVersion, recordImpression]);
+
   const requiresAcknowledgement = useMemo(
     () =>
       current
@@ -60,32 +86,28 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     [acknowledgementMode, current]
   );
 
-  const handleImpression = useCallback(async (): Promise<void> => {
-    if (!current) {
-      return;
-    }
-    try {
-      await recordImpression(current.id);
-    } catch (impressionError) {
-      console.warn("[AnnouncementNavigator] Failed to record impression", {impressionError});
-    }
-  }, [current, recordImpression]);
-
   const handleAcknowledge = useCallback(async (): Promise<void> => {
-    if (!current) {
+    if (!currentAnnouncementId) {
       return;
     }
     try {
       if (requiresAcknowledgement) {
-        await acknowledge(current.id);
+        await acknowledge(currentAnnouncementId);
       } else {
-        await recordImpression(current.id);
+        await recordImpression(currentAnnouncementId);
       }
       await refetch();
     } catch (ackError) {
       onError?.(ackError);
     }
-  }, [acknowledge, current, onError, recordImpression, refetch, requiresAcknowledgement]);
+  }, [
+    acknowledge,
+    currentAnnouncementId,
+    onError,
+    recordImpression,
+    refetch,
+    requiresAcknowledgement,
+  ]);
 
   const handleDismiss = useCallback(async (): Promise<void> => {
     await handleAcknowledge();
@@ -140,7 +162,6 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
         isSubmitting={isSubmitting}
         onAcknowledge={handleAcknowledge}
         onDismiss={handleDismiss}
-        onImpression={handleImpression}
         requiresAcknowledgement={requiresAcknowledgement}
       />
       {children}

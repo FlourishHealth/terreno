@@ -119,4 +119,20 @@ describe("MarkdownView", () => {
     });
     expect(onLoad).toHaveBeenCalled();
   });
+
+  it("renders YouTube and Loom links as embed components", async () => {
+    const {toJSON} = renderWithTheme(
+      <MarkdownView>
+        {
+          "[YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)\n\n![Loom demo](https://www.loom.com/share/abc123)"
+        }
+      </MarkdownView>
+    );
+    await waitFor(() => {
+      const serialized = JSON.stringify(toJSON());
+      const hasEmbed =
+        serialized.includes("markdown-embed-web") || serialized.includes("markdown-embed-native");
+      expect(hasEmbed).toBe(true);
+    });
+  });
 });

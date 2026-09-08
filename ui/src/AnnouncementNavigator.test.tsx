@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import React from "react";
+import {act, fireEvent} from "@testing-library/react-native";
+import React, {useCallback, useState} from "react";
 import {Text} from "react-native";
 import {AnnouncementNavigator} from "./AnnouncementNavigator";
 import {Box} from "./Box";
@@ -16,8 +17,13 @@ const makeAnnouncement = (overrides: Partial<AnnouncementPublic> = {}): Announce
   ...overrides,
 });
 
-const createMockApi = (pending: PendingAnnouncementsResponse) => {
-  const refetch = mock(() => Promise.resolve());
+const createMockApi = (
+  pending: PendingAnnouncementsResponse | (() => PendingAnnouncementsResponse),
+  refetchOverride?: () => Promise<void>
+) => {
+  const getPending =
+    typeof pending === "function" ? pending : (): PendingAnnouncementsResponse => pending;
+  const refetch = refetchOverride ?? mock(() => Promise.resolve());
   const acknowledgeMutation = mock(() => ({
     unwrap: mock(() => Promise.resolve({data: {acknowledged: true}})),
   }));
@@ -38,7 +44,7 @@ const createMockApi = (pending: PendingAnnouncementsResponse) => {
         refetch,
       })),
       useGetPendingAnnouncementsQuery: mock(() => ({
-        data: {data: pending},
+        data: {data: getPending()},
         error: undefined,
         isLoading: false,
         refetch,
@@ -55,9 +61,22 @@ const createMockApi = (pending: PendingAnnouncementsResponse) => {
     api: {
       enhanceEndpoints: mock(() => innerApi),
     },
+    impressionMutation,
     refetch,
   };
 };
+
+const announcementQueue: PendingAnnouncementsResponse[] = [
+  {
+    current: makeAnnouncement({id: "announcement-1", title: "First update"}),
+    remainingCount: 1,
+  },
+  {
+    current: makeAnnouncement({id: "announcement-2", title: "Second update"}),
+    remainingCount: 0,
+  },
+  {current: null, remainingCount: 0},
+];
 
 describe("AnnouncementNavigator", () => {
   it("renders children when no announcements are pending", () => {
@@ -72,8 +91,8 @@ describe("AnnouncementNavigator", () => {
     expect(result.getByTestId("app-content")).toBeTruthy();
   });
 
-  it("shows announcement modal when pending", () => {
-    const {api} = createMockApi({
+  it("shows announcement modal when pending", async () => {
+    const {api, impressionMutation} = createMockApi({
       current: makeAnnouncement(),
       remainingCount: 0,
     });
@@ -85,5 +104,65 @@ describe("AnnouncementNavigator", () => {
       </AnnouncementNavigator>
     );
     expect(result.getByTestId("announcement-screen")).toBeTruthy();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(impressionMutation).toHaveBeenCalledTimes(1);
+  });
+
+  it("refetches after acknowledge when more announcements remain", async () => {
+    const {api, refetch, acknowledgeMutation} = createMockApi({
+      current: makeAnnouncement({id: "announcement-1", title: "First"}),
+      remainingCount: 1,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+
+    expect(acknowledgeMutation).toHaveBeenCalled();
+    expect(refetch).toHaveBeenCalled();
+  });
+
+  it("shows the next announcement after refetch advances the queue", async () => {
+    const QueueHarness: React.FC = () => {
+      const [queueIndex, setQueueIndex] = useState(0);
+      const refetch = useCallback(async (): Promise<void> => {
+        setQueueIndex((currentIndex) => Math.min(currentIndex + 1, announcementQueue.length - 1));
+      }, []);
+      const {api} = createMockApi(() => announcementQueue[queueIndex], refetch);
+
+      return (
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const result = renderWithTheme(<QueueHarness />);
+    expect(result.getByText("First update")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+
+    expect(result.getByText("Second update")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    expect(result.queryByTestId("announcement-screen")).toBeNull();
   });
 });

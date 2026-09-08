@@ -1,3 +1,5 @@
+import {useCallback, useRef} from "react";
+
 interface AcknowledgeAnnouncementMutationResult {
   unwrap: () => Promise<unknown>;
 }
@@ -95,20 +97,28 @@ export const useAcknowledgeAnnouncement = (api: AcknowledgeAnnouncementApi, base
   const [impressionMutation, {isLoading: isRecordingImpression, error: impressionError}] =
     enhancedApi.useRecordAnnouncementImpressionMutation();
 
-  const acknowledge = async (announcementId: string): Promise<void> => {
-    await acknowledgeMutation({announcementId}).unwrap();
-  };
+  const acknowledgeMutationRef = useRef(acknowledgeMutation);
+  acknowledgeMutationRef.current = acknowledgeMutation;
+  const impressionMutationRef = useRef(impressionMutation);
+  impressionMutationRef.current = impressionMutation;
 
-  const recordImpression = async (announcementId: string, platform = "web"): Promise<void> => {
-    await impressionMutation({announcementId, platform}).unwrap();
-  };
+  const acknowledge = useCallback(async (announcementId: string): Promise<void> => {
+    await acknowledgeMutationRef.current({announcementId}).unwrap();
+  }, []);
+
+  const recordImpression = useCallback(
+    async (announcementId: string, platform = "web"): Promise<void> => {
+      await impressionMutationRef.current({announcementId, platform}).unwrap();
+    },
+    []
+  );
 
   return {
     acknowledge,
     error: acknowledgeError ?? impressionError,
     isAcknowledging,
     isRecordingImpression,
-    isSubmitting: isAcknowledging || isRecordingImpression,
+    isSubmitting: isAcknowledging,
     recordImpression,
   };
 };

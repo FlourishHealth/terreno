@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect} from "react";
+import React, {useCallback} from "react";
 import {Linking, Platform, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -12,7 +12,6 @@ interface AnnouncementScreenProps {
   isSubmitting?: boolean;
   onAcknowledge: () => void | Promise<void>;
   onDismiss: () => void | Promise<void>;
-  onImpression?: () => void | Promise<void>;
   requiresAcknowledgement: boolean;
 }
 
@@ -21,14 +20,8 @@ export const AnnouncementScreen: React.FC<AnnouncementScreenProps> = ({
   isSubmitting = false,
   onAcknowledge,
   onDismiss,
-  onImpression,
   requiresAcknowledgement,
 }) => {
-  // Record an impression once when the announcement modal is shown.
-  useEffect(() => {
-    void onImpression?.();
-  }, [onImpression]);
-
   const handlePrimaryAction = useCallback(async (): Promise<void> => {
     if (!announcement.primaryAction?.url) {
       return;
