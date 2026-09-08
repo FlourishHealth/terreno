@@ -3,8 +3,8 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "@ai-sdk/react": "^4.0.90",
-    "@better-auth/expo": "^1.7.2",
+    "@ai-sdk/react": "catalog:",
+    "@better-auth/expo": "catalog:",
     "@modelcontextprotocol/client": "catalog:",
     "@openfeature/core": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
