@@ -164,6 +164,28 @@
         "mongoose": "^8.0.0 || ^9.0.0",
       },
     },
+    "announcements": {
+      "name": "@terreno/announcements",
+      "version": "57.2.0",
+      "dependencies": {
+        "@terreno/api": "workspace:*",
+        "express": "catalog:",
+        "luxon": "catalog:",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@terreno/test": "workspace:*",
+        "@types/bun": "catalog:",
+        "@types/express": "catalog:",
+        "@types/supertest": "catalog:",
+        "passport-local-mongoose": "catalog:",
+        "supertest": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "mongoose": "^8.0.0 || ^9.0.0",
+      },
+    },
     "api": {
       "name": "@terreno/api",
       "version": "57.2.0",
@@ -387,6 +409,7 @@
         "@terreno/admin-backend": "workspace:*",
         "@terreno/admin-spa": "workspace:*",
         "@terreno/ai": "workspace:*",
+        "@terreno/announcements": "workspace:*",
         "@terreno/api": "workspace:*",
         "@terreno/api-health": "workspace:*",
         "@terreno/comms": "workspace:*",
@@ -2335,6 +2358,8 @@
     "@terreno/admin-spa": ["@terreno/admin-spa@workspace:admin-spa"],
 
     "@terreno/ai": ["@terreno/ai@workspace:ai"],
+
+    "@terreno/announcements": ["@terreno/announcements@workspace:announcements"],
 
     "@terreno/api": ["@terreno/api@workspace:api"],
 

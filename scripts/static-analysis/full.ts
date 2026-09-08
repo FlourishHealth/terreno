@@ -17,6 +17,7 @@ const DEPENDENCY_INPUTS = [
   "admin-frontend/src",
   "admin-spa",
   "ai/src",
+  "announcements/src",
   "api/src",
   "api-health/src",
   "comms/src",
