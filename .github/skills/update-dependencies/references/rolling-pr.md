@@ -16,8 +16,16 @@ Constants (do not invent a second name): `scripts/planning/updateDependenciesPr.
 REPOSITORY="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 OWNER="${REPOSITORY%%/*}"
 NAME="${REPOSITORY#*/}"
-gh pr list --state open --head "$OWNER:chore/update-dependencies" \
-  --json number,url,baseRefName,headRefName,headRepository,headRepositoryOwner,isCrossRepository,title,body
+gh pr list --state open --head chore/update-dependencies \
+  --json number,url,baseRefName,headRefName,headRepository,headRepositoryOwner,isCrossRepository,title,body \
+  | jq --arg owner "$OWNER" --arg name "$NAME" \
+      '[.[] | select(
+        .isCrossRepository == false and
+        .baseRefName == "master" and
+        .headRefName == "chore/update-dependencies" and
+        .headRepository.name == $name and
+        .headRepositoryOwner.login == $owner
+      )]'
 ```
 
 - Accept a candidate only when `isTrustedRollingPr` in `scripts/planning/updateDependenciesPr.ts` returns true: `isCrossRepository` is false; base is `master`; head is exactly `chore/update-dependencies`; and head repository owner/name equal the base repository.

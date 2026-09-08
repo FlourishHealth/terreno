@@ -5,8 +5,17 @@ This runs **daily**. Use `/update-dependencies`. There is one rolling PR; later 
 ```bash
 REPOSITORY="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 OWNER="${REPOSITORY%%/*}"
-gh pr list --state open --head "$OWNER:chore/update-dependencies" \
-  --json number,url,baseRefName,headRefName,headRepository,headRepositoryOwner,isCrossRepository
+NAME="${REPOSITORY#*/}"
+gh pr list --state open --head chore/update-dependencies \
+  --json number,url,baseRefName,headRefName,headRepository,headRepositoryOwner,isCrossRepository \
+  | jq --arg owner "$OWNER" --arg name "$NAME" \
+      '[.[] | select(
+        .isCrossRepository == false and
+        .baseRefName == "master" and
+        .headRefName == "chore/update-dependencies" and
+        .headRepository.name == $name and
+        .headRepositoryOwner.login == $owner
+      )]'
 bun outdated
 ```
 

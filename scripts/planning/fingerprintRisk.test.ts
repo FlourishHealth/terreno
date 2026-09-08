@@ -89,6 +89,8 @@ describe("update-dependencies skill", (): void => {
     assert.notInclude(skill, "One bump per PR");
     assert.include(rolling, UPDATE_DEPENDENCIES_BRANCH);
     assert.include(rolling, UPDATE_DEPENDENCIES_PR_MARKER);
+    assert.include(rolling, "--head chore/update-dependencies");
+    assert.notInclude(rolling, '--head "$OWNER:chore/update-dependencies"');
     assert.match(rolling, /Failed/);
     assert.match(rolling, /Landed/);
   });
