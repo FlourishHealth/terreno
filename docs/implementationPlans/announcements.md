@@ -1,6 +1,6 @@
 # Product Update Announcements — In-App Core Feature
 
-**Status:** Approved  
+**Status:** In progress  
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
 **Created:** 2026-09-08  

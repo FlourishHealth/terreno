@@ -19,6 +19,7 @@ import {
 } from "@terreno/rtk";
 import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
+  AnnouncementNavigator,
   Banner,
   Box,
   Button,
@@ -372,7 +373,9 @@ const RootLayoutNav = (): React.ReactElement => {
     });
     return (
       <ConsentNavigator api={terrenoApi}>
-        <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+        <AnnouncementNavigator api={terrenoApi}>
+          <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+        </AnnouncementNavigator>
       </ConsentNavigator>
     );
   }
