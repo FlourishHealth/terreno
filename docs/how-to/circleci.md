@@ -205,6 +205,12 @@ a closed PR.
 `manual-publish-package` also accepts `feature-flags`. Versions must be semver.
 Semver git tags (`57.3.0`, `57.3.0-beta.1`) automatically start
 `publish-release`; prereleases publish to their prerelease npm dist-tag.
+`scripts/ci/publish-package.sh` pins `workspace:*` to the tag version for the
+tarball, then compiles and tests against the root workspace install. It must
+not `bun install` after that pin: sibling `@terreno/*` packages are not on npm
+yet, so bun would look up `@terreno/test@X.Y.Z` (and similar) on the registry
+and fail the whole job.
+
 Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
 `{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
 demo site.
