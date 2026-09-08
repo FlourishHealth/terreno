@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": ["**/dist/**"],
   "ignoreIssues": {
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
