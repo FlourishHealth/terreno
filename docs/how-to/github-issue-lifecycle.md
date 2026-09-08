@@ -54,10 +54,14 @@ PR.
 
 1. After triage, apply `status:ready-for-dev` only when Acceptance is roastable and
    the work fits one Pick comment (at most five tasks). Leave the issue unassigned.
+   Do not edit the issue body after you label it unless you are a maintainer; the
+   skill aborts if an untrusted author changes the body after the label.
 2. A Cursor Automation (or `/implement-ready-for-dev`) claims the oldest matching
-   issue: assignee + `status:in-progress`, remove `status:ready-for-dev`.
-3. It posts `<!-- terreno-pick-plan -->`, Pick ⇄ Roasts that comment, then Brews a
-   **draft** PR with `Fixes #<n>`.
+   issue: assignee + `status:in-progress`, remove `status:ready-for-dev`. It skips
+   issues that already have an open linked or closing PR (GraphQL references, not
+   `linked:<number>`).
+3. It posts `<!-- terreno-pick-plan -->` from that trusted snapshot, Pick ⇄ Roasts
+   that comment, then Brews a **draft** PR with `Fixes #<n>`.
 4. Dashboard paste: [`implement-ready-for-dev` automation](../../.rulesync/skills/implement-ready-for-dev/references/cursor-automation.md).
 
 Do not apply `status:ready-for-dev` to issues that still need a product decision.
