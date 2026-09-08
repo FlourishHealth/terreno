@@ -194,8 +194,8 @@ example-backend Dockerfile with CI validation.
 **Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`deploy-to-vercel`, Status=`Planned`
 
 Documents Expo web export on Vercel, preview-deployment CORS and Better Auth origin handling,
-and a deploy-vercel skill with websocket verification. Requires a spike on backend hosting
-options.
+Vercel Functions WebSockets (Public Beta) operator docs, and a deploy-vercel skill with
+websocket verification. Requires a spike on backend hosting options.
 
 - **Implementation plan:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deploy-to-vercel.md)
 - **Tasks:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deploy-to-vercel.md)
