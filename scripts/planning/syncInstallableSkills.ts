@@ -76,6 +76,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "work-github-issues",
       "fix-conflicts",
       "release",
+      "update-dependencies",
       "upgrading-terreno",
       "deploy-gcp",
     ],

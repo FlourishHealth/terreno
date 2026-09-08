@@ -59,7 +59,7 @@ Claude Code stages, app skills, and agents come from the generated copy at
 | Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-pick-roast-loop`, `terreno-planning-loop`, `terreno-taste-sweep` |
 | Terreno apps | backend, UI, admin interfaces, data, schema, SDK, prompts, upgrades, deployment |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
-| GitHub | issues, review, UI verification, release |
+| GitHub | issues, review, UI verification, release, dependency updates |
 | Expo and native | `track-upstream-expo`, `upgrading-expo`, deployment / EAS skills |
 | Plugin agents | `pre-commit`, `ui-verifier` |
 
