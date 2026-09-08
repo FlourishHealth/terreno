@@ -1,8 +1,8 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../../ui/src/test-utils";
 import React from "react";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 
 mock.module("../AdminObjectPicker", () => ({
   AdminObjectPicker: ({title, refModelName}: {title: string; refModelName: string}) =>

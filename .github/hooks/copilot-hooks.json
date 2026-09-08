@@ -4,8 +4,8 @@
     "agentStop": [
       {
         "type": "command",
-        "bash": "bun run analyze:full",
-        "timeoutSec": 120
+        "bash": ".rulesync/hooks/quality-check.sh copilot",
+        "timeoutSec": 300
       }
     ],
     "postToolUse": [

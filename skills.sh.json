@@ -1,9 +1,7 @@
 {
   "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
-  "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "Lifecycle",
       "description": "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus continuous Pick-Roast, planning, and taste-sweep outer loops.",
       "skills": [
         "terreno-1-grow",
@@ -14,10 +12,10 @@
         "terreno-pick-roast-loop",
         "terreno-planning-loop",
         "terreno-taste-sweep"
-      ]
+      ],
+      "title": "Lifecycle"
     },
     {
-      "title": "Terreno apps",
       "description": "Backend, UI, data, and schema conventions for Terreno apps.",
       "skills": [
         "terreno-backend-api",
@@ -29,10 +27,10 @@
         "building-admin-interfaces",
         "backend-test-env",
         "ai-prompt-governance"
-      ]
+      ],
+      "title": "Terreno apps"
     },
     {
-      "title": "Docs and architecture",
       "description": "Read architecture docs first; write and regenerate them in the same slice.",
       "skills": [
         "update-docs",
@@ -42,10 +40,10 @@
         "improve-rulesync",
         "build-terreno-app",
         "design-blend"
-      ]
+      ],
+      "title": "Docs and architecture"
     },
     {
-      "title": "GitHub and shipping",
       "description": "Review, verification, issue, release, and deploy workflows.",
       "skills": [
         "create-github-issue",
@@ -56,10 +54,10 @@
         "release",
         "upgrading-terreno",
         "deploy-gcp"
-      ]
+      ],
+      "title": "GitHub and shipping"
     },
     {
-      "title": "Roadmap",
       "description": "Frontier, triage, promote, item, and review skills for the roadmap.",
       "skills": [
         "roadmap-frontier",
@@ -68,19 +66,22 @@
         "roadmap-review",
         "roadmap-triage",
         "claude-design-to-linear"
-      ]
+      ],
+      "title": "Roadmap"
     },
     {
-      "title": "Expo and native",
       "description": "Non-conflicting Expo deployment and platform workflows.",
       "skills": [
         "expo-api-routes",
         "expo-cicd-workflows",
         "expo-deployment",
         "expo-dev-client",
+        "track-upstream-expo",
         "upgrading-expo",
         "use-dom"
-      ]
+      ],
+      "title": "Expo and native"
     }
-  ]
+  ],
+  "notGrouped": "bottom"
 }

@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "hooks": {
-    "stop": [
-      {
-        "command": "bun run analyze:full",
-        "timeout": 120,
-        "type": "command"
-      }
-    ]
-  },
+  "hooks": {},
   "antigravity-cli": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh antigravity-cli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",
@@ -23,6 +23,14 @@
   },
   "claudecode": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh claudecode",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",
@@ -35,6 +43,14 @@
   },
   "codexcli": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh codexcli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",
@@ -47,6 +63,14 @@
   },
   "copilot": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh copilot",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",
@@ -58,6 +82,14 @@
   },
   "copilotcli": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh copilotcli",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",
@@ -69,6 +101,16 @@
   },
   "cursor": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh cursor",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "failClosed": true,
+          "loop_limit": 1,
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "afterFileEdit": [
         {
           "command": "bun run analyze:fast",
@@ -80,6 +122,14 @@
   },
   "devin": {
     "hooks": {
+      "stop": [
+        {
+          "command": ".rulesync/hooks/quality-check.sh devin",
+          "description": "Run repository lint, typecheck, and static analysis before the agent stops",
+          "name": "quality-checks",
+          "timeout": 300
+        }
+      ],
       "postToolUse": [
         {
           "command": "bun run analyze:fast",

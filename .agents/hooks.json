@@ -5,8 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run analyze:full",
-            "timeout": 120
+            "command": ".rulesync/hooks/quality-check.sh antigravity-cli",
+            "timeout": 300
           }
         ]
       }

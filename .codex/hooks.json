@@ -5,8 +5,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run analyze:full",
-            "timeout": 120
+            "command": ".rulesync/hooks/quality-check.sh codexcli",
+            "timeout": 300,
+            "name": "quality-checks",
+            "description": "Run repository lint, typecheck, and static analysis before the agent stops"
           }
         ]
       }

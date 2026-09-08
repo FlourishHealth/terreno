@@ -1,12 +1,14 @@
 /** @type {import("dependency-cruiser").IConfiguration} */
+const generatedPath = "(^|/)(?:build|coverage|dist|node_modules)(/|$)";
+
 module.exports = {
   forbidden: [
     {
       comment: "Circular imports make initialization order fragile.",
-      from: {},
+      from: {pathNot: generatedPath},
       name: "no-circular",
       severity: "error",
-      to: {circular: true},
+      to: {circular: true, pathNot: generatedPath},
     },
     {
       comment: "Orphan modules should be modeled as entry points or removed.",
@@ -18,6 +20,7 @@ module.exports = {
           "(^|/)tsconfig[.]json$",
           "(^|/)(?:babel|metro|playwright|webpack)[.]config[.](?:js|cjs|mjs|ts|cts|mts|json)$",
           "[.](?:spec|test|isolated)[.](?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$",
+          generatedPath,
         ],
       },
       name: "no-orphans",
@@ -27,7 +30,10 @@ module.exports = {
     {
       comment: "Production modules must not import test modules.",
       from: {
-        pathNot: "[.](?:spec|test|isolated)[.](?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$",
+        pathNot: [
+          "[.](?:spec|test|isolated)[.](?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$",
+          generatedPath,
+        ],
       },
       name: "not-to-tests",
       severity: "error",

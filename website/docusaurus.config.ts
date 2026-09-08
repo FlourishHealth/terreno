@@ -77,16 +77,6 @@ const config: Config = {
     customFields: {
       demoUrl,
     },
-    metadata: [
-      {
-        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
-        name: "description",
-      },
-      {
-        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
-        property: "og:description",
-      },
-    ],
     footer: {
       copyright: `Copyright © ${new Date().getFullYear()} Flourish Health.`,
       links: [
@@ -120,6 +110,16 @@ const config: Config = {
       ],
       style: "dark",
     },
+    metadata: [
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        name: "description",
+      },
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        property: "og:description",
+      },
+    ],
     navbar: {
       items: [
         // Enable docsVersionDropdown after the first `bun run docs:version` cut on release.

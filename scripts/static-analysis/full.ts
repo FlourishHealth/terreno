@@ -36,8 +36,8 @@ const DEPENDENCY_INPUTS = [
 const runKnip = ({isProduction}: {isProduction: boolean}): KnipReport => {
   const result = Bun.spawnSync({
     cmd: [
-      "bunx",
-      "knip",
+      "node",
+      "node_modules/knip/bin/knip.js",
       "--cache",
       "--no-exit-code",
       "--reporter",

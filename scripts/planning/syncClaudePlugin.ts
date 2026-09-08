@@ -5,14 +5,7 @@
  * shortened `/terreno:1-grow` names cannot live in the shared stage files that
  * Cursor and `npx skills` consume. This emits a Claude-only copy instead.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync} from "node:fs";
 import {join, resolve} from "node:path";
 
 interface SyncClaudePluginOptions {
@@ -29,8 +22,7 @@ export const CANONICAL_PLUGIN_DIRECTORY = "plugins/terreno-planning";
 export const CLAUDE_PLUGIN_DIRECTORY = "plugins/terreno-claude";
 export const CLAUDE_PLUGIN_NAME = "terreno";
 
-const LONG_SKILL_NAME_PATTERN =
-  /terreno-([1-5]-[a-z]+|pick-roast-loop|planning-loop|taste-sweep)/g;
+const LONG_SKILL_NAME_PATTERN = /terreno-([1-5]-[a-z]+|pick-roast-loop|planning-loop|taste-sweep)/g;
 
 const CLAUDE_PLUGIN_README = `# Terreno Claude Code plugin
 
@@ -59,9 +51,7 @@ export const rewriteStageNames = (contents: string): string =>
 const listSkillDirectories = (skillsDirectory: string): string[] =>
   readdirSync(skillsDirectory, {withFileTypes: true})
     .filter(
-      (entry) =>
-        entry.isDirectory() &&
-        existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
+      (entry) => entry.isDirectory() && existsSync(join(skillsDirectory, entry.name, "SKILL.md"))
     )
     .map((entry) => entry.name)
     .sort();
@@ -96,18 +86,18 @@ const buildClaudeManifest = (rootDirectory: string): string => {
   };
 
   const manifest = {
-    name: CLAUDE_PLUGIN_NAME,
-    displayName: "Terreno",
-    description: cursorManifest.description,
-    version: cursorManifest.version,
-    author: cursorManifest.author,
-    homepage: "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
-    repository: "https://github.com/FlourishHealth/terreno",
-    license: "MIT",
-    keywords: cursorManifest.keywords,
-    skills: "./skills/",
     agents: ["./agents/"],
+    author: cursorManifest.author,
+    description: cursorManifest.description,
+    displayName: "Terreno",
+    homepage: "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
+    keywords: cursorManifest.keywords,
+    license: "MIT",
     metadata: {compatibility: cursorManifest.compatibility},
+    name: CLAUDE_PLUGIN_NAME,
+    repository: "https://github.com/FlourishHealth/terreno",
+    skills: "./skills/",
+    version: cursorManifest.version,
   };
 
   return `${JSON.stringify(manifest, null, 2)}\n`;

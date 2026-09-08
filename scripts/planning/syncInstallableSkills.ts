@@ -25,8 +25,8 @@ const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
 
 export const SKILL_GROUPS: SkillGroup[] = [
   {
-    title: "Lifecycle",
-    description: "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus continuous Pick-Roast, planning, and taste-sweep outer loops.",
+    description:
+      "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus continuous Pick-Roast, planning, and taste-sweep outer loops.",
     skills: [
       "terreno-1-grow",
       "terreno-2-pick",
@@ -37,9 +37,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "terreno-planning-loop",
       "terreno-taste-sweep",
     ],
+    title: "Lifecycle",
   },
   {
-    title: "Terreno apps",
     description: "Backend, UI, data, and schema conventions for Terreno apps.",
     skills: [
       "terreno-backend-api",
@@ -52,9 +52,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "backend-test-env",
       "ai-prompt-governance",
     ],
+    title: "Terreno apps",
   },
   {
-    title: "Docs and architecture",
     description: "Read architecture docs first; write and regenerate them in the same slice.",
     skills: [
       "update-docs",
@@ -65,9 +65,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "build-terreno-app",
       "design-blend",
     ],
+    title: "Docs and architecture",
   },
   {
-    title: "GitHub and shipping",
     description: "Review, verification, issue, release, and deploy workflows.",
     skills: [
       "create-github-issue",
@@ -79,9 +79,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "upgrading-terreno",
       "deploy-gcp",
     ],
+    title: "GitHub and shipping",
   },
   {
-    title: "Roadmap",
     description: "Frontier, triage, promote, item, and review skills for the roadmap.",
     skills: [
       "roadmap-frontier",
@@ -91,18 +91,20 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "roadmap-triage",
       "claude-design-to-linear",
     ],
+    title: "Roadmap",
   },
   {
-    title: "Expo and native",
     description: "Non-conflicting Expo deployment and platform workflows.",
     skills: [
       "expo-api-routes",
       "expo-cicd-workflows",
       "expo-deployment",
       "expo-dev-client",
+      "track-upstream-expo",
       "upgrading-expo",
       "use-dom",
     ],
+    title: "Expo and native",
   },
 ];
 
@@ -152,8 +154,7 @@ export const rewritePluginLinksForInstallable = (content: string): string =>
     .replaceAll("../../../../../.github/", "../../../.github/")
     .replaceAll("../../../../.github/", "../../.github/");
 
-const SHARED_PLUGIN_REFERENCE_HREF =
-  /\.\.\/\.\.\/references\/([A-Za-z0-9._-]+\.(?:md|json))/g;
+const SHARED_PLUGIN_REFERENCE_HREF = /\.\.\/\.\.\/references\/([A-Za-z0-9._-]+\.(?:md|json))/g;
 
 export const listSharedPluginReferenceHrefs = (content: string): string[] => {
   const names = new Set<string>();
@@ -310,7 +311,9 @@ export const validateSkillGroupings = (skillNames: string[]): string[] => {
   return errors;
 };
 
-export const buildSkillsShConfig = (skillNames: string[]): {
+export const buildSkillsShConfig = (
+  skillNames: string[]
+): {
   config: Record<string, unknown>;
   errors: string[];
 } => {
@@ -318,8 +321,8 @@ export const buildSkillsShConfig = (skillNames: string[]): {
   return {
     config: {
       $schema: "https://skills.sh/schemas/skills.sh.schema.json",
-      notGrouped: "bottom",
       groupings: SKILL_GROUPS,
+      notGrouped: "bottom",
     },
     errors,
   };

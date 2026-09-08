@@ -839,7 +839,8 @@ jobs:
           command: bun test scripts/check-source-rules/
 
   static-analysis:
-    executor: node22
+    docker:
+      - image: cimg/node:22.14
     resource_class: medium
     steps:
       - checkout

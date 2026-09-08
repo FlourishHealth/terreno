@@ -43,14 +43,15 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 
 ### Code Quality Workflows
 
-#### Agent Static Analysis
+#### Agent quality and static-analysis hooks
 **Trigger:** Agent file edit, agent stop, Git pre-commit, and pull request  
-**Purpose:** Prevents new unused code and dependency-graph regressions
+**Purpose:** Prevents lint, typecheck, unused-code, and dependency-graph regressions
 
-Biome checks changed files after edits and staged files before commits. Knip and
-dependency-cruiser analyze the full repository when an agent stops and in CircleCI.
-Rulesync translates the canonical `.rulesync/hooks.json` configuration for each supported
-agent host.
+Rulesync generates native hooks from `.rulesync/hooks.json`. Biome checks changed files
+after edits and staged files before commits. At agent stop,
+`.rulesync/hooks/quality-check.sh` runs lint, TypeScript compilation, Knip, and
+dependency-cruiser. It keeps stdout machine-readable for each host and prevents
+retry-triggered Stop hooks from rerunning the commands.
 
 Existing findings are ratcheted so the checks reject new debt without requiring unrelated
 cleanup. See [Static analysis](static-analysis.md).
@@ -189,7 +190,8 @@ Ensures preview environments don't accumulate and waste resources.
 
 ### Single Source of Truth
 - **Documentation:** Code is truth, docs must reflect it
-- **Rules:** `.rulesync/rules/` is truth, generated files derive from it
+- **Agent configuration:** `.rulesync/rules/`, `.rulesync/skills/`, and
+  `.rulesync/hooks.json` are truth; generated files derive from them
 - **Tests:** Implementation is truth, tests verify it
 
 ### Fail Fast

@@ -4,8 +4,8 @@
       "hooks": [
         {
           "type": "command",
-          "command": "bun run analyze:full",
-          "timeout": 120
+          "command": ".rulesync/hooks/quality-check.sh devin",
+          "timeout": 300
         }
       ]
     }

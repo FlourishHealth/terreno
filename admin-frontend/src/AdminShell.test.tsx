@@ -1,13 +1,13 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import type {ScaledSize} from "react-native";
 import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse, AdminModelConfig} from "./types";
 
 const mockRouterPush = mock((_href: string) => {});
