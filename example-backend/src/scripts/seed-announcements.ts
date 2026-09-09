@@ -1,9 +1,11 @@
 import {Announcement} from "@terreno/announcements";
-import {logger, type SeedContext} from "@terreno/api";
+import {findOneOrNoneFor, logger, type SeedContext} from "@terreno/api";
 import {DateTime} from "luxon";
 
 export const seedAnnouncements = async (_context: SeedContext): Promise<void> => {
-  const existing = await Announcement.findOneOrNone({title: "Welcome to Terreno announcements"});
+  const existing = await findOneOrNoneFor(Announcement, {
+    title: "Welcome to Terreno announcements",
+  });
   if (existing) {
     logger.info("Skipping announcement seed — welcome announcement already exists");
     return;
