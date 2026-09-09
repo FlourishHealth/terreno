@@ -87,6 +87,7 @@ const SEARCH_ENVELOPE_KEYS = ["data"];
 
 const BULK_PATCH_SUCCESS_KEYS = ["updated"];
 
+// Todo-like String `_id` only. syncPlugin is out of scope for Task 1.5 REST membership goldens.
 const goldenTodoSchema = new mongoose.Schema({
   _id: {
     default: (): string => new mongoose.Types.ObjectId().toHexString(),
@@ -161,7 +162,8 @@ describe("admin HTTP goldens (membership + config)", () => {
     const body = res.body as Record<string, unknown>;
 
     assert.deepEqual(sortedKeys(body), [...ADMIN_CONFIG_TOP_KEYS].sort());
-    assert.strictEqual(body.schemaVersion, ADMIN_SCHEMA_VERSION);
+    assert.strictEqual(ADMIN_SCHEMA_VERSION, 2);
+    assert.strictEqual(body.schemaVersion, 2);
     assert.deepEqual(
       sortedKeys(body.capabilities as object),
       [...ADMIN_CONFIG_CAPABILITY_KEYS].sort()
@@ -212,9 +214,7 @@ describe("admin HTTP goldens (membership + config)", () => {
     assert.strictEqual(typeof paged.body.data[0]._id, "string");
     assert.match(paged.body.data[0]._id, /^todo-/);
 
-    const searched = await adminAgent
-      .get(`/admin/todos?${ADMIN_LIST_SEARCH_PARAM}=Alpha`)
-      .expect(200);
+    const searched = await adminAgent.get("/admin/todos?q=Alpha").expect(200);
     assert.strictEqual(ADMIN_LIST_SEARCH_PARAM, "q");
     assert.lengthOf(searched.body.data, 1);
     assert.strictEqual(searched.body.data[0].title, "Alpha task");
@@ -235,11 +235,12 @@ describe("admin HTTP goldens (membership + config)", () => {
     assert.strictEqual(typeof paged.body.data[0]._id, "string");
     assert.match(paged.body.data[0]._id, /^[a-f0-9]{24}$/);
 
-    const searched = await adminAgent
-      .get(`/admin/users?${ADMIN_LIST_SEARCH_PARAM}=notAdmin`)
-      .expect(200);
+    const searched = await adminAgent.get("/admin/users?q=notAdmin").expect(200);
     assert.lengthOf(searched.body.data, 1);
     assert.strictEqual(searched.body.data[0].email, "notAdmin@example.com");
+    assert.strictEqual(searched.body.limit, 100);
+    assert.strictEqual(searched.body.more, false);
+    assert.strictEqual(searched.body.total, 1);
   });
 
   it("pins GET .../search URL, q param, and {data} envelope for both id types", async () => {
