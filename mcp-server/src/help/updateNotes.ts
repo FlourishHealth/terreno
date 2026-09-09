@@ -45,8 +45,13 @@ interface HelpApiConfig {
 const UPGRADE_ID_PREFIX = "upgrade:";
 const ANNOUNCEMENT_ID_PREFIX = "announcement:";
 
-let bundledIndex: MiniSearch<BundledUpgradeDoc> | null = null;
-let bundledDocs: BundledUpgradeDoc[] | null = null;
+interface BundledUpgradeCache {
+  docs: BundledUpgradeDoc[];
+  docsRoot: string;
+  index: MiniSearch<BundledUpgradeDoc>;
+}
+
+let bundledUpgradeCache: BundledUpgradeCache | null = null;
 
 const normalizeApiBase = (apiUrl: string): string => apiUrl.replace(/\/$/, "");
 
@@ -70,13 +75,15 @@ const listBundledUpgradeVersions = (): string[] => {
     .sort();
 };
 
-const loadBundledUpgradeDocs = (): BundledUpgradeDoc[] => {
-  if (bundledDocs) {
-    return bundledDocs;
+const getBundledUpgradeCache = (): BundledUpgradeCache => {
+  const docsRoot = getDocsRoot();
+  if (bundledUpgradeCache && bundledUpgradeCache.docsRoot === docsRoot) {
+    return bundledUpgradeCache;
   }
+
   const versions = listBundledUpgradeVersions();
-  bundledDocs = versions.map((version) => {
-    const body = readFileSync(join(getDocsRoot(), "upgrades", `${version}.md`), "utf-8");
+  const docs = versions.map((version) => {
+    const body = readFileSync(join(docsRoot, "upgrades", `${version}.md`), "utf-8");
     return {
       body,
       id: `${UPGRADE_ID_PREFIX}${version}`,
@@ -84,15 +91,7 @@ const loadBundledUpgradeDocs = (): BundledUpgradeDoc[] => {
       version,
     };
   });
-  return bundledDocs;
-};
-
-const getBundledIndex = (): MiniSearch<BundledUpgradeDoc> => {
-  if (bundledIndex) {
-    return bundledIndex;
-  }
-  const docs = loadBundledUpgradeDocs();
-  bundledIndex = new MiniSearch<BundledUpgradeDoc>({
+  const index = new MiniSearch<BundledUpgradeDoc>({
     fields: ["title", "body", "version"],
     searchOptions: {
       boost: {title: 3, version: 2},
@@ -100,9 +99,14 @@ const getBundledIndex = (): MiniSearch<BundledUpgradeDoc> => {
     },
     storeFields: ["id", "title", "version", "body"],
   });
-  bundledIndex.addAll(docs);
-  return bundledIndex;
+  index.addAll(docs);
+  bundledUpgradeCache = {docs, docsRoot, index};
+  return bundledUpgradeCache;
 };
+
+const loadBundledUpgradeDocs = (): BundledUpgradeDoc[] => getBundledUpgradeCache().docs;
+
+const getBundledIndex = (): MiniSearch<BundledUpgradeDoc> => getBundledUpgradeCache().index;
 
 const parseQueries = (queries: string[], question?: string): string[] => {
   const merged = [...queries];
@@ -349,9 +353,4 @@ export const askUpdateHelp = async ({
   }
 
   return lines.join("\n");
-};
-
-export const resetBundledUpdateNoteIndex = (): void => {
-  bundledIndex = null;
-  bundledDocs = null;
 };
