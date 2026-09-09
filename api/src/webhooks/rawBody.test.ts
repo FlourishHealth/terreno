@@ -1,4 +1,5 @@
 import {describe, it} from "bun:test";
+import type {OutgoingMessage} from "node:http";
 import {assert} from "chai";
 import type {Application, Request} from "express";
 import supertest from "supertest";
@@ -6,6 +7,7 @@ import supertest from "supertest";
 import type {UserModel as AuthUserModel} from "../auth";
 import {TerrenoApp} from "../terrenoApp";
 import {UserModel} from "../tests";
+import {captureRawBody, jsonBodyParserOptions, urlencodedBodyParserOptions} from "./rawBody";
 
 const buildEchoApp = (): Application => {
   return new TerrenoApp({
@@ -26,6 +28,37 @@ const buildEchoApp = (): Application => {
     userModel: UserModel as unknown as AuthUserModel,
   }).build();
 };
+
+describe("captureRawBody", () => {
+  const buildReq = (): Request => ({}) as unknown as Request;
+  const res = {} as OutgoingMessage;
+
+  it("copies the buffer so later mutations of the original do not leak", () => {
+    const req = buildReq();
+    const buf = Buffer.from("hello");
+
+    captureRawBody(req, res, buf);
+    buf.write("jello");
+
+    assert.isTrue(Buffer.isBuffer(req.rawBody));
+    assert.strictEqual(req.rawBody?.toString("utf8"), "hello");
+  });
+
+  it("leaves rawBody unset when the verify hook receives a non-buffer", () => {
+    const req = buildReq();
+
+    captureRawBody(req, res, "not a buffer" as unknown as Buffer);
+
+    assert.isUndefined(req.rawBody);
+  });
+
+  it("wires captureRawBody into both body parser option sets", () => {
+    assert.strictEqual(jsonBodyParserOptions.verify, captureRawBody);
+    assert.strictEqual(jsonBodyParserOptions.limit, "50mb");
+    assert.strictEqual(urlencodedBodyParserOptions.verify, captureRawBody);
+    assert.isFalse(urlencodedBodyParserOptions.extended);
+  });
+});
 
 describe("TerrenoApp raw body capture", () => {
   it("stores JSON request bytes on req.rawBody and still parses req.body", async () => {
