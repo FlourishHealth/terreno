@@ -4,15 +4,18 @@ import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import {AdminProvider} from "../AdminProvider";
+import {AdminVersionConfig} from "../AdminVersionConfig";
 import {useCommsDashboardApi} from "../comms/useCommsDashboardApi";
 import type {AdminApi} from "../types";
 import {useAdminBackgroundTaskMutation} from "../useAdminBackgroundTask";
 import {useAdminConfig} from "../useAdminConfig";
 import {useAdminRoles} from "../useAdminRoles";
+import {useAdminRpc, useAdminRpcMutation} from "../useAdminRpc";
 import {useAdminScripts} from "../useAdminScripts";
 import {useConfigurationApi} from "../useConfigurationApi";
 import {useConsentHistory} from "../useConsentHistory";
 import {useDocumentStorageApi} from "../useDocumentStorageApi";
+import {AIRequestsScreenWidget} from "../widgets/AIRequestsScreenWidget";
 
 const makeApi = (): AdminApi => {
   const api: Record<string, unknown> = {};
@@ -154,5 +157,82 @@ describe("admin RPC dual-run", () => {
     await flushEffects();
     assert.include(captured[0]?.url ?? "", "/comms/messages");
     assert.strictEqual(captured[0]?.method, "GET");
+  });
+
+  it("document download uses parseAs blob", async () => {
+    mockOkFetch();
+    const result = runHookWithRpc(() => {
+      const {useLazyDownloadQuery} = useDocumentStorageApi(makeApi(), "/documents");
+      return useLazyDownloadQuery();
+    });
+    await result[0]("a.pdf").unwrap();
+    assert.deepEqual(captured, [{method: "GET", url: "/documents/download/a.pdf"}]);
+  });
+
+  it("AI explorer GETs /aiRequestsExplorer", async () => {
+    mockOkFetch();
+    renderWithTheme(
+      <AdminProvider
+        api={makeApi()}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={() => ({})}
+      >
+        <AIRequestsScreenWidget api={makeApi()} routeBase="/admin" />
+      </AdminProvider>
+    );
+    await flushEffects();
+    assert.ok(captured.some((row) => row.url.includes("/aiRequestsExplorer")));
+    assert.strictEqual(
+      captured.find((row) => row.url.includes("/aiRequestsExplorer"))?.method,
+      "GET"
+    );
+  });
+
+  it("version-config GETs /admin/version-config", async () => {
+    mockOkFetch();
+    renderWithTheme(
+      <AdminProvider
+        api={makeApi()}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={() => ({})}
+      >
+        <AdminVersionConfig api={makeApi()} apiBase="/admin" />
+      </AdminProvider>
+    );
+    await flushEffects();
+    assert.deepEqual(
+      captured.filter((row) => row.url.includes("version-config")),
+      [{method: "GET", url: "/admin/version-config"}]
+    );
+  });
+
+  it("consent form RPC mutations hit generate, publish, and translate", async () => {
+    mockOkFetch();
+    const trigger = runHookWithRpc(() => {
+      const rpc = useAdminRpc();
+      const [run] = useAdminRpcMutation(rpc);
+      return run;
+    });
+    await trigger({
+      body: {description: "d", locale: "en", type: "terms"},
+      method: "POST",
+      url: "/consent-forms/generate",
+    }).unwrap();
+    await trigger({method: "POST", url: "/consent-forms/form-id/publish"}).unwrap();
+    await trigger({
+      body: {content: "hi", fromLocale: "en", toLocale: "es"},
+      method: "POST",
+      url: "/consent-forms/translate",
+    }).unwrap();
+    assert.deepEqual(
+      captured.map((row) => `${row.method} ${row.url}`),
+      [
+        "POST /consent-forms/generate",
+        "POST /consent-forms/form-id/publish",
+        "POST /consent-forms/translate",
+      ]
+    );
   });
 });

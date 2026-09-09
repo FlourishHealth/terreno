@@ -79,7 +79,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   const enhanced = asDynamicHookApi(enhancedApi);
   const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
   const [updateConfigRtk] = enhanced.useUpdateVersionConfigMutation();
-  const rtkQuery = useVersionConfigQuery() as {
+  const rtkQuery = useVersionConfigQuery(undefined, {skip: Boolean(rpc)}) as {
     data?: VersionConfigData;
     error?: unknown;
     isLoading: boolean;

@@ -94,7 +94,12 @@ export const useConsentHistory = (api: ConsentHistoryApi, baseUrl?: string) => {
     url: `${base}/consents/my`,
   });
   const enhancedApi = getEnhancedApi(api, base);
-  const rtk = enhancedApi.useGetMyConsentsQuery();
+  const rtk = (
+    enhancedApi.useGetMyConsentsQuery as (
+      arg?: unknown,
+      options?: {skip?: boolean}
+    ) => ConsentHistoryHookState
+  )(undefined, {skip: Boolean(rpc)});
   const {data, isLoading, error, refetch} = rpc ? fetchState : rtk;
   const entries: ConsentHistoryEntry[] = Array.isArray(data) ? data : (data?.data ?? []);
 

@@ -132,6 +132,7 @@ export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
           (filePath: string) =>
             trigger({
               method: "GET",
+              parseAs: "blob",
               url: `${basePath}/download/${encodeURIComponent(filePath)}`,
             }),
           meta,

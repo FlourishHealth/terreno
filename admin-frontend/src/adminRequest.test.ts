@@ -113,6 +113,21 @@ describe("adminRequest", () => {
   it("uses the default timeout constant", () => {
     assert.strictEqual(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS, 30_000);
   });
+
+  it("returns a Blob when parseAs is blob", async () => {
+    globalThis.fetch = (async () => {
+      return new Response(new Uint8Array([1, 2, 3]), {
+        headers: {"Content-Type": "application/pdf"},
+        status: 200,
+      });
+    }) as typeof fetch;
+    const result = await adminRequest({
+      method: "GET",
+      parseAs: "blob",
+      url: "/documents/download/a",
+    });
+    assert.instanceOf(result, Blob);
+  });
 });
 
 describe("bindAdminRequest host auth", () => {

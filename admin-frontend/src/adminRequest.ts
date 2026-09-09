@@ -11,6 +11,7 @@ export interface AdminRequestArgs {
   credentials?: RequestCredentials;
   headers?: HeadersInit;
   timeoutMs?: number;
+  parseAs?: "json" | "text" | "blob";
 }
 
 /**
@@ -83,6 +84,7 @@ export const adminRequest = async <T = unknown>({
   credentials,
   headers,
   method = "GET",
+  parseAs,
   signal,
   timeoutMs = DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
   url,
@@ -129,6 +131,12 @@ export const adminRequest = async <T = unknown>({
     }
     if (response.status === 204) {
       return undefined as T;
+    }
+    if (parseAs === "blob") {
+      return (await response.blob()) as T;
+    }
+    if (parseAs === "text") {
+      return (await response.text()) as T;
     }
     const contentType = response.headers.get("Content-Type") ?? "";
     if (contentType.includes("application/json")) {
