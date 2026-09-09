@@ -44,6 +44,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   api,
   baseUrl,
   apiBase,
+  credentials,
+  getAuthHeaders,
   routeBase,
   widgets: userWidgets,
 }) => {
@@ -53,10 +55,12 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
     (): AdminProviderValue => ({
       api,
       apiBase: bases.apiBase,
+      credentials,
+      getAuthHeaders,
       routeBase: bases.routeBase,
       widgets: mergedWidgets,
     }),
-    [api, bases.apiBase, bases.routeBase, mergedWidgets]
+    [api, bases.apiBase, bases.routeBase, credentials, getAuthHeaders, mergedWidgets]
   );
 
   return <AdminWidgetContext.Provider value={value}>{children}</AdminWidgetContext.Provider>;

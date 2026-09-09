@@ -5,6 +5,7 @@ import {Stack} from "expo-router";
 import React from "react";
 import {useSelector} from "react-redux";
 import {ADMIN_ROUTE} from "@/constants/adminConstants";
+import {getAdminAuthHeaders} from "@/store/betterAuthApi";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import SyncLabScreen from "./SyncLabScreen";
 
@@ -48,6 +49,7 @@ const AdminLayout: React.FC = () => {
     <AdminProvider
       api={terrenoApi}
       apiBase={ADMIN_ROUTE}
+      getAuthHeaders={getAdminAuthHeaders}
       routeBase={ADMIN_ROUTE}
       widgets={{screens: {"sync-lab": SyncLabScreen}}}
     >

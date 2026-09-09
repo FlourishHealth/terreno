@@ -34,6 +34,8 @@ export {
   AdminAPIError,
   type AdminRequestArgs,
   adminRequest,
+  type BindAdminRequestOptions,
+  bindAdminRequest,
   DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
 } from "./adminRequest";
 export {groupAdminModelsByGroup} from "./adminShellNav";
@@ -66,6 +68,7 @@ export type {
   AdminCustomScreen,
   AdminFieldConfig,
   AdminFieldWidgetProps,
+  AdminGetAuthHeaders,
   AdminHomeWidgetProps,
   AdminModelConfig,
   AdminProviderValue,

@@ -59,7 +59,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
 
 ## Phase 2 — Fetch wrapper (RPC off RTK)
 
-- [ ] **Task 2.1**: Tiny fetch client
+- [x] **Task 2.1**: Tiny fetch client
   - Delivers: `adminRequest({url, method, body, signal})` using native `fetch`, AbortController timeout, JSON + FormData, maps failures to `APIError`; unit tests with mocked `globalThis.fetch`
   - Files: `admin-frontend/src/adminRequest.ts`, `admin-frontend/src/adminRequest.test.ts`
   - Blocked by: 1.1

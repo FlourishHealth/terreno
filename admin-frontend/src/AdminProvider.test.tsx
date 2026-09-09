@@ -135,4 +135,28 @@ describe("AdminProvider widget registry", () => {
 
     expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
   });
+
+  it("exposes host-injected credentials and getAuthHeaders on context", () => {
+    const getAuthHeaders = (): HeadersInit => ({Authorization: "Bearer ctx-token"});
+    let context: AdminProviderValue | null = null;
+    const Probe: React.FC = () => {
+      context = useAdminContext();
+      return null;
+    };
+
+    renderWithTheme(
+      <AdminProvider
+        api={{} as AdminApi}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={getAuthHeaders}
+        routeBase=""
+      >
+        <Probe />
+      </AdminProvider>
+    );
+
+    expect(context?.credentials).toBe("same-origin");
+    expect(context?.getAuthHeaders).toBe(getAuthHeaders);
+  });
 });

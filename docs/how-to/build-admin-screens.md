@@ -22,7 +22,13 @@ Embedded app (`example-frontend`):
 
 ```tsx
 // app/admin/_layout.tsx
-<AdminProvider api={api} apiBase="/admin" routeBase="/admin" widgets={{screens: {"sync-lab": SyncLabScreen}}}>
+<AdminProvider
+  api={api}
+  apiBase="/admin"
+  getAuthHeaders={getAdminAuthHeaders}
+  routeBase="/admin"
+  widgets={{screens: {"sync-lab": SyncLabScreen}}}
+>
   <AdminShellLayout
     api={api}
     apiBase="/admin"
@@ -39,8 +45,9 @@ Embedded app (`example-frontend`):
 Gate entry with `canOpenAdminPage` from `@terreno/rtk` (`admin:access`). Do not
 rely on `user.admin` alone when RBAC is on.
 
-Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`. Each route
-wraps `AdminShellLayout` because the root layout is only providers.
+Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`, `credentials="same-origin"`,
+and `getAuthHeaders` that return `{}` so the cookie session is sent without a Bearer header.
+Each route wraps `AdminShellLayout` because the root layout is only providers.
 
 ## 3. Keep generic model routes generic
 

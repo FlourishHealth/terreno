@@ -211,9 +211,13 @@ export interface AdminWidgetRegistry {
   screens: Record<string, ScreenWidgetComponent>;
 }
 
+export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
+
 export interface AdminProviderValue {
   api: AdminApi;
   apiBase: string;
+  credentials?: RequestCredentials;
+  getAuthHeaders?: AdminGetAuthHeaders;
   routeBase: string;
   widgets: AdminWidgetRegistry;
 }
@@ -281,6 +285,13 @@ export interface AdminScreenProps {
   /** Base path used for in-app navigation. Falls back to `baseUrl`. */
   routeBase?: string;
   api: AdminApi;
+  /**
+   * Fetch credentials mode for {@link adminRequest}. SPA cookie sessions use
+   * `"same-origin"`; omit when the host only sends Bearer headers.
+   */
+  credentials?: RequestCredentials;
+  /** Extra headers for {@link adminRequest} (embedded hosts return `Authorization: Bearer …`). */
+  getAuthHeaders?: AdminGetAuthHeaders;
 }
 
 /**

@@ -10,6 +10,15 @@ and [Build admin screens](../how-to/build-admin-screens.md).
 Home is `AdminHome` inside `AdminProvider` + `AdminShellLayout`. Generic models use
 `AdminScreenRouter` on `[model]/index`. See the how-to for `apiBase` vs `routeBase`.
 
+Pass fetch auth on `AdminProvider`:
+
+| Host | Props |
+| --- | --- |
+| Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session) |
+| Embedded app | `getAuthHeaders` that return `Authorization: Bearer …` (no cookie `credentials`) |
+
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. Do not add axios.
+
 ``````typescript
 // app/admin/index.tsx
 import {AdminHome} from "@terreno/admin-frontend";
@@ -137,7 +146,7 @@ Returns model metadata from `{baseUrl}/config`.
 Generates RTK Query hooks for list/read/create/update/delete plus `POST {routePath}/bulk-patch`.
 Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
 
-Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Do not add axios.
+Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Bind host auth with `bindAdminRequest`. Do not add axios.
 
 ``````typescript
 const {

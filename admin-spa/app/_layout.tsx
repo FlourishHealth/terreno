@@ -7,11 +7,19 @@ import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
 import {StoreProvider} from "../components/StoreProvider";
 import {terrenoApi} from "../store/sdk";
 
+const SPA_ADMIN_AUTH_HEADERS = (): HeadersInit => ({});
+
 const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) => {
   const {appConfig} = useAppConfig();
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   return (
-    <AdminProvider api={terrenoApi} apiBase={apiBase} routeBase="">
+    <AdminProvider
+      api={terrenoApi}
+      apiBase={apiBase}
+      credentials="same-origin"
+      getAuthHeaders={SPA_ADMIN_AUTH_HEADERS}
+      routeBase=""
+    >
       {children}
     </AdminProvider>
   );

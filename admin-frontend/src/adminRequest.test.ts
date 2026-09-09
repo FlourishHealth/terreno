@@ -1,7 +1,12 @@
 import {afterEach, describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {AdminAPIError, adminRequest, DEFAULT_ADMIN_REQUEST_TIMEOUT_MS} from "./adminRequest";
+import {
+  AdminAPIError,
+  adminRequest,
+  bindAdminRequest,
+  DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
+} from "./adminRequest";
 
 describe("adminRequest", () => {
   const originalFetch = globalThis.fetch;
@@ -107,5 +112,53 @@ describe("adminRequest", () => {
 
   it("uses the default timeout constant", () => {
     assert.strictEqual(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS, 30_000);
+  });
+});
+
+describe("bindAdminRequest host auth", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const captureFetch = (): {captured: RequestInit | undefined} => {
+    const state: {captured: RequestInit | undefined} = {captured: undefined};
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      state.captured = init;
+      return new Response(JSON.stringify({ok: true}), {
+        headers: {"Content-Type": "application/json"},
+        status: 200,
+      });
+    }) as typeof fetch;
+    return state;
+  };
+
+  it("SPA fixture uses same-origin credentials and omits Authorization", async () => {
+    const state = captureFetch();
+    const request = bindAdminRequest({
+      credentials: "same-origin",
+      getAuthHeaders: () => ({}),
+    });
+
+    await request({method: "GET", url: "/admin/config"});
+
+    assert.strictEqual(state.captured?.credentials, "same-origin");
+    const headers = new Headers(state.captured?.headers);
+    assert.isFalse(headers.has("Authorization"));
+    assert.isFalse(headers.has("authorization"));
+  });
+
+  it("embedded fixture sends Bearer from getAuthHeaders", async () => {
+    const state = captureFetch();
+    const request = bindAdminRequest({
+      getAuthHeaders: () => ({Authorization: "Bearer test-session-token"}),
+    });
+
+    await request({method: "GET", url: "/admin/config"});
+
+    assert.isUndefined(state.captured?.credentials);
+    const headers = new Headers(state.captured?.headers);
+    assert.strictEqual(headers.get("Authorization"), "Bearer test-session-token");
   });
 });

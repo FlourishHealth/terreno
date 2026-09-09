@@ -12,10 +12,10 @@ workflow (consent publish, comms message detail, password-on-create).
 
 ## Two hosts
 
-| Host | When to use | Route prefix (`routeBase`) | API prefix (`apiBase`) |
-| --- | --- | --- | --- |
-| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` |
-| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` |
+| Host | When to use | Route prefix (`routeBase`) | API prefix (`apiBase`) | Fetch auth |
+| --- | --- | --- | --- | --- |
+| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` | `getAuthHeaders` → `Authorization: Bearer …` |
+| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` | `credentials="same-origin"`; empty `getAuthHeaders` |
 
 `apiBase` is the HTTP path for `/config` and CRUD. `routeBase` is the Expo Router
 prefix the sidebar concatenates onto `/{model.name}` and `/{screen.name}`. Mixing

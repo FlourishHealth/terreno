@@ -1,3 +1,5 @@
+import type {AdminGetAuthHeaders} from "./types";
+
 /** Default AbortController timeout for {@link adminRequest}. */
 export const DEFAULT_ADMIN_REQUEST_TIMEOUT_MS = 30_000;
 
@@ -73,7 +75,8 @@ const readErrorPayload = async (response: Response): Promise<{detail?: string; t
 
 /**
  * Native `fetch` helper for admin RPC (config, scripts, roles, …). Not axios and not
- * RTK `injectEndpoints`. Hosts inject auth via headers/credentials in a later task.
+ * RTK `injectEndpoints`. Hosts inject auth via {@link bindAdminRequest} /
+ * `AdminProvider` `{getAuthHeaders, credentials}`.
  */
 export const adminRequest = async <T = unknown>({
   body,
@@ -145,4 +148,34 @@ export const adminRequest = async <T = unknown>({
     clearTimeout(timeoutId);
     signal?.removeEventListener("abort", onAbort);
   }
+};
+
+export interface BindAdminRequestOptions {
+  credentials?: RequestCredentials;
+  getAuthHeaders?: AdminGetAuthHeaders;
+}
+
+/**
+ * Bind host auth onto {@link adminRequest}.
+ * SPA: `credentials: "same-origin"` and no Bearer headers.
+ * Embedded: `getAuthHeaders` returns `Authorization: Bearer …`.
+ */
+export const bindAdminRequest = ({
+  credentials,
+  getAuthHeaders,
+}: BindAdminRequestOptions): ((args: AdminRequestArgs) => Promise<unknown>) => {
+  return async (args: AdminRequestArgs): Promise<unknown> => {
+    const headers = new Headers(args.headers);
+    if (getAuthHeaders) {
+      const extra = await getAuthHeaders();
+      new Headers(extra).forEach((value, key) => {
+        headers.set(key, value);
+      });
+    }
+    return adminRequest({
+      ...args,
+      credentials: args.credentials ?? credentials,
+      headers,
+    });
+  };
 };
