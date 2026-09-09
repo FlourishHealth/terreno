@@ -1,15 +1,13 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import {DateTime} from "luxon";
 import type mongoose from "mongoose";
+import type {Model} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {addPopulateToQuery, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {clearMCPRegistry, getMCPRegistry} from "./mcp/registry";
 import {Permissions} from "./permissions";
@@ -25,13 +23,20 @@ import {
 } from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 
+interface SoftDeleteDoc {
+  deleted: boolean;
+  name: string;
+}
+
+type TestUser = Awaited<ReturnType<typeof setupDb>>[number];
+
 describe("@terreno/api", () => {
   let server: TestAgent;
   let app: express.Application;
 
   describe("populate", () => {
-    let admin: any;
-    let notAdmin: any;
+    let admin: TestUser;
+    let notAdmin: TestUser;
     let agent: TestAgent;
     let spinach: Food;
 
@@ -61,8 +66,8 @@ describe("@terreno/api", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/food",
         modelRouter(FoodModel, {
@@ -129,7 +134,7 @@ describe("@terreno/api", () => {
   });
 
   describe("responseHandler", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
     let spinach: Food;
 
@@ -156,8 +161,8 @@ describe("@terreno/api", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/food",
         modelRouter(FoodModel, {
@@ -169,16 +174,16 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (data, method) => {
-            if (method === "list") {
-              return (data as any).map((d: any) => ({
+          responseHandler: async (data, method) => {
+            if (method === "list" && Array.isArray(data)) {
+              return data.map((d) => ({
                 foo: "bar",
-                id: (d as any)._id,
+                id: String(d._id),
               }));
             }
             return {
               foo: "bar",
-              id: (data as any)._id,
+              id: String((data as Food)._id),
             };
           },
         })
@@ -212,8 +217,8 @@ describe("@terreno/api", () => {
     beforeEach(async () => {
       await setupDb();
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/users",
         modelRouter(UserModel, {
@@ -241,7 +246,7 @@ describe("@terreno/api", () => {
   });
 
   describe("error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -259,8 +264,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("PUT returns 500 not supported", async () => {
@@ -295,11 +300,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "read") {
               throw new Error("responseHandler read failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -321,11 +326,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "create") {
               throw new Error("responseHandler create failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -347,11 +352,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "update") {
               throw new Error("responseHandler update failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -373,11 +378,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "list") {
               throw new Error("responseHandler list failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -399,11 +404,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "list") {
-              return {custom: "response"} as any;
+              return {custom: "response"};
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -477,8 +482,8 @@ describe("@terreno/api", () => {
         "/food",
         modelRouter(FoodModel, {
           allowAnonymous: true,
-          endpoints: (router: any) => {
-            router.get("/custom", (_req: any, res: any) => {
+          endpoints: (router) => {
+            router.get("/custom", (_req, res) => {
               res.json({custom: true});
             });
           },
@@ -542,7 +547,7 @@ describe("@terreno/api", () => {
   });
 
   describe("transformer errors", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
     let agent: TestAgent;
 
@@ -561,8 +566,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("transform error in create is handled", async () => {
@@ -691,15 +696,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with isDeleted plugin", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes user with deleted field", async () => {
@@ -728,7 +733,7 @@ describe("@terreno/api", () => {
   });
 
   describe("populate in create", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -742,8 +747,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles populate with valid path in create", async () => {
@@ -773,7 +778,7 @@ describe("@terreno/api", () => {
   });
 
   describe("save error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -791,8 +796,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles patch save error with validation failure", async () => {
@@ -824,8 +829,8 @@ describe("@terreno/api", () => {
       await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles undefined body after transform when no preCreate", async () => {
@@ -854,15 +859,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let _admin: any;
+    let _admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [_admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
@@ -877,12 +882,9 @@ describe("@terreno/api", () => {
         name: {description: "The name of the item", type: String},
       });
 
-      let SoftDeleteModel;
-      try {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest");
-      } catch {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest", softDeleteSchema);
-      }
+      const SoftDeleteModel =
+        (mongoose.models.SoftDeleteTest as Model<SoftDeleteDoc> | undefined) ??
+        mongoose.model<SoftDeleteDoc>("SoftDeleteTest", softDeleteSchema);
 
       await SoftDeleteModel.deleteMany({});
 
@@ -948,7 +950,7 @@ describe("@terreno/api", () => {
   });
 
   describe("special query params", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -962,8 +964,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("period query param is stripped from query", async () => {
@@ -1024,7 +1026,7 @@ describe("@terreno/api", () => {
 
       // Query for non-hidden foods using ?hidden=false
       const res = await server.get("/food?hidden=false").expect(200);
-      expect(res.body.data.every((f: any) => f.hidden === false)).toBe(true);
+      expect(res.body.data.every((f: {hidden: boolean}) => f.hidden === false)).toBe(true);
     });
 
     it("$search query triggers special handling code path", async () => {
@@ -1078,7 +1080,7 @@ describe("@terreno/api", () => {
   });
 
   describe("array operation with undefined preUpdate return", () => {
-    let admin: any;
+    let admin: TestUser;
     let apple: Food;
     let agent: TestAgent;
 
@@ -1099,8 +1101,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("array operation preUpdate returning undefined for array POST throws error", async () => {
@@ -1115,7 +1117,7 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAdmin],
             update: [Permissions.IsAdmin],
           },
-          preUpdate: () => undefined as any,
+          preUpdate: () => undefined as unknown as Food,
         })
       );
       server = supertest(app);
@@ -1295,7 +1297,7 @@ describe("@terreno/api", () => {
   });
 
   describe("transformer errors", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
     let agent: TestAgent;
 
@@ -1314,8 +1316,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("transform error in create is handled", async () => {
@@ -1424,7 +1426,7 @@ describe("@terreno/api", () => {
   });
 
   describe("special query params", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -1438,8 +1440,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("period query param is stripped from query", async () => {
@@ -1500,7 +1502,7 @@ describe("@terreno/api", () => {
 
       // Query for non-hidden foods using ?hidden=false
       const res = await server.get("/food?hidden=false").expect(200);
-      expect(res.body.data.every((f: any) => f.hidden === false)).toBe(true);
+      expect(res.body.data.every((f: {hidden: boolean}) => f.hidden === false)).toBe(true);
     });
 
     it("$search query triggers special handling code path", async () => {
@@ -1581,15 +1583,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with isDeleted plugin", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes user with deleted field", async () => {
@@ -1623,7 +1625,7 @@ describe("@terreno/api", () => {
   });
 
   describe("populate in create", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -1637,8 +1639,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles populate with valid path in create", async () => {
@@ -1670,7 +1672,7 @@ describe("@terreno/api", () => {
   });
 
   describe("save error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -1688,8 +1690,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles patch save error with validation failure", async () => {
@@ -1723,8 +1725,8 @@ describe("@terreno/api", () => {
       await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles undefined body after transform when no preCreate", async () => {
@@ -1754,15 +1756,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let _admin: any;
+    let _admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [_admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
@@ -1778,12 +1780,9 @@ describe("@terreno/api", () => {
       // The schema already has the deleted field, so it should use soft delete
 
       // Check if the model already exists to avoid OverwriteModelError
-      let SoftDeleteModel;
-      try {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest");
-      } catch {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest", softDeleteSchema);
-      }
+      const SoftDeleteModel =
+        (mongoose.models.SoftDeleteTest as Model<SoftDeleteDoc> | undefined) ??
+        mongoose.model<SoftDeleteDoc>("SoftDeleteTest", softDeleteSchema);
 
       // Clean up any existing documents
       await SoftDeleteModel.deleteMany({});
@@ -1821,7 +1820,7 @@ describe("@terreno/api", () => {
   });
 
   describe("array operation with undefined preUpdate return", () => {
-    let admin: any;
+    let admin: TestUser;
     let apple: Food;
     let agent: TestAgent;
 
@@ -1842,8 +1841,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("array operation preUpdate returning undefined for array POST throws error", async () => {
@@ -1858,7 +1857,7 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAdmin],
             update: [Permissions.IsAdmin],
           },
-          preUpdate: () => undefined as any,
+          preUpdate: () => undefined as unknown as Food,
         })
       );
       server = supertest(app);

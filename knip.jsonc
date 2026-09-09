@@ -1,5 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  // Compiled output is an entry point for consumers, so Knip would otherwise treat each
+  // package's `dist/*.d.ts` as source and report its type-only imports as unlisted
+  // dependencies. That made the ratchet depend on whether the workspace happened to be
+  // compiled: clean in CI, which never builds, and 8 findings after `bun run compile`.
+  "ignore": ["**/dist/**"],
   "ignoreIssues": {
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],

@@ -71,6 +71,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
     description: "Review, verification, issue, release, and deploy workflows.",
     skills: [
       "create-github-issue",
+      "implement-ready-for-dev",
       "respond-to-review",
       "verify-ui-changes",
       "work-github-issues",
