@@ -91,7 +91,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: registering with/without the flag; existing sync tests pass; no second `registerSync` for the same model
   - Skills: `terreno-backend-api`
 
-- [ ] **Task 3.2**: Emit deltas to `{collection}|admin`
+- [x] **Task 3.2**: Emit deltas to `{collection}|admin`
   - Delivers: when `adminBroadcast` is true, change-stream / mutate emit also targets `{collection}|admin` in addition to the owner/tenant/broadcast stream
   - Files: emit path under `api/src/sync/` (change stream + mutate ack), tests
   - Blocked by: 3.1
