@@ -435,6 +435,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(
         new AnnouncementsApp({
           acknowledgementMode: "admin",
+          help: {enabled: true},
           matchAudience: (_user, announcement) => {
             const audience = announcement.audience as {tiers?: string[]} | undefined;
             if (!audience?.tiers?.length) {

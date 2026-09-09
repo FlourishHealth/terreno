@@ -13,6 +13,7 @@ import {
 import {type Application, type Request, type Response, Router} from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
+import {registerAnnouncementHelpRoutes} from "./helpRoutes";
 import {Announcement, toAnnouncementPublic} from "./models/announcement";
 import {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement";
 import {AnnouncementImpression, isValidPlatform} from "./models/announcementImpression";
@@ -352,6 +353,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
     app.use(basePath, userRouter);
     app.use(basePath, adminRouter);
+    if (this.options.help?.enabled) {
+      registerAnnouncementHelpRoutes({app, basePath});
+    }
     app.use(basePath, modelRouter(Announcement as Model<AnnouncementDocument>, routerOptions));
 
     app.use(

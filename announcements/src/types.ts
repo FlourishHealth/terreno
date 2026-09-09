@@ -72,9 +72,15 @@ export type MatchAudienceFunction = (
   announcement: AnnouncementDocument
 ) => boolean | Promise<boolean>;
 
+export interface AnnouncementsHelpOptions {
+  /** When true, registers GET /announcements/help/search and GET /announcements/help/:id for MCP and in-app help. */
+  enabled?: boolean;
+}
+
 export interface AnnouncementsOptions {
   acknowledgementMode?: AcknowledgementMode;
   basePath?: string;
+  help?: AnnouncementsHelpOptions;
   matchAudience?: MatchAudienceFunction;
   permissions?: Partial<{
     create: PermissionMethod<AnnouncementDocument>[];
