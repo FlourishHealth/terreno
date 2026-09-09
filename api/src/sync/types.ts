@@ -39,6 +39,14 @@ export type SyncScope = SyncScopeOwner | SyncScopeTenant | SyncScopeBroadcast | 
  * (seq stamping) — validated at registration.
  */
 export interface SyncConfig {
+  /**
+   * When true, change-stream and mutate emitters also fan in to `{collection}|admin`
+   * in addition to the owner/tenant/broadcast/custom stream. Default false. App
+   * clients keep their existing scope; only admin window subscribers join `|admin`.
+   * Join permission is admin-only (same checks as `/admin/*`), not owner-stream
+   * membership. Emission onto `|admin` is a separate protocol slice.
+   */
+  adminBroadcast?: boolean;
   /** Which stream a document belongs to. Multi-tenant by default via the tenant scope. */
   scope: SyncScope;
   /**
