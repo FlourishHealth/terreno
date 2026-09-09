@@ -174,6 +174,7 @@ describe("AnnouncementEditor", () => {
     await press(getByTestId("announcement-save-button"));
     expect(createCalls.length).toBe(1);
     expect((createCalls[0] as Record<string, unknown>).title).toBe("Hello");
+    expect((createCalls[0] as Record<string, unknown>).status).toBe("draft");
     expect(onSave).toHaveBeenCalled();
   });
 
@@ -194,6 +195,9 @@ describe("AnnouncementEditor", () => {
     await press(getByTestId("announcement-save-button"));
     expect(updateCalls.length).toBe(1);
     expect((updateCalls[0] as Record<string, unknown>).id).toBe("a1");
+    expect(
+      ((updateCalls[0] as Record<string, unknown>).body as Record<string, unknown>).status
+    ).toBe("draft");
   });
 
   it("publishes a draft announcement", async () => {

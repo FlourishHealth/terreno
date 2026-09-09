@@ -218,6 +218,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
       priority: parseInt(priority, 10) || 0,
       publishAt: publishAt ? DateTime.fromISO(publishAt).toUTC().toJSDate() : undefined,
       requiresAcknowledgement,
+      status,
       title: title.trim(),
     };
   }, [
@@ -230,6 +231,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
     priority,
     publishAt,
     requiresAcknowledgement,
+    status,
     title,
   ]);
 
