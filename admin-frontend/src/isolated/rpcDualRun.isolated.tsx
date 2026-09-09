@@ -1,8 +1,9 @@
 import {afterEach, describe, it} from "bun:test";
-import {act} from "@testing-library/react-native";
+import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
+import {AdminObjectPicker} from "../AdminObjectPicker";
 import {AdminProvider} from "../AdminProvider";
 import {AdminVersionConfig} from "../AdminVersionConfig";
 import {useCommsDashboardApi} from "../comms/useCommsDashboardApi";
@@ -233,6 +234,63 @@ describe("admin RPC dual-run", () => {
         "POST /consent-forms/form-id/publish",
         "POST /consent-forms/translate",
       ]
+    );
+  });
+
+  it("AdminObjectPicker reads and searches via fetch", async () => {
+    mockOkFetch();
+    renderWithTheme(
+      <AdminProvider
+        api={makeApi()}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={() => ({})}
+      >
+        <AdminObjectPicker
+          api={makeApi()}
+          autocomplete
+          onChange={() => undefined}
+          refModelName="User"
+          routePath="/admin/users"
+          title="User"
+          value="user-1"
+        />
+      </AdminProvider>
+    );
+    await flushEffects();
+    assert.ok(
+      captured.some((row) => row.method === "GET" && row.url === "/admin/users/user-1"),
+      "selected id is fetched"
+    );
+
+    captured.length = 0;
+    const empty = renderWithTheme(
+      <AdminProvider
+        api={makeApi()}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={() => ({})}
+      >
+        <AdminObjectPicker
+          api={makeApi()}
+          autocomplete
+          onChange={() => undefined}
+          refModelName="User"
+          routePath="/admin/users"
+          title="User"
+          value=""
+        />
+      </AdminProvider>
+    );
+    fireEvent.changeText(empty.getByTestId("admin-picker-User-search"), "ada");
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+    assert.ok(
+      captured.some((row) => row.method === "GET" && row.url.includes("/admin/users/search")),
+      "search uses fetch"
     );
   });
 });
