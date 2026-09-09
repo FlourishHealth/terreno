@@ -122,19 +122,19 @@ Structured task breakdown for automated implementation. Each task should be inde
 
 ## Phase 4: Admin UI (`@terreno/admin-frontend`)
 
-- [ ] **Task 4.1**: `AnnouncementList` component
+- [x] **Task 4.1**: `AnnouncementList` component
   - Description: DataTable with title, status, priority, version, publishedAt, expiresAt. Create button → editor. Uses admin API hooks.
   - Files: `admin-frontend/src/AnnouncementList.tsx`
   - Depends on: Phase 1
   - Acceptance: Lists announcements; navigation works
 
-- [ ] **Task 4.2**: `AnnouncementEditor` component
+- [x] **Task 4.2**: `AnnouncementEditor` component
   - Description: Full editor per IP: MarkdownEditor for body, preview pane, scheduling fields, platforms multi-select, audience JSON field, primaryAction, requiresAcknowledgement, priority. Header actions: Save, Publish, Archive. Uses `useAdminApi`.
   - Files: `admin-frontend/src/AnnouncementEditor.tsx`, `admin-frontend/src/AnnouncementEditor.test.tsx`
   - Depends on: 4.1
   - Acceptance: Create/edit/publish/archive flows work in isolation tests
 
-- [ ] **Task 4.3**: Wire adminContribution custom routes
+- [x] **Task 4.3**: Wire adminContribution custom routes
   - Description: In `AnnouncementsApp.adminContribution()`, point list/create/edit to `AnnouncementList` / `AnnouncementEditor` (same pattern as consent custom admin screens).
   - Files: `announcements/src/announcementsApp.ts`, `admin-frontend/src/index.tsx`
   - Depends on: 4.2
@@ -154,7 +154,7 @@ Structured task breakdown for automated implementation. Each task should be inde
   - Depends on: Phase 3, 5.1
   - Acceptance: Modal appears for seeded announcement; ack clears queue
 
-- [ ] **Task 5.3**: Admin routes in example-frontend
+- [x] **Task 5.3**: Admin routes in example-frontend
   - Description: Expo Router admin paths for announcement list/editor if not covered by admin-spa default model routing.
   - Files: `example-frontend/app/admin/announcements/` or admin-spa equivalent
   - Depends on: Phase 4, 5.1

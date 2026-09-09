@@ -21,7 +21,7 @@ new AnnouncementsApp({
 });
 ```
 
-2. Create announcements in admin (draft → publish). Published `title`/`body` edits auto-increment `version`, which re-shows the modal to users who only acknowledged the previous version.
+2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the modal to users who only acknowledged the previous version.
 
 ## Frontend
 

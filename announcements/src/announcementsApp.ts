@@ -70,6 +70,8 @@ export class AnnouncementsApp implements TerrenoPlugin {
           admin: {
             defaultSort: "-priority,-publishedAt",
             displayName: "Announcements",
+            group: "Content",
+            listDisplayLinks: ["title"],
             listFields: [
               "title",
               "status",
