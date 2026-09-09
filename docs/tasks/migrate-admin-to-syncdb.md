@@ -48,7 +48,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: none
   - Acceptance: URL/method goldens for all six operations; isolated suite green
 
-- [ ] **Task 1.7**: CRUD smoke E2E for embedded + SPA
+- [x] **Task 1.7**: CRUD smoke E2E for embedded + SPA
   - Delivers: Playwright covering Todos list → create → edit → delete on `example-frontend` `/admin` and `admin-spa` `/console` (extend existing specs; do not skip login/consent)
   - Files: `example-frontend/e2e/admin.spec.ts` (or `admin-form.spec.ts`), `admin-spa/e2e/integration/adminSpa.integration.spec.ts` or new `admin-spa/e2e/crud.spec.ts`
   - Blocked by: none
