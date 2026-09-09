@@ -23,7 +23,7 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 - Writing the implementation plan itself — use `ip`
 - Filing a pick-ready implementation issue — use `create-github-issue`
 - Selecting recent issues to Pick/Roast in chat — use `work-github-issues`
-- Unattended implementation of a roastable issue — apply `status:ready-for-dev` (maintainer only), then `implement-ready-for-dev` or `autobot-ready-for-dev`
+- Unattended implementation of a roastable issue — apply `status:ready-for-dev` (maintainer only), then `implement-ready-for-dev`
 
 ## Hard rules
 

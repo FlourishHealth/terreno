@@ -1,4 +1,4 @@
-# Unattended Grow (autobot)
+# Unattended Grow (ready-for-dev)
 
 Grow's grilling skill waits for a human. This skill is the operator. Do not send a
 chat round. Do not treat Grow `BLOCKED` as a chat pause.
@@ -48,11 +48,11 @@ as assumptions.
 
 ## GitHub human-gate comment
 
-First line must be exactly `<!-- terreno-autobot-human-gate -->`.
+First line must be exactly `<!-- terreno-ready-for-dev-human-gate -->`.
 
 ```markdown
-<!-- terreno-autobot-human-gate -->
-## Human gate — autobot stopped
+<!-- terreno-ready-for-dev-human-gate -->
+## Human gate — implement-ready-for-dev stopped
 
 Grow cannot assume the next decision. Reply on this issue, then re-apply
 `status:ready-for-dev` (unassigned) when it is roastable.
