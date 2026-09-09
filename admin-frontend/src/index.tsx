@@ -30,6 +30,12 @@ export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from ".
 export {AdminShellLayout, type AdminShellLayoutProps} from "./AdminShellLayout";
 export {AdminVersionConfig} from "./AdminVersionConfig";
 export {isAdminPageForbiddenError} from "./adminPageAccess";
+export {
+  AdminAPIError,
+  type AdminRequestArgs,
+  adminRequest,
+  DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
+} from "./adminRequest";
 export {groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";

@@ -137,6 +137,8 @@ Returns model metadata from `{baseUrl}/config`.
 Generates RTK Query hooks for list/read/create/update/delete plus `POST {routePath}/bulk-patch`.
 Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
 
+Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Do not add axios.
+
 ``````typescript
 const {
   useListQuery,
