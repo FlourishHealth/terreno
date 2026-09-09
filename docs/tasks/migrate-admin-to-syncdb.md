@@ -84,7 +84,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
 
 ## Phase 3 — Protocol (`adminBroadcast` + window subscribe)
 
-- [ ] **Task 3.1**: `adminBroadcast` on `SyncConfig`
+- [x] **Task 3.1**: `adminBroadcast` on `SyncConfig`
   - Delivers: optional `adminBroadcast?: boolean` on existing collection `sync` config; default false; registration stores the flag; docs comment in types
   - Files: `api/src/sync/types.ts`, `api/src/api.ts` (options plumbing), `api/src/sync/*.test.ts`
   - Blocked by: 1.5
