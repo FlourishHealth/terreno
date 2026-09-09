@@ -35,7 +35,7 @@ RTK Query remains appropriate for **non-synced** endpoints: `/auth/me`, admin RP
 2. **Sync-status UX** — Surface offline state, queued mutations, and drain progress with `useSyncStatus` (and optionally `SyncStatusBanner`).
 3. **Encryption at rest (web)** — Web persistence uses AES-GCM via the default `createServerKeyProvider`; understand key fetch and `onDecryptFailure` for support flows.
 4. **Key lifecycle on logout** — Call `syncDb.stop()` and consider `wipeLocalData` when the authenticated user changes so one account does not read another's local store.
-5. **Backend sync registration** — Every synced collection needs `syncPlugin`, `isDeletedPlugin`, and a `sync` block on `modelRouter`, plus `SyncApp` and `RealtimeApp` on the server. Optional `sync.adminBroadcast: true` fans deltas into `{collection}|admin` for admin clients without changing the app collection's owner/tenant scope.
+5. **Backend sync registration** — Every synced collection needs `syncPlugin`, `isDeletedPlugin`, and a `sync` block on `modelRouter`, plus `SyncApp` and `RealtimeApp` on the server. Optional `sync.adminBroadcast: true` marks the collection for `{collection}|admin` fan-in for admin clients without changing the app collection's owner/tenant scope. Delta emit onto that stream is a separate protocol step.
 
 ## Tradeoffs
 

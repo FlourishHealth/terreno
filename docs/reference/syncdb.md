@@ -108,7 +108,7 @@ const todoRouter = modelRouter("/todos", Todo, {
   queryFilter: OwnerQueryFilter,
   sync: {
     scope: {type: "owner"}, // stream = todos|owner:{ownerId}
-    // adminBroadcast: true, // also fan in to todos|admin (default false)
+    // adminBroadcast: true, // opt in to todos|admin fan-in (default false; emit is a later step)
   },
 });
 ```
@@ -383,7 +383,7 @@ sync: {scope: {type: "owner"}}                        // todos|owner:{ownerId}
 sync: {scope: {type: "owner", field: "userId"}}       // todos|owner:{userId}
 sync: {scope: {type: "tenant", field: "organizationId"}} // todos|tenant:{orgId}
 sync: {scope: {type: "broadcast"}}                    // todos|all
-sync: {scope: {type: "owner"}, adminBroadcast: true}  // owner stream + todos|admin
+sync: {scope: {type: "owner"}, adminBroadcast: true}  // stored opt-in for todos|admin fan-in
 sync: {
   scope: (doc) => String(doc.workspaceId),
   snapshotFilter: (user) => ({workspaceId: {$in: [...]}}), // required for custom
@@ -392,7 +392,7 @@ sync: {
 
 - **Owner** streams use the authenticated socket's user id (client cannot pick another user's stream).
 - **Tenant/custom** scopes resolve memberships via `SyncApp` `getUserScopes`.
-- **`adminBroadcast`** (default `false`) is an additive fan-in on the existing collection `sync` config. When `true`, emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join permission for `|admin` is admin-only. This flag is stored at `modelRouter` / `registerSync` registration; emitting onto `|admin` is a separate protocol step.
+- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, registration stores that the collection is opted into `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join permission for `|admin` is admin-only. Emitting onto `|admin` is a separate protocol step.
 - **`snapshotFilter`** restricts `GET /sync/snapshot` server-side. Auto-derived for owner/tenant; required for custom resolver scopes.
 
 ## Sync protocol
