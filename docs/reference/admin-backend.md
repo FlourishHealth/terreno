@@ -57,9 +57,11 @@ interface AdminModelConfig {
 
 ## Generated Routes
 
-For each model, creates standard modelRouter CRUD endpoints:
+For each model, creates standard modelRouter CRUD endpoints plus admin membership helpers:
 
-- `GET {basePath}{routePath}` — List (paginated, sortable)
+- `GET {basePath}{routePath}` — List (paginated, sortable). Query params: `page`, `limit`, `sort`, `q` (partial search across string `searchFields`), plus `queryFields` from list/filter metadata. Envelope: `{data, limit, more, page, total}` (`page` is the raw query string when provided)
+- `GET {basePath}{routePath}/search?q=` — Typeahead search. Envelope: `{data}` (limit 20; empty `q` returns `{data: []}`)
+- `POST {basePath}{routePath}/bulk-patch` — Body `{ids: string[], patch: object}`. Success body `{updated}` plus `failures` when any id fails. Ids must pass `mongoose.isValidObjectId` (hex String `_id` values work; arbitrary UUID-like strings are rejected as `"Invalid id"`)
 - `POST {basePath}{routePath}` — Create
 - `GET {basePath}{routePath}/:id` — Read
 - `PATCH {basePath}{routePath}/:id` — Update
