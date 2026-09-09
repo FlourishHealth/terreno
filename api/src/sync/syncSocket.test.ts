@@ -9,6 +9,7 @@
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose, {type Model, model, Schema} from "mongoose";
 import type {Server} from "socket.io";
 
@@ -1025,6 +1026,66 @@ describe("emitSyncDeltaForChange", () => {
     expect(delta.collection).toBe("sockStuff");
     expect((delta.data as Record<string, unknown>).name).toBe("hello");
     expect((delta.data as Record<string, unknown>).id).toBe("doc-1");
+  });
+
+  it("adminBroadcast true: create also emits to {collection}|admin", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-admin-fan", _syncSeq: 11, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-admin-fan",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const deltas = io.emissions
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => e.payload as SyncDelta);
+    const streams = deltas.map((d) => d.stream).sort();
+    assert.deepEqual(streams, ["sockStuff|admin", "sockStuff|owner:user1"]);
+    const adminDelta = deltas.find((d) => d.stream === "sockStuff|admin");
+    const ownerDelta = deltas.find((d) => d.stream === "sockStuff|owner:user1");
+    assert.strictEqual(adminDelta?.method, "create");
+    assert.strictEqual(adminDelta?.seq, 11);
+    assert.strictEqual(ownerDelta?.method, "create");
+    assert.strictEqual(ownerDelta?.seq, 11);
+  });
+
+  it("adminBroadcast false: create emits only the owner stream", async () => {
+    const entry = ownerEntry();
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-no-fan", _syncSeq: 2, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-no-fan",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const streams = io.emissions
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => (e.payload as SyncDelta).stream);
+    assert.deepEqual(streams, ["sockStuff|owner:user1"]);
   });
 
   it("emits a delta when the REST responseHandler serializes a BSON post-image", async () => {

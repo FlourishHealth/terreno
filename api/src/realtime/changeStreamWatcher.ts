@@ -14,7 +14,7 @@ import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
 import {serializeSyncPayload} from "../sync/serialize";
 import {syncRoomForStream} from "../sync/socketHandlers";
-import {resolveStreamForDoc} from "../sync/streams";
+import {adminBroadcastStream, resolveStreamForDoc} from "../sync/streams";
 import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/types";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
@@ -718,37 +718,44 @@ export const emitSyncDeltaForChange = async ({
     method = "create";
   }
 
-  const frontierSeq = await computeStableFrontier({stream});
-  const delta: SyncDelta = {
-    collection: entry.collectionTag,
-    frontierSeq,
-    id: docId,
-    method,
-    seq,
-    stream,
-    ...(deleted ? {deleted: true} : {}),
+  const emitLiveDelta = async (targetStream: string): Promise<void> => {
+    const frontierSeq = await computeStableFrontier({stream: targetStream});
+    const liveDelta: SyncDelta = {
+      collection: entry.collectionTag,
+      frontierSeq,
+      id: docId,
+      method,
+      seq,
+      stream: targetStream,
+      ...(deleted ? {deleted: true} : {}),
+    };
+    await emitPayloadToAuthorizedRoom({
+      // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
+      buildPayload: deleted
+        ? () => liveDelta
+        : async (user) => {
+            const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
+            const data = ensureApiId(
+              await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
+            );
+            return {...liveDelta, data};
+          },
+      entry,
+      eventName: "sync:delta",
+      fullDocument,
+      io,
+      logDebug,
+      room: syncRoomForStream(targetStream),
+    });
+    logDebug(
+      `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${targetStream} frontier=${frontierSeq}`
+    );
   };
-  await emitPayloadToAuthorizedRoom({
-    // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
-    buildPayload: deleted
-      ? () => delta
-      : async (user) => {
-          const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-          const data = ensureApiId(
-            await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
-          );
-          return {...delta, data};
-        },
-    entry,
-    eventName: "sync:delta",
-    fullDocument,
-    io,
-    logDebug,
-    room: syncRoomForStream(stream),
-  });
-  logDebug(
-    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream} frontier=${frontierSeq}`
-  );
+
+  await emitLiveDelta(stream);
+  if (entry.config.adminBroadcast === true) {
+    await emitLiveDelta(adminBroadcastStream(entry.collectionTag));
+  }
 };
 
 /**

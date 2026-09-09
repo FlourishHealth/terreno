@@ -2,4 +2,4 @@
 category: Added
 ---
 
-`SyncConfig.adminBroadcast` (default `false`) is stored on collection registration so hosts can opt a synced model into `{collection}|admin` fan-in without a second `registerSync`.
+`SyncConfig.adminBroadcast` (default `false`) is stored on collection registration. When `true`, change-stream `sync:delta` emission also targets `{collection}|admin` without a second `registerSync`.
