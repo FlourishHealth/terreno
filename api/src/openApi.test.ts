@@ -391,7 +391,6 @@ describe("openApi populate", () => {
             $ref: "#/components/schemas/LimitedUser",
           },
         },
-        required: [],
         type: "object",
       },
       type: "array",

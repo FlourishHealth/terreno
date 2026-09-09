@@ -168,8 +168,7 @@ const searchApiAnnouncements = async ({
   queries: string[];
 }): Promise<UpdateNoteSearchHit[]> => {
   const activeQueries = parseQueries(queries);
-  const queryString =
-    activeQueries.length > 0 ? `&q=${encodeURIComponent(activeQueries.join(" "))}` : "";
+  const queryString = activeQueries.map((query) => `&q=${encodeURIComponent(query)}`).join("");
   const archivedFlag = includeArchived ? "&includeArchived=true" : "";
   const response = await apiFetch<{data: Array<Record<string, unknown>>}>(
     config,
@@ -248,7 +247,6 @@ export const searchUpdateNotes = async ({
   source?: "announcement" | "auto" | "bundled";
 }): Promise<{hits: UpdateNoteSearchHit[]; sources: string[]}> => {
   const config = getHelpApiConfig();
-  const hits: UpdateNoteSearchHit[] = [];
   const sources: string[] = [];
   const activeQueries = parseQueries(queries, question);
   const perSourceLimit = Math.max(limit, 1);
@@ -257,28 +255,39 @@ export const searchUpdateNotes = async ({
   const shouldSearchAnnouncements =
     source === "announcement" || (source === "auto" && config !== null);
 
+  const bundledHits = shouldSearchBundled
+    ? searchBundledUpgrades(activeQueries, perSourceLimit)
+    : [];
   if (shouldSearchBundled) {
-    hits.push(...searchBundledUpgrades(activeQueries, perSourceLimit));
     sources.push("bundled-upgrades");
   }
 
+  let announcementHits: UpdateNoteSearchHit[] = [];
   if (shouldSearchAnnouncements && config) {
     try {
-      hits.push(
-        ...(await searchApiAnnouncements({
-          config,
-          includeArchived,
-          limit: perSourceLimit,
-          queries: activeQueries,
-        }))
-      );
+      announcementHits = await searchApiAnnouncements({
+        config,
+        includeArchived,
+        limit: perSourceLimit,
+        queries: activeQueries,
+      });
       sources.push("announcements-api");
     } catch (error) {
       sources.push(`announcements-api-error:${(error as Error).message}`);
     }
   }
 
-  return {hits: hits.slice(0, perSourceLimit), sources};
+  const mergedHits = [...announcementHits, ...bundledHits];
+  const seenIds = new Set<string>();
+  const dedupedHits = mergedHits.filter((hit) => {
+    if (seenIds.has(hit.id)) {
+      return false;
+    }
+    seenIds.add(hit.id);
+    return true;
+  });
+
+  return {hits: dedupedHits.slice(0, perSourceLimit), sources};
 };
 
 export const getUpdateNote = async ({

@@ -1,4 +1,4 @@
-import {beforeEach, describe, it} from "bun:test";
+import {afterEach, beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
@@ -155,6 +155,147 @@ describe("MCP service token routes", () => {
       `/mcp/service-tokens/${new mongoose.Types.ObjectId().toString()}`
     );
     assert.equal(res.status, 404);
+  });
+
+  it("returns 404 for a malformed token id", async () => {
+    const res = await agent.delete("/mcp/service-tokens/not-an-object-id");
+    assert.equal(res.status, 404);
+  });
+
+  it("rejects a raw mcp_ authorization header without the Bearer prefix", async () => {
+    const created = await agent.post("/mcp/service-tokens").send({name: "Raw"});
+    const mcpToken = created.body.data.token as string;
+
+    const res = await supertest(app).get("/mcp/service-tokens").set("Authorization", mcpToken);
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects a missing, non-string, or blank name", async () => {
+    const missing = await agent.post("/mcp/service-tokens").send({});
+    const nonString = await agent.post("/mcp/service-tokens").send({name: 42});
+    const blank = await agent.post("/mcp/service-tokens").send({name: "   "});
+
+    for (const res of [missing, nonString, blank]) {
+      assert.equal(res.status, 400);
+      assert.equal(res.body.title, "name is required");
+    }
+  });
+
+  it("trims the name and treats an empty expiresAt as unset", async () => {
+    const res = await agent.post("/mcp/service-tokens").send({expiresAt: "", name: "  Padded  "});
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.name, "Padded");
+    assert.notOk(res.body.data.expiresAt);
+  });
+
+  it("rejects non-string, invalid, and past expiresAt values", async () => {
+    const nonString = await agent.post("/mcp/service-tokens").send({expiresAt: 123, name: "A"});
+    const invalid = await agent
+      .post("/mcp/service-tokens")
+      .send({expiresAt: "not-a-date", name: "B"});
+    const past = await agent.post("/mcp/service-tokens").send({
+      expiresAt: DateTime.now().minus({day: 1}).toUTC().toISO(),
+      name: "C",
+    });
+
+    assert.equal(nonString.status, 400);
+    assert.equal(nonString.body.title, "expiresAt must be an ISO-8601 datetime string");
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.title, "expiresAt must be an ISO-8601 datetime string");
+    assert.equal(past.status, 400);
+    assert.equal(past.body.title, "expiresAt must be in the future");
+  });
+
+  it("validates and applies page and limit on list", async () => {
+    for (const name of ["One", "Two", "Three"]) {
+      await agent.post("/mcp/service-tokens").send({name});
+    }
+
+    const badPage = await agent.get("/mcp/service-tokens?page=0");
+    assert.equal(badPage.status, 400);
+    assert.equal(badPage.body.title, "Invalid page");
+
+    const fractionalPage = await agent.get("/mcp/service-tokens?page=1.5");
+    assert.equal(fractionalPage.status, 400);
+
+    const badLimit = await agent.get("/mcp/service-tokens?limit=abc");
+    assert.equal(badLimit.status, 400);
+    assert.equal(badLimit.body.title, "Invalid limit");
+
+    const zeroLimit = await agent.get("/mcp/service-tokens?limit=0");
+    assert.equal(zeroLimit.status, 400);
+
+    const paged = await agent.get("/mcp/service-tokens?page=2&limit=2");
+    assert.equal(paged.status, 200);
+    assert.equal(paged.body.page, 2);
+    assert.equal(paged.body.limit, 2);
+    assert.equal(paged.body.total, 3);
+    assert.equal(paged.body.data.length, 1);
+    assert.equal(paged.body.more, false);
+
+    const capped = await agent.get("/mcp/service-tokens?limit=10000");
+    assert.equal(capped.status, 200);
+    assert.isBelow(capped.body.limit, 10000);
+  });
+});
+
+describe("MCP service token mcpUrl resolution", () => {
+  const buildApp = (publicMcpUrl?: string): express.Application => {
+    const app = getBaseServer();
+    setupAuth(app, UserModel as never);
+    addAuthRoutes(app, UserModel as never);
+    addMcpServiceTokenRoutes(app, {publicMcpUrl});
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+    return app;
+  };
+
+  const originalBetterAuthUrl = process.env.BETTER_AUTH_URL;
+
+  beforeEach(async () => {
+    await setupDb();
+    await McpServiceToken.deleteMany({});
+  });
+
+  afterEach(() => {
+    if (originalBetterAuthUrl === undefined) {
+      delete process.env.BETTER_AUTH_URL;
+    } else {
+      process.env.BETTER_AUTH_URL = originalBetterAuthUrl;
+    }
+  });
+
+  it("keeps a configured URL that already ends in /mcp and strips a trailing slash", async () => {
+    const app = buildApp("https://api.example.com/mcp/");
+    const agent = await authAsUser(app, "notAdmin");
+
+    const res = await agent.post("/mcp/service-tokens").send({name: "Configured"});
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.mcpUrl, "https://api.example.com/mcp");
+  });
+
+  it("falls back to BETTER_AUTH_URL when no publicMcpUrl is configured", async () => {
+    process.env.BETTER_AUTH_URL = "https://auth.example.com";
+    const app = buildApp();
+    const agent = await authAsUser(app, "notAdmin");
+
+    const res = await agent.post("/mcp/service-tokens").send({name: "Env"});
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.mcpUrl, "https://auth.example.com/mcp");
+  });
+
+  it("derives the URL from the request host when nothing is configured", async () => {
+    delete process.env.BETTER_AUTH_URL;
+    const app = buildApp();
+    const agent = await authAsUser(app, "notAdmin");
+
+    const res = await agent.post("/mcp/service-tokens").send({name: "Host"});
+
+    assert.equal(res.status, 200);
+    assert.match(res.body.data.mcpUrl, /^http:\/\/127\.0\.0\.1:\d+\/mcp$/);
   });
 });
 

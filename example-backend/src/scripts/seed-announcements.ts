@@ -3,7 +3,7 @@ import {logger, type SeedContext} from "@terreno/api";
 import {DateTime} from "luxon";
 
 export const seedAnnouncements = async (_context: SeedContext): Promise<void> => {
-  const existing = await Announcement.findOne({title: "Welcome to Terreno announcements"});
+  const existing = await Announcement.findOneOrNone({title: "Welcome to Terreno announcements"});
   if (existing) {
     logger.info("Skipping announcement seed — welcome announcement already exists");
     return;

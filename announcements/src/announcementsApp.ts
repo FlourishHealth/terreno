@@ -3,6 +3,7 @@ import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
+  findOneOrNoneFor,
   logger,
   type ModelRouterOptions,
   modelRouter,
@@ -250,7 +251,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
           throw new APIError({status: 404, title: "Announcement not found"});
         }
 
-        const existing = await AnnouncementAcknowledgement.findOne({
+        const existing = await findOneOrNoneFor(AnnouncementAcknowledgement, {
           announcementId: announcement._id,
           userId,
           version: announcement.version,

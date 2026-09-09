@@ -129,4 +129,120 @@ describe("updateNotes help", () => {
     const {hits} = await searchUpdateNotes({queries: ["anything"], source: "bundled"});
     expect(hits).toEqual([]);
   });
+
+  test("lists recent bundled upgrades when no query is provided", async () => {
+    const tmpDir = join("/tmp", `terreno-mcp-help-recent-${Date.now()}`);
+    mkdirSync(join(tmpDir, "upgrades"), {recursive: true});
+    writeFileSync(join(tmpDir, "upgrades", "57.0.0.md"), "Older release.");
+    writeFileSync(join(tmpDir, "upgrades", "57.1.0.md"), "Newer release.");
+    process.env.TERRENO_MCP_DOCS_DIR = tmpDir;
+
+    const {hits} = await searchUpdateNotes({limit: 1, queries: [], source: "bundled"});
+    expect(hits[0]?.id).toBe("upgrade:57.1.0");
+  });
+
+  test("searches announcement help API with separate q params", async () => {
+    const tmpDir = join("/tmp", `terreno-mcp-help-api-${Date.now()}`);
+    mkdirSync(join(tmpDir, "upgrades"), {recursive: true});
+    process.env.TERRENO_MCP_DOCS_DIR = tmpDir;
+    process.env.TERRENO_HELP_API_URL = "http://localhost:4000";
+    process.env.TERRENO_HELP_API_TOKEN = "test-token";
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      expect(url).toContain("q=billing");
+      expect(url).toContain("q=webhooks");
+      expect(init?.headers).toEqual({
+        Accept: "application/json",
+        Authorization: "Bearer test-token",
+      });
+      return new Response(
+        JSON.stringify({
+          data: [
+            {
+              excerpt: "Billing webhook update",
+              id: "abc123",
+              status: "published",
+              title: "Billing changes",
+            },
+          ],
+        }),
+        {status: 200}
+      );
+    };
+
+    const {hits, sources} = await searchUpdateNotes({
+      queries: ["billing", "webhooks"],
+      source: "announcement",
+    });
+
+    globalThis.fetch = originalFetch;
+    expect(sources).toContain("announcements-api");
+    expect(hits[0]?.id).toBe("announcement:abc123");
+    expect(hits[0]?.kind).toBe("announcement");
+  });
+
+  test("prefers announcement hits before bundled upgrades in auto mode", async () => {
+    const tmpDir = join("/tmp", `terreno-mcp-help-auto-${Date.now()}`);
+    mkdirSync(join(tmpDir, "upgrades"), {recursive: true});
+    for (let index = 0; index < 12; index += 1) {
+      writeFileSync(join(tmpDir, "upgrades", `57.${index}.0.md`), `Billing update ${index}`);
+    }
+    process.env.TERRENO_MCP_DOCS_DIR = tmpDir;
+    process.env.TERRENO_HELP_API_URL = "http://localhost:4000";
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {excerpt: "Product note", id: "live1", status: "published", title: "Billing update"},
+          ],
+        }),
+        {status: 200}
+      );
+
+    const {hits} = await searchUpdateNotes({limit: 5, queries: ["billing"], source: "auto"});
+    globalThis.fetch = originalFetch;
+
+    expect(hits[0]?.id).toBe("announcement:live1");
+    expect(hits.some((hit) => hit.kind === "upgrade")).toBe(true);
+  });
+
+  test("returns announcement detail from help API", async () => {
+    process.env.TERRENO_HELP_API_URL = "http://localhost:4000";
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      expect(String(input)).toContain("/announcements/help/abc123");
+      return new Response(
+        JSON.stringify({
+          data: {
+            body: "Full announcement body",
+            id: "abc123",
+            status: "published",
+            title: "Live update",
+          },
+        }),
+        {status: 200}
+      );
+    };
+
+    const detail = await getUpdateNote({id: "announcement:abc123"});
+    globalThis.fetch = originalFetch;
+    expect(detail.body).toContain("Full announcement body");
+    expect(detail.kind).toBe("announcement");
+  });
+
+  test("reports missing help API config for announcement detail", async () => {
+    await expect(getUpdateNote({id: "announcement:missing"})).rejects.toThrow(
+      "TERRENO_HELP_API_URL"
+    );
+  });
+
+  test("formats empty askUpdateHelp questions", async () => {
+    const answer = await askUpdateHelp({question: "   "});
+    expect(answer).toContain("non-empty");
+  });
 });
