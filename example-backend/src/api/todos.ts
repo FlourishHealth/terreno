@@ -22,7 +22,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
       },
     ],
     adminAccess: {isOwned: adminOwnedBy("ownerId")},
-    adminPermissions: {delete: []},
+    adminPermissions: {delete: [Permissions.IsAdmin]},
     bulkPatchAllowlist: ["completed", "priority", "tags"],
     defaultSort: "-created",
     displayName: "Todos",

@@ -53,6 +53,7 @@ jobs:
           - admin
           - admin-home
           - admin-form
+          - admin-todo-crud
           - admin-table-search-filter
           - admin-table-bulk-actions
           - admin-custom-screens

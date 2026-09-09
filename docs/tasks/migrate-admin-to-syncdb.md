@@ -42,7 +42,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: none
   - Acceptance: tests fail if list query params, pagination envelope, or bulk-patch URL/body change; `bun test` in admin-backend passes
 
-- [ ] **Task 1.6**: Pin `useAdminApi` URL shapes
+- [x] **Task 1.6**: Pin `useAdminApi` URL shapes
   - Delivers: isolated tests that `list/read/create/update/delete/bulk-patch` hit `/admin/{routePath}` exactly as today
   - Files: `admin-frontend/src/isolated/hooks.isolated.tsx`, `useAdminApi` tests
   - Blocked by: none
