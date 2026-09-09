@@ -105,6 +105,10 @@ export class LocalPromptStore implements PromptRegistry {
       throw new APIError({status: 400, title: "folder and name are required"});
     }
     const ObsPrompt = registerObsPrompt();
+    const existing = await ObsPrompt.findOneOrNone({name: input.name});
+    if (existing) {
+      throw new APIError({status: 409, title: `Prompt "${input.name}" already exists`});
+    }
     try {
       const prompt = await ObsPrompt.create({
         folder: input.folder,
@@ -193,6 +197,7 @@ export class LocalPromptStore implements PromptRegistry {
     tags: string[];
     versions: Array<{
       config?: Record<string, unknown>;
+      created: string;
       sensitive: boolean;
       system?: string;
       template?: string;
@@ -217,6 +222,7 @@ export class LocalPromptStore implements PromptRegistry {
       versions: versions.map((row) => {
         return {
           config: row.config,
+          created: DateTime.fromJSDate(row.created).toUTC().toISO() ?? "",
           sensitive: row.sensitive,
           system: row.system,
           template: row.template,

@@ -277,9 +277,10 @@ review screen body hide when `localOn` is false.
 
 `ai-prompts` lists prompts with a folder rail, search, type badge, latest vs production columns
 (tooltips), 7-day usage, and **Create prompt**. `ai-prompt-editor?name=` is the versioned editor:
-version rail with production/latest dots, Editor / Playground tabs, **Save as vN+1**, and
-**Set vN as production…** (modal names the outgoing version). Playground **Run once** does not
-create a version; **Save this run to dataset** stays disabled until phase 2.
+full-width version history rows show `vN`, every label attached to that version, and its creation
+time on one line. The selected row is highlighted. The editor keeps Editor / Playground tabs,
+**Save as vN+1**, and **Set vN as production…** (modal names the outgoing version). Playground
+**Run once** does not create a version; **Save this run to dataset** stays disabled until phase 2.
 
 `ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
 sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count

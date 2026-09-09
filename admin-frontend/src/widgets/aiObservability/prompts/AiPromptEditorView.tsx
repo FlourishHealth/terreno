@@ -10,6 +10,7 @@ import {
   TextArea,
   TextField,
 } from "@terreno/ui";
+import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {AiPromptPlaygroundView} from "./AiPromptPlaygroundView";
 import {
@@ -49,6 +50,40 @@ const typeOptions = [
   {label: "Chat", value: "chat"},
   {label: "Text", value: "text"},
 ];
+
+const formatVersionCreated = (created?: string): string => {
+  if (!created) {
+    return "Creation time unavailable";
+  }
+  const parsed = DateTime.fromISO(created);
+  if (!parsed.isValid) {
+    return "Creation time unavailable";
+  }
+  return parsed.toLocal().toLocaleString(DateTime.DATETIME_MED);
+};
+
+const labelsForVersion = (detail: PromptDetail, version: number): string[] => {
+  const labelOrder: Record<string, number> = {latest: 1, production: 0, staging: 2};
+  return detail.labels
+    .filter((entry) => entry.version === version)
+    .map((entry) => entry.label)
+    .sort((left, right) => {
+      return (labelOrder[left] ?? 3) - (labelOrder[right] ?? 3) || left.localeCompare(right);
+    });
+};
+
+const labelStatus = (label: string): "info" | "neutral" | "success" | "warning" => {
+  if (label === "production") {
+    return "success";
+  }
+  if (label === "latest") {
+    return "neutral";
+  }
+  if (label === "staging") {
+    return "warning";
+  }
+  return "info";
+};
 
 const parseVariables = (text: string): Array<{key: string; required: boolean}> => {
   return text
@@ -206,50 +241,61 @@ export const AiPromptEditorView: React.FC<AiPromptEditorViewProps> = ({
   const outgoingCopy = outgoingProductionCopy({detail, selectedVersion});
 
   return (
-    <Box direction="row" flex="grow" gap={4} testID="ai-prompt-editor">
-      <Box gap={2} testID="ai-prompt-version-rail" width={200}>
+    <Box flex="grow" gap={4} testID="ai-prompt-editor">
+      <Box gap={2} testID="ai-prompt-version-list">
         <Heading size="sm">Versions</Heading>
-        {detail.versions
-          .slice()
-          .sort((left, right) => right.version - left.version)
-          .map((version) => {
-            const isLatest = version.version === nextVersion - 1;
-            const isProduction = version.version === productionVersion;
-            return (
-              <Box alignItems="center" direction="row" gap={2} key={version.version}>
-                <Button
-                  onClick={() => {
-                    onSelectVersion(version.version);
-                  }}
-                  testID={`ai-prompt-version-${version.version}`}
-                  text={`v${version.version}`}
-                  variant={version.version === selectedVersion ? "primary" : "ghost"}
-                />
-                {isProduction ? (
-                  <Badge
-                    status="success"
-                    testID={`ai-prompt-dot-prod-${version.version}`}
-                    variant="status"
+        <Box border="default" rounding="md">
+          {detail.versions
+            .slice()
+            .sort((left, right) => right.version - left.version)
+            .map((version, index) => {
+              const labels = labelsForVersion(detail, version.version);
+              const isSelected = version.version === selectedVersion;
+              return (
+                <Box
+                  alignItems="center"
+                  borderBottom={index < detail.versions.length - 1 ? "default" : undefined}
+                  color={isSelected ? "secondaryLight" : undefined}
+                  direction="row"
+                  gap={2}
+                  key={version.version}
+                  padding={3}
+                  testID={`ai-prompt-version-row-${version.version}`}
+                  wrap
+                >
+                  <Button
+                    onClick={() => {
+                      onSelectVersion(version.version);
+                    }}
+                    testID={`ai-prompt-version-${version.version}`}
+                    text={`v${version.version}`}
+                    variant={isSelected ? "primary" : "ghost"}
                   />
-                ) : undefined}
-                {isLatest ? (
-                  <Badge
-                    status="info"
-                    testID={`ai-prompt-dot-latest-${version.version}`}
-                    variant="status"
-                  />
-                ) : undefined}
-              </Box>
-            );
-          })}
-        <Box gap={1}>
-          {productionVersion !== undefined ? (
-            <Badge status="success" value={`production · v${productionVersion}`} />
-          ) : (
-            <Badge status="warning" value="no production" />
-          )}
-          <Badge status="info" value={`latest · v${nextVersion - 1}`} />
+                  <Box direction="row" gap={1} wrap>
+                    {labels.map((label) => (
+                      <Badge
+                        key={label}
+                        status={labelStatus(label)}
+                        testID={`ai-prompt-label-${label}-${version.version}`}
+                        value={label}
+                      />
+                    ))}
+                  </Box>
+                  <Box flex="grow" minWidth={8} />
+                  <Text
+                    color="secondaryDark"
+                    size="sm"
+                    testID={`ai-prompt-version-created-${version.version}`}
+                  >
+                    {formatVersionCreated(version.created)}
+                  </Text>
+                </Box>
+              );
+            })}
         </Box>
+        {productionVersion === undefined ? (
+          <Badge status="warning" testID="ai-prompt-no-production" value="no production" />
+        ) : undefined}
       </Box>
       <Box flex="grow" gap={3}>
         <Heading size="md">{detail.name}</Heading>

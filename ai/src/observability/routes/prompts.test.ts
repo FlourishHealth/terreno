@@ -1,6 +1,7 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {TerrenoApp} from "@terreno/api";
 import type {LanguageModel} from "ai";
+import {assert} from "chai";
 import type express from "express";
 
 import {AIRequest} from "../../models/aiRequest";
@@ -100,6 +101,7 @@ describe("observability prompt routes", () => {
     const detail = await agent.get("/ai/observability/prompts/greeter");
     expect(detail.body.data.versions[0].system).toBe("Greet {{name}}");
     expect(detail.body.data.versions).toHaveLength(2);
+    assert.match(detail.body.data.versions[0].created, /^\d{4}-\d{2}-\d{2}T/);
 
     const playground = await agent.post("/ai/observability/prompts/greeter/playground").send({
       variables: {name: "Ada"},

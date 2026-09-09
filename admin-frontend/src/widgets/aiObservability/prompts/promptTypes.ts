@@ -22,6 +22,7 @@ export interface PromptVariable {
 
 export interface PromptVersionDetail {
   config?: Record<string, unknown>;
+  created?: string;
   inputSchema?: Record<string, unknown>;
   outputFieldNotes?: Record<string, string>;
   outputSchema?: Record<string, unknown>;

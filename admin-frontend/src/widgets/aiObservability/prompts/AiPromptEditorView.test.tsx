@@ -2,6 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {SelectField} from "@terreno/ui";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
+import {DateTime} from "luxon";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiPromptEditorView} from "./AiPromptEditorView";
@@ -24,14 +25,16 @@ const idleHandlers = {
 const detail: PromptDetail = {
   folder: "examples",
   labels: [
-    {label: "latest", version: 1},
+    {label: "latest", version: 2},
     {label: "production", version: 1},
+    {label: "staging", version: 1},
   ],
   name: "summarize",
   tags: [],
   versions: [
     {
       config: {temperature: 0.3},
+      created: "2026-01-02T03:04:00.000Z",
       sensitive: false,
       system: "You summarize.",
       template: "Summarize {{text}}",
@@ -41,6 +44,7 @@ const detail: PromptDetail = {
     },
     {
       config: {temperature: 0.5},
+      created: "2026-02-03T04:05:00.000Z",
       sensitive: false,
       system: "You summarize briefly.",
       template: "Brief {{text}}",
@@ -55,6 +59,13 @@ const detailNoProduction: PromptDetail = {
   ...detail,
   labels: [{label: "latest", version: 2}],
 };
+
+const expectedV1Created = DateTime.fromISO("2026-01-02T03:04:00.000Z")
+  .toLocal()
+  .toLocaleString(DateTime.DATETIME_MED);
+const expectedV2Created = DateTime.fromISO("2026-02-03T04:05:00.000Z")
+  .toLocal()
+  .toLocaleString(DateTime.DATETIME_MED);
 
 describe("AiPromptEditorView", () => {
   it("saves only as the next immutable version and has no in-place save control", () => {
@@ -109,7 +120,9 @@ describe("AiPromptEditorView", () => {
       await Promise.resolve();
     });
     expect(onSelectVersion).toHaveBeenCalledWith(2);
-    expect(v1.getByTestId("ai-prompt-dot-prod-1")).toBeTruthy();
+    expect(v1.getByTestId("ai-prompt-label-production-1")).toBeTruthy();
+    expect(v1.getByTestId("ai-prompt-label-staging-1")).toBeTruthy();
+    assert.equal(v1.getByTestId("ai-prompt-version-created-1").props.children, expectedV1Created);
 
     const v2 = renderWithTheme(
       <AiPromptEditorView
@@ -125,7 +138,8 @@ describe("AiPromptEditorView", () => {
       />
     );
     expect(v2.queryByTestId("ai-prompt-system")).toBeNull();
-    expect(v2.getByTestId("ai-prompt-dot-latest-2")).toBeTruthy();
+    expect(v2.getByTestId("ai-prompt-label-latest-2")).toBeTruthy();
+    assert.equal(v2.getByTestId("ai-prompt-version-created-2").props.children, expectedV2Created);
     fireEvent.changeText(v2.getByTestId("ai-prompt-template"), "Brief {{text}} updated");
     await act(async () => {
       fireEvent.press(v2.getByTestId("ai-prompt-save-next"));
