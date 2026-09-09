@@ -126,7 +126,7 @@ shipped" row links the implementation plan or roadmap item that tracks it.
 | Templates / views | `@terreno/ui` components — one universal codebase for iOS, Android, and web | Server-side rendering for web is not shipped yet ([`web-ssr-and-admin-spa`](../implementationPlans/web-ssr-and-admin-spa.md)) |
 | `manage.py` / generators | MCP server tools — the *tool* layer (`mcp-server/src/tools.ts`) + the `/terreno-*` SDLC pipeline — the *process* layer (`plugins/terreno-planning/skills/`) | Agent-driven rather than CLI-driven; the pipeline is not yet packaged for consumer apps ([`agentic-sdlc-plugin`](../implementationPlans/agentic-sdlc-plugin.md) Task 2.5) |
 | Celery / ActiveJob (background jobs) | Not shipped | On the [roadmap](../../ROADMAP.md) |
-| Migrations | No migrations framework | Schema evolution is convention plus the `mongoose-schema-safety` skill (`.claude/skills/mongoose-schema-safety/`) |
+| Migrations | No migrations framework | Schema evolution is convention plus the published `mongoose-schema-safety` skill |
 
 ## Language rules
 

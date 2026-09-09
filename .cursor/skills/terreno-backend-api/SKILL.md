@@ -241,6 +241,16 @@ Need server-side logic?
       \-- generate-sdk
 ```
 
+## Database seeds
+
+Use `runSeedCli` with ordered `SeedStep` definitions for development and test
+data. Default sync runs should use `context.upsert()` with stable business keys;
+put destructive cleanup in each step's `reset` handler. The generated CLI
+supports `--dry-run`, `--only`, and `--reset`. Production resets additionally
+require `--force` plus an approving `allowProductionReset` option.
+
+See `docs/how-to/seed-a-database.md`.
+
 ## Testing
 
 ```bash

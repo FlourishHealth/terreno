@@ -1,6 +1,7 @@
-import React, {createContext, useMemo, useState} from "react";
+import React, {createContext, useCallback, useMemo, useState} from "react";
 
 import type {TerrenoTheme, TerrenoThemeConfig, ThemePrimitives} from "./Common";
+import {TerrenoFontProvider} from "./TerrenoFontProvider";
 
 const defaultPrimitives = {
   accent000: "#FFFDF7",
@@ -220,11 +221,11 @@ export const ThemeProvider = ({children, initialPrimitives}: ThemeProviderProps)
     [providerTheme, providerPrimitives]
   );
 
-  const setPrimitives = (newPrimitives: Partial<ThemePrimitives>) => {
+  const setPrimitives = useCallback((newPrimitives: Partial<ThemePrimitives>): void => {
     setProviderPrimitives((prev) => ({...prev, ...newPrimitives}));
-  };
+  }, []);
 
-  const setTheme = (newTheme: DeepPartial<TerrenoThemeConfig>) => {
+  const setTheme = useCallback((newTheme: DeepPartial<TerrenoThemeConfig>): void => {
     setProviderTheme((prev) => {
       const mergedTheme = {...prev};
 
@@ -246,17 +247,21 @@ export const ThemeProvider = ({children, initialPrimitives}: ThemeProviderProps)
 
       return mergedTheme;
     });
-  };
+  }, []);
 
-  const resetTheme = () => {
+  const resetTheme = useCallback((): void => {
     setProviderTheme(defaultTheme);
     setProviderPrimitives(defaultPrimitives);
-  };
+  }, []);
+  const contextValue = useMemo(
+    () => ({resetTheme, setPrimitives, setTheme, theme: computedTheme}),
+    [computedTheme, resetTheme, setPrimitives, setTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{resetTheme, setPrimitives, setTheme, theme: computedTheme}}>
-      {children}
-    </ThemeContext.Provider>
+    <TerrenoFontProvider>
+      <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>
+    </TerrenoFontProvider>
   );
 };
 

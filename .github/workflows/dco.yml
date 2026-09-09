@@ -1,8 +1,7 @@
 name: DCO
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   dco:

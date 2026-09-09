@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose, {type Document, type HydratedDocument, Schema} from "mongoose";
 
 import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
@@ -116,6 +117,31 @@ describe("unpopulate edge cases", () => {
     expect(result).toEqual(doc);
   });
 
+  it("leaves unpopulated values untouched", () => {
+    const doc = {
+      name: "test",
+      // Already an id rather than a populated document.
+      ownerId: "owner-123",
+      tags: ["tag-1", "tag-2"],
+    };
+    const result = unpopulate(doc as unknown as Document<unknown>, "ownerId") as unknown as {
+      ownerId: string;
+      tags: string[];
+    };
+    assert.equal(result.ownerId, "owner-123");
+    unpopulate(doc as unknown as Document<unknown>, "tags");
+    assert.deepEqual(result.tags, ["tag-1", "tag-2"]);
+  });
+
+  it("returns the doc when a nested path is missing on the parent", () => {
+    const doc = {
+      name: "test",
+      nested: {other: "value"},
+    };
+    const result = unpopulate(doc as unknown as Document<unknown>, "nested.items");
+    assert.deepEqual(result, doc as unknown as Document<unknown>);
+  });
+
   it("handles nested array paths", () => {
     const doc = {
       containers: [
@@ -168,6 +194,14 @@ describe("fixMixedFields", () => {
     };
     fixMixedFields(schema, properties);
     expect(properties.items.items.properties.meta).toEqual({description: undefined});
+  });
+
+  it("skips arrays of sub-documents whose OpenAPI items have no properties", () => {
+    const subSchema = new Schema({meta: {type: Schema.Types.Mixed}});
+    const schema = new Schema({items: [subSchema]});
+    const properties = {items: {type: "array" as const}};
+    fixMixedFields(schema, properties);
+    assert.deepEqual(properties, {items: {type: "array"}});
   });
 
   it("skips unknown paths", () => {

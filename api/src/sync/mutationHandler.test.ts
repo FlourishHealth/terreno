@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
@@ -18,7 +16,7 @@ import {
 } from "./mutationHandler";
 import {clearSyncRegistry, registerSync} from "./registry";
 import {syncPlugin} from "./syncSeqPlugin";
-import type {SyncMutateBatchResponse, SyncMutateRequest} from "./types";
+import type {SyncConfig, SyncMutateBatchResponse, SyncMutateRequest} from "./types";
 
 interface MutStuff extends IsDeleted {
   _id: string;
@@ -40,7 +38,7 @@ const MutStuffModel = model<MutStuff>("MutStuff", mutStuffSchema);
 const owner = {_id: "mut-owner", admin: false, id: "mut-owner"} as unknown as User;
 const stranger = {_id: "mut-stranger", admin: false, id: "mut-stranger"} as unknown as User;
 
-const ownerOptions = {
+const ownerOptions: ModelRouterOptions<MutStuff> = {
   permissions: {
     create: [Permissions.IsAuthenticated],
     delete: [Permissions.IsOwner],
@@ -48,14 +46,16 @@ const ownerOptions = {
     read: [Permissions.IsAny],
     update: [Permissions.IsOwner],
   },
-} as unknown as ModelRouterOptions<any>;
+};
 
-const registerMutStuff = (overrides: Partial<Record<string, unknown>> = {}): void => {
+const registerMutStuff = (
+  overrides: {config?: Partial<SyncConfig>; options?: ModelRouterOptions<MutStuff>} = {}
+): void => {
   clearSyncRegistry();
   registerSync({
-    config: {scope: {type: "owner"}, ...(overrides.config as object)},
-    model: MutStuffModel as any,
-    options: (overrides.options as ModelRouterOptions<any>) ?? ownerOptions,
+    config: {scope: {type: "owner"}, ...overrides.config},
+    model: MutStuffModel,
+    options: overrides.options ?? ownerOptions,
     routePath: "/mutStuff",
   });
 };
@@ -743,7 +743,7 @@ describe("applySyncMutation", () => {
             read: [Permissions.IsAdmin],
             update: [Permissions.IsAdmin],
           },
-        } as unknown as ModelRouterOptions<any>,
+        },
       });
       const nack = expectNack(
         await applySyncMutation({
@@ -892,7 +892,7 @@ describe("applySyncMutation", () => {
           preCreate: () => {
             throw new APIError({status: 500, title: "database exploded"});
           },
-        } as unknown as ModelRouterOptions<any>,
+        },
       });
       const nack = expectNack(
         await applySyncMutation({
@@ -917,14 +917,14 @@ describe("applySyncMutation", () => {
       registerMutStuff({
         options: {
           ...ownerOptions,
-          preCreate: (body: unknown) => {
+          preCreate: (body) => {
             attempts += 1;
             if (attempts === 1) {
               throw new APIError({status: 500, title: "transient DB hiccup"});
             }
-            return body;
+            return body as MutStuff;
           },
-        } as unknown as ModelRouterOptions<any>,
+        },
       });
       const mutation: SyncMutateRequest = {
         collection: "mutStuff",
@@ -953,7 +953,7 @@ describe("applySyncMutation", () => {
             attempts += 1;
             throw new APIError({status: 400, title: "name is not allowed"});
           },
-        } as unknown as ModelRouterOptions<any>,
+        },
       });
       const mutation: SyncMutateRequest = {
         collection: "mutStuff",
@@ -982,7 +982,7 @@ describe("applySyncMutation", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsOwner],
           },
-        } as unknown as ModelRouterOptions<any>,
+        },
       });
       const nack = expectNack(
         await applySyncMutation({

@@ -1,13 +1,34 @@
 import {existsSync, readFileSync} from "node:fs";
 import {dirname, join, resolve} from "node:path";
 
+/** Bootstrap apps use `backend/`; this monorepo uses `example-backend/`. */
+export const BACKEND_WORKSPACE_DIR_NAMES = ["backend", "example-backend"] as const;
+
+/** Bootstrap apps use `frontend/`; this monorepo uses `example-frontend/`. */
+export const FRONTEND_WORKSPACE_DIR_NAMES = ["frontend", "example-frontend"] as const;
+
+const hasWorkspacePackage = (dir: string, dirNames: readonly string[]): boolean => {
+  return dirNames.some((name) => existsSync(join(dir, name, "package.json")));
+};
+
+/**
+ * First workspace directory that has a `package.json`. Prefers bootstrap names
+ * (`backend`, `frontend`) over example-app names.
+ */
+export const resolveFirstWorkspaceDir = (
+  root: string,
+  dirNames: readonly string[]
+): string | undefined => {
+  return dirNames.find((name) => existsSync(join(root, name, "package.json")));
+};
+
 const isTerrenoLayoutRoot = (dir: string): boolean => {
   const pkgPath = join(dir, "package.json");
   if (!existsSync(pkgPath)) {
     return false;
   }
-  const hasBackend = existsSync(join(dir, "backend", "package.json"));
-  const hasFrontend = existsSync(join(dir, "frontend", "package.json"));
+  const hasBackend = hasWorkspacePackage(dir, BACKEND_WORKSPACE_DIR_NAMES);
+  const hasFrontend = hasWorkspacePackage(dir, FRONTEND_WORKSPACE_DIR_NAMES);
   if (hasBackend && hasFrontend) {
     return true;
   }

@@ -59,6 +59,17 @@ const execHardSchema = new Schema<ExecHardStuff>({
 });
 const ExecHardModel = model<ExecHardStuff>("ExecHardStuff", execHardSchema);
 
+interface ExecUserish {
+  email: string;
+  roles?: string[];
+}
+
+const execUserishSchema = new Schema<ExecUserish>({
+  email: {description: "Login email", required: true, type: String},
+  roles: {description: "Authority-bearing roles stripped after hooks", type: [String]},
+});
+const ExecUserishModel = model<ExecUserish>("ExecUserish", execUserishSchema);
+
 const owner = {_id: "u-owner", admin: false, id: "u-owner"} as unknown as User;
 const stranger = {_id: "u-stranger", admin: false, id: "u-stranger"} as unknown as User;
 
@@ -131,6 +142,35 @@ describe("executeCreate", () => {
     );
     expect(error.status).toBe(405);
     expect(error.title).toContain("Access to CREATE on ExecStuff");
+  });
+
+  it("strips User roles after preCreate when writeModelName is User", async () => {
+    await ExecUserishModel.deleteMany({});
+    let seenRoles: unknown;
+    const {doc} = await executeCreate<ExecUserish>({
+      body: {email: "exec-roles@example.com", roles: ["superadmin"]},
+      model: ExecUserishModel,
+      options: {
+        accessControl: {} as never,
+        permissions: {
+          create: [Permissions.IsAuthenticated],
+          delete: [],
+          list: [],
+          read: [],
+          update: [],
+        },
+        preCreate: (body) => {
+          seenRoles = (body as ExecUserish).roles;
+          return body;
+        },
+      } as ModelRouterOptions<ExecUserish>,
+      user: owner,
+      writeModelName: "User",
+    });
+    assert.deepEqual(seenRoles, ["superadmin"]);
+    assert.deepEqual(doc.roles ?? [], []);
+    const stored = await ExecUserishModel.findById(doc._id).lean();
+    assert.deepEqual(stored?.roles ?? [], []);
   });
 
   it("passes a {user} stub request to preCreate when no req is provided", async () => {

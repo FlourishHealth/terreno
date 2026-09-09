@@ -1,6 +1,5 @@
-// noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
-// biome-ignore-all lint/suspicious/noExplicitAny: Schema/Query generics must be loose to accept arbitrary consumer schemas
-import type {ClientSession, Model, Query, Schema} from "mongoose";
+import type {ClientSession, Query, Schema} from "mongoose";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {claimSyncSeqs, confirmSyncSeqs, releaseSyncSeqs, SyncScopeMove} from "./models";
 import {findSyncEntryByModelName, type SyncRegistryEntry} from "./registry";
@@ -222,6 +221,17 @@ const writeScopeMoveMarker = async ({
   }
 };
 
+/** The subset of a Mongoose model the raw-collection re-stamp write needs. */
+interface RestampableModel {
+  modelName: string;
+  collection: {
+    updateOne(
+      filter: Record<string, unknown>,
+      update: Record<string, unknown>
+    ): Promise<{matchedCount?: number}>;
+  };
+}
+
 /**
  * Task 9.17: the confirm found no pending entry, meaning this writer's claim was reaped as
  * abandoned (it stalled past {@link PENDING_CLAIM_LEASE_MS} without crashing) and the
@@ -239,7 +249,7 @@ const restampReapedSeq = async ({
   stream,
   reapedSeq,
 }: {
-  model: Model<any>;
+  model: RestampableModel;
   /** The document's RAW `_id` — the native driver does no casting, so a stringified
    * ObjectId would match nothing and silently leave the doc below the frontier. */
   id: unknown;
@@ -253,10 +263,7 @@ const restampReapedSeq = async ({
   );
   try {
     const claim = await claimSyncSeqs({stream});
-    const result = await model.collection.updateOne(
-      {_id: id as any},
-      {$set: {_syncSeq: claim.lastSeq}}
-    );
+    const result = await model.collection.updateOne({_id: id}, {$set: {_syncSeq: claim.lastSeq}});
     if ((result.matchedCount ?? 0) === 0) {
       logger.error("[sync] Re-stamp matched no document; releasing the re-stamp claim", {
         entityId: String(id),
@@ -287,16 +294,18 @@ const restampReapedSeq = async ({
   }
 };
 
-export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
+export const syncPlugin = (schema: Schema): void => {
   // Task 9.13: `doc.save()` must be conditional on the version the document was loaded at,
   // so the `baseVersion` comparison in executeUpdate cannot be defeated by a concurrent
   // save landing between the read and the write.
   if (!schema.options.versionKey) {
-    throw new Error(
-      "syncPlugin requires a versionKey on the schema: sync relies on Mongoose " +
+    throw new APIError({
+      status: 500,
+      title:
+        "syncPlugin requires a versionKey on the schema: sync relies on Mongoose " +
         "optimisticConcurrency to make the baseVersion conflict check atomic. " +
-        "Remove `versionKey: false` from the schema options."
-    );
+        "Remove `versionKey: false` from the schema options.",
+    });
   }
   schema.set("optimisticConcurrency", true);
 
@@ -318,7 +327,9 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
   // Capture the stream the document belonged to when it was loaded, so scope moves can
   // be detected at save time without re-querying.
   schema.post("init", function () {
-    const entry = findSyncEntryByModelName((this.constructor as Model<any>).modelName);
+    const entry = findSyncEntryByModelName(
+      (this.constructor as unknown as {modelName: string}).modelName
+    );
     if (!entry) {
       return;
     }
@@ -338,7 +349,9 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
   }
 
   schema.pre("save", async function () {
-    const entry = findSyncEntryByModelName((this.constructor as Model<any>).modelName);
+    const entry = findSyncEntryByModelName(
+      (this.constructor as unknown as {modelName: string}).modelName
+    );
     if (!entry) {
       return;
     }
@@ -409,7 +422,7 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
         // running, so the frontier already passed the seq we just committed.
         const restamped = await restampReapedSeq({
           id: this._id,
-          model: this.constructor as Model<any>,
+          model: this.constructor as unknown as RestampableModel,
           reapedSeq: pending.claim.seqs[pending.claim.seqs.length - 1],
           stream: pending.currentStream,
         });
@@ -446,8 +459,11 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
   // Keep arity ≥ 3 so Kareem still classifies this as error middleware.
   schema.post(
     "save",
-    async function (error: any, doc: any, _next: (err?: Error) => void): Promise<void> {
-      const locals = (this?.$locals ?? doc?.$locals) as Record<string, unknown> | undefined;
+    async function (error: unknown, doc: unknown, _next: (err?: Error) => void): Promise<void> {
+      const locals = (this?.$locals ??
+        (doc as {$locals?: Record<string, unknown>} | undefined)?.$locals) as
+        | Record<string, unknown>
+        | undefined;
       const pending = locals?.[PENDING_COMMIT_KEY] as PendingSaveCommit | undefined;
       if (locals) {
         locals[PENDING_COMMIT_KEY] = undefined;
@@ -469,11 +485,11 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
   // Mongoose 9 insertMany pre hooks are async (no `next` callback) and receive docs + options.
   schema.pre(
     "insertMany",
-    async function (docs: any | Array<any>, options?: {session?: ClientSession | null}) {
+    async function (docs: unknown, options?: {session?: ClientSession | null}) {
       const docsArray = Array.isArray(docs)
         ? (docs as Record<string, unknown>[])
         : [docs as Record<string, unknown>];
-      const model = this as unknown as Model<any>;
+      const model = this as unknown as {modelName: string};
       const entry = findSyncEntryByModelName(model.modelName);
       if (!entry || docsArray.length === 0) {
         return;
@@ -509,22 +525,21 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
       return;
     }
     const modelName = ((docs[0] as {constructor?: {modelName?: string}})?.constructor?.modelName ??
-      (this as unknown as Model<any>).modelName) as string | undefined;
+      (this as unknown as {modelName?: string}).modelName) as string | undefined;
     const entry = modelName ? findSyncEntryByModelName(modelName) : undefined;
     if (!entry) {
       return;
     }
     const seqsByStream = new Map<string, number[]>();
-    for (const doc of docs as Record<string, any>[]) {
+    for (const doc of docs as Array<
+      Record<string, unknown> & {$session?: () => unknown; toObject?: () => Record<string, unknown>}
+    >) {
       // A session-backed claim registered nothing to confirm, and a `$pull` issued outside
       // the caller's still-open transaction would conflict with its counter write.
       if (typeof doc?.$session === "function" && doc.$session()) {
         continue;
       }
-      const obj = (typeof doc?.toObject === "function" ? doc.toObject() : doc) as Record<
-        string,
-        unknown
-      >;
+      const obj = typeof doc?.toObject === "function" ? doc.toObject() : doc;
       const seq = obj._syncSeq;
       if (typeof seq !== "number") {
         continue;
@@ -547,8 +562,18 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
 
   // Single-document query writes: fetch the target to resolve its stream (and detect
   // scope moves), claim a seq, and merge the stamp into the update.
-  const preQueryWrite = async function (this: Query<any, any>): Promise<void> {
-    const model = this.model as Model<any>;
+  /** What a query-write's post hook must finish once the write commits. */
+  interface PendingQueryConfirm {
+    claim: {registered: boolean; seqs: number[]};
+    currentStream: string;
+    entityId: string;
+    entry: SyncRegistryEntry;
+    prevStream: string | null;
+    session: ClientSession | null;
+  }
+
+  const preQueryWrite = async function (this: Query<unknown, never>): Promise<void> {
+    const model = this.model;
     const entry = findSyncEntryByModelName(model.modelName);
     if (!entry) {
       return;
@@ -582,7 +607,7 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     const targetObj = target.toObject() as Record<string, unknown>;
     const previousStream = streamForObject(entry, targetObj);
 
-    const rawUpdate = (this.getUpdate() ?? {}) as Record<string, any>;
+    const rawUpdate = (this.getUpdate() ?? {}) as Record<string, unknown>;
     // Only replaceOne/findOneAndReplace replace the document. A plain object passed to
     // updateOne/findOneAndUpdate is an IMPLICIT $set in Mongoose — treating it as a
     // replacement would resolve the scope value as undefined and claim the wrong stream.
@@ -653,7 +678,7 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
     }
     this.setUpdate(rawUpdate);
     // Stash the claim + move info so the query post hook confirms/records after commit.
-    (this as unknown as {_syncPendingConfirm?: unknown})._syncPendingConfirm = {
+    (this as unknown as {_syncPendingConfirm?: PendingQueryConfirm})._syncPendingConfirm = {
       claim,
       currentStream,
       entityId: String(target._id),
@@ -665,20 +690,15 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
 
   // C1/C4: after the query write commits, confirm the claimed seq and record the
   // scope-move marker. Query post middleware `this` is the Query (not a document).
-  const postQueryWrite = async function (this: Query<any, any>): Promise<void> {
-    const pending = (this as unknown as {_syncPendingConfirm?: any})._syncPendingConfirm;
+  const postQueryWrite = async function (this: Query<unknown, never>): Promise<void> {
+    const pending = (this as unknown as {_syncPendingConfirm?: PendingQueryConfirm})
+      ._syncPendingConfirm;
     if (!pending) {
       return;
     }
-    (this as unknown as {_syncPendingConfirm?: unknown})._syncPendingConfirm = undefined;
-    const {claim, currentStream, entityId, entry, prevStream, session} = pending as {
-      claim: {registered: boolean; seqs: number[]};
-      currentStream: string;
-      entityId: string;
-      entry: SyncRegistryEntry;
-      prevStream: string | null;
-      session: ClientSession | null;
-    };
+    (this as unknown as {_syncPendingConfirm?: PendingQueryConfirm})._syncPendingConfirm =
+      undefined;
+    const {claim, currentStream, entityId, entry, prevStream, session} = pending;
     if (claim.registered) {
       await confirmSyncSeqs({seqs: claim.seqs, stream: currentStream}).catch((error: unknown) => {
         logger.error("[sync] Failed to confirm seq after query write", {
@@ -711,8 +731,8 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
 
   // Unsupported multi-document / hard-delete paths throw for registered models.
   const guardQuery = (operation: string) =>
-    function (this: Query<any, any>): void {
-      const model = this.model as Model<any>;
+    function (this: Query<unknown, never>): void {
+      const model = this.model;
       if (findSyncEntryByModelName(model.modelName)) {
         throw unsupportedWrite(model.modelName, operation);
       }
@@ -722,7 +742,9 @@ export const syncPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.pre("deleteOne", {document: false, query: true}, guardQuery("deleteOne"));
   schema.pre("findOneAndDelete", guardQuery("findOneAndDelete"));
   schema.pre("deleteOne", {document: true, query: false}, function () {
-    const entry = findSyncEntryByModelName((this.constructor as Model<any>).modelName);
+    const entry = findSyncEntryByModelName(
+      (this.constructor as unknown as {modelName: string}).modelName
+    );
     if (entry) {
       throw unsupportedWrite(entry.modelName, "document deleteOne (hard delete)");
     }

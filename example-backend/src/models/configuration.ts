@@ -663,17 +663,15 @@ export const ConfigurationDB = mongoose.model<ConfigurationDocument, Configurati
 );
 
 // Define custom statics after model creation
-ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDocument | null> {
-  return this.findOneOrNone({key});
+ConfigurationDB.getByKey = async (key: string): Promise<ConfigurationDocument | null> => {
+  return ConfigurationDB.findOneOrNone({key});
 };
 
-// noExplicitAny: Setting a static method on the model.
-// biome-ignore lint/suspicious/noExplicitAny: Setting a static method on the model.
-(ConfigurationDB as any).setValue = async function (
+ConfigurationDB.setValue = async (
   key: string,
   value: ConfigValueType
-): Promise<ConfigurationDocument> {
-  const existing = await this.findOneOrNone({key});
+): Promise<ConfigurationDocument> => {
+  const existing = await ConfigurationDB.findOneOrNone({key});
 
   if (existing) {
     existing.value = value;
@@ -688,7 +686,7 @@ ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDo
     type = "boolean";
   }
 
-  return this.create({
+  return ConfigurationDB.create({
     key,
     type,
     value,

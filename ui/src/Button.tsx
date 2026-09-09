@@ -7,7 +7,7 @@ import {
   PressableWithoutFeedback,
 } from "pressto";
 import type React from "react";
-import {lazy, Suspense, useCallback, useMemo, useState} from "react";
+import {lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "react-native";
 
 import {Box} from "./Box";
@@ -35,25 +35,65 @@ const PRESSABLE_BY_ANIMATION: Record<
 
 type ButtonPressableProps = CustomPressableProps & PressableProps;
 
-const ButtonComponent: React.FC<ButtonProps> = ({
-  confirmationText = "Are you sure you want to continue?",
+interface ButtonVisualProps extends Omit<ButtonProps, "onClick"> {
+  children?: React.ReactNode;
+  isLoading: boolean;
+  onPress: () => void;
+}
+
+interface DebouncedPress {
+  endPressCooldown: () => void;
+  onPress: () => void;
+}
+
+const useDebouncedPress = (handlePress: () => Promise<void>): DebouncedPress => {
+  const debouncedHandlePress = useMemo(
+    () => debounce(handlePress, 500, {leading: true, trailing: false}),
+    [handlePress]
+  );
+
+  // Cancel retained debounce timers when the callback changes or the button unmounts.
+  useEffect((): (() => void) => {
+    return (): void => {
+      debouncedHandlePress.cancel();
+    };
+  }, [debouncedHandlePress]);
+
+  const endPressCooldown = useCallback((): void => {
+    debouncedHandlePress.cancel();
+  }, [debouncedHandlePress]);
+
+  return {endPressCooldown, onPress: debouncedHandlePress};
+};
+
+const useMountedRef = (): React.RefObject<boolean> => {
+  const isMountedRef = useRef(true);
+
+  // Prevent async press completions from updating state after the button unmounts.
+  useEffect((): (() => void) => {
+    return (): void => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  return isMountedRef;
+};
+
+const ButtonVisual: React.FC<ButtonVisualProps> = ({
+  children,
   disabled = false,
   fullWidth = false,
   iconName,
   iconPosition = "left",
-  loading: propsLoading,
-  modalTitle = "Confirm",
-  modalSubTitle,
+  isLoading,
+  onPress,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   size = "default",
   testID,
   text,
   variant = "primary",
   withConfirmation = false,
-  onClick,
 }) => {
-  const [loading, setLoading] = useState(propsLoading);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
   const CustomIcon = useCustomIcon(iconName);
 
@@ -93,36 +133,11 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     };
   }, [disabled, variant, theme]);
 
-  const handlePress = useCallback(async (): Promise<void> => {
-    await Unifier.utils.haptic();
-    setLoading(true);
-
-    try {
-      // If a confirmation is required, and the confirmation modal is not currently open,
-      // open it.
-      if (withConfirmation && !showConfirmation) {
-        setShowConfirmation(true);
-      } else if (!withConfirmation && onClick) {
-        // If a confirmation is not required, perform the action.
-        await onClick();
-      }
-    } catch (error) {
-      setLoading(false);
-      throw error;
-    }
-    setLoading(false);
-  }, [onClick, showConfirmation, withConfirmation]);
-
-  const debouncedHandlePress = useMemo(
-    () => debounce(handlePress, 500, {leading: true, trailing: false}),
-    [handlePress]
-  );
-
   if (!theme) {
     return null;
   }
 
-  const isPressDisabled = disabled || Boolean(loading);
+  const isPressDisabled = disabled || isLoading;
   const PressableComponent = (
     isPressDisabled ? Pressable : PRESSABLE_BY_ANIMATION[pressAnimation]
   ) as React.ComponentType<ButtonPressableProps>;
@@ -137,7 +152,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{disabled: isPressDisabled}}
       {...pressableInteractionProps}
-      onPress={debouncedHandlePress}
+      onPress={onPress}
       style={{
         alignItems: "center",
         alignSelf: fullWidth ? "stretch" : "flex-start",
@@ -173,22 +188,96 @@ const ButtonComponent: React.FC<ButtonProps> = ({
           )}
           <Text style={{color, fontSize: size === "sm" ? 14 : 16, fontWeight: "700"}}>{text}</Text>
         </View>
-        {Boolean(loading) && (
+        {isLoading && (
           <Box marginLeft={2}>
             <ActivityIndicator color={color} size="small" />
           </Box>
         )}
       </View>
-      {withConfirmation && showConfirmation && (
+      {children}
+    </PressableComponent>
+  );
+};
+
+const PlainButton: React.FC<ButtonProps> = (props) => {
+  const {loading = false, onClick} = props;
+  const {
+    confirmationText: _confirmationText,
+    modalSubTitle: _modalSubTitle,
+    modalTitle: _modalTitle,
+    onClick: _onClick,
+    withConfirmation: _withConfirmation,
+    ...visualProps
+  } = props;
+  const [isHandlingPress, setIsHandlingPress] = useState(false);
+  const isMountedRef = useMountedRef();
+  const handlePress = useCallback(async (): Promise<void> => {
+    await Unifier.utils.haptic();
+    if (!isMountedRef.current) {
+      return;
+    }
+    setIsHandlingPress(true);
+
+    try {
+      await onClick();
+    } catch (error) {
+      if (isMountedRef.current) {
+        setIsHandlingPress(false);
+      }
+      throw error;
+    }
+    if (isMountedRef.current) {
+      setIsHandlingPress(false);
+    }
+  }, [isMountedRef, onClick]);
+  const {onPress} = useDebouncedPress(handlePress);
+
+  return <ButtonVisual {...visualProps} isLoading={loading || isHandlingPress} onPress={onPress} />;
+};
+
+const ConfirmationButton: React.FC<ButtonProps> = ({
+  confirmationText = "Are you sure you want to continue?",
+  loading = false,
+  modalSubTitle,
+  modalTitle = "Confirm",
+  onClick,
+  ...props
+}) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const isMountedRef = useMountedRef();
+  const handlePress = useCallback(async (): Promise<void> => {
+    await Unifier.utils.haptic();
+    if (!isMountedRef.current) {
+      return;
+    }
+    setShowConfirmation(true);
+  }, [isMountedRef]);
+  const {endPressCooldown, onPress} = useDebouncedPress(handlePress);
+  // The press debounce only guards opening the modal, so closing it must clear the
+  // cooldown or a quick reopen after Cancel, dismiss, or Confirm would be swallowed.
+  const handleDismiss = useCallback((): void => {
+    endPressCooldown();
+    if (isMountedRef.current) {
+      setShowConfirmation(false);
+    }
+  }, [endPressCooldown, isMountedRef]);
+  const handleConfirm = useCallback(async (): Promise<void> => {
+    await onClick();
+    endPressCooldown();
+    if (isMountedRef.current) {
+      setShowConfirmation(false);
+    }
+  }, [endPressCooldown, isMountedRef, onClick]);
+
+  return (
+    <ButtonVisual {...props} isLoading={loading} onPress={onPress} withConfirmation>
+      {showConfirmation && (
         <Suspense fallback={null}>
           <LazyModal
-            onDismiss={() => setShowConfirmation(false)}
-            primaryButtonOnClick={async (): Promise<void> => {
-              await onClick();
-              setShowConfirmation(false);
-            }}
+            onDismiss={handleDismiss}
+            primaryButtonOnClick={handleConfirm}
             primaryButtonText="Confirm"
-            secondaryButtonOnClick={() => setShowConfirmation(false)}
+            secondaryButtonOnClick={handleDismiss}
             secondaryButtonText="Cancel"
             subtitle={modalSubTitle}
             text={confirmationText}
@@ -197,13 +286,18 @@ const ButtonComponent: React.FC<ButtonProps> = ({
           />
         </Suspense>
       )}
-    </PressableComponent>
+    </ButtonVisual>
   );
 };
 
-export const Button: React.FC<ButtonProps> = (props) => {
+const ButtonRender: React.FC<ButtonProps> = (props) => {
   const {tooltipText, tooltipIdealPosition, tooltipIncludeArrow = false} = props;
   const isMobileOrNative = isMobileDevice() || isNative();
+  const button = props.withConfirmation ? (
+    <ConfirmationButton {...props} />
+  ) : (
+    <PlainButton {...props} />
+  );
 
   if (tooltipText && !isMobileOrNative) {
     return (
@@ -212,10 +306,14 @@ export const Button: React.FC<ButtonProps> = (props) => {
         includeArrow={tooltipIncludeArrow}
         text={tooltipText}
       >
-        <ButtonComponent {...props} />
+        {button}
       </Tooltip>
     );
   }
 
-  return <ButtonComponent {...props} />;
+  return button;
 };
+
+const MemoizedButton = memo(ButtonRender);
+
+export const Button: React.FC<ButtonProps> = MemoizedButton;

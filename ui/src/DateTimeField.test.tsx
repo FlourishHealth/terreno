@@ -1367,6 +1367,60 @@ describe("DateTimeField", () => {
     });
   });
 
+  describe("value assembled purely from segments", () => {
+    it("emits an ISO built from the entered fields when no value prop is set", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+
+      await user.type(getByPlaceholderText("hh"), "09");
+      await user.type(getByPlaceholderText("mm"), "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      const emitted = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]?.[0] as string;
+      const parsed = DateTime.fromISO(emitted).setZone("America/New_York");
+      assert.isTrue(parsed.isValid);
+      assert.equal(parsed.hour, 9);
+      assert.equal(parsed.minute, 45);
+    });
+
+    it("emits an ISO assembled from every datetime segment", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value=""
+        />
+      );
+
+      await user.type(getByPlaceholderText("MM"), "05");
+      await user.type(getByPlaceholderText("DD"), "15");
+      await user.type(getByPlaceholderText("YYYY"), "2023");
+      await user.type(getByPlaceholderText("hh"), "09");
+      await user.type(getByPlaceholderText("mm"), "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      const emitted = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]?.[0] as string;
+      const parsed = DateTime.fromISO(emitted).setZone("America/New_York");
+      assert.isTrue(parsed.isValid);
+      assert.equal(parsed.year, 2023);
+      assert.equal(parsed.month, 5);
+      assert.equal(parsed.day, 15);
+      assert.equal(parsed.hour, 9);
+      assert.equal(parsed.minute, 45);
+      assert.equal(parsed.offsetNameShort, "EDT");
+    });
+  });
+
   describe("timezone abbreviation", () => {
     it("falls back to the current time when there is no value and no complete segments", () => {
       setMobile();

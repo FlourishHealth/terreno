@@ -1,4 +1,5 @@
 import type express from "express";
+import {DateTime} from "luxon";
 import type {User} from "../auth";
 import {logger} from "../logger";
 import {
@@ -56,7 +57,7 @@ let lastEvictionAt = 0;
  * Returns the number of windows still retained.
  */
 export const evictExpiredSyncMutationWindows = ({
-  now = Date.now(),
+  now = DateTime.now().toMillis(),
 }: {
   now?: number;
 } = {}): number => {
@@ -93,7 +94,7 @@ const consumeMutationBudget = ({
   userId: string;
   weight: number;
 }): number | undefined => {
-  const now = Date.now();
+  const now = DateTime.now().toMillis();
   maybeEvictExpiredWindows(now);
   const existing = mutationWindows.get(userId);
   const window =

@@ -1,3 +1,4 @@
+import {APIError} from "../errors";
 import type {PermissionSet} from "./statements";
 
 export const unionPermissionSets = (...sets: PermissionSet[]): PermissionSet => {
@@ -72,11 +73,11 @@ export const validatePermissionSet = (
   for (const [resource, actions] of Object.entries(permissions)) {
     const allowedActions = statements[resource];
     if (!allowedActions) {
-      throw new Error(`Unknown resource: ${resource}`);
+      throw new APIError({status: 500, title: `Unknown resource: ${resource}`});
     }
     for (const action of actions) {
       if (!allowedActions.includes(action)) {
-        throw new Error(`Unknown permission: ${resource}:${action}`);
+        throw new APIError({status: 500, title: `Unknown permission: ${resource}:${action}`});
       }
     }
   }

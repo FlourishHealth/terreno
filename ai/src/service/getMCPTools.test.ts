@@ -1,6 +1,15 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import {clearMCPRegistry, Permissions, registerMCPModel, type User} from "@terreno/api";
+import {
+  clearMCPRegistry,
+  type MCPToolResult,
+  Permissions,
+  registerMCPModel,
+  registerMCPTool,
+  type User,
+} from "@terreno/api";
+import {assert} from "chai";
 import mongoose, {Schema} from "mongoose";
+import {z} from "zod";
 
 import {getMCPTools} from "./getMCPTools";
 
@@ -64,5 +73,56 @@ describe("getMCPTools", () => {
         data: expect.objectContaining({title: "From AI tools"}),
       })
     );
+  });
+
+  it("exposes custom tools with their description and json schema", async () => {
+    registerMCPTool({
+      description: "Echoes structured json back to the caller",
+      handler: async (args): Promise<MCPToolResult> => ({
+        content: [{text: JSON.stringify({echoed: args.value}), type: "text"}],
+      }),
+      name: "echo_json",
+      zodSchema: z.object({value: z.string()}),
+    });
+
+    const tools = getMCPTools();
+    assert.deepEqual(Object.keys(tools), ["echo_json"]);
+    assert.equal(tools.echo_json.description, "Echoes structured json back to the caller");
+    assert.deepEqual(await tools.echo_json.execute?.({value: "hi"}), {echoed: "hi"});
+  });
+
+  it("returns joined plain text when the tool response is not json", async () => {
+    registerMCPTool({
+      description: "Returns prose",
+      handler: async (): Promise<MCPToolResult> => ({
+        content: [
+          {text: "first line", type: "text"},
+          {text: "second line", type: "text"},
+        ],
+      }),
+      name: "prose",
+      zodSchema: z.object({}),
+    });
+
+    const tools = getMCPTools();
+    assert.equal(await tools.prose.execute?.({}), "first line\nsecond line");
+  });
+
+  it("passes the authenticated user through to custom tool handlers", async () => {
+    const seenUserIds: (string | undefined)[] = [];
+    registerMCPTool({
+      description: "Records the calling user",
+      handler: async (_args, user): Promise<MCPToolResult> => {
+        seenUserIds.push(user?.id);
+        return {content: [{text: "ok", type: "text"}]};
+      },
+      name: "whoami",
+      zodSchema: z.object({}),
+    });
+
+    const user = asUser();
+    await getMCPTools(user).whoami.execute?.({});
+    await getMCPTools().whoami.execute?.({});
+    assert.deepEqual(seenUserIds, [user.id, undefined]);
   });
 });

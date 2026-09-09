@@ -110,6 +110,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
+    "precompile": "test -f ui-types-documentation.json || bun run generate-types",
     "prestart": "test -f ui-types-documentation.json || bun run generate-types",
     "preweb": "test -f ui-types-documentation.json || bun run generate-types",
     "start": "RCT_METRO_PORT=8085 NODE_OPTIONS=--openssl-legacy-provider expo start --port 8085",

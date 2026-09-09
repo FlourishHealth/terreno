@@ -1,5 +1,3 @@
-// noExplicitAny: test mocks use dynamic shapes for sockets and auth stubs
-// biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets and auth stubs
 /**
  * Full validator matrix for the socket authentication chain (D1):
  *   - Legacy JWT validator (valid / expired / wrong-secret / wrong-issuer / missing token)
@@ -12,28 +10,34 @@
  * subscribe/mutate socket handlers) into its own file per the syncdb hardening plan.
  */
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import jwt from "jsonwebtoken";
+import type {Socket} from "socket.io";
 
+import type {UserModel} from "../auth";
 import {
   type AuthenticatableSocket,
+  type BetterAuthSocketOptions,
   createBetterAuthValidator,
   createLegacyJwtValidator,
   createSocketAuthMiddleware,
 } from "./socketAuth";
 
+type StubbedAuth = BetterAuthSocketOptions["auth"];
+
 describe("socketAuth", () => {
   const tokenSecret = "socket-auth-test-secret";
 
-  const makeAuthSocket = (token?: string): AuthenticatableSocket & {decodedToken?: any} => ({
+  const makeAuthSocket = (token?: string): AuthenticatableSocket => ({
     handshake: {auth: token === undefined ? {} : {token}},
   });
 
   const runMiddleware = (
-    middleware: (socket: any, next: (error?: Error) => void) => void,
+    middleware: (socket: Socket, next: (error?: Error) => void) => void,
     socket: AuthenticatableSocket
   ): Promise<Error | undefined> =>
     new Promise((resolve) => {
-      middleware(socket, (error?: Error) => resolve(error));
+      middleware(socket as unknown as Socket, (error?: Error) => resolve(error));
     });
 
   describe("createLegacyJwtValidator", () => {
@@ -142,16 +146,20 @@ describe("socketAuth", () => {
   });
 
   describe("createBetterAuthValidator", () => {
-    const stubAuth = (session: unknown, capture?: {headers?: unknown}): any => ({
-      api: {
-        getSession: async ({headers}: {headers: unknown}) => {
-          if (capture) {
-            capture.headers = headers;
-          }
-          return session;
+    const stubAuth = (
+      session: unknown,
+      capture?: {headers?: Record<string, string>}
+    ): StubbedAuth =>
+      ({
+        api: {
+          getSession: async ({headers}: {headers: Record<string, string>}) => {
+            if (capture) {
+              capture.headers = headers;
+            }
+            return session;
+          },
         },
-      },
-    });
+      }) as unknown as StubbedAuth;
 
     it("populates decodedToken from a valid Better Auth session", async () => {
       const validator = createBetterAuthValidator({
@@ -177,15 +185,15 @@ describe("socketAuth", () => {
     });
 
     it("passes the token as a bearer authorization header only", async () => {
-      const capture: {headers?: any} = {};
+      const capture: {headers?: Record<string, string>} = {};
       const validator = createBetterAuthValidator({
         auth: stubAuth({session: {id: "s"}, user: {id: "u"}}, capture),
       });
       await validator(makeAuthSocket("Bearer session-token-xyz"));
-      expect(capture.headers.authorization).toBe("Bearer session-token-xyz");
+      expect(capture.headers?.authorization).toBe("Bearer session-token-xyz");
       // A raw (unsigned) token cookie fails signature verification and can shadow the
       // bearer path, so the validator must not send one.
-      expect(capture.headers.cookie).toBeUndefined();
+      expect(capture.headers?.cookie).toBeUndefined();
     });
 
     it("rejects when the session lookup returns null", async () => {
@@ -211,7 +219,7 @@ describe("socketAuth", () => {
         query.betterAuthId === "ba-user-1" ? appUser : null;
       const validator = createBetterAuthValidator({
         auth: stubAuth({session: {id: "s"}, user: {id: "ba-user-1"}}),
-        userModel: {...userModel, findOneOrNone} as any,
+        userModel: {...userModel, findOneOrNone} as unknown as UserModel,
       });
       const socket = makeAuthSocket("session-token");
       await validator(socket);
@@ -226,7 +234,7 @@ describe("socketAuth", () => {
     it("rejects when the Better Auth user has no application user", async () => {
       const validator = createBetterAuthValidator({
         auth: stubAuth({session: {id: "s"}, user: {id: "ba-orphan"}}),
-        userModel: {findOneOrNone: async () => null} as any,
+        userModel: {findOneOrNone: async () => null} as unknown as UserModel,
       });
       await expect(validator(makeAuthSocket("session-token"))).rejects.toThrow(
         "no application user"
@@ -235,6 +243,34 @@ describe("socketAuth", () => {
   });
 
   describe("createSocketAuthMiddleware — validator chain", () => {
+    it("authenticates with Better Auth when no JWT secret is configured", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only"}})},
+          } as unknown as BetterAuthSocketOptions["auth"],
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.deepEqual(socket.decodedToken, {
+        admin: false,
+        authKind: "better-auth",
+        id: "ba-only",
+        isAnonymous: false,
+      });
+    });
+
+    it("rejects configuration with no authentication validators", () => {
+      assert.throws(
+        () => createSocketAuthMiddleware({}),
+        "At least one socket authentication validator is required"
+      );
+    });
+
     it("accepts a legacy JWT with the default chain", async () => {
       const middleware = createSocketAuthMiddleware({tokenSecret});
       const token = jwt.sign({admin: false, id: "chain-user"}, tokenSecret);
@@ -258,7 +294,7 @@ describe("socketAuth", () => {
         betterAuth: {
           auth: {
             api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-user-2"}})},
-          } as any,
+          } as unknown as StubbedAuth,
         },
         tokenSecret,
       });
@@ -273,12 +309,28 @@ describe("socketAuth", () => {
       });
     });
 
+    it("accepts Better Auth sessions without a legacy JWT secret", async () => {
+      const middleware = createSocketAuthMiddleware({
+        betterAuth: {
+          auth: {
+            api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-only-user"}})},
+          } as unknown as StubbedAuth,
+        },
+      });
+      const socket = makeAuthSocket("better-auth-session-token");
+      const error = await runMiddleware(middleware, socket);
+
+      assert.isUndefined(error);
+      assert.strictEqual(socket.decodedToken?.id, "ba-only-user");
+      assert.strictEqual(socket.decodedToken?.authKind, "better-auth");
+    });
+
     it("falls through to Better Auth when the JWT is expired", async () => {
       const middleware = createSocketAuthMiddleware({
         betterAuth: {
           auth: {
             api: {getSession: async () => ({session: {id: "s"}, user: {id: "ba-fallback"}})},
-          } as any,
+          } as unknown as StubbedAuth,
         },
         tokenSecret,
       });
@@ -298,7 +350,7 @@ describe("socketAuth", () => {
                 throw new Error("should not be called for a valid JWT");
               },
             },
-          } as any,
+          } as unknown as StubbedAuth,
         },
         tokenSecret,
       });
@@ -312,7 +364,7 @@ describe("socketAuth", () => {
 
     it("rejects with the last validator's error when every validator fails", async () => {
       const middleware = createSocketAuthMiddleware({
-        betterAuth: {auth: {api: {getSession: async () => null}} as any},
+        betterAuth: {auth: {api: {getSession: async () => null}} as unknown as StubbedAuth},
         tokenSecret,
       });
       const socket = makeAuthSocket("neither-jwt-nor-session");

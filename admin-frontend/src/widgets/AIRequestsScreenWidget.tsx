@@ -1,5 +1,6 @@
-import {AIRequestExplorer, type AIRequestExplorerData, Page} from "@terreno/ui";
+import {AIRequestExplorer, type AIRequestExplorerData} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
+import {AdminScreenPage} from "../AdminScreenPage";
 import {asDynamicHookApi} from "../dynamicHookApi";
 import type {AdminScreenWidgetProps, EndpointBuilder, ScreenWidgetComponent} from "../types";
 
@@ -14,7 +15,7 @@ interface AIRequestsResponse {
   total: number;
 }
 
-export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) => {
+export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api, routeBase}) => {
   const [page, setPage] = useState(1);
   const [requestTypeFilter, setRequestTypeFilter] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -68,7 +69,7 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) 
   const total = data?.total ?? 0;
 
   return (
-    <Page maxWidth="100%" scroll title="AI Request Explorer">
+    <AdminScreenPage backHref={routeBase} maxWidth="100%" scroll title="AI Request Explorer">
       <AIRequestExplorer
         data={data?.data ?? []}
         endDate={endDate}
@@ -84,7 +85,7 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api}) 
         totalCount={total}
         totalPages={Math.ceil(total / EXPLORER_LIMIT)}
       />
-    </Page>
+    </AdminScreenPage>
   );
 };
 

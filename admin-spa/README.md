@@ -1,5 +1,7 @@
 # @terreno/admin-spa
 
+Opt-in admin SPA (Expo Router web app) plus an Express plugin that serves it from a Terreno backend.
+
 Opt-in package that lets any Terreno backend serve a pre-built admin SPA from the
 same Node process — no separate static-site deploy to GCS/Netlify/Cloudflare Pages.
 
@@ -124,3 +126,11 @@ populated.
 | Deploy | Served by the API process at `/console` | Bundled into the consumer's Expo app |
 | Backend footprint | Opt-in; no React in default image | n/a |
 | Auth | Better-Auth same-origin cookies | Consumer's existing auth |
+
+## Documentation
+
+Full API reference: [docs/reference/admin-spa.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/admin-spa.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

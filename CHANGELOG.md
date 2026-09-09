@@ -17,6 +17,35 @@ dated section below when cutting a release.
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
+## [57.2.0] - 2026-08-24
+
+Upgrade note: [`mcp-server/src/docs/upgrades/57.2.0.md`](mcp-server/src/docs/upgrades/57.2.0.md).
+
+### Breaking
+
+- Lifecycle stage handoff YAML is now compact `v: 2` (`v`, `stage`, `status`, `next`,
+  `action`; omit empty keys). Outer loops that parse `schema_version` / `recommended_next_stage`
+  must switch keys. Chat and PRs keep the YAML in a Details toggle. Grow lists every grilled
+  decision in an unbounded table after the 15-line index, or omits that table when there were
+  none, and stays on a question until the answer is executable.
+
+### Added
+
+- Admin RBAC is now first-class: `admin:access` is the only permission that opens the admin
+  page. Per-model access is `read` / `write` / `writeOwned` (with `isOwned` helpers and custom
+  `authorize` callbacks). The shell hides models, custom screens, scripts, and Platform tools
+  the caller cannot use; row update/delete follow per-record capabilities; roles use a
+  one-select access level; denied forms are read-only.
+
+### Changed
+
+- Upgraded the toolchain to Bun 1.4. The GitHub Actions jobs that pinned an exact
+  Bun version now use `1.4.0`, `@types/bun` and `bun-types` move to `^1.4.0`, and
+  apps scaffolded by `@terreno/mcp` get `@types/bun@^1.4.0`. Contributors should
+  run Bun 1.4 or newer locally. EAS build profiles keep their existing Bun pin:
+  `eas.json` is an Expo fingerprint input, so bumping it would change the native
+  runtime version and force a rebuild for a toolchain-only change.
+
 ## [57.1.0] - 2026-08-23
 
 Upgrade note: [`mcp-server/src/docs/upgrades/57.1.0.md`](mcp-server/src/docs/upgrades/57.1.0.md).

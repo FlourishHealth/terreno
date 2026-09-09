@@ -8,7 +8,12 @@ export interface RoadmapItem {
   url: string;
 }
 
-export const TARGET_ORDER = ["0.28", "0.29", "Next", "Future"] as const;
+/**
+ * Render order for `## Target:` sections. Must stay deep-equal to the `target`
+ * list in `.github/roadmap-fields.yml` (asserted in checkRoadmapItem.test.ts).
+ * `Released` sits last so shipped history renders below upcoming work.
+ */
+export const TARGET_ORDER = ["57.3", "58", "Next", "Future", "Released"] as const;
 
 export const AREA_ORDER = [
   "api",
@@ -25,6 +30,15 @@ export const AREA_ORDER = [
 ] as const;
 
 export const DECLINED_STATUS = "Declined";
+
+/**
+ * Roadmap issues are marked with the `roadmap` label, not a title prefix. Older
+ * issues were titled `[Roadmap] <thing>`, so that legacy prefix is stripped
+ * here — both for rendering and for matching a board issue to a seed entry.
+ */
+export const displayTitle = (title: string): string => {
+  return title.replace(/^\s*\[Roadmap\]\s*/, "").trim() || title.trim();
+};
 
 const compareByArea = (left: RoadmapItem, right: RoadmapItem): number => {
   const leftIndex = AREA_ORDER.indexOf(left.area as (typeof AREA_ORDER)[number]);
@@ -127,7 +141,7 @@ export const renderRoadmapMarkdown = ({
           item.ipSlug === null || item.ipSlug === ""
             ? ""
             : ` — IP: [${item.ipSlug}](docs/implementationPlans/${item.ipSlug}.md)`;
-        lines.push(`- [${item.title}](${item.url}) (${item.impact}, ${item.status})${ipLink}`);
+        lines.push(`- [${displayTitle(item.title)}](${item.url}) (${item.impact}, ${item.status})${ipLink}`);
       }
       lines.push("");
     }

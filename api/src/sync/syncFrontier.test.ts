@@ -1,5 +1,3 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
@@ -84,7 +82,14 @@ const FrontierModel = model<FrontierStuff>("FrontierStuff", frontierSchema);
 
 const stubOptions = {
   permissions: {create: [], delete: [], list: [], read: [], update: []},
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<FrontierStuff>;
+
+type ScopeMoveCreate = (...args: Parameters<typeof SyncScopeMove.create>) => Promise<unknown>;
+
+// Mongoose's `create` is overloaded, so the marker-retry tests swap it out through a
+// single-signature view of the model.
+const scopeMovePatch = SyncScopeMove as unknown as {create: ScopeMoveCreate};
+const originalScopeMoveCreate: ScopeMoveCreate = SyncScopeMove.create.bind(SyncScopeMove);
 
 describe("C1 claimSyncSeqs / confirmSyncSeqs / computeStableFrontier", () => {
   beforeAll(async () => {
@@ -216,7 +221,7 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {field: "orgId", type: "tenant"}} as SyncConfig,
-      model: FrontierModel as any,
+      model: FrontierModel,
       options: stubOptions,
       routePath: "/frontierStuff",
     });
@@ -422,19 +427,18 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
 
   it("C4: a transient marker-write failure on the query path is retried until it lands", async () => {
     const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
-    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
     let attempts = 0;
-    (SyncScopeMove as any).create = async (...args: any[]) => {
+    scopeMovePatch.create = async (...args) => {
       attempts += 1;
       if (attempts === 1) {
         throw new Error("transient marker write failure");
       }
-      return originalCreate(...(args as Parameters<typeof originalCreate>));
+      return originalScopeMoveCreate(...args);
     };
     try {
       await FrontierModel.updateOne({_id: doc._id}, {$set: {orgId: "org2"}});
     } finally {
-      (SyncScopeMove as any).create = originalCreate;
+      scopeMovePatch.create = originalScopeMoveCreate;
     }
     expect(attempts).toBe(2);
     const markers = await SyncScopeMove.find({entityId: String(doc._id)});
@@ -444,20 +448,19 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
 
   it("C4: a transient marker-write failure on the save path is retried until it lands", async () => {
     const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
-    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
     let attempts = 0;
-    (SyncScopeMove as any).create = async (...args: any[]) => {
+    scopeMovePatch.create = async (...args) => {
       attempts += 1;
       if (attempts === 1) {
         throw new Error("transient marker write failure");
       }
-      return originalCreate(...(args as Parameters<typeof originalCreate>));
+      return originalScopeMoveCreate(...args);
     };
     try {
       doc.orgId = "org2";
       await doc.save();
     } finally {
-      (SyncScopeMove as any).create = originalCreate;
+      scopeMovePatch.create = originalScopeMoveCreate;
     }
     expect(attempts).toBe(2);
     const markers = await SyncScopeMove.find({entityId: String(doc._id)});
@@ -467,9 +470,8 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
 
   it("C4: an exhausted marker-write retry is logged, never failing the committed write", async () => {
     const doc = await FrontierModel.create({name: "n", orgId: "org1", ownerId: "u1"});
-    const originalCreate = SyncScopeMove.create.bind(SyncScopeMove);
     let attempts = 0;
-    (SyncScopeMove as any).create = async () => {
+    scopeMovePatch.create = async () => {
       attempts += 1;
       throw new Error("permanent marker write failure");
     };
@@ -477,7 +479,7 @@ describe("C1 write-path guards (m9 / m10) + C4 scope-move markers", () => {
       // The document write already committed — a marker failure must not surface as an error.
       await FrontierModel.updateOne({_id: doc._id}, {$set: {orgId: "org2"}});
     } finally {
-      (SyncScopeMove as any).create = originalCreate;
+      scopeMovePatch.create = originalScopeMoveCreate;
     }
     expect(attempts).toBe(SCOPE_MOVE_MARKER_ATTEMPTS);
     expect(await SyncScopeMove.countDocuments({entityId: String(doc._id)})).toBe(0);

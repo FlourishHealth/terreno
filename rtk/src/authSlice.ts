@@ -66,9 +66,7 @@ export interface GoogleLoginRequest {
 }
 
 export const generateProfileEndpoints = (
-  // noExplicitAny: Generic
-  // biome-ignore lint/suspicious/noExplicitAny: Generic
-  builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, any, string>,
+  builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, string, string>,
   path: string
 ) => {
   return {
@@ -120,8 +118,8 @@ export const generateProfileEndpoints = (
   };
 };
 
-// noExplicitAny: Generic
-// biome-ignore lint/suspicious/noExplicitAny: Generic
+// noExplicitAny: generateAuthSlice attaches to consumer OpenAPI-generated APIs whose EndpointDefinitions differ per app; Api's Definitions generic must stay open
+// biome-ignore lint/suspicious/noExplicitAny: generateAuthSlice attaches to consumer OpenAPI-generated APIs whose EndpointDefinitions differ per app
 export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   const authSlice = createSlice({
     extraReducers: (builder) => {

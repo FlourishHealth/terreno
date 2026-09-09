@@ -22,7 +22,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
   `Shaping` issue. **Update that issue** — set the `IP` field and move it
   `Shaping → Planned`. That issue was created before the IP existed, so it does **not**
   contain the IP slug; Step 2 locates it via the IP header `Roadmap issue:` link, the
-  `[Roadmap]` title, or the originating discussion, not by a slug search. Never open a
+  `roadmap` label, or the originating discussion, not by a slug search. Never open a
   second issue for the same work.
 - If the IP is internal-origin with no discussion behind it, **create** the issue here at
   `Planned`.
@@ -83,9 +83,9 @@ stop at the first real hit:
    ```bash
    gh issue list --search "\"$IP_SLUG\" in:body" --state all --json number,title,url,state
    ```
-3. **The `[Roadmap]` title or the originating discussion link** — then match by outcome:
+3. **The `roadmap` label or the originating discussion link** — then match by outcome:
    ```bash
-   gh issue list --search "\"[Roadmap]\" in:title" --state all --json number,title,url
+   gh issue list --label roadmap --state all --limit 200 --json number,title,url
    ```
 
 If a maintainer promoted this work, ask them for the issue number rather than guessing.
@@ -99,7 +99,7 @@ had a slug.
 
 House style, matching the seed issues:
 
-- **Title:** `[Roadmap] <outcome>`
+- **Title:** the outcome in plain language. **No `[Roadmap]` prefix** — the `roadmap` label marks it
 - **Body:** two or three paragraphs of plain language — what is broken or missing today, what changes when it ships, and what is explicitly out of scope. No task breakdown; that is the task list's job
 - **Links:** the IP and the task list, as full GitHub URLs (the docs site excludes `implementationPlans/` and `tasks/`, so relative links break there)
 - **Dependencies:** name them and link their issues
@@ -107,10 +107,11 @@ House style, matching the seed issues:
 ### 4. Validate
 
 ```bash
-bun run roadmap:check --labels "area:deploy,type:feature" --status Planned --target Next --impact Improvement --area deploy
+bun run roadmap:check --on-board --labels "roadmap,area:deploy,type:feature" --status Planned --target Next --impact Improvement --area deploy
 ```
 
-Run it with no arguments to list every valid option.
+Run it with no arguments to list every valid option. `--on-board` adds the board-item rules,
+including the required `roadmap` label.
 
 ### 5. Plan and confirm (required)
 
@@ -125,15 +126,48 @@ Print, then **stop and wait**:
 
 ### 6. Apply, after approval
 
-```bash
-gh issue create --title "$TITLE" --body-file "$BODY_FILE" --label "area:deploy,type:feature"
-gh project item-add "$PROJECT_NUMBER" --owner FlourishHealth --url "$ISSUE_URL"
+**Do not touch the board directly.** Write the entry into
+[`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md)
+and let the sync tool do the rest — that document is the repo's declaration of what belongs
+on the board, and hand-added items fail `roadmap:sync --check`. Apply does not delete those
+cards; add a seed entry or remove the card by hand.
+
+Add a `##` section in the house style above:
+
+```markdown
+## <ip-slug>
+
+**Title:** `<outcome>`
+
+**Labels:** `area:deploy`, `type:feature`
+**Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`<ip-slug>`, Status=`Planned`
+
+<body paragraphs>
 ```
 
-Resolve field IDs with `gh project field-list "$PROJECT_NUMBER" --owner FlourishHealth --format json` before `gh project item-edit`, or set single-selects in the UI.
+Then, with a token carrying `project` scope:
+
+```bash
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --dry-run   # review the plan
+GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --create-missing-issues
+```
+
+The `roadmap` label is added by `roadmap:sync` itself, so leave it off the `**Labels:**` line.
+
+`roadmap:sync` opens the tracking issue, applies the labels, adds the board item, and sets
+every field value. It is idempotent — updating an existing entry means editing the section and
+re-running, never opening a second issue. Omit `--create-missing-issues` when the issue
+already exists.
+
+Add the new issue URL to the IP's `**Roadmap issue:**` header in the same change. That pointer
+is what keeps `roadmap:reconcile` from reporting the entry as orphaned.
 
 ### 7. Report
 
-Give the issue URL, the labels and fields actually applied, and anything the maintainer still needs to set by hand.
+Give the issue URL, the labels and fields actually applied, and anything the maintainer still
+needs to set by hand (`Community interest` is always manual).
 
-`ROADMAP.md` is generated from the board on a schedule — do not hand-edit it to match. If the maintainer wants it refreshed now, run `bun run roadmap:generate` (needs `GITHUB_TOKEN` with `read:project` and `TERRENO_PROJECT_NUMBER`).
+`ROADMAP.md` is generated from the board — do not hand-edit it to match. It refreshes daily,
+on merges that touch IPs or task files, and on demand with `bun run roadmap:generate` (needs
+`GITHUB_TOKEN` with `read:project` and `TERRENO_PROJECT_NUMBER`; read the number with
+`gh variable get TERRENO_PROJECT_NUMBER`).

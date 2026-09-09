@@ -637,15 +637,14 @@ export interface BoxPropsBase extends WithTestID {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
-      // noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      [key: string]: any;
+      [key: string]: unknown;
     };
   };
   direction?: "row" | "column";
   smDirection?: "row" | "column";
   mdDirection?: "row" | "column";
   lgDirection?: "row" | "column";
+  xlDirection?: "row" | "column";
   display?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   smDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   mdDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
@@ -1121,7 +1120,11 @@ export interface LayoutChangeEvent {
   };
 }
 
-export interface SplitPageProps {
+export interface SplitPageListItem {
+  id: string;
+}
+
+export interface SplitPageProps<TItem extends SplitPageListItem = SplitPageListItem> {
   /**
    * can accept either one React Child or any array of ReactChild. If this is not provided,
    * renderContent must return one or many ReactChild.
@@ -1141,21 +1144,15 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
+  renderListViewItem: (itemInfo: ListRenderItemInfo<TItem>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  // noExplicitAny: list data type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
-  listViewData: any[];
+  listViewData: TItem[];
   listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  // noExplicitAny: callback value type varies by consumer's data model
-  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
-  onSelectionChange?: (value?: any) => void | Promise<void>;
+  onSelectionChange?: (value?: ListRenderItemInfo<TItem>) => void | Promise<void>;
 }
 
 export type PermissionKind =
@@ -1708,6 +1705,91 @@ export interface ThumbsUpDownFeedbackProps extends WithTestID {
   value?: ThumbsUpDownFeedbackValue;
 }
 
+export type PopoverStatus = "loading" | "loaded" | "error";
+
+export interface PopoverProps extends WithTestID {
+  /**
+   * The body of the document, rendered under the header when status is "loaded". Use this for
+   * rich content; prefer `text` for a plain summary.
+   */
+  children?: React.ReactNode;
+  /**
+   * Supporting copy shown under the error title.
+   * @default "Something went wrong while loading this document. Check your connection and try again."
+   */
+  errorText?: string;
+  /**
+   * Title shown in the error state.
+   * @default "Couldn't load this document"
+   */
+  errorTitle?: string;
+  /**
+   * The currently selected feedback on the document. Only shown when `onFeedbackChange` is set.
+   */
+  feedback?: ThumbsUpDownFeedbackValue;
+  /**
+   * Height of the popover. The popover is the same height in every status: the body scrolls when
+   * it overflows, and the spinner and error message are centered in the remaining space.
+   * @default 480
+   */
+  height?: NumberOrPercentage;
+  /**
+   * Header text shown while the document is loading.
+   * @default "Loading document..."
+   */
+  loadingText?: string;
+  /**
+   * Called when the close button is pressed.
+   */
+  onClose: () => void | Promise<void>;
+  /**
+   * Called with the newly selected feedback, or undefined when the current value is deselected.
+   * When omitted, the thumbs up/down controls are hidden.
+   */
+  onFeedbackChange?: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
+  /**
+   * Called when the "Open" action is pressed. When omitted, the action is hidden.
+   */
+  onOpen?: () => void | Promise<void>;
+  /**
+   * Called when the "Try again" button is pressed in the error state. When omitted, the button
+   * is hidden.
+   */
+  onRetry?: () => void | Promise<void>;
+  /**
+   * Text of the action that opens the full document.
+   * @default "Open"
+   */
+  openText?: string;
+  /**
+   * Text of the button that retries loading in the error state.
+   * @default "Try again"
+   */
+  retryText?: string;
+  /**
+   * The state of the document being previewed.
+   * @default "loaded"
+   */
+  status?: PopoverStatus;
+  /**
+   * Secondary header line, usually the document's date.
+   */
+  subtitle?: string;
+  /**
+   * A plain text summary of the document, rendered when no `children` are provided.
+   */
+  text?: string;
+  /**
+   * The document's title, shown in the header when status is "loaded".
+   */
+  title?: string;
+  /**
+   * Width of the popover.
+   * @default 480
+   */
+  width?: NumberOrPercentage;
+}
+
 export interface SelectBadgeProps {
   /**
    * When status is "custom", determines the badge's background color.
@@ -2077,24 +2159,31 @@ export interface HeightActionSheetProps {
   title?: string;
 }
 
+export interface LinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  text: string;
+  url: string;
+}
+
+export interface LinkifyItLike {
+  pretest: (text: string) => boolean;
+  test: (text: string) => boolean;
+  match: (text: string) => LinkifyMatch[] | null;
+}
+
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  // noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  linkify?: any;
-  // noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  linkStyle?: StyleProp<any>;
+  linkify?: LinkifyItLike;
+  linkStyle?: StyleProp<TextStyle>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
-  // noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  injectViewProps?: (url: string) => any;
+  injectViewProps?: (url: string) => Record<string, unknown>;
   children?: React.ReactNode;
-  // noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  style?: StyleProp<any>;
+  style?: StyleProp<ViewStyle | TextStyle>;
 }
 
 export interface IconButtonProps extends WithTestID {
@@ -2283,6 +2372,8 @@ export interface PageProps extends WithTestID {
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;
+  /** When set, invoked instead of `router.back()` for the header back arrow. */
+  onBack?: () => void;
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;
@@ -2836,6 +2927,14 @@ export type TapToEditProps =
       });
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
+  /**
+   * Root test id. Forwards to the Field input and suffixes action controls for e2e:
+   * `{testID}.edit-clickable`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
+   * The edit control is a pressable Box (`-clickable` is appended by Box).
+   * Cancel/Clear/Save only render when the user opened edit from inside the
+   * component, not when `isEditing` is true.
+   */
+  testID?: string;
   title: string;
   // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)

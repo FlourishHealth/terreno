@@ -1,7 +1,7 @@
 // noExplicitAny: test harness doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import type {AdminApi, AdminConfigResponse} from "./types";

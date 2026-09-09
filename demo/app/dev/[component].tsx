@@ -1,5 +1,5 @@
 import {ErrorBoundary} from "@components/ErrorBoundary";
-import {DemoConfig} from "@config";
+import {DemoConfig, findDemoConfig} from "@config";
 import {Box} from "@terreno/ui";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
@@ -9,7 +9,7 @@ export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.n
 const DevComponentPage: FC = () => {
   const {component, story} = useLocalSearchParams<{component: string; story?: string}>();
 
-  const config = DemoConfig.find((c) => c.name === component);
+  const config = findDemoConfig(component);
 
   const navigation = useNavigation();
   // Set the title
@@ -17,13 +17,22 @@ const DevComponentPage: FC = () => {
     navigation.setOptions({title: story});
   }, [navigation, story]);
 
+  // Redirect to /dev when the story can't be resolved. Kept in an effect so the hooks above
+  // always run in the same order, and paired with the early return below so the render never
+  // reads stories off a missing config.
+  useEffect(() => {
+    if (!story || !config) {
+      router.replace("/dev");
+    }
+  }, [config, story]);
+
   if (!story || !config) {
-    router.replace("/dev");
+    return null;
   }
 
   return (
     <Box flex="grow" height="100%" width="100%">
-      <ErrorBoundary>{config!.stories[story!]?.render()}</ErrorBoundary>
+      <ErrorBoundary>{config.stories[story]?.render()}</ErrorBoundary>
     </Box>
   );
 };

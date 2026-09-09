@@ -1,15 +1,39 @@
 # Terreno Overview
 
-A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
+Terreno is Django/Rails for TypeScript — with universal app support.
+
+Terreno is Django/Rails for TypeScript — a batteries-included, full-stack
+framework where the undifferentiated 80% of an app is already written. On the
+backend you get Mongoose models, auto-generated REST APIs, permissions, an admin
+panel, authentication, and an AI service. On the frontend you get one universal
+app — a single React Native codebase that ships to iOS, Android, and web. It is
+built to be driven by AI coding agents from the first prompt to a production
+deploy.
+
+- Batteries included — auth, CRUD APIs, admin, permissions, AI, realtime,
+  feature flags, and consent are already built, so your code is business logic.
+- Universal by default — one React Native codebase ships to iOS, Android, and
+  web. Not a web framework with a mobile bolt-on.
+- AI-native — agents are a first-class client of the framework, not an
+  afterthought.
+
+Terreno's AI-native story has two layers. The tool layer is a Model Context
+Protocol (MCP) server that gives coding agents codegen, documentation search,
+and component reference for the framework's conventions. The process layer is the
+`/terreno-*` SDLC pipeline — plan, implement test-first, verify in a fresh
+context, submit with evidence, then own the review loop — which today runs inside
+the Terreno repository while its consumer-installable packaging is finished.
+Django gives you `manage.py startapp`; Terreno is building a reviewed path from a
+request to a mergeable pull request.
 
 ## Packages
 
-- **@terreno/api** - REST API framework built on Express/Mongoose
-- **@terreno/ui** - React Native UI component library
-- **@terreno/syncdb** - Local-first data layer (primary path for collection CRUD)
-- **@terreno/rtk** - OpenAPI SDK, Better Auth Redux, feature flags (legacy for data sync)
-- **@terreno/ai** - AI service layer
-- **@terreno/admin-backend** / **@terreno/admin-frontend** / **@terreno/admin-spa** - Admin panel stack
+- **@terreno/api** — REST API framework for Express/Mongoose (modelRouter, auth, OpenAPI)
+- **@terreno/ui** — React Native UI component library for iOS, Android, and web
+- **@terreno/syncdb** — Local-first data layer (primary path for collection CRUD)
+- **@terreno/rtk** — OpenAPI SDK, Better Auth Redux, feature flags (legacy for data sync)
+- **@terreno/ai** — Provider-agnostic AI service
+- **@terreno/admin-backend** / **@terreno/admin-frontend** / **@terreno/admin-spa** — Admin panel stack
 
 New apps: **syncdb + Better Auth** for data and auth; **rtk** for generated SDK hooks on non-synced routes only.
 

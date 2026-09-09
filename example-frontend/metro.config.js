@@ -34,13 +34,19 @@ const resolveSymlink = (modulePath) => {
   }
 };
 
+const resolveDep = (packageName) =>
+  resolveSymlink(
+    require.resolve(`${packageName}/package.json`, {paths: [projectRoot, monorepoRoot]})
+      .replace(/\/package\.json$/, "")
+  );
+
 // Ensure all packages use the same React instance to avoid "Invalid hook call" errors
-// Use realpath to resolve through symlinks to the actual .bun cache location
+// Use realpath to resolve through bun's hoisted node_modules (or leftover per-package installs)
 const sharedDependencies = {
-  react: resolveSymlink(path.resolve(projectRoot, "node_modules/react")),
-  "react-dom": resolveSymlink(path.resolve(projectRoot, "node_modules/react-dom")),
-  "react-native": resolveSymlink(path.resolve(projectRoot, "node_modules/react-native")),
-  "react-native-web": resolveSymlink(path.resolve(projectRoot, "node_modules/react-native-web")),
+  react: resolveDep("react"),
+  "react-dom": resolveDep("react-dom"),
+  "react-native": resolveDep("react-native"),
+  "react-native-web": resolveDep("react-native-web"),
 };
 
 const expoRouterEntryPath = resolveSymlink(require.resolve("expo-router/entry"));
@@ -56,6 +62,10 @@ const expoRouterEntryBundlePath = expoRouterEntryPathFromMonorepo
 config.resolver.extraNodeModules = {
   ...sharedDependencies,
   ...monorepoPackages,
+  // extraNodeModules maps `@terreno/syncdb` to the package root, which makes
+  // `@terreno/syncdb/react` look for `syncdb/react` and skip package.json exports.
+  "@terreno/syncdb/react": path.resolve(monorepoRoot, "syncdb/src/react/index.ts"),
+  "@terreno/syncdb/testing": path.resolve(monorepoRoot, "syncdb/src/testing/index.ts"),
 };
 
 // 2. Let Metro know where to resolve packages and in what order

@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useCallback, useRef, useState} from "react";
 import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -44,6 +44,9 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
+  const [isMarkdownLoaded, setIsMarkdownLoaded] = useState(false);
+  const lastContentHeightRef = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
   const content = variables
@@ -64,32 +67,77 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
   const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
-  // Auto-satisfy scroll requirement when content fits within the viewport
-  const handleContentSizeChange = (_w: number, h: number) => {
-    setContentHeight(h);
-    if (!hasScrolledToBottom && h > 0 && layoutHeight > 0 && h <= layoutHeight) {
-      setHasScrolledToBottom(true);
-    }
-  };
-
-  const handleLayout = (event: LayoutChangeEvent) => {
-    const h = event.nativeEvent.layout.height;
-    setLayoutHeight(h);
-    if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
-      setHasScrolledToBottom(true);
-    }
-  };
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (hasScrolledToBottom) {
+  const handleMarkdownLoad = useCallback((): void => {
+    lastContentHeightRef.current = 0;
+    setContentHeight(0);
+    setHasScrolledToBottom(!form.requireScrollToBottom);
+    setIsMarkdownLoaded(true);
+    if (!form.requireScrollToBottom || Platform.OS !== "web") {
       return;
     }
-    const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
-    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    if (distanceFromBottom <= 20) {
-      setHasScrolledToBottom(true);
-    }
-  };
+    requestAnimationFrame(() => {
+      const scrollNode = scrollViewRef.current?.getScrollableNode() as unknown as {
+        clientHeight?: number;
+        scrollHeight?: number;
+      };
+      if (
+        typeof scrollNode?.clientHeight !== "number" ||
+        typeof scrollNode.scrollHeight !== "number"
+      ) {
+        return;
+      }
+      setHasScrolledToBottom(scrollNode.scrollHeight <= scrollNode.clientHeight);
+    });
+  }, [form.requireScrollToBottom]);
+
+  // Auto-satisfy only after markdown exists. Empty Spinner fallback (300ms delay) must not
+  // unlock Agree. Reset only when content grows past the viewport, not when the hint unmounts.
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number): void => {
+      const previousContentH = lastContentHeightRef.current;
+      lastContentHeightRef.current = h;
+      setContentHeight(h);
+      if (!form.requireScrollToBottom || !isMarkdownLoaded || layoutHeight <= 0 || h <= 0) {
+        return;
+      }
+      if (h <= layoutHeight) {
+        setHasScrolledToBottom(true);
+        return;
+      }
+      if (previousContentH > 0 && h > previousContentH) {
+        setHasScrolledToBottom(false);
+      }
+    },
+    [form.requireScrollToBottom, isMarkdownLoaded, layoutHeight]
+  );
+
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent): void => {
+      const h = event.nativeEvent.layout.height;
+      setLayoutHeight(h);
+      if (!form.requireScrollToBottom || !isMarkdownLoaded || contentHeight <= 0 || h <= 0) {
+        return;
+      }
+      if (contentHeight <= h) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [contentHeight, form.requireScrollToBottom, isMarkdownLoaded]
+  );
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      if (!isMarkdownLoaded || hasScrolledToBottom) {
+        return;
+      }
+      const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
+      const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom <= 20) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [hasScrolledToBottom, isMarkdownLoaded]
+  );
 
   const handleCheckboxPress = (index: number) => {
     const checkbox = form.checkboxes[index];
@@ -189,13 +237,14 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
         onScroll={handleScroll}
+        ref={scrollViewRef}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
         style={{alignSelf: "center", flex: 1, maxWidth: 800, width: "100%"}}
         testID="consent-form-scroll-view"
       >
         <Box direction="column" gap={3} paddingY={2}>
-          <MarkdownView>{content}</MarkdownView>
+          <MarkdownView onLoad={handleMarkdownLoad}>{content}</MarkdownView>
 
           {form.checkboxes.length > 0 && (
             <Box direction="column" gap={2} testID="consent-form-checkboxes">

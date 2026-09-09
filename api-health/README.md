@@ -1,5 +1,7 @@
 # @terreno/api-health
 
+Health check plugin for @terreno/api.
+
 Health check TerrenoPlugin for `@terreno/api` — adds a configurable `GET /health` endpoint with optional custom checks.
 
 ## Install

@@ -23,8 +23,11 @@ export const WORKFLOW_PARAMETERS: Record<string, string> = {
   "example-backend-script-runner": "run-example-backend-script",
   "example-frontend-ci": "run-example-frontend",
   "mcp-server-ci": "run-mcp-server",
+  "new-file-coverage": "run-new-file-coverage",
   "repo-policies": "run-repo-policies",
   "rtk-ci": "run-rtk",
+  "rulesync-check": "run-rulesync",
+  "syncdb-ci": "run-syncdb",
   "ui-ci": "run-ui",
   "ui-demo-ci": "run-ui-demo",
 };
@@ -41,6 +44,7 @@ export interface Gap {
 }
 
 interface SetupConfig {
+  setup?: boolean;
   workflows?: {
     setup?: {
       jobs?: {"path-filtering/filter"?: {mapping?: string}}[];
@@ -59,17 +63,26 @@ interface WorkflowConfig {
 
 const parseYaml = <T>(path: string): T => Bun.YAML.parse(readFileSync(path, "utf8")) as T;
 
-const SETUP_CONFIG_FILES = ["config.setup.yml", "config.yml"] as const;
+const SETUP_CONFIG_FILES = ["config.yml", "config.setup.yml"] as const;
+
+const isSetupConfig = (config: SetupConfig): boolean => {
+  return config.setup === true;
+};
 
 const readSetupConfig = ({repoRoot}: {repoRoot: string}): SetupConfig => {
+  const candidates: {path: string; config: SetupConfig}[] = [];
   for (const fileName of SETUP_CONFIG_FILES) {
     const path = join(repoRoot, ".circleci", fileName);
     if (!existsSync(path)) {
       continue;
     }
-    return parseYaml<SetupConfig>(path);
+    candidates.push({config: parseYaml<SetupConfig>(path), path});
   }
-  throw new Error("no CircleCI setup config found (.circleci/config.setup.yml or config.yml)");
+  if (candidates.length === 0) {
+    throw new Error("no CircleCI setup config found (.circleci/config.yml or config.setup.yml)");
+  }
+  const enabled = candidates.find((candidate) => isSetupConfig(candidate.config));
+  return enabled?.config ?? candidates[0].config;
 };
 
 export const readMappings = ({repoRoot}: {repoRoot: string}): Mapping[] => {
@@ -150,7 +163,7 @@ export const collectParityGaps = ({
   const mappings = readMappings({repoRoot});
   if (mappings.length === 0) {
     throw new Error(
-      "no path-filtering mapping found in .circleci/config.setup.yml or .circleci/config.yml"
+      "no path-filtering mapping found in .circleci/config.yml or .circleci/config.setup.yml"
     );
   }
 

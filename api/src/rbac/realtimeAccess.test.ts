@@ -13,7 +13,13 @@ import {
 } from "./realtimeAccess";
 import {OwnerScope} from "./scopes";
 import {terrenoStatements} from "./statements";
-import type {AnyTerrenoAccess} from "./types";
+import type {
+  AccessCheckArgs,
+  AccessResult,
+  AnyTerrenoAccess,
+  PermissionRequest,
+  Statements,
+} from "./types";
 
 const appStatements = {
   ...terrenoStatements,
@@ -40,6 +46,19 @@ const makeEntry = (options: RealtimeRegistryEntry["options"]): RealtimeRegistryE
   options,
   routePath: "/todos",
 });
+
+const makeStubAccess = ({
+  allowed,
+  onCheck,
+}: {
+  allowed: boolean;
+  onCheck?: (args: AccessCheckArgs<Statements>) => AccessResult | undefined;
+}): AnyTerrenoAccess =>
+  ({
+    can: async (args: AccessCheckArgs<Statements>): Promise<AccessResult> =>
+      onCheck?.(args) ?? {allowed},
+    statements: appStatements,
+  }) as unknown as AnyTerrenoAccess;
 
 describe("realtimeAccess", () => {
   it("uses accessControl permissions for subscriptions", async () => {
@@ -238,5 +257,94 @@ describe("realtimeAccess", () => {
     const entry = makeEntry({});
     const doc = {title: "Plain"};
     expect(await maskRealtimeDocument(entry, undefined, doc, "read")).toBe(doc);
+  });
+
+  it("falls back to the read action when the resource has no list statement", async () => {
+    await setupDb();
+    const readOnlyStatements = {
+      ...terrenoStatements,
+      note: ["create", "read", "update", "delete"],
+    } as const;
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Note Reader",
+          name: "note-reader",
+          permissions: {note: ["read"]},
+        },
+      ],
+      statements: readOnlyStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createTestUser({roles: ["note-reader"]});
+    const entry = makeEntry({
+      access: {resource: "note"},
+      accessControl: access as AnyTerrenoAccess,
+    });
+
+    expect(await canSubscribeRealtime(entry, "list", user)).toBe(true);
+  });
+
+  it("returns false for document reads when the read action override is null", async () => {
+    const user = createTestUser();
+    const entry = makeEntry({
+      access: {actions: {read: null}, resource: "todo"},
+      accessControl: makeStubAccess({allowed: true}),
+    });
+
+    expect(await canReadDocumentRealtime(entry, user, {title: "Any"})).toBe(false);
+  });
+
+  it("denies scoped document reads for anonymous subscribers", async () => {
+    const entry = makeEntry({
+      access: {resource: "todo", scope: {check: () => true}},
+      accessControl: makeStubAccess({allowed: true}),
+    });
+
+    expect(await canReadDocumentRealtime(entry, undefined, {title: "Any"})).toBe(false);
+  });
+
+  it("re-checks permissions returned by a scope check", async () => {
+    const permissionRequests: PermissionRequest<Statements>[] = [];
+    const user = createTestUser();
+    const entry = makeEntry({
+      access: {
+        resource: "todo",
+        scope: {check: () => ({todo: ["update"]})},
+      },
+      accessControl: makeStubAccess({
+        allowed: true,
+        onCheck: (args) => {
+          permissionRequests.push(args.permissions);
+          return undefined;
+        },
+      }),
+    });
+
+    expect(await canReadDocumentRealtime(entry, user, {title: "Any"})).toBe(true);
+    expect(permissionRequests).toEqual([{todo: ["read"]}, {todo: ["update"]}]);
+  });
+
+  it("denies document reads when scope permissions are not granted", async () => {
+    const user = createTestUser();
+    const entry = makeEntry({
+      access: {
+        resource: "todo",
+        scope: {check: () => ({todo: ["delete"]})},
+      },
+      accessControl: makeStubAccess({
+        allowed: true,
+        onCheck: (args) => {
+          if (args.permissions.todo?.includes("delete")) {
+            return {allowed: false};
+          }
+          return undefined;
+        },
+      }),
+    });
+
+    expect(await canReadDocumentRealtime(entry, user, {title: "Any"})).toBe(false);
   });
 });

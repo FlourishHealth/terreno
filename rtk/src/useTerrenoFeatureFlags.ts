@@ -1,5 +1,5 @@
 import {NOOP_PROVIDER, OpenFeature, TypedInMemoryProvider} from "@openfeature/web-sdk";
-import type {Api} from "@reduxjs/toolkit/query/react";
+import type {Api, BaseQueryFn, EndpointDefinitions} from "@reduxjs/toolkit/query/react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 
 /** Shape returned by `GET .../flagConfiguration` (OpenFeature static flag map). */
@@ -34,13 +34,30 @@ export interface UseTerrenoFeatureFlagsResult {
   refetch: () => unknown;
 }
 
-// noExplicitAny: RTK Query API generic typing is intentionally flexible here.
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
-type FlagsApi = Api<any, any, any, any>;
+/** Any consumer RTK Query API the flag endpoint can be injected into. */
+export type FlagsApi = Api<BaseQueryFn, EndpointDefinitions, string, string>;
 
-// noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
-// biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
-type EnhancedTerrenoFlagsApi = FlagsApi & {useTerrenoFlagConfigurationQuery: any};
+/** The subset of the injected query hook's result this hook consumes. */
+interface TerrenoFlagConfigurationQueryResult {
+  data?: TerrenoFlagConfiguration;
+  error: unknown;
+  isError: boolean;
+  isFetching: boolean;
+  isLoading: boolean;
+  isSuccess: boolean;
+  refetch: () => unknown;
+}
+
+/**
+ * `useTerrenoFlagConfigurationQuery`, declared structurally: RTK Query injects it onto the
+ * API object at runtime, so it is invisible to the consumer API's static type.
+ */
+type EnhancedTerrenoFlagsApi = FlagsApi & {
+  useTerrenoFlagConfigurationQuery: (
+    arg: {cacheKey: string},
+    options?: {skip?: boolean}
+  ) => TerrenoFlagConfigurationQueryResult;
+};
 
 const enhancedApiCache = new WeakMap<FlagsApi, Map<string, EnhancedTerrenoFlagsApi>>();
 
@@ -65,7 +82,7 @@ const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedTerrenoFlagsAp
       }),
     }),
     overrideExisting: false,
-  }) as EnhancedTerrenoFlagsApi;
+  }) as unknown as EnhancedTerrenoFlagsApi;
   byBase.set(basePath, enhanced);
   return enhanced;
 };

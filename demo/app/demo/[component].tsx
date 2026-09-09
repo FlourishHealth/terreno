@@ -4,6 +4,7 @@ import {
   type DemoConfigStatus,
   type DemoConfiguration,
   type DemoConfigurationProp,
+  findDemoConfig,
 } from "@config";
 import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
@@ -374,7 +375,7 @@ const ComponentPage: FC = () => {
   const {isEmbedMode} = useEmbedMode();
   const navigation = useNavigation();
 
-  const config = DemoConfig.find((c) => c.name === component);
+  const config = findDemoConfig(component);
 
   // Redirect to /demo if the component doesn't exist. This must be an effect (not an
   // early return before the hooks below) so every render calls the same hooks in the
@@ -386,12 +387,12 @@ const ComponentPage: FC = () => {
     }
   }, [component, config]);
 
-  // Set the title
+  // Set the title from the configured name so a lowercased deep link still shows real casing
   useEffect(() => {
-    if (component) {
-      navigation.setOptions({title: component});
+    if (config) {
+      navigation.setOptions({title: config.name});
     }
-  }, [navigation, component]);
+  }, [navigation, config]);
 
   if (!component || !config) {
     return null;

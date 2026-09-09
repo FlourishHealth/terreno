@@ -5,9 +5,10 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
+    "libphonenumber-js": "catalog:",
     "luxon": "catalog:"
   },
-  "description": "Pluggable communications providers for Terreno backends",
+  "description": "Pluggable mail, SMS, push, and verification providers — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@terreno/test": "workspace:*",
@@ -24,9 +25,21 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./adapters/expoPush": {
+      "types": "./dist/adapters/expoPush.d.ts",
+      "default": "./dist/adapters/expoPush.js"
+    },
     "./adapters/sendgrid": {
       "types": "./dist/adapters/sendgrid.d.ts",
       "default": "./dist/adapters/sendgrid.js"
+    },
+    "./adapters/twilioSms": {
+      "types": "./dist/adapters/twilioSms.d.ts",
+      "default": "./dist/adapters/twilioSms.js"
+    },
+    "./adapters/twilioVerify": {
+      "types": "./dist/adapters/twilioVerify.d.ts",
+      "default": "./dist/adapters/twilioVerify.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -42,10 +55,18 @@
   "name": "@terreno/comms",
   "peerDependencies": {
     "@sendgrid/mail": "^8.0.0",
-    "mongoose": "^8.0.0 || ^9.0.0"
+    "expo-server-sdk": "^6.0.0",
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "twilio": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@sendgrid/mail": {
+      "optional": true
+    },
+    "expo-server-sdk": {
+      "optional": true
+    },
+    "twilio": {
       "optional": true
     }
   },
@@ -68,5 +89,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.1.0"
+  "version": "57.2.0"
 }

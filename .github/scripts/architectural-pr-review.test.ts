@@ -21,6 +21,8 @@ import {
   resolveCommentPosition,
   selectImplementationPlanPaths,
   summarizeChangedAreas,
+  parseCirclePullRequestUrl,
+  pullRequestEventFromApi,
 } from "./architectural-pr-review";
 
 describe("isStalePullRequestHead", () => {
@@ -640,5 +642,55 @@ describe("renderFindingComment", () => {
     assert.include(comment, "`plan`");
     assert.include(comment, "**Recommendation:**");
     assert.include(comment, "https://github.com/FlourishHealth/terreno/blob/abc123/docs/implementationPlans/Forgot-Password.md#L68-L90");
+  });
+});
+
+describe("parseCirclePullRequestUrl", () => {
+  it("parses a GitHub pull request URL from CircleCI", (): void => {
+    assert.deepEqual(parseCirclePullRequestUrl("https://github.com/FlourishHealth/terreno/pull/1199"), {
+      owner: "FlourishHealth",
+      pullRequestNumber: 1199,
+      repo: "terreno",
+    });
+  });
+
+  it("rejects a non-GitHub pull request URL", (): void => {
+    assert.throws(
+      () => parseCirclePullRequestUrl("https://app.circleci.com/pipelines/github/FlourishHealth/terreno/1"),
+      /not a GitHub pull request URL/
+    );
+  });
+});
+
+describe("pullRequestEventFromApi", () => {
+  it("maps GitHub pull request JSON into the Actions event shape", (): void => {
+    const event = pullRequestEventFromApi({
+      base: {
+        ref: "master",
+        repo: {
+          default_branch: "master",
+          full_name: "FlourishHealth/terreno",
+          name: "terreno",
+          owner: {login: "FlourishHealth"},
+        },
+        sha: "base-sha",
+      },
+      body: "PR body",
+      draft: false,
+      head: {ref: "feature", sha: "head-sha"},
+      html_url: "https://github.com/FlourishHealth/terreno/pull/1199",
+      number: 1199,
+      title: "Move architectural review",
+      user: {login: "alice"},
+    });
+
+    assert.equal(event.action, "synchronize");
+    assert.equal(event.pull_request.number, 1199);
+    assert.equal(event.pull_request.head.sha, "head-sha");
+    assert.equal(event.pull_request.base.sha, "base-sha");
+    assert.equal(event.repository.owner.login, "FlourishHealth");
+    assert.equal(event.repository.name, "terreno");
+    assert.equal(event.pull_request.user.login, "alice");
+    assert.equal(event.pull_request.body, "PR body");
   });
 });

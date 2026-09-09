@@ -1,5 +1,6 @@
 import {readFileSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
+import {DateTime} from "luxon";
 
 import type {AnyAuditSummary, RemediationStatus} from "./lib";
 import {REPO_ROOT} from "./lib";
@@ -7,6 +8,7 @@ import {REPO_ROOT} from "./lib";
 export const BASELINE_PATH = join(REPO_ROOT, "scripts/check-explicit-any/baseline.json");
 
 export interface ExplicitAnyBaseline {
+  byFile: Record<string, number>;
   byPackage: Record<string, number>;
   byRemediationStatus: Record<RemediationStatus, number>;
   fileBlanketFiles: number;
@@ -18,7 +20,7 @@ export interface ExplicitAnyBaseline {
   };
   totalFiles: number;
   totalUsages: number;
-  version: 1;
+  version: 2;
 }
 
 export interface BaselineRegression {
@@ -39,12 +41,23 @@ const countUndocumented = (summary: AnyAuditSummary): number => {
   );
 };
 
+const countByFile = (summary: AnyAuditSummary): Record<string, number> => {
+  const byFile: Record<string, number> = {};
+  for (const usage of summary.usages) {
+    byFile[usage.file] = (byFile[usage.file] ?? 0) + 1;
+  }
+  return Object.fromEntries(
+    Object.entries(byFile).sort(([left], [right]) => left.localeCompare(right))
+  );
+};
+
 export const summaryToBaseline = (summary: AnyAuditSummary): ExplicitAnyBaseline => {
   return {
+    byFile: countByFile(summary),
     byPackage: summary.byPackage,
     byRemediationStatus: summary.byRemediationStatus,
     fileBlanketFiles: summary.fileBlanketFiles,
-    generatedAt: new Date().toISOString(),
+    generatedAt: DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
     ratchet: {
       undocumented: countUndocumented(summary),
       violations: summary.byRemediationStatus.violation,
@@ -52,7 +65,7 @@ export const summaryToBaseline = (summary: AnyAuditSummary): ExplicitAnyBaseline
     },
     totalFiles: summary.totalFiles,
     totalUsages: summary.totalUsages,
-    version: 1,
+    version: 2,
   };
 };
 
@@ -68,7 +81,7 @@ export const writeBaseline = (
 export const loadBaseline = (baselinePath: string = BASELINE_PATH): ExplicitAnyBaseline => {
   const raw = readFileSync(baselinePath, "utf8");
   const parsed = JSON.parse(raw) as ExplicitAnyBaseline;
-  if (parsed.version !== 1) {
+  if (parsed.version !== 2) {
     throw new Error(`Unsupported explicit-any baseline version: ${String(parsed.version)}`);
   }
   return parsed;
@@ -98,6 +111,15 @@ export const compareBaseline = (
       metric: "totalUsages",
     },
   ];
+
+  const currentByFile = countByFile(summary);
+  for (const [file, current] of Object.entries(currentByFile)) {
+    metrics.push({
+      baseline: baseline.byFile[file] ?? 0,
+      current,
+      metric: `file:${file}`,
+    });
+  }
 
   for (const entry of metrics) {
     if (entry.current > entry.baseline) {

@@ -1,4 +1,3 @@
-import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
@@ -26,18 +25,24 @@ import {HealthApp} from "@terreno/api-health";
 import {
   CommsApp,
   ConsoleMailProvider,
-  ConsolePushProvider,
   ConsoleSmsProvider,
   ConsoleVerificationProvider,
+  getCommsService,
 } from "@terreno/comms";
+import {type ExpoPushClient, ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
 import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+import {type TwilioSmsClient, TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+import {type TwilioVerifyClient, TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
 import {FeatureFlagsApp} from "@terreno/feature-flags";
+import {Expo} from "expo-server-sdk";
 import express from "express";
 import mongoose from "mongoose";
+import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
+import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
@@ -51,6 +56,8 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
+import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
+import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {io} from "./websockets";
@@ -84,7 +91,7 @@ const createOpenApiAwareRouteRegistration = (
   return registration;
 };
 
-export async function start(skipListen = false): Promise<express.Application> {
+export const start = async (skipListen = false): Promise<express.Application> => {
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
@@ -122,19 +129,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
   );
 
-  const transports: Array<InstanceType<typeof LoggingWinston>> = [];
-
-  if (isDeployed) {
-    transports.push(
-      new LoggingWinston({
-        defaultCallback: (error): void => {
-          if (error) {
-            logger.error(`Error occurred: ${error}`);
-          }
-        },
-      })
-    );
-  } else {
+  if (!isDeployed) {
     checkModelsStrict();
   }
 
@@ -149,9 +144,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       ? createBetterAuth({
           config: betterAuthConfig,
           mongoClient: getMongoClientFromMongoose(),
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       : undefined;
 
@@ -163,14 +156,16 @@ export async function start(skipListen = false): Promise<express.Application> {
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
+      // Cloud Run captures stdout/stderr. Keeping the console transport avoids making
+      // startup depend on LoggingWinston network/auth callbacks before the port opens.
       loggingOptions: {
         disableConsoleColors: isDeployed,
-        disableConsoleLogging: isDeployed,
         disableFileLogging: isDeployed,
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
-        transports,
       },
+      // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
+      rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
       userModel: User as unknown as TerrenoAuthUserModel,
     }).configure(AppConfiguration);
@@ -197,6 +192,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(usersRouter)
@@ -232,9 +228,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           betterAuth: betterAuthInstance
             ? {
                 auth: betterAuthInstance,
-                // noExplicitAny: User model type mismatch
-                // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-                userModel: User as any,
+                userModel: User as unknown as TerrenoAuthUserModel,
               }
             : undefined,
           changeStream: {
@@ -245,9 +239,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           // otherwise falls back to the synthetic JWT-claim user, which carries no
           // `organizationIds`, so tenant streams resolve to nothing and `admin` is
           // trusted from the token instead of the database (Task 9.21).
-          // noExplicitAny: User model type mismatch
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          userModel: User as any,
+          userModel: User as unknown as TerrenoAuthUserModel,
         })
       );
     } else {
@@ -266,20 +258,66 @@ export async function start(skipListen = false): Promise<express.Application> {
         : isDeployed
           ? undefined
           : new ConsoleMailProvider();
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `expo-server-sdk`. `ExpoPushProvider`'s default path uses createRequire
+      // and is missing from the compiled binary.
+      const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
+      const pushProvider = new ExpoPushProvider({
+        accessToken: expoAccessToken,
+        client: new Expo(
+          expoAccessToken ? {accessToken: expoAccessToken} : {}
+        ) as unknown as ExpoPushClient,
+        isExpoPushToken: (token: string): boolean => Expo.isExpoPushToken(token),
+        onDeadToken: async (token: string): Promise<void> => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event): Promise<void> => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      });
+
+      const twilioSmsConfig = resolveTwilioSmsEnvConfig();
+      const twilioVerifyConfig = resolveTwilioVerifyEnvConfig();
+      const twilioCreds = twilioSmsConfig ?? twilioVerifyConfig;
+      // Inject the SDK client so `bun build --compile` (Cloud Run image) embeds
+      // `twilio`. The adapters' default path uses createRequire and is missing
+      // from the compiled binary.
+      const twilioClient = twilioCreds
+        ? twilio(twilioCreds.accountSid, twilioCreds.authToken)
+        : undefined;
+      const twilioSmsProvider = twilioSmsConfig
+        ? new TwilioSmsProvider({
+            ...twilioSmsConfig,
+            ...(twilioClient ? {client: twilioClient as unknown as TwilioSmsClient} : {}),
+          })
+        : undefined;
+      const smsProvider = twilioSmsProvider ?? (isDeployed ? undefined : new ConsoleSmsProvider());
+
+      const twilioVerifyProvider = twilioVerifyConfig
+        ? new TwilioVerifyProvider({
+            ...twilioVerifyConfig,
+            ...(twilioClient ? {client: twilioClient as unknown as TwilioVerifyClient} : {}),
+          })
+        : undefined;
+      const verificationProvider =
+        twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());
 
       terraApp.register(
         new CommsApp(
           isDeployed
             ? {
                 ...(mailProvider ? {mail: mailProvider} : {}),
+                ...(smsProvider ? {sms: smsProvider} : {}),
+                ...(verificationProvider ? {verification: verificationProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
+                push: pushProvider,
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
-                push: new ConsolePushProvider(),
-                sms: new ConsoleSmsProvider(),
-                verification: new ConsoleVerificationProvider(),
+                push: pushProvider,
+                sms: smsProvider ?? new ConsoleSmsProvider(),
+                verification: verificationProvider ?? new ConsoleVerificationProvider(),
               }
         )
       );
@@ -311,11 +349,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           accessControl: access,
           customScreens: [
             {
-              description: "How this example wires Terreno admin UI v2",
-              displayName: "Admin UI v2 map",
-              name: "showcase",
-            },
-            {
+              adminAccess: {action: "syncLab", resource: "adminScreen"},
               description: "Stress-test the local-first sync layer",
               displayName: "SyncDB Load Lab",
               name: "sync-lab",
@@ -332,6 +366,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           },
           models: [
             {
+              adminAccess: {},
               displayName: "Audit log",
               group: "Platform",
               listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
@@ -413,7 +448,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
-}
+};
 
 process.on("unhandledRejection", (error: unknown) => {
   logger.error(`unhandledRejection: ${(error as Error).message}\n${(error as Error).stack}`);

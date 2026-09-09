@@ -15,6 +15,7 @@ body:
         - "@terreno/test"
         - "@terreno/ui"
         - "@terreno/rtk"
+        - "@terreno/syncdb"
         - "@terreno/admin-backend"
         - "@terreno/admin-frontend"
         - "@terreno/admin-spa"

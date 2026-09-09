@@ -1,3 +1,4 @@
+import {adminOwnedBy} from "@terreno/admin-backend";
 import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
@@ -20,6 +21,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
         patchKeys: ["completed"],
       },
     ],
+    adminAccess: {isOwned: adminOwnedBy("ownerId")},
     adminPermissions: {delete: []},
     bulkPatchAllowlist: ["completed", "priority", "tags"],
     defaultSort: "-created",

@@ -5,7 +5,13 @@ globs: **/*
 
 # @terreno/admin-backend
 
-Admin panel backend plugin for @terreno/api that auto-generates admin CRUD endpoints for Mongoose models. This is a **backend-only** package — no React, no UI components, no frontend code.
+Human architecture: `docs/explanation/admin-interface.md` and
+`docs/how-to/build-admin-screens.md`. Agent workflow: skill
+`building-admin-interfaces`.
+
+Admin panel backend plugin for `@terreno/api` that auto-generates admin CRUD
+endpoints for Mongoose models. This is a **backend-only** package — no React,
+no UI components, no frontend code.
 
 ## Commands
 

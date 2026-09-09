@@ -2,7 +2,8 @@
 /**
  * Audits explicit `any` usage across the monorepo.
  *
- * Day-to-day enforcement of new unsuppressed `any` still happens through Biome lint.
+ * Biome catches unsuppressed `any`; root lint also runs this auditor with
+ * `--fail-on-undocumented` so every suppression has a `noExplicitAny:` rationale.
  * This script inventories all explicit `any` usages and classifies remediation status.
  */
 import {runCheckExplicitAny} from "./lib";

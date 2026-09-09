@@ -10,8 +10,8 @@ The filename slug matches the IP it belongs to.
 
 The loop's small-feature profile may use a task file with `**Feature profile:** true` and
 no full IP when repository policy permits. The destination, scope, decisions, acceptance
-criteria, tracer, and verification seam live in that durable contract so a fresh Pick
-agent can implement one task without conversation history.
+criteria, tracer, and verification seam live in that durable contract so Pick can
+implement one task, roast it, and continue to the next without conversation history.
 
 ## Task shape
 

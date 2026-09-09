@@ -1,5 +1,8 @@
 # Add a custom admin field widget
 
+Field widgets are one of three admin widget buckets. Screen and nav rules:
+[Build admin screens](build-admin-screens.md).
+
 1. Name the widget in model admin metadata:
 
 ```ts

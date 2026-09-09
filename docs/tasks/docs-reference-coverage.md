@@ -32,7 +32,7 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
   - Depends on: none
   - Acceptance: all three environment variables documented with their effects; the preload example matches an actual `bunfig.toml` in the repo; under 150 lines.
 
-- [ ] **Task 1.4**: `[RTK]` Fix the reference index
+- [x] **Task 1.4**: `[RTK]` Fix the reference index
   - Description: Update `docs/reference/README.md` to list every reference page that exists, including `ai.md`, `admin-spa.md`, `test.md`, `api-health.md`, `feature-flags.md`, `environment-variables.md`, and `syncdb.md`, with `rtk.md` under a Legacy heading. Cross-check against `ls docs/reference/` so nothing is orphaned and nothing listed is missing.
   - Files: `docs/reference/README.md`
   - Depends on: Task 1.1, Task 1.2, Task 1.3
@@ -46,19 +46,19 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
   - Depends on: Task 1.1
   - Acceptance: all four follow the six sections in order; `rg -n "\.claude/|\.cursor/" ai/README.md admin-backend/README.md admin-frontend/README.md api-health/README.md` returns nothing; every relative link replaced with an absolute URL; each Quick start compiles if pasted into a matching file.
 
-- [ ] **Task 2.2**: Add the missing READMEs
+- [x] **Task 2.2**: Add the missing READMEs
   - Description: Create `feature-flags/README.md` (source: `docs/reference/feature-flags.md`; cover `FeatureFlagsApp` registration, the `/flagConfiguration` endpoint, `liveUpdates` and its replica-set requirement, and the deprecated `/evaluate` endpoint), `test/README.md` (source: the new `docs/reference/test.md`), `demo/README.md` (how to run the component demo on port 8085, how stories are organized under `stories/`, how to add a story and register it in `demoConfig.tsx`, and the demo-vs-dev mode split), and `website/README.md` (how to run the docs site locally, where content comes from — `../docs` — how versioning works, and how deploys happen via Netlify).
   - Files: `feature-flags/README.md`, `test/README.md`, `demo/README.md`, `website/README.md` (all new)
   - Depends on: Task 1.3
   - Acceptance: every command shown exists in the corresponding `package.json` scripts or the root `package.json`; `demo/README.md` correctly names port 8085; `website/README.md` correctly states that docs content lives in `../docs`.
 
-- [ ] **Task 2.3**: Normalize the four good READMEs
+- [x] **Task 2.3**: Normalize the four good READMEs
   - Description: Apply the template's link discipline (not a rewrite) to `api/README.md`, `ui/README.md`, `mcp-server/README.md`, and `admin-spa/README.md`: convert relative repo links to absolute URLs, add the Documentation / License / Contributing sections if missing, and ensure the description line matches the standardized `package.json` description. Additionally, reconcile `mcp-server/README.md`'s tool list with `docs/reference/mcp-server.md` and the live hosted server — the README is known to omit `terreno_search_docs`, `terreno_get_component_docs`, and `terreno_get_upgrade_guide`.
   - Files: `api/README.md`, `ui/README.md`, `mcp-server/README.md`, `admin-spa/README.md`
   - Depends on: Task 2.1
   - Acceptance: no relative link escapes the package directory in any of the four; `mcp-server/README.md` and `docs/reference/mcp-server.md` list identical tool sets; each README's opening line matches its `package.json` description.
 
-- [ ] **Task 2.4**: Add `docs/tasks/README.md`
+- [x] **Task 2.4**: Add `docs/tasks/README.md`
   - Description: Create a short README in `docs/tasks/` explaining that files there are structured task breakdowns for automated implementation of the IPs in `docs/implementationPlans/`, that they are internal planning artifacts rather than user documentation, and that they are excluded from the docs site. Do the same check for `docs/implementationPlans/README.md` — it exists; verify it says something similar and update if not.
   - Files: `docs/tasks/README.md` (new), `docs/implementationPlans/README.md`
   - Depends on: none
@@ -66,13 +66,13 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
 
 ## Phase 3: Sanitization
 
-- [ ] **Task 3.1**: Sweep public docs for internal leakage
+- [x] **Task 3.1**: Sweep public docs for internal leakage
   - Description: Run `rg -ni "flourish|a\.run\.app|netlify\.app|PRO-[0-9]|FH-[0-9]|slack|\.claude/|\.cursor/" docs/ */README.md README.md` excluding `infra/flourish/` and `docs/implementationPlans/`. For each hit decide: remove, replace with a placeholder, or relocate to `infra/flourish/`. Live example URLs (the Netlify frontend, the Cloud Run backend) may stay in a clearly-labeled "Live examples" list but must not appear in instructional steps as if the reader owns them. Record the total number of fixes in the PR body.
   - Files: various under `docs/` and package READMEs
   - Depends on: Task 2.3
   - Acceptance: the grep returns only permitted hits (live-example URLs in labeled lists, and `docs/implementationPlans/` planning content); the PR body reports the count and lists each judgment call.
 
-- [ ] **Task 3.2**: Fix the how-to index and stale "Coming Soon" entries
+- [x] **Task 3.2**: Fix the how-to index and stale "Coming Soon" entries
   - Description: `docs/how-to/README.md` lists feature flags under "Coming Soon" even though `docs/how-to/add-feature-flags.md` exists. Audit the whole index against `ls docs/how-to/*.md`, remove stale "Coming Soon" markers for anything that shipped, and add entries for guides that exist but are unlisted. Do the same audit for `docs/explanation/` and `docs/tutorials/` indexes if they exist.
   - Files: `docs/how-to/README.md`, `docs/explanation/README.md` and `docs/tutorials/README.md` if present
   - Depends on: none
@@ -80,13 +80,13 @@ See: [`docs/implementationPlans/docs-reference-coverage.md`](../implementationPl
 
 ## Phase 4: Drift protection
 
-- [ ] **Task 4.1**: Extend the docs-audit check
+- [x] **Task 4.1**: Extend the docs-audit check
   - Description: Update `.rulesync/skills/docs-audit/SKILL.md` and the script it drives (find it via `.github/workflows/docs-audit.yml`) to add two checks: (1) every package published by `publish-on-tag.yml` has a non-stub `README.md` (heuristic: at least 30 lines and containing an `## Install` heading) and a `docs/reference/<pkg>.md` page; (2) no file under `docs/` or any published package README matches the internal-leakage pattern from Task 3.1. Make both failures fatal in CI. Regenerate skill mirrors with `bun run rules`.
   - Files: `.rulesync/skills/docs-audit/SKILL.md`, the docs-audit script, `.github/workflows/docs-audit.yml`, generated mirrors
   - Depends on: Task 3.1
   - Acceptance: deleting `feature-flags/README.md` makes the audit fail with a message naming the package; adding the string `flourish-terreno` to a docs page makes it fail; `bun run rules:check` exits 0.
 
-- [ ] **Task 4.2**: Document the reference/rule duplication policy
+- [x] **Task 4.2**: Document the reference/rule duplication policy
   - Description: Add a short section to `docs/explanation/ai-workflows.md` (or `CONTRIBUTING.md` if that reads better) explaining the deliberate split from IP question RF2: `docs/reference/` is descriptive documentation for humans, `.rulesync/rules/` is prescriptive guidance for agents, both are maintained, and a change to a package's public API requires updating both. Note that the docs-audit workflow flags drift but cannot fully verify it.
   - Files: `docs/explanation/ai-workflows.md` or `CONTRIBUTING.md`
   - Depends on: Task 4.1

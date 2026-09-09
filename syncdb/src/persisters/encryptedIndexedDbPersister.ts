@@ -3,6 +3,7 @@ import {createCustomPersister, type Persister, Persists} from "tinybase/persiste
 
 import type {PayloadCodec} from "../crypto/types";
 import {idbGet, idbSet} from "../storage/idb";
+import type {SyncPersister} from "./types";
 
 /** Object-store record key holding the single encrypted blob. */
 const RECORD_KEY = "content";
@@ -66,7 +67,7 @@ export const createEncryptedIndexedDbPersister = ({
   idbGetImpl?: typeof idbGet;
   /** Test-only override for the IndexedDB write (default: the real `idbSet`). */
   idbSetImpl?: typeof idbSet;
-}): Persister<Persists.MergeableStoreOnly> => {
+}): Persister<Persists.MergeableStoreOnly> & SyncPersister => {
   let lastWrittenJson: string | undefined;
   let pendingSave: PendingSave | undefined;
   // E3(e): the debounce timer scheduling `flushPendingSave` — tracked so
@@ -110,6 +111,30 @@ export const createEncryptedIndexedDbPersister = ({
       pending.resolve();
     } catch (error) {
       pending.reject(error);
+    }
+  };
+
+  const flush = async (): Promise<void> => {
+    if (pendingSaveTimer !== undefined) {
+      clearTimeout(pendingSaveTimer);
+      pendingSaveTimer = undefined;
+    }
+    const pending = pendingSave;
+    if (pending) {
+      await flushPendingSave();
+      await pending.promise;
+      return;
+    }
+
+    const json = JSON.stringify(store.getMergeableContent());
+    if (json === lastWrittenJson) {
+      return;
+    }
+    try {
+      await writeJson(json);
+    } catch (error) {
+      onSaveFailure?.(error);
+      throw error;
     }
   };
 
@@ -214,5 +239,6 @@ export const createEncryptedIndexedDbPersister = ({
       pendingSave = undefined;
       return originalDestroy();
     },
+    flush,
   };
 };

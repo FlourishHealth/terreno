@@ -1,13 +1,7 @@
 name: Example Backend Docker Build
 
-on:
-  pull_request:
-    paths:
-      - "example-backend/**"
-      - "api/**"
-      - "package.json"
-      - "bun.lock"
-      - ".github/workflows/example-backend-docker.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   build-image:
@@ -36,7 +30,9 @@ jobs:
           context: .
           file: example-backend/Dockerfile
           push: false
-          load: true
+          # Buildx already proves the image compiles; loading into the local
+          # daemon (~1–2 extra minutes) is only needed if a later step runs it.
+          load: false
           tags: terreno-example-backend:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

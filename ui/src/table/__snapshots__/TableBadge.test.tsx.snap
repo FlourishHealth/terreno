@@ -459,6 +459,7 @@ exports[`TableBadge renders select field when editing 1`] = `
                           "flex": 1,
                           "fontFamily": "text",
                           "fontSize": 16,
+                          "minWidth": 0,
                           "paddingRight": 8,
                         },
                         "testID": "text_input",

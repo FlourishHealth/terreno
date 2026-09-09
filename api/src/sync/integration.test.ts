@@ -1,5 +1,3 @@
-// noExplicitAny: the rig bridges generic model/router/test types
-// biome-ignore-all lint/suspicious/noExplicitAny: the rig bridges generic model/router/test types
 /**
  * End-to-end integration test (Task 5.5): a REAL @terreno/syncdb client speaking to a
  * REAL @terreno/api backend over HTTP + Socket.io.
@@ -38,7 +36,13 @@ import {
 import mongoose, {model, Schema} from "mongoose";
 
 import {modelRouter} from "../api";
-import {addAuthRoutes, generateTokens, setupAuth, type User} from "../auth";
+import {
+  type UserModel as AuthUserModel,
+  addAuthRoutes,
+  generateTokens,
+  setupAuth,
+  type User,
+} from "../auth";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, findOneOrNoneFor, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {RealtimeApp} from "../realtime/realtimeApp";
@@ -207,8 +211,8 @@ describe("syncdb end-to-end integration", () => {
     });
 
     const app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({}).register(app);
     app.use(registration.path, registration.router);
 
@@ -440,7 +444,9 @@ describe("syncdb end-to-end integration", () => {
     expect(entity?.data?.title).toBe("server wins");
     expect(entity?.seq).toBe(baseSeq + 1);
     expect(entity?.pendingMutationId).toBeUndefined();
-    expect(a.client.getSyncStatus().conflictCount).toBe(0);
+    await waitFor(() => a.client.getSyncStatus().conflictCount === 0, {
+      label: "conflict cleared after persistence flush",
+    });
     // The server kept its own write.
     const settled = await IntTodoModel.findById(conflictDocId);
     expect(settled?.title).toBe("server wins");
@@ -481,7 +487,9 @@ describe("syncdb end-to-end integration", () => {
     // (it would replay the recorded conflict nack forever) — and resolveConflict kicks
     // a replay immediately, so the retry drains without waiting for another trigger.
     a.client.resolveConflict({mutationId, strategy: "keepMine"});
-    expect(a.client.getSyncStatus().conflictCount).toBe(0);
+    await waitFor(() => a.client.getSyncStatus().conflictCount === 0, {
+      label: "conflict cleared after persistence flush",
+    });
     expect(a.client.outbox.getMutation({mutationId})).toBeUndefined();
 
     // ...and the replay applies the client's data server-side.

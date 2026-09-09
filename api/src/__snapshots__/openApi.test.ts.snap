@@ -301,6 +301,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                 },
                                 "userId": {
                                   "description": "The user who liked the item",
+                                  "format": "objectid",
                                   "type": "string",
                                 },
                               },
@@ -396,6 +397,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "type": "string",
                               },
                             },
+                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -636,6 +638,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -731,6 +734,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -900,6 +904,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -995,6 +1000,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1294,6 +1300,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -1389,6 +1396,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1622,6 +1630,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -1717,6 +1726,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -1886,6 +1896,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -1981,6 +1992,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -2357,6 +2369,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 },
                                 "userId": {
                                   "description": "The user who liked the item",
+                                  "format": "objectid",
                                   "type": "string",
                                 },
                               },
@@ -2452,6 +2465,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "type": "string",
                               },
                             },
+                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -2692,6 +2706,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -2787,6 +2802,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -2956,6 +2972,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -3051,6 +3068,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -3350,6 +3368,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -3445,6 +3464,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -3678,6 +3698,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "userId": {
                           "description": "The user who liked the item",
+                          "format": "objectid",
                           "type": "string",
                         },
                       },
@@ -3773,6 +3794,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -3942,6 +3964,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "userId": {
                             "description": "The user who liked the item",
+                            "format": "objectid",
                             "type": "string",
                           },
                         },
@@ -4037,6 +4060,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -4402,6 +4426,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                                 "type": "string",
                               },
                             },
+                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -4615,6 +4640,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -4757,6 +4783,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -5029,6 +5056,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -5235,6 +5263,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                         "type": "string",
                       },
                     },
+                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -5377,6 +5406,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [],
                       "type": "object",
                     },
                     "tags": {

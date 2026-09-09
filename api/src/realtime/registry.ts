@@ -1,78 +1,84 @@
+import type {Model} from "mongoose";
+
 import type {ModelRouterOptions} from "../api";
+import {
+  clearCollectionRegistry,
+  listCollections,
+  registerCollection,
+  replaceCollectionOptions,
+} from "../collectionRegistry";
 import type {RealtimeConfig} from "./types";
 
-/**
- * A registered model with real-time sync configuration.
- */
 export interface RealtimeRegistryEntry {
-  /** Mongoose model name (e.g. "Todo") */
   modelName: string;
-  /** Route path (e.g. "/todos") */
   routePath: string;
-  /** Collection name in MongoDB (e.g. "todos") */
   collectionName: string;
-  /** Real-time configuration from modelRouter options */
   config: RealtimeConfig;
-  /**
-   * Full modelRouter options (for responseHandler, permissions, etc.), erased to
-   * `unknown` since the registry holds entries for every model.
-   */
   options: ModelRouterOptions<unknown>;
 }
 
-const realtimeRegistry: RealtimeRegistryEntry[] = [];
+const toRealtimeEntry = (record: {
+  model: Model<unknown>;
+  options: ModelRouterOptions<unknown>;
+  routePath: string;
+}): RealtimeRegistryEntry => ({
+  collectionName: record.model.collection.collectionName,
+  config: record.options.realtime as RealtimeConfig,
+  modelName: record.model.modelName,
+  options: record.options,
+  routePath: record.routePath,
+});
 
-/**
- * Register a model for real-time sync. Called automatically by modelRouter
- * when the `realtime` option is provided.
- */
-export const registerRealtime = (entry: RealtimeRegistryEntry): void => {
-  realtimeRegistry.push(entry);
+const realtimeModelForEntry = (entry: RealtimeRegistryEntry): Model<unknown> => {
+  const registered = listCollections().find(
+    (record) => record.routePath === entry.routePath
+  )?.model;
+  if (registered) {
+    return registered;
+  }
+  return {
+    collection: {collectionName: entry.collectionName},
+    modelName: entry.modelName,
+  } as Model<unknown>;
 };
 
-/**
- * Replace options on an existing registry entry (e.g. after TerrenoApp injects accessControl).
- * Matches by routePath; no-op if the route was never registered.
- */
+export const registerRealtime = (entry: RealtimeRegistryEntry): void => {
+  registerCollection({
+    model: realtimeModelForEntry(entry),
+    options: {
+      ...entry.options,
+      realtime: entry.config,
+    } as ModelRouterOptions<unknown>,
+    routePath: entry.routePath,
+  });
+};
+
 export const updateRealtimeRegistryOptions = (
   routePath: string,
   options: ModelRouterOptions<unknown>
 ): void => {
-  const existing = realtimeRegistry.find((entry) => entry.routePath === routePath);
-  if (!existing) {
-    return;
-  }
-  existing.options = options;
+  replaceCollectionOptions(routePath, options);
 };
 
-/**
- * Get all registered real-time models.
- */
-export const getRealtimeRegistry = (): RealtimeRegistryEntry[] => realtimeRegistry;
+export const getRealtimeRegistry = (): RealtimeRegistryEntry[] =>
+  listCollections()
+    .filter((record) => record.surfaces.realtime)
+    .map(toRealtimeEntry);
 
-/**
- * Find a registry entry by MongoDB collection name.
- */
 export const findRegistryEntryByCollection = (
   collectionName: string
 ): RealtimeRegistryEntry | undefined => {
-  return realtimeRegistry.find((entry) => entry.collectionName === collectionName);
+  return getRealtimeRegistry().find((entry) => entry.collectionName === collectionName);
 };
 
-/**
- * Find a registry entry by route path / collection tag (e.g. "todos").
- */
 export const findRegistryEntryByRoutePath = (
   collection: string
 ): RealtimeRegistryEntry | undefined => {
-  return realtimeRegistry.find(
+  return getRealtimeRegistry().find(
     (entry) => entry.routePath === `/${collection}` || entry.routePath === collection
   );
 };
 
-/**
- * Clear the registry (for testing).
- */
 export const clearRealtimeRegistry = (): void => {
-  realtimeRegistry.length = 0;
+  clearCollectionRegistry();
 };

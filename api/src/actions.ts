@@ -325,31 +325,37 @@ const getArrayFieldNames = <T>(model: Model<T>): string[] => {
     .map((config) => config.path);
 };
 
-// Registration-time validation throws plain Error so misconfiguration fails at app boot.
+// Registration-time validation throws APIError so misconfiguration fails at app boot.
 const validateActionConfig = (
   scope: ActionScope,
   name: string,
   config: BaseActionConfig<unknown, unknown, unknown>
 ): void => {
   if (!name) {
-    throw new Error("Action name cannot be empty");
+    throw new APIError({status: 500, title: "Action name cannot be empty"});
   }
   if (!ACTION_NAME_PATTERN.test(name)) {
-    throw new Error(
-      `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`
-    );
+    throw new APIError({
+      status: 500,
+      title: `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`,
+    });
   }
   if (config.permissions === undefined && !config.access) {
-    throw new Error(
-      `Action "${name}" (${scope}) is missing required "permissions" or "access". ` +
-        "Provide at least one permission function, an access descriptor, or [] to disable the action."
-    );
+    throw new APIError({
+      status: 500,
+      title:
+        `Action "${name}" (${scope}) is missing required "permissions" or "access". ` +
+        "Provide at least one permission function, an access descriptor, or [] to disable the action.",
+    });
   }
   if (config.permissions !== undefined && config.permissions.length === 0 && !config.access) {
     return;
   }
   if (config.method !== "GET" && config.method !== "POST") {
-    throw new Error(`Action "${name}" (${scope}) only supports GET and POST methods`);
+    throw new APIError({
+      status: 500,
+      title: `Action "${name}" (${scope}) only supports GET and POST methods`,
+    });
   }
 };
 
@@ -372,9 +378,10 @@ export const assertNoActionCollisions = <T>(
     for (const [name, config] of Object.entries(actions)) {
       validateActionConfig(scope, name, config);
       if (scope === "instance" && arrayFields.has(name)) {
-        throw new Error(
-          `instanceAction '${name}' collides with array field operations on /:id/${name}`
-        );
+        throw new APIError({
+          status: 500,
+          title: `instanceAction '${name}' collides with array field operations on /:id/${name}`,
+        });
       }
     }
   };

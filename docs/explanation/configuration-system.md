@@ -207,28 +207,18 @@ router.post("/admin/config", async (req, res) => {
 ### Tunable Parameters
 
 ``````typescript
-// Rate limiting
-Configuration.register("RATE_LIMIT_MAX", {
-  defaultValue: 100,
-  envVar: "RATE_LIMIT_MAX",
-  description: "Maximum requests per window",
+// Page size — app Configuration, not the HTTP limiter
+Configuration.register("DEFAULT_PAGE_SIZE", {
+  defaultValue: 20,
+  envVar: "DEFAULT_PAGE_SIZE",
+  description: "Default list page size",
   type: "number",
 });
 
-Configuration.register("RATE_LIMIT_WINDOW_MS", {
-  defaultValue: 900000, // 15 minutes
-  envVar: "RATE_LIMIT_WINDOW_MS",
-  description: "Rate limit window in milliseconds",
-  type: "number",
-});
-
-// Use in middleware
-const rateLimit = require("express-rate-limit");
-const limiter = rateLimit({
-  max: await Configuration.get<number>("RATE_LIMIT_MAX"),
-  windowMs: await Configuration.get<number>("RATE_LIMIT_WINDOW_MS"),
-});
+const pageSize = await Configuration.get<number>("DEFAULT_PAGE_SIZE");
 ``````
+
+HTTP rate limiting is **not** a Configuration key. Pass `rateLimit` on `TerrenoApp` (see [Rate limiting](../how-to/rate-limiting.md)). Do not register `RATE_LIMIT_MAX` as if it enabled the framework limiter.
 
 ### Environment-Specific Defaults
 

@@ -1,6 +1,6 @@
 # Implementation Plan: @terreno/syncdb-codegen
 
-**Status:** In progress
+**Status:** Complete — shipped as `syncdb/src/codegen` + `terreno-syncdb-codegen`
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1087
 **Branch:** cursor/syncdb-codegen-in-package-746d
 **Owner:**

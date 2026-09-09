@@ -6,11 +6,34 @@ import {Dimensions, Keyboard, Linking, Platform, Vibration} from "react-native";
 import type {PermissionKind} from "./Common";
 import {requestPermissions} from "./Permissions";
 
+export interface GooglePlacesAutocomplete {
+  addListener: (eventName: string, handler: () => void) => void;
+  getPlace: () => {
+    address_components?: Array<{long_name: string; short_name: string; types: string[]}>;
+    formatted_address?: string;
+  };
+}
+
+export interface GoogleMapsPlacesLibrary {
+  Autocomplete: new (
+    inputField: HTMLInputElement | null,
+    opts?: {
+      componentRestrictions?: {country: string | string[]};
+      fields?: string[];
+      types?: string[];
+    }
+  ) => GooglePlacesAutocomplete;
+}
+
+export interface GoogleMapsNamespace {
+  maps: {
+    places: GoogleMapsPlacesLibrary;
+  };
+}
+
 declare global {
   interface Window {
-    // noExplicitAny: Google Maps JS SDK global type is loaded dynamically and not bundled as a typed dependency
-    // biome-ignore lint/suspicious/noExplicitAny: Google Maps JS SDK global type is loaded dynamically and not bundled as a typed dependency
-    google: any;
+    google?: GoogleMapsNamespace;
   }
 }
 

@@ -1,5 +1,7 @@
 # @terreno/api
 
+Styled after the Django & Django REST Framework, a batteries-include framework for building REST APIs with Node/Express/Mongoose.
+
 This library attempts to make creating REST APIs much easier with Express and Mongoose.
 Most REST APIs wind up being a lot of boilerplate, so this tries to cut that down without turning
 into a full blown framework of its own. This library is inspired by the
@@ -16,13 +18,13 @@ model instances.
 - **Permissions** — Fine-grained access control (IsAuthenticated, IsOwner, IsAdmin, etc.)
 - **OpenAPI** — Automatic spec generation from models and routes
 - **Logging** — Winston-based logging with scoped & feature-flagged loggers, automatic request correlation, and Google Cloud / Sentry support
-- **HTTP client** — Authenticated axios factory for third-party APIs with token caching, safe retries, and normalized error handling (see [Call external APIs](../docs/how-to/call-external-apis.md))
+- **HTTP client** — Authenticated axios factory for third-party APIs with token caching, safe retries, and normalized error handling (see [Call external APIs](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/call-external-apis.md))
 
-## Getting started
+## Install
 
-To install:
-
-    bun add @terreno/api
+```bash
+bun add @terreno/api
+```
 
 ## DateOnly Type
 
@@ -165,7 +167,7 @@ setupServer({
 });
 ```
 
-**Learn more:** See the [GitHub OAuth how-to guide](../docs/how-to/add-github-oauth.md) for complete setup instructions.
+**Learn more:** See the [GitHub OAuth how-to guide](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/add-github-oauth.md) for complete setup instructions.
 
 ## Logging
 
@@ -217,7 +219,7 @@ In production, pass a structured transport (e.g. `@google-cloud/logging-winston`
 `loggingOptions`/`setupLogging` so the correlation fields and labels reach Log Explorer as
 `jsonPayload`.
 
-**Learn more:** See the [Logging & Tracing reference](../docs/reference/api.md#logging--tracing) for
+**Learn more:** See the [Logging & Tracing reference](https://github.com/flourishhealth/terreno/blob/master/docs/reference/api.md#logging--tracing) for
 the full API, label conventions, and Google Cloud Logging / Sentry details.
 
 ## Sentry
@@ -288,3 +290,11 @@ A lot of dev may require using bun link. You'll want to keep the `bun run dev` w
     bun link
     cd $your-api-repo
     bun link @terreno/api
+
+## Documentation
+
+Full API reference: [docs/reference/api.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/api.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

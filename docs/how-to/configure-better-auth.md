@@ -120,19 +120,21 @@ const server = app.start();
 
 ### 4. Update User Model
 
-Add optional Better Auth fields to your User schema:
+`syncBetterAuthUser` creates the app `User` on the first authenticated request after Better Auth sign-up. Declare `betterAuthId` on that schema. Declare `oauthProvider` only if the app uses social OAuth.
+
+Email/password sync does **not** write `oauthProvider`. A `strict: "throw"` schema that omits the field stays valid. Social login still passes a provider string and requires the field.
 
 ``````typescript
-import {betterAuthUserPlugin} from "@terreno/api";
-
-const userSchema = new mongoose.Schema({
-  email: {type: String, unique: true},
-  name: {type: String},
-  // ... other fields
-});
-
-// Adds: betterAuthId, oauthProvider
-userSchema.plugin(betterAuthUserPlugin);
+const userSchema = new mongoose.Schema(
+  {
+    email: {type: String, unique: true},
+    name: {type: String},
+    betterAuthId: {index: true, sparse: true, type: String},
+    // Required only when using Google, GitHub, or Apple:
+    // oauthProvider: {type: String},
+  },
+  {strict: "throw"}
+);
 ``````
 
 ## Frontend Setup

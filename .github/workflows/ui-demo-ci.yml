@@ -1,14 +1,7 @@
 name: UI Demo CI
 
-on:
-  pull_request:
-    paths:
-      - 'demo/**'
-  push:
-    branches:
-      - master
-    paths:
-      - 'demo/**'
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   check-ui-changes:
@@ -45,7 +38,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache

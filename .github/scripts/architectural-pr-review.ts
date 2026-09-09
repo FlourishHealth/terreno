@@ -253,6 +253,99 @@ export const parsePullRequestEvent = (eventPath: string): PullRequestEventPayloa
   return rawEvent as PullRequestEventPayload;
 };
 
+const CIRCLE_PULL_REQUEST_URL_PATTERN = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/;
+
+export interface CirclePullRequestRef {
+  owner: string;
+  pullRequestNumber: number;
+  repo: string;
+}
+
+interface GitHubPullRequestApi {
+  base: {
+    ref: string;
+    repo: {
+      default_branch?: string;
+      full_name: string;
+      name: string;
+      owner: {
+        login: string;
+      };
+    };
+    sha: string;
+  };
+  body: string | null;
+  draft: boolean;
+  head: {
+    ref: string;
+    sha: string;
+  };
+  html_url: string;
+  number: number;
+  title: string;
+  user: {
+    login: string;
+  };
+}
+
+/**
+ * Parses CircleCI's `CIRCLE_PULL_REQUEST` GitHub URL into owner/repo/number.
+ *
+ * @param url - Value of `CIRCLE_PULL_REQUEST`.
+ * @returns Repository identity and pull request number.
+ */
+export const parseCirclePullRequestUrl = (url: string): CirclePullRequestRef => {
+  const match = url.trim().match(CIRCLE_PULL_REQUEST_URL_PATTERN);
+  if (match === null || match[1] === undefined || match[2] === undefined || match[3] === undefined) {
+    throw new Error(`CIRCLE_PULL_REQUEST is not a GitHub pull request URL: ${url}`);
+  }
+
+  return {
+    owner: match[1],
+    pullRequestNumber: Number.parseInt(match[3], 10),
+    repo: match[2],
+  };
+};
+
+/**
+ * Adapts a GitHub pull-request REST payload into the event shape the reviewer
+ * already consumes from `GITHUB_EVENT_PATH`.
+ *
+ * @param pullRequest - GitHub `GET /repos/{owner}/{repo}/pulls/{number}` body.
+ * @returns Event payload used by the rest of this script.
+ */
+export const pullRequestEventFromApi = (pullRequest: GitHubPullRequestApi): PullRequestEventPayload => {
+  return {
+    action: "synchronize",
+    pull_request: {
+      base: {
+        ref: pullRequest.base.ref,
+        sha: pullRequest.base.sha,
+      },
+      body: pullRequest.body,
+      draft: pullRequest.draft,
+      head: {
+        ref: pullRequest.head.ref,
+        sha: pullRequest.head.sha,
+      },
+      html_url: pullRequest.html_url,
+      number: pullRequest.number,
+      title: pullRequest.title,
+      user: {
+        login: pullRequest.user.login,
+      },
+    },
+    repository: {
+      default_branch: pullRequest.base.repo.default_branch,
+      full_name: pullRequest.base.repo.full_name,
+      name: pullRequest.base.repo.name,
+      owner: {
+        login: pullRequest.base.repo.owner.login,
+      },
+    },
+  };
+};
+
 /**
  * Collects implementation plan paths either directly changed in the PR or
  * explicitly referenced in the PR body.
@@ -1774,6 +1867,32 @@ export const buildPreviousReviewContext = ({
 };
 
 /**
+ * Loads pull request metadata from GitHub Actions event JSON or CircleCI's
+ * `CIRCLE_PULL_REQUEST` URL plus the GitHub REST API.
+ *
+ * @param token - GitHub token used when the CircleCI path must fetch the PR.
+ * @returns Event payload consumed by the rest of this script.
+ */
+export const loadPullRequestEvent = async (token: string): Promise<PullRequestEventPayload> => {
+  const eventPath = process.env.GITHUB_EVENT_PATH ?? "";
+  if (eventPath !== "") {
+    return parsePullRequestEvent(eventPath);
+  }
+
+  const circlePullRequestUrl = process.env.CIRCLE_PULL_REQUEST ?? "";
+  if (circlePullRequestUrl === "") {
+    throw new Error("GITHUB_EVENT_PATH or CIRCLE_PULL_REQUEST is required.");
+  }
+
+  const {owner, pullRequestNumber, repo} = parseCirclePullRequestUrl(circlePullRequestUrl);
+  const pullRequest = await githubRequestJson<GitHubPullRequestApi>({
+    path: `/repos/${owner}/${repo}/pulls/${pullRequestNumber}`,
+    token,
+  });
+  return pullRequestEventFromApi(pullRequest);
+};
+
+/**
  * Main workflow entrypoint: fetches PR context, runs the Cursor Agent CLI
  * review, and syncs the sticky PR comment.
  *
@@ -1793,8 +1912,18 @@ export const main = async (): Promise<void> => {
 
   // The Cursor Agent CLI reads CURSOR_API_KEY from the environment for
   // authentication; it is already present here, so no extra wiring is needed.
-  const githubToken = getRequiredEnvironmentVariable("GITHUB_TOKEN");
-  const event = parsePullRequestEvent(getRequiredEnvironmentVariable("GITHUB_EVENT_PATH"));
+  const githubToken = process.env.GITHUB_TOKEN ?? "";
+  if (githubToken === "") {
+    appendStepSummary([
+      "### Architectural review",
+      "",
+      "Skipped because `GITHUB_TOKEN` is not configured for this runner.",
+    ]);
+    console.info("Skipping architectural review because GITHUB_TOKEN is not configured.");
+    return;
+  }
+
+  const event = await loadPullRequestEvent(githubToken);
   const owner = event.repository.owner.login;
   const repo = event.repository.name;
   const pullRequest = event.pull_request;

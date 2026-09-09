@@ -66,4 +66,63 @@ describe("buildAdminListQueryParams", () => {
     assert.isUndefined(params.q);
     assert.equal(params.completed, true);
   });
+
+  it("includes sort, dateRange bounds, choice/text/ref filters, and skips empty values", () => {
+    const modelConfig = {
+      filters: [
+        {field: "created", kind: "dateRange"},
+        {field: "status", kind: "choice"},
+        {field: "title", kind: "text"},
+        {field: "ownerId", kind: "ref"},
+        {field: "completed", kind: "boolean"},
+      ],
+      searchFields: ["title"],
+    } as AdminModelConfig;
+    const params = buildAdminListQueryParams({
+      filterState: {
+        completed: "all",
+        created_gte: "2026-01-01",
+        created_lte: " 2026-01-31 ",
+        ownerId: "abc",
+        status: "open",
+        title: "hello",
+      },
+      limit: 10,
+      modelConfig,
+      page: 2,
+      searchDebounced: "q",
+      sort: "-created",
+    });
+    assert.equal(params.sort, "-created");
+    assert.equal(params.created_gte, "2026-01-01");
+    assert.equal(params.created_lte, "2026-01-31");
+    assert.equal(params.status, "open");
+    assert.equal(params.title, "hello");
+    assert.equal(params.ownerId, "abc");
+    assert.equal(params.q, "q");
+    assert.isUndefined(params.completed);
+  });
+
+  it("coerces boolean filters and skips blank date bounds", () => {
+    const modelConfig = {
+      filters: [
+        {field: "completed", kind: "boolean"},
+        {field: "created", kind: "dateRange"},
+      ],
+    } as AdminModelConfig;
+    const params = buildAdminListQueryParams({
+      filterState: {
+        completed: "true",
+        created_gte: "  ",
+        created_lte: undefined,
+      },
+      limit: 10,
+      modelConfig,
+      page: 1,
+      searchDebounced: "",
+    });
+    assert.equal(params.completed, true);
+    assert.isUndefined(params.created_gte);
+    assert.isUndefined(params.created_lte);
+  });
 });

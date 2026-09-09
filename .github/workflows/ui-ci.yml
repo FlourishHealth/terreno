@@ -1,18 +1,7 @@
 name: UI CI
 
-on:
-  pull_request:
-    paths:
-      - 'ui/**'
-      - 'demo/**'
-      - '.github/workflows/ui-ci.yml'
-  push:
-    branches:
-      - master
-    paths:
-      - 'ui/**'
-      - 'demo/**'
-      - '.github/workflows/ui-ci.yml'
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   ui-lint-and-test:
@@ -32,7 +21,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache
@@ -84,7 +73,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache2

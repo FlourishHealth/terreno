@@ -1,5 +1,7 @@
 # @terreno/ui
 
+React Native UI component library for Terreno apps (iOS, Android, and web).
+
 [![Netlify Status](https://api.netlify.com/api/v1/badges/ffd05ee5-fbcf-417e-8455-45ea15447361/deploy-status)](https://app.netlify.com/sites/terreno-ui/deploys)
 
 ## Why Terreno UI?
@@ -56,11 +58,13 @@ differentiating based on screen size and format.
 Check out the demo app for easily seeing how the UIs work in iOS/Android/Web 
 in apps/demo.
 
-You can see the [web demo here](https://terreno-demo.netlify.app)
+You can see the [web demo here](https://terreno-demo.netlify.app).
 
-# Installation
+## Install
 
-    bun add @terreno/ui
+```bash
+bun add @terreno/ui
+```
 
 # Usage
 
@@ -77,10 +81,6 @@ You must wrap your app in a TerrenoProvider to use the theme, Toasts, and other 
             </SafeAreaProvider>
         );
     };
-    
-# Cursor Rules
-If you use Cursor or compatible tools, use the rules in .cursor/rules/terreno-ui-usage.md to
-help generate code that uses Terreno UI.
 
 ## Dev
 
@@ -131,7 +131,6 @@ After publishing the release, the following happens automatically via `.github/w
 1. The package version in `package.json` is updated to match your release tag
 2. The package is built and published to NPM (takes a couple of minutes)
 3. A pull request is automatically created with the version bump
-4. You'll receive a Slack notification when the release is complete
 
 ### Approving the version bump PR
 
@@ -185,3 +184,13 @@ import {
 ```
 
 Do not rely on internal CSS class names or DOM structure for tests.
+
+## Documentation
+
+Full API reference: [docs/reference/ui.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/ui.md)
+
+Live example: [Terreno UI demo](https://terreno-demo.netlify.app)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

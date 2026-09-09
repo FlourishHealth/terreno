@@ -229,3 +229,89 @@ export const StandardDataTable = (): React.ReactElement => {
     </Box>
   );
 };
+
+const LARGE_VIRTUAL_ROW_COUNT = 1200;
+
+const buildLargeVirtualColumns = (): DataTableColumn[] => [
+  {
+    columnType: "text",
+    sortable: true,
+    title: "Name",
+    width: 180,
+  },
+  {columnType: "text", title: "Department", width: 160},
+  {columnType: "number", sortable: true, title: "Score", width: 120},
+  {columnType: "boolean", title: "Active", width: 100},
+  {columnType: "custom", title: "Custom", width: 160},
+];
+
+const buildLargeVirtualRows = (rowCount: number): DataTableCellData[][] =>
+  Array.from({length: rowCount}, (_, rowIndex) => [
+    {
+      highlight: rowIndex % 7 === 0 ? ("warningLight" as const) : undefined,
+      value: `Employee ${rowIndex + 1}`,
+    },
+    {value: `Team ${(rowIndex % 12) + 1}`},
+    {value: rowIndex * 3},
+    {value: rowIndex % 2 === 0},
+    {value: {text: `Badge ${rowIndex + 1}`}},
+  ]);
+
+export const LargeVirtualizedDataTable = (): React.ReactElement => {
+  const [pinnedColumns, setPinnedColumns] = useState(1);
+  const [sortColumn, setSortColumn] = useState<
+    {column: number; direction: "asc" | "desc"} | undefined
+  >();
+  const [rows] = useState(() => buildLargeVirtualRows(LARGE_VIRTUAL_ROW_COUNT));
+  const columns = buildLargeVirtualColumns();
+
+  const sortedRows = [...rows];
+  if (sortColumn) {
+    sortedRows.sort((leftRow, rightRow) => {
+      const leftValue = leftRow[sortColumn.column].value;
+      const rightValue = rightRow[sortColumn.column].value;
+      if (leftValue === rightValue) {
+        return 0;
+      }
+      const cmp =
+        typeof leftValue === "number" && typeof rightValue === "number"
+          ? leftValue - rightValue
+          : String(leftValue).localeCompare(String(rightValue));
+      return sortColumn.direction === "asc" ? cmp : -cmp;
+    });
+  }
+
+  return (
+    <Box color="base" direction="column" gap={3} height="100%" maxHeight={480} maxWidth={900}>
+      <Box direction="row" gap={2}>
+        <Button
+          onClick={() => setPinnedColumns((current) => (current > 0 ? 0 : 1))}
+          text={pinnedColumns > 0 ? "Unpin columns" : "Pin first column"}
+          variant="secondary"
+        />
+        <Text>
+          {LARGE_VIRTUAL_ROW_COUNT} rows — scroll vertically to load distant rows and sort pinned
+          headers.
+        </Text>
+      </Box>
+      <Box flex="grow" minHeight={0}>
+        <DataTable
+          alternateRowBackground
+          columns={columns}
+          customColumnComponentMap={{custom: CustomColumnComponent}}
+          data={sortedRows}
+          defaultTextSize="sm"
+          getRowTestID={(_, rowIndex) => rowIndex}
+          headerHeight={40}
+          moreContentComponent={MoreModalContent}
+          pinnedColumns={pinnedColumns}
+          rowHeight={48}
+          setSortColumn={setSortColumn}
+          sortColumn={sortColumn}
+          testID="large-virtual-table"
+          testIDs={{row: "large-virtual-table.row"}}
+        />
+      </Box>
+    </Box>
+  );
+};

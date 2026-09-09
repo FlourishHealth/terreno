@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 
 import {describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 
 import {createAesGcmCodec} from "../crypto/aesGcmCodec";
 import {identityCodec} from "../crypto/identityCodec";
@@ -301,6 +302,34 @@ describe("createEncryptedIndexedDbPersister", () => {
       store: target.raw,
     }).load();
     expect(target.getEntity({collection: "todos", id: "t1"})?.data).toEqual({title: "three"});
+  });
+
+  it("flush() persists the latest store state without waiting for the save debounce", async () => {
+    const databaseName = uniqueDbName();
+    const codec = createAesGcmCodec({key: await generateKey()});
+    const source = makeStore();
+    const persister = createEncryptedIndexedDbPersister({
+      codec,
+      databaseName,
+      saveDebounceMs: 500,
+      store: source.raw,
+    });
+    await persister.startAutoSave();
+
+    source.upsertEntity({collection: "todos", data: {title: "durable now"}, id: "t1"});
+    await persister.flush?.();
+
+    const target = makeStore();
+    await createEncryptedIndexedDbPersister({
+      codec,
+      databaseName,
+      saveDebounceMs: 0,
+      store: target.raw,
+    }).load();
+    assert.deepEqual(target.getEntity({collection: "todos", id: "t1"})?.data, {
+      title: "durable now",
+    });
+    await persister.destroy();
   });
 
   it("destroy() cancels a pending debounced save and writes nothing after (E3e)", async () => {

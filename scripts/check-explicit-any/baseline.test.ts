@@ -30,10 +30,46 @@ const createSummary = (overrides: Partial<AnyAuditSummary> = {}): AnyAuditSummar
 test("summaryToBaseline captures ratchet metrics", () => {
   const baseline = summaryToBaseline(createSummary());
 
-  expect(baseline.version).toBe(1);
+  expect(baseline.version).toBe(2);
   expect(baseline.ratchet.totalUsages).toBe(10);
   expect(baseline.ratchet.undocumented).toBe(8);
   expect(baseline.ratchet.violations).toBe(0);
+});
+
+test("compareBaseline fails when a new file adds explicit any without increasing the total", () => {
+  const existingUsage = {
+    column: 1,
+    file: "api/src/existing.ts",
+    hasBiomeIgnore: true,
+    hasNoExplicitAnyComment: true,
+    isExcludedFromBiome: false,
+    isTestFile: false,
+    kind: "annotation" as const,
+    line: 1,
+    packageName: "api",
+    remediationStatus: "fully-documented" as const,
+    snippet: "value: any",
+    suppressionScope: "line" as const,
+  };
+  const baseline = summaryToBaseline(
+    createSummary({
+      totalUsages: 1,
+      usages: [existingUsage],
+    })
+  );
+  const shifted = createSummary({
+    totalUsages: 1,
+    usages: [{...existingUsage, file: "api/src/newFile.ts"}],
+  });
+
+  const comparison = compareBaseline(shifted, baseline);
+
+  expect(comparison.ok).toBe(false);
+  expect(comparison.regressions).toContainEqual({
+    baseline: 0,
+    current: 1,
+    metric: "file:api/src/newFile.ts",
+  });
 });
 
 test("compareBaseline passes when counts are unchanged or lower", () => {

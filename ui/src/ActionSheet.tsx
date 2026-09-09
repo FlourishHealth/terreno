@@ -56,6 +56,11 @@ export const styles = StyleSheet.create({
   },
 });
 
+/** FlatList's underlying scroll view, reachable only through internal fields. */
+interface FlatListWithScrollRef {
+  _listRef: {_scrollRef: {scrollTo: (options: {animated: boolean; x: number; y: number}) => void}};
+}
+
 export const getDeviceHeight = (statusBarTranslucent: boolean | undefined): number => {
   const height = Dimensions.get("window").height;
 
@@ -168,13 +173,9 @@ export class ActionSheet extends Component<Props, State, unknown> {
 
   deviceLayoutCalled = false;
 
-  // noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
-  // biome-ignore lint/suspicious/noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
-  scrollViewRef: React.RefObject<any>;
+  scrollViewRef: React.RefObject<FlatList<string> | null>;
 
-  // noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
-  // biome-ignore lint/suspicious/noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
-  safeAreaViewRef: React.RefObject<any>;
+  safeAreaViewRef: React.RefObject<View | null>;
 
   transformValue: Animated.Value;
 
@@ -495,7 +496,8 @@ export class ActionSheet extends Component<Props, State, unknown> {
   _scrollTo = (y: number, animated = true) => {
     this.scrollAnimationEndValue = y;
     this.prevScroll = y;
-    this.scrollViewRef.current?._listRef._scrollRef.scrollTo({
+    const list = this.scrollViewRef.current as FlatListWithScrollRef | null;
+    list?._listRef._scrollRef.scrollTo({
       animated,
       x: 0,
       y: this.scrollAnimationEndValue,

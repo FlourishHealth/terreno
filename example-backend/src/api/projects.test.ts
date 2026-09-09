@@ -3,8 +3,10 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {
   applySyncMutation,
+  findSyncEntryByCollectionTag,
   generateTokens,
   installSyncSocketHandlers,
+  registerSync,
   type SyncSocketLike,
   TerrenoApp,
   type User,
@@ -119,6 +121,20 @@ describe("projects tenant create-escape (D3)", () => {
   });
 
   describe("over sync:mutate (applySyncMutation, shared by HTTP /sync/mutate and the socket handler)", () => {
+    // catalog clear helpers (e.g. clearMCPRegistry in usersTodoStatus.test.ts) wipe the
+    // shared collection registry; re-register projects sync before each case.
+    beforeEach(() => {
+      if (findSyncEntryByCollectionTag("projects")) {
+        return;
+      }
+      registerSync({
+        config: projectRouter.options.sync!,
+        model: projectRouter.model,
+        options: projectRouter.options,
+        routePath: projectRouter.path,
+      });
+    });
+
     // Mirrors the shape `req.user` has over the real HTTP /sync/mutate route
     // (authenticateMiddleware populates it with the full Mongoose user document,
     // organizationIds included) — the preCreate hook under test reads that field.

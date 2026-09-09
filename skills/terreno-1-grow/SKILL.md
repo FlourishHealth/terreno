@@ -17,7 +17,7 @@ human decision until the answer is executable.
 ## Preconditions
 
 - A request/spec/ticket and repository are available.
-- This invocation owns shaping only; the outer loop owns later stages.
+- This invocation owns shaping only. After `PASS`, Pick and Roast run the inner loop.
 
 ## Inputs
 

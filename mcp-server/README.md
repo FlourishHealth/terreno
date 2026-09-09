@@ -1,6 +1,6 @@
 # @terreno/mcp
 
-MCP (Model Context Protocol) server for Terreno. Provides documentation, tools, and prompts for building full-stack applications with Terreno packages.
+MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps.
 
 ## Features
 
@@ -18,6 +18,9 @@ Documentation resources accessible via MCP:
 
 Code generation tools:
 
+- `terreno_search_docs` - Search bundled Terreno documentation (call before guessing APIs)
+- `terreno_get_component_docs` - Full `@terreno/ui` props table for one component
+- `terreno_get_upgrade_guide` - Lockstep upgrade notes between two `@terreno/*` versions
 - `terreno_bootstrap_app` - Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP)
 - `terreno_bootstrap_ai_rules` - Scaffold AI assistant rules files for Cursor, Claude Code, etc.
 - `terreno_generate_model` - Generate a Mongoose model with proper Terreno conventions
@@ -39,8 +42,9 @@ Code generation prompts:
 - `terreno_add_authentication` - Generate authentication setup
 - `terreno_migrate_to_terreno_app` - Migrate from setupServer to TerrenoApp pattern
 - `terreno_style_guide` - Get the Terreno code style guide
+- `terreno_upgrade` - Lockstep Terreno upgrade workflow
 
-## Installation
+## Install
 
 ```bash
 # From the monorepo root
@@ -265,3 +269,11 @@ This will generate a comprehensive prompt with instructions for creating:
 - Backend model with proper schema
 - API routes with permissions
 - Frontend list, detail, and form screens
+
+## Documentation
+
+Full API reference: [docs/reference/mcp-server.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/mcp-server.md)
+
+## License and Contributing
+
+Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

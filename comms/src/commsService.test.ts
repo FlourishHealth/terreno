@@ -709,6 +709,39 @@ describe("CommsService", () => {
     const row = await CommsMessage.findExactlyOne({status: "cancelled"});
     assert.equal(row.attemptCount, 1);
     assert.equal((row.payload as {to?: string}).to, "person@example.com");
+    assert.equal(result.loggedMessageId, String(row._id));
+  });
+
+  it("attaches loggedMessageId when beforeSend cancels a push send", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    await PushToken.upsert(
+      {token: "ExponentPushToken[cancel]"},
+      {
+        active: true,
+        lastSeenAt: DateTime.utc().toJSDate(),
+        platform: "ios",
+        userId,
+      }
+    );
+    let sendCount = 0;
+    const service = new CommsService({
+      beforeSend: async (): Promise<{cancel: boolean}> => ({cancel: true}),
+      push: {
+        id: "cancel-push",
+        sendPush: async (): Promise<SendResult[]> => {
+          sendCount += 1;
+          return [{accepted: true}];
+        },
+      },
+    });
+
+    const results = await service.sendPushToUser({body: "Hello", title: "Title", userId});
+
+    assert.equal(sendCount, 0);
+    assert.equal(results.length, 1);
+    assert.isFalse(results[0]?.accepted);
+    const row = await CommsMessage.findExactlyOne({channel: "push", status: "cancelled"});
+    assert.equal(results[0]?.loggedMessageId, String(row._id));
   });
 
   it("lets beforeSend replace the outbound message", async (): Promise<void> => {

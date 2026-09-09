@@ -36,11 +36,13 @@ import {
   type SyncTransport,
 } from "@terreno/syncdb";
 import express from "express";
+import {DateTime} from "luxon";
 import mongoose, {model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
 import {modelRouter} from "../api";
 import {type UserModel as AuthUserModel, addAuthRoutes, generateTokens, setupAuth} from "../auth";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
@@ -156,14 +158,17 @@ const waitFor = async (
     intervalMs?: number;
   } = {}
 ): Promise<void> => {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
+  const start = DateTime.now().toMillis();
+  while (DateTime.now().toMillis() - start < timeoutMs) {
     if (await predicate()) {
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
-  throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}`);
+  throw new APIError({
+    status: 500,
+    title: `Timed out after ${timeoutMs}ms waiting for ${label}`,
+  });
 };
 
 interface HarnessClient {
@@ -327,7 +332,7 @@ const main = async (): Promise<void> => {
       return {ownerId: owner.ownerId, title: `seed-${i}`};
     });
 
-    const bootstrapStart = Date.now();
+    const bootstrapStart = DateTime.now().toMillis();
     if (seeds.length > 0) {
       await LoadTodoModel.insertMany(seeds);
     }
@@ -340,7 +345,7 @@ const main = async (): Promise<void> => {
         }),
       {label: `bootstrap convergence at ${config.seedDocs} docs`, timeoutMs: 120_000}
     );
-    const bootstrapWallMs = Date.now() - bootstrapStart;
+    const bootstrapWallMs = DateTime.now().toMillis() - bootstrapStart;
     logger.info(`[loadHarness] bootstrap converged in ${bootstrapWallMs}ms`);
 
     // ── Driven mutation load ─────────────────────────────────────────────────
@@ -370,7 +375,7 @@ const main = async (): Promise<void> => {
           },
           {intervalMs: 8, label: `mutation ${mutationId} terminal`, timeoutMs: 15_000}
         );
-        mutateLatenciesMs.push(Date.now() - startedAt);
+        mutateLatenciesMs.push(DateTime.now().toMillis() - startedAt);
         const mutation = hc.client.outbox.getMutation({mutationId});
         if (mutation?.status === "conflicted") {
           conflictCount += 1;
@@ -381,7 +386,7 @@ const main = async (): Promise<void> => {
         }
       } catch {
         // Timed out waiting; still record whatever elapsed so the report reflects it.
-        mutateLatenciesMs.push(Date.now() - startedAt);
+        mutateLatenciesMs.push(DateTime.now().toMillis() - startedAt);
       }
     };
 
@@ -397,18 +402,20 @@ const main = async (): Promise<void> => {
 
     const loadPromises: Promise<void>[] = [];
     const intervalMs = 1000 / config.targetRate;
-    const loadEnd = Date.now() + config.durationSec * 1000;
+    const loadEnd = DateTime.now().plus({seconds: config.durationSec}).toMillis();
 
-    while (Date.now() < loadEnd) {
+    while (DateTime.now().toMillis() < loadEnd) {
       const hc = randomClient();
       const opRoll = Math.random();
 
       if (opRoll < 0.5 || knownEntityIds.length === 0) {
         // Create.
-        const startedAt = Date.now();
+        const startedAt = DateTime.now().toMillis();
         const {mutationId} = hc.client.mutate({
           collection: COLLECTION,
-          data: {title: `load-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`},
+          data: {
+            title: `load-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
+          },
           operation: "create",
         });
         loadPromises.push(trackMutation(hc, mutationId, startedAt));
@@ -416,10 +423,10 @@ const main = async (): Promise<void> => {
         // Update.
         const target = knownEntityIds[Math.floor(Math.random() * knownEntityIds.length)];
         const owner = harnessClients[target.clientIndex];
-        const startedAt = Date.now();
+        const startedAt = DateTime.now().toMillis();
         const {mutationId} = owner.client.mutate({
           collection: COLLECTION,
-          data: {title: `updated-${Date.now()}`},
+          data: {title: `updated-${DateTime.now().toMillis()}`},
           id: target.id,
           operation: "update",
         });
@@ -435,7 +442,7 @@ const main = async (): Promise<void> => {
               if (!doc) {
                 return;
               }
-              doc.title = `server-race-${Date.now()}`;
+              doc.title = `server-race-${DateTime.now().toMillis()}`;
               return doc.save();
             })
             .catch(() => {});
@@ -448,8 +455,10 @@ const main = async (): Promise<void> => {
         if (Math.random() < 0.05) {
           const dupRequest: SyncMutateRequest = {
             collection: COLLECTION,
-            data: {title: `dup-${Date.now()}`},
-            mutationId: `load-dup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            data: {title: `dup-${DateTime.now().toMillis()}`},
+            mutationId: `load-dup-${DateTime.now().toMillis()}-${Math.random()
+              .toString(36)
+              .slice(2, 8)}`,
             operation: "create",
           };
           loadPromises.push(
@@ -467,7 +476,7 @@ const main = async (): Promise<void> => {
         const idx = Math.floor(Math.random() * knownEntityIds.length);
         const target = knownEntityIds[idx];
         const owner = harnessClients[target.clientIndex];
-        const startedAt = Date.now();
+        const startedAt = DateTime.now().toMillis();
         const {mutationId} = owner.client.mutate({
           collection: COLLECTION,
           id: target.id,
@@ -481,7 +490,7 @@ const main = async (): Promise<void> => {
       // connected client's local store reflecting it ─────────────────────────────
       if (Math.random() < 0.02) {
         const anyOwner = randomClient();
-        const writeStart = Date.now();
+        const writeStart = DateTime.now().toMillis();
         const doc = await LoadTodoModel.create({
           ownerId: anyOwner.ownerId,
           title: `fanout-${writeStart}`,
@@ -501,7 +510,7 @@ const main = async (): Promise<void> => {
             }
           )
             .then(() => {
-              fanoutLagsMs.push(Date.now() - writeStart);
+              fanoutLagsMs.push(DateTime.now().toMillis() - writeStart);
             })
             .catch(() => {})
         );

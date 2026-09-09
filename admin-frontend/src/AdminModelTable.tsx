@@ -596,9 +596,11 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
 
       if (isInlineBool) {
+        const recordCapabilities = item._adminCapabilities as {update?: boolean} | undefined;
         return {
           value: {
-            disabled: modelConfig.permissions?.update === false,
+            disabled:
+              recordCapabilities?.update === false || modelConfig.permissions?.update === false,
             onToggle: () => handleInlineBooleanToggle(id, fieldKey, !item[fieldKey]),
             value: Boolean(item[fieldKey]),
           },

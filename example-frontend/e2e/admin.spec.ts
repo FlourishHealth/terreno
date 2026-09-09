@@ -154,7 +154,7 @@ test.describe("Admin Access Control", () => {
   test("non-admin user cannot see admin button in profile", async ({page}) => {
     await loginAs(page);
     await page.goto("/profile");
-    await page.getByTestId("profile-name-input").first().waitFor({state: "visible"});
+    await page.getByTestId("profile-name-input.edit-clickable").first().waitFor({state: "visible"});
     await expect(page.getByTestId("profile-admin-button")).not.toBeVisible();
   });
 });

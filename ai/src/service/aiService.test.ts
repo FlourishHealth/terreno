@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {jsonSchema, type LanguageModel} from "ai";
+import {assert} from "chai";
 import mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -204,6 +205,55 @@ describe("AIService", () => {
 
       expect(result).toEqual({count: 9, id: "fenced"});
     });
+
+    it("parses object output that has a prose preamble and a trailing comma", async () => {
+      const model = createMockModel(
+        'Sure! Here is the object you asked for:\n{"id":"messy","count":4,}\nLet me know if you need more.'
+      );
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const schema = jsonSchema<{count: number; id: string}>({
+        additionalProperties: false,
+        properties: {
+          count: {type: "number"},
+          id: {type: "string"},
+        },
+        required: ["id", "count"],
+        type: "object",
+      });
+
+      const result = await service.generateJsonObject({
+        prompt: "Extract fields",
+        schema,
+      });
+
+      assert.deepEqual(result, {count: 4, id: "messy"});
+    });
+
+    it("logs a sentinel response when the model returns no text content", async () => {
+      const model = createMockModel();
+      model.doGenerate = mock(async () => ({
+        content: [],
+        finishReason: "stop" as const,
+        usage: {inputTokens: 5, outputTokens: 0},
+      }));
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const schema = jsonSchema<{id: string}>({
+        properties: {id: {type: "string"}},
+        required: ["id"],
+        type: "object",
+      });
+
+      await expect(
+        service.generateJsonObject({prompt: "no content", schema})
+      ).rejects.toBeDefined();
+
+      const logs = await AIRequest.find({prompt: "no content"});
+      assert.lengthOf(logs, 1);
+      assert.equal(logs[0].requestType, "json_object");
+      assert.isOk(logs[0].error);
+      assert.notEqual(logs[0].metadata?.rawModelTextCaptured, true);
+    });
   });
 
   describe("generateJsonArray", () => {
@@ -237,6 +287,20 @@ describe("AIService", () => {
       });
 
       expect(result).toEqual([1, 2]);
+    });
+
+    it("logs the raw model text when the array payload cannot be parsed", async () => {
+      const model = createMockModel("sorry, I cannot do that");
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const element = jsonSchema<number>({type: "number"});
+
+      await expect(service.generateJsonArray({element, prompt: "bad array"})).rejects.toBeDefined();
+
+      const logs = await AIRequest.find({prompt: "bad array"});
+      assert.lengthOf(logs, 1);
+      assert.equal(logs[0].requestType, "json_array");
+      assert.equal(logs[0].response, "sorry, I cannot do that");
+      assert.isTrue(logs[0].metadata?.rawModelTextCaptured);
     });
   });
 

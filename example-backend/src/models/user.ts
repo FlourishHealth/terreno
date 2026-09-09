@@ -68,6 +68,6 @@ userSchema.method("getDisplayName", function (this: UserDocument): string {
 export const User = mongoose.model<UserDocument, UserModel>("User", userSchema);
 
 // Define custom statics after model creation
-User.findByEmail = async function (email: string): Promise<UserDocument | null> {
-  return this.findOneOrNone({email: email.toLowerCase()});
+User.findByEmail = async (email: string): Promise<UserDocument | null> => {
+  return User.findOneOrNone({email: email.toLowerCase()});
 };

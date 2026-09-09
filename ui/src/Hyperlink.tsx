@@ -38,22 +38,7 @@ import * as mdurl from "mdurl";
 import React from "react";
 import {Linking, Platform, type StyleProp, Text, type TextStyle, View} from "react-native";
 
-import type {HyperlinkProps} from "./Common";
-
-interface LinkifyMatch {
-  index: number;
-  lastIndex: number;
-  raw: string;
-  schema: string;
-  text: string;
-  url: string;
-}
-
-interface LinkifyItLike {
-  pretest: (text: string) => boolean;
-  test: (text: string) => boolean;
-  match: (text: string) => LinkifyMatch[] | null;
-}
+import type {HyperlinkProps, LinkifyItLike, LinkifyMatch} from "./Common";
 
 const linkifyLib: LinkifyItLike = require("linkify-it")();
 
@@ -70,7 +55,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     return typeof (component.props as {children?: unknown}).children !== "string";
   };
 
-  linkify = (component: React.ReactElement<{children: string; style?: unknown}>) => {
+  linkify = (component: React.ReactElement<{children: string; style?: StyleProp<TextStyle>}>) => {
     const linkifyIt = this.props.linkify || linkifyLib;
 
     if (!linkifyIt.pretest(component.props.children) || !linkifyIt.test(component.props.children))
@@ -158,7 +143,9 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
             </Text>
           );
         if (displayName === "Text" && !this.isTextNested(child as React.ReactElement))
-          return this.linkify(child as React.ReactElement<{children: string; style?: unknown}>);
+          return this.linkify(
+            child as React.ReactElement<{children: string; style?: StyleProp<TextStyle>}>
+          );
         return this.parse(child as React.ReactElement);
       })
     );

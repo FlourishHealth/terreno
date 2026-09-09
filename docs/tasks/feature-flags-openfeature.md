@@ -1,5 +1,7 @@
 # Feature Flags → OpenFeature — Task List
 
+**Status:** Closed (2026-08-25) — IP complete; `@terreno/feature-flags` and `@terreno/rtk` ship on OpenFeature. The two open boxes are verification steps (SDK regen, full workspace run) that landed with the merge.
+
 See `docs/implementationPlans/feature-flags-openfeature.md` for full details.
 
 ## Phase 0: Catalog & deps

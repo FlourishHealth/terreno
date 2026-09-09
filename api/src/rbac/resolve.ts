@@ -1,4 +1,5 @@
 import {createAccessControl} from "better-auth/plugins/access";
+import {DateTime} from "luxon";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
@@ -47,7 +48,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
   const sourceCache = new Map<string, Map<string, SourceCacheEntry>>();
 
   const enforceCacheBound = (): void => {
-    const now = Date.now();
+    const now = DateTime.now().toMillis();
     for (const [userId, entry] of permissionCache) {
       if (entry.expiresAt <= now) {
         permissionCache.delete(userId);
@@ -159,7 +160,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     source: PermissionSource,
     shouldCache = true
   ): Promise<PermissionSourceGrants | null> => {
-    const now = Date.now();
+    const now = DateTime.now().toMillis();
     const cached = sourceCache.get(user.id)?.get(source.name);
 
     if (!shouldCache) {
@@ -206,7 +207,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
   ): Promise<PermissionSet> => {
     if (shouldCache) {
       const cached = permissionCache.get(user.id);
-      if (cached && cached.expiresAt > Date.now()) {
+      if (cached && cached.expiresAt > DateTime.now().toMillis()) {
         rememberPermissions(user.id, cached);
         return cached.permissions;
       }
@@ -251,7 +252,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
 
     if (shouldCache) {
       rememberPermissions(user.id, {
-        expiresAt: Date.now() + cacheTtlMs,
+        expiresAt: DateTime.now().plus({milliseconds: cacheTtlMs}).toMillis(),
         permissions,
       });
     }

@@ -132,6 +132,132 @@ row.
 3. Confirm the from address matches a verified identity.
 4. Use sandbox mode in CI/tests so no real mail is delivered.
 
+### Twilio SMS adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {CommsApp} from "@terreno/comms";
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      sms: new TwilioSmsProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // Prefer TWILIO_MESSAGING_SERVICE_SID; fall back to TWILIO_FROM_NUMBER
+      }),
+      onError: async (_context, result) => {
+        console.error("sms failed", result.errorCode, result.errorClass);
+      },
+    })
+  )
+  .start();
+```
+
+`TwilioSmsProvider` fails fast at construction when account SID or auth token is missing.
+Destinations are normalized to E.164 with `libphonenumber-js`; invalid numbers return
+`accepted: false` with `errorClass: permanent` and `errorCode: twilio-invalid-destination`
+before any Twilio call, so the facade does not retry. Send failures never throw through
+`sendSms`; they return `accepted: false` with Twilio `errorCode` / `errorClass`
+(`permanent` | `transient` | `config`). Permanent codes (including 21610 STOP) are not
+retried. Accepted sends store `providerMessageId` and `metadata.consoleUrl` for the
+Twilio SMS log.
+
+The example backend registers this adapter when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+and a sender (`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`) are set. A sender
+without credentials throws at startup. Account credentials without a sender skip SMS so
+Verify-only configs can share `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`. Unconfigured
+environments keep the console SMS provider (or omit SMS in production). `twilio` is an
+optional peer — apps that do not send SMS do not install it. Apps that ship
+`bun build --compile` (the example Cloud Run image) must inject a Twilio client
+(static `import twilio from "twilio"`). The adapters' default
+`createRequire("twilio")` is not bundled into that binary.
+
+### Twilio Verify adapter
+
+```bash
+bun add twilio
+```
+
+```typescript
+import {CommsApp} from "@terreno/comms";
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      verification: new TwilioVerifyProvider({
+        // accountSid / authToken default to TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN
+        // verifyServiceSid defaults to TWILIO_VERIFY_SERVICE_SID
+      }),
+    })
+  )
+  .start();
+```
+
+`TwilioVerifyProvider` fails fast at construction when account SID, auth token, or
+`TWILIO_VERIFY_SERVICE_SID` is missing. `startVerification` supports `sms` and `email`.
+`checkVerification` returns `valid: true` only for Verify status `approved`; `pending`,
+`expired`, and max-attempt states return `valid: false` with those reasons. Start failures
+are classified (`config` / `transient` / `permanent`) and never throw through the facade.
+Verification `CommsMessage` rows redact the destination, never store the OTP, and are not
+retryable from admin. Accepted starts store `metadata.consoleUrl` for the Verify service.
+
+The example backend registers this adapter when `TWILIO_VERIFY_SERVICE_SID` is set together
+with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`. A verify service SID without those
+credentials throws at startup. Unconfigured environments keep the console verification
+provider (or omit verification in production). Verify's email channel needs a Twilio Verify
+email integration; that setup is not automated.
+
+### Expo push adapter
+
+```bash
+bun add expo-server-sdk
+```
+
+```typescript
+import {CommsApp, getCommsService} from "@terreno/comms";
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new TerrenoApp({userModel: User})
+  .register(
+    new CommsApp({
+      push: new ExpoPushProvider({
+        // accessToken defaults to process.env.EXPO_ACCESS_TOKEN (optional)
+        onDeadToken: async (token) => {
+          await getCommsService().deactivatePushToken(token);
+        },
+        onDeliveryEvent: async (event) => {
+          await getCommsService().recordDeliveryEvent(event);
+        },
+      }),
+    })
+  )
+  .start();
+```
+
+`ExpoPushProvider` validates tokens with `Expo.isExpoPushToken`, chunks with
+`chunkPushNotifications`, and returns one `SendResult` per input token. Invalid tokens
+never hit the Expo API (`errorCode: expo-invalid-token`, `errorClass: permanent`).
+Ticket `DeviceNotRegistered` is a permanent failure so `sendPushToUser` deactivates the
+`PushToken`. `MessageTooBig` is `errorClass: config`: the send fails and is not retried,
+but the token stays active. Successful tickets schedule one receipt poll (default 15
+minutes, `receiptPollDelayMs`) that emits `DeliveryEvent`s; a later `DeviceNotRegistered`
+receipt calls `onDeadToken`. `EXPO_ACCESS_TOKEN` is optional (higher Expo rate limits).
+
+Apps that ship `bun build --compile` (the example Cloud Run image) must inject
+an `Expo` client (static `import {Expo} from "expo-server-sdk"`). The adapter's
+default `createRequire("expo-server-sdk")` is not bundled into that binary.
+
+example-frontend requests notification permission, then `getExpoPushTokenAsync`, then
+`POST /comms/pushTokens` after login. Denied permission and web skip registration (empty
+token). Physical-device gating via `expo-device` is deferred until the native baseline
+lands. The profile **Send test push** card is `__DEV__` only, so production web exports
+(CircleCI Playwright) do not render it.
+
 ## Configuration
 
 ```typescript
@@ -192,10 +318,25 @@ The default `basePath` is `/comms`.
 | `GET` | `/comms/pushTokens` | Authenticated owner | List the current user's tokens |
 | `GET` | `/comms/pushTokens/:id` | Owner | Read one token |
 | `DELETE` | `/comms/pushTokens/:id` | Owner | Deactivate a token |
-| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log |
+| `GET` | `/comms/messages` | Admin | Filtered, paginated delivery log. Query: `channel`, `provider`, `status`, `errorClass`, `errorCode`, `userId`, `to`, `templateId`, `retriedFromId`, `startDate`, `endDate`, free-text `q`, `page`, `limit` |
+| `GET` | `/comms/messages/:id` | Admin | Full row: attempts, metadata, retained payload, retry links, `retryable` / `retryDisabledReason` |
+| `POST` | `/comms/messages/:id/retry` | Admin | Re-send through the facade. Creates a linked row. 400 codes: `comms-retry-not-retryable`, `comms-retry-payload-expired`, `comms-retry-channel-unconfigured` |
+| `POST` | `/comms/messages/retryMany` | Admin | Same filters as list plus `limit` (cap 100). Returns `{retried, skipped: [{id, reason}]}` |
+| `GET` | `/comms/stats` | Admin | Counts by channel × provider × status with day buckets. Default range 7d. Includes per-provider failure rate |
 
 An active token cannot be claimed by another user. After its owner deactivates it, another
 authenticated user on the same device may register it.
+
+## Admin dashboard
+
+`CommsApp.adminContribution()` registers a custom screen named `comms` with the sidebar label **Comms Dashboard**. `@terreno/admin-frontend` ships `COMMS_ADMIN_WIDGETS` (`CommsDashboardScreen`, `CommsMessageDetail`) and hosts wire:
+
+- example-frontend: `/admin/comms` and `/admin/comms/[id]`
+- admin-spa: `/comms` and `/comms/[id]`
+
+Filters persist in the URL. List, stats, and bulk retry use the same match: when no dates are set, both the table and the cards use the trailing 7 days (labeled **Last 7 days**). Editing any filter while those dates are still implicit writes both bounds into the URL so the other bound is not dropped. `beforeSend` cancel on push attaches `loggedMessageId` the same way mail and SMS do. Created and attempt times print in the operator's locale (`DateTime.DATETIME_MED`), not UTC ISO. Inline and detail Retry create a new `CommsMessage` and navigate to it. **Retry matching** confirms the filtered list count (capped at 100) then posts `retryMany`.
+
+Run `bun run backend:seed` from the repository root to populate the example dashboard with 10 current, idempotent delivery logs across mail, SMS, push, and verification. The sample includes delivered, sent, failed, bounced, and cancelled states so stats, provider breakdowns, filters, and retry controls are visible immediately.
 
 ## Templates
 

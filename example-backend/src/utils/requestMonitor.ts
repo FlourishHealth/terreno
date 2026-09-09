@@ -152,97 +152,113 @@ export const trackDbQuery = (req: Request, query: string, startTime: [number, nu
   });
 };
 
-export const setupMongooseMonitoring = (): void => {
-  // Dynamic require for untyped monkey-patching of Mongoose internals
-  const mongoose = require("mongoose");
+/** Minimal shape of the Mongoose query internals the exec wrapper reads. */
+interface MonitoredQuery {
+  getQuery: () => unknown;
+  op?: string;
+}
 
-  const originalExec = mongoose.Query.prototype.exec;
-  const originalAggregate = mongoose.Model.aggregate;
+type QueryExecFn = (this: MonitoredQuery, callback?: Callback<unknown>) => unknown;
 
-  mongoose.Query.prototype.exec = function (
+type ModelAggregateFn = (
+  this: unknown,
+  pipeline?: PipelineStage[],
+  options?: AggregateOptions
+) => Promise<unknown[]>;
+
+const isPromiseLike = (value: unknown): value is Promise<unknown> => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as {then?: unknown}).then === "function"
+  );
+};
+
+const elapsedMs = (startTime: [number, number]): number => {
+  const diff = process.hrtime(startTime);
+  return Math.round(diff[0] * 1000 + diff[1] * 0.000001);
+};
+
+const recordDbQuery = ({
+  label,
+  startTime,
+  suffix,
+}: {
+  label: string;
+  startTime: [number, number];
+  suffix?: string;
+}): void => {
+  const duration = elapsedMs(startTime);
+
+  const currentRequest = getCurrentRequest();
+  if (currentRequest) {
+    trackDbQuery(currentRequest, label, startTime);
+  }
+
+  if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
+    logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${label}${suffix ?? ""}`);
+  }
+};
+
+/**
+ * Wraps `Query.prototype.exec` so queries run inside a monitored request are
+ * timed. Taking the original as an argument keeps the timing logic testable
+ * without patching Mongoose globals.
+ */
+export const createMonitoredQueryExec = (originalExec: QueryExecFn): QueryExecFn => {
+  return function monitoredExec(
+    this: MonitoredQuery,
     callback?: Callback<unknown>
   ): Promise<unknown> | Query<unknown, unknown> {
     const startTime = process.hrtime();
     const queryString = JSON.stringify(this.getQuery()).substring(0, 200);
-    const operation = this.op || "unknown";
+    const label = `${this.op || "unknown"}: ${queryString}`;
 
     const result = originalExec.call(this, callback);
 
-    if (result && typeof result.then === "function") {
+    if (isPromiseLike(result)) {
       return result
         .then((res: unknown) => {
-          const diff = process.hrtime(startTime);
-          const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-          const currentRequest = getCurrentRequest();
-          if (currentRequest) {
-            trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
-          }
-
-          if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString}`);
-          }
-
+          recordDbQuery({label, startTime});
           return res;
         })
         .catch((error: unknown) => {
-          const diff = process.hrtime(startTime);
-          const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-          const currentRequest = getCurrentRequest();
-          if (currentRequest) {
-            trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
-          }
-
-          if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-            logger.warn(`[lag] SLOW_QUERY: ${duration}ms - ${operation}: ${queryString} (ERROR)`);
-          }
-
+          recordDbQuery({label, startTime, suffix: " (ERROR)"});
           throw error;
         });
     }
 
-    return result;
+    return result as Query<unknown, unknown>;
   };
+};
 
-  mongoose.Model.aggregate = function (
+/** Wraps `Model.aggregate` with the same request-scoped timing as query exec. */
+export const createMonitoredAggregate = (originalAggregate: ModelAggregateFn): ModelAggregateFn => {
+  return function monitoredAggregate(
+    this: unknown,
     pipeline?: PipelineStage[],
     options?: AggregateOptions
   ): Promise<unknown[]> {
     const startTime = process.hrtime();
-    const queryString = JSON.stringify(pipeline).substring(0, 200);
+    const label = `aggregate: ${JSON.stringify(pipeline).substring(0, 200)}`;
 
     return originalAggregate
       .call(this, pipeline, options)
       .then((result: unknown[]) => {
-        const diff = process.hrtime(startTime);
-        const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-        const currentRequest = getCurrentRequest();
-        if (currentRequest) {
-          trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
-        }
-
-        if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-          logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString}`);
-        }
-
+        recordDbQuery({label, startTime});
         return result;
       })
       .catch((error: unknown) => {
-        const diff = process.hrtime(startTime);
-        const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
-
-        const currentRequest = getCurrentRequest();
-        if (currentRequest) {
-          trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
-        }
-
-        if (duration > SLOW_DB_QUERY_THRESHOLD_MS) {
-          logger.warn(`[lag] SLOW_QUERY: ${duration}ms - aggregate: ${queryString} (ERROR)`);
-        }
-
+        recordDbQuery({label, startTime, suffix: " (ERROR)"});
         throw error;
       });
   };
+};
+
+export const setupMongooseMonitoring = (): void => {
+  // Dynamic require for untyped monkey-patching of Mongoose internals
+  const mongoose = require("mongoose");
+
+  mongoose.Query.prototype.exec = createMonitoredQueryExec(mongoose.Query.prototype.exec);
+  mongoose.Model.aggregate = createMonitoredAggregate(mongoose.Model.aggregate);
 };

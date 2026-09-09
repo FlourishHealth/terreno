@@ -23,8 +23,33 @@ interface CacheLifecycleApi<TDraft> {
 }
 
 /**
+ * One-line warning for RTK cache-patching realtime helpers. Keep in sync with
+ * `@terreno/api` modelRouter `realtime` and `docs/implementationPlans/remove-legacy-realtime.md`.
+ */
+export const RTK_REALTIME_DEPRECATION_MESSAGE =
+  "[@terreno/rtk] realtimeList, realtimeDocument, and setRealtimeSocket are deprecated and will be removed in Terreno 58. Use @terreno/syncdb instead. See docs/how-to/migrate-rtk-to-syncdb.md.";
+
+let hasWarnedRealtimeDeprecated = false;
+
+const warnRealtimeDeprecated = (): void => {
+  if (hasWarnedRealtimeDeprecated) {
+    return;
+  }
+  hasWarnedRealtimeDeprecated = true;
+  console.warn(RTK_REALTIME_DEPRECATION_MESSAGE);
+};
+
+/** @internal Test helper — clears the one-time realtime deprecation warning. */
+export const resetRealtimeDeprecationWarningsForTests = (): void => {
+  hasWarnedRealtimeDeprecated = false;
+};
+
+/**
  * A real-time sync event received from the server via WebSocket.
  * Must be kept in sync with the backend RealtimeEvent in @terreno/api.
+ *
+ * @deprecated Removed in Terreno 58 with `realtimeList` / `realtimeDocument`.
+ * Syncdb uses `sync:delta` events instead.
  */
 export interface RealtimeEvent {
   /** Mongoose model name (e.g. "Todo") */
@@ -56,6 +81,9 @@ const _socketWaiters: ((socket: Socket) => void)[] = [];
  * Call this once after your socket connects (e.g. inside `useSocketConnection`'s `onConnect`
  * callback, or in a `useEffect` that watches the socket ref).
  *
+ * @deprecated Removed in Terreno 58. Use `@terreno/syncdb` for collection sync.
+ * `useSocketConnection` remains for feature flags and other sockets.
+ *
  * @example
  * ```typescript
  * const { socket } = useSocketConnection({ ... });
@@ -67,6 +95,7 @@ const _socketWaiters: ((socket: Socket) => void)[] = [];
  * ```
  */
 export const setRealtimeSocket = (socket: Socket | null): void => {
+  warnRealtimeDeprecated();
   _socket = socket;
   if (socket) {
     while (_socketWaiters.length > 0) {
@@ -76,7 +105,11 @@ export const setRealtimeSocket = (socket: Socket | null): void => {
   }
 };
 
-/** Get the current socket instance (may be null). */
+/**
+ * Get the current socket instance (may be null).
+ *
+ * @deprecated Removed in Terreno 58 with `setRealtimeSocket`.
+ */
 export const getRealtimeSocket = (): Socket | null => _socket;
 
 /**
@@ -163,6 +196,8 @@ interface RealtimeDocumentOptions {
  * @param collection - The collection tag (e.g. "todos")
  * @param options - Optional configuration
  *
+ * @deprecated Removed in Terreno 58. Use `@terreno/syncdb` (`useEntity`) instead.
+ *
  * @example
  * ```typescript
  * const api = generatedApi.enhanceEndpoints({
@@ -175,6 +210,7 @@ interface RealtimeDocumentOptions {
  * ```
  */
 export const realtimeDocument = (collection: string, options?: RealtimeDocumentOptions) => {
+  warnRealtimeDeprecated();
   const getId =
     options?.getId ??
     ((arg: unknown): string | undefined => {
@@ -265,6 +301,8 @@ interface QuerySubscribedPayload {
  * @param collection - The collection tag (e.g. "todos")
  * @param options - Optional configuration
  *
+ * @deprecated Removed in Terreno 58. Use `@terreno/syncdb` (`useQuery` / `useEntityIds`) instead.
+ *
  * @example
  * ```typescript
  * const api = generatedApi.enhanceEndpoints({
@@ -277,6 +315,7 @@ interface QuerySubscribedPayload {
  * ```
  */
 export const realtimeList = (collection: string, options?: RealtimeListOptions) => {
+  warnRealtimeDeprecated();
   const getQuery =
     options?.getQuery ??
     ((arg: unknown) => extractQueryFilter(arg as Record<string, unknown> | null | undefined));

@@ -74,13 +74,13 @@ Two-column layout for master-detail patterns (web-friendly).
 
 ## Responsive breakpoints
 
-Box supports responsive props:
+Box supports `smDirection`, `mdDirection`, `lgDirection`, and `xlDirection`. Tokens are
+platform-specific: native `sm` 320 / `md` 375 / `lg` 600 / `xl` 1024; web `lg` 1024 / `xl` 1280.
+See `docs/reference/ui.md`.
 
 ```tsx
-<Box direction="column" mdDirection="row" smPadding={2} mdPadding={6}>
+<Box direction="column" mdDirection="row" lgDirection="row" xlDirection="column">
 ```
-
-Breakpoints: `sm`, `md`, `lg`.
 
 ## Do not
 

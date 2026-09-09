@@ -1,6 +1,6 @@
 # Implementation Plan: Infrastructure MCP server (`@terreno/infra-mcp`)
 
-**Status:** Draft — unblocked; RBAC module is Complete ([rbac-permissions.md](rbac-permissions.md))
+**Status:** Approved — unblocked; RBAC module is Complete ([rbac-permissions.md](rbac-permissions.md))
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1090
 **Branch:** TBD
 **Owner:** TBD

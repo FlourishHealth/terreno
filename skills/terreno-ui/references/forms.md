@@ -80,6 +80,22 @@ Always use Luxon for formatting displayed dates.
 | `PasswordField` | Password with show/hide |
 | `SignatureField` | Draw signature (consent flows) |
 
+## TapToEdit
+
+Use `TapToEdit` for values that should stay read-only until the user taps the pencil. Pass `setValue` for the in-progress edit and `onSave` to persist.
+
+```tsx
+<TapToEdit
+  onSave={handleSaveName}
+  setValue={setName}
+  title="Name"
+  type="text"
+  value={name}
+/>
+```
+
+`onSave` may be async. Cancel restores the value from when editing started. Do not omit `setValue` when `editable` is true.
+
 ## Form pattern
 
 ```tsx

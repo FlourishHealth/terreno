@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {Router} from "express";
 import supertest from "supertest";
@@ -378,7 +378,7 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
       .withTags(["test"])
       .withSummary("Test")
       .withResponse(200, {id: {type: "string"}})
-      .build() as express.RequestHandler;
+      .build();
 
     // Middleware should be a function
     expect(typeof middleware).toBe("function");
@@ -392,7 +392,7 @@ describe("OpenApiMiddlewareBuilder without OpenAPI", () => {
   });
 
   it("build returns noop middleware when options is empty", () => {
-    const middleware = createOpenApiBuilder({}).build() as express.RequestHandler;
+    const middleware = createOpenApiBuilder({}).build();
 
     let nextCalled = false;
     middleware({} as express.Request, {} as express.Response, () => {
@@ -476,9 +476,17 @@ describe("OpenApiMiddlewareBuilder configuration", () => {
 });
 
 describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
-  beforeEach(() => {
+  const resetValidatorConfig = (): void => {
     const {resetOpenApiValidatorConfig} = require("./openApiValidator");
     resetOpenApiValidatorConfig();
+  };
+
+  beforeEach(() => {
+    resetValidatorConfig();
+  });
+
+  afterEach(() => {
+    resetValidatorConfig();
   });
 
   it("buildWithSchemas returns bodySchema and querySchema", () => {
@@ -519,15 +527,15 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
     expect(result.validationEnabled).toBe(false);
   });
 
-  it("build() returns an array when validation is enabled with body and query", () => {
+  it("build() returns a single composed middleware when validation is enabled with body and query", () => {
     const result = createOpenApiBuilder({})
       .withRequestBody({name: {required: true, type: "string"}})
       .withQueryParameter("page", {type: "number"})
       .withValidation()
       .build();
 
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(3);
+    expect(typeof result).toBe("function");
+    expect(Array.isArray(result)).toBe(false);
   });
 
   it("build() returns a single middleware when validation is disabled", () => {
@@ -553,5 +561,85 @@ describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
 
     // No body/query validation = just the openApi middleware (single fn)
     expect(typeof result).toBe("function");
+  });
+
+  // The composed handler must still run every validator in order and surface a
+  // validator's synchronous throw, which routes previously got from Express
+  // spreading an array of middleware.
+  describe("composed validation middleware", () => {
+    const buildTestApp = (): express.Express => {
+      const {configureOpenApiValidator} = require("./openApiValidator");
+      configureOpenApiValidator({logValidationErrors: false});
+
+      const {apiErrorMiddleware} = require("./errors");
+      const expressLib = require("express") as typeof import("express");
+
+      const app = expressLib();
+      app.use(expressLib.json());
+      app.post(
+        "/widgets",
+        createOpenApiBuilder({})
+          .withRequestBody({name: {required: true, type: "string"}})
+          .withQueryParameter("page", {type: "number"})
+          .withValidation()
+          .build(),
+        (req, res) => {
+          res.json({name: (req.body as {name: string}).name});
+        }
+      );
+      app.use(apiErrorMiddleware);
+      return app;
+    };
+
+    it("passes a valid request through to the route handler", async () => {
+      const response = await supertest(buildTestApp())
+        .post("/widgets?page=2")
+        .send({name: "valid"});
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe("valid");
+    });
+
+    it("rejects a body missing a required field with a 400", async () => {
+      const response = await supertest(buildTestApp()).post("/widgets").send({});
+
+      expect(response.status).toBe(400);
+    });
+
+    it("keeps the documented path in /openapi.json when validation is composed", async () => {
+      process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
+      process.env.ENABLE_SWAGGER = "true";
+
+      const {configureOpenApiValidator} = require("./openApiValidator");
+      configureOpenApiValidator({logValidationErrors: false});
+
+      const addValidatedWidgetRoute = (
+        router: express.Router,
+        options?: Partial<ModelRouterOptions<unknown>>
+      ): void => {
+        const middleware = createOpenApiBuilder(options ?? {})
+          .withTags(["Widgets"])
+          .withSummary("Create a widget")
+          .withRequestBody({name: {required: true, type: "string"}})
+          .withQueryParameter("page", {type: "number"})
+          .withValidation()
+          .build();
+        router.post("/widgets", middleware, (_req, res) => {
+          res.json({ok: true});
+        });
+      };
+
+      const documentedApp = new TerrenoApp({
+        configureApp: addValidatedWidgetRoute,
+        skipListen: true,
+        userModel: UserModel as unknown as AuthUserModel,
+      }).build();
+
+      const spec = await supertest(documentedApp).get("/openapi.json").expect(200);
+      expect(spec.body.paths["/widgets"]).toBeDefined();
+      expect(spec.body.paths["/widgets"].post).toBeDefined();
+      expect(spec.body.paths["/widgets"].post.summary).toBe("Create a widget");
+      expect(spec.body.paths["/widgets"].post.requestBody).toBeDefined();
+    });
   });
 });

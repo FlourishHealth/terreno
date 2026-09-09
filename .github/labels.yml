@@ -73,6 +73,9 @@
 - name: breaking
   color: "B60205"
   description: "Breaking change for consumers"
+- name: roadmap
+  color: "006B75"
+  description: "On the public roadmap — tracked on the Terreno Roadmap project board"
 - name: tracked
   color: "1D76DB"
   description: "Mirrored to Linear for sprint execution (GitHub → Linear intake)"

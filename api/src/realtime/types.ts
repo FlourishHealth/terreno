@@ -8,6 +8,9 @@ import type {BetterAuthSocketOptions} from "./socketAuth";
 /**
  * Configuration for real-time sync on a modelRouter.
  * Determines which CRUD methods emit WebSocket events and how they are routed.
+ *
+ * @deprecated Removed in Terreno 58. Use `sync` on modelRouter with `@terreno/syncdb`.
+ * `RealtimeApp` remains required for sync sockets.
  */
 export interface RealtimeConfig {
   /** Which CRUD methods should emit real-time sync events */
@@ -30,6 +33,9 @@ export interface RealtimeConfig {
 
 /**
  * A real-time sync event emitted to clients via WebSocket.
+ *
+ * @deprecated Removed in Terreno 58 with modelRouter `realtime` and the RTK
+ * cache-patching helpers. Syncdb uses `sync:delta` events instead.
  */
 export interface RealtimeEvent {
   /** Mongoose model name (e.g. "Todo") */
@@ -83,7 +89,10 @@ export interface RealtimeAppOptions {
   adapter?: "redis" | "none";
   /** Redis URL for the Redis adapter */
   redisUrl?: string;
-  /** JWT secret for socket authentication (default: process.env.TOKEN_SECRET) */
+  /**
+   * JWT secret for socket authentication (default: process.env.TOKEN_SECRET).
+   * Optional when `betterAuth` is configured.
+   */
   tokenSecret?: string;
   /**
    * JWT issuer required for socket authentication (default: process.env.TOKEN_ISSUER),
@@ -92,9 +101,10 @@ export interface RealtimeAppOptions {
    */
   tokenIssuer?: string;
   /**
-   * Enables the Better Auth session validator for socket authentication, tried after the
-   * legacy JWT validator. Pass the instance returned by `createBetterAuth` (and optionally
-   * the app user model so `decodedToken.id`/`admin` match the REST identity).
+   * Enables the Better Auth session validator for socket authentication. It is tried after
+   * the legacy JWT validator when a token secret exists, or used alone otherwise. Pass the
+   * instance returned by `createBetterAuth` (and optionally the app user model so
+   * `decodedToken.id`/`admin` match the REST identity).
    */
   betterAuth?: BetterAuthSocketOptions;
   /**

@@ -1,14 +1,21 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
+import {assert} from "chai";
 
 import {Button} from "./Button";
 import {isMobileDevice} from "./MediaQuery";
 import * as ThemeModule from "./Theme";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
+import {Unifier} from "./Unifier";
 import * as Utilities from "./Utilities";
 
 interface PressableTestProps {
   onPress: () => Promise<void>;
+}
+
+interface CancelablePress {
+  (): void;
+  cancel: () => void;
 }
 
 describe("Button", () => {
@@ -153,6 +160,104 @@ describe("Button", () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
+  it("skips equivalent parent updates and redraws changed props", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const mobileDeviceMock = isMobileDevice as ReturnType<typeof mock>;
+    mobileDeviceMock.mockClear();
+    const {rerender} = renderWithTheme(<Button onClick={handleClick} text="Stable" />);
+    const initialRenderCalls = mobileDeviceMock.mock.calls.length;
+
+    rerender(<Button onClick={handleClick} text="Stable" />);
+    assert.equal(mobileDeviceMock.mock.calls.length, initialRenderCalls);
+
+    rerender(<Button onClick={handleClick} text="Changed" />);
+    assert.equal(mobileDeviceMock.mock.calls.length, initialRenderCalls + 1);
+  });
+
+  it("prevents another press while an async handler remains pending", async () => {
+    let resolveClick: (() => void) | undefined;
+    const handleClick = mock(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveClick = resolve;
+        })
+    );
+    const {getByTestId} = renderWithTheme(
+      <Button onClick={handleClick} testID="delayed-button" text="Delayed" />
+    );
+    const button = getByTestId("delayed-button");
+
+    await act(async () => {
+      fireEvent.press(button);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      fireEvent.press(button);
+    });
+
+    assert.lengthOf(handleClick.mock.calls, 1);
+
+    await act(async () => {
+      resolveClick?.();
+      await Promise.resolve();
+    });
+  });
+
+  it("cancels the debounced press handler on unmount", () => {
+    const {getByTestId, unmount} = renderWithTheme(
+      <Button onClick={() => {}} testID="cleanup-button" text="Cleanup" />
+    );
+    const onPress = getByTestId("cleanup-button").props.onPress as CancelablePress;
+    const cancelSpy = spyOn(onPress, "cancel");
+
+    unmount();
+
+    assert.lengthOf(cancelSpy.mock.calls, 1);
+  });
+
+  it("does not start an action when unmounted during async press setup", async () => {
+    let resolveHaptic: (() => void) | undefined;
+    const hapticSpy = spyOn(Unifier.utils, "haptic").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveHaptic = resolve;
+        })
+    );
+    const handleClick = mock(() => Promise.resolve());
+    const {getByTestId, unmount} = renderWithTheme(
+      <Button onClick={handleClick} testID="unmount-button" text="Unmount" />
+    );
+
+    fireEvent.press(getByTestId("unmount-button"));
+    unmount();
+    await act(async () => {
+      resolveHaptic?.();
+      await Promise.resolve();
+    });
+
+    assert.lengthOf(handleClick.mock.calls, 0);
+    hapticSpy.mockRestore();
+  });
+
+  it("keeps the confirmation modal path absent for plain buttons", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Plain buttons never show this"
+        modalTitle="Unused confirmation"
+        onClick={handleClick}
+        text="Plain"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Plain"));
+      await Promise.resolve();
+    });
+
+    assert.isNull(queryByText("Unused confirmation"));
+    assert.isNull(queryByText("Plain buttons never show this"));
+    assert.lengthOf(handleClick.mock.calls, 1);
+  });
+
   // Confirmation modal tests
   it("renders with confirmation modal props", () => {
     const {toJSON} = renderWithTheme(
@@ -262,6 +367,108 @@ describe("Button", () => {
     // Cancel does not throw and does not invoke onClick
     expect(() => fireEvent.press(getByText("Cancel"))).not.toThrow();
     expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("reopens the confirmation modal immediately after Cancel", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Reopen Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Reopen Title")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Cancel"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      assert.isNull(queryByText("Reopen Title"));
+    });
+
+    // Re-press well inside the 500ms press debounce window.
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Reopen Title")).toBeTruthy();
+    });
+    assert.lengthOf(handleClick.mock.calls, 0);
+  });
+
+  it("reopens the confirmation modal immediately after Confirm", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Reopen"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Confirm Reopen")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Confirm"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      assert.isNull(queryByText("Confirm Reopen"));
+    });
+    assert.lengthOf(handleClick.mock.calls, 1);
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(queryByText("Confirm Reopen")).toBeTruthy();
+    });
+  });
+
+  it("still debounces repeated presses that do not open the modal", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const hapticSpy = spyOn(Unifier.utils, "haptic");
+    const {getByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Debounced Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    const hapticCallsBefore = hapticSpy.mock.calls.length;
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      fireEvent.press(getByText("Press Me"));
+      fireEvent.press(getByText("Press Me"));
+      await Promise.resolve();
+    });
+
+    assert.equal(hapticSpy.mock.calls.length - hapticCallsBefore, 1);
+    hapticSpy.mockRestore();
   });
 
   it("renders with tooltip on desktop (wrapped in Tooltip)", () => {

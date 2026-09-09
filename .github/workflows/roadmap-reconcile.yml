@@ -1,0 +1,154 @@
+name: Reconcile roadmap with IPs
+
+# Runs on merges that touch implementation plans or task files, and walks the
+# whole chain in one pass:
+#
+#   IP headers + task files  ─▶  roadmap-seed-issues.md  ─▶  board  ─▶  ROADMAP.md
+#     roadmap:reconcile --fix      (committed here)      roadmap:sync   roadmap:generate
+#
+# Only forward status moves and supersessions are applied. Anything needing
+# judgment — a plan with no roadmap entry, a board that is ahead of a stale IP
+# header, task checkboxes disagreeing with the declared status — lands in the job
+# summary for a maintainer instead of being guessed at.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "docs/implementationPlans/**"
+      - "docs/tasks/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report findings without writing anything"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Shared with roadmap-sync and roadmap-generate: three workflows write the same
+# board, and interleaving them produces confusing partial states.
+concurrency:
+  group: roadmap
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Advance roadmap status from implementation plans
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out with the roadmap PAT so later git fetch/push can authenticate:
+      # master requires a pull request, and the default GITHUB_TOKEN is not a
+      # bypass actor on that ruleset. persist-credentials is false so the PAT
+      # is not stored in git config through bun install.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+          token: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+
+      # Concurrency waits on the triggering SHA. Reset to the branch tip so a
+      # queued run cannot overwrite a later reconcile or sync with stale seed.
+      - name: Refresh to latest branch HEAD after concurrency wait
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
+          git fetch origin "$GITHUB_REF_NAME"
+          git reset --hard "origin/$GITHUB_REF_NAME"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Validate required secrets
+        env:
+          ROADMAP_PROJECT_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+        run: |
+          missing=()
+          if [ -z "$ROADMAP_PROJECT_TOKEN" ]; then missing+=("ROADMAP_PROJECT_TOKEN"); fi
+          if [ -z "$TERRENO_PROJECT_NUMBER" ]; then missing+=("TERRENO_PROJECT_NUMBER"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Reconcile status from IPs and tasks
+        id: reconcile
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            bun run roadmap:reconcile | tee reconcile.log
+          else
+            bun run roadmap:reconcile --fix | tee reconcile.log
+          fi
+
+          {
+            echo "## Roadmap reconciliation"
+            echo
+            echo '```'
+            cat reconcile.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q "Needs a human" reconcile.log; then
+            count=$(sed -n 's/.*Needs a human (\([0-9]*\)).*/\1/p' reconcile.log | head -1)
+            echo "::warning::${count} roadmap findings need a maintainer decision — see the job summary"
+          fi
+
+      - name: Commit reconciled statuses
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          if git diff --quiet docs/explanation/roadmap-seed-issues.md; then
+            echo "No status changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/explanation/roadmap-seed-issues.md
+          git commit -m "Advance roadmap status from implementation plan headers"
+          # master moves while this job runs, so a first push can be rejected as
+          # non-fast-forward; rebasing onto the new tip and retrying is safe
+          # because this job only ever touches the seed document.
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
+          git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
+
+      - name: Push status onto the board
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: bun run roadmap:sync
+
+      - name: Regenerate ROADMAP.md
+        if: inputs.dry_run != true
+        env:
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          TERRENO_PROJECT_NUMBER: ${{ vars.TERRENO_PROJECT_NUMBER }}
+        run: bun run roadmap:generate
+
+      - name: Commit ROADMAP.md
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+        run: |
+          if git diff --quiet ROADMAP.md; then
+            echo "ROADMAP.md unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ROADMAP.md
+          git commit -m "Regenerate ROADMAP.md from the project board"
+          bash .github/scripts/git-auth-roadmap-pat.sh apply
+          trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
+          git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)

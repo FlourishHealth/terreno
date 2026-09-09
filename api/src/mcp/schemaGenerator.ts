@@ -2,88 +2,29 @@ import type {Model} from "mongoose";
 import {type ZodType, z} from "zod";
 
 import type {PopulatePath} from "../populate";
+import {
+  describeModel,
+  type FieldDescription,
+  fieldDescriptionToZodType,
+  SYSTEM_FIELD_PATHS,
+} from "../schemaMetadata";
 import type {MCPConfig, MCPMethod} from "./types";
 
-const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
-
-/** Shown to the calling LLM so it knows filters accept Mongo comparison operators. */
 const OPERATOR_HINT = `{"$in": [...]} or {"$gte": ...}`;
-
-/** Operators an LLM may use in a list filter, kept in sync with ALLOWED_FIELD_OPERATORS. */
 const DOCUMENTED_FIELD_OPERATORS = "$eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $exists, $regex";
 
-/** The subset of Mongoose SchemaType internals used to derive MCP tool schemas. */
-interface MongooseSchemaPath {
-  caster?: {instance?: string; options?: {description?: string; ref?: string}};
-  enumValues?: string[];
-  instance?: string;
-  isRequired?: boolean;
-  options?: {description?: string; ref?: string};
-  schema?: unknown;
-}
-
 interface ModelField {
-  path: string;
-  schemaPath: MongooseSchemaPath;
-  required: boolean;
   description?: string;
+  field: FieldDescription;
+  path: string;
+  required: boolean;
 }
-
-const mongooseTypeToZod = (schemaPath: MongooseSchemaPath): ZodType => {
-  const instance = schemaPath.instance;
-
-  switch (instance) {
-    case "String":
-      if (schemaPath.enumValues?.length) {
-        const values = schemaPath.enumValues as string[];
-        return z.enum(values as [string, ...string[]]);
-      }
-      return z.string();
-    case "Number":
-      return z.number();
-    case "Boolean":
-      return z.boolean();
-    case "Date":
-      return z.string().describe("ISO 8601 date string");
-    case "ObjectId":
-    case "ObjectID":
-      return z
-        .string()
-        .describe(
-          schemaPath.options?.ref ? `ObjectId reference to ${schemaPath.options.ref}` : "ObjectId"
-        );
-    case "Array": {
-      if (schemaPath.schema) {
-        // Array of subdocuments
-        return z.array(z.record(z.string(), z.any())).describe("Array of subdocuments");
-      }
-      // Array of primitives
-      const caster = schemaPath.caster;
-      if (caster) {
-        const innerType = mongooseTypeToZod({
-          instance: caster.instance,
-          options: caster.options,
-        });
-        return z.array(innerType);
-      }
-      return z.array(z.any());
-    }
-    case "Mixed":
-    case "Map":
-      return z.record(z.string(), z.any());
-    case "Embedded":
-      return z.record(z.string(), z.any()).describe("Embedded document");
-    default:
-      return z.any();
-  }
-};
 
 export const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boolean => {
   return excludeFields.some((excluded) => {
     if (fieldPath === excluded) {
       return true;
     }
-    // Support dot-notation parent matching: excluding "metadata" excludes "metadata.secretKey"
     if (fieldPath.startsWith(`${excluded}.`)) {
       return true;
     }
@@ -91,10 +32,6 @@ export const isFieldExcluded = (fieldPath: string, excludeFields: string[]): boo
   });
 };
 
-/**
- * REST write denylist from `validation.excludeFromCreate` / `excludeFromUpdate`.
- * MCP create/update must apply the same keys REST strips in `validateModelRequestBody`.
- */
 export const restWriteExcludeFields = (method: MCPMethod, validation: unknown): string[] => {
   if (typeof validation !== "object" || validation === null) {
     return [];
@@ -112,44 +49,35 @@ export const restWriteExcludeFields = (method: MCPMethod, validation: unknown): 
   return [];
 };
 
-/** MCP `excludeFields` plus REST write denylist — used for tool schemas and persist. */
 export const writeExcludeFields = (config: MCPConfig, restExcludeFields: string[]): string[] => {
   return [...(config.excludeFields ?? []), ...restExcludeFields];
 };
 
-const getModelFields = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
-  excludeFields: string[]
-): ModelField[] => {
+const getModelFields = <T>(model: Model<T>, excludeFields: string[]): ModelField[] => {
+  const description = describeModel(model);
   const fields: ModelField[] = [];
-  const schemaPaths = model.schema.paths;
 
-  for (const [path, rawSchemaPath] of Object.entries(schemaPaths)) {
-    if (SYSTEM_FIELDS.has(path)) {
+  for (const [path, field] of Object.entries(description.fields)) {
+    if (SYSTEM_FIELD_PATHS.has(path) || field.system) {
       continue;
     }
     if (isFieldExcluded(path, excludeFields)) {
       continue;
     }
 
-    const schemaPath = rawSchemaPath as unknown as MongooseSchemaPath;
     fields.push({
-      description: schemaPath.options?.description,
+      description: field.description,
+      field,
       path,
-      required: Boolean(schemaPath.isRequired),
-      schemaPath,
+      required: field.required,
     });
   }
 
   return fields;
 };
 
-export const generateInputSchema = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const generateInputSchema = <T>(
+  model: Model<T>,
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
@@ -158,8 +86,6 @@ export const generateInputSchema = (
 ): ZodType => {
   const excludeFields = writeExcludeFields(config, restExcludeFields);
   const populatable = (populatePaths ?? []).map((populatePath) => populatePath.path);
-  // Only the model router's declared paths can be populated, so omit the parameter
-  // entirely when there are none rather than inviting a request that must be refused.
   const populateParam = populatable.length
     ? z
         .string()
@@ -171,12 +97,9 @@ export const generateInputSchema = (
     case "create": {
       const fields = getModelFields(model, excludeFields);
       const shape: Record<string, ZodType> = {};
-      for (const field of fields) {
-        let zodType = mongooseTypeToZod(field.schemaPath);
-        if (field.description) {
-          zodType = zodType.describe(field.description);
-        }
-        shape[field.path] = field.required ? zodType : zodType.optional();
+      for (const {field, path, required} of fields) {
+        const zodType = fieldDescriptionToZodType(field, z);
+        shape[path] = required ? zodType : zodType.optional();
       }
       return z.object(shape);
     }
@@ -186,12 +109,8 @@ export const generateInputSchema = (
       const shape: Record<string, ZodType> = {
         id: z.string().describe("Document ID to update"),
       };
-      for (const field of fields) {
-        let zodType = mongooseTypeToZod(field.schemaPath);
-        if (field.description) {
-          zodType = zodType.describe(field.description);
-        }
-        shape[field.path] = zodType.optional();
+      for (const {field, path} of fields) {
+        shape[path] = fieldDescriptionToZodType(field, z).optional();
       }
       return z.object(shape);
     }
@@ -218,7 +137,6 @@ export const generateInputSchema = (
       if (populateParam) {
         shape.populate = populateParam;
       }
-      // Add queryFields as optional filter parameters
       const filterableFields = (queryFields ?? []).filter(
         (field) => !isFieldExcluded(field, excludeFields)
       );
@@ -254,37 +172,39 @@ export const generateInputSchema = (
   }
 };
 
-const describeField = (field: ModelField): string => {
-  const parts = [field.path];
-  const instance = field.schemaPath.instance;
-
-  // Type info
-  if (instance === "ObjectId" || instance === "ObjectID") {
-    const ref = field.schemaPath.options?.ref;
-    parts.push(ref ? `(ref: ${ref})` : "(ObjectId)");
-  } else if (instance === "Array") {
-    if (field.schemaPath.caster?.instance) {
-      parts.push(`(${field.schemaPath.caster.instance}[])`);
-    } else {
-      parts.push("(Array)");
+const describeFieldKind = (field: FieldDescription): string => {
+  if (field.isArray) {
+    if (field.item?.kind) {
+      const itemLabel =
+        field.item.kind === "objectId"
+          ? field.item.ref
+            ? `ref:${field.item.ref}`
+            : "ObjectId"
+          : field.item.kind.charAt(0).toUpperCase() + field.item.kind.slice(1);
+      return `(${itemLabel}[])`;
     }
-  } else if (instance === "String" && field.schemaPath.enumValues?.length) {
-    parts.push(`(enum: ${field.schemaPath.enumValues.join("|")})`);
-  } else {
-    parts.push(`(${instance})`);
+    return "(Array)";
   }
+  if (field.kind === "objectId") {
+    return field.ref ? `(ref: ${field.ref})` : "(ObjectId)";
+  }
+  if (field.kind === "string" && field.enum?.length) {
+    return `(enum: ${field.enum.join("|")})`;
+  }
+  const label = field.kind.charAt(0).toUpperCase() + field.kind.slice(1);
+  return `(${label})`;
+};
 
-  if (field.required) {
+const describeField = ({field, path, required}: ModelField): string => {
+  const parts = [path, describeFieldKind(field)];
+  if (required) {
     parts.push("required");
   }
-
   return parts.join(" ");
 };
 
-export const generateToolDescription = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const generateToolDescription = <T>(
+  model: Model<T>,
   method: MCPMethod,
   config: MCPConfig,
   queryFields?: string[],
@@ -315,15 +235,13 @@ export const generateToolDescription = (
     }
     case "read": {
       const parts = [`Read a single ${modelName} by ID.`];
-      // Only the model router's declared paths can be populated, so advertising every ref
-      // field would point the model at requests that are refused.
       const fields = getModelFields(model, excludeFields);
       const refFields = (populatePaths ?? [])
         .map((populatePath) => fields.find((field) => field.path === populatePath.path))
-        .filter((field): field is ModelField => Boolean(field?.schemaPath.options?.ref));
+        .filter((field): field is ModelField => Boolean(field?.field.ref));
       if (refFields.length) {
         parts.push(
-          `Populate-able refs: ${refFields.map((f) => `${f.path} (${f.schemaPath.options?.ref})`).join(", ")}.`
+          `Populate-able refs: ${refFields.map((f) => `${f.path} (${f.field.ref})`).join(", ")}.`
         );
       }
       return parts.join(" ");

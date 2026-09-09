@@ -1,11 +1,11 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import type {FC} from "react";
+import {type FC, memo} from "react";
 
 import {type IconProps, iconSizeToNumber} from "./Common";
 import {useCustomIcon} from "./IconRegistry";
 import {useTheme} from "./Theme";
 
-export const Icon: FC<IconProps> = ({
+const IconComponent: FC<IconProps> = ({
   color = "primary",
   size = "md",
   iconName,
@@ -39,3 +39,7 @@ export const Icon: FC<IconProps> = ({
     />
   );
 };
+
+IconComponent.displayName = "Icon";
+
+export const Icon = memo(IconComponent);

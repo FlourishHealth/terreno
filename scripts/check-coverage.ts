@@ -5,11 +5,11 @@
  * threshold.
  *
  * Bun's built-in `coverageThreshold` key is parsed but does not cause a
- * non-zero exit when coverage falls below the configured threshold (verified
- * on Bun 1.3.10). See https://github.com/oven-sh/bun/issues/7367 and the
- * pending fix in https://github.com/oven-sh/bun/pull/27933. Until that lands,
- * this script acts as the CI-side gate for the 95% minimum coverage
- * requirement declared in each package's bunfig.toml.
+ * non-zero exit when it uses the per-metric table form this repo relies on
+ * (`{ line = 95, function = 95 }`) — verified on Bun 1.4.0, where only the
+ * scalar form is enforced. See https://github.com/oven-sh/bun/issues/7367.
+ * Until the table form is enforced, this script acts as the CI-side gate for
+ * the 95% minimum coverage requirement declared in each package's bunfig.toml.
  *
  * When the package contains tests in `src/isolated/*.isolated.{ts,tsx}`, each
  * isolated test file is run in its own `bun test` invocation (because those

@@ -7,7 +7,7 @@
  * system. Skips any flags that already exist (matched by key).
  */
 
-import {logger} from "@terreno/api";
+import {logger, type SeedContext} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
 import mongoose from "mongoose";
 import {Configuration} from "../models/configuration";
@@ -79,38 +79,52 @@ export const SEED_FLAGS = [
   },
 ];
 
-export const seedFeatureFlags = async (): Promise<{results: string[]; success: boolean}> => {
+export const seedFeatureFlags = async (
+  seedContext?: SeedContext
+): Promise<{results: string[]; success: boolean}> => {
   let created = 0;
   let skipped = 0;
   const results: string[] = [];
 
   // Mongoose 9 requires updatePipeline for aggregation pipeline updates.
-  const backfill = await FeatureFlag.updateMany(
-    {
-      $or: [{defaultVariant: {$exists: false}}, {defaultVariant: null}, {defaultVariant: ""}],
-    },
-    [
-      {
-        $set: {
-          defaultVariant: {
-            $cond: {
-              else: {$ifNull: [{$arrayElemAt: ["$variants.key", 0]}, "off"]},
-              if: {$eq: ["$type", "boolean"]},
-              // MongoDB `$cond` requires `then`; Biome treats bare `then` as Promise-like — suppress.
-              // biome-ignore lint/suspicious/noThenProperty: MongoDB aggregation $cond shape
-              then: "off",
+  const backfill = seedContext?.dryRun
+    ? {modifiedCount: 0}
+    : await FeatureFlag.updateMany(
+        {
+          $or: [{defaultVariant: {$exists: false}}, {defaultVariant: null}, {defaultVariant: ""}],
+        },
+        [
+          {
+            $set: {
+              defaultVariant: {
+                $cond: {
+                  else: {$ifNull: [{$arrayElemAt: ["$variants.key", 0]}, "off"]},
+                  if: {$eq: ["$type", "boolean"]},
+                  // MongoDB `$cond` requires `then`; Biome treats bare `then` as Promise-like — suppress.
+                  // biome-ignore lint/suspicious/noThenProperty: MongoDB aggregation $cond shape
+                  then: "off",
+                },
+              },
             },
           },
-        },
-      },
-    ],
-    {updatePipeline: true}
-  );
+        ],
+        {updatePipeline: true}
+      );
   if (backfill.modifiedCount > 0) {
     results.push(`Backfilled defaultVariant on ${String(backfill.modifiedCount)} existing flag(s)`);
   }
 
   for (const flag of SEED_FLAGS) {
+    if (seedContext) {
+      const result = await seedContext.upsert(FeatureFlag, {key: flag.key}, flag);
+      results.push(`${result.change}: ${flag.key}`);
+      if (result.change === "created") {
+        created++;
+      } else {
+        skipped++;
+      }
+      continue;
+    }
     const existing = await FeatureFlag.findOneOrNone({key: flag.key});
     if (existing) {
       results.push(`Skipped (already exists): ${flag.key}`);

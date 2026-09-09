@@ -1,17 +1,17 @@
 ---
 name: terreno-ui
 description: >-
-  Build UI with @terreno/ui — Terreno's React Native component library with 90+
-  components and a three-layer theming system. Use when adding or reviewing
-  layout, forms, tables, modals, feedback, or navigation chrome. Covers
-  component selection, Box/Page patterns, theme props, and when NOT to use raw
-  React Native primitives. Lifecycle composition: Grow for UI shape, Pick for
-  implementation, Roast for UI conformance review. Not for backend APIs, RTK
-  Query, or Expo Router setup.
+  Build UI with @terreno/ui — Terreno's React Native component library with a
+  large component set and a three-layer theming system. Use when adding or
+  reviewing layout, forms, tables, modals, feedback, or navigation chrome.
+  Covers component selection, Box/Page patterns, theme props, and when NOT to
+  use raw React Native primitives. Lifecycle composition: Grow for UI shape,
+  Pick for implementation, Roast for UI conformance review. Not for backend
+  APIs, RTK Query, or Expo Router setup.
 ---
 # @terreno/ui
 
-`@terreno/ui` is Terreno's cross-platform (iOS, Android, web) component library. Start with existing components before creating new ones. For full screen structure and navigation, see `building-terreno-apps`.
+`@terreno/ui` is Terreno's universal (iOS, Android, web) component library. Start with existing components before creating new ones. For full screen structure and navigation, see `building-terreno-apps`.
 
 ## Choosing a component (read this first)
 
@@ -21,7 +21,9 @@ Work down this list and stop at the first layer that meets the need:
 2. **Form fields.** `TextField`, `SelectField`, `DateTimeField`, `CheckBox`, etc. for user input.
 3. **Data display.** `DataTable`, `Badge`, `Text`, `Heading` for content.
 4. **Feedback.** `Modal`, `Toast`, `Spinner`, `Banner`, `ErrorPage` for states.
-5. **Admin screens.** `@terreno/admin-frontend` (`AdminModelTable`, `AdminModelForm`) before hand-rolling tables/forms.
+5. **Admin screens.** Skill `building-admin-interfaces` (`AdminScreenRouter`,
+   `AdminModelTable`, `AdminModelForm`, `AdminShellLayout`) before hand-rolling
+   tables/forms.
 6. **New component — last resort.** Only when a concrete composition gap is proven. Add to `ui/` package and a demo story in `demo/`.
 
 **Do not use `@expo/ui`** in Terreno apps unless there is an explicit requirement for native SwiftUI/Compose that `@terreno/ui` cannot satisfy.
@@ -198,8 +200,8 @@ Need UI in a Terreno app?
   |-- Colors/spacing/fonts?
   |   \-- references/theming.md
   |
-  |-- Admin CRUD table/form?
-  |   \-- @terreno/admin-frontend
+  |-- Admin CRUD table/form, sidebar, or custom operator screen?
+  |   \-- skill building-admin-interfaces
   |
   |-- Component doesn't exist?
   |   \-- Compose with Box + existing fields; add to ui/ only if gap is proven

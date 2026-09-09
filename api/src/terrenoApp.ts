@@ -7,9 +7,13 @@ import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import type {BetterAuthInstance} from "./betterAuthSetup";
+import {type BetterAuthInstance, createBetterAuthSessionMiddleware} from "./betterAuthSetup";
 import {addTerrenoDevBrowserLogsRoute} from "./browserLogsRoute";
-import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
+import {
+  ConfigurationApp,
+  type ConfigurationAppOptions,
+  type ConfigurationModelLike,
+} from "./configurationApp";
 import {
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
@@ -22,6 +26,10 @@ import {mountMCPServer} from "./mcp/server";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
+import {createRateLimitStore} from "./rateLimit/createStore";
+import {createRateLimitMiddleware} from "./rateLimit/middleware";
+import type {RateLimitOptions} from "./rateLimit/types";
 import {RealtimeApp} from "./realtime/realtimeApp";
 import type {RealtimeAppOptions} from "./realtime/types";
 import {
@@ -36,6 +44,9 @@ import openapi from "./vendor/wesleytodd-openapi/index";
 /** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
 interface BetterAuthProvider {
   getAuth: () => BetterAuthInstance | undefined;
+  ensureAuth?: () => BetterAuthInstance;
+  markSessionMiddlewareMounted?: () => void;
+  getBetterAuthBasePath?: () => string;
 }
 
 type CorsOrigin =
@@ -94,6 +105,12 @@ export interface TerrenoAppOptions {
    * Receives the Express app and OpenAPI bundle for `modelRouter` / `createOpenApiBuilder` wiring.
    */
   configureApp?: AddRoutes;
+  /**
+   * Optional HTTP rate limiting. Omitted or `undefined` leaves the limiter off
+   * (Terreno 58 will default it on). Pass `{}` or `{store, limits, trustProxy}`
+   * to enable. See [Rate limiting](../how-to/rate-limiting.md).
+   */
+  rateLimit?: RateLimitOptions;
 }
 
 /**
@@ -275,12 +292,7 @@ export class TerrenoApp {
    *   .start();
    * ```
    */
-  configure(
-    // noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    model: import("mongoose").Model<any>,
-    options?: Omit<ConfigurationAppOptions, "model">
-  ): this {
+  configure(model: ConfigurationModelLike, options?: Omit<ConfigurationAppOptions, "model">): this {
     this.configurationApp = new ConfigurationApp({model, ...options});
     return this;
   }
@@ -289,8 +301,9 @@ export class TerrenoApp {
    * Build the Express application without starting the server.
    *
    * Configures the complete middleware stack including:
-   * - CORS, JSON parsing, authentication, logging, Sentry, OpenAPI
-   * - All registered model routers and plugins
+   * - CORS, JSON parsing, JWT decode, optional HTTP rate limiting, auth routes
+   * - Better Auth session (when BetterAuthApp is registered) before the limiter
+   * - Logging, Sentry, OpenAPI, model routers and plugins
    * - Error handling middleware
    *
    * Use this method when you need the Express app instance for testing
@@ -343,13 +356,38 @@ export class TerrenoApp {
     addTerrenoDevBrowserLogsRoute(app);
     app.use(express.json({limit: "50mb"}));
 
-    // Auth routes (login/signup/refresh_token) before JWT middleware
-    addAuthRoutes(app, options.userModel, options.authOptions);
+    // JWT decode before rate limiting so authenticated keys use userId.
+    // Auth routes mount after the limiter so login is in the auth bucket.
     setupAuth(app, options.userModel);
     app.use((req, res, next) => {
       updateRequestContextFromRequest(req, res);
       next();
     });
+
+    const betterAuthForLimiter = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    if (betterAuthForLimiter?.ensureAuth) {
+      const auth = betterAuthForLimiter.ensureAuth();
+      app.use(createBetterAuthSessionMiddleware(auth, options.userModel));
+      betterAuthForLimiter.markSessionMiddlewareMounted?.();
+    }
+
+    if (options.rateLimit) {
+      const betterAuthBasePath =
+        options.rateLimit.betterAuthBasePath ?? betterAuthForLimiter?.getBetterAuthBasePath?.();
+      const rateLimit = {
+        ...options.rateLimit,
+        ...(betterAuthBasePath ? {betterAuthBasePath} : {}),
+      };
+      applyRateLimitTrustProxy(app, rateLimit);
+      const store = createRateLimitStore(rateLimit);
+      app.use(createRateLimitMiddleware(store, rateLimit));
+    }
+
+    addAuthRoutes(app, options.userModel, options.authOptions);
 
     if (options.logRequests !== false) {
       app.use(logRequests);

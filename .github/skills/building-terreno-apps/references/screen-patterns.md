@@ -50,6 +50,53 @@ const TodoListScreen: React.FC = () => {
 };
 ```
 
+## Profile screen
+
+Use `TapToEdit` for per-field profile edits. Save each field with `usePatchMeMutation` — do not collect every field behind one Save button.
+
+```tsx
+import {Box, Card, Page, TapToEdit} from "@terreno/ui";
+import {useCallback, useEffect, useState} from "react";
+import {useGetMeQuery, usePatchMeMutation} from "@/store/sdk";
+
+const ProfileScreen: React.FC = () => {
+  const {data: profile} = useGetMeQuery();
+  const [updateProfile] = usePatchMeMutation();
+  const [name, setName] = useState<string>("");
+
+  // Seed only this field from the server so saving another TapToEdit does not wipe the draft.
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+    setName(profile.name || "");
+  }, [profile?.name]);
+
+  const handleSaveName = useCallback(
+    async (value: string): Promise<void> => {
+      await updateProfile({name: value}).unwrap();
+    },
+    [updateProfile]
+  );
+
+  return (
+    <Page title="Profile" scroll>
+      <Box gap={4} padding={4}>
+        <Card>
+          <TapToEdit
+            onSave={handleSaveName}
+            setValue={setName}
+            title="Name"
+            type="text"
+            value={name}
+          />
+        </Card>
+      </Box>
+    </Page>
+  );
+};
+```
+
 ## Form screen
 
 ```tsx
@@ -121,20 +168,23 @@ const TodoDetailScreen: React.FC = () => {
 
 ## Admin table screen
 
-Prefer `@terreno/admin-frontend` over hand-rolled tables:
+Prefer `@terreno/admin-frontend` over hand-rolled tables. Use `AdminScreenRouter` so
+custom screens and models share `[model]/index`. Full nav and custom-screen rules:
+skill `building-admin-interfaces`.
 
 ```tsx
-import {AdminModelTable} from "@terreno/admin-frontend";
+import {AdminScreenRouter} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import {terrenoApi} from "@/store/sdk";
 
 const AdminModelScreen: React.FC = () => {
-  const {modelName} = useLocalSearchParams<{modelName: string}>();
+  const {model} = useLocalSearchParams<{model: string}>();
   return (
-    <AdminModelTable
-      baseUrl="/admin"
+    <AdminScreenRouter
       api={terrenoApi}
-      modelName={modelName ?? ""}
+      apiBase="/admin"
+      name={model ?? ""}
+      routeBase="/admin"
     />
   );
 };

@@ -3,6 +3,9 @@
     "terreno-mcp": "./dist/index.js",
     "terreno-mcp-local": "./dist/local/index.js"
   },
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/express": "^2.0.0",
     "@modelcontextprotocol/node": "catalog:",
@@ -14,13 +17,16 @@
     "minisearch": "^7.2.0",
     "mongoose": "catalog:"
   },
-  "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
+  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
     "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
   },
   "exports": {
     ".": {
@@ -54,14 +60,12 @@
       "types": "./dist/upgradeGuide.d.ts"
     }
   },
-  "engines": {
-    "bun": ">=1.4.0"
-  },
   "files": [
     "LICENSE",
     "dist",
     "src/docs"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "mcp",
     "terreno",
@@ -74,6 +78,10 @@
   "name": "@terreno/mcp",
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
     "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
@@ -93,5 +101,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "type": "module",
-  "version": "57.1.0"
+  "version": "57.2.0"
 }
