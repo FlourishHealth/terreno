@@ -212,7 +212,8 @@ yet, so bun would look up `@terreno/test@X.Y.Z` (and similar) on the registry
 and fail the whole job. Tests use `test:ci` when that script exists, not
 `test`. `@terreno/ui`'s `test` is `bun test --watch` and would hang the
 publish step after the suite finishes. `publish-release` uses a 20-minute
-no-output timeout as a backstop.
+no-output timeout as a backstop. If a package's tag version is already on npm,
+`publish-package.sh` skips it so a recut of the same tag can finish the rest.
 
 Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
 `{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
