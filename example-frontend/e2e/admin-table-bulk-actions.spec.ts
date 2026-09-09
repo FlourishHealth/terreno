@@ -1,5 +1,6 @@
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
+import {waitForAdminTable} from "./helpers/adminUi";
 
 test.describe("Admin table bulk actions", () => {
   test("selects rows and opens the action confirmation", async ({consoleGuard, page, request}) => {
@@ -14,6 +15,7 @@ test.describe("Admin table bulk actions", () => {
 
     await loginAsAdmin(page);
     await page.goto("/admin/Todo");
+    await waitForAdminTable(page);
     await expect(page.getByTestId("admin-table-select-all")).toBeVisible();
     await page.getByTestId("admin-table-select-all").click();
     await expect(page.getByTestId("admin-table-selection-count")).not.toContainText("0 selected");

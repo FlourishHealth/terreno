@@ -1,10 +1,12 @@
 import {expect, test} from "./fixtures/test";
 import {loginAsAdmin} from "./helpers/adminAuth";
+import {waitForAdminTable} from "./helpers/adminUi";
 
 test.describe("Admin table search and filters", () => {
   test.beforeEach(async ({page}) => {
     await loginAsAdmin(page);
     await page.goto("/admin/Todo");
+    await waitForAdminTable(page);
   });
 
   test("searches and applies a filter", async ({consoleGuard, page}) => {
