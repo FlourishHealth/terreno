@@ -17,7 +17,7 @@ Pass fetch auth on `AdminProvider`:
 | Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session) |
 | Embedded app | `getAuthHeaders` that return `Authorization: Bearer …` (no cookie `credentials`) |
 
-RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. Do not add axios.
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Passing only `api` keeps `injectEndpoints`. Do not add axios.
 
 ``````typescript
 // app/admin/index.tsx

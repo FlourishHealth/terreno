@@ -211,9 +211,12 @@ export interface AdminWidgetRegistry {
   screens: Record<string, ScreenWidgetComponent>;
 }
 
+import type {AdminRpc} from "./adminRpc";
+
 export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
 
 export interface AdminProviderValue {
+  adminRpc?: AdminRpc;
   api: AdminApi;
   apiBase: string;
   credentials?: RequestCredentials;

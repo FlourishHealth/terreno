@@ -1,3 +1,5 @@
+import {useAdminRpc, useAdminRpcQuery} from "./useAdminRpc";
+
 export interface ConsentHistoryEntry {
   _id: string;
   agreed: boolean;
@@ -84,10 +86,16 @@ const getEnhancedApi = (api: ConsentHistoryApi, base: string): ConsentHistoryEnh
 };
 
 export const useConsentHistory = (api: ConsentHistoryApi, baseUrl?: string) => {
+  const rpc = useAdminRpc();
   const base = baseUrl || "";
+  const fetchState = useAdminRpcQuery<ConsentHistoryEntry[] | ConsentHistoryResponse>({
+    rpc,
+    skip: !rpc,
+    url: `${base}/consents/my`,
+  });
   const enhancedApi = getEnhancedApi(api, base);
-
-  const {data, isLoading, error, refetch} = enhancedApi.useGetMyConsentsQuery();
+  const rtk = enhancedApi.useGetMyConsentsQuery();
+  const {data, isLoading, error, refetch} = rpc ? fetchState : rtk;
   const entries: ConsentHistoryEntry[] = Array.isArray(data) ? data : (data?.data ?? []);
 
   return {entries, error, isLoading, refetch};

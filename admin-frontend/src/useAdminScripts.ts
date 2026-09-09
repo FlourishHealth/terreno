@@ -1,6 +1,7 @@
 import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, BackgroundTask, EndpointBuilder, ScriptRunListResponse} from "./types";
+import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 
 export interface ScriptRunsQueryArg {
   /** Limit history to a single script by `taskType`. Omit for all scripts. */
@@ -25,6 +26,7 @@ const EMPTY_RUNS_HOOK = (): ScriptRunsQueryResult => ({
 });
 
 export const useAdminScripts = (api: AdminApi, apiBase: string) => {
+  const rpc = useAdminRpc();
   const enhancedApi = useMemo(() => {
     // Guard: some call sites (and tests) pass a type-erased API double without
     // `injectEndpoints`. Return null so we can fall back to no-op hooks.
@@ -72,6 +74,63 @@ export const useAdminScripts = (api: AdminApi, apiBase: string) => {
   }, [api, apiBase]);
 
   const enhanced = asDynamicHookApi(enhancedApi);
+
+  if (rpc) {
+    return {
+      useCancelScriptTaskMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          (taskId: string) =>
+            trigger({method: "DELETE", url: `${apiBase}/scripts/tasks/${taskId}`}),
+          meta,
+        ] as [
+          (taskId: string) => {unwrap: () => Promise<{task: BackgroundTask; message: string}>},
+          {isLoading: boolean},
+        ];
+      },
+      useGetScriptTaskQuery: (
+        taskId: string,
+        options?: {skip?: boolean; pollingInterval?: number}
+      ) =>
+        useAdminRpcQuery<{task: BackgroundTask}>({
+          pollingInterval: options?.pollingInterval,
+          rpc,
+          skip: Boolean(options?.skip),
+          url: `${apiBase}/scripts/tasks/${taskId}`,
+        }),
+      useListScriptRunsQuery: (
+        arg?: ScriptRunsQueryArg,
+        options?: {skip?: boolean; pollingInterval?: number}
+      ) => {
+        const params = new URLSearchParams();
+        params.set("page", String(arg?.page ?? 1));
+        params.set("limit", String(arg?.limit ?? 25));
+        if (arg?.name) {
+          params.set("name", arg.name);
+        }
+        return useAdminRpcQuery<ScriptRunListResponse>({
+          pollingInterval: options?.pollingInterval,
+          rpc,
+          skip: Boolean(options?.skip),
+          url: `${apiBase}/scripts/runs?${params.toString()}`,
+        });
+      },
+      useRunScriptMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          ({name, wetRun}: {name: string; wetRun: boolean}) =>
+            trigger({
+              method: "POST",
+              url: `${apiBase}/scripts/${name}/run?wetRun=${wetRun}`,
+            }),
+          meta,
+        ] as [
+          (args: {name: string; wetRun: boolean}) => {unwrap: () => Promise<{taskId: string}>},
+          {isLoading: boolean},
+        ];
+      },
+    };
+  }
 
   return {
     useCancelScriptTaskMutation: (enhanced?.useAdminCancelScriptTaskMutation ??

@@ -89,6 +89,7 @@ export type {
 export {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 export {useAdminApi} from "./useAdminApi";
 export {useAdminConfig} from "./useAdminConfig";
+export {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 export {useAdminScripts} from "./useAdminScripts";
 export {useConfigurationApi} from "./useConfigurationApi";
 export * from "./useConsentHistory";

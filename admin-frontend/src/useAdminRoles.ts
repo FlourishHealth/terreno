@@ -1,6 +1,8 @@
 import {useMemo} from "react";
+import {asJsonBody} from "./adminRpc";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 
 export interface RbacRoleRow {
   name: string;
@@ -98,6 +100,8 @@ export const normalizeStatements = (data: StatementsQueryResult["data"]): RbacSt
 const resolveRbacBase = (apiBase: string): string => apiBase.replace(/\/admin\/?$/, "");
 
 export const useAdminRoles = (api: AdminApi, apiBase: string) => {
+  const rpc = useAdminRpc();
+  const rbacBase = resolveRbacBase(apiBase);
   const enhancedApi = useMemo(() => {
     // Guard: some call sites (and tests) pass a type-erased API double without
     // `injectEndpoints`. Return null so we can fall back to no-op hooks.
@@ -132,6 +136,41 @@ export const useAdminRoles = (api: AdminApi, apiBase: string) => {
   }, [api, apiBase]);
 
   const enhanced = asDynamicHookApi(enhancedApi);
+
+  if (rpc) {
+    return {
+      useCreateRoleMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          (input: RoleInput) =>
+            trigger({body: asJsonBody(input), method: "POST", url: `${rbacBase}/rbac/roles`}),
+          meta,
+        ] as CreateRoleMutation;
+      },
+      useListRolesQuery: () =>
+        useAdminRpcQuery<RolesQueryData>({
+          rpc,
+          url: `${rbacBase}/rbac/roles`,
+        }),
+      useListStatementsQuery: () =>
+        useAdminRpcQuery<StatementsQueryResult["data"]>({
+          rpc,
+          url: `${rbacBase}/rbac/statements`,
+        }),
+      useUpdateRoleMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          ({changes, roleName}: {changes: Omit<RoleInput, "name">; roleName: string}) =>
+            trigger({
+              body: asJsonBody(changes),
+              method: "PATCH",
+              url: `${rbacBase}/rbac/roles/${encodeURIComponent(roleName)}`,
+            }),
+          meta,
+        ] as UpdateRoleMutation;
+      },
+    };
+  }
 
   return {
     useCreateRoleMutation: (enhanced?.useAdminCreateRbacRoleMutation ??

@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useEffect, useMemo, useRef} from "react";
+import {bindAdminRequest} from "./adminRequest";
 import type {
   AdminProviderValue,
   AdminScreenProps,
@@ -51,8 +52,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
 }) => {
   const bases = resolveAdminBases({apiBase, baseUrl, routeBase});
   const mergedWidgets = useMemo(() => mergeWidgetRegistry(userWidgets), [userWidgets]);
+  const adminRpc = useMemo(() => {
+    if (credentials === undefined && getAuthHeaders === undefined) {
+      return undefined;
+    }
+    return bindAdminRequest({credentials, getAuthHeaders});
+  }, [credentials, getAuthHeaders]);
   const value = useMemo(
     (): AdminProviderValue => ({
+      adminRpc,
       api,
       apiBase: bases.apiBase,
       credentials,
@@ -60,7 +68,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
       routeBase: bases.routeBase,
       widgets: mergedWidgets,
     }),
-    [api, bases.apiBase, bases.routeBase, credentials, getAuthHeaders, mergedWidgets]
+    [adminRpc, api, bases.apiBase, bases.routeBase, credentials, getAuthHeaders, mergedWidgets]
   );
 
   return <AdminWidgetContext.Provider value={value}>{children}</AdminWidgetContext.Provider>;
