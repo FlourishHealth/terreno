@@ -118,7 +118,7 @@ include:
 | UI/app | `terreno-ui`, `building-terreno-apps`, `verify-ui-changes` |
 | AI/prompts | `ai-prompt-governance` |
 | Docs/submission | `update-docs`, Brew, `fix-conflicts` |
-| GitHub issues | `create-github-issue`, `work-github-issues`, `implement-ready-for-dev` (Pick plan comment is the Roast contract) |
+| GitHub issues | `create-github-issue`, `work-github-issues`, `implement-ready-for-dev`, `autobot-ready-for-dev` (Pick plan comment is the Roast contract; autobot also Grow-approves an IP) |
 | Deployment/runtime | `deploy-gcp`, Expo deployment/workflow skills |
 
 This inventory is descriptive, not a plugin dependency list. Stages inspect the actual

@@ -7,6 +7,10 @@ Official fields: [Cursor automations](https://cursor.com/docs/cloud-agent/automa
 
 This file is the **dashboard paste**. Runtime procedure stays in [`../SKILL.md`](../SKILL.md).
 
+For Grow → Taste to a mergeable PR, use
+[`../../autobot-ready-for-dev/references/cursor-automation.md`](../../autobot-ready-for-dev/references/cursor-automation.md)
+instead; do not run both automations against the same label.
+
 ## Dashboard
 
 | Field | Value |

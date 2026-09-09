@@ -72,6 +72,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
     skills: [
       "create-github-issue",
       "implement-ready-for-dev",
+      "autobot-ready-for-dev",
       "respond-to-review",
       "verify-ui-changes",
       "work-github-issues",

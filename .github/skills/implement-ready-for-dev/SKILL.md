@@ -24,14 +24,14 @@ Pick: `terreno-2-pick`. Roast: `terreno-3-roast`. Brew: `terreno-4-brew`.
 
 - A Cursor Automation (or `/implement-ready-for-dev`) should drain the ready queue
 - A maintainer already applied `status:ready-for-dev` and left the issue unstarted
-- You need unattended implementation, not a ranked proposal
+- You need unattended implementation **without** Grow or Taste (roastable, ≤ five tasks, draft PR)
 
 ## When not to use
 
 - Rank, confirm, and plan in chat — use `work-github-issues`
 - Filing a new issue — use `create-github-issue`
 - Triage / board fields — use `roadmap-triage` / `roadmap-item`
-- Destination too large for five tasks — comment `BLOCKED` and stop; do not Grow unattended
+- Destination too large for five tasks, or a full Grow → Taste to a mergeable PR — use `autobot-ready-for-dev`
 
 ## Hard rules
 

@@ -13,7 +13,7 @@ See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master
 Issue-sized work that is not a public roadmap item uses
 [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md)
 (`create-github-issue` → `work-github-issues`, or `status:ready-for-dev` →
-`implement-ready-for-dev`) instead of an IP.
+`implement-ready-for-dev` / `autobot-ready-for-dev`) instead of an IP.
 
 ## How work flows (IP ↔ roadmap)
 
@@ -279,7 +279,8 @@ Five agent skills cover the recurring roadmap work. Each one researches, propose
 human part of the process, so none of them mutate state on their own. All five are
 `disable-model-invocation`, meaning an agent will not start them on its own initiative;
 you invoke them explicitly. Unattended implementation of a roastable issue is
-[`implement-ready-for-dev`](../how-to/github-issue-lifecycle.md#unattended-pickup),
+[`implement-ready-for-dev`](../how-to/github-issue-lifecycle.md#unattended-pickup)
+or [`autobot-ready-for-dev`](../how-to/github-issue-lifecycle.md#unattended-pickup),
 not a sixth roadmap skill.
 
 | Skill | Use it when |
