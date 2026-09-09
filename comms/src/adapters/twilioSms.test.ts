@@ -11,6 +11,7 @@ interface MockCreateCall {
     body: string;
     from?: string;
     messagingServiceSid?: string;
+    statusCallback?: string;
     to: string;
   };
 }
@@ -350,5 +351,24 @@ describe("TwilioSmsProvider", () => {
     assert.isFalse(result.accepted);
     assert.equal(result.errorClass, "transient");
     assert.equal(result.errorCode, "99999");
+  });
+
+  it("applies a default statusCallbackUrl only when unset", async (): Promise<void> => {
+    const client = createMockClient();
+    const provider = new TwilioSmsProvider({
+      accountSid: "ACtest",
+      authToken: "token",
+      client,
+      fromNumber: "+15555550199",
+    });
+    provider.applyDefaultStatusCallbackUrl("https://api.example.test/comms/webhooks/twilio/status");
+    provider.applyDefaultStatusCallbackUrl("https://ignored.example.test/status");
+
+    await provider.sendSms({body: "Hello", to: "+14155552671"});
+
+    assert.equal(
+      client.calls[0]?.params.statusCallback,
+      "https://api.example.test/comms/webhooks/twilio/status"
+    );
   });
 });

@@ -20,7 +20,10 @@ if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
 fi
 
 bun run scripts/ci/prepare-package-publish.mjs "$package_directory" "$version" "$dependency_mode"
-(cd "$package_directory" && bun install)
+# Pinning workspace:* to this version must not reinstall from the registry.
+# Sibling @terreno packages are unpublished at this tag, so a second install
+# would resolve @terreno/test@X.Y.Z / @terreno/syncdb@X.Y.Z from npm and fail.
+# Compile and test use the root workspace install from install_bun_and_deps.
 node .github/scripts/compile-workspace-deps.js "$package_directory"
 
 if bun -e "

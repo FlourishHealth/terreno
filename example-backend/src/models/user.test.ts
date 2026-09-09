@@ -10,6 +10,15 @@ describe("User Model", () => {
   });
 
   describe("Schema Validation", () => {
+    it("defaults emailVerified to false", async () => {
+      const user = await User.create({
+        email: generateTestEmail(),
+        name: "Unverified User",
+      });
+
+      expect(user.emailVerified).toBe(false);
+    });
+
     it("should create a user with valid data", async () => {
       const email = generateTestEmail();
       const name = "John Doe";

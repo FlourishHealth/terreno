@@ -44,6 +44,7 @@ import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
+import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -60,6 +61,7 @@ import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
@@ -153,6 +155,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
 
     const terraApp = new TerrenoApp({
       accessControl: access,
+      authOptions: {
+        publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+        sendMail: async (message) => {
+          await getCommsService().sendMail(message);
+        },
+      },
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
@@ -164,6 +172,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
       },
+      mcpServiceTokens: {
+        enabled: true,
+        publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
+      },
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
@@ -171,6 +183,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }).configure(AppConfiguration);
 
     registerUsersTodoStatusTool();
+
+    // Build inbound webhooks before CommsApp so Twilio/SendGrid routes can be added,
+    // then register the plugin after CommsApp so those routes are mounted.
+    const inboundWebhooks = createExampleInboundWebhooks();
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
@@ -301,6 +317,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : undefined;
       const verificationProvider =
         twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());
+      const inboundWebhookPublicUrl = (
+        process.env.PUBLIC_API_URL ??
+        process.env.COMMS_WEBHOOK_PUBLIC_URL ??
+        ""
+      ).replace(/\/$/, "");
 
       terraApp.register(
         new CommsApp(
@@ -311,6 +332,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 ...(verificationProvider ? {verification: verificationProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 push: pushProvider,
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
@@ -318,10 +341,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 push: pushProvider,
                 sms: smsProvider ?? new ConsoleSmsProvider(),
                 verification: verificationProvider ?? new ConsoleVerificationProvider(),
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
         )
       );
     }
+
+    terraApp.register(inboundWebhooks);
 
     terraApp
       .register(
@@ -365,6 +392,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             title: "Example administration",
           },
           models: [
+            mcpServiceTokenAdminModel,
             {
               adminAccess: {},
               displayName: "Audit log",

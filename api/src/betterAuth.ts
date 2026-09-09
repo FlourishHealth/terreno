@@ -66,6 +66,30 @@ export interface BetterAuthConfig {
    * If not provided, falls back to BETTER_AUTH_URL environment variable.
    */
   baseURL?: string;
+
+  /** Public web/app origin used in password-reset and verification links. */
+  publicAppUrl?: string;
+
+  /** Deliver auth mail. Typically `getCommsService().sendMail`. */
+  sendMail?: (message: {html?: string; subject: string; text: string; to: string}) => Promise<void>;
+
+  /**
+   * Render reset/verify mail. Pass `@terreno/comms` `renderAuthMail` so JWT and
+   * Better Auth send identical templates.
+   */
+  renderAuthMail?: (options: {
+    publicAppUrl: string;
+    templateId: "resetPassword" | "verifyEmail";
+    token: string;
+    templates?: Partial<
+      Record<"resetPassword" | "verifyEmail", {html?: string; subject: string; text?: string}>
+    >;
+  }) => {html?: string; subject: string; text?: string};
+
+  /** Optional per-app subject/text/html overrides for auth mail. */
+  authMailTemplates?: Partial<
+    Record<"resetPassword" | "verifyEmail", {html?: string; subject: string; text?: string}>
+  >;
 }
 
 /**

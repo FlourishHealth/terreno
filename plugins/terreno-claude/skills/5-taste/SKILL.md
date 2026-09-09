@@ -1,14 +1,13 @@
 ---
 name: 5-taste
-description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable. Before any push: always pull latest master, then lint affected packages in a no-context subagent, then push and watch CI. Emit state and exit.
-disable-model-invocation: true
+description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable. Before any push: always pull latest master, then lint and typecheck affected packages in a no-context subagent, then push and watch CI. Emit state and exit.
 ---
 
 # Taste — react
 
 Observe current external state, wait until review bots and product CI on this head are
 terminal, act on currently actionable engineering work, then before any push pull latest
-master, lint in a fresh subagent, push, and watch CI. Emit structured state and exit.
+master, lint and typecheck in a fresh subagent, push, and watch CI. Emit structured state and exit.
 Taste never owns persistence.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
@@ -67,23 +66,26 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
    - For a mechanical conflict, integrate the latest base using repository policy,
      preserve both intended changes, and never rewrite pushed history unless allowed.
    - Do not push speculative code for unrelated/flaky/external failures.
-8. **Before any push, in this order: pull latest master, then lint, then watch.**
+8. **Before any push, in this order: pull latest master, then lint and typecheck, then watch.**
    1. Always fetch and merge the latest `master` into this branch (use the PR base if it
       is not `master`). Do this even when git reports no conflict. Preserve both intended
       changes. Never rewrite pushed history unless allowed. A merge that needs a
       design/behavior choice is `BLOCKED`.
    2. Then map the uncommitted (and compared-to-base) changed files to affected packages:
-      nearest directory with a `package.json` `lint` script. Spawn a **fresh subagent
+      nearest directory with a `package.json` `lint` script and typecheck-capable
+      `typecheck` or `compile` script. Spawn a **fresh subagent
       with no parent conversation**. The prompt may contain only the repo root, affected
       package directories, changed files, and these orders:
       - run `bun lint` in each affected package
+      - run the package's typecheck script, preferring `typecheck` and otherwise using
+        `compile` only when it performs a TypeScript typecheck
       - run the locally affected tests (closest package or file-level tests for those
         files; not the whole workspace unless the change is repo-wide)
       Do not push until that subagent reports pass with command output. If the harness
       cannot spawn a fresh subagent, run the same commands yourself and ignore prior
       conversational claims. Also run any mandatory domain, runtime, or UI verification.
       Update architecture/public docs when the fix changes behavior. Capture updated
-      evidence/artifacts. Missing mandatory capability is `BLOCKED`. Local lint/test
+      evidence/artifacts. Missing mandatory capability is `BLOCKED`. Local lint/typecheck/test
       failure is `FAIL` until fixed; do not push it.
 9. **Commit/push if changed, then watch.** Follow repository policy. Record the new
    head. Resolve an addressed thread silently when the diff is self-explanatory. Reply
@@ -92,7 +94,7 @@ Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
    loop on the new head (`gh pr checks <pr> --watch`, `gh run watch`,
    `circleci run watch --sha <sha>`), then act on those results once more in this
    invocation. A further push after that second act is `PENDING`. Do not watch product
-   CI for a head you have not pulled, linted, and pushed.
+   CI for a head you have not pulled, linted, typechecked, and pushed.
 10. **Preserve PR description.** Never regenerate or replace human-authored text. Fetch the
     latest body before a required minimal evidence edit; skip body mutation if it cannot
     be preserved exactly. Update `Verification` instead of posting test/CI comments. Keep
@@ -128,7 +130,7 @@ safety policy.
 - Async review-bot wait outcome (names, statuses, timeout if any)
 - Product-CI wait-loop outcome (hosts, watch commands, terminal vs timeout)
 - Latest-`master` pull/merge outcome before push
-- Fresh-subagent `bun lint` and affected-test commands and outcomes
+- Fresh-subagent lint, typecheck, and affected-test commands and outcomes
 - Mergeability/conflict classification
 - Review-thread classification and actions taken
 - Fix diff, targeted verification, commit/push/new head when applicable

@@ -3,6 +3,13 @@
 File issues so an agent can select them, post a Pick plan, implement with
 `terreno-2-pick`, and roast against that plan.
 
+Two implementation paths:
+
+| Path | Gate | Skill |
+| --- | --- | --- |
+| Interactive | You confirm the queue and Pick plan in chat | `/work-github-issues` |
+| Unattended | Maintainer applies `status:ready-for-dev` | `/implement-ready-for-dev` (Cursor Automation) |
+
 ## Create the issue
 
 1. Invoke `/create-github-issue` (or open
@@ -38,10 +45,30 @@ Do not skip the confirmation pause. Do not roast from chat after the comment exi
 Hand off to `/terreno-1-grow` when the plan needs more than five tasks or a
 product/security/architecture decision.
 
-## After Roast PASS
+## After Roast PASS (interactive)
 
-Inner-loop PASS does not open a PR. Invoke `/terreno-4-brew` (or `/create-pr`) when
-you want the draft PR.
+Inner-loop PASS does not open a PR. Invoke `/terreno-4-brew` when you want the draft
+PR.
+
+## Unattended pickup
+
+1. After triage, apply `status:ready-for-dev` only when Acceptance is roastable and
+   the work fits one Pick comment (at most five tasks). Leave the issue unassigned.
+   Do not edit the issue body after you label it unless you are a maintainer; the
+   skill aborts if an untrusted author changes the body after the label.
+2. A Cursor Automation (or `/implement-ready-for-dev`) claims the oldest matching
+   issue: assignee + `status:in-progress`, remove `status:ready-for-dev`. It skips
+   issues that already have an open linked or closing PR (GraphQL references, not
+   `linked:<number>`).
+3. It posts `<!-- terreno-pick-plan -->` from that trusted snapshot, Pick ⇄ Roasts
+   that comment, then Brews a **draft** PR with `Fixes #<n>`.
+4. Dashboard paste: [`implement-ready-for-dev` automation](../../.rulesync/skills/implement-ready-for-dev/references/cursor-automation.md).
+
+Do not apply `status:ready-for-dev` to issues that still need a product decision.
+Those stay `status:needs-info` or go through `/work-github-issues`.
+
+Labels live in [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml).
+Sync them with the existing roadmap labels workflow before expecting pickup.
 
 ## Related
 
@@ -50,3 +77,4 @@ you want the draft PR.
 - [Loop engineering](../explanation/loop-engineering.md)
 - [Public roadmap process](../explanation/roadmap-process.md) — separate from this
   issue → Pick path
+- [`implement-ready-for-dev` skill](../../.rulesync/skills/implement-ready-for-dev/SKILL.md)

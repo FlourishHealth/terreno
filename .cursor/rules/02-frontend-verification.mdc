@@ -23,7 +23,7 @@ This applies to work in `ui/`, `demo/`, `example-frontend/`, `admin-frontend/`, 
 
 - New or changed screens, components, navigation, forms, tables, modals, or user-visible copy
 - Full-stack features with any frontend surface area
-- `terreno-2-pick` (before handoff to Roast), `terreno-4-brew`, and `/create-pr` when the branch includes frontend paths
+- `terreno-2-pick` (before handoff to Roast) and `terreno-4-brew` when the branch includes frontend paths
 - `terreno-5-taste` when a fix cycle changes frontend files — re-verify and update PR evidence
 
 ## Skill reference

@@ -1,7 +1,16 @@
 name: Publish packages on tag
 
-# Disabled after migration to CircleCI semver-tag publishing; retained for rollback.
-on: []
+# Tag push publishing moved to CircleCI (`publish-release`). Keep this workflow
+# dispatchable so a release can be published with GitHub Actions NPM_TOKEN when
+# CircleCI tag publishing fails.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver to publish (must match the git tag)
+        required: true
+        type: string
+        default: "57.3.0"
 
 jobs:
   breaking-change-documentation:
@@ -16,7 +25,7 @@ jobs:
           bun-version: 1.4.0
 
       - name: Check release upgrade documentation
-        run: bun run check:upgrade-docs "${{ github.ref_name }}"
+        run: bun run check:upgrade-docs "${{ inputs.version }}"
 
   check-changes:
     needs: breaking-change-documentation
@@ -31,8 +40,11 @@ jobs:
       - name: Get version from tag
         id: version
         run: |
-          # Extract version from tag (e.g., 1.0.0)
-          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION="${{ inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version: $VERSION"
+            exit 1
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
@@ -1549,7 +1561,7 @@ jobs:
         # demo-deploy.yml to already have the workflow_dispatch trigger at the tagged
         # commit, which holds for any tag cut from master after this change lands.
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.version }}
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
@@ -1679,7 +1691,7 @@ jobs:
       - name: Zoom Chat Notification
         run: |
           VERSION="${{ needs.check-changes.outputs.version }}"
-          TAG_NAME="${{ github.ref_name }}"
+          TAG_NAME="${{ inputs.version }}"
           REPO="${{ github.repository }}"
           TAG_URL="https://github.com/${REPO}/releases/tag/${TAG_NAME}"
           COMMIT_SHA="${{ github.sha }}"

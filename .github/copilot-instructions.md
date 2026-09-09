@@ -40,15 +40,16 @@ The reusable planning plugin uses five bounded transitions:
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
-then spawns a no-context subagent to run `bun lint` in affected packages and locally
-affected tests, then pushes and watches CI. Brew also waits until
+then spawns a no-context subagent to run lint, typecheck, and locally affected tests in
+affected packages, then pushes and watches CI. Brew also waits until
 review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
 Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
 `docs/reference/lifecycle-plugin.md`.
 
-Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
-project commands and domain conventions belong there, not in the portable plugin.
+The installed planning plugin also ships the reusable Terreno app, docs, upgrade,
+deployment, and verification skills used by consumer projects. Repository-only roadmap,
+release, and maintenance workflows remain under `.rulesync/skills/`.
 
 ## Documentation
 
@@ -57,7 +58,7 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`. The same five stages install as the Cursor plugin
+`bun run skills:sync`. The combined lifecycle and Terreno app skill set installs as the Cursor plugin
 `terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
 as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
 (invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
@@ -100,6 +101,15 @@ bun run admin-frontend:compile  # Compile admin frontend
 bun run comms:compile           # Compile communications package
 bun run comms:test              # Test communications package
 ```
+
+### Static analysis
+
+Agent post-edit hooks run `bun run analyze:fast`; agent stop hooks run
+`bun run analyze:full`. `.rulesync/hooks.json` is the canonical hook configuration.
+Existing Knip and dependency-cruiser findings are ratcheted, so new findings fail while
+the existing inventory can only stay level or decrease. Run `bun run analyze:baseline`
+only after reviewing an intentional repository-wide change. See
+`docs/explanation/static-analysis.md`.
 
 ## How the Packages Work Together
 

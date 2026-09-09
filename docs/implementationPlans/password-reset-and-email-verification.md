@@ -86,10 +86,10 @@ with app-override hooks.
 
 ## UI
 
-example-frontend: `/resetPassword` (token from URL, new-password form using the existing
-RTK `resetPassword` mutation) and a "verify your email" banner + re-send button on the
-profile screen. `LoginScreen` gains an optional `onForgotPassword` link prop in
-`@terreno/ui`.
+example-frontend: `/forgotPassword`, `/resetPassword`, and `/verifyEmail` routes plus a
+"verify your email" banner + re-send button on the profile screen. Recovery screens try
+Better Auth first and fall back to JWT routes. `LoginScreen` gains an optional
+`onForgotPassword` link prop in `@terreno/ui`.
 
 ## Phases
 
@@ -135,13 +135,13 @@ See [docs/tasks/password-reset-and-email-verification.md](../tasks/password-rese
 
 ## Acceptance Criteria
 
-- [ ] `POST /auth/forgotPassword` returns 202 for existing and non-existing emails alike,
+- [x] `POST /auth/forgotPassword` returns 202 for existing and non-existing emails alike,
       sending mail only for existing ones.
-- [ ] A reset token works exactly once, fails after expiry, and a successful reset
+- [x] A reset token works exactly once, fails after expiry, and a successful reset
       invalidates outstanding refresh tokens.
-- [ ] The unmodified RTK client `resetPassword` mutation completes the flow end to end.
-- [ ] With `requireEmailVerification` on, an unverified user gets 403 code
+- [x] The unmodified RTK client `resetPassword` mutation completes the flow end to end.
+- [x] With `requireEmailVerification` on, an unverified user gets 403 code
       `email-not-verified` on login and can complete verification to proceed.
-- [ ] Better Auth mode sends the same two templates through comms.
-- [ ] example-frontend can complete forgot → email link (console adapter output in dev) →
+- [x] Better Auth mode sends the same two templates through comms.
+- [x] example-frontend can complete forgot → email link (console adapter output in dev) →
       reset → login with the new password; UI verification evidence attached to the PR.

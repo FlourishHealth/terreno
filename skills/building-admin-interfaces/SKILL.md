@@ -14,8 +14,8 @@ Use this skill when the work is an **admin** surface: `/admin/**`, `/console`,
 admin home widgets.
 
 **Architecture source (read first):**
-[How admin interfaces are shaped](../../../docs/explanation/admin-interface.md)
-and [Build admin screens](../../../docs/how-to/build-admin-screens.md).
+[How admin interfaces are shaped](../../docs/explanation/admin-interface.md)
+and [Build admin screens](../../docs/how-to/build-admin-screens.md).
 
 **Related skills:** `building-terreno-apps` (Expo/`@terreno/ui` habits),
 `terreno-ui` (components), `terreno-data-fetching` (RTK, not syncdb),

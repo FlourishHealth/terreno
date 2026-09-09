@@ -18,5 +18,30 @@
       "Bash(grep *)",
       "Fetch(*)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.rulesync/hooks/quality-check.sh claudecode",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run analyze:fast",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

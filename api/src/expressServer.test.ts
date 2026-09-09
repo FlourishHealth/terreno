@@ -1,8 +1,6 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {Writable} from "node:stream";
-import express from "express";
+import express, {type Router} from "express";
 import supertest from "supertest";
 import winston from "winston";
 
@@ -20,6 +18,12 @@ import {TerrenoApp} from "./terrenoApp";
 import {UserModel} from "./tests";
 
 const typedUserModel = UserModel as unknown as UserModelType;
+
+// `routeMount` is set by createRouter's internal middleware and is not part of the
+// Express request types.
+interface RouteMountRequest extends express.Request {
+  routeMount?: string[] | string;
+}
 
 describe("expressServer", () => {
   describe("setupEnvironment", () => {
@@ -88,7 +92,7 @@ describe("expressServer", () => {
         },
         logRequests: false,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
       winstonLogger.add(transport);
 
@@ -193,12 +197,64 @@ describe("expressServer", () => {
       expect(req.body.password).toBe("secret123");
     });
 
+    it("redacts token and newPassword in logged request bodies", () => {
+      const logged: string[] = [];
+      const originalDebug = logger.debug;
+      logger.debug = ((message: string) => {
+        logged.push(message);
+      }) as typeof logger.debug;
+      try {
+        const req = {
+          body: {newPassword: "fresh-secret", token: "one-time-token", username: "testuser"},
+          method: "POST",
+          url: "/auth/resetPassword",
+        };
+        const res = {
+          locals: {},
+          on: () => {},
+        };
+        logRequests(req as never, res as never, () => {});
+        const combined = logged.join("\n");
+        expect(combined).toContain("<REDACTED>");
+        expect(combined).not.toContain("fresh-secret");
+        expect(combined).not.toContain("one-time-token");
+        expect(req.body.token).toBe("one-time-token");
+        expect(req.body.newPassword).toBe("fresh-secret");
+      } finally {
+        logger.debug = originalDebug;
+      }
+    });
+
+    it("redacts token query params in request URLs", () => {
+      const logged: string[] = [];
+      const originalDebug = logger.debug;
+      logger.debug = ((message: string) => {
+        logged.push(message);
+      }) as typeof logger.debug;
+      try {
+        const req = {
+          body: {},
+          method: "GET",
+          url: "/api/auth/verify-email?token=one-time-token",
+        };
+        const res = {
+          locals: {},
+          on: () => {},
+        };
+        logRequests(req as never, res as never, () => {});
+        const combined = logged.join("\n");
+        expect(combined).toContain("token=%3CREDACTED%3E");
+        expect(combined).not.toContain("one-time-token");
+      } finally {
+        logger.debug = originalDebug;
+      }
+    });
+
     it("triggers onFinished callback with route info", async () => {
       const app = express();
       app.use(logRequests);
-      app.get("/test", (req: any, res) => {
-        req.route = {path: "/test"};
-        req.routeMount = "/api";
+      app.get("/test", (req, res) => {
+        (req as RouteMountRequest).routeMount = "/api";
         res.json({ok: true});
       });
 
@@ -255,8 +311,7 @@ describe("expressServer", () => {
     it("handles request with route path only (no routeMount)", async () => {
       const app = express();
       app.use(logRequests);
-      app.get("/test", (req: any, res) => {
-        req.route = {path: "/test"};
+      app.get("/test", (_req, res) => {
         // No routeMount set
         res.json({ok: true});
       });
@@ -268,9 +323,9 @@ describe("expressServer", () => {
   describe("createRouter", () => {
     it("creates router with root path and adds routes", () => {
       let routesCalled = false;
-      const addRoutes = (router: any) => {
+      const addRoutes = (router: Router) => {
         routesCalled = true;
-        router.get("/test", (_req: any, res: any) => res.send("ok"));
+        router.get("/test", (_req, res) => res.send("ok"));
       };
 
       const result = createRouter("/api", addRoutes);
@@ -281,8 +336,8 @@ describe("expressServer", () => {
     });
 
     it("creates router with middleware", () => {
-      const middleware1 = (_req: any, _res: any, next: any) => next();
-      const middleware2 = (_req: any, _res: any, next: any) => next();
+      const middleware1: express.RequestHandler = (_req, _res, next) => next();
+      const middleware2: express.RequestHandler = (_req, _res, next) => next();
       const addRoutes = () => {};
 
       const result = createRouter("/api", addRoutes, [middleware1, middleware2]);
@@ -292,15 +347,15 @@ describe("expressServer", () => {
     });
 
     it("routePathMiddleware sets routeMount on request", () => {
-      const addRoutes = (router: any) => {
-        router.get("/test", (req: any, res: any) => {
-          res.json({routeMount: req.routeMount});
+      const addRoutes = (router: Router) => {
+        router.get("/test", (req, res) => {
+          res.json({routeMount: (req as RouteMountRequest).routeMount});
         });
       };
 
       const result = createRouter("/api", addRoutes);
       const app = express();
-      app.use(...(result as [string, ...any[]]));
+      app.use(...(result as [string, ...express.RequestHandler[]]));
 
       // The routePathMiddleware is internal, but we can verify the router works
       expect(result[0]).toBe("/api");
@@ -310,9 +365,9 @@ describe("expressServer", () => {
   describe("createRouterWithAuth", () => {
     it("creates router with passport authentication middleware", () => {
       let routesCalled = false;
-      const addRoutes = (router: any) => {
+      const addRoutes = (router: Router) => {
         routesCalled = true;
-        router.get("/protected", (_req: any, res: any) => res.send("ok"));
+        router.get("/protected", (_req, res) => res.send("ok"));
       };
 
       const result = createRouterWithAuth("/secure", addRoutes);
@@ -324,7 +379,7 @@ describe("expressServer", () => {
     });
 
     it("includes additional middleware", () => {
-      const customMiddleware = (_req: any, _res: any, next: any) => next();
+      const customMiddleware: express.RequestHandler = (_req, _res, next) => next();
       const addRoutes = () => {};
 
       const result = createRouterWithAuth("/secure", addRoutes, [customMiddleware]);
@@ -378,36 +433,36 @@ describe("expressServer", () => {
 
   describe("createRouter routePathMiddleware", () => {
     it("initializes routeMount array when not present", async () => {
-      const addRoutes = (router: any) => {
-        router.get("/test", (req: any, res: any) => {
-          res.json({routeMount: req.routeMount});
+      const addRoutes = (router: Router) => {
+        router.get("/test", (req, res) => {
+          res.json({routeMount: (req as RouteMountRequest).routeMount});
         });
       };
 
       const result = createRouter("/api", addRoutes);
       const app = express();
-      app.use(...(result as [string, ...any[]]));
+      app.use(...(result as [string, ...express.RequestHandler[]]));
 
       const response = await supertest(app).get("/api/test").expect(200);
       expect(response.body.routeMount).toEqual(["/api"]);
     });
 
     it("appends to existing routeMount array", async () => {
-      const addRoutes = (router: any) => {
-        router.get("/test", (req: any, res: any) => {
-          res.json({routeMount: req.routeMount});
+      const addRoutes = (router: Router) => {
+        router.get("/test", (req, res) => {
+          res.json({routeMount: (req as RouteMountRequest).routeMount});
         });
       };
 
       // Create nested routers
       const innerResult = createRouter("/inner", addRoutes);
-      const outerAddRoutes = (router: any) => {
-        router.use(...(innerResult as [string, ...any[]]));
+      const outerAddRoutes = (router: Router) => {
+        router.use(...(innerResult as [string, ...express.RequestHandler[]]));
       };
       const outerResult = createRouter("/outer", outerAddRoutes);
 
       const app = express();
-      app.use(...(outerResult as [string, ...any[]]));
+      app.use(...(outerResult as [string, ...express.RequestHandler[]]));
 
       const response = await supertest(app).get("/outer/inner/test").expect(200);
       expect(response.body.routeMount).toEqual(["/outer", "/inner"]);
@@ -438,7 +493,7 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       expect(app).toBeDefined();
@@ -449,13 +504,14 @@ describe("expressServer", () => {
       const configureApp = (): void => {};
 
       const app = new TerrenoApp({
-        beforeJsonSetup: (httpApp: any) => {
+        beforeJsonSetup: (httpApp: express.Application) => {
           middlewareCalled = true;
-          httpApp.use((_req: any, _res: any, next: any) => next());
+          const passthrough: express.RequestHandler = (_req, _res, next) => next();
+          httpApp.use(passthrough);
         },
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       expect(app).toBeDefined();
@@ -469,7 +525,7 @@ describe("expressServer", () => {
         configureApp,
         corsOrigin: "https://example.com",
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       expect(app).toBeDefined();
@@ -485,7 +541,7 @@ describe("expressServer", () => {
         },
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       expect(app).toBeDefined();
@@ -497,7 +553,7 @@ describe("expressServer", () => {
       const app = express();
       app.use(logRequests);
       // Middleware that sets statusCode < 400 but doesn't define route
-      app.use((_req: any, res) => {
+      app.use((_req, res) => {
         res.status(200).json({ok: true});
       });
 
@@ -507,9 +563,8 @@ describe("expressServer", () => {
     it("handles request with routeMount as string (legacy)", async () => {
       const app = express();
       app.use(logRequests);
-      app.get("/test", (req: any, res) => {
-        req.route = {path: "/test"};
-        req.routeMount = "/api"; // String instead of array
+      app.get("/test", (req, res) => {
+        (req as RouteMountRequest).routeMount = "/api"; // String instead of array
         res.json({ok: true});
       });
 
@@ -536,8 +591,8 @@ describe("expressServer", () => {
     });
 
     it("sets Sentry transaction ID tag from header", async () => {
-      const configureApp = (httpApp: any) => {
-        httpApp.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: Router) => {
+        httpApp.get("/test", (_req, res) => {
           res.json({ok: true});
         });
       };
@@ -545,15 +600,15 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       await supertest(app).get("/test").set("X-Transaction-ID", "txn-123").expect(200);
     });
 
     it("sets Sentry session ID tag from header", async () => {
-      const configureApp = (httpApp: any) => {
-        httpApp.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: Router) => {
+        httpApp.get("/test", (_req, res) => {
           res.json({ok: true});
         });
       };
@@ -561,15 +616,15 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       await supertest(app).get("/test").set("X-Session-ID", "session-456").expect(200);
     });
 
     it("sets both transaction and session ID tags", async () => {
-      const configureApp = (httpApp: any) => {
-        httpApp.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: Router) => {
+        httpApp.get("/test", (_req, res) => {
           res.json({ok: true});
         });
       };
@@ -577,7 +632,7 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       await supertest(app)
@@ -588,8 +643,8 @@ describe("expressServer", () => {
     });
 
     it("handles fallthrough error handler", async () => {
-      const configureApp = (httpApp: any) => {
-        httpApp.get("/error", (_req: any, _res: any) => {
+      const configureApp = (httpApp: Router) => {
+        httpApp.get("/error", () => {
           throw new Error("Unexpected error");
         });
       };
@@ -597,15 +652,15 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       await supertest(app).get("/error").expect(500);
     });
 
     it("handles loggingOptions passed to TerrenoApp", async () => {
-      const configureApp = (httpApp: any) => {
-        httpApp.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: Router) => {
+        httpApp.get("/test", (_req, res) => {
           res.json({ok: true});
         });
       };
@@ -617,7 +672,7 @@ describe("expressServer", () => {
           logSlowRequestsReadMs: 100,
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).build();
 
       await supertest(app).get("/test").expect(200);
@@ -632,7 +687,7 @@ describe("expressServer", () => {
         new TerrenoApp({
           configureApp,
           skipListen: true,
-          userModel: UserModel as any,
+          userModel: typedUserModel,
         }).build()
       ).toThrow("Route init boom");
     });
@@ -865,9 +920,9 @@ describe("expressServer", () => {
 
   describe("TerrenoApp with listen", () => {
     const originalEnv = process.env;
-    const http = require("node:http");
-    let activeServer: any = null;
-    let originalListen: any = null;
+    const http = require("node:http") as typeof import("node:http");
+    let activeServer: import("node:http").Server | null = null;
+    let originalListen: typeof http.Server.prototype.listen | null = null;
 
     beforeEach(() => {
       process.env = {
@@ -881,17 +936,26 @@ describe("expressServer", () => {
       };
 
       originalListen = http.Server.prototype.listen;
-      http.Server.prototype.listen = function (...args: any[]) {
+      http.Server.prototype.listen = function (
+        this: import("node:http").Server,
+        ...args: unknown[]
+      ) {
         activeServer = this;
-        return originalListen.apply(this, args);
-      };
+        return (originalListen as (...listenArgs: unknown[]) => import("node:http").Server).apply(
+          this,
+          args
+        );
+      } as typeof http.Server.prototype.listen;
     });
 
     afterEach(async () => {
       process.env = originalEnv;
-      http.Server.prototype.listen = originalListen;
+      if (originalListen) {
+        http.Server.prototype.listen = originalListen;
+      }
       if (activeServer) {
-        await new Promise<void>((resolve) => activeServer.close(() => resolve()));
+        const server = activeServer;
+        await new Promise<void>((resolve) => server.close(() => resolve()));
         activeServer = null;
       }
     });
@@ -902,7 +966,7 @@ describe("expressServer", () => {
       const app = new TerrenoApp({
         configureApp,
         skipListen: false,
-        userModel: UserModel as any,
+        userModel: typedUserModel,
       }).start();
 
       expect(app).toBeDefined();
@@ -999,7 +1063,7 @@ describe("expressServer", () => {
         new TerrenoApp({
           configureApp,
           skipListen: true,
-          userModel: UserModel as any,
+          userModel: typedUserModel,
         }).build()
       ).toThrow("route initialization failed");
     });

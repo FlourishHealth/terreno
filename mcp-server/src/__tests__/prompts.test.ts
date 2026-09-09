@@ -351,6 +351,7 @@ describe("prompts", () => {
       expect(content).toContain("0.21.0");
       expect(content).toContain("terreno_get_upgrade_guide");
       expect(content).toContain("upgrading-expo");
+      expect(content).toContain("upgrading-terreno");
     });
   });
 

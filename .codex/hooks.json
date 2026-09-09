@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".rulesync/hooks/quality-check.sh codexcli",
+            "timeout": 300,
+            "name": "quality-checks",
+            "description": "Run repository lint, typecheck, and static analysis before the agent stops"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run analyze:fast",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

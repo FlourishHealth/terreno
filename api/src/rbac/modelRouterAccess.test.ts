@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose from "mongoose";
 
 import type {User} from "../auth";
@@ -8,6 +9,7 @@ import {createAccess} from "./access";
 import {
   buildAccessPermissions,
   buildAccessQueryFilter,
+  resolveActionForMethod,
   resolveModelRouterAccess,
   validateAccessWriteBody,
   wrapAccessResponseHandler,
@@ -33,6 +35,24 @@ const createTestUser = (
     id: id.toString(),
     roles,
   };
+};
+
+/**
+ * Minimal TerrenoAccess stub for the filter-merging branches, which depend only on
+ * `statements` and `queryFilter` and would otherwise need a seeded role per case.
+ */
+const createAccessStub = (
+  scopeFilter: Record<string, unknown> | null
+): AnyTerrenoAccess & {queryFilterCalls: number} => {
+  const stub = {
+    queryFilter: async () => {
+      stub.queryFilterCalls += 1;
+      return scopeFilter;
+    },
+    queryFilterCalls: 0,
+    statements: appStatements,
+  };
+  return stub as unknown as AnyTerrenoAccess & {queryFilterCalls: number};
 };
 
 describe("modelRouterAccess", () => {
@@ -313,6 +333,112 @@ describe("modelRouterAccess", () => {
     expect(resolved.permissions).toBeDefined();
     expect(resolved.queryFilter).toBeDefined();
     expect(resolved.responseHandler).toBeDefined();
+  });
+
+  it("resolves actions per method", () => {
+    const statements: Record<string, readonly string[]> = appStatements;
+    assert.equal(
+      resolveActionForMethod("list", {actions: {list: "browse"}, resource: "todo"}, statements),
+      "browse"
+    );
+    assert.isNull(
+      resolveActionForMethod("read", {actions: {read: null}, resource: "todo"}, statements)
+    );
+    assert.equal(resolveActionForMethod("list", {resource: "todo"}, statements), "list");
+    assert.equal(resolveActionForMethod("list", {resource: "unknown"}, statements), "read");
+    assert.equal(resolveActionForMethod("update", {resource: "todo"}, statements), "update");
+  });
+
+  it("returns null when the access scope filter denies every row", async () => {
+    const queryFilter = buildAccessQueryFilter(createAccessStub(null), {resource: "todo"});
+    assert.isNull(await queryFilter(createTestUser(["reader"]), {completed: false}));
+  });
+
+  it("keeps the incoming query when the scope filter is empty", async () => {
+    const queryFilter = buildAccessQueryFilter(createAccessStub({}), {resource: "todo"});
+    assert.deepEqual(await queryFilter(createTestUser(["reader"]), {completed: false}), {
+      completed: false,
+    });
+  });
+
+  it("skips scope filtering when the list action is disabled", async () => {
+    const access = createAccessStub({ownerId: "someone-else"});
+    const queryFilter = buildAccessQueryFilter(access, {
+      actions: {list: null},
+      resource: "todo",
+    });
+
+    assert.deepEqual(await queryFilter(createTestUser(["reader"]), {completed: true}), {
+      completed: true,
+    });
+    assert.equal(access.queryFilterCalls, 0);
+  });
+
+  it("merges the per-router scope filter on top of the access filter", async () => {
+    const queryFilter = buildAccessQueryFilter(createAccessStub({tenantId: "t1"}), {
+      resource: "todo",
+      scope: {
+        filter: async ({user}) => ({ownerId: user.id}),
+      },
+    });
+    const user = createTestUser(["reader"]);
+
+    assert.deepEqual(await queryFilter(user, {completed: false}), {
+      $and: [{$and: [{completed: false}, {tenantId: "t1"}]}, {ownerId: user.id}],
+    });
+  });
+
+  it("denies scope checks for anonymous requests and rejected docs", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const permissions = buildAccessPermissions(access as AnyTerrenoAccess, {
+      resource: "todo",
+      scope: {
+        check: ({doc}) => (doc as {ownerId?: string} | undefined)?.ownerId === "mine",
+      },
+    });
+    const scopeCheck = permissions.read[1];
+    const user = createTestUser(["reader"]);
+
+    assert.isFalse(await scopeCheck("read", undefined, {ownerId: "mine"}));
+    assert.isFalse(await scopeCheck("read", user, {ownerId: "theirs"}));
+    assert.isTrue(await scopeCheck("read", user, {ownerId: "mine"}));
+  });
+
+  it("appends the `also` permission checks after the access checks", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const permissions = buildAccessPermissions(access as AnyTerrenoAccess, {
+      also: {read: [Permissions.IsAdmin]},
+      resource: "todo",
+    });
+
+    assert.lengthOf(permissions.read, 2);
+    assert.isFalse(await permissions.read[1]("read", createTestUser(["reader"])));
   });
 
   it("returns legacy permissions when access config is absent", () => {

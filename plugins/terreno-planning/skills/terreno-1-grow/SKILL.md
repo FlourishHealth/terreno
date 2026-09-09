@@ -1,7 +1,6 @@
 ---
 name: terreno-1-grow
-description: Research, clarify, shape, and approve an implementation-ready IP and task list. Use for planning substantial work or revising an existing plan; not for implementation or PR operations.
-disable-model-invocation: true
+description: Research, clarify, shape, and approve an implementation-ready IP and task list. Use whenever the user asks to plan, shape, spec, or scope substantial work ("help me plan X", "how should we build Y") or to revise an existing plan; not for implementation or PR operations.
 ---
 
 # Grow — shape

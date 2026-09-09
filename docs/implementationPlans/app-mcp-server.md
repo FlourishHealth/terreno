@@ -50,7 +50,7 @@ When this is done, an operator can:
 | `api/src/mcp/server.ts` `mountMCPServer` | Stateless `createMcpHandler`, `POST /mcp`, tools capability only |
 | `api/src/mcp/toolGenerator.ts` | `{prefix}_{list,read,create,update,delete}` from registry |
 | `api/src/mcp/registry.ts` `registerMCPTool` | Custom tools: `name`, `description`, `zodSchema`, `handler` |
-| Auth | `extractUserFromHeaders` — JWT or Better Auth **session**; no OAuth 2.1 resource server, no RFC 9728 metadata |
+| Auth | `extractUserFromHeaders` — opt-in `mcp_` [service tokens](mcp-service-tokens.md), then Better Auth session, then JWT. No OAuth 2.1 resource server yet; no RFC 9728 metadata. Operator how-to: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md) |
 | `@terreno/ai` `MCPService` | **SSE** client only — mismatch with Streamable HTTP server |
 | `@terreno/rtk` `useMCPTools` | Official MCP client, Streamable HTTP to `/mcp` |
 | Tests | Registry/handler/integration tests; no Inspector helper, no prompt/resource tests |

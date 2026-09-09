@@ -7,8 +7,8 @@ import {Glob} from "bun";
 
 import {
   type CoverageSummary,
-  type FileCoverage,
   evaluateCoverage,
+  type FileCoverage,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";
@@ -16,16 +16,15 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
- * Expo Router route-structural entry files under `app/`: `index`, `_layout`, `+not-found`, and
- * dynamic segments such as `[id]`. The router mounts these by file path, so they hold wiring
- * rather than logic and cannot be imported without the router runtime. Screens they render are
- * unit tested in their owning package and exercised end to end by Playwright. Ordinary modules
- * under `app/` stay gated.
+ * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
+ * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
+ * `verifyEmail`). Those recovery screens are Playwright e2e; submit logic lives in
+ * `lib/authRecoveryActions.ts`. Ordinary modules under `app/` stay gated.
  */
 const EXPO_ROUTER_ENTRY_PATTERN =
-  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\])\.tsx$/;
+  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\]|forgotPassword|resetPassword|verifyEmail)\.tsx$/;
 
 export interface NewFileCoverageFailure {
   path: string;
@@ -123,11 +122,10 @@ const getWorkspaceNames = (repoRoot: string): Set<string> => {
 };
 
 const getAddedSourceFiles = (repoRoot: string, base: string): string[] => {
-  const output = execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`],
-    {cwd: repoRoot, encoding: "utf8"}
-  );
+  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
   return output
     .split("\n")
     .map((path) => path.trim())

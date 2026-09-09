@@ -7,15 +7,17 @@ export const addTagTypes = [
   "admin-users",
   "settings",
   "loadtest",
+  "comms",
   "todos",
   "exampleprojects",
   "users",
-  "comms",
   "admin",
   "featureflags",
+  "mcpservicetokens",
   "adminauditlogs",
   "consentforms",
   "consentresponses",
+  "mcp",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -23,6 +25,14 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      createMcpServiceToken: build.mutation<CreateMcpServiceTokenRes, CreateMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/mcp/service-tokens`,
+        }),
+      }),
       deleteAdminConsentFormsById: build.mutation<
         DeleteAdminConsentFormsByIdRes,
         DeleteAdminConsentFormsByIdArgs
@@ -41,6 +51,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/feature-flags/${queryArg}`,
+        }),
+      }),
+      deleteAdminMcpServiceTokensById: build.mutation<
+        DeleteAdminMcpServiceTokensByIdRes,
+        DeleteAdminMcpServiceTokensByIdArgs
+      >({
+        invalidatesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/mcp-service-tokens/${queryArg}`,
         }),
       }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
@@ -205,6 +225,36 @@ const injectedRtkApi = api
         providesTags: ["featureflags"],
         query: (queryArg) => ({url: `/admin/feature-flags/${queryArg}`}),
       }),
+      getAdminMcpServiceTokens: build.query<
+        GetAdminMcpServiceTokensRes,
+        GetAdminMcpServiceTokensArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            created: queryArg.created,
+            expiresAt: queryArg.expiresAt,
+            lastUsedAt: queryArg.lastUsedAt,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            revokedAt: queryArg.revokedAt,
+            sort: queryArg.sort,
+            tokenPrefix: queryArg.tokenPrefix,
+            userId: queryArg.userId,
+          },
+          url: `/admin/mcp-service-tokens/`,
+        }),
+      }),
+      getAdminMcpServiceTokensById: build.query<
+        GetAdminMcpServiceTokensByIdRes,
+        GetAdminMcpServiceTokensByIdArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({url: `/admin/mcp-service-tokens/${queryArg}`}),
+      }),
       getAdminTodos: build.query<GetAdminTodosRes, GetAdminTodosArgs>({
         providesTags: ["todos"],
         query: (queryArg) => ({
@@ -238,6 +288,7 @@ const injectedRtkApi = api
             admin: queryArg.admin,
             created: queryArg.created,
             email: queryArg.email,
+            emailVerified: queryArg.emailVerified,
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
@@ -261,14 +312,25 @@ const injectedRtkApi = api
           params: {
             channel: queryArg.channel,
             endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
             limit: queryArg.limit,
             page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
             startDate: queryArg.startDate,
             status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
             userId: queryArg.userId,
           },
           url: `/comms/messages`,
         }),
+      }),
+      getCommsMessagesById: build.query<GetCommsMessagesByIdRes, GetCommsMessagesByIdArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({url: `/comms/messages/${queryArg}`}),
       }),
       getCommsPushTokens: build.query<GetCommsPushTokensRes, GetCommsPushTokensArgs>({
         providesTags: ["comms"],
@@ -285,6 +347,28 @@ const injectedRtkApi = api
       getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
         providesTags: ["comms"],
         query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
+      }),
+      getCommsStats: build.query<GetCommsStatsRes, GetCommsStatsArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          params: {
+            channel: queryArg.channel,
+            endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
+            startDate: queryArg.startDate,
+            status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
+            userId: queryArg.userId,
+          },
+          url: `/comms/stats`,
+        }),
       }),
       getFeatureFlagsFlags: build.query<GetFeatureFlagsFlagsRes, GetFeatureFlagsFlagsArgs>({
         providesTags: ["featureflags"],
@@ -384,6 +468,16 @@ const injectedRtkApi = api
       getUsersById: build.query<GetUsersByIdRes, GetUsersByIdArgs>({
         providesTags: ["users"],
         query: (queryArg) => ({url: `/users/${queryArg}`}),
+      }),
+      listMcpServiceTokens: build.query<ListMcpServiceTokensRes, ListMcpServiceTokensArgs>({
+        providesTags: ["mcp"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/mcp/service-tokens`,
+        }),
       }),
       patchAdminConsentFormsById: build.mutation<
         PatchAdminConsentFormsByIdRes,
@@ -548,6 +642,17 @@ const injectedRtkApi = api
           url: `/admin/feature-flags/bulk-patch`,
         }),
       }),
+      postAdminMcpServiceTokensBulkPatch: build.mutation<
+        PostAdminMcpServiceTokensBulkPatchRes,
+        PostAdminMcpServiceTokensBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/mcp-service-tokens/bulk-patch`,
+        }),
+      }),
       postAdminTodos: build.mutation<PostAdminTodosRes, PostAdminTodosArgs>({
         invalidatesTags: ["todos"],
         query: (queryArg) => ({
@@ -595,6 +700,35 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "POST",
           url: `/admin/users/${queryArg.id}/password`,
+        }),
+      }),
+      postCommsDevTestPush: build.mutation<PostCommsDevTestPushRes, PostCommsDevTestPushArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/dev/testPush`,
+        }),
+      }),
+      postCommsMessagesByIdRetry: build.mutation<
+        PostCommsMessagesByIdRetryRes,
+        PostCommsMessagesByIdRetryArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/comms/messages/${queryArg}/retry`,
+        }),
+      }),
+      postCommsMessagesRetryMany: build.mutation<
+        PostCommsMessagesRetryManyRes,
+        PostCommsMessagesRetryManyArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/messages/retryMany`,
         }),
       }),
       postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({
@@ -696,6 +830,13 @@ const injectedRtkApi = api
           url: `/users/`,
         }),
       }),
+      revokeMcpServiceToken: build.mutation<RevokeMcpServiceTokenRes, RevokeMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/mcp/service-tokens/${queryArg}`,
+        }),
+      }),
       todosBulkComplete: build.mutation<TodosBulkCompleteRes, TodosBulkCompleteArgs>({
         invalidatesTags: ["todos"],
         query: (queryArg) => ({
@@ -725,7 +866,7 @@ export type GetAiModelsRes = /** status 200 Success */ {
 export type GetAiModelsArgs = undefined;
 export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -761,7 +902,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -773,7 +914,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
 };
 export type PostGptHistoriesArgs = {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -809,7 +950,7 @@ export type PostGptHistoriesArgs = {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId?: any;
+  userId?: string;
   _id?: string;
   /** When this document was last updated */
   updated?: string;
@@ -822,7 +963,7 @@ export type PostGptHistoriesArgs = {
 export type GetGptHistoriesRes = /** status 200 Successful list */ {
   data?: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -858,7 +999,7 @@ export type GetGptHistoriesRes = /** status 200 Successful list */ {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId: any;
+    userId: string;
     _id: string;
     /** When this document was last updated */
     updated: string;
@@ -893,7 +1034,7 @@ export type GetGptHistoriesArgs = {
 };
 export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -929,7 +1070,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -942,7 +1083,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
 export type GetGptHistoriesByIdArgs = string;
 export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -978,7 +1119,7 @@ export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -992,7 +1133,7 @@ export type PatchGptHistoriesByIdArgs = {
   id: string;
   body: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -1028,7 +1169,7 @@ export type PatchGptHistoriesByIdArgs = {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId?: any;
+    userId?: string;
     _id?: string;
     /** When this document was last updated */
     updated?: string;
@@ -1147,6 +1288,17 @@ export type PostLoadtestTodosClearRes = /** status 200 Success */ {
   };
 };
 export type PostLoadtestTodosClearArgs = undefined;
+export type PostCommsDevTestPushRes = /** status 200 Success */ {
+  data?: {
+    accepted?: number;
+    results?: object[];
+    tokenCount?: number;
+  };
+};
+export type PostCommsDevTestPushArgs = {
+  body?: string;
+  title?: string;
+};
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
@@ -1166,7 +1318,7 @@ export type PostTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1190,7 +1342,7 @@ export type PostTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1215,7 +1367,7 @@ export type GetTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1262,7 +1414,7 @@ export type GetTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1287,7 +1439,7 @@ export type PatchTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1313,7 +1465,7 @@ export type PatchTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1485,11 +1637,15 @@ export type PostUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1510,11 +1666,15 @@ export type PostUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -1536,11 +1696,15 @@ export type GetUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -1584,11 +1748,15 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1610,11 +1778,15 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1637,11 +1809,15 @@ export type PatchUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -1693,7 +1869,7 @@ export type GetCommsPushTokensByIdRes = /** status 200 Successful read */ {
   /** Push provider token identifying the device */
   token: string;
   /** User who owns the device token */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -1715,10 +1891,65 @@ export type GetCommsMessagesArgs = {
   page?: number;
   limit?: number;
   channel?: string;
+  provider?: string;
   status?: string;
+  errorClass?: string;
+  errorCode?: string;
   userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
   startDate?: string;
   endDate?: string;
+  q?: string;
+};
+export type PostCommsMessagesRetryManyRes = /** status 200 Success */ {
+  retried?: object[];
+  skipped?: object[];
+};
+export type PostCommsMessagesRetryManyArgs = {
+  channel?: string;
+  endDate?: string;
+  errorClass?: string;
+  errorCode?: string;
+  limit?: number;
+  provider?: string;
+  q?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  status?: string;
+  templateId?: string;
+  to?: string;
+  userId?: string;
+};
+export type GetCommsMessagesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetCommsMessagesByIdArgs = string;
+export type PostCommsMessagesByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostCommsMessagesByIdRetryArgs = string;
+export type GetCommsStatsRes = /** status 200 Success */ {
+  buckets?: object[];
+  byProvider?: object[];
+  totals?: object;
+};
+export type GetCommsStatsArgs = {
+  page?: number;
+  limit?: number;
+  channel?: string;
+  provider?: string;
+  status?: string;
+  errorClass?: string;
+  errorCode?: string;
+  userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  endDate?: string;
+  q?: string;
 };
 export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
   /** Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added. */
@@ -1748,6 +1979,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1756,6 +1988,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1793,6 +2026,7 @@ export type PostFeatureFlagsFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1801,6 +2035,7 @@ export type PostFeatureFlagsFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -1839,6 +2074,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1847,6 +2083,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -1897,6 +2134,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1905,6 +2143,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1943,6 +2182,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1951,6 +2191,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1990,6 +2231,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1998,6 +2240,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2054,6 +2297,143 @@ export type PostAdminBackgroundTasksArgs = {
   /** Optional admin model route this task relates to */
   resourceRoute?: string;
 };
+export type PostAdminMcpServiceTokensBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminMcpServiceTokensBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminMcpServiceTokensRes = /** status 200 Successful list */ {
+  data?: {
+    /** When this MCP service token expires; unset when it does not expire */
+    expiresAt?: string;
+    /** When this MCP service token most recently authenticated an MCP request */
+    lastUsedAt?: string;
+    /** User-provided label identifying the MCP service token */
+    name: string;
+    /** When this MCP service token was revoked; unset while it remains active */
+    revokedAt?: string;
+    /** SHA-256 hash of the full MCP service token plaintext */
+    tokenHash: string;
+    /** First eight characters after mcp_ used to identify the token safely */
+    tokenPrefix: string;
+    /** The user this MCP service token acts as */
+    userId: string;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminMcpServiceTokensArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  name?:
+    | string
+    | {
+        $in?: string[];
+      };
+  tokenPrefix?:
+    | string
+    | {
+        $in?: string[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  lastUsedAt?:
+    | string
+    | {
+        /** When this MCP service token most recently authenticated an MCP request */
+        $gt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $gte?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $lt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $lte?: string;
+      };
+  expiresAt?:
+    | string
+    | {
+        /** When this MCP service token expires; unset when it does not expire */
+        $gt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $gte?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lte?: string;
+      };
+  revokedAt?:
+    | string
+    | {
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gte?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lte?: string;
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminMcpServiceTokensByIdRes = /** status 200 Successful read */ {
+  /** When this MCP service token expires; unset when it does not expire */
+  expiresAt?: string;
+  /** When this MCP service token most recently authenticated an MCP request */
+  lastUsedAt?: string;
+  /** User-provided label identifying the MCP service token */
+  name: string;
+  /** When this MCP service token was revoked; unset while it remains active */
+  revokedAt?: string;
+  /** SHA-256 hash of the full MCP service token plaintext */
+  tokenHash: string;
+  /** First eight characters after mcp_ used to identify the token safely */
+  tokenPrefix: string;
+  /** The user this MCP service token acts as */
+  userId: string;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+};
+export type GetAdminMcpServiceTokensByIdArgs = string;
+export type DeleteAdminMcpServiceTokensByIdRes = unknown;
+export type DeleteAdminMcpServiceTokensByIdArgs = string;
 export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -2067,11 +2447,11 @@ export type PostAdminAuditLogsBulkPatchArgs = {
 export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
   data?: {
     /** User who performed the action */
-    actorId?: any;
+    actorId?: string;
     /** Mongoose model name affected */
     modelName: string;
     /** Primary key of the affected document */
-    recordId?: any;
+    recordId?: string;
     /** Human-readable label for the record */
     recordLabel?: string;
     /** Mutation kind */
@@ -2139,11 +2519,11 @@ export type GetAdminAuditLogsArgs = {
 };
 export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
   /** User who performed the action */
-  actorId?: any;
+  actorId?: string;
   /** Mongoose model name affected */
   modelName: string;
   /** Primary key of the affected document */
-  recordId?: any;
+  recordId?: string;
   /** Human-readable label for the record */
   recordLabel?: string;
   /** Mutation kind */
@@ -2197,6 +2577,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2205,6 +2586,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2242,6 +2624,7 @@ export type PostAdminFeatureFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2250,6 +2633,7 @@ export type PostAdminFeatureFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -2288,6 +2672,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2296,6 +2681,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -2393,6 +2779,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2401,6 +2788,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2439,6 +2827,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2447,6 +2836,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2486,6 +2876,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2494,6 +2885,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2533,6 +2925,7 @@ export type PostAdminConsentFormsRes = /** status 201 Successful create */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2581,6 +2974,7 @@ export type PostAdminConsentFormsArgs = {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content?: {
@@ -2630,6 +3024,7 @@ export type GetAdminConsentFormsRes = /** status 200 Successful list */ {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content: {
@@ -2740,6 +3135,7 @@ export type GetAdminConsentFormsByIdRes = /** status 200 Successful read */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2789,6 +3185,7 @@ export type PatchAdminConsentFormsByIdRes = /** status 200 Successful update */ 
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2839,6 +3236,7 @@ export type PatchAdminConsentFormsByIdArgs = {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content?: {
@@ -3040,7 +3438,7 @@ export type PostAdminTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3064,7 +3462,7 @@ export type PostAdminTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3089,7 +3487,7 @@ export type GetAdminTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3178,7 +3576,7 @@ export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3203,7 +3601,7 @@ export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3229,7 +3627,7 @@ export type PatchAdminTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3271,11 +3669,15 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3296,11 +3698,15 @@ export type PostAdminUsersArgs = {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -3322,11 +3728,15 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -3363,6 +3773,11 @@ export type GetAdminUsersArgs = {
     | {
         $in?: boolean[];
       };
+  emailVerified?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
   created?:
     | string
     | {
@@ -3392,11 +3807,15 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3418,11 +3837,15 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   oauthProvider?: "google" | "github" | "apple" | null;
   /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
   organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3445,11 +3868,15 @@ export type PatchAdminUsersByIdArgs = {
     oauthProvider?: "google" | "github" | "apple" | null;
     /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
     organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -3460,6 +3887,41 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type CreateMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    created?: string;
+    expiresAt?: string;
+    id?: string;
+    mcpUrl?: string;
+    name?: string;
+    token?: string;
+    tokenPrefix?: string;
+  };
+};
+export type CreateMcpServiceTokenArgs = {
+  /** Optional ISO-8601 expiry; omit for a token that does not expire */
+  expiresAt?: string;
+  /** User-visible label for this token */
+  name: string;
+};
+export type ListMcpServiceTokensRes = /** status 200 Success */ {
+  data?: any;
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type ListMcpServiceTokensArgs = {
+  page?: number;
+  limit?: number;
+};
+export type RevokeMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    id?: string;
+    revokedAt?: string;
+  };
+};
+export type RevokeMcpServiceTokenArgs = string;
 export type ApiError = {
   /** An application-specific error code, expressed as a string value. */
   code?: string;
@@ -3506,6 +3968,7 @@ export const {
   usePostLoadtestTodosGenerateMutation,
   usePostLoadtestTodosChurnMutation,
   usePostLoadtestTodosClearMutation,
+  usePostCommsDevTestPushMutation,
   useTodosMarkCompleteMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
@@ -3528,6 +3991,10 @@ export const {
   useDeleteCommsPushTokensByIdMutation,
   useGetCommsPushTokensByIdQuery,
   useGetCommsMessagesQuery,
+  usePostCommsMessagesRetryManyMutation,
+  useGetCommsMessagesByIdQuery,
+  usePostCommsMessagesByIdRetryMutation,
+  useGetCommsStatsQuery,
   usePostFeatureFlagsFlagsMutation,
   useGetFeatureFlagsFlagsQuery,
   useGetFeatureFlagsFlagsByIdQuery,
@@ -3535,6 +4002,10 @@ export const {
   useDeleteFeatureFlagsFlagsByIdMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
+  usePostAdminMcpServiceTokensBulkPatchMutation,
+  useGetAdminMcpServiceTokensQuery,
+  useGetAdminMcpServiceTokensByIdQuery,
+  useDeleteAdminMcpServiceTokensByIdMutation,
   usePostAdminAuditLogsBulkPatchMutation,
   useGetAdminAuditLogsQuery,
   useGetAdminAuditLogsByIdQuery,
@@ -3564,4 +4035,7 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useCreateMcpServiceTokenMutation,
+  useListMcpServiceTokensQuery,
+  useRevokeMcpServiceTokenMutation,
 } = injectedRtkApi;

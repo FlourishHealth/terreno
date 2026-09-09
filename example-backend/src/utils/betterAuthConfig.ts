@@ -1,4 +1,5 @@
 import type {AuthProvider, BetterAuthConfig} from "@terreno/api";
+import {getCommsService, renderAuthMail} from "@terreno/comms";
 
 const DEFAULT_BETTER_AUTH_SECRET = "terreno-example-better-auth-secret-dev-only-32";
 const DEFAULT_BETTER_AUTH_URL = "http://localhost:4000";
@@ -44,7 +45,12 @@ export const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
     baseURL: process.env.BETTER_AUTH_URL ?? DEFAULT_BETTER_AUTH_URL,
     crossDomainCookies: process.env.CROSS_DOMAIN_AUTH_COOKIES === "true",
     enabled: true,
+    publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+    renderAuthMail,
     secret: process.env.BETTER_AUTH_SECRET ?? DEFAULT_BETTER_AUTH_SECRET,
+    sendMail: async (message) => {
+      await getCommsService().sendMail(message);
+    },
     trustedOrigins: [...APP_SCHEMES, ...getWebOrigins()],
   };
 

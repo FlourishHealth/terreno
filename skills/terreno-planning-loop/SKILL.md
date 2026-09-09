@@ -1,7 +1,6 @@
 ---
 name: terreno-planning-loop
 description: Drive the planning plugin from the current task list, optionally restricting which stages run (Grow, Pick, Roast, Brew, Taste). Not a sixth stage — an outer loop that invokes existing stage skills. Use when asked to run the planning loop, walk the task list, or restrict work to selected phases.
-disable-model-invocation: true
 ---
 
 # Planning loop (outer driver)
@@ -73,7 +72,7 @@ If `pick` is selected, invoke `terreno-2-pick` **once**. Pick:
 2. Implements it
 3. Invokes Roast for that task
 4. On Roast `PASS`, continues to the next unchecked task
-5. After the last task, invokes Brew (unless `brew` was excluded — then
+5. After the last task, emits `next: brew` (unless `brew` was excluded — then
    stop after the last Roast `PASS` and tell the user Brew is the next
    human/agent step)
 
@@ -99,10 +98,8 @@ owned by Pick. Do not invoke `terreno-3-roast` as a second driver.
 
 ### Brew (`brew`)
 
-If `brew` is selected **and** Pick is **not** in the phase list, invoke
-`terreno-4-brew` after the other selected pre-submit stages. If Pick **is**
-selected, Pick already invoked Brew at the end of the inner loop — do not
-Brew twice.
+If `brew` is selected, invoke `terreno-4-brew` after the selected pre-submit stages.
+Pick emits `next: brew` at the end of its inner loop; it does not invoke Brew itself.
 
 If Brew emits `FAIL`, **do not stop the outer loop**. Read Brew's `next`
 field and continue with that stage in the same invocation:

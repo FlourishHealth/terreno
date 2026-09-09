@@ -15,6 +15,7 @@ export const appStatements = {
   ...terrenoStatements,
   adminAdminAuditLog: ADMIN_MODEL_ACCESS,
   adminAuditLog: ["list", "read"],
+  adminMcpServiceToken: ADMIN_MODEL_ACCESS,
   adminProject: ADMIN_MODEL_ACCESS,
   adminScreen: ["showcase", "syncLab"],
   adminTodo: ADMIN_MODEL_ACCESS,

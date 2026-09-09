@@ -7,7 +7,11 @@ import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {type BetterAuthInstance, createBetterAuthSessionMiddleware} from "./betterAuthSetup";
+import {
+  applyJwtPasswordResetToBetterAuth,
+  type BetterAuthInstance,
+  createBetterAuthSessionMiddleware,
+} from "./betterAuthSetup";
 import {
   ConfigurationApp,
   type ConfigurationAppOptions,
@@ -22,6 +26,11 @@ import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {mountMCPServer} from "./mcp/server";
+import {
+  addMcpServiceTokenRoutes,
+  type McpServiceTokensAppOption,
+  resolveMcpServiceTokensOption,
+} from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -39,6 +48,7 @@ import {
 import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+import {jsonBodyParserOptions, urlencodedBodyParserOptions} from "./webhooks/rawBody";
 
 /** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
 interface BetterAuthProvider {
@@ -110,6 +120,11 @@ export interface TerrenoAppOptions {
    * to enable. See [Rate limiting](../how-to/rate-limiting.md).
    */
   rateLimit?: RateLimitOptions;
+  /**
+   * Opt-in personal MCP service tokens. `true` is `{enabled: true}`. When enabled,
+   * mounts `/mcp/service-tokens` and accepts `Authorization: Bearer mcp_…` on `/mcp`.
+   */
+  mcpServiceTokens?: McpServiceTokensAppOption;
 }
 
 /**
@@ -123,7 +138,7 @@ export interface TerrenoAppOptions {
  * 1. CORS
  * 2. Optional `beforeJsonSetup` (configure the app before JSON parsing)
  * 3. Custom middleware (via addMiddleware)
- * 4. JSON body parser
+ * 4. JSON and urlencoded body parsers (stash `req.rawBody`)
  * 5. Auth routes (/auth/login, /auth/signup, etc.)
  * 6. JWT authentication setup
  * 7. Request logging
@@ -352,7 +367,8 @@ export class TerrenoApp {
       }
     }
 
-    app.use(express.json({limit: "50mb"}));
+    app.use(express.json(jsonBodyParserOptions));
+    app.use(express.urlencoded(urlencodedBodyParserOptions) as unknown as express.RequestHandler);
 
     // JWT decode before rate limiting so authenticated keys use userId.
     // Auth routes mount after the limiter so login is in the auth bucket.
@@ -385,7 +401,11 @@ export class TerrenoApp {
       app.use(createRateLimitMiddleware(store, rateLimit));
     }
 
-    addAuthRoutes(app, options.userModel, options.authOptions);
+    if (!options.authOptions) {
+      options.authOptions = {};
+    }
+    const authOptions = options.authOptions;
+    addAuthRoutes(app, options.userModel, authOptions);
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -467,8 +487,22 @@ export class TerrenoApp {
         "getAuth" in registration &&
         typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
     ) as BetterAuthProvider | undefined;
+    const betterAuth = betterAuthPlugin?.ensureAuth?.() ?? betterAuthPlugin?.getAuth();
+    if (betterAuth) {
+      authOptions.syncPasswordResetToBetterAuth = async (user, password): Promise<void> => {
+        await applyJwtPasswordResetToBetterAuth(betterAuth, user, password);
+      };
+    }
+    const mcpServiceTokens = resolveMcpServiceTokensOption(options.mcpServiceTokens);
+    if (mcpServiceTokens.enabled) {
+      addMcpServiceTokenRoutes(app, {
+        openApi: oapi,
+        publicMcpUrl: mcpServiceTokens.publicMcpUrl,
+      });
+    }
     mountMCPServer(app, {
-      betterAuth: betterAuthPlugin?.getAuth(),
+      betterAuth,
+      mcpServiceTokens: mcpServiceTokens.enabled,
       userModel: options.userModel,
     });
 

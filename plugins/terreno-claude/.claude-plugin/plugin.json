@@ -1,15 +1,14 @@
 {
-  "name": "terreno",
-  "displayName": "Terreno",
-  "description": "Five bounded transitions: Grow shapes, Pick and Roast loop one task at a time, Brew confirms every CI host, Taste waits for review bots and product CI with gh/circleci. Before push: pull latest master, bun lint in a no-context subagent, then watch. Outer loops: planning-loop and taste-sweep.",
-  "version": "2.5.0",
+  "agents": [
+    "./agents/"
+  ],
   "author": {
     "name": "Terreno",
     "email": "terreno@flourish.health"
   },
+  "description": "Terreno lifecycle and app workflows: Grow, Pick/Roast, Brew, Taste, continuous outer loops, backend/API, UI, data, schema, admin, docs, upgrades, deployment, and verification agents.",
+  "displayName": "Terreno",
   "homepage": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
-  "repository": "https://github.com/FlourishHealth/terreno",
-  "license": "MIT",
   "keywords": [
     "terreno",
     "planning",
@@ -18,11 +17,15 @@
     "review",
     "tdd"
   ],
-  "skills": "./skills/",
+  "license": "MIT",
   "metadata": {
     "compatibility": {
       "terreno": ">=1.0.0",
       "expoSdk": "~57"
     }
-  }
+  },
+  "name": "terreno",
+  "repository": "https://github.com/FlourishHealth/terreno",
+  "skills": "./skills/",
+  "version": "2.8.0"
 }

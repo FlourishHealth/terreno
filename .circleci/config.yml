@@ -78,7 +78,12 @@ workflows:
             CLAUDE\.md run-rulesync true
             \.github/copilot-instructions\.md run-rulesync true
             \.github/instructions/.* run-rulesync true
+            \.github/hooks/.* run-rulesync true
             \.github/skills/.* run-rulesync true
+            \.codex/.* run-rulesync true
+            \.dependency-cruiser.* run-repo-policies true
+            knip\.jsonc run-repo-policies true
+            scripts/static-analysis/.* run-repo-policies true
             scripts/check-circleci-parity/.* run-repo-policies true
             api/.* run-api true
             ai/.* run-ai true

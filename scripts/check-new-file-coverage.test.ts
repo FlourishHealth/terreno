@@ -1,6 +1,6 @@
 import {describe, it} from "bun:test";
-import {assert} from "chai";
 import {join, resolve} from "node:path";
+import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
@@ -40,6 +40,8 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("ui/src/NewComponent.stories.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
+    assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
+    assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
   });
 
   it("excludes Expo Router route-structural entry files but keeps other app modules", () => {
@@ -49,6 +51,9 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("admin-spa/app/[model]/_layout.tsx"));
     assert.isFalse(isCoverageSourceFile("admin-spa/app/+not-found.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/app/admin/SyncLabScreen.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/forgotPassword.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/resetPassword.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/verifyEmail.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
   });
 });
@@ -167,10 +172,10 @@ describe("coverageRunArgs", () => {
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
       ["src"]
     );
-    assert.deepEqual(
-      coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
-      ["./**/*.test.ts", "./**/*.test.tsx"]
-    );
+    assert.deepEqual(coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}), [
+      "./**/*.test.ts",
+      "./**/*.test.tsx",
+    ]);
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1", "src"]

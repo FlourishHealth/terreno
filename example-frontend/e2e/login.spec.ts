@@ -12,6 +12,7 @@ test.describe("Login", () => {
     await expect(page.getByTestId("login-screen-password-input")).toBeVisible();
     await expect(page.getByTestId("login-screen-submit-button")).toBeVisible();
     await expect(page.getByTestId("login-screen-signup-link")).toBeVisible();
+    await expect(page.getByTestId("login-screen-forgot-password")).toBeVisible();
   });
 
   test("user can log in with valid credentials", async ({page}) => {
@@ -42,5 +43,12 @@ test.describe("Login", () => {
   test("navigates to signup screen", async ({page}) => {
     await page.getByTestId("login-screen-signup-link").click();
     await page.getByTestId("signup-screen").waitFor({state: "visible"});
+  });
+
+  test("navigates to forgot password screen", async ({page}) => {
+    await page.getByTestId("login-screen-forgot-password").click();
+    await page.getByTestId("forgot-password-screen").waitFor({state: "visible"});
+    await expect(page.getByTestId("forgot-password-email")).toBeVisible();
+    await expect(page.getByTestId("forgot-password-submit")).toBeVisible();
   });
 });

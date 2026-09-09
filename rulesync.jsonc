@@ -1,7 +1,15 @@
 {
   "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
-  "targets": ["cursor", "claudecode", "copilot", "agentsskills", "devin"],
-  "features": ["rules", "skills"],
+  "targets": {
+    "agentsskills": ["skills"],
+    "antigravity-cli": ["hooks"],
+    "claudecode": ["rules", "skills", "subagents", "hooks"],
+    "codexcli": ["hooks"],
+    "copilot": ["rules", "skills", "subagents", "hooks"],
+    "copilotcli": ["hooks"],
+    "cursor": ["rules", "skills", "subagents", "hooks"],
+    "devin": ["rules", "skills", "subagents", "hooks"]
+  },
   "baseDirs": ["."],
   "delete": true,
   "verbose": false

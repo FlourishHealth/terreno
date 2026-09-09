@@ -100,6 +100,7 @@ export class CommsService {
       await row.save();
     } catch (error: unknown) {
       logger.warn(`[comms] Failed to apply delivery event: ${String(error)}`);
+      throw error;
     }
   }
 

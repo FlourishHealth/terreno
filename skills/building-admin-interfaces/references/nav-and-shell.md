@@ -1,6 +1,6 @@
 # Nav and shell
 
-Canonical shape: [How admin interfaces are shaped](../../../../docs/explanation/admin-interface.md).
+Canonical shape: [How admin interfaces are shaped](../../../docs/explanation/admin-interface.md).
 
 ## `apiBase` vs `routeBase`
 

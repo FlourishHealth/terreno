@@ -1277,6 +1277,41 @@ describe("CommsService", () => {
     warnSpy.mockRestore();
   });
 
+  it("rethrows when applying a delivery event fails to save", async (): Promise<void> => {
+    const warnSpy = spyOn(logger, "warn");
+    const service = new CommsService({
+      mail: {
+        id: "event-mail-save-fail",
+        sendMail: async (): Promise<SendResult> => ({
+          accepted: true,
+          providerMessageId: "mail-save-fail",
+        }),
+      },
+    });
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const saveSpy = spyOn(CommsMessage.prototype, "save").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("save failed");
+      }
+    );
+    let threw = false;
+    try {
+      await service.recordDeliveryEvent({
+        channel: "mail",
+        providerMessageId: "mail-save-fail",
+        status: "delivered",
+      });
+    } catch (error: unknown) {
+      threw = error instanceof Error && error.message === "save failed";
+    }
+    saveSpy.mockRestore();
+    assert.isTrue(threw);
+    assert.isTrue(
+      warnSpy.mock.calls.some((call) => String(call[0]).includes("Failed to apply delivery event"))
+    );
+    warnSpy.mockRestore();
+  });
+
   it("retries startVerification once on transient failure and never retries checkVerification", async (): Promise<void> => {
     let startCalls = 0;
     let checkCalls = 0;

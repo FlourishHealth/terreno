@@ -38,7 +38,8 @@ Give Terreno the fastest possible "my app is on the internet" path, and a skill 
 
 Complete these before Phase 1 of the how-to guide ships:
 
-- [ ] **V1-todo:** Can `@terreno/api` run on Vercel with Socket.io sessions and MongoDB change streams? Document runtime limits, cold starts, and whether session affinity is available.
+- [ ] **V1-todo:** Can `@terreno/api` run on Vercel with Socket.io sessions and MongoDB change streams? Use [Vercel Functions WebSockets (Public Beta)](https://vercel.com/docs/functions/websockets) as the source of truth. Document runtime limits, Fluid compute, cold starts, max-duration disconnects, and that a connection is pinned to one function instance (not session affinity across reconnects).
+- [ ] **V1-todo:** Write operator docs for websocket usage on Vercel Functions (see **Vercel Functions WebSockets** below). Link the beta page; do not copy it. Re-verify every config key and limitation against that page before the how-to ships.
 - [ ] **V1-todo:** Can `@terreno/ai` SSE streaming work through `expo-server/adapter/vercel` without unacceptable buffering?
 - [ ] **V1-todo:** Where do user file uploads land on an all-in-one Vercel deploy (Blob, external GCS, or other)?
 - [ ] **V1-todo:** Compare all-in-one Vercel vs split (Vercel web + long-running backend) on cost, ops complexity, and preview-deployment ergonomics.
@@ -121,14 +122,51 @@ New skill at `.rulesync/skills/deploy-vercel/SKILL.md`:
 
 The verification step must include the websocket check. A Terreno web app can look completely fine while realtime and live feature flags are silently broken.
 
+### Vercel Functions WebSockets (Public Beta) — required how-to
+
+Vercel now documents WebSockets on Vercel Functions as **Public Beta**: [WebSockets](https://vercel.com/docs/functions/websockets). Phase 0 and the how-to must treat that page as the vendor contract. The Terreno page is operator docs for `@terreno/api` (`RealtimeApp` / Socket.io) and `@terreno/syncdb` on that runtime — not a reprint of Vercel’s examples.
+
+**Ship** `docs/how-to/vercel-function-websockets.md`. Link it from `docs/how-to/deploy-web-to-vercel.md` and from `docs/how-to/websocket-integration.md`. Mark the feature **beta**; tell operators to re-read the Vercel page before production. Do **not** present all-in-one Vercel hosting as the recommended Terreno topology until the V1 TODOs close.
+
+The published page must cover the following (cite the Vercel URL; keep examples Terreno-shaped).
+
+#### What Vercel guarantees (as of the beta page)
+
+| Fact | Terreno implication |
+|------|---------------------|
+| A WebSocket starts as HTTP `GET` with `Upgrade`. Routing Middleware, rewrites, Firewall, and rate limits apply **before** the upgrade. | Document Firewall rules and rate limits on the Socket.io path. Better Auth / JWT handshake auth still runs on the upgrade, same as today. |
+| After upgrade, messages stay on the **same function instance** for the life of that connection. Fluid compute can multiplex many connections on one instance. | In-memory `socket.join` rooms work for one connection’s instance only. Cross-instance fan-out still needs the Redis adapter (`RealtimeApp` `adapter: "redis"` + `VALKEY_URL` / `REDIS_URL`). |
+| New connections are **not** guaranteed to hit the same instance. After a deploy, **new** connections may land on the new deployment while **existing** connections stay on the old one until they close. | Presence, rooms, counters, and pub/sub must live in Redis (or equivalent), not process memory. Change-stream watchers are per instance — spike must record cost and fan-out via Redis. |
+| The connection closes when the function hits **max duration**. Clients must reconnect, resubscribe, and reload state. | Document exponential backoff. `@terreno/rtk` `useSocketConnection` already reconnects; `@terreno/syncdb` must resubscribe after reconnect. Name the debug flag (`WEBSOCKETS_DEBUG` at time of writing). |
+| Socket.IO is supported if the **client uses the WebSocket transport only** (`transports: ['websocket']`). Long-polling is not the Vercel path. | Terreno already documents `transports: ["websocket"]` in `docs/how-to/websocket-integration.md`. The Vercel page must restate that long-polling is forbidden on Functions. |
+| Express (and Hono, etc.) can serve sockets by attaching `ws` / Socket.IO to a Node HTTP server and **`export default server`**. | Spike must map this to `TerrenoApp.build()` (or equivalent) vs `start()`. Today the process listens; a Function entry exports the HTTP server. Record the exact adapter file (`api/server.ts` or Expo `expo-server/adapter/vercel` is a **different** path — do not conflate web SSR with the API process). |
+| Fluid compute is required. It is the default for new Vercel projects created on or after 2025-04-23. | Document how to confirm Fluid is on. Without it, do not host Terreno sockets on Functions. |
+| Usage is billed as Function time while the socket is open, plus Fast Data Transfer / Fast Origin Transfer. | Include a cost warning in the all-in-one vs split comparison (V1 cost TODO). Long-lived sync sockets are not “free HTTP”. |
+
+#### Required operator sections
+
+1. **When to use this** — hosting `@terreno/api` (or a dedicated socket process) on Vercel Functions. When **not** to: static Expo `single` output on Vercel talking to a long-running backend (interim topology); native EAS; treating the Vercel **AI SDK** as this feature.
+2. **Prerequisites** — Fluid compute; Function max duration set high enough for the product; Redis if more than one instance or rolling deploys; MongoDB Atlas replica set still required for change streams (unchanged).
+3. **Socket.IO on a Function** — export an HTTP server with Socket.IO attached; client `path` and `transports: ['websocket']`; Terreno `RealtimeApp` + `SyncApp` still registered. Link Vercel’s Socket.IO snippet as the vendor shape, then show the Terreno registration, not a second copy of `ws` echo servers.
+4. **Reconnects** — max-duration close; backoff; resubscribe; “looks fine while sync/flags are dead”.
+5. **State** — no in-memory rooms across instances; Redis; deploy split-brain (old + new deployments both alive).
+6. **Limits and pricing** — pointer to Vercel’s limits/pricing on that page; Function duration while connected.
+7. **Verify** — DevTools Network → WS; `WEBSOCKETS_DEBUG`; confirm the client did **not** fall back to polling.
+
+#### Explicitly out of scope for this page
+
+- Next.js `experimental_upgradeWebSocket` from `@vercel/functions` (not Terreno’s server).
+- Bun `Bun.serve()` / Python FastAPI examples (link the Vercel page; do not re-home them).
+- Replacing MongoDB change streams with Vercel Queues or Vercel KV pub/sub as the Terreno protocol.
+
 ## Models / APIs / Notifications / UI
 
 None.
 
 ## Phases
 
-0. **Spike** — close all **Open TODOs** above; record decision on V1/V2/V3 in this file.
-1. **How-to guide** — `single` output, clone → public URL (topology per V1 outcome).
+0. **Spike** — close all **Open TODOs** above; record decision on V1/V2/V3 in this file; write `docs/how-to/vercel-function-websockets.md` from the beta contract (may ship before V1 is decided, as constraints — not as a topology recommendation).
+1. **How-to guide** — `single` output, clone → public URL (topology per V1 outcome); link the websocket Functions page.
 2. **Preview deployments and origins** — CORS, `trustedOrigins`, OAuth redirects.
 3. **Advanced: server output** — only if V2 is approved.
 4. **Skill** — author and generate mirrors.
@@ -148,12 +186,18 @@ None.
 **Create**
 
 - `docs/how-to/deploy-to-vercel.md` (blocked on Phase 0 spike)
+- `docs/how-to/vercel-function-websockets.md` (Vercel Functions WebSockets beta; may ship during Phase 0)
 - `.rulesync/skills/deploy-vercel/SKILL.md`
 
 **Modify (after V3 decision)**
 
 - `example-frontend/vercel.json` (candidate)
 - `example-backend/vercel.json` (candidate — only if all-in-one path wins)
+
+**Modify (with Task 0.2)**
+
+- `docs/how-to/README.md`
+- `docs/how-to/websocket-integration.md`
 
 ## Task List
 
@@ -163,6 +207,7 @@ See [`docs/tasks/deploy-to-vercel.md`](../tasks/deploy-to-vercel.md).
 
 - [ ] All **Open TODOs** are closed with a written decision on V1, V2, and V3.
 - [ ] `docs/how-to/deploy-to-vercel.md` matches the decided topology (not the interim split doc if all-in-one wins, and vice versa).
+- [ ] `docs/how-to/vercel-function-websockets.md` exists, cites [Vercel Functions WebSockets](https://vercel.com/docs/functions/websockets), covers Fluid compute, websocket-only Socket.IO, instance pinning, max-duration reconnects, Redis for cross-instance state, Function billing while connected, and Terreno `RealtimeApp` / syncdb — without recommending all-in-one until V1 is decided.
 - [ ] Preview-deployment CORS and `trustedOrigins` guidance is present.
 - [ ] `deploy-vercel` skill includes websocket verification in its checklist.
 - [ ] Vercel AI SDK vs Vercel hosting disambiguation appears in both `@terreno/ai` and deployment docs.

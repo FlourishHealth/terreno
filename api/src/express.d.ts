@@ -6,6 +6,7 @@ declare namespace Express {
       [key: string]: unknown;
     };
     jobId?: string;
+    rawBody?: Buffer;
     requestId?: string;
     sessionId?: string;
     user?: {

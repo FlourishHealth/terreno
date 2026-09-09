@@ -12,7 +12,8 @@ import {
   type StrategyOptions,
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
-
+import {addAuthRecoveryRoutes, sendVerificationEmail} from "./authRecovery";
+import {AuthToken} from "./authTokens";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
@@ -35,6 +36,12 @@ export interface User {
    * This can be helpful for pre-signup users.
    */
   isAnonymous?: boolean;
+  /** Login identifier; present on passport-local and Better Auth app users. */
+  email?: string;
+  /** Incremented on password reset so outstanding refresh tokens fail. */
+  tokenEpoch?: number;
+  /** Set by emailVerificationPlugin; login may require this when requireEmailVerification is on. */
+  emailVerified?: boolean;
 }
 
 export interface UserModel extends Model<User> {
@@ -98,11 +105,18 @@ export const authenticateMiddleware = (anonymous = false) => {
 };
 
 /**
- * User fields that confer authority. Self-service requests (anonymous signup, `PATCH /me`)
- * must never set them, or any caller could grant themselves admin or an RBAC role. Elevate
- * users through the admin API or `access.roles.assign` instead.
+ * User fields that confer authority or skip security gates. Self-service requests
+ * (anonymous signup, `PATCH /me`) must never set them, or any caller could grant
+ * themselves admin, an RBAC role, a verified email, or a reset epoch. Elevate users
+ * through the admin API or `access.roles.assign` instead.
  */
-export const PRIVILEGED_USER_FIELDS = ["admin", "roles", "organizationIds"] as const;
+export const PRIVILEGED_USER_FIELDS = [
+  "admin",
+  "roles",
+  "organizationIds",
+  "emailVerified",
+  "tokenEpoch",
+] as const;
 
 /**
  * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather
@@ -125,6 +139,13 @@ export const stripPrivilegedUserFields = (
     logger.warn(`Ignored privileged user fields on ${context}: ${dropped.join(", ")}`);
   }
   return sanitized;
+};
+
+const isEmailUpdateChangingMailbox = (currentEmail: unknown, nextEmail: unknown): boolean => {
+  if (typeof currentEmail !== "string" || typeof nextEmail !== "string") {
+    return false;
+  }
+  return currentEmail.trim().toLowerCase() !== nextEmail.trim().toLowerCase();
 };
 
 const omitPrivilegedFieldsFromObject = (item: unknown, allowAdminWrite: boolean): unknown => {
@@ -348,7 +369,11 @@ export const generateTokens = async (
   }
   const sessionId = options.sessionId ?? randomUUID();
   const authUser = user as User;
-  let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
+  let payload: Record<string, unknown> = {
+    id: String(tokenUser._id),
+    sid: sessionId,
+    te: authUser.tokenEpoch ?? 0,
+  };
   if (authOptions?.generateJWTPayload) {
     payload = {...authOptions.generateJWTPayload(authUser), ...payload};
   }
@@ -575,6 +600,15 @@ export const addAuthRoutes = (
           logger.warn(`Invalid login: ${info}`);
           return res.status(401).json({message: info?.message});
         }
+        if (authOptions?.requireEmailVerification && user.emailVerified !== true) {
+          return next(
+            new APIError({
+              code: "email-not-verified",
+              status: 403,
+              title: "Email is not verified",
+            })
+          );
+        }
         if (process.env.NODE_ENV !== "test") {
           logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
         }
@@ -614,6 +648,12 @@ export const addAuthRoutes = (
     }
     if (decoded?.id) {
       const user = await userModel.findById(decoded.id);
+      const tokenEpoch = typeof decoded.te === "number" ? decoded.te : 0;
+      const userEpoch = (user as User | null)?.tokenEpoch ?? 0;
+      if (!user || tokenEpoch !== userEpoch) {
+        logger.error(`Invalid refresh token, user id: ${req.user?.id}`);
+        return res.status(401).json({message: "Invalid refresh token"});
+      }
       const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
       const tokens = await generateTokens(user, authOptions, {sessionId});
       if (tokens.sessionId) {
@@ -655,6 +695,13 @@ export const addAuthRoutes = (
         )(req, res, next);
       },
       async (req: express.Request, res: express.Response) => {
+        if (req.user) {
+          try {
+            await sendVerificationEmail(req.user, authOptions);
+          } catch (error: unknown) {
+            logger.error("[auth] Failed to send verification mail after signup", {error});
+          }
+        }
         const tokens = await generateTokens(req.user, authOptions);
         if (tokens.sessionId) {
           setRequestContext({
@@ -671,6 +718,7 @@ export const addAuthRoutes = (
   }
   app.set("etag", false);
   app.use("/auth", router);
+  addAuthRecoveryRoutes(app, userModel, authOptions);
 };
 
 export const addMeRoutes = (
@@ -717,7 +765,16 @@ export const addMeRoutes = (
     //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
-      Object.assign(doc, stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me"));
+      const update = stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me");
+      const isMailboxChange = isEmailUpdateChangingMailbox(doc.email, update.email);
+      Object.assign(doc, update);
+      if (isMailboxChange) {
+        await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "passwordReset");
+        if (userModel.schema.path("emailVerified") !== undefined) {
+          doc.emailVerified = false;
+          await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
+        }
+      }
       await doc.save();
 
       const dataObject = doc.toObject() as unknown as Record<string, unknown>;

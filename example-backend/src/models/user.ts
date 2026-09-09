@@ -1,4 +1,4 @@
-import {rbacUserPlugin} from "@terreno/api";
+import {emailVerificationPlugin, rbacUserPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
 import {DEFAULT_USER_ROLE} from "../rbacRoles";
@@ -48,6 +48,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       description: "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
       type: [String],
     },
+    tokenEpoch: {
+      default: 0,
+      description: "Incremented on password reset to invalidate outstanding refresh tokens",
+      type: Number,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
@@ -57,6 +62,7 @@ userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
 });
 userSchema.plugin(rbacUserPlugin, {defaultRoles: [DEFAULT_USER_ROLE]});
+userSchema.plugin(emailVerificationPlugin);
 
 addDefaultPlugins(userSchema);
 

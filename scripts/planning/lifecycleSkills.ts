@@ -1,4 +1,4 @@
-import {existsSync, readFileSync, readdirSync} from "node:fs";
+import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
 export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
@@ -36,41 +36,22 @@ const PR_FORBIDDEN_HEADINGS = [
 const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     directory: "terreno-1-grow",
-    nextMarkers: [
-      "next: pick",
-      "next: grow",
-      "next: null",
-    ],
+    nextMarkers: ["next: pick", "next: grow", "next: null"],
     stage: "grow",
   },
   {
     directory: "terreno-2-pick",
-    nextMarkers: [
-      "next: roast",
-      "next: pick",
-      "next: brew",
-      "next: null",
-    ],
+    nextMarkers: ["next: roast", "next: pick", "next: brew", "next: null"],
     stage: "pick",
   },
   {
     directory: "terreno-3-roast",
-    nextMarkers: [
-      "next: brew",
-      "next: pick",
-      "next: null",
-    ],
+    nextMarkers: ["next: brew", "next: pick", "next: null"],
     stage: "roast",
   },
   {
     directory: "terreno-4-brew",
-    nextMarkers: [
-      "next: taste",
-      "next: pick",
-      "next: roast",
-      "next: brew",
-      "next: null",
-    ],
+    nextMarkers: ["next: taste", "next: pick", "next: roast", "next: brew", "next: null"],
     stage: "brew",
   },
   {
@@ -80,7 +61,43 @@ const STAGE_DEFINITIONS: StageDefinition[] = [
   },
 ];
 
-const OUTER_LOOP_DIRECTORIES = ["terreno-planning-loop", "terreno-taste-sweep"] as const;
+const OUTER_LOOP_DIRECTORIES = [
+  "terreno-pick-roast-loop",
+  "terreno-planning-loop",
+  "terreno-taste-sweep",
+] as const;
+
+const PLUGIN_APP_SKILL_DIRECTORIES = [
+  "ai-prompt-governance",
+  "backend-test-env",
+  "building-admin-interfaces",
+  "building-terreno-apps",
+  "deploy-gcp",
+  "generate-sdk",
+  "mongoose-schema-safety",
+  "terreno-backend-api",
+  "terreno-data-fetching",
+  "terreno-ui",
+  "update-docs",
+  "upgrading-terreno",
+  "verify-ui-changes",
+] as const;
+
+const PLUGIN_AGENT_NAMES = ["pre-commit", "ui-verifier"] as const;
+
+const REMOVED_SKILL_DIRECTORIES = [
+  "add-app-clip",
+  "building-native-ui",
+  "commit",
+  "create-pr",
+  "eas-update-insights",
+  "expo-brownfield",
+  "expo-module",
+  "expo-observe",
+  "expo-tailwind-setup",
+  "expo-ui",
+  "native-data-fetching",
+] as const;
 
 const REQUIRED_SECTIONS = [
   "## Preconditions",
@@ -146,8 +163,8 @@ export const validateStageContent = ({
     errors.push(`${prefix}: frontmatter name must match its canonical directory`);
   }
 
-  if (!content.includes("disable-model-invocation: true")) {
-    errors.push(`${prefix}: lifecycle skills must be explicitly invoked`);
+  if (content.includes("disable-model-invocation: true")) {
+    errors.push(`${prefix}: lifecycle skills must allow model invocation`);
   }
 
   if (!content.includes("../../references/lifecycle-contract.md")) {
@@ -172,9 +189,7 @@ export const validateStageContent = ({
 
   for (const marker of PORTABILITY_MARKERS) {
     if (content.includes(marker)) {
-      errors.push(
-        `${prefix}: repository-specific marker belongs in a project skill: ${marker}`
-      );
+      errors.push(`${prefix}: repository-specific marker belongs in a project skill: ${marker}`);
     }
   }
 
@@ -209,6 +224,12 @@ export const validateStageContent = ({
     if (!content.includes("Roast never invokes Pick")) {
       errors.push(`${prefix}: Pick must treat Roast as prove-only`);
     }
+    if (!content.includes("../../references/subagent-briefing.md")) {
+      errors.push(`${prefix}: must load the subagent briefing contract`);
+    }
+    if (!content.includes("task-scoped briefing")) {
+      errors.push(`${prefix}: must pass a task-scoped briefing to Roast and reviewers`);
+    }
   }
 
   if (definition.stage === "roast") {
@@ -220,6 +241,15 @@ export const validateStageContent = ({
     }
     if (!content.includes("Pick owns the inner loop")) {
       errors.push(`${prefix}: Roast must name Pick as the inner-loop driver`);
+    }
+    if (!content.includes("../../references/subagent-briefing.md")) {
+      errors.push(`${prefix}: must load the subagent briefing contract`);
+    }
+    if (!content.includes("Do not spawn two unconstrained reviewers")) {
+      errors.push(`${prefix}: must forbid unconstrained dual reviewers`);
+    }
+    if (!content.includes("task-scoped briefing")) {
+      errors.push(`${prefix}: must require a task-scoped briefing`);
     }
   }
 
@@ -264,7 +294,9 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must load the product-CI procedure`);
     }
     if (!content.includes("not only GitHub checks")) {
-      errors.push(`${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`);
+      errors.push(
+        `${prefix}: Taste must observe jobs on every discovered CI host, not only GitHub checks`
+      );
     }
     if (!content.includes("Do not exit while")) {
       errors.push(`${prefix}: Taste must wait in-process for running review bots`);
@@ -282,10 +314,12 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before lint and push`);
+      errors.push(`${prefix}: Taste must pull latest master before lint, typecheck, and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(`${prefix}: Taste must order before-push as pull, then lint, then watch`);
+      errors.push(
+        `${prefix}: Taste must order before-push as pull, then lint and typecheck, then watch`
+      );
     }
     if (!content.includes("fresh subagent")) {
       errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
@@ -295,6 +329,9 @@ export const validateStageContent = ({
     }
     if (!content.includes("bun lint")) {
       errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    }
+    if (!content.includes("typecheck script")) {
+      errors.push(`${prefix}: Taste must run a typecheck in each affected package`);
     }
     if (!content.includes("locally affected tests")) {
       errors.push(`${prefix}: Taste must run locally affected tests before push`);
@@ -310,9 +347,7 @@ export const validateStageContent = ({
     }
     for (const pattern of TASTE_UNBOUNDED_LOOP_PATTERNS) {
       if (pattern.test(content)) {
-        errors.push(
-          `${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`
-        );
+        errors.push(`${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`);
       }
     }
   }
@@ -425,6 +460,35 @@ export const validateOuterLoopContent = ({
   directory: string;
 }): string[] => {
   const errors: string[] = [];
+  if (content.includes("disable-model-invocation: true")) {
+    errors.push(`${directory}: outer-loop skills must allow model invocation`);
+  }
+  if (directory === "terreno-pick-roast-loop") {
+    for (const marker of [
+      "../../references/pick-roast-loop.md",
+      "../../references/execution-state.schema.json",
+      "genuine human decision",
+      "Run ledger",
+      "Completion report",
+      "Do not stream a recap after each cycle",
+      "Ordinary test failures",
+      "one exact question",
+      "Never invoke Brew or Taste",
+      "Do not silently run Grow",
+      "next.stage",
+      "only when it is pick or roast",
+      "Do not invoke Brew",
+      "same task-scoped briefing every time",
+    ]) {
+      if (!content.includes(marker)) {
+        errors.push(`${directory}: missing continuous-loop marker ${marker}`);
+      }
+    }
+    if (content.includes("../../references/product-ci.md")) {
+      errors.push(`${directory}: focused Pick-Roast loop must not load product CI`);
+    }
+    return errors;
+  }
   if (!content.includes("../../references/product-ci.md")) {
     errors.push(`${directory}: outer loop must load the product-CI procedure`);
   }
@@ -449,12 +513,15 @@ export const validateClaudePluginHost = ({
   const claudeDirectory = join(rootDirectory, "plugins/terreno-claude");
   const claudeManifest = JSON.parse(
     readFileSync(join(claudeDirectory, ".claude-plugin/plugin.json"), "utf8")
-  ) as {description?: string; name?: string; skills?: string; version?: string};
+  ) as {
+    agents?: string[];
+    description?: string;
+    name?: string;
+    skills?: string;
+    version?: string;
+  };
   const cursorManifest = JSON.parse(
-    readFileSync(
-      join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"),
-      "utf8"
-    )
+    readFileSync(join(rootDirectory, "plugins/terreno-planning/.cursor-plugin/plugin.json"), "utf8")
   ) as {description?: string; version?: string};
   const claudeMarketplace = JSON.parse(
     readFileSync(join(rootDirectory, ".claude-plugin/marketplace.json"), "utf8")
@@ -471,6 +538,9 @@ export const validateClaudePluginHost = ({
   }
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
+  }
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
+    errors.push("Claude plugin agents path must be ./agents/");
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {
@@ -491,9 +561,11 @@ export const validateClaudePluginHost = ({
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  const expectedClaudeStages = STAGE_DEFINITIONS.map(({directory}) =>
-    directory.replace(/^terreno-/, "")
-  ).sort();
+  const expectedClaudeStages = [
+    ...STAGE_DEFINITIONS.map(({directory}) => directory.replace(/^terreno-/, "")),
+    ...OUTER_LOOP_DIRECTORIES.map((directory) => directory.replace(/^terreno-/, "")),
+    ...PLUGIN_APP_SKILL_DIRECTORIES,
+  ].sort();
   if (JSON.stringify(claudeStages) !== JSON.stringify(expectedClaudeStages)) {
     errors.push(
       `Claude plugin stages must be exactly ${expectedClaudeStages.join(", ")}; found ${claudeStages.join(", ")}`
@@ -510,14 +582,26 @@ export const validateClaudePluginHost = ({
     }
   }
 
-  const claudePick = readFileSync(
-    join(claudeDirectory, "skills/2-pick/SKILL.md"),
+  const claudeContinuousLoop = readFileSync(
+    join(claudeDirectory, "skills/pick-roast-loop/SKILL.md"),
     "utf8"
   );
-  const claudeRoast = readFileSync(
-    join(claudeDirectory, "skills/3-roast/SKILL.md"),
-    "utf8"
-  );
+  if (!claudeContinuousLoop.includes("genuine human decision")) {
+    errors.push("Claude pick-roast-loop must preserve the genuine human gate");
+  }
+
+  const claudeAgents = readdirSync(join(claudeDirectory, "agents"), {withFileTypes: true})
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name.replace(/\.md$/, ""))
+    .sort();
+  if (JSON.stringify(claudeAgents) !== JSON.stringify([...PLUGIN_AGENT_NAMES].sort())) {
+    errors.push(
+      `Claude plugin agents must be exactly ${PLUGIN_AGENT_NAMES.join(", ")}; found ${claudeAgents.join(", ")}`
+    );
+  }
+
+  const claudePick = readFileSync(join(claudeDirectory, "skills/2-pick/SKILL.md"), "utf8");
+  const claudeRoast = readFileSync(join(claudeDirectory, "skills/3-roast/SKILL.md"), "utf8");
   const claudePickRoastLoop = readFileSync(
     join(claudeDirectory, "references/pick-roast-loop.md"),
     "utf8"
@@ -622,6 +706,51 @@ export const validateLifecyclePlugin = ({
   const errors: string[] = [];
   const pluginDirectory = join(rootDirectory, "plugins/terreno-planning");
   const skillsDirectory = join(rootDirectory, "plugins/terreno-planning/skills");
+  const pluginManifest = JSON.parse(
+    readFileSync(join(pluginDirectory, ".cursor-plugin/plugin.json"), "utf8")
+  ) as {agents?: string[]};
+  if (JSON.stringify(pluginManifest.agents) !== JSON.stringify(["agents"])) {
+    errors.push("Cursor plugin agents path must be agents");
+  }
+
+  for (const directory of PLUGIN_APP_SKILL_DIRECTORIES) {
+    if (!existsSync(join(skillsDirectory, directory, "SKILL.md"))) {
+      errors.push(`plugin Terreno app skill is missing: ${directory}`);
+    }
+  }
+  for (const directory of REMOVED_SKILL_DIRECTORIES) {
+    if (
+      existsSync(join(rootDirectory, ".rulesync/skills", directory)) ||
+      existsSync(join(skillsDirectory, directory)) ||
+      existsSync(join(rootDirectory, "skills", directory))
+    ) {
+      errors.push(`removed skill still exists: ${directory}`);
+    }
+  }
+  const skillsLock = JSON.parse(readFileSync(join(rootDirectory, "skills-lock.json"), "utf8")) as {
+    skills?: Record<string, unknown>;
+  };
+  for (const directory of REMOVED_SKILL_DIRECTORIES) {
+    if (directory in (skillsLock.skills ?? {})) {
+      errors.push(`removed skill still exists in skills-lock.json: ${directory}`);
+    }
+  }
+
+  const pluginAgents = readdirSync(join(pluginDirectory, "agents"), {withFileTypes: true})
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name.replace(/\.md$/, ""))
+    .sort();
+  if (JSON.stringify(pluginAgents) !== JSON.stringify([...PLUGIN_AGENT_NAMES].sort())) {
+    errors.push(
+      `plugin agents must be exactly ${PLUGIN_AGENT_NAMES.join(", ")}; found ${pluginAgents.join(", ")}`
+    );
+  }
+  for (const agentName of PLUGIN_AGENT_NAMES) {
+    if (existsSync(join(rootDirectory, ".rulesync/subagents", `${agentName}.md`))) {
+      errors.push(`plugin agent still duplicated in rulesync: ${agentName}`);
+    }
+  }
+
   const actualStageDirectories = readdirSync(skillsDirectory, {withFileTypes: true})
     .filter((entry) => entry.isDirectory() && /^terreno-\d-/.test(entry.name))
     .map((entry) => entry.name)
@@ -673,10 +802,7 @@ export const validateLifecyclePlugin = ({
   );
   errors.push(...validateDocumentationContract(documentationContract));
 
-  const productCi = readFileSync(
-    join(pluginDirectory, "references/product-ci.md"),
-    "utf8"
-  );
+  const productCi = readFileSync(join(pluginDirectory, "references/product-ci.md"), "utf8");
   errors.push(...validateProductCiContract(productCi));
 
   const asyncReviewBots = readFileSync(
@@ -697,6 +823,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!pluginReadme.includes("pick-roast-loop.md")) {
     errors.push("plugins/README.md must document the pick-roast inner loop");
+  }
+  if (!pluginReadme.includes("subagent-briefing.md")) {
+    errors.push("plugins/README.md must document the subagent briefing contract");
   }
   if (!pluginReadme.includes(".claude-plugin/marketplace.json")) {
     errors.push("plugins/README.md must document the Claude Code marketplace");
@@ -750,10 +879,7 @@ export const validateLifecyclePlugin = ({
     }
   }
 
-  const migrationDocumentation = readFileSync(
-    join(rootDirectory, "plugins/README.md"),
-    "utf8"
-  );
+  const migrationDocumentation = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   for (const retiredIdentifier of RETIRED_IDENTIFIERS) {
     if (!migrationDocumentation.includes(retiredIdentifier)) {
       errors.push(`migration documentation is missing retired identifier ${retiredIdentifier}`);
@@ -776,7 +902,10 @@ export const validateLifecyclePlugin = ({
   if (resultSchema.properties?.v?.const !== 2) {
     errors.push("stage-result schema v must be 2");
   }
-  if (JSON.stringify(resultSchema.required) !== JSON.stringify(["v", "stage", "status", "next", "action"])) {
+  if (
+    JSON.stringify(resultSchema.required) !==
+    JSON.stringify(["v", "stage", "status", "next", "action"])
+  ) {
     errors.push("stage-result schema must require only v, stage, status, next, action");
   }
   if (JSON.stringify(schemaStages) !== JSON.stringify(LIFECYCLE_STAGES)) {
@@ -830,16 +959,42 @@ export const validateLifecyclePlugin = ({
   if (pickRoastLoop.includes("entry Roast may invoke Pick")) {
     errors.push("pick-roast loop must not let entry Roast invoke Pick");
   }
+  if (!pickRoastLoop.includes("subagent-briefing.md")) {
+    errors.push("pick-roast loop must load the subagent briefing contract");
+  }
+  if (!pickRoastLoop.includes("Do not ask Roast or its children to rediscover")) {
+    errors.push("pick-roast loop must forbid Roast children from rediscovering the repo");
+  }
 
   const executionSchema = JSON.parse(
     readFileSync(join(pluginDirectory, "references/execution-state.schema.json"), "utf8")
-  ) as {properties?: {stage?: {enum?: string[]}; v?: {const?: number}}};
+  ) as {
+    properties?: {
+      ledger?: {
+        items?: {
+          properties?: {stage?: {enum?: string[]}};
+          required?: string[];
+        };
+        type?: string;
+      };
+      stage?: {enum?: string[]};
+      v?: {const?: number};
+    };
+  };
   const executionStages = executionSchema.properties?.stage?.enum ?? [];
   if (executionSchema.properties?.v?.const !== 2) {
     errors.push("execution-state schema v must be 2");
   }
   if (JSON.stringify(executionStages) !== JSON.stringify(LIFECYCLE_STAGES)) {
     errors.push("execution-state schema stage values do not match canonical lifecycle");
+  }
+  const ledger = executionSchema.properties?.ledger;
+  if (
+    ledger?.type !== "array" ||
+    !ledger.items?.required?.includes("ev") ||
+    JSON.stringify(ledger.items?.properties?.stage?.enum) !== JSON.stringify(["pick", "roast"])
+  ) {
+    errors.push("execution-state schema must define the Pick-Roast run ledger");
   }
 
   return errors;

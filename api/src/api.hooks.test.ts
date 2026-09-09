@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, type mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type express from "express";
@@ -7,10 +5,18 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {
+  authAsUser,
+  type Food,
+  FoodModel,
+  getBaseServer,
+  setupDb,
+  type User,
+  UserModel,
+} from "./tests";
 
 const captureExceptionMock = Sentry.captureException as unknown as ReturnType<typeof mock>;
 
@@ -22,8 +28,8 @@ describe("pre and post hooks", () => {
   beforeEach(async () => {
     await setupDb();
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     agent = await authAsUser(app, "notAdmin");
     captureExceptionMock.mockClear?.();
   });
@@ -41,15 +47,15 @@ describe("pre and post hooks", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preCreate: (data: any) => {
+        preCreate: (data) => {
           data.calories = 14;
           return data;
         },
-        preDelete: (data: any) => {
+        preDelete: (data) => {
           deleteCalled = true;
           return data;
         },
-        preUpdate: (data: any) => {
+        preUpdate: (data) => {
           data.calories = 15;
           return data;
         },
@@ -95,7 +101,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -142,7 +148,7 @@ describe("pre and post hooks", () => {
     let deleteCalled = false;
     app.use(
       "/food",
-      modelRouter(FoodModel as any, {
+      modelRouter(FoodModel, {
         allowAnonymous: true,
         permissions: {
           create: [Permissions.IsAny],
@@ -151,16 +157,16 @@ describe("pre and post hooks", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        postCreate: async (data: any) => {
+        postCreate: async (data) => {
           data.calories = 14;
           await data.save();
           return data;
         },
-        postDelete: (data: any) => {
+        postDelete: (data) => {
           deleteCalled = true;
           return data;
         },
-        postUpdate: async (data: any) => {
+        postUpdate: async (data) => {
           data.calories = 15;
           await data.save();
           return data;
@@ -253,8 +259,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preCreate: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -285,7 +292,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -336,7 +343,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -354,8 +361,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preUpdate: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -385,7 +393,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -403,8 +411,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preDelete: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -424,7 +433,7 @@ describe("pre and post hooks", () => {
 describe("hook error handling", () => {
   let server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: User;
   let agent: TestAgent;
   let spinach: Food;
 
@@ -443,8 +452,8 @@ describe("hook error handling", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     captureExceptionMock.mockClear?.();
   });
 
@@ -460,7 +469,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preCreate: () => undefined as any,
+        preCreate: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);
@@ -482,7 +491,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preUpdate: () => undefined as any,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);
@@ -504,7 +513,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preDelete: () => undefined as any,
+        preDelete: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);

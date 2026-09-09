@@ -58,6 +58,8 @@ bun run dev
 
 `src/server.ts` registers `@terreno/admin-backend` with a **full admin UI v2** surface for the example app: home dashboard slots (stats, feature-flag shortcut, scripts, version config, recent audit), per-model filters, fieldsets, list display and row links, read-only fields, bulk row actions, `onAdminAudit` → `AdminAuditLog`, maintenance scripts, and a `customScreens` entry for the Expo “Admin UI v2 map” route. Pair with `example-frontend` Profile → Admin to explore the UI (model cards and tools render on the list screen below the home widgets).
 
+MCP service tokens are on. `TerrenoApp` sets `mcpServiceTokens: {enabled: true, publicMcpUrl: PUBLIC_API_URL or BETTER_AUTH_URL}`. Operators mint keys from `POST /mcp/service-tokens`. Admins list and revoke every user's tokens at **Admin → MCP service tokens** (`/admin/mcp-service-tokens`). Admin delete sets `revokedAt`; it does not hard-delete the row. See [Connect an MCP client with a service token](../docs/how-to/connect-mcp-service-token.md).
+
 ## Scripts
 
 - `bun run dev` - Start development server with hot reload

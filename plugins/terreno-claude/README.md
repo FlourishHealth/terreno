@@ -8,7 +8,8 @@ named `terreno`, so Grow is `/terreno:1-grow`.
 
 | Source | Owns |
 | --- | --- |
-| `plugins/terreno-planning/skills/` | Stage procedure and contracts |
+| `plugins/terreno-planning/skills/` | Lifecycle and Terreno app workflows |
+| `plugins/terreno-planning/agents/` | Reusable verification agents |
 | `plugins/terreno-planning/references/` | Shared lifecycle references |
 
-Cursor and `npx skills` keep the canonical `terreno-1-grow` … `terreno-5-taste` names.
+Cursor and `npx skills` keep the canonical `terreno-*` names.

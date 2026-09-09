@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "2.5.0",
+    "version": "2.8.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
     {
       "name": "terreno-planning",
       "source": "terreno-planning",
-      "description": "Five bounded transitions plus outer loops; before push Taste pulls latest master, lints in a no-context subagent, then watches product CI with gh/circleci."
+      "description": "Combined Terreno lifecycle, app-building, documentation, deployment, and verification workflows."
     }
   ]
 }
