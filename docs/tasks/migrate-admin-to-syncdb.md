@@ -36,7 +36,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Blocked by: none
   - Acceptance: continue-config matrix includes those spec files; a dry read of the YAML shows them next to `admin.spec.ts`
 
-- [ ] **Task 1.5**: Golden HTTP tests for admin membership + config
+- [x] **Task 1.5**: Golden HTTP tests for admin membership + config
   - Delivers: pinned assertions for `GET /admin/config` shape and list/search/bulk-patch on a synced String `_id` model (example Todo) plus an ObjectId model (User) so later protocol work cannot silently change REST
   - Files: `admin-backend/src/adminApp*.test.ts` (or new focused spec)
   - Blocked by: none
