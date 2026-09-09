@@ -743,7 +743,10 @@ export const validateModelRequestBody = <T>(
 
   if (options?.excludeFields?.length) {
     const excluded = new Set(options.excludeFields);
-    schema = Object.fromEntries(Object.entries(schema).filter(([key]) => !excluded.has(key)));
+    // Keep excluded fields in the schema as optional so preCreate/preUpdate hooks can
+    // inspect client-supplied values (e.g. tenant organizationId) before rejecting them.
+    // Removing them from the schema made removeAdditional silently strip spoof attempts
+    // instead of letting hooks return 403.
     requiredFields = requiredFields.filter((f) => !excluded.has(f));
   }
 
@@ -776,7 +779,9 @@ export interface ModelRouterValidationOptions {
   validateQuery?: boolean;
 
   /**
-   * Fields to exclude from create validation (e.g. fields injected by preCreate).
+   * Fields excluded from required create validation (typically set by preCreate).
+   * They stay optional in the request schema so hooks can validate client input
+   * instead of having removeAdditional strip it silently.
    */
   excludeFromCreate?: string[];
 

@@ -725,6 +725,27 @@ describe("openApiValidator", () => {
 
       expect(nextCalled).toBe(true);
     });
+
+    it("keeps excluded fields in the body when removeAdditional is enabled", () => {
+      configureOpenApiValidator({removeAdditional: true});
+      const middleware = validateModelRequestBody(RequiredModel, {
+        excludeFields: ["about"],
+      });
+
+      const req = {
+        body: {about: "client supplied", name: "ok"},
+        method: "POST",
+        path: "/required",
+      } as unknown as Request;
+      const res = {} as Response;
+      let nextCalled = false;
+      middleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(true);
+      expect(req.body).toEqual({about: "client supplied", name: "ok"});
+    });
   });
 
   describe("getSchemaFromModel", () => {
