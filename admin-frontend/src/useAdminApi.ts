@@ -15,7 +15,7 @@ type TagArg = unknown;
  * @param api - RTK Query API instance to inject endpoints into
  * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
  * @param modelName - Name of the model for cache tag generation (e.g., "User")
- * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`, `useBulkPatchMutation`
  *
  * @example
  * ```typescript

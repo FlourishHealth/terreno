@@ -134,20 +134,24 @@ Returns model metadata from `{baseUrl}/config`.
 
 ### useAdminApi
 
-Generates RTK Query hooks for CRUD operations.
+Generates RTK Query hooks for list/read/create/update/delete plus `POST {routePath}/bulk-patch`.
+Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
 
 ``````typescript
 const {
   useListQuery,
-  useGetQuery,
+  useReadQuery,
   useCreateMutation,
   useUpdateMutation,
   useDeleteMutation,
-} = useAdminApi(api, baseUrl, modelName);
+  useBulkPatchMutation,
+} = useAdminApi(api, "/admin/users", "User");
 
-const {data, isLoading} = useListQuery({limit: 20, page: 1});
+const {data, isLoading} = useListQuery({limit: 20, page: 1, q: "Ada", sort: "-created"});
 const [create] = useCreateMutation();
 await create({email: "user@example.com"}).unwrap();
+const [bulkPatch] = useBulkPatchMutation();
+await bulkPatch({ids: ["abc"], patch: {name: "Ada"}}).unwrap();
 ``````
 
 ## Expo Router Setup
