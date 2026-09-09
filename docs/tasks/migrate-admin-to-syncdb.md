@@ -66,7 +66,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: tests for timeout abort, 4xx/5xx → APIError, JSON parse, FormData not JSON-stringified, credentials forwarded; no axios import
   - Skills: `terreno-data-fetching`
 
-- [ ] **Task 2.2**: Host-injected auth contract
+- [x] **Task 2.2**: Host-injected auth contract
   - Delivers: admin context accepts `{baseUrl, getAuthHeaders, credentials}`; SPA fixture uses `credentials: "same-origin"` and empty/cookie headers; embedded fixture uses Bearer from `getAuthHeaders`
   - Files: admin-frontend provider/context (existing Admin host types), tests
   - Blocked by: 2.1
