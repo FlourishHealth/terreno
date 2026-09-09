@@ -73,7 +73,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: unit tests prove Authorization header present/absent per fixture; cookie credential mode set
   - Skills: `terreno-data-fetching`
 
-- [ ] **Task 2.3**: Dual-run RPC hooks onto fetch
+- [x] **Task 2.3**: Dual-run RPC hooks onto fetch
   - Delivers: `useAdminConfig`, scripts, roles, configuration, documents, comms, AI explorer, consent, version-config, background-tasks, `AdminObjectPicker` list fetch use `adminRequest` when the client is provided; if only `api` is provided, existing `injectEndpoints` still works
   - Files: `admin-frontend/src/useAdminConfig.ts`, `useAdminScripts.ts`, `useAdminRoles.ts`, `useConfigurationApi.ts`, `useDocumentStorageApi.ts`, `useAdminBackgroundTask.ts`, `useConsentHistory.ts`, `ConsentFormEditor.tsx`, `AdminVersionConfig.tsx`, `AdminObjectPicker.tsx`, `comms/useCommsDashboardApi.tsx`, `widgets/AIRequestsScreenWidget.tsx`, tests
   - Blocked by: 2.2, 1.6
