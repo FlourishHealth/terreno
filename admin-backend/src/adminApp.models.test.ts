@@ -27,7 +27,6 @@ import {
 import {assert} from "chai";
 import type express from "express";
 import mongoose from "mongoose";
-import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -824,7 +823,10 @@ describe("AdminApp model CRUD routes", () => {
     await FoodModel.create({calories: 95, name: "Banana"});
     await FoodModel.create({calories: 40, name: "Carrot"});
 
-    const query = qs.stringify({name: {$in: ["Apple", "Banana"]}});
+    const query = new URLSearchParams([
+      ["name[$in][0]", "Apple"],
+      ["name[$in][1]", "Banana"],
+    ]).toString();
     const res = await agent.get(`/admin/foods?${query}`).expect(200);
 
     expect(res.body.data.map((item: {name: string}) => item.name).sort()).toEqual([
