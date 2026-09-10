@@ -15,7 +15,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: none yet (helpers are private); record the dependency choice in the IP (already decided)
   - Acceptance: bun tests — known fixtures produce expected domain/range and path `d` containing the fixture points; empty input does not throw
 
-- [ ] **Task 1.2**: `LineChart` + frame (tooltip, legend, empty, loading)
+- [x] **Task 1.2**: `LineChart` + frame (tooltip, legend, empty, loading)
   - Delivers: public `LineChart` on owned SVG; overlay `Text` ticks; legend when `legendLabel` set; tooltip `{label}: {value}` on press (and hover on web); empty `Text`; `loading` `Spinner`; per-point `testID` / a11y labels
   - Files: `ui/src/charts/ChartFrame.tsx`, `ui/src/LineChart.tsx`, `ui/src/LineChart.test.tsx`, `ui/src/index.tsx` (lazy export; may be a temporary direct export until 4.1), `ui/src/Common.ts` (TypeDoc props if that is the audit source)
   - Blocked by: 1.1
