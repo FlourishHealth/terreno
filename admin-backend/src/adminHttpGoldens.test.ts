@@ -315,18 +315,20 @@ describe("admin HTTP goldens (membership + config)", () => {
       .expect(400);
     assert.include(tooMany.body.title, String(MAX_BULK_PATCH_IDS));
 
-    const target = await UserModel.findOne({email: "notAdmin@example.com"});
-    assert.isOk(target);
+    const [target] = await UserModel.find({email: "notAdmin@example.com"}).limit(1);
+    if (!target) {
+      throw new Error("Expected notAdmin@example.com fixture");
+    }
     const userPatch = await adminAgent
       .post("/admin/users/bulk-patch")
       .send({
-        ids: [String(target?._id)],
+        ids: [String(target._id)],
         patch: {name: "Golden User"},
       })
       .expect(200);
     assert.deepEqual(sortedKeys(userPatch.body), BULK_PATCH_SUCCESS_KEYS);
     assert.strictEqual(userPatch.body.updated, 1);
-    const after = await UserModel.findById(target?._id);
+    const after = await UserModel.findById(target._id);
     assert.strictEqual(after?.name, "Golden User");
   });
 });

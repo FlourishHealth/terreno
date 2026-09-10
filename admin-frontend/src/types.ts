@@ -241,6 +241,10 @@ export interface AdminSyncDb {
   }) => Promise<{hydratedIds: string[]}>;
   store: {
     getEntity: (args: {collection: string; id: string}) => AdminSyncDbEntity | undefined;
+    raw: {
+      addTableListener: (tableId: string, listener: () => void) => string;
+      delListener: (listenerId: string) => void;
+    };
   };
 }
 

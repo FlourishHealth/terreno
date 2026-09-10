@@ -3,6 +3,10 @@ import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, BackgroundTask, EndpointBuilder, ScriptRunListResponse} from "./types";
 import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 
+const SCRIPT_RUN_TAGS = ["admin_scriptRuns"] as const;
+const SCRIPT_TASK_TAGS = ["admin_scriptTask"] as const;
+const SCRIPT_MUTATION_TAGS = ["admin_scriptRuns", "admin_scriptTask"] as const;
+
 export interface ScriptRunsQueryArg {
   /** Limit history to a single script by `taskType`. Omit for all scripts. */
   name?: string;
@@ -78,7 +82,9 @@ export const useAdminScripts = (api: AdminApi, apiBase: string) => {
   if (rpc) {
     return {
       useCancelScriptTaskMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {
+          invalidatesTags: SCRIPT_MUTATION_TAGS,
+        });
         return [
           (taskId: string) =>
             trigger({method: "DELETE", url: `${apiBase}/scripts/tasks/${taskId}`}),
@@ -94,6 +100,7 @@ export const useAdminScripts = (api: AdminApi, apiBase: string) => {
       ) =>
         useAdminRpcQuery<{task: BackgroundTask}>({
           pollingInterval: options?.pollingInterval,
+          providesTags: SCRIPT_TASK_TAGS,
           rpc,
           skip: Boolean(options?.skip),
           url: `${apiBase}/scripts/tasks/${taskId}`,
@@ -110,13 +117,14 @@ export const useAdminScripts = (api: AdminApi, apiBase: string) => {
         }
         return useAdminRpcQuery<ScriptRunListResponse>({
           pollingInterval: options?.pollingInterval,
+          providesTags: SCRIPT_RUN_TAGS,
           rpc,
           skip: Boolean(options?.skip),
           url: `${apiBase}/scripts/runs?${params.toString()}`,
         });
       },
       useRunScriptMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {invalidatesTags: SCRIPT_RUN_TAGS});
         return [
           ({name, wetRun}: {name: string; wetRun: boolean}) =>
             trigger({

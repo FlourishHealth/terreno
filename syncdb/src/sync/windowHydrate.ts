@@ -3,7 +3,7 @@ import {MAX_REPAIR_FETCH_IDS} from "./entityRepair";
 import type {HttpChannel} from "./httpChannel";
 
 /** Stream key window subscribers join (`{collection}|admin`). */
-export const adminWindowStream = (collection: string): string => `${collection}|admin`;
+const adminWindowStream = (collection: string): string => `${collection}|admin`;
 
 export interface HydrateWindowEntitiesArgs {
   store: SyncStore;

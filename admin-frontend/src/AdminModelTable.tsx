@@ -456,6 +456,19 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     setPage(1);
   }, []);
 
+  // Re-read the TinyBase overlay when known rows receive realtime admin deltas.
+  useEffect(() => {
+    if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
+      return;
+    }
+    const listenerId = adminContext.syncDb.store.raw.addTableListener(syncCollection, () => {
+      setStoreEpoch((current) => current + 1);
+    });
+    return () => {
+      adminContext.syncDb?.store.raw.delListener(listenerId);
+    };
+  }, [adminContext?.syncDb, isWindowed, syncCollection]);
+
   // Upsert the REST membership page into TinyBase for windowed admin lists.
   useEffect(() => {
     if (!isWindowed || !adminContext?.syncDb || !syncCollection) {

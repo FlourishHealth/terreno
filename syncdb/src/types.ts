@@ -39,7 +39,7 @@ export interface SyncDelta {
  * `mode: "window"` means the client must not page `GET /sync/snapshot` for those streams
  * (admin fan-in `{collection}|admin`; hydrate via REST + `/sync/entities` instead).
  */
-export type SyncSubscribeMode = "window";
+type SyncSubscribeMode = "window";
 
 export interface SyncSubscribed {
   /** Collection tag the confirmation is for. */

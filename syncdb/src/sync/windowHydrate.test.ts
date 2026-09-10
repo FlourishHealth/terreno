@@ -2,11 +2,9 @@ import {describe, it} from "bun:test";
 import {assert} from "chai";
 
 import {createSyncStore} from "../storage/store";
-import type {SyncSubscribeMode} from "../types";
-import {adminWindowStream, hydrateWindowEntities} from "./windowHydrate";
+import {hydrateWindowEntities} from "./windowHydrate";
 
-const STREAM = adminWindowStream("todos");
-const WINDOW_MODE: SyncSubscribeMode = "window";
+const STREAM = "todos|admin";
 
 describe("hydrateWindowEntities", () => {
   it("hydrates 2 of 3 ids and ignores the unknown id", async () => {
@@ -37,7 +35,6 @@ describe("hydrateWindowEntities", () => {
     assert.equal(rowB?.seq, 5);
     assert.isUndefined(store.getEntity({collection: "todos", id: "missing"}));
     assert.equal(rowA?.stream, STREAM);
-    assert.equal(WINDOW_MODE, "window");
   });
 
   it("upserts REST rows immediately and only fetches ids still missing", async () => {

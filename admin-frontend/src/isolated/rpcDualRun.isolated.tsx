@@ -41,7 +41,42 @@ const makeApi = (): AdminApi => {
     }
   );
   api.enhanceEndpoints = () => api;
-  api.injectEndpoints = () => hooks;
+  api.injectEndpoints = ({
+    endpoints,
+  }: {
+    endpoints: (build: {
+      mutation: (definition: unknown) => unknown;
+      query: (definition: unknown) => unknown;
+    }) => Record<string, unknown>;
+  }) => {
+    const definitions = endpoints({
+      mutation: (definition: unknown): unknown => definition,
+      query: (definition: unknown): unknown => definition,
+    });
+    const representativeArg = {
+      body: {},
+      changes: {},
+      filePath: "file.txt",
+      folderName: "folder",
+      folderPath: "folder",
+      formData: new FormData(),
+      id: "id-1",
+      limit: 20,
+      name: "cleanup",
+      page: 1,
+      params: {},
+      patch: {},
+      prefix: "prefix",
+      roleName: "reviewer",
+      taskId: "task-1",
+      wetRun: false,
+    };
+    for (const definition of Object.values(definitions)) {
+      const query = (definition as {query?: (arg: unknown) => unknown}).query;
+      query?.(representativeArg);
+    }
+    return hooks;
+  };
   return api as AdminApi;
 };
 
@@ -158,6 +193,124 @@ describe("admin RPC dual-run", () => {
     await flushEffects();
     assert.include(captured[0]?.url ?? "", "/comms/messages");
     assert.strictEqual(captured[0]?.method, "GET");
+  });
+
+  it("comms queries and retry mutations preserve RTK invalidation behavior", async () => {
+    mockOkFetch();
+    const hooks = runHookWithRpc(() => {
+      const comms = useCommsDashboardApi(makeApi());
+      comms.useDetailQuery("message-1");
+      comms.useListQuery({limit: 10, page: 2} as never);
+      comms.useStatsQuery({page: 2} as never);
+      const [retry] = comms.useRetryMutation();
+      const [retryMany] = comms.useRetryManyMutation();
+      return {retry, retryMany};
+    });
+    await flushEffects();
+    await hooks.retry("message-1").unwrap();
+    await hooks.retryMany({ids: ["message-1"]}).unwrap();
+    assert.ok(captured.some((row) => row.url === "/comms/messages/message-1"));
+    assert.ok(captured.some((row) => row.url.includes("/comms/stats")));
+    assert.ok(
+      captured.some((row) => row.method === "POST" && row.url === "/comms/messages/message-1/retry")
+    );
+    assert.ok(
+      captured.some((row) => row.method === "POST" && row.url === "/comms/messages/retryMany")
+    );
+  });
+
+  it("scripts expose task/history queries and cancel/run mutations", async () => {
+    mockOkFetch();
+    const hooks = runHookWithRpc(() => {
+      const scripts = useAdminScripts(makeApi(), "/admin");
+      scripts.useGetScriptTaskQuery("task-1");
+      scripts.useListScriptRunsQuery({limit: 5, name: "cleanup", page: 2});
+      const [cancel] = scripts.useCancelScriptTaskMutation();
+      const [run] = scripts.useRunScriptMutation();
+      return {cancel, run};
+    });
+    await flushEffects();
+    await hooks.cancel("task-1").unwrap();
+    await hooks.run({name: "cleanup", wetRun: true}).unwrap();
+    assert.ok(captured.some((row) => row.url === "/admin/scripts/tasks/task-1"));
+    assert.ok(
+      captured.some((row) => row.url === "/admin/scripts/runs?page=2&limit=5&name=cleanup")
+    );
+    assert.ok(
+      captured.some((row) => row.method === "DELETE" && row.url === "/admin/scripts/tasks/task-1")
+    );
+    assert.ok(
+      captured.some(
+        (row) => row.method === "POST" && row.url === "/admin/scripts/cleanup/run?wetRun=true"
+      )
+    );
+  });
+
+  it("configuration queries and mutations use fetch RPC", async () => {
+    mockOkFetch();
+    const hooks = runHookWithRpc(() => {
+      const configuration = useConfigurationApi({
+        api: makeApi(),
+        basePath: "/admin/configuration",
+      });
+      configuration.useMetaQuery();
+      configuration.useValuesQuery();
+      const [refresh] = configuration.useRefreshSecretsMutation();
+      const [update] = configuration.useUpdateMutation();
+      return {refresh, update};
+    });
+    await flushEffects();
+    await hooks.refresh({}).unwrap();
+    await hooks.update({enabled: true}).unwrap();
+    assert.ok(captured.some((row) => row.url === "/admin/configuration/meta"));
+    assert.ok(captured.some((row) => row.url === "/admin/configuration"));
+    assert.ok(
+      captured.some(
+        (row) => row.method === "POST" && row.url === "/admin/configuration/refresh-secrets"
+      )
+    );
+    assert.ok(captured.some((row) => row.method === "PATCH" && row.url === "/admin/configuration"));
+  });
+
+  it("document storage covers folder, file, list, and upload RPCs", async () => {
+    mockOkFetch();
+    const hooks = runHookWithRpc(() => {
+      const documents = useDocumentStorageApi(makeApi(), "/documents");
+      documents.useListQuery();
+      const [createFolder] = documents.useCreateFolderMutation();
+      const [deleteFolder] = documents.useDeleteFolderMutation();
+      const [deleteFile] = documents.useDeleteMutation();
+      const [upload] = documents.useUploadMutation();
+      return {createFolder, deleteFile, deleteFolder, upload};
+    });
+    await flushEffects();
+    await hooks.createFolder({folderName: "Reports", prefix: "private"}).unwrap();
+    await hooks.deleteFolder("private/Reports").unwrap();
+    await hooks.deleteFile("private/report.pdf").unwrap();
+    await hooks.upload({formData: new FormData(), prefix: "private"}).unwrap();
+    assert.ok(captured.some((row) => row.url === "/documents/"));
+    assert.ok(captured.some((row) => row.url === "/documents/folder"));
+    assert.ok(captured.some((row) => row.url.includes("private%2FReports")));
+    assert.ok(captured.some((row) => row.url.includes("private%2Freport.pdf")));
+  });
+
+  it("roles cover statements plus create and update RPCs", async () => {
+    mockOkFetch();
+    const hooks = runHookWithRpc(() => {
+      const roles = useAdminRoles(makeApi(), "/admin");
+      roles.useListStatementsQuery();
+      const [create] = roles.useCreateRoleMutation();
+      const [update] = roles.useUpdateRoleMutation();
+      return {create, update};
+    });
+    await flushEffects();
+    await hooks.create({name: "reviewer"} as never).unwrap();
+    await hooks
+      .update({changes: {description: "Can review"} as never, roleName: "reviewer"})
+      .unwrap();
+    assert.ok(captured.some((row) => row.url === "/rbac/statements"));
+    assert.ok(captured.some((row) => row.method === "POST" && row.url === "/rbac/roles"));
+    assert.ok(captured.some((row) => row.method === "PATCH" && row.url === "/rbac/roles/reviewer"));
   });
 
   it("document download uses parseAs blob", async () => {

@@ -17,6 +17,7 @@ mock.module("../useAdminApi", () => ({
 
 import {FeatureFlagsOverridesWidget} from "../widgets/FeatureFlagsOverridesWidget";
 import {ModelsGridWidget} from "../widgets/ModelsGridWidget";
+import {ScriptRunnerWidget} from "../widgets/ScriptRunnerWidget";
 
 const model: AdminModelConfig = {
   displayName: "Todos",
@@ -59,5 +60,14 @@ describe("admin home widgets", () => {
 
     const missing = renderWithTheme(<FeatureFlagsOverridesWidget {...baseProps} />);
     expect(missing.getByText(/No FeatureFlag model/)).toBeDefined();
+  });
+
+  it("opens the script runner from the home widget", async () => {
+    pushes.length = 0;
+    const rendered = renderWithTheme(<ScriptRunnerWidget {...baseProps} />);
+    await act(async () => {
+      fireEvent.press(rendered.getByText("Open scripts"));
+    });
+    expect(pushes).toEqual(["/console/__scripts"]);
   });
 });

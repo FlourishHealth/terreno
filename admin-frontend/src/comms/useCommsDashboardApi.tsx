@@ -48,6 +48,7 @@ const DETAIL_KEY = "commsDashboardDetail";
 const STATS_KEY = "commsDashboardStats";
 const RETRY_KEY = "commsDashboardRetry";
 const RETRY_MANY_KEY = "commsDashboardRetryMany";
+const COMMS_MESSAGE_TAGS = ["commsMessages"] as const;
 
 export const useCommsDashboardApi = (api: AdminApi) => {
   const rpc = useAdminRpc();
@@ -103,6 +104,7 @@ export const useCommsDashboardApi = (api: AdminApi) => {
     return {
       useDetailQuery: (id: string) =>
         useAdminRpcQuery<CommsMessageRow | {data: CommsMessageRow}>({
+          providesTags: COMMS_MESSAGE_TAGS,
           rpc,
           url: `/comms/messages/${id}`,
         }),
@@ -112,11 +114,14 @@ export const useCommsDashboardApi = (api: AdminApi) => {
         }
       ) =>
         useAdminRpcQuery<CommsListResponse>({
+          providesTags: COMMS_MESSAGE_TAGS,
           rpc,
           url: withQueryString({params: params as Record<string, unknown>, url: "/comms/messages"}),
         }),
       useRetryManyMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {
+          invalidatesTags: COMMS_MESSAGE_TAGS,
+        });
         return [
           (body: Record<string, unknown>) =>
             trigger({body, method: "POST", url: "/comms/messages/retryMany"}),
@@ -127,7 +132,9 @@ export const useCommsDashboardApi = (api: AdminApi) => {
         ];
       },
       useRetryMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {
+          invalidatesTags: COMMS_MESSAGE_TAGS,
+        });
         return [
           (id: string) => trigger({method: "POST", url: `/comms/messages/${id}/retry`}),
           meta,
@@ -138,6 +145,7 @@ export const useCommsDashboardApi = (api: AdminApi) => {
       },
       useStatsQuery: (params: CommsDashboardFilters) =>
         useAdminRpcQuery<CommsStatsResponse>({
+          providesTags: COMMS_MESSAGE_TAGS,
           rpc,
           url: withQueryString({params: params as Record<string, unknown>, url: "/comms/stats"}),
         }),

@@ -6,6 +6,7 @@ import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc"
 // The configuration document shape varies per consumer — different apps register different
 // configuration sections via @terreno/api's Configuration model.
 type ConfigBody = Record<string, unknown>;
+const CONFIGURATION_TAGS = ["configuration"] as const;
 
 interface RtkQueryHookResult {
   data?: unknown;
@@ -81,20 +82,21 @@ export const useConfigurationApi = ({
     return {
       useMetaQuery: () => useAdminRpcQuery({rpc, url: `${basePath}/meta`}),
       useRefreshSecretsMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {invalidatesTags: CONFIGURATION_TAGS});
         return [
           (_body?: ConfigBody) => trigger({method: "POST", url: `${basePath}/refresh-secrets`}),
           meta,
         ] as const;
       },
       useUpdateMutation: () => {
-        const [trigger, meta] = useAdminRpcMutation(rpc);
+        const [trigger, meta] = useAdminRpcMutation(rpc, {invalidatesTags: CONFIGURATION_TAGS});
         return [
           (body: ConfigBody) => trigger({body, method: "PATCH", url: basePath}),
           meta,
         ] as const;
       },
-      useValuesQuery: () => useAdminRpcQuery({rpc, url: basePath}),
+      useValuesQuery: () =>
+        useAdminRpcQuery({providesTags: CONFIGURATION_TAGS, rpc, url: basePath}),
     };
   }
   return {

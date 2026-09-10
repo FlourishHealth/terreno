@@ -407,6 +407,28 @@ describe("AdminFieldRenderer", () => {
     expect(toJSON()).toBeDefined();
   });
 
+  it("keeps read-only structured widget change handlers inert", () => {
+    for (const fieldConfig of [
+      {required: false, type: "array", widget: "checkbox-list"},
+      {required: false, type: "object", widget: "locale-content"},
+    ] as AdminFieldConfig[]) {
+      const changes: unknown[] = [];
+      const rendered = renderWithTheme(
+        <AdminFieldRenderer
+          {...base}
+          fieldConfig={fieldConfig}
+          fieldKey="content"
+          onChange={(value) => changes.push(value)}
+          readOnly
+          value={fieldConfig.type === "array" ? ["one"] : {en: "English"}}
+        />
+      );
+      fireEvent.changeText(rendered.getByTestId("admin-field-content"), "ignored");
+      expect(changes).toEqual([]);
+      rendered.unmount();
+    }
+  });
+
   it("normalizes invalid editable widget values", () => {
     const checkbox = renderWithTheme(
       <AdminFieldRenderer

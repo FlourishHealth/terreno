@@ -97,9 +97,16 @@ const collectTitleTexts = (root: ReactTestInstance): string[] => {
 const createFakeSyncDb = (): {
   extraStore: Map<string, {data: unknown; deleted?: boolean; id: string}>;
   hydrateWindow: ReturnType<typeof mock>;
+  notifyStore: () => void;
   syncDb: AdminSyncDb;
 } => {
   const extraStore = new Map<string, {data: unknown; deleted?: boolean; id: string}>();
+  const listeners = new Map<string, () => void>();
+  const notifyStore = (): void => {
+    for (const listener of listeners.values()) {
+      listener();
+    }
+  };
   const hydrateWindow = mock(async (args: {ids: string[]; restRows?: Record<string, unknown>}) => {
     for (const id of args.ids) {
       const rest = args.restRows?.[id];
@@ -112,10 +119,21 @@ const createFakeSyncDb = (): {
   return {
     extraStore,
     hydrateWindow,
+    notifyStore,
     syncDb: {
       hydrateWindow,
       store: {
         getEntity: ({id}: {id: string}) => extraStore.get(id),
+        raw: {
+          addTableListener: (_tableId: string, listener: () => void): string => {
+            const id = `listener-${listeners.size}`;
+            listeners.set(id, listener);
+            return id;
+          },
+          delListener: (listenerId: string): void => {
+            listeners.delete(listenerId);
+          },
+        },
       },
     },
   };
@@ -176,6 +194,38 @@ describe("AdminModelTable windowed path", () => {
     });
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
     assert.isNotNull(queryByTestId("admin-table-refresh"));
+  });
+
+  it("re-renders known membership rows when TinyBase receives a delta", async () => {
+    const {extraStore, notifyStore, syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    const {UNSAFE_root, queryByText} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
+
+    await act(async () => {
+      extraStore.set("todo-1", {
+        data: {_id: "todo-1", title: "Updated by delta"},
+        id: "todo-1",
+      });
+      notifyStore();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Updated by delta"]);
+
+    await act(async () => {
+      extraStore.set("todo-1", {
+        data: {_id: "todo-1", title: "Updated by delta"},
+        deleted: true,
+        id: "todo-1",
+      });
+      notifyStore();
+    });
+    assert.isNull(queryByText("Updated by delta"));
   });
 
   it("Refresh re-queries membership and then shows the new id", async () => {

@@ -104,6 +104,58 @@ describe("useAdminRpc", () => {
     assert.isOk(latest.error);
   });
 
+  it("refetches mounted queries after a successful tagged mutation", async () => {
+    let gets = 0;
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      if ((init?.method ?? "GET") === "POST") {
+        return new Response(JSON.stringify({saved: true}), {
+          headers: {"Content-Type": "application/json"},
+          status: 200,
+        });
+      }
+      gets += 1;
+      return new Response(JSON.stringify({n: gets}), {
+        headers: {"Content-Type": "application/json"},
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    let trigger:
+      | ((args: {method: "POST"; url: string}) => {unwrap: () => Promise<unknown>})
+      | undefined;
+    const tags = ["items"] as const;
+    const Harness: React.FC = () => {
+      const rpc = useAdminRpc();
+      useAdminRpcQuery({providesTags: tags, rpc, url: "/items"});
+      const [mutate] = useAdminRpcMutation(rpc, {invalidatesTags: tags});
+      trigger = mutate;
+      return null;
+    };
+
+    const rendered = renderWithTheme(
+      <AdminProvider
+        api={api}
+        apiBase="/admin"
+        credentials="same-origin"
+        getAuthHeaders={() => ({})}
+        routeBase="/admin"
+      >
+        <Harness />
+      </AdminProvider>
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.equal(gets, 1);
+
+    await act(async () => {
+      await trigger?.({method: "POST", url: "/items"}).unwrap();
+      await Promise.resolve();
+    });
+    assert.equal(gets, 2);
+    rendered.unmount();
+  });
+
   it("polls on an interval and mutations unwrap or throw", async () => {
     let gets = 0;
     globalThis.fetch = (async (_url: string, init?: RequestInit) => {
@@ -137,7 +189,7 @@ describe("useAdminRpc", () => {
       return null;
     };
 
-    renderWithTheme(
+    const rendered = renderWithTheme(
       <AdminProvider
         api={api}
         apiBase="/admin"
@@ -165,5 +217,6 @@ describe("useAdminRpc", () => {
       assert.include(String(err), "unavailable");
     }
     assert.isTrue(threw);
+    rendered.unmount();
   });
 });
