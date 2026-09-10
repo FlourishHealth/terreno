@@ -846,7 +846,7 @@ jobs:
       - checkout
       - install_bun_and_deps
       - run:
-          name: Test and run static-analysis ratchets
+          name: Test and run static analysis
           command: |
             bun test scripts/static-analysis/
             bun run analyze:full
