@@ -202,6 +202,7 @@ export class TerrenoApp {
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
   private readonly adminEvents = new EventEmitter();
+  private bootPromise: Promise<void> = Promise.resolve();
 
   /**
    * Create a new TerrenoApp builder.
@@ -575,45 +576,48 @@ export class TerrenoApp {
     }
 
     const app = this.build();
-
+    this.bootPromise = this.completeStart(app);
     if (!this.options.skipListen) {
-      const port = process.env.PORT || "9000";
-      // Await sync index creation before listening: the per-model snapshot indexes (a
-      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
-      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
-      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
-      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
-      // loud startup error rather than a silent correctness cliff. No-op when no sync
-      // models or SyncApp are registered. Detached because start() returns synchronously.
-      void (async (): Promise<void> => {
-        try {
-          await ensureSyncIndexes();
-          await runStartupMigrations({
-            migrations: this.options.migrations,
-            mongoose,
-          });
-          const server = createServer(app);
-
-          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-          for (const reg of this.registrations) {
-            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-              reg.onServerCreated(server);
-            }
-          }
-
-          server.listen(port, () => {
-            logger.info(`Listening on port ${port}`);
-          });
-        } catch (error) {
-          const stack = error instanceof Error ? error.stack : String(error);
-          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-          process.exit(1);
-        }
-      })();
+      void this.bootPromise.catch((error: unknown) => {
+        const stack = error instanceof Error ? error.stack : String(error);
+        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+        process.exit(1);
+      });
     }
-
     return app;
   }
+
+  /**
+   * Resolves after startup migrations (and listen, unless `skipListen`).
+   * Tests with `skipListen` should await this instead of assuming `start()` is idle.
+   */
+  whenReady(): Promise<void> {
+    return this.bootPromise;
+  }
+
+  private completeStart = async (app: express.Application): Promise<void> => {
+    if (!this.options.skipListen) {
+      await ensureSyncIndexes();
+    }
+    await runStartupMigrations({
+      migrations: this.options.migrations,
+      mongoose,
+    });
+    if (this.options.skipListen) {
+      return;
+    }
+
+    const port = process.env.PORT || "9000";
+    const server = createServer(app);
+    for (const reg of this.registrations) {
+      if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+        reg.onServerCreated(server);
+      }
+    }
+    server.listen(port, () => {
+      logger.info(`Listening on port ${port}`);
+    });
+  };
 
   private isModelRouterRegistration(
     registration: ModelRouterRegistration | TerrenoPlugin

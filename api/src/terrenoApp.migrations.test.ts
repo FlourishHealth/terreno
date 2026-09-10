@@ -1,9 +1,11 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {join} from "node:path";
 import mongoose from "mongoose";
+import type {UserModel as UserModelType} from "./auth";
 import {runStartupMigrations} from "./migrations/startup";
 import {MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./migrations/types";
-import {setupDb} from "./tests";
+import {TerrenoApp} from "./terrenoApp";
+import {setupDb, UserModel} from "./tests";
 
 const fixtures = (...parts: string[]): string => {
   return join(import.meta.dir, "migrations", "fixtures", ...parts);
@@ -62,6 +64,39 @@ describe("runStartupMigrations", () => {
         mongoose,
       })
     ).rejects.toThrow("Migrations not allowed");
+    expect(await appliedIds()).toEqual([]);
+  });
+});
+
+describe("TerrenoApp start migrations", () => {
+  const typedUserModel = UserModel as unknown as UserModelType;
+
+  beforeEach(async () => {
+    await setupDb();
+    await mongoose.connection.collection(MIGRATIONS_COLLECTION).deleteMany({});
+  });
+
+  it("applies pending files through start() when runOnStart is true", async () => {
+    const app = new TerrenoApp({
+      migrations: {dir: fixtures("valid"), runOnStart: true},
+      skipListen: true,
+      userModel: typedUserModel,
+    });
+    app.start();
+    await app.whenReady();
+    expect(await appliedIds()).toEqual(["20260910120000-alpha", "20260910120001-beta"]);
+  });
+
+  it("rejects whenReady in production without ALLOW_MIGRATIONS and does not listen", async () => {
+    process.env.NODE_ENV = "production";
+    Reflect.deleteProperty(process.env, "ALLOW_MIGRATIONS");
+    const app = new TerrenoApp({
+      migrations: {dir: fixtures("valid"), runOnStart: true},
+      skipListen: true,
+      userModel: typedUserModel,
+    });
+    app.start();
+    await expect(app.whenReady()).rejects.toThrow("Migrations not allowed");
     expect(await appliedIds()).toEqual([]);
   });
 });
