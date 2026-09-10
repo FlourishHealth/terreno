@@ -1,6 +1,15 @@
 export * from "./actions";
 export * from "./adminTypes";
 export * from "./api";
+export {AuditApp, type AuditAppOptions} from "./audit/auditApp";
+export {
+  type AuditEventDocument,
+  type AuditEventModel,
+  type AuditEventOperation,
+  type AuditEventSource,
+  type AuditEventVerb,
+  createAuditEventModel,
+} from "./audit/auditEventModel";
 export * from "./auth";
 export * from "./authRecovery";
 export * from "./authTokens";

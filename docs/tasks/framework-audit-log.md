@@ -7,7 +7,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
 
 ## Phase 1 — Tracer (model, plugin, CRUD diffs)
 
-- [ ] **Task 1.1**: `AuditEvent` model + `AuditApp` list/read router
+- [x] **Task 1.1**: `AuditEvent` model + `AuditApp` list/read router
   - Delivers: `createAuditEventModel(connection)` (no default-connection singleton); `new AuditApp()` registers GET list/read at `/audit-events` with `Permissions.IsAdmin`; create/update/delete permission arrays empty; default no TTL; field `description`s; append-only (no `isDeletedPlugin`)
   - Files: `api/src/audit/auditEventModel.ts`, `api/src/audit/auditApp.ts`, `api/src/audit/auditApp.test.ts`, `api/src/index.ts`
   - Blocked by: none

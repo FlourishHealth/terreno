@@ -105,7 +105,7 @@ All decisions resolved by the maintainer on 2026-08-09:
 | [billing-stripe](billing-stripe.md) | Draft | [tasks](../tasks/billing-stripe.md) |
 | [native-module-baseline](native-module-baseline.md) | Draft | [tasks](../tasks/native-module-baseline.md) |
 | [rbac-permissions](rbac-permissions.md) | Complete (PR #932) | — |
-| [framework-audit-log](framework-audit-log.md) | Draft — awaiting approval | [tasks](../tasks/framework-audit-log.md) |
+| [framework-audit-log](framework-audit-log.md) | Approved | [tasks](../tasks/framework-audit-log.md) |
 
 Remaining items (`inbound-webhooks`, `invitations-and-seats`,
 `notification-center`, `rate-limiting`, `job-queues`, …) get IPs as

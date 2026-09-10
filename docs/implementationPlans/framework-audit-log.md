@@ -1,6 +1,6 @@
 # Implementation Plan: Framework-level audit log
 
-**Status:** Draft  
+**Status:** Approved  
 **Branch:** `cursor/framework-audit-log-grow-0d6c`  
 **Owner:** —  
 **Created:** 2026-09-10  

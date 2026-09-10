@@ -116,6 +116,10 @@ new TerrenoApp({
 
 `mcpServiceTokens: true` is `{enabled: true}`. When enabled, TerrenoApp mounts the self-serve routes (passing its OpenAPI bundle) and sets `mcpServiceTokens` on MCP auth. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
 
+### Audit log (`AuditApp`)
+
+Opt-in. Register `new AuditApp()` on `TerrenoApp` to mount append-only `GET /audit-events` (admin list/read). Importing `@terreno/api` does **not** register `AuditEvent` on the default mongoose connection — call `createAuditEventModel(connection)` or register the plugin. Product CRUD audit hooks land in a later slice; see the [framework audit log IP](../implementationPlans/framework-audit-log.md).
+
 ### setupServer (Legacy)
 
 Callback-based pattern:
