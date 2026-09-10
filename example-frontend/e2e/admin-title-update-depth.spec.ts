@@ -2,7 +2,7 @@ import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {waitForAdminTable} from "./helpers/adminUi";
 
-const REPRO_TITLE = "Review the sync status banner — admin window verified";
+const REGRESSION_TITLE = "Review the sync status banner — admin window verified";
 
 test.describe("Admin Todo title update-depth regression", () => {
   test("types the reported title on /admin/Todo/:id without maximum update depth", async ({
@@ -14,7 +14,7 @@ test.describe("Admin Todo title update-depth regression", () => {
 
     const apiUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
-    const seedTitle = `Depth probe ${Date.now()}`;
+    const seedTitle = `Update depth seed ${Date.now()}`;
 
     const createResponse = await request.post(`${apiUrl}/todos`, {
       data: {title: seedTitle},
@@ -39,7 +39,7 @@ test.describe("Admin Todo title update-depth regression", () => {
     const titleField = page.getByTestId("admin-field-title");
     await titleField.click();
     await titleField.fill("");
-    await titleField.pressSequentially(REPRO_TITLE, {delay: 5});
+    await titleField.pressSequentially(REGRESSION_TITLE, {delay: 5});
 
     const depthErrors = pageErrors.filter((m) => m.includes("Maximum update depth exceeded"));
     const consoleDepthErrors = consoleGuard
@@ -51,6 +51,6 @@ test.describe("Admin Todo title update-depth regression", () => {
       consoleDepthErrors,
       `console: ${consoleDepthErrors.map((m) => m.text).join("; ")}`
     ).toHaveLength(0);
-    await expect(titleField).toHaveValue(REPRO_TITLE);
+    await expect(titleField).toHaveValue(REGRESSION_TITLE);
   });
 });

@@ -6,7 +6,7 @@ import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
-const REPRO_TITLE = "Review the sync status banner — admin window verified";
+const REGRESSION_TITLE = "Review the sync status banner — admin window verified";
 
 const routerBack = mock(() => {});
 const routerPush = mock(() => {});
@@ -150,7 +150,7 @@ describe("AdminModelForm update-depth regression", () => {
     const titleField = view.getByTestId("admin-field-title");
 
     await act(async () => {
-      fireEvent.changeText(titleField, REPRO_TITLE);
+      fireEvent.changeText(titleField, REGRESSION_TITLE);
     });
 
     assert.isAtMost(
@@ -158,7 +158,7 @@ describe("AdminModelForm update-depth regression", () => {
       3,
       `setOptions called ${setOptions.mock.calls.length} times after one changeText`
     );
-    expect(titleField.props.value).toBe(REPRO_TITLE);
+    expect(titleField.props.value).toBe(REGRESSION_TITLE);
   });
 });
 
@@ -225,15 +225,15 @@ describe("AdminModelForm update-depth regression (setOptions triggers parent re-
     const titleField = view.getByTestId("admin-field-title");
     const setOptionsBeforeTyping = setOptionsWithRerender.mock.calls.length;
 
-    for (let i = 0; i < REPRO_TITLE.length; i++) {
-      const partial = REPRO_TITLE.slice(0, i + 1);
+    for (let i = 0; i < REGRESSION_TITLE.length; i++) {
+      const partial = REGRESSION_TITLE.slice(0, i + 1);
       await act(async () => {
         fireEvent.changeText(titleField, partial);
       });
     }
 
     const field = view.getByTestId("admin-field-title");
-    expect(field.props.value).toBe(REPRO_TITLE);
+    expect(field.props.value).toBe(REGRESSION_TITLE);
     const setOptionsDuringTyping =
       setOptionsWithRerender.mock.calls.length - setOptionsBeforeTyping;
     assert.equal(
@@ -269,7 +269,7 @@ describe("AdminModelForm update-depth regression (setOptions triggers parent re-
 
     const titleField = view.getByTestId("admin-field-title");
     await act(async () => {
-      fireEvent.changeText(titleField, REPRO_TITLE);
+      fireEvent.changeText(titleField, REGRESSION_TITLE);
     });
 
     assert.isAtMost(
@@ -277,7 +277,7 @@ describe("AdminModelForm update-depth regression (setOptions triggers parent re-
       3,
       `setOptions rerender storm: ${setOptionsWithRerender.mock.calls.length}`
     );
-    expect(titleField.props.value).toBe(REPRO_TITLE);
+    expect(titleField.props.value).toBe(REGRESSION_TITLE);
   });
 });
 
@@ -319,7 +319,7 @@ describe("AdminModelForm update-depth regression (unstable navigation)", () => {
     const setOptionsBefore = setOptions.mock.calls.length;
 
     await act(async () => {
-      fireEvent.changeText(titleField, REPRO_TITLE);
+      fireEvent.changeText(titleField, REGRESSION_TITLE);
     });
 
     const setOptionsAfterOneChange = setOptions.mock.calls.length - setOptionsBefore;
@@ -328,6 +328,6 @@ describe("AdminModelForm update-depth regression (unstable navigation)", () => {
       2,
       `setOptions called ${setOptionsAfterOneChange} times after one changeText with unstable navigation`
     );
-    expect(titleField.props.value).toBe(REPRO_TITLE);
+    expect(titleField.props.value).toBe(REGRESSION_TITLE);
   });
 });
