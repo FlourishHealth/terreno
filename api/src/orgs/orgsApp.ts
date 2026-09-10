@@ -1,7 +1,7 @@
 import type express from "express";
 import {type Application, Router} from "express";
 
-import {asyncHandler} from "../api";
+import {asyncHandler, type OpenApiMiddleware} from "../api";
 import {authenticateMiddleware, type User, type UserModel} from "../auth";
 import {APIError, ConflictError, ForbiddenError, NotFoundError} from "../errors";
 import {logger} from "../logger";
@@ -154,8 +154,12 @@ export class OrgsApp implements TerrenoPlugin {
 
   register(app: Application, openApi?: unknown): void {
     const router = Router();
+    const openApiMiddleware = openApi as OpenApiMiddleware | undefined;
     const docs = (summary: string) =>
-      createOpenApiBuilder({openApi}).withTags(["organizations"]).withSummary(summary).build();
+      createOpenApiBuilder({openApi: openApiMiddleware})
+        .withTags(["organizations"])
+        .withSummary(summary)
+        .build();
 
     router.post(
       "/",
@@ -252,8 +256,7 @@ export class OrgsApp implements TerrenoPlugin {
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
         const membership = await loadActiveMembership(user, organization._id);
         const body = req.body ?? {};
-        const wantsDisable =
-          Object.hasOwn(body, "disabled") && Boolean(body.disabled) && !organization.disabled;
+        const wantsDisable = "disabled" in body && Boolean(body.disabled) && !organization.disabled;
 
         await runWithOrgContext({membership, organization}, async () => {
           await assertCan({
@@ -276,10 +279,10 @@ export class OrgsApp implements TerrenoPlugin {
           organization.name = body.name.trim();
           organization.slug = organizationSlugFromName(organization.name);
         }
-        if (Object.hasOwn(body, "settings")) {
+        if ("settings" in body) {
           organization.settings = body.settings;
         }
-        if (Object.hasOwn(body, "disabled")) {
+        if ("disabled" in body) {
           organization.disabled = Boolean(body.disabled);
         }
         await organization.save();
