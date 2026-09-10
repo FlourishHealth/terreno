@@ -226,7 +226,7 @@ import type {AdminRpc} from "./adminRpc";
 
 export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
 
-/** Narrow syncdb surface the admin table uses. Hosts pass `createSyncDb()` as this. */
+/** Narrow syncdb surface admin collection CRUD uses. Hosts pass `createSyncDb()` as this. */
 export interface AdminSyncDbEntity {
   data: unknown;
   deleted?: boolean;
@@ -239,6 +239,12 @@ export interface AdminSyncDb {
     ids: string[];
     restRows?: Record<string, unknown>;
   }) => Promise<{hydratedIds: string[]}>;
+  mutate: (args: {
+    collection: string;
+    data?: Record<string, unknown>;
+    id?: string;
+    operation: "create" | "update" | "delete";
+  }) => {id: string; mutationId: string};
   store: {
     getEntity: (args: {collection: string; id: string}) => AdminSyncDbEntity | undefined;
     raw: {

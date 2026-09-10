@@ -89,6 +89,12 @@ Auto-generates fields from model schema:
 
 System fields (`_id`, `__v`, `created`, `updated`, `deleted`) are automatically skipped.
 
+When `AdminProvider` has `syncDb` plus a fetch client and the model config reports
+`adminBroadcast`, `syncCollection`, and a String `_id`, create/update/delete use the
+syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record so a
+deep-linked form can mutate locally. ObjectId models and hosts without the full
+windowed configuration keep the REST/RTK mutation path.
+
 ### AdminRolesList
 
 Role editing starts with a dedicated **Admin page** toggle for `admin:access`. That is the only

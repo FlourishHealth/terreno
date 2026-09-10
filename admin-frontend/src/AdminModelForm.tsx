@@ -2,6 +2,8 @@ import {Accordion, Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
+import {useAdminContext} from "./adminContext";
+import {isWindowedAdminTable} from "./adminWindowedTable";
 import type {
   AdminApi,
   AdminFieldConfig,
@@ -308,6 +310,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     routeBase,
   });
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
+  const adminContext = useAdminContext();
   const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -333,6 +336,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [createItem, {isLoading: isCreating}] = useCreateMutation();
   const [updateItem, {isLoading: isUpdating}] = useUpdateMutation();
   const [deleteItem, {isLoading: isDeleting}] = useDeleteMutation();
+  const isWindowed = isWindowedAdminTable({
+    hasFetchClient: Boolean(adminContext?.adminRpc),
+    modelConfig,
+    syncDb: adminContext?.syncDb,
+  });
 
   // Initialize form state from fetched item data in edit mode
   useEffect(() => {
@@ -419,7 +427,25 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         ? await transformPayload({mode, payload: stripped})
         : stripped;
       let result: AdminFieldValue;
-      if (mode === "create") {
+      if (isWindowed && modelConfig.syncCollection && adminContext?.syncDb) {
+        if (mode === "edit" && itemId) {
+          await adminContext.syncDb.hydrateWindow({
+            collection: modelConfig.syncCollection,
+            ids: [itemId],
+            restRows:
+              itemData && typeof itemData === "object"
+                ? {[itemId]: itemData as Record<string, unknown>}
+                : undefined,
+          });
+        }
+        const mutation = adminContext.syncDb.mutate({
+          collection: modelConfig.syncCollection,
+          data: payload,
+          ...(itemId ? {id: itemId} : {}),
+          operation: mode === "create" ? "create" : "update",
+        });
+        result = {...payload, _id: mutation.id};
+      } else if (mode === "create") {
         result = await createItem(payload).unwrap();
       } else if (itemId) {
         result = await updateItem({body: payload, id: itemId}).unwrap();
@@ -435,8 +461,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     mode,
     formState,
     itemId,
+    itemData,
     modelConfig,
+    adminContext?.syncDb,
     createItem,
+    isWindowed,
     updateItem,
     validate,
     toast,
@@ -450,12 +479,37 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
-      await deleteItem(itemId).unwrap();
+      if (isWindowed && modelConfig?.syncCollection && adminContext?.syncDb) {
+        await adminContext.syncDb.hydrateWindow({
+          collection: modelConfig.syncCollection,
+          ids: [itemId],
+          restRows:
+            itemData && typeof itemData === "object"
+              ? {[itemId]: itemData as Record<string, unknown>}
+              : undefined,
+        });
+        adminContext.syncDb.mutate({
+          collection: modelConfig.syncCollection,
+          id: itemId,
+          operation: "delete",
+        });
+      } else {
+        await deleteItem(itemId).unwrap();
+      }
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to delete ${modelName}`);
     }
-  }, [itemId, deleteItem, toast, modelName]);
+  }, [
+    adminContext?.syncDb,
+    deleteItem,
+    isWindowed,
+    itemId,
+    itemData,
+    modelConfig?.syncCollection,
+    modelName,
+    toast,
+  ]);
 
   const isSaving = isCreating || isUpdating;
   const recordCapabilities = (

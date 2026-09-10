@@ -53,6 +53,16 @@ mock.module("./useAdminApi", () => ({
   }),
 }));
 
+const syncMutateFn = mock((_args: unknown) => ({id: "sync-id", mutationId: "mutation-id"}));
+const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]}));
+const adminContextState: {
+  adminRpc?: (_args: unknown) => Promise<unknown>;
+  syncDb?: {hydrateWindow: typeof hydrateWindowFn; mutate: typeof syncMutateFn};
+} = {};
+mock.module("./adminContext", () => ({
+  useAdminContext: () => adminContextState,
+}));
+
 import {AdminModelForm} from "./AdminModelForm";
 
 const modelConfig = {
@@ -79,10 +89,240 @@ describe("AdminModelForm", () => {
     createFn.mockClear();
     updateFn.mockClear();
     deleteFn.mockClear();
+    syncMutateFn.mockClear();
+    syncMutateFn.mockImplementation((_args: unknown) => ({
+      id: "sync-id",
+      mutationId: "mutation-id",
+    }));
+    hydrateWindowFn.mockClear();
+    adminContextState.adminRpc = undefined;
+    adminContextState.syncDb = undefined;
     configState.config = null;
     configState.isLoading = false;
     readState.data = null;
     readState.isLoading = false;
+  });
+
+  it("uses syncdb mutations for create, update, and delete on windowed String-id models", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    adminContextState.adminRpc = async () => ({});
+    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
+    const onSaveSuccess = mock(async (_args: unknown) => {});
+
+    const createForm = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="Todo"
+        onSaveSuccess={onSaveSuccess}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(createForm.getByTestId("admin-save-button"));
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[0]?.[0], {
+      collection: "todos",
+      data: {active: true, age: 0, email: "", name: ""},
+      operation: "create",
+    });
+    assert.equal(createFn.mock.calls.length, 0);
+    assert.deepEqual(onSaveSuccess.mock.calls[0]?.[0], {
+      itemId: undefined,
+      mode: "create",
+      payload: {active: true, age: 0, email: "", name: ""},
+      result: {_id: "sync-id", active: true, age: 0, email: "", name: ""},
+    });
+    assert.equal(routerBack.mock.calls.length, 1);
+    createForm.unmount();
+
+    readState.data = {active: true, age: 1, email: "todo@example.com", name: "Todo"};
+    const editForm = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(editForm.getByTestId("admin-save-button"));
+    });
+    assert.deepEqual(hydrateWindowFn.mock.calls[0]?.[0], {
+      collection: "todos",
+      ids: ["todo-1"],
+      restRows: {
+        "todo-1": {active: true, age: 1, email: "todo@example.com", name: "Todo"},
+      },
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[1]?.[0], {
+      collection: "todos",
+      data: {active: true, age: 1, email: "todo@example.com", name: "Todo"},
+      id: "todo-1",
+      operation: "update",
+    });
+    assert.equal(updateFn.mock.calls.length, 0);
+    assert.equal(routerBack.mock.calls.length, 2);
+
+    const deleteButton = editForm.UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
+    )[0];
+    await act(async () => {
+      deleteButton?.props.onClick();
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[2]?.[0], {
+      collection: "todos",
+      id: "todo-1",
+      operation: "delete",
+    });
+    assert.equal(deleteFn.mock.calls.length, 0);
+    assert.equal(routerBack.mock.calls.length, 3);
+  });
+
+  it("keeps ObjectId model create, update, and delete on the REST mutation path", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            _id: {required: true, type: "objectid"},
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    adminContextState.adminRpc = async () => ({});
+    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
+
+    const form = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 1);
+    form.unmount();
+
+    readState.data = {active: true, age: 1, email: "user@example.com", name: "User"};
+    const editForm = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="object-id"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(editForm.getByTestId("admin-save-button"));
+    });
+    const deleteButton = editForm.UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
+    )[0];
+    await act(async () => {
+      deleteButton?.props.onClick();
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(hydrateWindowFn.mock.calls.length, 0);
+    assert.equal(updateFn.mock.calls.length, 1);
+    assert.equal(deleteFn.mock.calls.length, 1);
+  });
+
+  it("falls back to REST when a String-id model is not adminBroadcast-enabled", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    adminContextState.adminRpc = async () => ({});
+    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
+
+    const form = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 1);
+  });
+
+  it("keeps the form open when a syncdb mutation throws", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    adminContextState.adminRpc = async () => ({});
+    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
+    syncMutateFn.mockImplementation(() => {
+      throw new Error("sync failed");
+    });
+
+    const form = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(routerBack.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 0);
   });
 
   it("renders loading state while config loads", () => {

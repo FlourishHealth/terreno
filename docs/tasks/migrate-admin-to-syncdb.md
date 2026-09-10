@@ -129,7 +129,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: unit tests with fake syncdb: page ids render; extra delta id does not render; Refresh adds it; RTK path still used when `api` only
   - Skills: `terreno-ui`, `verify-ui-changes`
 
-- [ ] **Task 4.2**: `AdminModelForm` syncdb writes
+- [x] **Task 4.2**: `AdminModelForm` syncdb writes
   - Delivers: create/update/delete for String `_id` synced models go through `useMutate`; ObjectId models stay fetch/RTK dual-run
   - Files: `admin-frontend/src/AdminModelForm.tsx`, tests
   - Blocked by: 4.1
