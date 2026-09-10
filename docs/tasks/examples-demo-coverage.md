@@ -14,11 +14,93 @@ See: [`docs/implementationPlans/examples-demo-coverage.md`](../implementationPla
 
 ## Phase 1: Demo coverage — audit and P0
 
-- [ ] **Task 1.1**: Audit demo story coverage
+- [x] **Task 1.1**: Audit demo story coverage
   - Description: Extract the list of components exported from `ui/src/index.tsx`. Extract the list of components registered in `demo/demoConfig.tsx`. Produce the difference. Classify each missing component as P0 (demonstrates a pillar: AI, auth, responsive layout), P1 (common in real apps), P2 (uncommon), or "cannot be demoed in isolation" with a reason. Report the full table in the PR body.
   - Files: none (findings in the PR body)
   - Depends on: none
   - Acceptance: the table is derived from the two actual source files; every missing component has a classification; every "cannot be demoed" entry has a stated reason.
+
+### Task 1.1 audit (2026-09-10, `ui/src/index.tsx` + `demo/demoConfig.tsx`)
+
+Registered stories (65 configs, including OpenAPI Context): Accordion, AddressField, AiSuggestionBox, Avatar, Badge, Banner, BooleanField, Box, Button, Card, CheckBox, ConsentFormScreen, CustomSelectField, DataTable, DateTimeField, EditableCard, EmailField, EmojiSelector, Field, Filter, Heading, HeightField, Icon, IconButton, Link, LoginScreen, MarkdownEditorField, MarkdownView, Modal, MultiselectField, NumberField, OpenAPIContext, Page, Pagination, PasswordField, PhoneNumberField, Popover, RadioField, SectionDivider, SegmentedControl, SelectBadge, SelectField, SidebarNavigation (+ Panel), SideDrawer, SignatureCaptureField, SignatureField, Slider, Spinner, Table (+ Badge/Boolean/Date/IconButton/Number/Text/Title), TapToEdit, Text, TextArea, TextField, Theme, ThumbsUpDownFeedback, Toast, Tooltip, TypedSignatureField, UserInactivity.
+
+`ModalSheet.tsx` does not export a `ModalSheet` identifier; the public component is `SimpleContent`. Matching uses `component:` in `demo/story-config/*.config.tsx` plus `OpenAPIContext` in `demoConfig.tsx`.
+
+| Export | Class | Reason |
+| --- | --- | --- |
+| `GPTChat` | P0 | AI pillar |
+| `SocialLoginButton` | P0 | Auth pillar |
+| `SplitPage` | P0 | Responsive layout pillar |
+| `ActionSheet` | P1 | Common overlay |
+| `SimpleContent` | P1 | ModalSheet public export; bottom sheet |
+| `FilePickerButton` | P1 | Common file input |
+| `Image` | P1 | Common media |
+| `SignUpScreen` | P1 | Auth screen (LoginScreen already demos) |
+| `OAuthButtons` | P1 | Grouped social login |
+| `ErrorPage` | P1 | Common error UI |
+| `ErrorBoundary` | P1 | Common error UI |
+| `DismissButton` | P1 | Common chrome |
+| `ImageBackground` | P1 | Common layout |
+| `MarkdownEditor` | P1 | Editor (field already demos) |
+| `InfoTooltipButton` | P1 | Common help affordance |
+| `InfoModalIcon` | P1 | Common help affordance |
+| `OfflineBanner` | P1 | Sync/offline status |
+| `SyncStatusBanner` | P1 | Sync status |
+| `AttachmentPreview` | P1 | Chat/file UX |
+| `ConflictSheet` | P1 | Sync conflict UX |
+| `AIRequestExplorer` | P1 | AI admin surface |
+| `Body` | P1 | Layout primitive |
+| `PasswordRequirements` | P1 | Auth helper |
+| `UnifiedAddressAutoCompleteField` | P1 | Address (AddressField demos a wrapper) |
+| `WebAddressAutocomplete` | P1 | Web address |
+| `MobileAddressAutocomplete` | P1 | Native address |
+| `Radio` | P2 | Primitive under RadioField |
+| `DraggableList` | P2 | Uncommon |
+| `UpgradeRequiredScreen` | P2 | Uncommon |
+| `GPTMemoryModal` | P2 | GPTChat sub-surface |
+| `ConsentNavigator` | P2 | ConsentFormScreen already demos |
+| `DateTimeActionSheet` | P2 | DateTimeField already demos |
+| `HeightActionSheet` | P2 | HeightField already demos |
+| `DecimalRangeActionSheet` | P2 | Uncommon picker |
+| `NumberPickerActionSheet` | P2 | Uncommon picker |
+| `FilterAccordion` | P2 | Filter already demos |
+| `FilterBoolean` | P2 | Filter already demos |
+| `FilterChangesBadge` | P2 | Filter already demos |
+| `FilterSelectMenu` | P2 | Filter already demos |
+| `TableHeader` | P2 | Table already demos |
+| `TableHeaderCell` | P2 | Table already demos |
+| `TableRow` | P2 | Table already demos |
+| `Signature` | P2 | SignatureField already demos |
+| `Swiper` | P2 | Onboarding helper |
+| `BarsFilterIcon` | P2 | Icon primitive |
+| `ScrollView` | P2 | RN wrapper |
+| `FlatList` | P2 | RN wrapper |
+| `TerrenoProvider` | cannot | Demo root already wraps the app |
+| `ThemeProvider` | cannot | Theme story already exercises theme; provider is shell |
+| `OpenAPIProvider` | cannot | OpenAPI Context story already wraps usage |
+| `IconRegistryProvider` | cannot | Registry is app shell, not a visual component |
+| `TableContextProvider` | cannot | Table stories already wrap table context |
+| `Host` | cannot | Portal host is app shell |
+| `Portal` | cannot | Portal is a host primitive, not a visual story |
+| `PortalContext` | cannot | React context object |
+| `ThemeContext` | cannot | React context object |
+| `Unifier` | cannot | Platform utility singleton, not a component |
+| `SPACING_MAP` | cannot | Constant, not a component |
+| `USSTATESLIST` | cannot | Constant, not a component |
+| `COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES` | cannot | Constant, not a component |
+| `GOOGLE_PLACES_API_RESTRICTIONS` | cannot | Constant, not a component |
+| `SIDEBAR_BADGE_STATUS_MAP` | cannot | Constant, not a component |
+| `SUPPORTED_ORIENTATIONS` | cannot | Constant, not a component |
+| `NATIVE_BREAKPOINT_MIN_WIDTH` | cannot | Constant, not a component |
+| `WEB_BREAKPOINT_MIN_WIDTH` | cannot | Constant, not a component |
+| `DEFAULT_SIGNATURE_FONTS` | cannot | Constant, not a component |
+| `CONFLICT_METADATA_FIELDS` | cannot | Constant, not a component |
+| `NO_CONFLICT_DIFF_FIELDS` | cannot | Constant, not a component |
+| `StyleProp` | cannot | Type re-export |
+| `ViewStyle` | cannot | Type re-export |
+| `OAuthProvider` | cannot | Type, not a component |
+| `OnboardingPage` | cannot | Type, not a component |
+| `PasswordRequirement` | cannot | Type, not a component |
 
 - [ ] **Task 1.2**: Add P0 stories
   - Description: Write stories for every P0 component from Task 1.1 (expected to include `GPTChat`, `SocialLoginButton`, and `SplitPage` — confirm against the audit). Each story shows multiple states where the component supports them: default, loading, error, disabled, and any variant enumerations. `GPTChat` needs a story that works without a live backend — use a static message list rather than wiring a real AI call. `SocialLoginButton` needs all three providers and both variants. `SplitPage` needs a story demonstrating the responsive breakpoint behavior. Register each in `demoConfig.tsx`.
