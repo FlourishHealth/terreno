@@ -699,7 +699,7 @@ native module baseline regardless, so this lands as a JS/OTA feature when schedu
 **Title:** `In-app notification center`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`notification-center` (Draft), Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`notification-center` (Approved), Status=`Planned`
 
 Adds a Notification model with per-user preferences, realtime delivery over the existing
 change-stream socket layer, and a bell/inbox UI in `@terreno/ui` with read/unread state —

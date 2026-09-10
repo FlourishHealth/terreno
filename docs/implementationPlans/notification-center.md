@@ -1,9 +1,10 @@
 # Implementation Plan: In-app notification center
 
-**Status:** Draft  
+**Status:** Approved  
 **Branch:** `cursor/notification-center-ip-b11f`  
 **Owner:** —  
 **Created:** 2026-09-10  
+**Approved:** 2026-09-10  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1179 (this feature **closes** that issue; implementation PRs use `Fixes #1179`)  
 **Task list:** [notification-center.md](../tasks/notification-center.md)  
 **Depends on:** [comms-abstraction](comms-abstraction.md) (shipped)  
