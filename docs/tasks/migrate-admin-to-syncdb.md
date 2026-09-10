@@ -105,7 +105,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: socket test: window subscribe does not emit snapshot pages; client test: reconcile interval does not GET `/sync/snapshot` for that collection
   - Skills: `terreno-backend-api`
 
-- [ ] **Task 3.4**: Hydrate known ids via REST + `GET /sync/entities`
+- [x] **Task 3.4**: Hydrate known ids via REST + `GET /sync/entities`
   - Delivers: helper used by admin UI (or syncdb window API) that given ids upserts entities; missing rows fetched from `/sync/entities`; RBAC: only admin-capable users may subscribe to `|admin`
   - Files: `syncdb/src/sync/httpChannel.ts` (entities already), new window hydrate helper if needed, `api/src/sync/socketHandlers.ts` permission, tests
   - Blocked by: 3.3, 1.5
