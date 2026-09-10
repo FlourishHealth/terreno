@@ -125,6 +125,10 @@ The `demo_lint_and_typecheck` CircleCI command (and the retained
 the demo compiles. Add a story plus `demoConfig.tsx` registration for new
 components, or an allowlist entry with a specific reason — not "hard to demo".
 
+`demo/package.json` `test:ci` runs Bun tests, including a smoke suite that mounts every
+registered `DemoConfig` demo and story through `renderWithTheme` from
+`@terreno/ui`'s test utilities (`demo/storiesSmoke.test.tsx`).
+
 Pull requests also run the `New file coverage` workflow. Every newly added workspace
 `.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%
 line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,

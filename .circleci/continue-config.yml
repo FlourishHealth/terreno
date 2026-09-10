@@ -211,6 +211,7 @@ commands:
             set -euo pipefail
             (cd demo && bun run lint)
             (cd demo && bun run compile)
+            (cd demo && bun run test:ci)
       - run:
           name: Check demo story coverage
           command: |

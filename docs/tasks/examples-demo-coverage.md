@@ -114,7 +114,7 @@ Registered stories (65 configs, including OpenAPI Context): Accordion, AddressFi
   - Depends on: Task 1.2
   - Acceptance: the check passes with the current allowlist; adding a new export to `ui/src/index.tsx` without a story makes it fail and name the component; the CI job runs it.
 
-- [ ] **Task 1.4**: Make the demo's `test:ci` real
+- [x] **Task 1.4**: Make the demo's `test:ci` real
   - Description: `demo/package.json`'s `test:ci` is currently `echo 'No tests'`. Replace it with something meaningful: at minimum a smoke test that every registered story renders without throwing, using the `renderWithTheme` helper from `@terreno/ui`'s test utilities. This catches the most common demo breakage — a story that crashes after a component's props change.
   - Files: `demo/package.json`, `demo/**` test files (new)
   - Depends on: Task 1.2
