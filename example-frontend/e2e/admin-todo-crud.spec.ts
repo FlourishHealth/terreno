@@ -40,7 +40,9 @@ test.describe("Admin Todo CRUD smoke", () => {
     await expect(page.getByText(editedTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText(createdTitle).locator("visible=true")).toHaveCount(0);
+    await expect(page.getByText(createdTitle, {exact: true}).locator("visible=true")).toHaveCount(
+      0
+    );
 
     await page.getByText(editedTitle).locator("visible=true").first().click();
     await page.getByTestId("admin-delete-button").waitFor({state: "visible", timeout: 15_000});
