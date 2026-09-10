@@ -170,7 +170,7 @@ Packages below 95%: `syncdb` (lines), `admin-backend`, `admin-frontend`, `admin-
   - Depends on: Task 3.1
   - Acceptance: every published package's CI runs the coverage check at 95%; no package has a permanent exemption.
 
-- [ ] **Task 3.3**: Add the matrix CI job for uncovered packages
+- [x] **Task 3.3**: Add the matrix CI job for uncovered packages
   - Description: Per IP question E3, create `.github/workflows/packages-ci.yml` with a matrix over the published packages that lack a dedicated workflow (`admin-backend`, `feature-flags`, `api-health`, `test` — verify the current set against `.github/workflows/`). Each matrix entry runs compile, lint, tests, and the coverage check. Use path filters so the job only runs for the affected package where practical. Follow the repo's required-input validation convention.
   - Files: `.github/workflows/packages-ci.yml` (new)
   - Depends on: Task 3.2

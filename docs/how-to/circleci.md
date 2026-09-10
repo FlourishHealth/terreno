@@ -133,7 +133,12 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 Dedicated package jobs (`api-ci`, `ai-ci`, `rtk-ci`, `ui-ci`, `syncdb-ci`,
 `comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run `bun run test:coverage`
 (`scripts/check-coverage.ts`, 95% functions and lines). Isolated `syncdb` tests
-are included by that script.
+are included by that script. Published packages without a dedicated workflow
+(`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) run
+the same commands through the parameterized `packages-ci` job, gated by
+`run-admin-backend`, `run-admin-frontend`, `run-api-health`,
+`run-feature-flags`, and `run-test-package`. The retained
+`.github/workflows/packages-ci.yml` matrix twin stays `on: []`.
 
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
@@ -158,6 +163,7 @@ are included by that script.
 | Run admin script CLI | `example-backend-script-runner` |
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
+| Lint, compile, and coverage (matrix package) | `packages-ci` (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) |
 | E2E · `<spec>` | `e2e` (matrix `spec`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |

@@ -86,6 +86,11 @@ workflows:
             scripts/static-analysis/.* run-repo-policies true
             scripts/check-circleci-parity/.* run-repo-policies true
             api/.* run-api true
+            admin-backend/.* run-admin-backend true
+            admin-frontend/.* run-admin-frontend true
+            api-health/.* run-api-health true
+            feature-flags/.* run-feature-flags true
+            test/.* run-test-package true
             ai/.* run-ai true
             rtk/.* run-rtk true
             ui/.* run-ui true
@@ -107,6 +112,11 @@ workflows:
             scripts/check-coverage\.ts run-ai true
             scripts/check-coverage\.ts run-comms true
             scripts/check-coverage\.ts run-admin-spa true
+            scripts/check-coverage\.ts run-admin-backend true
+            scripts/check-coverage\.ts run-admin-frontend true
+            scripts/check-coverage\.ts run-api-health true
+            scripts/check-coverage\.ts run-feature-flags true
+            scripts/check-coverage\.ts run-test-package true
             scripts/check-coverage\.ts run-new-file-coverage true
             scripts/check-package-coverage-ci\.ts run-new-file-coverage true
             scripts/check-package-coverage-ci\.test.ts run-new-file-coverage true

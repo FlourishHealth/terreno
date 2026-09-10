@@ -4,8 +4,13 @@ import {
   COVERAGE_COMMAND,
   DEDICATED_PACKAGE_CI_JOBS,
   findDedicatedJobsMissingCoverage,
+  findMatrixPackagesMissingCoverage,
   jobCommandBlock,
+  MATRIX_PACKAGES,
+  parseCircleMatrixPackages,
+  parseGhaMatrixPackages,
   runPackageCoverageCiCheck,
+  runPackagesCiMatrixCheck,
   sourceRunsCoverage,
 } from "./check-package-coverage-ci";
 
@@ -71,5 +76,68 @@ describe("findDedicatedJobsMissingCoverage", () => {
 describe("runPackageCoverageCiCheck", () => {
   it("passes when every dedicated package CI job runs test:coverage", () => {
     expect(runPackageCoverageCiCheck().ok).toBe(true);
+  });
+});
+
+describe("parseGhaMatrixPackages", () => {
+  it("reads matrix.include package names", () => {
+    const source = [
+      "jobs:",
+      "  packages:",
+      "    strategy:",
+      "      matrix:",
+      "        include:",
+      "          - package: test",
+      "          - package: admin-backend",
+      "",
+    ].join("\n");
+    expect(parseGhaMatrixPackages(source)).toEqual(["admin-backend", "test"]);
+  });
+});
+
+describe("parseCircleMatrixPackages", () => {
+  it("reads packages-ci workflow invocations", () => {
+    const source = [
+      "workflows:",
+      "  admin-backend:",
+      "    jobs:",
+      "      - packages-ci:",
+      "          package: admin-backend",
+      "          compile-deps: api",
+      "  test:",
+      "    jobs:",
+      "      - packages-ci:",
+      "          package: test",
+      "",
+    ].join("\n");
+    expect(parseCircleMatrixPackages(source)).toEqual(["admin-backend", "test"]);
+  });
+});
+
+describe("findMatrixPackagesMissingCoverage", () => {
+  it("requires GHA on:[], commands, matrix, CircleCI job, invocations, params, mappings", () => {
+    const missing = findMatrixPackagesMissingCoverage({
+      continueConfig: "jobs:\n  ui-ci:\n    command: bun test\n",
+      ghaSource: "name: Packages CI\non: push\njobs: {}\n",
+      setupConfig: "mapping: |\n            ui/.* run-ui true\n",
+    });
+    expect(missing.length).toBeGreaterThan(0);
+    expect(missing).toContain("gha:packages-ci.yml:on");
+  });
+});
+
+describe("runPackagesCiMatrixCheck", () => {
+  it("passes when the packages-ci matrix covers unpublished-workflow packages", () => {
+    expect(runPackagesCiMatrixCheck().ok).toBe(true);
+  });
+
+  it("lists the expected matrix packages", () => {
+    expect([...MATRIX_PACKAGES]).toEqual([
+      "admin-backend",
+      "admin-frontend",
+      "api-health",
+      "feature-flags",
+      "test",
+    ]);
   });
 });
