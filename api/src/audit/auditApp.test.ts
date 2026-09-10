@@ -6,7 +6,7 @@ import type {UserModel as AuthUserModel} from "../auth";
 import {TerrenoApp} from "../terrenoApp";
 import {authAsUser, setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
-import {createAuditEventModel} from "./auditEventModel";
+import {createAuditEventModel, getAuditEventIndexSpecs} from "./auditEventModel";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
 
@@ -56,7 +56,20 @@ describe("AuditApp", () => {
     const agent = await authAsUser(app, "notAdmin");
 
     const res = await agent.get("/audit-events");
-    assert.include([403, 405], res.status);
+    // modelRouter permissionMiddleware uses 405 when list permissions fail.
+    assert.equal(res.status, 405);
+  });
+
+  it("indexes created desc and modelName+recordId+created for per-record history", () => {
+    const specs = getAuditEventIndexSpecs();
+    assert.isTrue(
+      specs.some((fields) => fields.created === -1 && Object.keys(fields).length === 1)
+    );
+    assert.isTrue(
+      specs.some(
+        (fields) => fields.modelName === 1 && fields.recordId === 1 && fields.created === -1
+      )
+    );
   });
 
   it("does not expose create, update, or delete", async () => {
@@ -80,8 +93,8 @@ describe("AuditApp", () => {
     const del = await agent.delete(`/audit-events/${row._id}`);
     const read = await agent.get(`/audit-events/${row._id}`).expect(200);
     assert.equal(read.body.data.modelName, "Todo");
-    assert.include([403, 404, 405], post.status);
-    assert.include([403, 404, 405], patch.status);
-    assert.include([403, 404, 405], del.status);
+    assert.equal(post.status, 405);
+    assert.equal(patch.status, 405);
+    assert.equal(del.status, 405);
   });
 });

@@ -119,7 +119,7 @@ Diff helper: shallow (plus one-level nested objects) comparison of previous JSON
 
 Indexes: `{created: -1}`, `{modelName: 1, recordId: 1, created: -1}`. Optional TTL on `created` when `retentionDays > 0`. Every field has `description`. Five-type pattern co-located with the schema. `strict: "throw"`.
 
-HTTP: `create`/`update`/`delete` empty permission arrays. No public POST/PATCH/DELETE even for admins.
+HTTP: `create`/`update`/`delete` empty permission arrays. No public POST/PATCH/DELETE even for admins. Denied list/create (including non-admin GET list) returns **405**, matching `permissionMiddleware`; instance-level denials after a loaded document remain **403**.
 
 ## APIs
 

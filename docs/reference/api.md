@@ -118,7 +118,7 @@ new TerrenoApp({
 
 ### Audit log (`AuditApp`)
 
-Opt-in. Register `new AuditApp()` on `TerrenoApp` to mount append-only `GET /audit-events` (admin list/read). Importing `@terreno/api` does **not** register `AuditEvent` on the default mongoose connection — call `createAuditEventModel(connection)` or register the plugin. Product CRUD audit hooks land in a later slice; see the [framework audit log IP](../implementationPlans/framework-audit-log.md).
+Opt-in. Register `new AuditApp()` on `TerrenoApp` to mount append-only `GET /audit-events` (admin list/read). Non-admin list is **405** (`permissionMiddleware`). Importing `@terreno/api` does **not** register `AuditEvent` on the default mongoose connection — call `createAuditEventModel(connection)` or register the plugin. Product CRUD audit hooks land in a later slice; see the [framework audit log IP](../implementationPlans/framework-audit-log.md).
 
 ### setupServer (Legacy)
 

@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
-import {createdUpdatedPlugin, findExactlyOne, findOneOrNone} from "../plugins";
+import {
+  createdUpdatedPlugin,
+  type FindExactlyOnePlugin,
+  type FindOneOrNonePlugin,
+  findExactlyOne,
+  findOneOrNone,
+} from "../plugins";
 
 export type AuditEventVerb = "created" | "deleted" | "updated";
 export type AuditEventSource = "admin" | "modelRouter" | "rbac";
@@ -12,7 +18,23 @@ export type AuditEventOperation =
   | "delete"
   | "update";
 
-export interface AuditEventDocument {
+export type AuditEventMethods = Record<string, never>;
+
+export interface AuditEventStatics
+  extends FindExactlyOnePlugin<AuditEventDocument>,
+    FindOneOrNonePlugin<AuditEventDocument> {}
+
+export interface AuditEventModel
+  extends mongoose.Model<AuditEventDocument, object, AuditEventMethods>,
+    AuditEventStatics {}
+
+export type AuditEventSchema = mongoose.Schema<
+  AuditEventDocument,
+  AuditEventModel,
+  AuditEventMethods
+>;
+
+export interface AuditEventDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;
   actorId?: mongoose.Types.ObjectId;
   after?: Record<string, unknown>;
@@ -28,9 +50,11 @@ export interface AuditEventDocument {
   verb: AuditEventVerb;
 }
 
-export type AuditEventModel = mongoose.Model<AuditEventDocument>;
-
-const auditEventSchema = new mongoose.Schema<AuditEventDocument, AuditEventModel>(
+const auditEventSchema: AuditEventSchema = new mongoose.Schema<
+  AuditEventDocument,
+  AuditEventModel,
+  AuditEventMethods
+>(
   {
     actorId: {
       description: "User who performed the mutation, when known",
@@ -93,10 +117,16 @@ const auditEventSchema = new mongoose.Schema<AuditEventDocument, AuditEventModel
 );
 
 auditEventSchema.index({created: -1});
-auditEventSchema.index({created: -1, modelName: 1, recordId: 1});
+// Key order is the Mongo prefix (modelName, recordId), not alphabetical.
+// biome-ignore assist/source/useSortedKeys: compound query prefix is modelName then recordId then created
+auditEventSchema.index({modelName: 1, recordId: 1, created: -1});
 auditEventSchema.plugin(createdUpdatedPlugin);
 auditEventSchema.plugin(findOneOrNone);
 auditEventSchema.plugin(findExactlyOne);
+
+export const getAuditEventIndexSpecs = (): Array<Record<string, number>> => {
+  return auditEventSchema.indexes().map(([fields]) => fields as Record<string, number>);
+};
 
 export const createAuditEventModel = (connection: mongoose.Connection): AuditEventModel => {
   if (connection.models.AuditEvent) {
