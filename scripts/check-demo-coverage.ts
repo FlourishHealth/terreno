@@ -157,37 +157,60 @@ export const evaluateDemoCoverage = ({
  * Keep this list shrinking as stories land (tasks 2.1 / 2.2).
  */
 export const DEMO_COVERAGE_ALLOWLIST: AllowlistEntry[] = [
-  {name: "BarsFilterIcon", reason: "P2 — icon primitive; Icon story covers the icon set"},
-  {name: "ConsentNavigator", reason: "P2 — ConsentFormScreen already demos consent"},
-  {name: "DateTimeActionSheet", reason: "P2 — DateTimeField already demos the picker"},
-  {name: "DecimalRangeActionSheet", reason: "P2 — uncommon picker sheet"},
-  {name: "DraggableList", reason: "P2 — uncommon list"},
-  {name: "FilterAccordion", reason: "P2 — Filter story already covers the filter pattern"},
-  {name: "FilterBoolean", reason: "P2 — Filter story already covers the filter pattern"},
-  {name: "FilterChangesBadge", reason: "P2 — Filter story already covers the filter pattern"},
-  {name: "FilterSelectMenu", reason: "P2 — Filter story already covers the filter pattern"},
-  {name: "FlatList", reason: "P2 — React Native list wrapper, not a visual design component"},
-  {name: "GPTMemoryModal", reason: "P2 — GPTChat sub-surface"},
-  {name: "HeightActionSheet", reason: "P2 — HeightField already demos the picker"},
+  {
+    name: "BarsFilterIcon",
+    reason: "SVG used inside Filter; the Icon and Filter stories already show the glyph",
+  },
+  {
+    name: "ConsentNavigator",
+    reason:
+      "Requires a consumer RTK Query `api` to fetch and submit forms; ConsentFormScreen already demos the consent UI",
+  },
+  {
+    name: "DateTimeActionSheet",
+    reason: "Imperative sheet opened by DateTimeField; DateTimeField stories already open it",
+  },
+  {
+    name: "FilterAccordion",
+    reason: "Filter story already mounts accordion sections",
+  },
+  {
+    name: "FilterBoolean",
+    reason: "Filter story already mounts boolean filter rows",
+  },
+  {
+    name: "FilterChangesBadge",
+    reason: "Filter story already shows the applied-filter count badge",
+  },
+  {
+    name: "FilterSelectMenu",
+    reason: "Filter story already mounts select menus",
+  },
+  {
+    name: "FlatList",
+    reason: "Thin React Native FlatList re-export, not a Terreno visual component",
+  },
+  {
+    name: "HeightActionSheet",
+    reason: "Imperative sheet opened by HeightField; HeightField stories already open it",
+  },
   {name: "Host", reason: "Portal host is application shell, not a visual story"},
   {name: "IconRegistryProvider", reason: "Icon registry is application shell"},
-  {name: "NumberPickerActionSheet", reason: "P2 — uncommon picker sheet"},
   {name: "Portal", reason: "Portal is a host primitive, not a visual story"},
   {name: "PortalContext", reason: "React context object, not a visual component"},
-  {name: "Radio", reason: "P2 — RadioField already demos radio selection"},
-  {name: "ScrollView", reason: "P2 — React Native scroll wrapper, not a visual design component"},
+  {
+    name: "ScrollView",
+    reason: "Thin React Native ScrollView re-export, not a Terreno visual component",
+  },
   {name: "SidebarNavigationPanel", reason: "Covered by the Sidebar navigation stories"},
-  {name: "Signature", reason: "P2 — SignatureField already demos capture"},
-  {name: "Swiper", reason: "P2 — onboarding helper"},
   {name: "TableContextProvider", reason: "Table stories already wrap table context"},
-  {name: "TableHeader", reason: "P2 — Table story already covers table layout"},
-  {name: "TableHeaderCell", reason: "P2 — Table story already covers table layout"},
-  {name: "TableRow", reason: "P2 — Table story already covers table layout"},
+  {name: "TableHeader", reason: "Table story already renders header rows"},
+  {name: "TableHeaderCell", reason: "Table story already renders header cells"},
+  {name: "TableRow", reason: "Table story already renders body rows"},
   {name: "TerrenoProvider", reason: "Demo root already wraps the app"},
   {name: "ThemeContext", reason: "React context object, not a visual component"},
   {name: "ThemeProvider", reason: "Theme story already exercises theme; provider is shell"},
   {name: "Unifier", reason: "Platform utility singleton, not a component"},
-  {name: "UpgradeRequiredScreen", reason: "P2 — uncommon blocking screen"},
 ];
 
 const repoRootFromMeta = (): string => join(dirname(new URL(import.meta.url).pathname), "..");

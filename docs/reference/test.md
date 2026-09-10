@@ -124,6 +124,11 @@ The `demo_lint_and_typecheck` CircleCI command (and the retained
 `.github/workflows/ui-demo-ci.yml` job) runs the unit tests and this check after
 the demo compiles. Add a story plus `demoConfig.tsx` registration for new
 components, or an allowlist entry with a specific reason — not "hard to demo".
+The allowlist is limited to shell/providers, React context objects, thin RN
+list wrappers, and subcomponents already exercised by a parent story
+(Filter, Table, DateTimeField, HeightField, ConsentFormScreen).
+Standalone picker sheets (`NumberPickerActionSheet`, `DecimalRangeActionSheet`)
+have their own demo stories.
 
 `demo/package.json` `test:ci` runs Bun tests, including a smoke suite that mounts every
 registered `DemoConfig` demo and story through `renderWithTheme` from

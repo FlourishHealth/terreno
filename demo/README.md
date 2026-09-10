@@ -41,8 +41,6 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 
 ## Add a story
 
-## Add a story
-
 1. Create `stories/MyComponent.stories.tsx` with a `React.FC` demo using `@terreno/ui`.
 2. Add a `story-config/MyComponent.config.tsx` export (`name`, `interfaceName`, category).
 3. Import that config in `demoConfig.tsx` and add it to the exported list.

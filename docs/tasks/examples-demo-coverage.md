@@ -128,7 +128,7 @@ Registered stories (65 configs, including OpenAPI Context): Accordion, AddressFi
   - Depends on: Task 1.3
   - Acceptance: every P1 component has a story; interactive components can be opened and dismissed in the running demo; `bun run demo:compile` passes.
 
-- [ ] **Task 2.2**: Add P2 stories and close the allowlist
+- [x] **Task 2.2**: Add P2 stories and close the allowlist
   - Description: Write stories for the remaining P2 components. For any component that genuinely cannot be demoed in isolation, add it to the allowlist with a specific reason (not "hard to demo"). The goal is an empty or near-empty gap list with a justified allowlist.
   - Files: `demo/stories/*.stories.tsx` (new), `demo/demoConfig.tsx`, the allowlist
   - Depends on: Task 2.1
