@@ -22,6 +22,7 @@ import {HeadingConfiguration} from "@story-config/Heading.config";
 import {HeightFieldConfiguration} from "@story-config/HeightField.config";
 import {IconConfiguration} from "@story-config/Icon.config";
 import {IconButtonConfiguration} from "@story-config/IconButton.config";
+import {LineChartConfiguration} from "@story-config/LineChart.config";
 import {LinkConfiguration} from "@story-config/Link.config";
 import {LoginScreenConfiguration} from "@story-config/LoginScreen.config";
 import {MarkdownEditorFieldConfiguration} from "@story-config/MarkdownEditorField.config";
@@ -250,6 +251,7 @@ const Config: DemoConfigurationBase[] = [
   HeightFieldConfiguration,
   IconConfiguration,
   IconButtonConfiguration,
+  LineChartConfiguration,
   LinkConfiguration,
   LoginScreenConfiguration,
   MarkdownEditorFieldConfiguration,
