@@ -2636,6 +2636,8 @@ export interface LineChartProps extends WithTestID {
   loading?: boolean;
 }
 
+export interface BarChartProps extends LineChartProps {}
+
 /**
  * Data Table
  */

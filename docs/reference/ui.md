@@ -6,7 +6,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 - Layout: `Box`, `Page`, `SplitPage`, `Card`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
@@ -71,6 +71,18 @@ Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyT
 ```
 
 Hit targets use `Box` `onClick`, so testIDs are `{testID}.point.{index}-clickable`.
+
+### BarChart
+
+Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, loading, legend, tooltip).
+
+```tsx
+<BarChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-bar"
+/>
+```
 
 ## Component Behaviors
 
