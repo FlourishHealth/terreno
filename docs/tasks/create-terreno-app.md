@@ -2,7 +2,7 @@
 
 Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/create-terreno-app.md)
 
-**Status:** Approved — Pick–Roast loop in progress  
+**Status:** Approved — all in-scope tasks Roast PASS. **next: brew**.  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1174
 
 ## Instructions for the implementing agent
