@@ -1591,6 +1591,12 @@ describe("AdminApp organization scoping", () => {
       .expect(200);
     expect(list.body.data).toHaveLength(1);
     expect(list.body.data[0].name).toBe("First");
+    await agent.get("/admin/org-foods/search?q=Second").expect(400);
+    const search = await agent
+      .get("/admin/org-foods/search?q=Second")
+      .set("X-Organization-Id", String(firstOrg._id))
+      .expect(200);
+    expect(search.body.data).toHaveLength(0);
     const second = await OrgScopedFoodModel.findOne({name: "Second"}).orFail();
     await agent
       .get(`/admin/org-foods/${second._id}`)
@@ -1601,6 +1607,21 @@ describe("AdminApp organization scoping", () => {
       .set("X-Organization-Id", String(firstOrg._id))
       .send({calories: 99})
       .expect(403);
+    await agent
+      .delete(`/admin/org-foods/${second._id}`)
+      .set("X-Organization-Id", String(firstOrg._id))
+      .expect(403);
+    await agent
+      .post("/admin/org-foods/bulk-patch")
+      .send({ids: [second._id], patch: {calories: 99}})
+      .expect(400);
+    const bulk = await agent
+      .post("/admin/org-foods/bulk-patch")
+      .set("X-Organization-Id", String(firstOrg._id))
+      .send({ids: [second._id], patch: {calories: 99}})
+      .expect(200);
+    expect(bulk.body.updated).toBe(0);
+    expect(bulk.body.failures).toHaveLength(1);
 
     const created = await agent
       .post("/admin/org-foods")
@@ -1610,6 +1631,63 @@ describe("AdminApp organization scoping", () => {
     expect(String(created.body.data.organizationId)).toBe(String(firstOrg._id));
     const stored = await OrgScopedFoodModel.findById(created.body.data._id).lean();
     expect(String(stored?.organizationId)).toBe(String(firstOrg._id));
+  });
+
+  it("infers a single org-admin membership and denies another organization", async () => {
+    const admin = await UserModel.findOne({email: "admin@example.com"}).orFail();
+    admin.roles = [];
+    await admin.save();
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      organizations: true,
+      sources: [
+        {
+          getGrants: async () => ({
+            permissions: {
+              admin: ["access"],
+              adminOrgScopedFood: ["read", "write"],
+            },
+          }),
+          name: "org-scoped-food-admin",
+        },
+      ],
+      statements: {
+        ...terrenoStatements,
+        adminOrgScopedFood: ADMIN_MODEL_ACCESS,
+      },
+      userModel: UserModel as unknown as UserModelType,
+    });
+    await accessControl.roles.seedDefaults();
+    const localApp = buildApp(
+      [
+        {
+          displayName: "Org foods",
+          listFields: ["name", "calories"],
+          model: OrgScopedFoodModel,
+          routePath: "/org-foods",
+        },
+      ],
+      {accessControl, organizations: true}
+    );
+    const [firstOrg, secondOrg] = await Organization.create([
+      {name: "Admin Org", ownerId: admin._id},
+      {name: "Other Org", ownerId: admin._id},
+    ]);
+    await Membership.create({
+      organizationId: firstOrg._id,
+      roleName: "org-admin",
+      userId: admin._id,
+    });
+    await OrgScopedFoodModel.create([
+      {calories: 1, name: "Admin row", organizationId: firstOrg._id},
+      {calories: 2, name: "Other row", organizationId: secondOrg._id},
+    ]);
+    const agent = await authAsUser(localApp, "admin");
+
+    const inferred = await agent.get("/admin/org-foods").expect(200);
+    expect(inferred.body.data).toHaveLength(1);
+    expect(inferred.body.data[0].name).toBe("Admin row");
+    await agent.get("/admin/org-foods").set("X-Organization-Id", String(secondOrg._id)).expect(403);
   });
 
   it("leaves org-scoped models unscoped when organizations is omitted", async () => {
