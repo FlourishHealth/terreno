@@ -885,6 +885,9 @@ jobs:
       - run:
           name: Test lifecycle validator
           command: bun test scripts/planning/
+      - run:
+          name: Test release tooling
+          command: bun test scripts/ci/
 
   license-coverage:
     executor: node22
@@ -1610,7 +1613,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags mcp-server syncdb
+              api-health comms feature-flags create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1628,7 +1631,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');

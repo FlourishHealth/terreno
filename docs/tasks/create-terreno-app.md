@@ -65,7 +65,7 @@ Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/
 
 ### Phase 5: Docs, publish, dogfood skill
 
-- [ ] **Task 5.1**: Human docs + getting-started + how-to
+- [x] **Task 5.1**: Human docs + getting-started + how-to
   - Delivers: first-run path is the CLI; clone-examples stays as a secondary path
   - Files: `docs/tutorials/getting-started.md`, `docs/how-to/create-a-terreno-app.md`, `docs/how-to/README.md`, `docs/README.md` (package row)
   - Blocked by: Task 2.1, Task 3.1
@@ -73,7 +73,7 @@ Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/
   - Skills: `update-docs`
   - Acceptance: getting-started step 1 is `bunx create-terreno-app` (or `npm create terreno-app`); how-to lists flags, refuse-non-empty, seed login, Dockerfile note; indexes link the how-to
 
-- [ ] **Task 5.2**: Publish pipeline, changelog, build-terreno-app skill
+- [x] **Task 5.2**: Publish pipeline, changelog, build-terreno-app skill
   - Delivers: unscoped package on tag publish; dogfood Phase 2 prefers the CLI and treats MCP dump as fallback
   - Files: `.github/workflows/publish-on-tag.yml`, CircleCI publish list / `scripts/ci/publish-package.sh` if it enumerates packages, `changelog/unreleased/create-terreno-app.md`, `.rulesync/skills/build-terreno-app/SKILL.md` then `bun run skills:sync`, `docs/explanation/roadmap-seed-issues.md` (IP/task links already present — confirm)
   - Blocked by: Task 2.1, Task 4.1, Task 5.1
