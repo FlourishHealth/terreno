@@ -167,6 +167,8 @@ export interface AdminConfigResponse {
   };
   schemaVersion?: number;
   scripts: AdminScriptConfig[];
+  /** Present when AdminApp was given `migrations.dir`. */
+  migrations?: {enabled: boolean};
   /** Plugin home widget ids merged from admin contributions (informational). */
   widgetIds?: string[];
 }

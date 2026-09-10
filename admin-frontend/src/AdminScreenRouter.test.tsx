@@ -83,6 +83,13 @@ describe("AdminScreenRouter", () => {
     configState.isLoading = false;
   });
 
+  it("renders AdminMigrations for __migrations", () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminScreenRouter api={adminApi} baseUrl="/admin" name="__migrations" />
+    );
+    expect(getByTestId("admin-migrations")).toBeTruthy();
+  });
+
   it("renders AdminModelTable for a configured model name", () => {
     const {getByTestId} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="Food" />

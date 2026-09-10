@@ -91,7 +91,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 7 — Example, CI, agent docs
 
-- [ ] **Task 7.1**: example-backend wiring + reversible fixture
+- [x] **Task 7.1**: example-backend wiring + reversible fixture
   - Delivers: `example-backend/migrations/` with a reversible index (or no-op) migration; package scripts `migrate:check` / `migrate:up` / `migrate:status`; test `exerciseReversibleMigrations`; do not wipe `terreno_migrations` in seed reset
   - Files: `example-backend/package.json`, `example-backend/src/server.ts` (pass `migrations` into AdminApp + TerrenoApp), seed reset guard, tests
   - Blocked by: 2.2, 5.1

@@ -70,7 +70,9 @@ Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
 | POST | `/admin/migrations/run?wetRun=true\|false` | One BackgroundTask (`migrations:up`) |
 | GET/DELETE | `/admin/scripts/tasks/:id` | Poll or cancel that task |
 
-Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The UI page is a later slice.
+Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The admin UI is
+**Migrations** under Platform (`/admin/__migrations` or `/console/__migrations`):
+status list plus Dry run / Apply pending. Task logs poll `GET /admin/scripts/tasks/:id`.
 
 ## Example app
 
