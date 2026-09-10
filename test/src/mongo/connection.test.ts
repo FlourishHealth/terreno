@@ -16,6 +16,20 @@ describe("mongo connection helpers", () => {
     });
     expect(uri).toBe("mongodb://127.0.0.1/terrenoTest_base?retryWrites=true");
   });
+
+  it("buildDatabaseUri appends database name without query params", () => {
+    const uri = buildDatabaseUri({
+      databaseName: "terrenoTest_base",
+      uri: "mongodb://127.0.0.1",
+    });
+    expect(uri).toBe("mongodb://127.0.0.1/terrenoTest_base");
+  });
+
+  it("splitMongoUri keeps a URI that has no database path", () => {
+    const result = splitMongoUri("mongodb://127.0.0.1");
+    expect(result.baseUri).toBe("mongodb://127.0.0.1");
+    expect(result.uriOptions).toBe("");
+  });
 });
 
 describe("setTerrenoTestEnv", () => {

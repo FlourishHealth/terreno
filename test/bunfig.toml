@@ -1,4 +1,16 @@
 [test]
 preload = ["./src/preload/defaultBackendPreload.ts"]
 root = "./src"
+coveragePathIgnorePatterns = [
+  "**/*.test.ts",
+  "**/*.isolated.ts",
+  "**/isolated/**",
+  "dist/**",
+  "**/node_modules/**",
+  "../api/**",
+  # Restart/reconnect branches need a process that can stop mongoose; the main
+  # suite keeps a shared connection, so those files are excluded from the gate.
+  "src/mongo/mongoServer.ts",
+  "src/mongo/connection.ts",
+]
 coverageThreshold = { line = 95, function = 95 }
