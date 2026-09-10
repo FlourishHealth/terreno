@@ -163,6 +163,8 @@
         "expo-sharing",
         "expo-system-ui",
         "jspdf",
+        // EXPO_UNSTABLE_MCP_SERVER in start/web/ios loads the Expo MCP package.
+        "expo-mcp",
         // RTK OpenAPI's CLI loads TypeScript configuration through ts-node.
         "ts-node"
       ],

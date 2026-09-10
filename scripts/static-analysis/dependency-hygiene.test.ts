@@ -11,7 +11,6 @@ const UNUSED_DEV_DEPENDENCIES = new Map<string, string[]>([
   ["admin-backend/package.json", ["passport-local-mongoose"]],
   ["feature-flags/package.json", ["passport-local-mongoose"]],
   ["ai/package.json", ["winston"]],
-  ["example-frontend/package.json", ["expo-mcp"]],
   [
     "demo/package.json",
     [

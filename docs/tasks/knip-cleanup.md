@@ -74,7 +74,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 3: Remove true unused packages
 
-- [ ] **Task 3.1**: Delete unused `devDependencies` after the graph is honest
+- [x] **Task 3.1**: Delete unused `devDependencies` after the graph is honest
   - Delivers: remove packages that still appear as unused `devDependencies` and are not CLIs invoked from scripts (`sinon`, `@types/sinon`, `@types/bcrypt`, `@types/cron`, leftover `typedoc`/`prettier`/`ts-node`/`tsx` only if no script references them). Keep `@rtk-query/codegen-openapi`, `@biomejs/biome`, `mongodb` as a driver for example-backend tests, etc., when a script or plugin uses them — those become entries or ignores in Phase 1–2, not deletions
   - Files: affected `package.json` files, lockfile via `bun install`
   - Blocked by: Task 1.1, Task 1.2, Task 1.3, Task 2.2
