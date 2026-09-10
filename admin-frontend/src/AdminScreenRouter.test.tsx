@@ -46,20 +46,24 @@ mock.module("./useAdminBackgroundTask", () => ({
 
 import {AdminScreenRouter} from "./AdminScreenRouter";
 
+const injectAdminEndpoints = ({
+  endpoints,
+}: {
+  endpoints: (builder: unknown) => Record<string, unknown>;
+}): Record<string, unknown> => {
+  endpoints({
+    mutation: (spec: Record<string, unknown>) => spec,
+    query: (spec: Record<string, unknown>) => spec,
+  });
+  return {
+    useAdminVersionConfigQuery: () => ({data: null, error: null, isLoading: false}),
+    useUpdateVersionConfigMutation: () => [() => ({unwrap: async () => ({})}), {isLoading: false}],
+  };
+};
+
 const adminApi = {
-  injectEndpoints: ({endpoints}: {endpoints: (builder: unknown) => Record<string, unknown>}) => {
-    endpoints({
-      mutation: (spec: Record<string, unknown>) => spec,
-      query: (spec: Record<string, unknown>) => spec,
-    });
-    return {
-      useAdminVersionConfigQuery: () => ({data: null, error: null, isLoading: false}),
-      useUpdateVersionConfigMutation: () => [
-        () => ({unwrap: async () => ({})}),
-        {isLoading: false},
-      ],
-    };
-  },
+  enhanceEndpoints: () => ({injectEndpoints: injectAdminEndpoints}),
+  injectEndpoints: injectAdminEndpoints,
 } as unknown as AdminApi;
 
 const baseConfig: AdminConfigResponse = {

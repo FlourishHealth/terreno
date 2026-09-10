@@ -51,6 +51,7 @@ export const AdminMigrations: React.FC<AdminScreenProps> = ({api, apiBase, baseU
   const [runMigrations, {isLoading: isStarting}] = useRunMigrationsMutation();
   const [taskId, setTaskId] = useState<string | null>(null);
   const [runKind, setRunKind] = useState<"dry" | "wet" | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const {data: taskPayload} = useGetScriptTaskQuery(taskId ?? "", {
     pollingInterval: taskId ? POLL_INTERVAL_MS : 0,
@@ -69,8 +70,15 @@ export const AdminMigrations: React.FC<AdminScreenProps> = ({api, apiBase, baseU
   const handleRun = useCallback(
     async (wetRun: boolean): Promise<void> => {
       setRunKind(wetRun ? "wet" : "dry");
-      const result = await runMigrations({wetRun}).unwrap();
-      setTaskId(result.taskId);
+      setTaskId(null);
+      setStartError(null);
+      try {
+        const result = await runMigrations({wetRun}).unwrap();
+        setTaskId(result.taskId);
+      } catch (err: unknown) {
+        const errData = (err as {data?: {title?: string; detail?: string}})?.data;
+        setStartError(errData?.detail ?? errData?.title ?? "Failed to start migrations");
+      }
     },
     [runMigrations]
   );
@@ -122,7 +130,7 @@ export const AdminMigrations: React.FC<AdminScreenProps> = ({api, apiBase, baseU
 
   const pending = status?.pending ?? [];
   const applied = status?.applied ?? [];
-  const isBusy = isStarting || Boolean(taskId && task && !isTerminalStatus(task.status));
+  const isBusy = isStarting || Boolean(taskId && (!task || !isTerminalStatus(task.status)));
 
   return (
     <AdminScreenPage
@@ -185,12 +193,23 @@ export const AdminMigrations: React.FC<AdminScreenProps> = ({api, apiBase, baseU
             variant="primary"
           />
         </Box>
+        {startError ? (
+          <Text color="error" testID="admin-migrations-start-error">
+            {startError}
+          </Text>
+        ) : null}
         {task ? (
           <Card padding={4} testID="admin-migrations-task">
             <Text>
               {runKind === "wet" ? "Apply" : "Dry run"} {task.status}
               {task.error ? `: ${task.error}` : ""}
             </Text>
+            {(task.logs ?? []).map((log, index) => (
+              <Text key={`${log.timestamp}-${index}`}>{log.message}</Text>
+            ))}
+            {(task.result ?? []).map((line) => (
+              <Text key={line}>{line}</Text>
+            ))}
           </Card>
         ) : null}
       </Box>

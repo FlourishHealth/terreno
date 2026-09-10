@@ -307,6 +307,26 @@ describe("AdminShell", () => {
     expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/__migrations");
   });
 
+  it("hides Migrations when config.migrations.enabled is omitted", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = buildConfig();
+
+    const {queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(queryByTestId("admin-shell-nav-migrations")).toBeNull();
+  });
+
   it("hides built-in platform tools denied by backend RBAC metadata", () => {
     restoreWindowWidth?.();
     restoreWindowWidth = setWindowWidth(1024);

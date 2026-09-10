@@ -81,7 +81,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 6 — Admin UI
 
-- [ ] **Task 6.1**: Migrations page, nav, spa route
+- [x] **Task 6.1**: Migrations page, nav, spa route
   - Delivers: `__migrations` screen distinct from `__scripts`; status list; Dry run / Apply pending; reuse task polling (script-runner modal or equivalent); shell nav when `migrations.enabled`
   - Files: `admin-frontend/src/AdminMigrations.tsx`, tests, `AdminShell.tsx`, `AdminScreenRouter.tsx`, types; `admin-spa` route
   - Blocked by: 5.1
