@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from "react";
-import {useAdminContext} from "./AdminProvider";
+import {useAdminContext} from "./adminContext";
 import type {AdminRequestArgs} from "./adminRequest";
 import type {AdminRpc} from "./adminRpc";
 

@@ -1,4 +1,5 @@
-import React, {createContext, useContext, useEffect, useMemo, useRef} from "react";
+import React, {useEffect, useMemo, useRef} from "react";
+import {AdminWidgetContext, useAdminContext} from "./adminContext";
 import {bindAdminRequest} from "./adminRequest";
 import type {
   AdminProviderValue,
@@ -12,7 +13,7 @@ import type {
 import {resolveAdminBases} from "./types";
 import {BUILT_IN_WIDGET_REGISTRY, mergeWidgetRegistry} from "./widgets/builtInWidgets";
 
-const AdminWidgetContext = createContext<AdminProviderValue | null>(null);
+export {useAdminContext} from "./adminContext";
 
 const warnedMissingWidgets = new Set<string>();
 
@@ -86,10 +87,6 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   );
 
   return <AdminWidgetContext.Provider value={value}>{children}</AdminWidgetContext.Provider>;
-};
-
-export const useAdminContext = (): AdminProviderValue | null => {
-  return useContext(AdminWidgetContext);
 };
 
 export const useAdminWidgetRegistry = (): AdminWidgetRegistry => {

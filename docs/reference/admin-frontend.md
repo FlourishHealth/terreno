@@ -64,7 +64,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
-- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. Passing only `api` keeps the RTK list.
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 

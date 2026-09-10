@@ -226,6 +226,83 @@ describe("AdminModelTable windowed path", () => {
     assert.isTrue(listRefetch.mock.calls.length > 0);
   });
 
+  it("treats an RTK refetch error envelope as a Refresh failure", async () => {
+    const {hydrateWindow, syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    listRefetch.mockImplementation(async () => ({
+      error: {data: "nope", status: 500},
+      isError: true,
+    }));
+    const {UNSAFE_root, getByTestId} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const hydrateCountAfterMount = hydrateWindow.mock.calls.length;
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-refresh"));
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
+    assert.equal(hydrateWindow.mock.calls.length, hydrateCountAfterMount);
+  });
+
+  it("does not throw when window hydrate rejects", async () => {
+    const {hydrateWindow, syncDb} = createFakeSyncDb();
+    hydrateWindow.mockImplementation(async () => {
+      throw new Error("tinybase down");
+    });
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
+  });
+
+  it("drops a stale Refresh after the table unmounts", async () => {
+    const {hydrateWindow, syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    let resolveRefetch: ((value: {data: typeof listState.data}) => void) | undefined;
+    listRefetch.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRefetch = resolve;
+        })
+    );
+    const {getByTestId, unmount} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const hydrateCountAfterMount = hydrateWindow.mock.calls.length;
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-refresh"));
+    });
+    unmount();
+    await act(async () => {
+      resolveRefetch?.({
+        data: {
+          data: [{_id: "stale", title: "Stale refresh"}],
+          total: 1,
+        },
+      });
+      await Promise.resolve();
+    });
+    const refreshHydrates = hydrateWindow.mock.calls.slice(hydrateCountAfterMount);
+    for (const call of refreshHydrates) {
+      const args = call[0] as {ids: string[]};
+      assert.notInclude(args.ids, "stale");
+    }
+  });
+
   it("skips membership rows without ids and Refresh without a new envelope", async () => {
     const {hydrateWindow, syncDb} = createFakeSyncDb();
     listState.data = {

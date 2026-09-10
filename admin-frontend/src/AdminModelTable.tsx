@@ -19,11 +19,11 @@ import {
 import type {Href} from "expo-router";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Pressable} from "react-native";
 import {AdminActionMenu} from "./AdminActionMenu";
 import {AdminFilterDrawer} from "./AdminFilterDrawer";
-import {useAdminContext} from "./AdminProvider";
+import {useAdminContext} from "./adminContext";
 import {
   ADMIN_LIST_MAX_SELECTION,
   type AdminListFilterState,
@@ -270,6 +270,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const adminContext = useAdminContext();
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<ColumnSortInterface | undefined>();
   const [searchText, setSearchText] = useState("");
@@ -388,22 +390,31 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     isLoading: isListLoading,
     refetch,
   } = useListQuery(listParams, {skip: !modelConfig});
-  const [listSnapshot, setListSnapshot] = useState<AdminListEnvelope | undefined>();
   const [storeEpoch, setStoreEpoch] = useState(0);
+  const listParamsRef = useRef(listParams);
+  listParamsRef.current = listParams;
+  const refreshGenerationRef = useRef(0);
   const [deleteItem] = useDeleteMutation();
+
+  // Invalidate in-flight Refresh when membership query params change or the table unmounts.
+  useEffect(() => {
+    return () => {
+      refreshGenerationRef.current += 1;
+    };
+  }, [listParams]);
   const [patchItem] = useUpdateMutation();
   const [bulkPatch] = useBulkPatchMutation();
   const [enqueueBackground] = useAdminBackgroundTaskMutation(api, resolvedApiBase);
 
   const membershipRows = useMemo((): Array<Record<string, AdminFieldValue>> => {
-    const envelope = listSnapshot ?? (listData as AdminListEnvelope | undefined);
+    const envelope = listData as AdminListEnvelope | undefined;
     return (envelope?.data ?? []) as Array<Record<string, AdminFieldValue>>;
-  }, [listData, listSnapshot]);
+  }, [listData]);
 
   const membershipTotal = useMemo((): number => {
-    const envelope = listSnapshot ?? (listData as AdminListEnvelope | undefined);
+    const envelope = listData as AdminListEnvelope | undefined;
     return (envelope?.total as number | undefined) ?? 0;
-  }, [listData, listSnapshot]);
+  }, [listData]);
 
   const tableItems = useMemo((): Array<Record<string, AdminFieldValue>> => {
     if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
@@ -445,11 +456,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     setPage(1);
   }, []);
 
-  // Drop Refresh-only list snapshots when pagination, search, or sort change.
-  useEffect(() => {
-    setListSnapshot(undefined);
-  }, [listParams]);
-
   // Upsert the REST membership page into TinyBase for windowed admin lists.
   useEffect(() => {
     if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
@@ -466,11 +472,18 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       restRows[id] = row;
     }
     let cancelled = false;
-    void adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows}).then(() => {
-      if (!cancelled) {
-        setStoreEpoch((n) => n + 1);
-      }
-    });
+    void adminContext.syncDb
+      .hydrateWindow({collection: syncCollection, ids, restRows})
+      .then(() => {
+        if (!cancelled) {
+          setStoreEpoch((n) => n + 1);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          toastRef.current.catch(err, "Failed to load local rows");
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -480,13 +493,21 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
       return;
     }
+    const generation = refreshGenerationRef.current + 1;
+    refreshGenerationRef.current = generation;
+    const paramsAtStart = listParamsRef.current;
     try {
-      const result = (await refetch()) as {data?: AdminListEnvelope} | undefined;
-      const next = result?.data;
-      if (next) {
-        setListSnapshot(next);
+      const result = (await refetch()) as
+        | {data?: AdminListEnvelope; error?: unknown; isError?: boolean}
+        | undefined;
+      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
+        return;
       }
-      const rows = (next?.data ?? membershipRows) as Array<Record<string, AdminFieldValue>>;
+      if (result?.isError || result?.error) {
+        toast.catch(result.error ?? new Error("Refresh failed"), "Refresh failed");
+        return;
+      }
+      const rows = (result?.data?.data ?? membershipRows) as Array<Record<string, AdminFieldValue>>;
       const ids: string[] = [];
       const restRows: Record<string, unknown> = {};
       for (const row of rows) {
@@ -498,8 +519,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         restRows[id] = row;
       }
       await adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows});
+      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
+        return;
+      }
       setStoreEpoch((n) => n + 1);
     } catch (err) {
+      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
+        return;
+      }
       toast.catch(err, "Refresh failed");
     }
   }, [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]);
