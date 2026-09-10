@@ -74,7 +74,7 @@ const customStyle: StyleProp<ViewStyle> = {
 ## Component Categories
 
 ### Layout
-Box, Page, SplitPage, Card, Body, ImageBackground
+Box, Page, SplitPage, Card, Body, ImageBackground, DashboardGrid
 
 ### Text
 Text, Heading, Link, Hyperlink

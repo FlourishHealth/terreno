@@ -624,15 +624,14 @@ delegating to it.
 **Title:** `Charts and dashboard primitives`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`charts-and-dashboards`, Status=`Planned`
 
-`@terreno/ui` has a stubbed `Chart` export and no implementation. Adds themed chart
-components (line, bar, area, donut) on `victory-native` — JS-only, since its Skia /
-Reanimated / Gesture Handler peers are already linked — plus a simple dashboard grid
-layout, with demo stories and docs.
+`@terreno/ui` ships themed `LineChart`, `BarChart`, `AreaChart`, `DonutChart` on owned
+`react-native-svg` (not `victory-native`) plus `DashboardGrid`. Demo stories and Diátaxis
+docs are the proof; comms admin stats consume these primitives later.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [charts-and-dashboards.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/charts-and-dashboards.md)
+- **Tasks:** [charts-and-dashboards.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/charts-and-dashboards.md)
 - **RTK flag:** None
 - **Depends on:** —
 
