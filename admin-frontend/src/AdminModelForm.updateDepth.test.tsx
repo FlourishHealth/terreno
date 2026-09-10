@@ -124,7 +124,7 @@ const renderTodoEditForm = (
     </AdminProvider>
   );
 
-describe("AdminModelForm update-depth repro", () => {
+describe("AdminModelForm update-depth regression", () => {
   beforeEach(() => {
     setOptions.mockClear();
     configState.config = {
@@ -162,7 +162,7 @@ describe("AdminModelForm update-depth repro", () => {
   });
 });
 
-describe("AdminModelForm update-depth repro (setOptions triggers parent re-render)", () => {
+describe("AdminModelForm update-depth regression (setOptions triggers parent re-render)", () => {
   let parentRerender: (() => void) | null = null;
 
   const setOptionsWithRerender = mock((_opts: Record<string, unknown>) => {
@@ -236,7 +236,7 @@ describe("AdminModelForm update-depth repro (setOptions triggers parent re-rende
   });
 });
 
-describe("AdminModelForm update-depth repro (unstable navigation)", () => {
+describe("AdminModelForm update-depth regression (unstable navigation)", () => {
   afterEach(() => {
     mock.module("expo-router", () => ({
       router: {back: routerBack, push: routerPush},

@@ -4,7 +4,7 @@ import {waitForAdminTable} from "./helpers/adminUi";
 
 const REPRO_TITLE = "Review the sync status banner — admin window verified";
 
-test.describe("Admin Todo title update-depth investigation", () => {
+test.describe("Admin Todo title update-depth regression", () => {
   test("types the reported title on /admin/Todo/:id without maximum update depth", async ({
     consoleGuard,
     page,
