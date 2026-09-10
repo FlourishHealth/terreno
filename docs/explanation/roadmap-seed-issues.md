@@ -662,14 +662,14 @@ root views and system chrome follow the scheme.
 **Title:** `DataTable server-side filtering and search`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`datatable-server-side-filtering`, Status=`Planned`
 
 DataTable sorts and paginates but has no filter UI. Adds per-column filter controls and a
 search box that emit modelRouter-compatible query params (`queryFields`, `$and`/`$or`), so
 list screens get server-side filtering without custom plumbing. Admin tables adopt it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [datatable-server-side-filtering.md](../implementationPlans/datatable-server-side-filtering.md)
+- **Tasks:** [datatable-server-side-filtering.md](../tasks/datatable-server-side-filtering.md)
 - **RTK flag:** Partial — query wiring examples depend on the frontend data layer
 - **Depends on:** —
 
