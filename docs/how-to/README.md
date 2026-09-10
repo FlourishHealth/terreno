@@ -12,6 +12,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Contents
 
+- [Create a Terreno app](create-a-terreno-app.md) — Scaffold a full-stack app with `create-terreno-app` (Bun or npm)
 - [Update dependencies](update-dependencies.md) — Daily rolling PR, exercise test, Expo fingerprint freeze
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun

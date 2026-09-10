@@ -1,44 +1,84 @@
 # Getting Started
 
-Run the example full stack to see Terreno in action.
+Create a new Terreno app with the scaffolding CLI, then run it locally.
 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) installed
-- MongoDB running (for the backend example)
+- MongoDB as a **replica set** (required for sync and realtime — see [deployment baseline](../explanation/deployment-baseline.md))
 
-## Steps
+## 1. Scaffold a new app
 
-1. **Clone and install**
+From an empty parent directory:
 
-   ```bash
-   bun install
-   ```
+```bash
+bunx create-terreno-app my-app --display-name "My App"
+```
 
-2. **Start the backend** (terminal 1)
+npm alternative:
 
-   ```bash
-   bun run backend:dev
-   ```
+```bash
+npm create terreno-app my-app -- --display-name "My App"
+```
 
-   Backend runs at `http://localhost:4000`. OpenAPI spec at `/openapi.json`.
+This writes `my-app/backend` and `my-app/frontend` plus deploy and agent config. The CLI does not install dependencies or seed data.
 
-3. **Start the frontend** (terminal 2)
+Full flag reference, layout, and deploy notes: [Create a Terreno app](../how-to/create-a-terreno-app.md).
 
-   ```bash
-   bun run frontend:web
-   ```
+## 2. Install dependencies
 
-   Frontend runs in the browser and talks to the backend.
+```bash
+cd my-app
+(cd backend && bun install)
+(cd frontend && bun install)
+```
 
-4. **Optional: regenerate SDK** after backend route changes
+## 3. Start MongoDB
 
-   ```bash
-   cd example-frontend && bun run sdk
-   ```
+Use Atlas or a local single-node replica set. The scaffolded `backend/.env` points at `mongodb://127.0.0.1:27017/my_app?replicaSet=rs0` (database name derived from `appName`).
+Follow [Start MongoDB (replica set)](../how-to/create-a-terreno-app.md#3-start-mongodb-replica-set) for local commands.
+
+## 4. Seed and start the backend
+
+```bash
+(cd backend && bun run seed)
+(cd backend && bun run dev)
+```
+
+Backend runs at `http://localhost:4000`. OpenAPI spec at `/openapi.json`.
+
+Seed users: `test@example.com` and `admin@example.com`, password `testpassword123`.
+
+## 5. Start the frontend
+
+Keep the backend running while generating the SDK.
+
+```bash
+(cd frontend && bun run sdk)
+(cd frontend && bun run web)
+```
+
+Frontend runs at `http://localhost:8082`. Sign in with `test@example.com` / `testpassword123`.
+
+## Explore the Terreno monorepo examples
+
+If you are contributing to Terreno or want reference implementations inside this repository:
+
+```bash
+git clone https://github.com/FlourishHealth/terreno.git
+cd terreno && bun run bootstrap
+```
+
+| Service | Port | Command (from repo root) |
+| --- | --- | --- |
+| example-backend | 4000 | `bun run backend:dev` |
+| example-frontend web | 8082 | `EXPO_PUBLIC_API_URL=http://localhost:4000 bun run frontend:web` |
+
+The example backend needs `MONGO_URI` (replica set) and auth secrets — see the repository [AGENTS.md](https://github.com/FlourishHealth/terreno/blob/master/AGENTS.md) (Cursor Cloud section). Seed with `bun run backend:seed` from the repo root.
 
 ## Next steps
 
-- [How to create a model](../how-to/create-a-model.md) — Learn model conventions including required field descriptions
+- [Create a Terreno app](../how-to/create-a-terreno-app.md) — CLI flags, layout, deploy, MCP write path
+- [How to create a model](../how-to/create-a-model.md) — Model conventions including required field descriptions
 - [How-to guides](../how-to/) — Task-focused guides
 - [Reference](../reference/) — Package and API details
