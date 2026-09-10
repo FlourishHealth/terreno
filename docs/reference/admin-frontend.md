@@ -64,7 +64,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
-- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome as well as `headerRight`, because admin stacks often use `headerShown: false`. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 

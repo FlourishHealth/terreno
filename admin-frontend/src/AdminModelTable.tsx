@@ -575,7 +575,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   );
 
   const toggleSelectPage = useCallback(() => {
-    const ids = membershipRows.map((row) => String(row._id));
+    const ids = tableItems.map((row) => String(row._id));
     const allSelected = ids.length > 0 && ids.every((id: string) => selectedIds.has(id));
     if (allSelected) {
       setSelectedIds((prev) => {
@@ -600,7 +600,23 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       }
       return n;
     });
-  }, [membershipRows, selectedIds, toast]);
+  }, [selectedIds, tableItems, toast]);
+
+  // Drop selections a live admin tombstone removed, so bulk actions never target them.
+  useEffect(() => {
+    const visibleIds = new Set(tableItems.map((row) => String(row._id)));
+    setSelectedIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const row of membershipRows) {
+        const id = String(row._id ?? "");
+        if (id.length > 0 && !visibleIds.has(id) && next.delete(id)) {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [membershipRows, tableItems]);
 
   const runBulkAction = useCallback(
     async (actionId: string) => {
@@ -660,22 +676,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     if (!modelConfig) {
       return;
     }
-    navigation.setOptions({
-      headerRight: () => (
-        <Box alignItems="center" justifyContent="center" marginRight={3}>
-          {createEnabled ? (
-            <Button
-              onClick={() => router.push(`${resolvedRouteBase}/${modelName}/create` as Href)}
-              testID="admin-create-button"
-              text="Create"
-              variant="primary"
-            />
-          ) : null}
-        </Box>
-      ),
-      title: modelConfig.displayName,
-    });
-  }, [createEnabled, navigation, modelConfig, resolvedRouteBase, modelName]);
+    navigation.setOptions({title: modelConfig.displayName});
+  }, [navigation, modelConfig]);
 
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
     () => ({

@@ -225,24 +225,19 @@ describe("AdminModelTable", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders the headerRight create button and pushes to the create route on click", async () => {
+  it("renders one create button in the table and pushes to the create route on click", async () => {
     configState.config = fullConfig;
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const {getAllByTestId} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
+    const createButtons = getAllByTestId("admin-create-button");
+    expect(createButtons).toHaveLength(1);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-create-button"));
+      fireEvent.press(createButtons[0]);
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(routerPush).toHaveBeenCalledWith("/admin/User/create");
+    expect(setOptions).toHaveBeenCalledWith({title: "User"});
   });
 
   it("handles delete errors without throwing via the actions cell", async () => {
@@ -384,13 +379,7 @@ describe("AdminModelTable", () => {
   it("fetches config from apiBase but builds row href + create nav from routeBase when split", async () => {
     configState.config = fullConfig;
     listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = (opts.headerRight as () => React.ReactElement)();
-      }
-    });
-    const {UNSAFE_root} = renderWithTheme(
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
       <AdminModelTable
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -406,10 +395,8 @@ describe("AdminModelTable", () => {
     const rows = (tables[0] as ReactTestInstance).props.data as {value: {href?: string}}[][];
     expect(rows[0][0].value.href).toBe("/console/User/u1");
     // The create button must navigate using the route base.
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-create-button"));
+      fireEvent.press(getByTestId("admin-create-button"));
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(routerPush).toHaveBeenCalledWith("/console/User/create");
@@ -438,18 +425,9 @@ describe("AdminModelTable", () => {
       ],
       scripts: [],
     };
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = opts.headerRight();
-      }
-    });
     const {queryByTestId} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
-    expect(header.queryByTestId("admin-create-button")).toBeNull();
     expect(queryByTestId("admin-create-button")).toBeNull();
   });
 

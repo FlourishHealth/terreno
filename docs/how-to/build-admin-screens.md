@@ -51,8 +51,9 @@ hits the API instead of the Expo web origin.
 Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`, `credentials="same-origin"`,
 and `getAuthHeaders` that return `{}` so the cookie session is sent without a Bearer header.
 Omit `apiOrigin`. Each route wraps `AdminShellLayout` because the root layout is only
-providers. Model tables render **Create** in the table chrome (`testID="admin-create-button"`)
-because Expo stacks use `headerShown: false`.
+providers. Model tables render **Create** once, in the table chrome
+(`testID="admin-create-button"`), because admin Expo stacks use `headerShown: false`.
+The navigator header only receives the model title.
 
 ## 3. Keep generic model routes generic
 

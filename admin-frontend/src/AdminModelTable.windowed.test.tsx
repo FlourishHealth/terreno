@@ -435,4 +435,37 @@ describe("AdminModelTable windowed path", () => {
       await actionMenus[0].props.onRunAction("noop");
     });
   });
+
+  it("drops a selected row that a live tombstone removed from the window", async () => {
+    configState.config = {
+      ...windowedConfig,
+      models: windowedConfig.models.map((model) => ({
+        ...model,
+        actions: [{id: "activate", label: "Activate", patchKeys: ["active"]}],
+      })),
+    };
+    listState.data = {
+      data: [
+        {_id: "todo-1", title: "Alpha"},
+        {_id: "todo-2", title: "Beta"},
+      ],
+      total: 2,
+    };
+    const {extraStore, notifyStore, syncDb} = createFakeSyncDb();
+    const {getByTestId} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    assert.include(String(getByTestId("admin-table-selection-count").children), "2");
+
+    await act(async () => {
+      extraStore.set("todo-2", {data: {_id: "todo-2", title: "Beta"}, deleted: true, id: "todo-2"});
+      notifyStore();
+    });
+
+    assert.include(String(getByTestId("admin-table-selection-count").children), "1");
+  });
 });
