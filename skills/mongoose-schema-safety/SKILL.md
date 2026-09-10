@@ -83,29 +83,40 @@ schema.statics = {
 - Apply the standard plugins (`createdUpdatedPlugin`, `isDeletedPlugin`, `findOneOrNone`, `findExactlyOne`) on every new model. Most existing models go through `addDefaultPlugins`.
 - `checkModelsStrict()` runs at non-prod startup (`server.ts`) and validates schema consistency — keep it passing.
 
+## Migration files
+
+Schema and data changes that must run once per environment belong in
+`migrations/<YYYYMMDDHHmmss>-<slug>.ts` with required `up` and optional `down`.
+Generate a draft with `terreno-migrate generate --dir ./migrations --models ./src/models.ts`,
+then `terreno-migrate up --dir ./migrations --dry` before wet apply.
+See [Run MongoDB migrations](../../docs/how-to/run-mongodb-migrations.md).
+
+Admin **Scripts** (`ScriptRunner` + `BackgroundTask`) stay for one-off operator
+tools. Do not use Scripts as the primary path for versioned schema backfills.
+
 ## Schema Change Risk Matrix
 
 | Change Type | Risk Level | Required Mitigation |
 |-------------|-----------|---------------------|
 | Add optional field | Low | Safe to ship directly (still requires `description`) |
-| Add required field | High | Must provide a default value, OR write a backfill migration script first |
+| Add required field | High | Must provide a default value, OR write a versioned migration (`terreno-migrate generate` / `up`) with a backfill before wet apply |
 | Remove field | Medium | Soft-remove first (mark optional, stop writing); hard-remove in next PR after deploys settle |
-| Rename field | High | Three-step: add new → backfill → remove old (separate PRs) |
-| Change field type | Critical | Treat as rename: new field + migration + remove old |
-| Add index | Medium | Safe in code, but build can slow writes on large collections — coordinate with ops |
+| Rename field | High | Three-step: add new → backfill migration → remove old (separate PRs) |
+| Change field type | Critical | Treat as rename: new field + versioned migration + remove old |
+| Add index | Medium | Prefer `terreno-migrate generate` for the index; build can slow writes on large collections — coordinate with ops |
 | Remove index | Low | Safe to ship directly |
-| Add unique index | High | Dedup migration must run first; otherwise the index build fails on existing duplicates |
+| Add unique index | High | Dedup in a versioned migration first; otherwise the index build fails on existing duplicates |
 
-## Migration Scripts
+## One-off admin scripts
 
-Migration / backfill scripts live in `example-backend/src/scripts/` (e.g. `syncConsents.ts`, `seedConsents.ts`). They use the `ScriptRunner` type and `BackgroundTask` model from `@terreno/api` (`api/src/scriptRunner.ts`):
+Ad-hoc operator tools (counts, reseeds, support fixes) still live as admin
+Scripts using `ScriptRunner` and `BackgroundTask`:
 
 ```typescript
 import type {ScriptContext, ScriptResult, ScriptRunner} from "@terreno/api";
 
 export const run: ScriptRunner = async (wetRun, ctx) => {
   const results: string[] = [];
-  // ... do work ...
   if (wetRun) {
     // commit changes
   }
@@ -113,7 +124,9 @@ export const run: ScriptRunner = async (wetRun, ctx) => {
 };
 ```
 
-Always run with `wetRun = false` first to verify the dry-run output. Use `ctx.checkCancellation()`, `ctx.addLog()`, and `ctx.updateProgress()` for long-running tasks.
+Always run with `wetRun = false` first. Use `ctx.checkCancellation()`,
+`ctx.addLog()`, and `ctx.updateProgress()` for long-running tasks. Do not put
+repeatable schema backfills here — use `migrations/` and `terreno-migrate`.
 
 ## Cross-Package Ripple
 
@@ -131,7 +144,7 @@ A schema change in one place often ripples:
 - [ ] For a new model: all five types (`Document`, `Methods`, `Statics`, `Model`, `Schema`) created
 - [ ] Statics/methods assigned directly on schema (`schema.statics = {...}`, `schema.methods = {...}`) — not `.static()` / `.method()`
 - [ ] Other model type files checked — any model that populates this one updated if its shape changed
-- [ ] Migration script written (and dry-run verified with `wetRun = false`) for any backfill
+- [ ] Versioned migration written (`migrations/` + `terreno-migrate`) and dry-run verified for any backfill; unique-index dedup runs before the index is added
 - [ ] `modelRouter` config updated (`queryFields`, `populatePaths`, `responseHandler`) if needed
 - [ ] `AdminApp` `listFields` updated if the model is in the admin panel
 - [ ] `bun run sdk` run from `example-frontend/` if the API response shape changed
