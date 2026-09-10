@@ -9,15 +9,13 @@ interface MarkdownEmbedProps {
   url: string;
 }
 
-const IS_WEB = Platform.OS === "web";
-
 export const MarkdownEmbed: React.FC<MarkdownEmbedProps> = ({url}) => {
   const embedUrl = useMemo(() => toMediaEmbedUrl(url), [url]);
   if (!embedUrl) {
     return null;
   }
 
-  if (IS_WEB) {
+  if (Platform.OS === "web") {
     return (
       <Box margin={3} testID="markdown-embed-web" width="100%">
         <iframe

@@ -206,4 +206,21 @@ describe("AnnouncementsApp", () => {
     expect(pendingRes.body.data.current?.title).toBe("Included");
     expect(pendingRes.body.data.remainingCount).toBe(0);
   });
+
+  it("returns a paginated announcement feed", async () => {
+    await Announcement.create({
+      body: "Feed body",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Feed item",
+      version: 1,
+    });
+
+    const feedRes = await userAgent
+      .get("/announcements/feed?page=1&limit=10&platform=web")
+      .expect(200);
+    expect(feedRes.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(feedRes.body.total).toBeGreaterThanOrEqual(1);
+    expect(feedRes.body.page).toBe(1);
+  });
 });

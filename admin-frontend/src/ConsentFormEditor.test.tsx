@@ -5,6 +5,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi} from "./types";
 
 interface State {
@@ -31,35 +32,6 @@ let generateImpl: (body: unknown) => Promise<unknown> = async () => ({
 let translateImpl: (body: unknown) => Promise<unknown> = async () => ({
   data: {content: "translated"},
 });
-
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useCreateMutation: () => [
-      (body: unknown) => ({
-        unwrap: async () => {
-          createCalls.push(body);
-          return createImpl(body);
-        },
-      }),
-      {isLoading: false},
-    ],
-    useReadQuery: (_id: string, opts: {skip?: boolean}) => {
-      if (opts?.skip) {
-        return {data: undefined, isLoading: false};
-      }
-      return {data: state.formData, isLoading: state.isFormLoading};
-    },
-    useUpdateMutation: () => [
-      (args: unknown) => ({
-        unwrap: async () => {
-          updateCalls.push(args);
-          return updateImpl(args);
-        },
-      }),
-      {isLoading: false},
-    ],
-  }),
-}));
 
 const mutationSpecs: unknown[] = [];
 const makeApi = () => ({
@@ -129,6 +101,33 @@ const press = async (el: ReactTestInstance): Promise<void> => {
 
 describe("ConsentFormEditor", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useCreateMutation: () => [
+        (body: unknown) => ({
+          unwrap: async () => {
+            createCalls.push(body);
+            return createImpl(body);
+          },
+        }),
+        {isLoading: false},
+      ],
+      useReadQuery: (_id: string, opts: {skip?: boolean}) => {
+        if (opts?.skip) {
+          return {data: undefined, isLoading: false};
+        }
+        return {data: state.formData, isLoading: state.isFormLoading};
+      },
+      useUpdateMutation: () => [
+        (args: unknown) => ({
+          unwrap: async () => {
+            updateCalls.push(args);
+            return updateImpl(args);
+          },
+        }),
+        {isLoading: false},
+      ],
+    });
     state.formData = null;
     state.isFormLoading = false;
     createCalls.length = 0;

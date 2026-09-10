@@ -79,4 +79,22 @@ describe("announcement help routes", () => {
     expect(res.body.data.body).toContain("Archived migration guide");
     expect(res.body.data.status).toBe("archived");
   });
+
+  it("returns 404 for missing or draft notes", async () => {
+    const draft = await Announcement.create({
+      body: "Draft only",
+      status: "draft",
+      title: "Draft",
+    });
+    await userAgent.get(`/announcements/help/${draft._id.toString()}`).expect(404);
+    await userAgent.get("/announcements/help/000000000000000000000000").expect(404);
+  });
+
+  it("supports array query params, includeArchived=1, and limit", async () => {
+    const res = await userAgent
+      .get("/announcements/help/search?includeArchived=1&limit=1&q=billing&q=legacy")
+      .expect(200);
+    expect(res.body.data.length).toBeLessThanOrEqual(1);
+    expect(res.body.total).toBeGreaterThanOrEqual(1);
+  });
 });

@@ -5,6 +5,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi} from "./types";
 
 interface ListState {
@@ -14,20 +15,18 @@ interface ListState {
 }
 const listState: ListState = {data: undefined, error: null, isLoading: false};
 
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useListQuery: () => ({
-      data: listState.data,
-      error: listState.error,
-      isLoading: listState.isLoading,
-    }),
-  }),
-}));
-
 import {ConsentFormList} from "./ConsentFormList";
 
 describe("ConsentFormList", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useListQuery: () => ({
+        data: listState.data,
+        error: listState.error,
+        isLoading: listState.isLoading,
+      }),
+    });
     listState.data = undefined;
     listState.isLoading = false;
     listState.error = null;

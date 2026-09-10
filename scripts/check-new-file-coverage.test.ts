@@ -1,6 +1,6 @@
 import {describe, it} from "bun:test";
-import {assert} from "chai";
 import {join, resolve} from "node:path";
+import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
@@ -41,6 +41,7 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
+    assert.isFalse(isCoverageSourceFile("announcements/src/types.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
   });
 
@@ -54,6 +55,7 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("example-frontend/app/forgotPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/resetPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/verifyEmail.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/admin/announcements/create.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
   });
 });
@@ -172,10 +174,10 @@ describe("coverageRunArgs", () => {
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
       ["src"]
     );
-    assert.deepEqual(
-      coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
-      ["./**/*.test.ts", "./**/*.test.tsx"]
-    );
+    assert.deepEqual(coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}), [
+      "./**/*.test.ts",
+      "./**/*.test.tsx",
+    ]);
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1", "src"]

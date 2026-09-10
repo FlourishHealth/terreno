@@ -165,4 +165,96 @@ describe("AnnouncementNavigator", () => {
     expect(result.getByTestId("app-content")).toBeTruthy();
     expect(result.queryByTestId("announcement-screen")).toBeNull();
   });
+
+  it("renders a loading spinner while pending announcements load", () => {
+    const innerApi = {
+      injectEndpoints: mock(() => ({
+        useAcknowledgeAnnouncementMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+        useGetAnnouncementFeedQuery: mock(() => ({
+          data: undefined,
+          error: undefined,
+          isLoading: true,
+          refetch: mock(() => Promise.resolve()),
+        })),
+        useGetPendingAnnouncementsQuery: mock(() => ({
+          data: undefined,
+          error: undefined,
+          isLoading: true,
+          refetch: mock(() => Promise.resolve()),
+        })),
+        useRecordAnnouncementImpressionMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+      })),
+    };
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={{enhanceEndpoints: mock(() => innerApi)}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+    expect(result.getByTestId("announcement-navigator-loading")).toBeTruthy();
+  });
+
+  it("shows retry UI for recoverable feed errors", () => {
+    const refetch = mock(() => Promise.resolve());
+    const innerApi = {
+      injectEndpoints: mock(() => ({
+        useAcknowledgeAnnouncementMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+        useGetAnnouncementFeedQuery: mock(() => ({
+          data: undefined,
+          error: {status: 500},
+          isLoading: false,
+          refetch,
+        })),
+        useGetPendingAnnouncementsQuery: mock(() => ({
+          data: undefined,
+          error: {status: 500},
+          isLoading: false,
+          refetch,
+        })),
+        useRecordAnnouncementImpressionMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+      })),
+    };
+    const onError = mock(() => undefined);
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={{enhanceEndpoints: mock(() => innerApi)}} onError={onError}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+    expect(result.getByTestId("announcement-navigator-error")).toBeTruthy();
+    expect(onError).toHaveBeenCalled();
+  });
+
+  it("records an impression instead of acknowledging when acknowledgementMode is never", async () => {
+    const {api, impressionMutation, acknowledgeMutation} = createMockApi({
+      current: makeAnnouncement({requiresAcknowledgement: true}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator acknowledgementMode="never" api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+    await act(async () => {
+      fireEvent.press(result.getByText("Dismiss"));
+    });
+    expect(impressionMutation).toHaveBeenCalled();
+    expect(acknowledgeMutation).not.toHaveBeenCalled();
+  });
 });

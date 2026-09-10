@@ -5,6 +5,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi} from "./types";
 
 interface ListState {
@@ -14,20 +15,18 @@ interface ListState {
 }
 const listState: ListState = {data: undefined, error: null, isLoading: false};
 
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useListQuery: () => ({
-      data: listState.data,
-      error: listState.error,
-      isLoading: listState.isLoading,
-    }),
-  }),
-}));
-
 import {AnnouncementList} from "./AnnouncementList";
 
 describe("AnnouncementList", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useListQuery: () => ({
+        data: listState.data,
+        error: listState.error,
+        isLoading: listState.isLoading,
+      }),
+    });
     listState.data = undefined;
     listState.isLoading = false;
     listState.error = null;
@@ -135,5 +134,62 @@ describe("AnnouncementList", () => {
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(toJSON()).toBeDefined();
+  });
+
+  it("invokes onRowClick from the actions cell", async () => {
+    listState.data = {
+      data: [{_id: "row-1", priority: 1, status: "draft", title: "Row", version: 1}],
+      total: 1,
+    };
+    const onRowClick = mock((_: string) => undefined);
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementList api={{} as unknown as AdminApi} baseUrl="/admin" onRowClick={onRowClick} />
+    );
+    const editButtons = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.accessibilityLabel === "Edit"
+    );
+    expect(editButtons.length).toBeGreaterThan(0);
+    await act(async () => {
+      const editButton = editButtons[0] as ReactTestInstance;
+      editButton.props.onClick?.();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(onRowClick).toHaveBeenCalledWith("row-1");
+  });
+
+  it("formats invalid date cells and paginates results", async () => {
+    listState.data = {
+      data: [
+        {
+          _id: "a",
+          expiresAt: "not-a-date",
+          priority: "bad",
+          publishedAt: "also-bad",
+          status: "draft",
+          title: "Row",
+          version: "bad",
+        },
+      ],
+      total: 40,
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    const tables = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => typeof node.props?.setPage === "function"
+    );
+    expect(tables.length).toBeGreaterThan(0);
+    await act(async () => {
+      (tables[0] as ReactTestInstance).props.setPage(2);
+      await new Promise((r) => setTimeout(r, 10));
+    });
+  });
+
+  it("accepts apiBase and routeBase aliases", () => {
+    listState.data = {data: [], total: 0};
+    const {getByText} = renderWithTheme(
+      <AnnouncementList api={{} as unknown as AdminApi} apiBase="/admin" routeBase="/admin" />
+    );
+    expect(getByText(/No announcements found/)).toBeDefined();
   });
 });

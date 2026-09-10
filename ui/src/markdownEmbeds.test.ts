@@ -38,4 +38,16 @@ describe("markdownEmbeds", () => {
     expect(isEmbeddableMediaUrl("https://www.loom.com/share/abc123def456")).toBe(true);
     expect(isEmbeddableMediaUrl("https://example.com/docs")).toBe(false);
   });
+
+  it("handles alternate YouTube URL shapes and invalid input", () => {
+    expect(toYouTubeEmbedUrl("https://www.youtube.com/embed/dQw4w9WgXcQ")).toBe(
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    );
+    expect(toYouTubeEmbedUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ")).toBe(
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    );
+    expect(toYouTubeEmbedUrl("not-a-url")).toBeNull();
+    expect(toLoomEmbedUrl("not-a-url")).toBeNull();
+    expect(toMediaEmbedUrl("https://example.com/video")).toBeNull();
+  });
 });
