@@ -337,4 +337,51 @@ describe("AdminModelTable windowed path", () => {
     assert.isNull(queryByTestId("admin-table-refresh"));
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
   });
+
+  it("selects the membership page and warns when a bulk action has no handler", async () => {
+    configState.config = {
+      ...windowedConfig,
+      models: windowedConfig.models.map((model) => ({
+        ...model,
+        actions: [
+          {id: "noop", label: "Noop"},
+          {id: "activate", label: "Activate", patchKeys: ["active"]},
+        ],
+        filters: [{field: "due", kind: "dateRange"}],
+        listDisplayLinks: ["title"],
+      })),
+    };
+    listState.data = {
+      data: [
+        {_id: "todo-1", title: "Alpha"},
+        {_id: "todo-2", title: "Beta"},
+      ],
+      total: 2,
+    };
+    const {UNSAFE_root, getByTestId} = renderWindowed(createFakeSyncDb().syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    assert.include(String(getByTestId("admin-table-selection-count").children), "2");
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    assert.include(String(getByTestId("admin-table-selection-count").children), "0");
+    const actionMenus = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => typeof node.props?.onRunAction === "function"
+    );
+    await act(async () => {
+      await actionMenus[0].props.onRunAction("missing");
+      await actionMenus[0].props.onRunAction("noop");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    await act(async () => {
+      await actionMenus[0].props.onRunAction("noop");
+    });
+  });
 });

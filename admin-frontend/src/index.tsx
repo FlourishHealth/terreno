@@ -76,6 +76,7 @@ export type {
   AdminScreenWidgetProps,
   AdminScriptConfig,
   AdminSyncDb,
+  AdminSyncDbEntity,
   AdminWidgetRegistry,
   BackgroundTask,
   DocumentFile,
