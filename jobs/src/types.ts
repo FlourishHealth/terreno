@@ -57,6 +57,8 @@ export interface JobsRunnerHost {
  */
 export interface JobRunner {
   readonly id: string;
+  /** When true, {@link JobsApp} mounts the internal execute HTTP route (requires {@link JobsAppOptions.executeAuth}). */
+  readonly requiresExecuteRoute?: boolean;
   enqueue(job: JobDocument): Promise<void>;
   start?(options: JobRunnerStartOptions): Promise<void>;
   stop?(): Promise<void>;

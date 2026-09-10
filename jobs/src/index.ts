@@ -11,6 +11,7 @@ export type {
   JobScheduleModel,
   JobStatus,
 } from "./modelTypes";
+export type {ExecuteAuthVerifier} from "./routes/jobsExecute";
 export {MongoJobRunner} from "./runners/mongoRunner";
 export type {
   EnqueueJobParams,

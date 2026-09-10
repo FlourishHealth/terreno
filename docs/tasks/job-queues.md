@@ -67,7 +67,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (5.1)
   - Acceptance: bun test — custom runner `enqueue` called once per job; Mongo runner tests still pass
 
-- [ ] **Task 3.2**: `POST /jobs/execute` auth gate
+- [x] **Task 3.2**: `POST /jobs/execute` auth gate
   - Delivers: route mounted when `mountExecuteRoute` or cloud runner; body `{jobId}`; loads/claims/runs; unsigned 401; terminal completed → 200 no-op; live lock → 409
   - Files: `jobs/src/routes/jobsExecute.ts`, tests
   - Blocked by: 1.3

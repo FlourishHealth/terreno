@@ -5,12 +5,20 @@ import type express from "express";
 import {JobsService, registerJobsService} from "./jobsService";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
+import {type ExecuteAuthVerifier, registerJobsExecuteRoute} from "./routes/jobsExecute";
+
+export type {ExecuteAuthVerifier};
+
 import {MongoJobRunner} from "./runners/mongoRunner";
 import type {JobDefinition, JobRunner, JobsRunnerHost} from "./types";
 
 export interface JobsAppOptions {
   basePath?: string;
+  /** Verifies inbound execute HTTP requests (required when the execute route is mounted). */
+  executeAuth?: ExecuteAuthVerifier;
   lockTtlMs?: number;
+  /** Mount internal `POST {basePath}/execute` for cloud/custom dispatch. */
+  mountExecuteRoute?: boolean;
   pollIntervalMs?: number;
   runner?: JobRunner;
   timezone?: string;
@@ -82,8 +90,25 @@ export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
     await this.service.tickSchedules(now);
   }
 
-  register(_app: express.Application, _openApi?: unknown): void {
+  register(app: express.Application, _openApi?: unknown): void {
     registerJobsService(this.service);
+
+    if (this.shouldMountExecuteRoute()) {
+      if (!this.options.executeAuth) {
+        throw new Error(
+          "JobsApp execute route is enabled but executeAuth is missing. Provide executeAuth when mountExecuteRoute is true or the runner requires the execute route."
+        );
+      }
+
+      registerJobsExecuteRoute({
+        app,
+        options: {
+          basePath: this.getBasePath(),
+          executeAuth: this.options.executeAuth,
+          host: this.service,
+        },
+      });
+    }
 
     void Job.init().catch((error: unknown) => {
       logger.error(`[jobs] Failed to build Job indexes: ${String(error)}`);
@@ -92,6 +117,14 @@ export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
     void JobSchedule.init().catch((error: unknown) => {
       logger.error(`[jobs] Failed to build JobSchedule indexes: ${String(error)}`);
     });
+  }
+
+  private shouldMountExecuteRoute(): boolean {
+    if (this.options.mountExecuteRoute) {
+      return true;
+    }
+
+    return this.runner.requiresExecuteRoute === true;
   }
 
   isWorkerActive(): boolean {
