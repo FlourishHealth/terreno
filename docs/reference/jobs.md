@@ -211,16 +211,21 @@ always hides payload regardless of the hook.
 
 ## Admin frontend widgets
 
-`@terreno/admin-frontend` exports:
+`@terreno/admin-frontend` public exports for jobs:
 
 | Export | Role |
 | --- | --- |
-| `JOBS_ADMIN_WIDGETS` | Screen widget map (`jobs` → dashboard) |
-| `JOBS_HOME_WIDGETS` | Home widget map (`jobs`) |
-| `JobsDashboardScreen`, `JobsJobDetail` | Screens |
-| `useJobsDashboardApi` | RTK Query hooks for jobs admin routes |
+| `JOBS_ADMIN_WIDGETS`, `JobsDashboardScreenWidget` | Screen widget map (`jobs` → dashboard) |
+| `JOBS_HOME_WIDGETS`, `JobsHomeWidget` | Home widget (`dead` / `running` counts) |
+| `JobsDashboardScreen`, `JobsJobDetail` | Full screens (Expo admin routes) |
+| `JobsStatusBadge` | Status chip |
+| `canCancelJob`, `canRequeueJob`, `canRetryJob`, `formatJobTimestamp`, `jobRowId`, `unwrapJobRow` | Row helpers |
+| `JobRow`, `JobAttemptRow`, `JobScheduleRow`, `JobsStats` | Row/types for tables |
+| `JobsDashboardFilters`, `parseJobsDashboardSearchParams`, `serializeJobsDashboardSearchParams` | URL filter helpers |
 
-Registered in built-in widget registry — enable via `JobsApp.adminContribution()` only.
+Widgets are registered in the built-in registry — enable via `JobsApp.adminContribution()` only.
+Custom screens should pass the app's generated RTK `api` into `AdminProvider`; jobs screens wire
+admin HTTP internally (not via a public `useJobsDashboardApi` export).
 
 ## GCP Cloud Tasks (`@terreno/jobs/runners/gcpCloudTasks`)
 
