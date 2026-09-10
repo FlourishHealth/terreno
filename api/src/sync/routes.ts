@@ -4,8 +4,10 @@ import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions, Permissions} from "../permissions";
+import {checkPermissions} from "../permissions";
 import {findOneOrNoneFor} from "../plugins";
+import type {AnyTerrenoAccess} from "../rbac/types";
+import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import {
   computeStableFrontier,
   getCompactedThroughSeq,
@@ -54,6 +56,16 @@ export interface SyncAppOptions {
   getUserScopes?: (user: User, entry: SyncRegistryEntry) => Promise<string[]> | string[];
   /** Default page size for snapshots (default 100, max 100). */
   defaultSnapshotLimit?: number;
+  /**
+   * When set, `{collection}|admin` window subscribe and cross-owner entity
+   * hydrate require `admin:access` instead of the legacy `user.admin` flag.
+   */
+  accessControl?: AnyTerrenoAccess;
+  /**
+   * Override the admin-window gate. Defaults to `admin:access` when
+   * `accessControl` is set, otherwise `Permissions.IsAdmin`.
+   */
+  canOpenAdminWindow?: (user: User) => boolean | Promise<boolean>;
 }
 
 const MAX_SNAPSHOT_LIMIT = 100;
@@ -697,7 +709,12 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       }
 
       const isAdminWindow =
-        entry.config.adminBroadcast === true && Permissions.IsAdmin("list", user);
+        entry.config.adminBroadcast === true &&
+        (await canUseAdminBroadcastWindow({
+          accessControl: options.accessControl,
+          canOpenAdminWindow: options.canOpenAdminWindow,
+          user,
+        }));
 
       const memberStreams = isAdminWindow
         ? []
@@ -711,7 +728,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       // Task 9.19: mirror the REST list endpoint's row-level scoping. Without this, a
       // collection that relies on `queryFilter` (rather than a per-doc read permission)
       // served every requested id here, whatever the caller was allowed to list.
-      // Admin window hydrate (`adminBroadcast` + admin user) skips that filter so
+      // Admin window hydrate (`adminBroadcast` + admin panel access) skips that filter so
       // REST-selected ids can be loaded across owners.
       const queryFilterResult = isAdminWindow
         ? {denied: false as const, filter: undefined}

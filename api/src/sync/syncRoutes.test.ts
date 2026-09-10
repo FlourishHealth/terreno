@@ -788,6 +788,32 @@ describe("sync routes", () => {
         .expect(200);
       assert.deepEqual(res.body.entities, []);
     });
+
+    it("does not cross-owner hydrate when accessControl denies admin:access", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      const theirs = await RouteStuffModel.create({name: "flag-admin-owned", ownerId: notAdminId});
+      const gatedApp = getBaseServer();
+      setupAuth(gatedApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(gatedApp, UserModel as unknown as AuthUserModel);
+      new SyncApp({
+        accessControl: {
+          can: async () => ({allowed: false}),
+        } as never,
+        getUserScopes: () => ["org1"],
+      }).register(gatedApp);
+      const gatedAdmin = await authAsUser(gatedApp, "admin");
+
+      const res = await gatedAdmin
+        .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
+        .expect(200);
+      assert.deepEqual(res.body.entities, []);
+    });
   });
 
   describe("GET /sync/key", () => {

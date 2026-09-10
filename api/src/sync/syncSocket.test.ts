@@ -320,6 +320,32 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     assert.match(errors[0].message, /admin/i);
   });
 
+  it("nacks window subscribe when accessControl denies admin:access", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket, {
+      accessControl: {
+        can: async () => ({allowed: false}),
+      } as never,
+    });
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    assert.deepEqual(
+      socket.emitted.filter((e) => e.event === "sync:subscribed"),
+      []
+    );
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /admin panel access/i);
+  });
+
   it("owner scope never uses a client-supplied user id", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);

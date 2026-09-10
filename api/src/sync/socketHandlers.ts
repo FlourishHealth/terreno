@@ -2,8 +2,9 @@ import type {Server} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
-import {checkPermissions, Permissions} from "../permissions";
+import {checkPermissions} from "../permissions";
 import {awaitSocketFullUser, type SocketWithDecodedToken} from "../realtime/socketUser";
+import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import type {SyncMutationOutcome} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
@@ -28,8 +29,9 @@ import type {
  *   rooms. Owner scopes always use the socket's own userId (never a client-supplied one);
  *   tenant and custom scopes resolve stream values via `SyncAppOptions.getUserScopes`.
  *   `mode: "window"` joins `{collection}|admin` only (requires `adminBroadcast` and
- *   `Permissions.IsAdmin`) and confirms with `sync:subscribed {mode: "window"}`
- *   without dumping snapshot pages. Non-admin callers get `sync:error`.
+ *   admin panel access: `admin:access` when `SyncApp` has `accessControl`, else
+ *   `user.admin`) and confirms with `sync:subscribed {mode: "window"}`
+ *   without dumping snapshot pages. Callers without that access get `sync:error`.
  *   Sync deltas fan out through these dedicated `sync:{stream}` rooms rather than the
  *   legacy realtime rooms so the two event families never overlap.
  * - `sync:mutate` — applies a mutation through `applySyncMutation` and replies with
@@ -202,11 +204,18 @@ export const installSyncSocketHandlers = (
           });
           continue;
         }
-        if (isWindow && !Permissions.IsAdmin("list", user)) {
+        if (
+          isWindow &&
+          !(await canUseAdminBroadcastWindow({
+            accessControl: options.accessControl,
+            canOpenAdminWindow: options.canOpenAdminWindow,
+            user,
+          }))
+        ) {
           logInfo(`[sync] User ${userId} denied window subscribe for ${collection}`);
           socket.emit("sync:error", {
             collection,
-            message: `Window subscribe requires admin for ${collection}`,
+            message: `Window subscribe requires admin panel access for ${collection}`,
           });
           continue;
         }
