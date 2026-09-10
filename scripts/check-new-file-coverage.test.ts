@@ -42,6 +42,7 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
     assert.isFalse(isCoverageSourceFile("announcements/src/types.ts"));
+    assert.isFalse(isCoverageSourceFile("admin-frontend/src/testing/useAdminApiDouble.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
   });
 

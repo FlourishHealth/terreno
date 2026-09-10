@@ -16,7 +16,7 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)src\/types\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|testing)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)src\/types\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, thin `create` wrappers, and named recovery routes
