@@ -1,5 +1,5 @@
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
-import {basename, dirname, join, relative, resolve} from "node:path";
+import {dirname, join, relative, resolve} from "node:path";
 
 export const REPO_ROOT = resolve(import.meta.dir, "../..");
 
