@@ -340,6 +340,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@terreno/api": TERRENO_DEP_VERSION,
         "@terreno/api-health": TERRENO_DEP_VERSION,
         luxon: "^3.7.2",
+        mongodb: MONGODB_VERSION,
         mongoose: MONGOOSE_VERSION,
         "passport-local-mongoose": "^9.0.1",
       },

@@ -216,6 +216,20 @@ describe("generateAllFiles", () => {
     );
   });
 
+  test("declares mongodb as a direct backend dependency for Better Auth ESM resolution", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Mongo App",
+      appName: "mongo-app",
+    });
+    const backendPackageJson = JSON.parse(
+      files.find((file) => file.path === "backend/package.json")?.content ?? "{}"
+    ) as {dependencies: Record<string, string>};
+
+    assert.equal(backendPackageJson.dependencies.mongodb, MONGODB_VERSION);
+    assert.notInclude(backendPackageJson.dependencies.mongodb, "^");
+    assert.notProperty(backendPackageJson.dependencies, "bson");
+  });
+
   test("pins backend Mongo stack for Bun (exact mongoose + mongodb/bson overrides)", () => {
     const files = generateAllFiles({
       appDisplayName: "Mongo App",
