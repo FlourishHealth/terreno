@@ -205,4 +205,26 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report declared optional, test-only, or type-only modules as unlisted",
+    (): void => {
+      const report = runDefaultKnipReport();
+      const expectedDeclarations = [
+        ["ai/package.json", "@ai-sdk/google-vertex"],
+        ["ai/package.json", "express"],
+        ["api/package.json", "ioredis"],
+        ["website/package.json", "@docusaurus/plugin-content-docs"],
+        ["test/package.json", "@terreno/api"],
+      ] as const;
+      for (const [packageFile, dependencyName] of expectedDeclarations) {
+        assert.notInclude(
+          dependencyIssueNames({file: packageFile, report}),
+          dependencyName,
+          `${packageFile}: ${dependencyName}`
+        );
+      }
+    },
+    {timeout: 180_000}
+  );
 });

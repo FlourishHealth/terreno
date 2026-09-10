@@ -66,7 +66,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: live report has no `binaries` / `catalog` / `optionalPeerDependencies` findings except any still destined for Task 3.1 deletion; `analyze:full` exits 0
 
-- [ ] **Task 2.3**: Ignore remaining unlisted modules that are optional or type-only
+- [x] **Task 2.3**: Ignore remaining unlisted modules that are optional or type-only
   - Delivers: honest ignores or `optionalDependencies` for `ioredis` (rate-limit redis store), `@ai-sdk/google-vertex`, `@docusaurus/plugin-content-docs`, `express` in ai tests, `@terreno/api` from `@terreno/test` if the graph cannot see the workspace package
   - Files: `knip.jsonc` and/or the declaring `package.json` if the package should be listed instead of ignored
   - Blocked by: Task 1.2

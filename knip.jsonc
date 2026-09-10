@@ -53,11 +53,19 @@
       ]
     },
     "ai": {
+      // The Vertex provider is loaded dynamically only when an app opts in and supplies
+      // the package through @terreno/ai's optional peer contract.
+      "ignoreDependencies": ["@ai-sdk/google-vertex"],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/isolated/**/*.isolated.ts"
       ]
+    },
+    "api": {
+      // The Redis rate-limit adapter dynamically loads ioredis only when an app selects
+      // that store and supplies the package through @terreno/api's optional peer contract.
+      "ignoreDependencies": ["ioredis"]
     },
     "rtk": {
       "entry": [
@@ -72,6 +80,11 @@
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/isolated/**/*.isolated.ts"
       ]
+    },
+    "test": {
+      // The test logger optionally discovers @terreno/api at runtime while API itself
+      // depends on @terreno/test; an optional peer avoids a package dependency cycle.
+      "ignoreDependencies": ["@terreno/api"]
     },
     "admin-spa": {
       // Expo Router, font loading, persistence, app.json plugins, and the Metro PDF

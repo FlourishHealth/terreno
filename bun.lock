@@ -153,6 +153,7 @@
         "@types/luxon": "catalog:",
         "@types/multer": "catalog:",
         "@types/supertest": "catalog:",
+        "express": "catalog:",
         "mongoose": "catalog:",
         "passport-local-mongoose": "catalog:",
         "supertest": "catalog:",
@@ -160,9 +161,13 @@
         "winston": "catalog:",
       },
       "peerDependencies": {
+        "@ai-sdk/google-vertex": "^4.0.142",
         "@terreno/api": "workspace:*",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
+      "optionalPeers": [
+        "@ai-sdk/google-vertex",
+      ],
     },
     "api": {
       "name": "@terreno/api",
@@ -237,9 +242,13 @@
         "zod": "catalog:",
       },
       "peerDependencies": {
+        "ioredis": "^5.11.0",
         "mongoose": "^8.0.0 || ^9.0.0",
         "zod": "^4.3.6",
       },
+      "optionalPeers": [
+        "ioredis",
+      ],
     },
     "api-health": {
       "name": "@terreno/api-health",
@@ -632,8 +641,12 @@
         "typescript": "catalog:",
       },
       "peerDependencies": {
+        "@terreno/api": "workspace:*",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
+      "optionalPeers": [
+        "@terreno/api",
+      ],
     },
     "ui": {
       "name": "@terreno/ui",
@@ -753,6 +766,7 @@
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@docusaurus/module-type-aliases": "3.10.1",
+        "@docusaurus/plugin-content-docs": "3.10.1",
         "@docusaurus/tsconfig": "3.10.1",
         "@docusaurus/types": "3.10.1",
         "@types/node": "^22.15.0",
