@@ -198,6 +198,51 @@ describe("AdminModelForm update-depth regression (setOptions triggers parent re-
     readState.isLoading = false;
   });
 
+  it("preserves per-character typing when setOptions forces a parent re-render each keystroke", async () => {
+    const form = (
+      <AdminProvider
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        getAuthHeaders={() => ({})}
+        syncConflicts={{conflicts: [], resolve: () => {}}}
+        syncDb={syncDb}
+      >
+        <AdminModelForm
+          api={{} as unknown as AdminApi}
+          apiBase="/admin"
+          itemId="todo-1"
+          mode="edit"
+          modelName="Todo"
+        />
+      </AdminProvider>
+    );
+    const view = renderWithTheme(form);
+
+    parentRerender = () => {
+      view.rerender(form);
+    };
+
+    const titleField = view.getByTestId("admin-field-title");
+    const setOptionsBeforeTyping = setOptionsWithRerender.mock.calls.length;
+
+    for (let i = 0; i < REPRO_TITLE.length; i++) {
+      const partial = REPRO_TITLE.slice(0, i + 1);
+      await act(async () => {
+        fireEvent.changeText(titleField, partial);
+      });
+    }
+
+    const field = view.getByTestId("admin-field-title");
+    expect(field.props.value).toBe(REPRO_TITLE);
+    const setOptionsDuringTyping =
+      setOptionsWithRerender.mock.calls.length - setOptionsBeforeTyping;
+    assert.equal(
+      setOptionsDuringTyping,
+      0,
+      `setOptions called ${setOptionsDuringTyping} times during per-character title typing`
+    );
+  });
+
   it("does not recurse when navigation.setOptions forces a parent re-render on title change", async () => {
     const form = (
       <AdminProvider

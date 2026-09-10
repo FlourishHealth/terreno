@@ -169,6 +169,9 @@ const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fiel
 
 const TITLE_PREFERENCE_KEYS = ["name", "title", "label", "email", "username", "displayName"];
 
+/** Debounce dynamic getScreenTitle updates so setOptions does not rerender parents per keystroke. */
+const NAVIGATION_TITLE_DEBOUNCE_MS = 300;
+
 const readScalarTitleFromRecord = (
   record: Record<string, unknown>,
   fieldKey: string
@@ -182,20 +185,6 @@ const readScalarTitleFromRecord = (
     return undefined;
   }
   return s;
-};
-
-const mergeItemAndFormState = (
-  itemData: unknown,
-  formState: Record<string, AdminFieldValue>
-): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
-  if (itemData && typeof itemData === "object" && !Array.isArray(itemData)) {
-    Object.assign(out, itemData as Record<string, unknown>);
-  }
-  for (const [k, v] of Object.entries(formState)) {
-    out[k] = v;
-  }
-  return out;
 };
 
 const inferEditRecordTitle = (params: {
@@ -319,6 +308,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const navigationRef = useRef(navigation);
   navigationRef.current = navigation;
   const prevNavigationTitleRef = useRef<string | undefined>(undefined);
+  const hasAppliedNavigationTitleRef = useRef(false);
+  const navigationTitleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
@@ -558,7 +549,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
     const explicitField = recordTitleFieldProp ?? modelConfig.recordTitleField;
     const fieldKeys = new Set(Object.keys(modelConfig.fields));
-    const record = mergeItemAndFormState(itemData, formState);
+    // Use persisted item data only — not live formState — so typing the title field does not
+    // call navigation.setOptions on every keystroke (RN Web rerenders parents and corrupts input).
+    const record =
+      itemData && typeof itemData === "object" && !Array.isArray(itemData)
+        ? (itemData as Record<string, unknown>)
+        : {};
     return inferEditRecordTitle({
       displayName: modelConfig.displayName,
       explicitField,
@@ -579,6 +575,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     screenTitle,
   ]);
 
+  // Reset navigation title bookkeeping when the edited record changes.
+  useEffect(() => {
+    hasAppliedNavigationTitleRef.current = false;
+    prevNavigationTitleRef.current = undefined;
+  }, [itemId, mode, modelName]);
+
   // Set stack / document title. Save and delete live in the form chrome because
   // admin Expo stacks use headerShown: false (same as Create on the table).
   // navigation is read from a ref so unstable useNavigation() identities cannot
@@ -587,14 +589,54 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (!modelConfig) {
       return;
     }
-    if (prevNavigationTitleRef.current === navigationTitle) {
+
+    const applyNavigationTitle = (title: string): void => {
+      if (prevNavigationTitleRef.current === title) {
+        return;
+      }
+      prevNavigationTitleRef.current = title;
+      navigationRef.current.setOptions({title});
+    };
+
+    const shouldDebounceDynamicTitle = screenTitle === undefined && getScreenTitle !== undefined;
+
+    if (!shouldDebounceDynamicTitle) {
+      applyNavigationTitle(navigationTitle);
+      hasAppliedNavigationTitleRef.current = true;
       return;
     }
-    prevNavigationTitleRef.current = navigationTitle;
-    navigationRef.current.setOptions({
-      title: navigationTitle,
-    });
-  }, [navigationTitle, modelConfig]);
+
+    if (!hasAppliedNavigationTitleRef.current) {
+      applyNavigationTitle(navigationTitle);
+      hasAppliedNavigationTitleRef.current = true;
+      return;
+    }
+
+    if (navigationTitleDebounceRef.current) {
+      clearTimeout(navigationTitleDebounceRef.current);
+    }
+    navigationTitleDebounceRef.current = setTimeout(() => {
+      navigationTitleDebounceRef.current = null;
+      applyNavigationTitle(navigationTitle);
+    }, NAVIGATION_TITLE_DEBOUNCE_MS);
+
+    return () => {
+      if (navigationTitleDebounceRef.current) {
+        clearTimeout(navigationTitleDebounceRef.current);
+        navigationTitleDebounceRef.current = null;
+      }
+    };
+  }, [getScreenTitle, modelConfig, navigationTitle, screenTitle]);
+
+  // Flush a pending debounced title when the form unmounts.
+  useEffect(() => {
+    return () => {
+      if (navigationTitleDebounceRef.current) {
+        clearTimeout(navigationTitleDebounceRef.current);
+        navigationTitleDebounceRef.current = null;
+      }
+    };
+  }, []);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
     if (!modelConfig) {
