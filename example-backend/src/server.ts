@@ -13,6 +13,8 @@ import {
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
+  NotificationsApp,
+  notificationsBeforeSend,
   RealtimeApp,
   rbacRouter,
   SyncApp,
@@ -45,6 +47,7 @@ import {addAiRoutes} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
+import {addDevNotificationRoutes} from "./api/notificationsDev";
 import {projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -209,6 +212,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
+      .register(createOpenApiAwareRouteRegistration(addDevNotificationRoutes))
       .register(todoRouter)
       .register(projectRouter)
       .register(usersRouter)
@@ -327,6 +331,16 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         new CommsApp(
           isDeployed
             ? {
+                beforeSend: async (context) => {
+                  const notificationResult = await notificationsBeforeSend({
+                    channel: context.channel,
+                    userId: context.userId,
+                  });
+                  if (notificationResult?.cancel) {
+                    return {cancel: true};
+                  }
+                  return undefined;
+                },
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 ...(smsProvider ? {sms: smsProvider} : {}),
                 ...(verificationProvider ? {verification: verificationProvider} : {}),
@@ -336,6 +350,16 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
             : {
+                beforeSend: async (context) => {
+                  const notificationResult = await notificationsBeforeSend({
+                    channel: context.channel,
+                    userId: context.userId,
+                  });
+                  if (notificationResult?.cancel) {
+                    return {cancel: true};
+                  }
+                  return undefined;
+                },
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
                 push: pushProvider,
@@ -429,6 +453,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           auditTrail: true,
           resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
           supportedLocales: ["en", "es"],
+        })
+      )
+      .register(
+        new NotificationsApp({
+          getComms: getCommsService,
+          userModel: User,
         })
       );
 
