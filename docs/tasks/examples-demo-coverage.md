@@ -2,7 +2,7 @@
 
 See: [`docs/implementationPlans/examples-demo-coverage.md`](../implementationPlans/examples-demo-coverage.md)
 
-**RTK deprecation flag:** **Partial.** Tasks marked `[RTK]` touch the example apps' data layer and must wait for PR #869. Demo-app and coverage-infrastructure tasks are `@terreno/ui`-only or CI-only and are safe to implement now.
+**RTK deprecation flag:** **Partial.** Tasks 5.1–5.3 originally waited on PR #869. `@terreno/syncdb` is in the example apps on this branch; those tasks are unblocked.
 
 ## Instructions for the implementing agent
 
@@ -198,19 +198,19 @@ Packages below 95%: none (all published packages meet the 95% function and line 
 
 ## Phase 5: Example feature matrix
 
-- [ ] **Task 5.1**: `[RTK]` Audit example app feature coverage
+- [x] **Task 5.1**: `[RTK]` Audit example app feature coverage
   - Description: Build the capability matrix from the IP by reading `example-backend/src/` and `example-frontend/app/`. Resolve every `?`: does an example actually exercise AI structured output, Better Auth, and (after #869) syncdb local-first behavior? For each capability, cite the file that exercises it or record it as a gap. Include capabilities that are not shipped (RBAC, background jobs) marked as such with links to their IPs.
   - Files: `docs/explanation/example-coverage.md` (new)
-  - Depends on: PR #869 merged
+  - Depends on: none (`@terreno/syncdb` is in-tree; PR #869 closed)
   - Acceptance: no `?` remains; every "yes" cites a file path; every gap is explicit; unshipped capabilities link their IPs.
 
-- [ ] **Task 5.2**: `[RTK]` Fill the highest-value example gaps
+- [x] **Task 5.2**: `[RTK]` Fill the highest-value example gaps
   - Description: For each gap found in Task 5.1, either add the example or record it as a known gap with an issue. Prioritize capabilities the launch documentation depends on — if a tutorial or reference page describes something with no working example, that is the highest priority because the docs claim will be tested by readers. Do not add examples for unshipped features.
   - Files: `example-backend/src/**`, `example-frontend/app/**`, `docs/explanation/example-coverage.md`
   - Depends on: Task 5.1
   - Acceptance: every gap that a launch document depends on is filled with a working example; remaining gaps are recorded with issue links; both example apps still pass their CI.
 
-- [ ] **Task 5.3**: Link the matrix into the contribution process
+- [x] **Task 5.3**: Link the matrix into the contribution process
   - Description: Add a note to `CONTRIBUTING.md` and the PR template: when adding a framework capability, add or update the example that exercises it and update `docs/explanation/example-coverage.md`. This is what keeps the matrix true. Link the matrix from `docs/explanation/README.md`.
   - Files: `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/explanation/README.md`
   - Depends on: Task 5.1

@@ -86,15 +86,15 @@ The repo states that `example-frontend` and `example-backend` serve as documenta
 | Admin panel (embedded) | yes | yes | — |
 | Admin SPA | yes | n/a | — |
 | AI streaming chat | yes | yes | — |
-| AI structured output | ? | ? | verify |
+| AI structured output | no | no | **gap** — chat streaming only; see [example-coverage.md](../explanation/example-coverage.md) |
 | Feature flags + live updates | yes | yes | — |
 | Websockets / realtime | yes | yes | — |
 | Consent forms | yes | yes | — |
 | File upload / GCS | yes | yes | — |
-| Better Auth | ? | ? | verify |
-| syncdb local-first | (from #869) | (from #869) | verify after merge |
-| RBAC | no | no | not shipped |
-| Background jobs | no | no | not shipped |
+| Better Auth | yes | yes | — |
+| syncdb local-first | yes | yes | shipped in examples; #869 closed |
+| RBAC | yes | yes | shipped; see [rbac-permissions.md](rbac-permissions.md) |
+| Background jobs | no | no | **gap** — no generic queue example |
 
 Every `?` must be resolved by reading the example source, and every real gap either filled or recorded as a known gap.
 
@@ -149,15 +149,15 @@ See [`docs/tasks/examples-demo-coverage.md`](../tasks/examples-demo-coverage.md)
 
 ## Acceptance Criteria
 
-- [ ] Every component exported from `ui/src/index.tsx` has a demo story or an allowlist entry with a stated reason.
-- [ ] `bun run scripts/check-demo-coverage.ts` fails when a newly exported component has no story and no allowlist entry, and runs in `ui-demo-ci.yml`.
-- [ ] `demo/package.json`'s `test:ci` runs something real.
-- [ ] Stories exist for all P0 components, each showing multiple states (default, loading, error, disabled) where applicable.
-- [ ] Every published package's CI runs `scripts/check-coverage.ts` at the 95% threshold.
-- [ ] Packages currently below 95% have a tracked catch-up plan; no package is permanently exempt.
-- [ ] Every published package is covered by CI running its tests and coverage check, either through a dedicated workflow or the matrix job.
+- [x] Every component exported from `ui/src/index.tsx` has a demo story or an allowlist entry with a stated reason.
+- [x] `bun run scripts/check-demo-coverage.ts` fails when a newly exported component has no story and no allowlist entry, and runs in `ui-demo-ci.yml`.
+- [x] `demo/package.json`'s `test:ci` runs something real.
+- [x] Stories exist for all P0 components, each showing multiple states (default, loading, error, disabled) where applicable.
+- [x] Every published package's CI runs `scripts/check-coverage.ts` at the 95% threshold.
+- [x] Packages currently below 95% have a tracked catch-up plan; no package is permanently exempt.
+- [x] Every published package is covered by CI running its tests and coverage check, either through a dedicated workflow or the matrix job.
 - [x] Codecov receives uploads from every package's CI and reports per-PR deltas.
 - [x] `README.md` shows a coverage badge that reflects reality.
-- [ ] `docs/explanation/example-coverage.md` resolves every `?` in the capability matrix, and each real gap is either filled with an example or recorded as a known gap with an issue link.
+- [x] `docs/explanation/example-coverage.md` resolves every `?` in the capability matrix, and each real gap is either filled with an example or recorded as a known gap with an issue link.
 - [x] `CONTRIBUTING.md` states the 95% coverage expectation and how to run coverage locally per package.
 - [ ] `bun run lint`, `bun run compile`, and the full test suite pass.

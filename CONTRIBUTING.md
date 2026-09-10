@@ -110,6 +110,10 @@ twins). The README badge reflects the merged project. Maintainers set
 repos still need a token unless the Codecov org disables token authentication
 for public repositories.
 
+When you add a framework capability, exercise it in `example-backend` and/or
+`example-frontend` and update
+[docs/explanation/example-coverage.md](docs/explanation/example-coverage.md).
+
 Package-specific commands are listed in [AGENTS.md](AGENTS.md). You can also use Bun's filter syntax:
 
 ```bash
