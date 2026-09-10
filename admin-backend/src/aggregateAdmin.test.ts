@@ -7,6 +7,7 @@ import type {AdminModelConfig} from "./adminApp";
 import {
   aggregateAdminContributions,
   aggregateFromTerrenoApp,
+  collectPluginAdminContributions,
   collectRegisteredAdminModels,
 } from "./aggregateAdmin";
 import {resetLegacyDeprecationWarningsForTests} from "./legacy";
@@ -73,6 +74,36 @@ describe("aggregateAdminContributions", () => {
     expect(users?.source).toBe("registered");
     expect(users?.displayName).toBe("Registered Users");
     expect(aggregated.widgetIds).toEqual(["feature-flags-overrides"]);
+  });
+
+  it("merges unique scripts, screens, and widget ids and skips duplicates", () => {
+    const runner = async (): Promise<void> => {};
+    const aggregated = aggregateAdminContributions({
+      pluginContributions: [
+        {
+          customScreens: [{displayName: "Docs", name: "documents"}],
+          homeWidgets: [{displayName: "A", id: "w1"}],
+          scripts: [{description: "one", name: "seed", runner}],
+        },
+        {
+          customScreens: [
+            {displayName: "Docs again", name: "documents"},
+            {displayName: "Flags", name: "flags"},
+          ],
+          homeWidgets: [
+            {displayName: "A", id: "w1"},
+            {displayName: "B", id: "w2"},
+          ],
+          scripts: [
+            {description: "dup", name: "seed", runner},
+            {description: "two", name: "wipe", runner},
+          ],
+        },
+      ],
+    });
+    expect(aggregated.customScreens.map((screen) => screen.name)).toEqual(["documents", "flags"]);
+    expect(aggregated.scripts.map((script) => script.name)).toEqual(["seed", "wipe"]);
+    expect(aggregated.widgetIds).toEqual(["w1", "w2"]);
   });
 
   it("forwards populatePaths from plugin model contributions", () => {
@@ -153,6 +184,16 @@ describe("aggregateFromTerrenoApp", () => {
     expect(aggregated.models).toHaveLength(1);
     expect(aggregated.models[0]?.routePath).toBe("/feature-flags");
   });
+
+  it("ignores plugins without an admin contribution", () => {
+    expect(
+      collectPluginAdminContributions({
+        getPlugins: () => [{register() {}}],
+        getRegistrations: () => [],
+      } as never)
+    ).toEqual([]);
+    expect(collectPluginAdminContributions()).toEqual([]);
+  });
 });
 
 const anyPermissions = {
@@ -164,6 +205,18 @@ const anyPermissions = {
 };
 
 describe("collectRegisteredAdminModels", () => {
+  it("returns an empty list without a TerrenoApp", () => {
+    expect(collectRegisteredAdminModels()).toEqual([]);
+  });
+
+  it("skips non-modelRouter registrations", () => {
+    const registered = collectRegisteredAdminModels({
+      getPlugins: () => [],
+      getRegistrations: () => [{__type: "plugin", register() {}} as never],
+    } as never);
+    expect(registered).toEqual([]);
+  });
+
   it("does not copy the public queryFilter onto admin CRUD", () => {
     const registered = collectRegisteredAdminModels({
       getPlugins: () => [],
