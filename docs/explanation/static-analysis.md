@@ -59,6 +59,17 @@ for native fingerprint compatibility, and optional peers consumed by published-p
 users. Declare those narrowly with `ignoreBinaries` or `ignoreDependencies`; do not add a
 fake local import.
 
+## Exports and test seams
+
+Remove `export` from unused module internals. Keep published package-entry exports for
+compatibility even when this monorepo has no consumer; suppress only their `exports` or
+`types` issue on the defining file, with a public-API comment in `knip.jsonc`.
+
+Some internal helpers are intentionally exported so tests can exercise deterministic
+logic without widening the npm entry point. Mark those declarations `@internal`: default
+Knip still proves that tests use them, while production mode excludes the test-only seam.
+Generated SDK files use a path-scoped `ignoreIssues` entry instead of hand edits.
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The

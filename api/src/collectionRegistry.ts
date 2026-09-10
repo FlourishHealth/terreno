@@ -103,6 +103,7 @@ export const replaceCollectionOptions = (
   existing.options = options;
 };
 
+/** @internal */
 export const getCollection = (routePath: string): CollectionRecord | undefined =>
   collectionRegistry.get(routePath);
 

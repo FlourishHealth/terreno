@@ -5,6 +5,7 @@ import type {Request} from "express";
  * Copies the parsed request buffer onto `req.rawBody`.
  * Express may reuse `buf`; webhook signatures need the original bytes.
  */
+/** @internal */
 export const captureRawBody = (req: IncomingMessage, _res: OutgoingMessage, buf: Buffer): void => {
   if (!Buffer.isBuffer(buf)) {
     return;

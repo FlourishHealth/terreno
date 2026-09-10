@@ -9,6 +9,7 @@ import {
 } from "./packageGuidelines.js";
 
 /** Pinned so `npx -y` does not resolve a moving `@latest` target in generated MCP configs. */
+/** @internal */
 export const PLAYWRIGHT_MCP_PACKAGE_VERSION = "0.0.76";
 
 export const bootstrapTools: Tool[] = [

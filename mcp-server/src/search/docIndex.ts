@@ -159,6 +159,7 @@ const buildMiniSearch = (chunks: SearchableChunk[]): MiniSearch<IndexedDoc> => {
   return search;
 };
 
+/** @internal */
 export const resetDocSearchIndexForTests = (): void => {
   cachedIndex = null;
   cachedChunks = null;

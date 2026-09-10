@@ -12,6 +12,7 @@ const MAX_REPAIR_FETCH_IDS = 100;
  * needs-repair mark) when the entity is still pending or conflicted so a
  * reconcile-time repair pass cannot clobber optimistic local state.
  */
+/** @internal */
 export const applyRepairedEntity = ({
   store,
   collection,

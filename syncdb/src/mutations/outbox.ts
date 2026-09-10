@@ -8,6 +8,7 @@ import type {OutboxMutation, OutboxStatus, SyncMutationOperation} from "../types
 const defaultNow = (): string => DateTime.now().toISO();
 
 /** Default number of failed rows retained by `prune()` for debugging/UI. */
+/** @internal */
 export const DEFAULT_KEEP_FAILED = 50;
 
 /** Generate a stable client mutation id (idempotency key). */

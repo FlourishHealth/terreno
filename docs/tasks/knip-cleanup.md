@@ -127,7 +127,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: each remaining unused export/type is classified public (re-exported from the package entry) or is gone; package `bun test` / `compile` passes; `analyze:full` exits 0
 
-- [ ] **Task 5.3**: Ignore leftover **public** unused exports and types
+- [x] **Task 5.3**: Ignore leftover **public** unused exports and types
   - Delivers: `ignoreIssues` (path-scoped `exports`/`types`) for public API unused inside this monorepo, with comments
   - Files: `knip.jsonc`, `docs/explanation/static-analysis.md` (public API ignore rule)
   - Blocked by: Task 5.1, Task 5.2

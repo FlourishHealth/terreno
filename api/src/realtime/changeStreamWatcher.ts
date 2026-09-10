@@ -69,6 +69,7 @@ const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
  * (`ChangeStreamHistoryLost`), which is the one failure a resume token cannot repair.
  * Payload: {@link SyncResyncHint}.
  */
+/** @internal */
 export const SYNC_RESYNC_EVENT = "sync:resync-required";
 
 /** MongoDB error code / codeName for an unresumable change stream (oplog rolled past). */
@@ -116,6 +117,7 @@ const serializePerEntity = (key: string, task: () => Promise<void>): void => {
  * events are internal (counters/ledger/markers/keys), and processing them would emit
  * spurious deltas or reprocess scope-move markers. Exported for testing.
  */
+/** @internal */
 export const DEFAULT_IGNORED_COLLECTIONS = [
   "socketio",
   "sessions",
@@ -137,6 +139,7 @@ export const DEFAULT_IGNORED_COLLECTIONS = [
  *
  * Exported for testing.
  */
+/** @internal */
 export const mapOperationType = (
   operationType: string,
   change: ChangeStreamDocument,
@@ -206,6 +209,7 @@ const canReadDocument = async (
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
+/** @internal */
 export const resolveRooms = (
   entry: RealtimeRegistryEntry,
   doc: Record<string, unknown>,
@@ -243,6 +247,7 @@ export const resolveRooms = (
  * Ensure serialized documents include `id` to match REST API responses.
  * Change stream fullDocument payloads are raw BSON objects with `_id` only.
  */
+/** @internal */
 export const ensureApiId = (data: unknown): unknown => {
   if (data == null || typeof data !== "object" || Array.isArray(data)) {
     return data;
@@ -270,6 +275,7 @@ export const ensureApiId = (data: unknown): unknown => {
  * would risk leaking unsanitized fields (e.g. `hash`/`salt`) that the handler
  * was supposed to strip.
  */
+/** @internal */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
   doc: Record<string, unknown>,
@@ -373,6 +379,7 @@ export const emitPayloadToAuthorizedRoom = async ({
   }
 };
 
+/** @internal */
 export const emitToAuthorizedRoom = async (
   io: Server,
   room: string,
@@ -413,6 +420,7 @@ export const emitToAuthorizedRoom = async (
  *
  * Exported for testing.
  */
+/** @internal */
 export const emitToDocumentAndQueryRooms = async (
   io: Server,
   collection: string,

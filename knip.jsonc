@@ -29,17 +29,26 @@
     "**/openApiSdk.ts": ["exports", "types"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
+    // Generated communications SDK may include hooks before an example screen adopts them.
+    "example-frontend/store/commsOpenApiSdk.ts": ["exports", "types"],
     // check-explicit-any/lib.ts loads BASELINE_PATH/loadBaseline through require() so it
     // can avoid a static lib ↔ baseline cycle; Knip cannot see the destructured names.
     "scripts/check-explicit-any/baseline.ts": ["exports"],
     // Preserve the vendored express-openapi CommonJS API unchanged; Knip cannot trace
     // properties assigned through module.exports (including serveSwaggerUI used in index.js).
     "api/src/vendor/wesleytodd-openapi/**": ["exports", "types"],
+    // Published public types may have no in-monorepo consumer; removing them would be a
+    // breaking package API change.
+    "admin-spa/components/AppConfigGate.tsx": ["types"],
+    "api/src/rbac/roleManager.ts": ["types"],
+    // Backwards-compatible public aliases intentionally point at the same implementation.
+    "api/src/api.ts": ["duplicates"],
+    "api/src/rbac/middleware.ts": ["duplicates"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "ignoreFiles": [
     // Generated communications SDK is retained as a codegen contract even before a
-    // product screen imports it; exports/types remain analyzed by ignoreIssues above.
+    // product screen imports it; generated exports/types are handled by ignoreIssues.
     "example-frontend/store/commsOpenApiSdk.ts",
     // Human upgrade docs link this source example; it is intentionally illustrative
     // rather than imported by the package runtime.
@@ -72,6 +81,9 @@
       // react-native-webview is supplied by consuming apps through this package's
       // optional peer contract, which Knip reports as an unused optional peer.
       "ignoreDependencies": ["react-native-webview"],
+      // Public interfaces used inside this module remain valid package API; interfaces
+      // that become unused both internally and externally are still reported.
+      "ignoreExportsUsedInFile": {"interface": true, "type": true},
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -195,6 +207,8 @@
         "expo-image-picker",
         "expo-linear-gradient",
         "expo-system-ui",
+        // Metro resolves the PDF implementation through the jspdf native stub entry.
+        "jspdf",
         "libphonenumber-js",
         "linkify-it",
         "mdurl",

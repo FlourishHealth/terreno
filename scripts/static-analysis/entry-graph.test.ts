@@ -337,4 +337,27 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "reports no unused exports or types in either mode",
+    (): void => {
+      for (const report of [runKnipReport(), runKnipReport({isProduction: true})]) {
+        const findings = report.issues.flatMap((issue) => [
+          ...(issue.exports ?? []).map((entry) => `${issue.file}:export:${entry.name}`),
+          ...(issue.types ?? []).map((entry) => `${issue.file}:type:${entry.name}`),
+        ]);
+        assert.deepEqual(findings, []);
+      }
+    },
+    {timeout: 180_000}
+  );
+
+  test(
+    "reports no Knip issues in either mode",
+    (): void => {
+      assert.deepEqual(runKnipReport().issues, []);
+      assert.deepEqual(runKnipReport({isProduction: true}).issues, []);
+    },
+    {timeout: 180_000}
+  );
 });

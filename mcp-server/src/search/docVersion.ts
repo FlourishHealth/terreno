@@ -97,6 +97,7 @@ export const docVersionFromSourcePath = (sourcePath: string): string | undefined
   return match?.[1];
 };
 
+/** @internal */
 export const slugifyComponentName = (name: string): string =>
   name
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -106,6 +107,7 @@ export const slugifyComponentName = (name: string): string =>
     .replace(/^-|-$/g, "");
 
 /** Matches `website/scripts/generate-component-docs.ts`: lowercase only, no camelCase split. */
+/** @internal */
 export const generatorSlugifyComponentName = (name: string): string =>
   name
     .toLowerCase()

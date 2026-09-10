@@ -16,11 +16,14 @@ import type {SyncStatus} from "@terreno/syncdb";
  * behind". Small queues drain in a tick or two and should not nag; this only
  * fires once a real backlog builds up.
  */
+/** @internal */
 export const OUT_OF_SYNC_QUEUE_THRESHOLD = 25;
 
 /** Toast id for the collection-agnostic backlog signal. */
+/** @internal */
 export const GLOBAL_TOAST_ID = "sync-health-global";
 
+/** @internal */
 export const collectionToastId = (collection: string): string =>
   `sync-health-collection:${collection}`;
 
