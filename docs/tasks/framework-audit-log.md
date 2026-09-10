@@ -78,7 +78,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
   - Skills: `update-docs`
   - Acceptance: a stranger can enable `AuditApp` + `audit: true` from the how-to; append-only and forever-default are explicit; `bun run website:build` if the docs site is in the slice
 
-- [ ] **Task 5.2**: Roadmap seed + B2B table
+- [x] **Task 5.2**: Roadmap seed + B2B table
   - Delivers: `docs/explanation/roadmap-seed-issues.md` `framework-audit-log` points at IP/task GitHub URLs, `IP=framework-audit-log`, depends line is soft-org; `b2b-platform-program.md` lists this IP as Draft/Approved matching the IP header
   - Files: `docs/explanation/roadmap-seed-issues.md`, `docs/implementationPlans/b2b-platform-program.md`
   - Blocked by: 5.1
