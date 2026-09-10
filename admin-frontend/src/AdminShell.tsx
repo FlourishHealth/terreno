@@ -36,6 +36,10 @@ export interface AdminShellProps {
   headerActions?: React.ReactNode;
   /** Path to RBAC roles screen (e.g. "/roles") */
   rolesPath?: string;
+  /** Path to the platform organization directory. Only shown to organization operators. */
+  organizationDirectoryPath?: string;
+  /** Whether the current user may list every organization. */
+  isOrganizationOperator?: boolean;
   routeBase?: string;
   /** Extra custom screens merged with backend config for nav cards */
   customScreens?: AdminCustomScreen[];
@@ -75,8 +79,10 @@ interface AdminShellSidebarNavProps {
   configurationPath?: string;
   footer?: React.ReactNode;
   grouped: ReturnType<typeof groupAdminModelsByGroup>;
+  isOrganizationOperator?: boolean;
   navigate: (path: string) => void;
   onNavigate?: () => void;
+  organizationDirectoryPath?: string;
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
@@ -89,8 +95,10 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   configurationPath,
   footer,
   grouped,
+  isOrganizationOperator,
   navigate,
   onNavigate,
+  organizationDirectoryPath,
   platformTools,
   rolesPath,
   scripts,
@@ -139,6 +147,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             sidebarVariant={sidebarVariant}
             testID="admin-shell-nav-home"
           />
+          {isOrganizationOperator && organizationDirectoryPath ? (
+            <NavButton
+              label="Organizations"
+              onPress={() => {
+                runNav(() => {
+                  navigate(organizationDirectoryPath);
+                });
+              }}
+              sidebarVariant={sidebarVariant}
+              testID="admin-shell-nav-organizations"
+            />
+          ) : null}
         </Box>
         {visibleGrouped.length > 0 ? (
           <Box direction="column" gap={3} testID="admin-shell-nav-models">
@@ -296,6 +316,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   customScreens: propCustomScreens,
   footer,
   headerActions,
+  isOrganizationOperator,
+  organizationDirectoryPath,
   rolesPath,
   routeBase,
   sidebarVariant = "colorful",
@@ -391,7 +413,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     configurationPath,
     footer,
     grouped,
+    isOrganizationOperator,
     navigate,
+    organizationDirectoryPath,
     platformTools,
     rolesPath,
     scripts,

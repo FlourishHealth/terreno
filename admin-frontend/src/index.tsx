@@ -54,6 +54,12 @@ export {
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
 export {generateConsentHistoryPdf} from "./generateConsentHistoryPdf";
 export {LocaleContentEditor} from "./LocaleContentEditor";
+export {
+  type OrganizationSummary,
+  OrgDirectoryScreen,
+  type OrgDirectoryScreenProps,
+} from "./orgs/OrgDirectoryScreen";
+export {useOrganizationsApi} from "./orgs/useOrganizationsApi";
 export type {
   AdminCapabilities,
   AdminConfigResponse,

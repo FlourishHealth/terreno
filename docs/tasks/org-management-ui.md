@@ -42,7 +42,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: 2.1
   - Docs: none until 6.1
   - Acceptance: org-admin 403 on `GET /orgs`; operator 200; create does not require membership; disable/soft-delete suspends memberships
-- [ ] **Task 3.2**: Members attach / patch / delete + last-admin guards
+- [x] **Task 3.2**: Members attach / patch / delete + last-admin guards
   - Delivers: existing-user attach; no email; last `org-admin` protected
   - Files: `api/src/orgs/orgsApp.ts` + tests
   - Blocked by: 3.1
@@ -51,7 +51,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 4 — Admin backend
 
-- [ ] **Task 4.1**: Admin org routes + AdminApp tenant context
+- [x] **Task 4.1**: Admin org routes + AdminApp tenant context
   - Delivers: admin UI can call org APIs; generic admin model lists use context filter
   - Files: `admin-backend/src/*` (org registration or aliases), AdminApp queryFilter/preCreate, tests
   - Blocked by: 3.2

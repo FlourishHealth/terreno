@@ -127,6 +127,37 @@ describe("AdminShell", () => {
     expect(queryByTestId("admin-shell-mobile-header")).toBeNull();
   });
 
+  it("shows organization directory navigation only to operators", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    const operator = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        isOrganizationOperator
+        organizationDirectoryPath="/orgs"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(operator.getByTestId("admin-shell-nav-organizations-clickable")).toBeTruthy();
+    operator.unmount();
+
+    const orgAdmin = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        isOrganizationOperator={false}
+        organizationDirectoryPath="/orgs"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(orgAdmin.queryByTestId("admin-shell-nav-organizations-clickable")).toBeNull();
+  });
+
   it("shows a forbidden state when admin config returns 403", () => {
     configState.config = null;
     configState.error = {status: 403} as unknown as Error;

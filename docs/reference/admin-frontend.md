@@ -22,6 +22,38 @@ export default function AdminScreen() {
 
 ## Components
 
+### OrgDirectoryScreen
+
+`OrgDirectoryScreen` is the operator-only organization directory. It renders
+loading, error, and empty states plus actions to create, disable, and open an
+organization.
+
+``````typescript
+<OrgDirectoryScreen
+  api={api}
+  isOperator={currentUser.roles?.includes("operator") ?? false}
+  onEnterOrganization={(organization) => {
+    router.push(`/admin/orgs/${organization._id}`);
+  }}
+  routeBase="/admin"
+/>
+``````
+
+Pass the same operator check to `AdminShellLayout` to expose the directory in
+navigation. Org-admins do not receive this link:
+
+``````typescript
+<AdminShellLayout
+  api={api}
+  apiBase="/admin"
+  isOrganizationOperator={isOperator}
+  organizationDirectoryPath="/orgs"
+  routeBase="/admin"
+>
+  {children}
+</AdminShellLayout>
+``````
+
 ### AdminModelList
 
 Entry screen showing all available models as cards.
