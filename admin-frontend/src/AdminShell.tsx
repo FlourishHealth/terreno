@@ -38,6 +38,8 @@ export interface AdminShellProps {
   rolesPath?: string;
   /** Path to the platform organization directory. Only shown to organization operators. */
   organizationDirectoryPath?: string;
+  /** Organization switcher rendered above sidebar navigation. */
+  organizationSwitcher?: React.ReactNode;
   /** Whether the current user may list every organization. */
   isOrganizationOperator?: boolean;
   routeBase?: string;
@@ -83,6 +85,7 @@ interface AdminShellSidebarNavProps {
   navigate: (path: string) => void;
   onNavigate?: () => void;
   organizationDirectoryPath?: string;
+  organizationSwitcher?: React.ReactNode;
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
@@ -99,6 +102,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   navigate,
   onNavigate,
   organizationDirectoryPath,
+  organizationSwitcher,
   platformTools,
   rolesPath,
   scripts,
@@ -136,6 +140,11 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   return (
     <>
       <Box direction="column" flex="grow" gap={4} minHeight={0} overflow="scrollY">
+        {organizationSwitcher ? (
+          <Box paddingX={1} testID="admin-shell-organization-switcher">
+            {organizationSwitcher}
+          </Box>
+        ) : null}
         <Box direction="column">
           <NavButton
             label="Home"
@@ -318,6 +327,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   headerActions,
   isOrganizationOperator,
   organizationDirectoryPath,
+  organizationSwitcher,
   rolesPath,
   routeBase,
   sidebarVariant = "colorful",
@@ -416,6 +426,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     isOrganizationOperator,
     navigate,
     organizationDirectoryPath,
+    organizationSwitcher,
     platformTools,
     rolesPath,
     scripts,

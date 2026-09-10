@@ -1,5 +1,6 @@
 import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
+import {useOptionalOrgContext} from "./orgs/useOrgContext";
 import type {AdminApi, EndpointBuilder} from "./types";
 
 type AdminPayload = Record<string, unknown>;
@@ -49,6 +50,11 @@ type TagArg = unknown;
  * @see AdminModelTable for usage in the table view
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+  const headers = useMemo(
+    () => (organizationId ? {"X-Organization-Id": organizationId} : undefined),
+    [organizationId]
+  );
   const enhancedApi = useMemo(() => {
     const listKey = `adminList_${modelName}`;
     const readKey = `adminRead_${modelName}`;
@@ -63,24 +69,31 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
           query: (params: Record<string, unknown> | undefined) => ({
+            headers,
             method: "GET",
             params: params ?? {},
             url: routePath,
           }),
+          serializeQueryArgs: ({endpointName, queryArgs}) =>
+            `${endpointName}:${organizationId ?? ""}:${JSON.stringify(queryArgs ?? {})}`,
         }),
         [readKey]: build.query({
           providesTags: (_result: TagArg, _error: TagArg, id: string) => [
             {id, type: `admin_${modelName}`},
           ],
           query: (id: string) => ({
+            headers,
             method: "GET",
             url: `${routePath}/${id}`,
           }),
+          serializeQueryArgs: ({endpointName, queryArgs}) =>
+            `${endpointName}:${organizationId ?? ""}:${String(queryArgs)}`,
         }),
         [createKey]: build.mutation({
           invalidatesTags: [`admin_${modelName}`],
           query: (body: AdminPayload) => ({
             body,
+            headers,
             method: "POST",
             url: routePath,
           }),
@@ -92,6 +105,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
           ],
           query: ({id, body}: {id: string; body: AdminPayload}) => ({
             body,
+            headers,
             method: "PATCH",
             url: `${routePath}/${id}`,
           }),
@@ -99,6 +113,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
         [deleteKey]: build.mutation({
           invalidatesTags: [`admin_${modelName}`],
           query: (id: string) => ({
+            headers,
             method: "DELETE",
             url: `${routePath}/${id}`,
           }),
@@ -107,6 +122,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
           invalidatesTags: [`admin_${modelName}`],
           query: ({ids, patch}: {ids: string[]; patch: Record<string, unknown>}) => ({
             body: {ids, patch},
+            headers,
             method: "POST",
             url: `${routePath}/bulk-patch`,
           }),
@@ -114,7 +130,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
       }),
       overrideExisting: true,
     });
-  }, [api, routePath, modelName]);
+  }, [api, headers, modelName, organizationId, routePath]);
 
   // Extract the generated hooks dynamically
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

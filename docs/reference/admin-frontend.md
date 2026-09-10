@@ -54,6 +54,31 @@ navigation. Org-admins do not receive this link:
 </AdminShellLayout>
 ``````
 
+### OrgContextProvider and OrgSwitcher
+
+Wrap organization-aware admin routes with `OrgContextProvider` and render
+`OrgSwitcher` through the shell's `organizationSwitcher` slot. Selecting an
+organization navigates to `{routeBase}/orgs/:orgId` and adds
+`X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
+include the organization id, preventing rows cached for one org from appearing
+in another.
+
+``````typescript
+<OrgContextProvider>
+  <AdminShellLayout
+    api={api}
+    apiBase="/admin"
+    organizationSwitcher={<OrgSwitcher api={api} routeBase="/admin" />}
+    routeBase="/admin"
+  >
+    {children}
+  </AdminShellLayout>
+</OrgContextProvider>
+``````
+
+When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
+selects it automatically. With multiple organizations it renders a selector.
+
 ### AdminModelList
 
 Entry screen showing all available models as cards.

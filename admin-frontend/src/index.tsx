@@ -59,7 +59,14 @@ export {
   OrgDirectoryScreen,
   type OrgDirectoryScreenProps,
 } from "./orgs/OrgDirectoryScreen";
+export {OrgSwitcher, type OrgSwitcherProps} from "./orgs/OrgSwitcher";
 export {useOrganizationsApi} from "./orgs/useOrganizationsApi";
+export {
+  OrgContextProvider,
+  type OrgContextProviderProps,
+  type OrgContextValue,
+  useOrgContext,
+} from "./orgs/useOrgContext";
 export type {
   AdminCapabilities,
   AdminConfigResponse,
