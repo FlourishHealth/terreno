@@ -1,9 +1,10 @@
 # Implementation Plan: Durable background jobs (`@terreno/jobs`)
 
-**Status:** Draft  
+**Status:** Approved  
 **Branch:** `cursor/durable-background-jobs-803d`  
 **Owner:** —  
 **Created:** 2026-09-10  
+**Approved:** 2026-09-10  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1188 (this feature **closes** that issue; implementation PRs use `Fixes #1188`)  
 **Task list:** [job-queues.md](../tasks/job-queues.md)  
 **Depends on:** —  
