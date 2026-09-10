@@ -30,6 +30,18 @@ export const down = async ({dryRun, mongoose}): Promise<void> => {
 };
 ```
 
+## First apply
+
+1. Generate a draft from the current models vs the last `schemaAfter` snapshot:
+   `terreno-migrate generate --dir ./migrations --models ./src/models.ts`
+2. Dry-run pending files (no history write):
+   `terreno-migrate up --dir ./migrations --dry`
+3. Apply for real:
+   `terreno-migrate up --dir ./migrations`
+4. In production, set `ALLOW_MIGRATIONS=true` and pass `--force` on that last command.
+
+If generate prints `No schema changes`, there is nothing to apply. Replace any fail-closed stub in the new file before step 2.
+
 ## Commands
 
 `terreno-migrate` is the `@terreno/api` bin. `up`, `down`, and `status` need `MONGO_URI` or `MONGODB_URI`.

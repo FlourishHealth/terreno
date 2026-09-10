@@ -27,6 +27,7 @@ describe("example-backend migrations", () => {
       [expectedId]
     );
     assert.isFunction(loaded[0]?.down);
+    assert.exists(loaded[0]?.schemaAfter);
   });
 
   it("applies and reverses the example todos index", async () => {

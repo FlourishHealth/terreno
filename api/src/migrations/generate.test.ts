@@ -133,4 +133,49 @@ describe("generateMigration", () => {
       await rm(dir, {force: true, recursive: true});
     }
   });
+
+  it("skips createIndex when a generated safe up runs with dryRun", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
+    try {
+      const schema = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      await generateMigration({
+        dir,
+        models: [register("GenTodo", schema)],
+        name: "base",
+        now: () => DateTime.fromISO("2026-09-10T12:00:00.000Z"),
+      });
+      const indexed = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      indexed.index({title: 1});
+      const result = await generateMigration({
+        dir,
+        models: [register("GenTodo", indexed)],
+        name: "title-index",
+        now: () => DateTime.fromISO("2026-09-10T12:03:00.000Z"),
+      });
+      expect(result.noop).toBe(false);
+      const source = await readFile(result.path as string, "utf8");
+      expect(source).toContain("if (ctx.dryRun)");
+      expect(source).toContain("createIndex");
+      const loaded = await checkMigrationFiles({dir});
+      const generated = loaded[loaded.length - 1];
+      await generated.up({
+        dryRun: true,
+        logger: {
+          debug: () => undefined,
+          error: () => undefined,
+          info: () => undefined,
+          warn: () => undefined,
+        },
+        mongoose,
+      });
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
 });
