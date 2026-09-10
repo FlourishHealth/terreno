@@ -5,6 +5,7 @@ export * from "./ActionSheet";
 export * from "./AddressField";
 export type * from "./AIRequestExplorer";
 export type * from "./AiSuggestionBox";
+export * from "./AreaChart";
 export type * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";

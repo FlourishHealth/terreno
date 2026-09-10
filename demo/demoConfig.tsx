@@ -1,6 +1,7 @@
 import {AccordionConfiguration} from "@story-config/Accordion.config";
 import {AddressFieldConfiguration} from "@story-config/AddressField.config";
 import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
+import {AreaChartConfiguration} from "@story-config/AreaChart.config";
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
 import {BannerConfiguration} from "@story-config/Banner.config";
@@ -229,6 +230,7 @@ const OpenAPIContextConfiguration: DemoConfigurationBase = {
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,
   AiSuggestionBoxConfiguration,
+  AreaChartConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
   BadgeConfiguration,

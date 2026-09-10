@@ -2636,6 +2636,7 @@ export interface LineChartProps extends WithTestID {
   loading?: boolean;
 }
 
+export interface AreaChartProps extends LineChartProps {}
 export interface BarChartProps extends LineChartProps {}
 
 /**

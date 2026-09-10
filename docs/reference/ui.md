@@ -6,7 +6,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 - Layout: `Box`, `Page`, `SplitPage`, `Card`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
@@ -81,6 +81,18 @@ Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, lo
   data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
   legendLabel="Signups"
   testID="signups-bar"
+/>
+```
+
+### AreaChart
+
+Filled area plus line on the same owned-SVG contract as `LineChart`.
+
+```tsx
+<AreaChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-area"
 />
 ```
 
