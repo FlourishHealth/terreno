@@ -124,13 +124,34 @@ auditEventSchema.plugin(createdUpdatedPlugin);
 auditEventSchema.plugin(findOneOrNone);
 auditEventSchema.plugin(findExactlyOne);
 
+export const ttlExpireAfterSeconds = (retentionDays?: number): number | undefined => {
+  if (retentionDays === undefined || retentionDays <= 0) {
+    return undefined;
+  }
+  return retentionDays * 86400;
+};
+
 export const getAuditEventIndexSpecs = (): Array<Record<string, number>> => {
   return auditEventSchema.indexes().map(([fields]) => fields as Record<string, number>);
 };
 
-export const createAuditEventModel = (connection: mongoose.Connection): AuditEventModel => {
+export const getAuditEventIndexOptions = (): Array<Record<string, unknown>> => {
+  return auditEventSchema
+    .indexes()
+    .map(([, options]) => (options ?? {}) as Record<string, unknown>);
+};
+
+export const createAuditEventModel = (
+  connection: mongoose.Connection,
+  options: {retentionDays?: number} = {}
+): AuditEventModel => {
   if (connection.models.AuditEvent) {
     return connection.models.AuditEvent as AuditEventModel;
   }
-  return connection.model<AuditEventDocument, AuditEventModel>("AuditEvent", auditEventSchema);
+  const schema = auditEventSchema.clone();
+  const expireAfterSeconds = ttlExpireAfterSeconds(options.retentionDays);
+  if (expireAfterSeconds !== undefined) {
+    schema.index({created: 1}, {expireAfterSeconds});
+  }
+  return connection.model<AuditEventDocument, AuditEventModel>("AuditEvent", schema);
 };

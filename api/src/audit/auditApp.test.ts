@@ -6,7 +6,12 @@ import type {UserModel as AuthUserModel} from "../auth";
 import {TerrenoApp} from "../terrenoApp";
 import {authAsUser, setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
-import {createAuditEventModel, getAuditEventIndexSpecs} from "./auditEventModel";
+import {
+  createAuditEventModel,
+  getAuditEventIndexOptions,
+  getAuditEventIndexSpecs,
+  ttlExpireAfterSeconds,
+} from "./auditEventModel";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
 
@@ -97,5 +102,24 @@ describe("AuditApp", () => {
     assert.equal(post.status, 405);
     assert.equal(patch.status, 405);
     assert.equal(del.status, 405);
+  });
+
+  it("does not add a TTL index by default", () => {
+    assert.isUndefined(ttlExpireAfterSeconds(undefined));
+    assert.isUndefined(ttlExpireAfterSeconds(0));
+    assert.isFalse(getAuditEventIndexOptions().some((options) => "expireAfterSeconds" in options));
+  });
+
+  it("adds a TTL index on created when retentionDays is greater than 0", () => {
+    assert.equal(ttlExpireAfterSeconds(1), 86400);
+    deleteAuditEventModel();
+    createAuditEventModel(mongoose.connection, {retentionDays: 1});
+    const indexes = mongoose.connection.models.AuditEvent.schema.indexes();
+    const ttl = indexes.find(([, options]) => options && "expireAfterSeconds" in options);
+    assert.ok(ttl);
+    const ttlFields = ttl[0] as {created?: number};
+    const ttlOptions = ttl[1] as {expireAfterSeconds: number};
+    assert.equal(ttlFields.created, 1);
+    assert.equal(ttlOptions.expireAfterSeconds, 86400);
   });
 });

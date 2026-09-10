@@ -40,8 +40,6 @@ modelRouter("/todos", Todo, {
 
 `source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are omitted; extra `redact` names merge with that list.
 
-`organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
-
 ### 3. Admin mutations
 
 When `AuditApp` is registered, AdminApp writes the same `AuditEvent` collection with
@@ -49,3 +47,9 @@ When `AuditApp` is registered, AdminApp writes the same `AuditEvent` collection 
 that. `onAdminAudit` remains an extra sink if the app still wants a second destination.
 
 RBAC mutations fan into the same collection when `createAccess({auditSink: persistRbacAuditToAuditEvent})` is set. `source` is `rbac`.
+
+`organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
+
+### 4. Retention
+
+Omit `retentionDays` or set `0` to keep events forever (no TTL index). `new AuditApp({retentionDays: 90})` creates a Mongo TTL index on `created` with `expireAfterSeconds = 90 * 86400`. Mongo expires documents in the background; lowering or removing TTL later requires dropping that index yourself (`db.auditevents.dropIndex(...)`) — Mongoose will not remove it.

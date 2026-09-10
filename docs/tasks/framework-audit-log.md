@@ -61,7 +61,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
 
 ## Phase 4 — Retention
 
-- [ ] **Task 4.1**: Optional TTL
+- [x] **Task 4.1**: Optional TTL
   - Delivers: `AuditApp({retentionDays: n})` for `n > 0` creates TTL index on `created` (`expireAfterSeconds = n * 86400`); omit or `0` → no TTL index
   - Files: `api/src/audit/auditEventModel.ts`, `api/src/audit/auditApp.ts`, tests
   - Blocked by: 1.1

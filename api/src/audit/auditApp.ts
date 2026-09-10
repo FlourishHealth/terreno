@@ -9,7 +9,7 @@ import {createAuditEventModel} from "./auditEventModel";
 import {installAuditRecorder} from "./record";
 
 export interface AuditAppOptions {
-  /** Mongo TTL in days. Omit or 0 = forever (no TTL index). Applied in a later task. */
+  /** Mongo TTL in days. Omit or 0 = forever (no TTL index). */
   retentionDays?: number;
 }
 
@@ -25,7 +25,9 @@ export class AuditApp implements TerrenoPlugin {
   };
 
   adminContribution(): AdminContribution {
-    const model = createAuditEventModel(mongoose.connection);
+    const model = createAuditEventModel(mongoose.connection, {
+      retentionDays: this.options.retentionDays,
+    });
     return {
       models: [
         {
@@ -64,7 +66,9 @@ export class AuditApp implements TerrenoPlugin {
   }
 
   register(app: express.Application): void {
-    const model = createAuditEventModel(mongoose.connection);
+    const model = createAuditEventModel(mongoose.connection, {
+      retentionDays: this.options.retentionDays,
+    });
     installAuditRecorder(model);
     const router = modelRouter(model, {
       permissions: {
