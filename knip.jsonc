@@ -8,6 +8,7 @@
   "ignoreIssues": {
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    "**/syncDbSdk.ts": ["exports", "types"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "workspaces": {

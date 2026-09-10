@@ -158,5 +158,3 @@ export class NotificationsApp implements TerrenoPlugin {
     logger.info("NotificationsApp registered", {retainDays: this.options.retainDays ?? 0});
   }
 }
-
-export type {NotificationDocument, NotificationPreferenceDocument};

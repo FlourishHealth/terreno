@@ -47,7 +47,8 @@ const notificationSchema = new mongoose.Schema<NotificationDocument, Notificatio
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
-notificationSchema.index({created: -1, ownerId: 1});
+// biome-ignore assist/source/useSortedKeys: ownerId must lead the compound index for owner-scoped inbox queries
+notificationSchema.index({ownerId: 1, created: -1});
 
 notificationSchema.plugin(createdUpdatedPlugin);
 notificationSchema.plugin(isDeletedPlugin);

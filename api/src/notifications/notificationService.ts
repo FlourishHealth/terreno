@@ -21,7 +21,7 @@ export interface NotificationsCommsService {
   sendSms: (message: {body: string; to: string}, options?: {userId?: string}) => Promise<unknown>;
 }
 
-export interface NotificationUserLookup {
+interface NotificationUserLookup {
   email?: string;
   phone?: string;
 }
