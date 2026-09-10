@@ -1,0 +1,94 @@
+---
+description: '@terreno/jobs - Durable background jobs plugin for Terreno backends'
+applyTo: 'jobs/**,**/jobs/**'
+---
+# @terreno/jobs
+
+Human architecture: `docs/how-to/background-jobs.md` and `docs/reference/jobs.md`.
+
+Durable background jobs for `@terreno/api` backends. Persists work in MongoDB, runs handlers
+with retries and schedules, and supports pluggable dispatch. This is a **backend-only** package.
+
+## Commands
+
+```bash
+bun run jobs:compile   # From repo root
+bun run jobs:test
+bun run jobs:lint
+bun run compile        # In jobs/ package
+```
+
+## When to use
+
+| Need | Use |
+| --- | --- |
+| Durable queue, retries, DLQ, admin visibility | `@terreno/jobs` `JobsApp` |
+| Recurring work with crash/restart safety | `JobsApp` + `schedule` on `define` |
+| Cloud dispatch (GCP / Vercel) | `GcpCloudTasksRunner` / `VercelQueuesRunner` |
+| In-process timer, dies with the process | `@terreno/api` `cronjob()` |
+| One-shot CLI script | `@terreno/api` `wrapScript()` |
+
+## Quick start
+
+```typescript
+import {JobsApp, MongoJobRunner, getJobsService} from "@terreno/jobs";
+
+const jobsApp = new JobsApp({runner: new MongoJobRunner()});
+
+jobsApp.define("my/task", {
+  handler: async (payload, ctx) => {
+    ctx.log.info("running");
+  },
+});
+
+new TerrenoApp({userModel: User})
+  .register(jobsApp)
+  .start();
+
+await jobsApp.startWorker(); // not automatic on register
+await getJobsService().enqueue({name: "my/task", payload: {}});
+```
+
+## Worker processes
+
+- `JobsApp.register()` does **not** start polling.
+- Call `startWorker()` in the API process **or** a dedicated worker entrypoint — not both
+  without `JOBS_START_WORKER=false` on the API (example-backend pattern).
+- `stopWorker()` aborts in-flight handlers via `ctx.signal`.
+
+## Runners
+
+| Runner | `id` | `start()` | Execute route |
+| --- | --- | --- | --- |
+| `MongoJobRunner` | `mongo` | Poll loop | No |
+| `GcpCloudTasksRunner` | `gcp-cloud-tasks` | No | Yes — provide `executeAuth` (OIDC) |
+| `VercelQueuesRunner` | `vercel-queues` | No | No — use `createVercelQueuesConsumer` |
+| Custom `JobRunner` | your id | Optional | Set `requiresExecuteRoute` when using HTTP execute |
+
+`@terreno/jobs` does not read `GCP_TASK_*` env vars. Pass runner config explicitly.
+
+## Handlers
+
+- **At-least-once** — idempotent handlers; `idempotencyKey` dedupes enqueue only.
+- Use `ctx.log` and `runWithRequestContext` `jobId` for log correlation.
+- Respect `ctx.signal` on cancel/shutdown.
+
+## Admin
+
+- Routes under `{basePath}` (default `/jobs`).
+- With `accessControl`: requires **both** `admin:access` and `admin:jobs`. Without it: legacy `user.admin`.
+- `adminContribution()`: screen `jobs`, home widget `jobs`.
+- `redactPayload` omitted by default (payload hidden). Opt in with a safe projection only.
+
+## Testing
+
+```bash
+bun test --only-failures jobs/src/tests/
+```
+
+Use `backend-test-env` for Mongo test setup. Mock GCP/Vercel clients via runner constructor seams.
+
+## Related
+
+- `terreno-backend-api` skill — decision tree for jobs vs cron vs scripts
+- `building-admin-interfaces` — jobs dashboard widgets in admin-frontend

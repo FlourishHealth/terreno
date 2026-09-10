@@ -119,9 +119,9 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
 
 ## Phase 5 — Docs, CI, publish
 
-- [ ] **Task 5.1**: Diátaxis + agent docs + changelog + seed
+- [x] **Task 5.1**: Diátaxis + agent docs + changelog + seed
   - Delivers: how-to, reference, api.md cron contrast, env table, import-prebuilt, seed IP/task URLs, jobs rule, backend-api skill mention, unreleased changelog, `bun run rules` / `skills:sync`
-  - Files: `docs/how-to/background-jobs.md`, `docs/reference/jobs.md`, `docs/how-to/README.md`, `docs/reference/api.md`, `docs/reference/environment-variables.md`, `docs/how-to/admin-import-prebuilt.md`, `docs/explanation/roadmap-seed-issues.md`, `.rulesync/rules/jobs/00-jobs.md`, `.rulesync/skills/terreno-backend-api/SKILL.md`, `changelog/unreleased/job-queues.md`
+  - Files: `docs/how-to/background-jobs.md`, `docs/reference/jobs.md`, `docs/how-to/README.md`, `docs/reference/api.md`, `docs/reference/environment-variables.md`, `docs/how-to/admin-import-prebuilt.md`, `docs/explanation/roadmap-seed-issues.md`, `.rulesync/rules/jobs/00-jobs.md`, `plugins/terreno-planning/skills/terreno-backend-api/SKILL.md`, `changelog/unreleased/job-queues.md`
   - Blocked by: 3.4, 4.3
   - Skills: `update-docs`, `update-agent-docs`
   - Docs: (this task)
