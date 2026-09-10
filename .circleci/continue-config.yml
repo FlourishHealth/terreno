@@ -500,6 +500,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh api
 
   ai-ci:
     executor: node22_mongo
@@ -519,6 +520,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh ai
 
   rtk-ci:
     executor: node22
@@ -537,6 +539,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh rtk
 
   ui-ci:
     executor: node22
@@ -554,6 +557,7 @@ jobs:
             bun run compile
             bun run types
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh ui
 
   syncdb-ci:
     executor: node22
@@ -569,6 +573,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh syncdb
 
   new-file-coverage:
     executor: node22_mongo
@@ -591,7 +596,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
@@ -627,6 +632,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh comms
 
   mcp-server-ci:
     executor: node22
@@ -651,6 +657,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh mcp-server
 
   mcp-server-docker:
     executor: node22
@@ -813,6 +820,7 @@ jobs:
             bun run compile
             bunx tsc --noEmit -p tsconfig.json
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
       - run:
@@ -869,6 +877,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh "<< parameters.package >>"
 
   no-barrel-imports:
     executor: node22

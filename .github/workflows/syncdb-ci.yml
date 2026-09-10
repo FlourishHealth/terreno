@@ -44,3 +44,9 @@ jobs:
         working-directory: syncdb
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: syncdb
+          flag: syncdb
+          token: ${{ secrets.CODECOV_TOKEN }}

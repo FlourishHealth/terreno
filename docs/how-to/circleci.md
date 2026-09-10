@@ -26,7 +26,12 @@ CircleCI `run-preview-cleanup` parameter.
    Copy Netlify and GCP values from GitHub Actions secrets/vars. Until they
    are set, CircleCI deploy jobs skip with exit 0 and GHA remains the live
    deployer.
-5. Build forked PRs if you want DCO + rulesync on forks.
+5. Set project Environment Variable `CODECOV_TOKEN` (Codecov upload token) so
+   package CI can upload `coverage/lcov.info`. Uploads skip when it is unset.
+   Mirror the same secret as GitHub Actions `CODECOV_TOKEN` for retained twins.
+   Public repos need a token unless the Codecov org disables token auth for
+   public repositories.
+6. Build forked PRs if you want DCO + rulesync on forks.
 
 GitHub App org/project slug (API and CLI):
 `circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.

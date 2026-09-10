@@ -59,3 +59,9 @@ jobs:
         working-directory: ${{ matrix.package }}
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: ${{ matrix.package }}
+          flag: ${{ matrix.package }}
+          token: ${{ secrets.CODECOV_TOKEN }}

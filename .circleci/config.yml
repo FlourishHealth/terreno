@@ -118,6 +118,10 @@ workflows:
             scripts/check-coverage\.ts run-feature-flags true
             scripts/check-coverage\.ts run-test-package true
             scripts/check-coverage\.ts run-new-file-coverage true
+            scripts/check-coverage\.test.ts run-new-file-coverage true
+            scripts/upload-codecov\.sh run-new-file-coverage true
+            scripts/upload-codecov\.test.ts run-new-file-coverage true
+            codecov\.yml run-new-file-coverage true
             scripts/check-package-coverage-ci\.ts run-new-file-coverage true
             scripts/check-package-coverage-ci\.test.ts run-new-file-coverage true
             example-frontend/.* run-example-frontend true

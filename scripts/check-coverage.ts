@@ -22,7 +22,7 @@
  *   bun run ../scripts/check-coverage.ts [--threshold=95]
  */
 import {spawn} from "node:child_process";
-import {existsSync, readdirSync, readFileSync, rmSync} from "node:fs";
+import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync} from "node:fs";
 import {basename, isAbsolute, join, relative, resolve} from "node:path";
 
 export interface ParsedArgs {
@@ -394,6 +394,71 @@ export const summarizeLcov = (coverage: Map<string, FileCoverage>): CoverageSumm
   };
 };
 
+const functionRecordName = (key: string): string => {
+  const colon = key.indexOf(":");
+  if (colon < 0) {
+    return key;
+  }
+  return key.slice(colon + 1).replace(/#\d+$/, "");
+};
+
+const functionRecordLine = (key: string): string => {
+  const colon = key.indexOf(":");
+  if (colon < 0) {
+    return "0";
+  }
+  return key.slice(0, colon);
+};
+
+/** Serialize merged coverage so Codecov (and local KEEP_COVERAGE) can read one report. */
+export const formatLcov = (coverage: Map<string, FileCoverage>): string => {
+  const blocks: string[] = [];
+  const paths = [...coverage.keys()].sort();
+  for (const path of paths) {
+    const entry = coverage.get(path);
+    if (!entry) {
+      continue;
+    }
+    const lines: string[] = [`SF:${path}`];
+    if (entry.hasFnRecords && entry.functions.size > 0) {
+      for (const key of entry.functions.keys()) {
+        lines.push(`FN:${functionRecordLine(key)},${functionRecordName(key)}`);
+      }
+      for (const [key, hits] of entry.functions.entries()) {
+        lines.push(`FNDA:${hits},${functionRecordName(key)}`);
+      }
+      let hitFns = 0;
+      for (const hits of entry.functions.values()) {
+        if (hits > 0) {
+          hitFns += 1;
+        }
+      }
+      lines.push(`FNF:${entry.functions.size}`);
+      lines.push(`FNH:${hitFns}`);
+    } else {
+      lines.push(`FNF:${entry.functionsFound}`);
+      lines.push(`FNH:${entry.functionsHit}`);
+    }
+    const sortedLineNos = [...entry.lines.keys()].sort((a, b) => a - b);
+    for (const lineNo of sortedLineNos) {
+      lines.push(`DA:${lineNo},${entry.lines.get(lineNo) ?? 0}`);
+    }
+    lines.push(`LF:${entry.lines.size}`);
+    lines.push(`LH:${countHitLines(entry)}`);
+    lines.push("end_of_record");
+    blocks.push(lines.join("\n"));
+  }
+  return blocks.length === 0 ? "" : `${blocks.join("\n")}\n`;
+};
+
+export const writeMergedLcov = (cwd: string, coverage: Map<string, FileCoverage>): string => {
+  const coverageDir = join(cwd, "coverage");
+  mkdirSync(coverageDir, {recursive: true});
+  const lcovPath = join(coverageDir, "lcov.info");
+  writeFileSync(lcovPath, formatLcov(coverage));
+  return lcovPath;
+};
+
 const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; output: string}> => {
   const srcRoot = join(process.cwd(), "src");
   const prependSrcRoot =
@@ -465,7 +530,14 @@ const main = async (): Promise<void> => {
   const isolated = findIsolatedFiles(cwd);
 
   if (isolated.length === 0) {
-    const {exitCode, output} = await runBunTest(["--coverage", "--coverage-reporter=text"]);
+    const coverageDir = resolve(cwd, "coverage");
+    rmSync(coverageDir, {force: true, recursive: true});
+    const {exitCode, output} = await runBunTest([
+      "--coverage",
+      "--coverage-reporter=text",
+      "--coverage-reporter=lcov",
+      `--coverage-dir=${coverageDir}`,
+    ]);
     if (exitCode !== 0) {
       console.error(`\nbun test exited with code ${exitCode}`);
       process.exit(exitCode);
@@ -522,6 +594,7 @@ const main = async (): Promise<void> => {
   }
 
   const summary = summarizeLcov(mergedCoverage);
+  writeMergedLcov(cwd, mergedCoverage);
   reportSummary(summary, threshold);
 
   if (!process.env.KEEP_COVERAGE) {

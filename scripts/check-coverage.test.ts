@@ -2,6 +2,7 @@ import {describe, expect, it} from "bun:test";
 
 import {
   evaluateCoverage,
+  formatLcov,
   mergeIsolatedLcov,
   mergeLcov,
   normalizeLcovPath,
@@ -402,5 +403,38 @@ describe("summarizeLcov", () => {
     mergeLcov(merged, withFn);
     expect(merged.get("src/foo.ts")?.hasFnRecords).toBe(true);
     expect(summarizeLcov(merged)).toEqual({functions: 100, lines: 100});
+  });
+});
+
+describe("formatLcov", () => {
+  it("round-trips line hits so Codecov can read the merged report", () => {
+    const original = parseLcov(
+      lcovRecord({
+        functions: [
+          {hits: 3, line: 4, name: "alpha"},
+          {hits: 0, line: 8, name: "beta"},
+        ],
+        lines: [
+          {hits: 2, line: 4},
+          {hits: 0, line: 8},
+        ],
+        path: "src/mod.ts",
+      })
+    );
+    const rendered = formatLcov(original);
+    const parsed = parseLcov(rendered);
+    expect(summarizeLcov(parsed)).toEqual(summarizeLcov(original));
+    expect(parsed.get("src/mod.ts")?.lines.get(4)).toBe(2);
+    expect(parsed.get("src/mod.ts")?.lines.get(8)).toBe(0);
+  });
+
+  it("emits FNF/FNH when FN records are absent", () => {
+    const parsed = parseLcov(
+      ["SF:src/foo.ts", "FNF:10", "FNH:7", "DA:1,1", "DA:2,0", "end_of_record"].join("\n")
+    );
+    const rendered = formatLcov(parsed);
+    expect(rendered).toContain("FNF:10");
+    expect(rendered).toContain("FNH:7");
+    expect(rendered).toContain("DA:1,1");
   });
 });

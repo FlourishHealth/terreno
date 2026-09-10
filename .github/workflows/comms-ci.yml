@@ -46,3 +46,9 @@ jobs:
         run: bun run test:coverage
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: comms
+          flag: comms
+          token: ${{ secrets.CODECOV_TOKEN }}

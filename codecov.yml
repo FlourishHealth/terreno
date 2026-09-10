@@ -1,0 +1,84 @@
+# Per-package coverage reports for @terreno/* published packages.
+#
+# CODECOV_TOKEN: required for uploads unless FlourishHealth disables token
+# authentication for public repositories in Codecov org settings
+# (Settings → Global Upload Token). Maintainers must set the same value in:
+#   - CircleCI project Environment Variables (live CI)
+#   - GitHub Actions repository or org secret (retained workflow twins)
+# Do not commit the token. Public Codecov docs:
+#   https://docs.codecov.com/docs/codecov-tokens
+#
+# Local gate remains scripts/check-coverage.ts (95% functions and lines).
+# Codecov project/patch status uses target: auto so trivial noise does not fail PRs.
+
+comment:
+  layout: "condensed_header, diff, flags, files"
+  behavior: default
+  require_changes: true
+  require_base: false
+  require_head: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+ignore:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.isolated.ts"
+  - "**/*.isolated.tsx"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/coverage-main/**"
+  - "**/coverage-iso-*/**"
+
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: api
+      paths:
+        - api/
+    - name: ui
+      paths:
+        - ui/
+    - name: rtk
+      paths:
+        - rtk/
+    - name: syncdb
+      paths:
+        - syncdb/
+    - name: ai
+      paths:
+        - ai/
+    - name: comms
+      paths:
+        - comms/
+    - name: mcp-server
+      paths:
+        - mcp-server/
+    - name: admin-backend
+      paths:
+        - admin-backend/
+    - name: admin-frontend
+      paths:
+        - admin-frontend/
+    - name: admin-spa
+      paths:
+        - admin-spa/
+    - name: api-health
+      paths:
+        - api-health/
+    - name: feature-flags
+      paths:
+        - feature-flags/
+    - name: test
+      paths:
+        - test/

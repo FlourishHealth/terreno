@@ -55,6 +55,12 @@ jobs:
         working-directory: ui
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: ui
+          flag: ui
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   demo-typecheck:
     name: Demo TypeScript Check (UI dependency)

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T23:27:55.634Z",
+  "generatedAt": "2026-09-10T23:42:30.204Z",
   "issues": [
     "default:binaries:admin-frontend/package.json:continue",
     "default:binaries:demo/package.json:eas",
@@ -420,6 +420,7 @@
     "default:files:scripts/roadmap/syncProject.test.ts:scripts/roadmap/syncProject.test.ts",
     "default:files:scripts/static-analysis/lib.test.ts:scripts/static-analysis/lib.test.ts",
     "default:files:scripts/sync-labels.test.ts:scripts/sync-labels.test.ts",
+    "default:files:scripts/upload-codecov.test.ts:scripts/upload-codecov.test.ts",
     "default:files:skills/expo-cicd-workflows/scripts/fetch.js:skills/expo-cicd-workflows/scripts/fetch.js",
     "default:files:skills/expo-cicd-workflows/scripts/validate.js:skills/expo-cicd-workflows/scripts/validate.js",
     "default:files:syncdb/src/isolated/defaultPersisterFactoryNative.isolated.ts:syncdb/src/isolated/defaultPersisterFactoryNative.isolated.ts",
@@ -992,6 +993,7 @@
     "production:files:scripts/track-upstream-expo/compare.ts:scripts/track-upstream-expo/compare.ts",
     "production:files:scripts/track-upstream-expo/probe.ts:scripts/track-upstream-expo/probe.ts",
     "production:files:scripts/track-upstream-expo/remoteTracked.ts:scripts/track-upstream-expo/remoteTracked.ts",
+    "production:files:scripts/upload-codecov.test.ts:scripts/upload-codecov.test.ts",
     "production:files:skills/expo-cicd-workflows/scripts/fetch.js:skills/expo-cicd-workflows/scripts/fetch.js",
     "production:files:skills/expo-cicd-workflows/scripts/validate.js:skills/expo-cicd-workflows/scripts/validate.js",
     "production:files:syncdb/src/isolated/defaultPersisterFactoryNative.isolated.ts:syncdb/src/isolated/defaultPersisterFactoryNative.isolated.ts",
