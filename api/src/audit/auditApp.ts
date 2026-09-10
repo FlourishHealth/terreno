@@ -6,6 +6,7 @@ import {modelRouter} from "../api";
 import {Permissions} from "../permissions";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {createAuditEventModel} from "./auditEventModel";
+import {installAuditRecorder} from "./record";
 
 export interface AuditAppOptions {
   /** Mongo TTL in days. Omit or 0 = forever (no TTL index). Applied in a later task. */
@@ -64,6 +65,7 @@ export class AuditApp implements TerrenoPlugin {
 
   register(app: express.Application): void {
     const model = createAuditEventModel(mongoose.connection);
+    installAuditRecorder(model);
     const router = modelRouter(model, {
       permissions: {
         create: [],

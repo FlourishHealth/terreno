@@ -17,6 +17,7 @@ import {
 } from "./actions";
 import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
 import type {AdminConfig} from "./adminTypes";
+import {type ModelRouterAuditConfig, maybeRecordModelRouterAudit} from "./audit/record";
 import {authenticateMiddleware, omitUserRolesFromWriteBody, type User} from "./auth";
 import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {
@@ -302,6 +303,13 @@ export interface ModelRouterOptions<T> {
    * @param value - The document that was deleted, after the soft update of deleted: true (type: T).
    */
   postDelete?: (request: express.Request, value: T) => void | Promise<void>;
+  /**
+   * When true or `{redact}`, persist an `AuditEvent` after successful HTTP
+   * create/update/delete. Requires `AuditApp`. Extra `redact` names merge with
+   * the default secret segments (`password`, `hash`, `salt`, `token`, `secret`,
+   * `refreshToken`).
+   */
+  audit?: ModelRouterAuditConfig;
   /** Hook that runs after the object is fetched but before it is serialized.
    * Returns a promise so that asynchronous actions can be included in the function.
    * Throw an APIError to return a 400 with an error message.
@@ -785,6 +793,15 @@ const _buildModelRouter = <T>(
         req,
         user: req.user,
       });
+      await maybeRecordModelRouterAudit({
+        after: doc,
+        audit: options.audit,
+        modelName: model.modelName,
+        operation: "create",
+        recordId: String(doc._id),
+        req,
+        verb: "created",
+      });
       try {
         const serialized = await responseHandler(doc, "create", req, options);
         return res.status(201).json({data: serialized});
@@ -1032,6 +1049,7 @@ const _buildModelRouter = <T>(
       }
 
       let doc: Document<unknown, unknown, unknown> & T;
+      const previous = existingDoc.toJSON();
       try {
         ({doc} = await executeUpdate<T>({
           body: req.body,
@@ -1061,6 +1079,17 @@ const _buildModelRouter = <T>(
         throw error;
       }
 
+      await maybeRecordModelRouterAudit({
+        after: doc,
+        audit: options.audit,
+        before: previous,
+        modelName: model.modelName,
+        operation: "update",
+        recordId: String(doc._id),
+        req,
+        verb: "updated",
+      });
+
       try {
         const serialized = await responseHandler(doc, "update", req, options);
         return res.json({data: serialized});
@@ -1085,6 +1114,7 @@ const _buildModelRouter = <T>(
         req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
       ).obj;
 
+      const previous = existingDoc.toJSON();
       await executeDelete<T>({
         existingDoc,
         id: req.params.id as string,
@@ -1092,6 +1122,16 @@ const _buildModelRouter = <T>(
         options,
         req,
         user: req.user,
+      });
+
+      await maybeRecordModelRouterAudit({
+        audit: options.audit,
+        before: previous,
+        modelName: model.modelName,
+        operation: "delete",
+        recordId: String(existingDoc._id),
+        req,
+        verb: "deleted",
       });
 
       return res.status(204).json({});

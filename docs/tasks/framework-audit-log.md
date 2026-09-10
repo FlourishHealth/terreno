@@ -15,7 +15,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
   - Docs: stub `AuditApp` in `docs/reference/api.md` so the tracer is documented when it lands
   - Acceptance: bun + supertest — import `@terreno/api` does not register `AuditEvent` on `mongoose.connection`; with plugin, admin GET list 200 empty; POST/PATCH/DELETE not available; non-admin list 405 (modelRouter `permissionMiddleware` for failed list perms)
 
-- [ ] **Task 1.2**: `modelRouter` `audit` + recorder + redacted diffs
+- [x] **Task 1.2**: `modelRouter` `audit` + recorder + redacted diffs
   - Delivers: `audit: true | {redact?: string[]}` after successful create/update/delete writes one `AuditEvent` (`source: "modelRouter"`, `verb` created/updated/deleted); changed-fields only; default redact `password`/`hash`/`salt`/`token`/`secret`/`refreshToken`; extra `redact` merged; best-effort (`logger.error`, CRUD still 2xx); never audit `AuditEvent`; without `AuditApp`, skip write and log error once per process
   - Files: `api/src/audit/record.ts`, `api/src/audit/diff.ts`, `api/src/api.ts`, `api/src/audit/auditRouter.test.ts` (or extend 1.1 tests)
   - Blocked by: 1.1

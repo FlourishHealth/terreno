@@ -10,6 +10,11 @@ export {
   type AuditEventVerb,
   createAuditEventModel,
 } from "./audit/auditEventModel";
+export type {
+  AuditEventWrite,
+  ModelRouterAuditConfig,
+  ModelRouterAuditOptions,
+} from "./audit/record";
 export * from "./auth";
 export * from "./authRecovery";
 export * from "./authTokens";
