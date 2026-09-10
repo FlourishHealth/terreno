@@ -22,7 +22,9 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
-- `Organization`, `Membership`, `organizationSlugFromName`
+- Organizations: `Organization`, `Membership`, `OrgsApp`, `orgScopedPlugin`,
+  `orgContextMiddleware`, `getOrgContext`, `OrgQueryFilter`,
+  `Permissions.IsOrganizationMember`, `organizationSlugFromName`
 - `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
@@ -649,6 +651,13 @@ and `$or` cannot list another org.
 
 `user.admin` is not operator. Platform org actors are `user.roles` containing `operator` or
 `superadmin`.
+
+Use `Permissions.IsOrganizationMember` on read, update, and delete methods for
+tenant models. It checks the object's `organizationId` against the active
+request context for platform actors and against active Membership rows for
+members. `getOrgContext()` exposes the resolved organization to create hooks so
+they can overwrite client-provided organization ids. See
+[Add organizations](../how-to/add-organizations.md) for complete route wiring.
 
 ### Organization RBAC
 

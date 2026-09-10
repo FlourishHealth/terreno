@@ -49,17 +49,46 @@ Add `orgScopedPlugin` to models that use ObjectId organization keys. Put
 create:
 
 ``````typescript
+import {
+  authenticateMiddleware,
+  getOrgContext,
+  modelRouter,
+  OrgQueryFilter,
+  orgContextMiddleware,
+  orgScopedPlugin,
+  Permissions,
+  type TerrenoPlugin,
+} from "@terreno/api";
+import type express from "express";
+
 schema.plugin(orgScopedPlugin);
 
-app.use("/projects", authenticateMiddleware(), orgContextMiddleware({required: true}));
+const projectOrgContextPlugin: TerrenoPlugin = {
+  register(expressApp: express.Application): void {
+    expressApp.use(
+      "/projects",
+      authenticateMiddleware(),
+      orgContextMiddleware({required: true})
+    );
+  },
+};
 
-modelRouter("/projects", Project, {
-  preCreate: (body) => ({
+const projectRouter = modelRouter("/projects", Project, {
+  permissions: {
+    create: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+    delete: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+    update: [Permissions.IsAuthenticated, Permissions.IsOrganizationMember],
+  },
+  preCreate: (body, _req) => ({
     ...body,
     organizationId: getOrgContext()?.organization?._id,
   }),
   queryFilter: OrgQueryFilter,
 });
+
+app.register(projectOrgContextPlugin).register(projectRouter);
 ``````
 
 For admin CRUD, use `new AdminApp({accessControl: access, organizations:
