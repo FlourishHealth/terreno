@@ -42,7 +42,7 @@ const COLUMNS: DataTableColumn[] = [
   {columnType: "text", sortable: false, title: "Email", width: 240},
   {columnType: "text", sortable: false, title: "Role", width: 130},
   {columnType: "text", sortable: false, title: "Status", width: 120},
-  {columnType: ACTION_COLUMN, sortable: false, title: "", width: 260},
+  {columnType: ACTION_COLUMN, sortable: false, title: "", width: 320},
 ];
 
 const mutationErrorTitle = (error: unknown, fallback: string): string => {
