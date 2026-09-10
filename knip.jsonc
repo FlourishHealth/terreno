@@ -32,7 +32,10 @@
   "ignoreFiles": [
     // Generated communications SDK is retained as a codegen contract even before a
     // product screen imports it; exports/types remain analyzed by ignoreIssues above.
-    "example-frontend/store/commsOpenApiSdk.ts"
+    "example-frontend/store/commsOpenApiSdk.ts",
+    // Human upgrade docs link this source example; it is intentionally illustrative
+    // rather than imported by the package runtime.
+    "api/src/example.ts"
   ],
   "workspaces": {
     // mcp-server `bunfig.toml` `test.preload` is an array so Knip's Bun plugin can
@@ -74,7 +77,13 @@
     "api": {
       // The Redis rate-limit adapter dynamically loads ioredis only when an app selects
       // that store and supplies the package through @terreno/api's optional peer contract.
-      "ignoreDependencies": ["ioredis"]
+      "ignoreDependencies": ["ioredis"],
+      // auth.compile.test.ts compiles this fixture by absolute path.
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/tests/fixtures/compileAuthEntry.ts"
+      ]
     },
     "rtk": {
       "entry": [
@@ -155,6 +164,7 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "**/*.test.ts",
         "jspdf-native-stub.js",
         "fingerprint.config.js"
       ]
@@ -226,7 +236,10 @@
         "src/tests/setup.ts",
         "src/scripts/runAdminScript.ts",
         "src/scripts/seed-test-data.ts",
-        "src/scripts/syncConsents.ts"
+        "src/scripts/syncConsents.ts",
+        "src/scripts/configuration-example.ts",
+        "src/scripts/seed-admin-spa-admin.ts",
+        "src/scripts/seedConsents.ts"
       ]
     },
     "ui": {

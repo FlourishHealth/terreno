@@ -97,7 +97,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`, `verify-ui-changes` if a routed screen changes
   - Acceptance: those paths absent from live `files` findings; `cd example-frontend && bun test` passes; if UI was unwired, login + related screen still work with artifacts under `/opt/cursor/artifacts/`
 
-- [ ] **Task 4.2**: Delete or wire dead demo / example-backend / api example files
+- [x] **Task 4.2**: Delete or wire dead demo / example-backend / api example files
   - Delivers: `demo/stories/PasswordField.stories.tsx` if unregistered; `demo/.eslintrc.js` if unused; `example-backend` unused scripts (`configuration-example.ts`, `seed-admin-spa-admin.ts`, `seedConsents.ts`) unless `package.json` / AdminApp should call them — then add entries; `example-backend/src/constants/index.ts` if a banned barrel leftover; `api/src/example.ts`; unused vendor `convert-yaml.js` only if nothing requires it
   - Files: paths from live Knip `files` in those packages
   - Blocked by: Task 1.3

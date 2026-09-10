@@ -266,4 +266,23 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report documented examples, executable scripts, fixtures, or demo tests as unused",
+    (): void => {
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
+      for (const retainedFile of [
+        "example-backend/src/scripts/configuration-example.ts",
+        "example-backend/src/scripts/seed-admin-spa-admin.ts",
+        "example-backend/src/scripts/seedConsents.ts",
+        "api/src/example.ts",
+        "api/src/tests/fixtures/compileAuthEntry.ts",
+        "demo/generate-types.test.ts",
+        "demo/components/palette/colorUtils.test.ts",
+      ]) {
+        assert.notInclude(unusedFiles, retainedFile);
+      }
+    },
+    {timeout: 180_000}
+  );
 });
