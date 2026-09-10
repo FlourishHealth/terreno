@@ -1,5 +1,5 @@
 import {getCalendars} from "expo-localization";
-import {type FC, useMemo, useState} from "react";
+import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
   type KeyboardTypeOptions,
@@ -146,13 +146,18 @@ export const TextField: FC<TextFieldProps> = ({
     ["text", "textarea"].includes(type) &&
     (!autoComplete || autoComplete === "on");
 
-  const handleChangeText = (text: string): void => {
-    const currentValue = value ?? "";
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  valueRef.current = value;
+  onChangeRef.current = onChange;
+
+  const handleChangeText = useCallback((text: string): void => {
+    const currentValue = valueRef.current ?? "";
     if (text === currentValue) {
       return;
     }
-    onChange(text);
-  };
+    onChangeRef.current(text);
+  }, []);
 
   const keyboardType = keyboardMap[type];
   const textContentType = textContentMap[type || "text"];

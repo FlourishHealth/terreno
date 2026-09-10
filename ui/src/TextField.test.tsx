@@ -554,6 +554,67 @@ describe("TextField", () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    it("keeps a stable onChangeText callback across value and onChange updates while invoking the latest onChange", async () => {
+      const onChange1 = mock(() => {});
+      const onChange2 = mock(() => {});
+      const {getByDisplayValue, rerender} = renderWithTheme(
+        <TextField onChange={onChange1} value="hello" />
+      );
+
+      const initialOnChangeText = getByDisplayValue("hello").props.onChangeText;
+
+      rerender(<TextField onChange={onChange2} value="world" />);
+
+      const input = getByDisplayValue("world");
+      expect(input.props.onChangeText).toBe(initialOnChangeText);
+
+      await act(async () => {
+        fireEvent.changeText(input, "updated");
+      });
+
+      expect(onChange2).toHaveBeenCalledWith("updated");
+      expect(onChange1).not.toHaveBeenCalled();
+    });
+
+    it("preserves per-character typing when onChangeText identity churn would trigger stale RN Web rebinds", async () => {
+      const savedOS = PlatformModule.OS;
+      const perCharTitle = "Review";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = "";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+
+        for (let i = 0; i < perCharTitle.length; i++) {
+          const partial = perCharTitle.slice(0, i + 1);
+          const field = view.getByDisplayValue(value);
+          const previousOnChangeText = field.props.onChangeText;
+
+          await act(async () => {
+            fireEvent.changeText(field, partial);
+          });
+
+          view.rerender(renderField());
+
+          const fieldAfterChange = view.getByDisplayValue(value);
+          expect(fieldAfterChange.props.onChangeText).toBe(previousOnChangeText);
+          expect(fieldAfterChange.props.value).toBe(partial);
+        }
+
+        expect(view.getByDisplayValue(value).props.value).toBe(perCharTitle);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
     it("disables browser autocorrect and spellcheck on web", () => {
       const savedOS = PlatformModule.OS;
       try {
