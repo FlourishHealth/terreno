@@ -1,12 +1,21 @@
 import {APIError} from "@terreno/api";
 import {DateTime} from "luxon";
+import mongoose from "mongoose";
 
 import {Job} from "./models/job";
+import {JobSchedule} from "./models/jobSchedule";
 import type {JobDocument} from "./modelTypes";
 import {DEFAULT_BACKOFF_MS, DEFAULT_MAX_BACKOFF_MS} from "./retryBackoff";
+import {
+  computeInitialNextRunAt,
+  resolveScheduleTimezone,
+  validateScheduleDefinition,
+} from "./scheduleCron";
+import {tickDueSchedules} from "./scheduler";
 import type {EnqueueJobParams, JobDefinition} from "./types";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
+const DEFAULT_TIMEZONE = "UTC";
 const UNKNOWN_JOB_NAME_TITLE = "Unknown job name";
 
 const isDuplicateKeyError = (error: unknown): boolean =>
@@ -18,14 +27,25 @@ const isDuplicateKeyError = (error: unknown): boolean =>
   );
 
 export class JobsService {
+  private readonly defaultTimezone: string;
   private readonly definitions = new Map<string, JobDefinition>();
   private readonly lockTtlMs: number;
+  private schedulesDirty = false;
 
-  constructor(options?: {lockTtlMs?: number}) {
+  constructor(options?: {defaultTimezone?: string; lockTtlMs?: number}) {
+    this.defaultTimezone = options?.defaultTimezone ?? DEFAULT_TIMEZONE;
     this.lockTtlMs = options?.lockTtlMs ?? 15 * 60 * 1000;
   }
 
   define(name: string, definition: JobDefinition): void {
+    if (definition.schedule) {
+      validateScheduleDefinition({
+        cron: definition.schedule.cron,
+        defaultTimezone: this.defaultTimezone,
+        scheduleTimezone: definition.schedule.timezone,
+      });
+    }
+
     this.definitions.set(name, definition);
   }
 
@@ -33,8 +53,88 @@ export class JobsService {
     return this.definitions.get(name);
   }
 
+  getDefaultTimezone(): string {
+    return this.defaultTimezone;
+  }
+
   getLockTtlMs(): number {
     return this.lockTtlMs;
+  }
+
+  isSchedulesDirty(): boolean {
+    return this.schedulesDirty;
+  }
+
+  markSchedulesDirty(): void {
+    this.schedulesDirty = true;
+  }
+
+  async reconcileSchedulesIfDirty(): Promise<void> {
+    if (!this.schedulesDirty) {
+      return;
+    }
+
+    await this.reconcileSchedules();
+  }
+
+  async reconcileSchedules(): Promise<void> {
+    for (const [name, definition] of this.definitions) {
+      if (!definition.schedule) {
+        continue;
+      }
+
+      const timezone = resolveScheduleTimezone({
+        defaultTimezone: this.defaultTimezone,
+        scheduleTimezone: definition.schedule.timezone,
+      });
+      const cron = definition.schedule.cron;
+      const existing = await JobSchedule.findOneOrNone({name});
+
+      if (!existing) {
+        await JobSchedule.findOneAndUpdate(
+          {name},
+          {
+            $setOnInsert: {
+              cron,
+              enabled: true,
+              handlerName: name,
+              nextRunAt: computeInitialNextRunAt(cron, timezone),
+              timezone,
+            },
+          },
+          {upsert: true}
+        );
+        continue;
+      }
+
+      const cronTimezoneChanged = existing.cron !== cron || existing.timezone !== timezone;
+
+      const update: {
+        cron: string;
+        handlerName: string;
+        nextRunAt?: Date;
+        timezone: string;
+      } = {
+        cron,
+        handlerName: name,
+        timezone,
+      };
+
+      if (cronTimezoneChanged) {
+        update.nextRunAt = computeInitialNextRunAt(cron, timezone);
+      }
+
+      await JobSchedule.updateOne({_id: existing._id}, {$set: update});
+    }
+
+    this.schedulesDirty = false;
+  }
+
+  async tickSchedules(now?: Date): Promise<void> {
+    await tickDueSchedules({
+      jobsService: this,
+      now,
+    });
   }
 
   async enqueue(params: EnqueueJobParams): Promise<JobDocument> {
@@ -70,6 +170,7 @@ export class JobsService {
       runAt,
       status: "pending" as const,
       ...(idempotencyKey ? {idempotencyKey} : {}),
+      ...(params.scheduleId ? {scheduleId: new mongoose.Types.ObjectId(params.scheduleId)} : {}),
     };
 
     try {

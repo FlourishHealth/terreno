@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@terreno/api": "workspace:*",
+    "cron": "^4.3.4",
     "express": "catalog:",
     "luxon": "catalog:"
   },

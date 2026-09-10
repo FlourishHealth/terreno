@@ -124,5 +124,6 @@ jobSchema.index(
 );
 // biome-ignore assist/source/useSortedKeys: IP specifies (status, runAt) claim index field order
 jobSchema.index({status: 1, runAt: 1});
+jobSchema.index({scheduleId: 1, status: 1});
 
 export const Job = mongoose.model<JobDocument, JobModel>("Job", jobSchema);

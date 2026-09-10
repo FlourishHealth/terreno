@@ -4,6 +4,7 @@ import type express from "express";
 
 import {JobsService, registerJobsService} from "./jobsService";
 import {Job} from "./models/job";
+import {JobSchedule} from "./models/jobSchedule";
 import {MongoJobRunner} from "./runners/mongoRunner";
 import type {JobDefinition, JobRunner} from "./types";
 
@@ -33,11 +34,17 @@ export class JobsApp implements TerrenoPlugin {
   constructor(options?: JobsAppOptions) {
     this.options = options ?? {};
     this.runner = this.options.runner ?? new MongoJobRunner();
-    this.service = new JobsService({lockTtlMs: this.options.lockTtlMs});
+    this.service = new JobsService({
+      defaultTimezone: this.options.timezone ?? "UTC",
+      lockTtlMs: this.options.lockTtlMs,
+    });
   }
 
   define(name: string, definition: JobDefinition): this {
     this.service.define(name, definition);
+    if (this.workerActive && definition.schedule) {
+      this.service.markSchedulesDirty();
+    }
     return this;
   }
 
@@ -49,6 +56,10 @@ export class JobsApp implements TerrenoPlugin {
     return this.service.getDefinition(name);
   }
 
+  getDefaultTimezone(): string {
+    return this.service.getDefaultTimezone();
+  }
+
   getLockTtlMs(): number {
     return this.service.getLockTtlMs();
   }
@@ -57,11 +68,27 @@ export class JobsApp implements TerrenoPlugin {
     return this.options.pollIntervalMs ?? 1_000;
   }
 
+  async reconcileSchedules(): Promise<void> {
+    await this.service.reconcileSchedules();
+  }
+
+  async reconcileSchedulesIfDirty(): Promise<void> {
+    await this.service.reconcileSchedulesIfDirty();
+  }
+
+  async tickSchedules(now?: Date): Promise<void> {
+    await this.service.tickSchedules(now);
+  }
+
   register(_app: express.Application, _openApi?: unknown): void {
     registerJobsService(this.service);
 
     void Job.init().catch((error: unknown) => {
       logger.error(`[jobs] Failed to build Job indexes: ${String(error)}`);
+    });
+
+    void JobSchedule.init().catch((error: unknown) => {
+      logger.error(`[jobs] Failed to build JobSchedule indexes: ${String(error)}`);
     });
   }
 
@@ -83,6 +110,8 @@ export class JobsApp implements TerrenoPlugin {
     if (!this.runner.start) {
       throw new Error(`Job runner "${this.runner.id}" does not support start()`);
     }
+
+    await this.service.reconcileSchedules();
 
     this.workerActive = true;
     this.abortController = new AbortController();

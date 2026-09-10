@@ -8,6 +8,11 @@ export interface JobHandlerContext {
   signal: AbortSignal;
 }
 
+export interface JobScheduleDefinition {
+  cron: string;
+  timezone?: string;
+}
+
 export interface JobDefinition {
   handler: (payload: unknown, ctx: JobHandlerContext) => Promise<void>;
   retry?: {
@@ -15,6 +20,7 @@ export interface JobDefinition {
     maxAttempts?: number;
     maxBackoffMs?: number;
   };
+  schedule?: JobScheduleDefinition;
 }
 
 export interface EnqueueJobParams {
@@ -22,6 +28,7 @@ export interface EnqueueJobParams {
   name: string;
   payload: unknown;
   runAt?: Date;
+  scheduleId?: string;
 }
 
 export interface JobRunnerStartOptions {
@@ -31,8 +38,12 @@ export interface JobRunnerStartOptions {
 }
 
 export interface JobsRunnerHost {
+  getDefaultTimezone(): string;
   getDefinition(name: string): JobDefinition | undefined;
   getLockTtlMs(): number;
+  reconcileSchedules(): Promise<void>;
+  reconcileSchedulesIfDirty(): Promise<void>;
+  tickSchedules(now?: Date): Promise<void>;
 }
 
 export interface JobRunner {

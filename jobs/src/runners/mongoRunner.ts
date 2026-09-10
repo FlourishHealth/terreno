@@ -66,6 +66,9 @@ export class MongoJobRunner implements JobRunner {
 
     try {
       while (!options.signal.aborted) {
+        await options.jobs.reconcileSchedulesIfDirty();
+        await options.jobs.tickSchedules();
+
         let processedAny = false;
 
         while (!options.signal.aborted) {

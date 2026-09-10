@@ -49,7 +49,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (5.1)
   - Acceptance: bun test — frozen clock (Luxon); unique index violation path covered
 
-- [ ] **Task 2.3**: `JobSchedule` + recurring cron + IANA timezone
+- [x] **Task 2.3**: `JobSchedule` + recurring cron + IANA timezone
   - Delivers: `define(..., {schedule: {cron, timezone}})`; upsert `JobSchedule`; tick enqueues a child `Job`; skip tick if a child is still `running`/`pending` for that schedule; invalid cron fails at define/start
   - Files: `jobs/src/models/jobSchedule.ts`, scheduler, tests
   - Blocked by: 1.3

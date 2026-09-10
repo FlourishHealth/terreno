@@ -8,6 +8,7 @@ import {DateTime} from "luxon";
 import {JobsApp} from "../jobsApp";
 import {getJobsService} from "../jobsService";
 import {Job} from "../models/job";
+import {JobSchedule} from "../models/jobSchedule";
 import {getWorkerId, hasWorkerIdPrefix} from "../runners/mongoRunner";
 
 const typedUserModel = UserModel as unknown as UserModelType;
@@ -34,6 +35,7 @@ describe("jobs worker lifecycle", () => {
   beforeEach(async (): Promise<void> => {
     await setupDb();
     await Job.deleteMany({});
+    await JobSchedule.deleteMany({});
   });
 
   it("does not poll until startWorker is called", async (): Promise<void> => {
