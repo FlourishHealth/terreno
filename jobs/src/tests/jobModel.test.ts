@@ -8,11 +8,13 @@ import {Job} from "../models/job";
 const JOB_FIELDS = [
   "attemptCount",
   "attempts",
+  "backoffMs",
   "idempotencyKey",
   "lastError",
   "lockedAt",
   "lockedBy",
   "maxAttempts",
+  "maxBackoffMs",
   "name",
   "payload",
   "payloadRedacted",

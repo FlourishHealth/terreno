@@ -33,7 +33,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
 
 ## Phase 2 — Retries, DLQ, delay, cron
 
-- [ ] **Task 2.1**: Attempts, backoff, `dead`
+- [x] **Task 2.1**: Attempts, backoff, `dead`
   - Delivers: throw → `attemptCount++`, `attempts[]`, `runAt` backoff with jitter; at `maxAttempts` → `status: "dead"`; success → `completed`; `ctx.signal` abort on cancel
   - Files: `jobs/src/jobsService.ts`, retry helper, tests
   - Blocked by: 1.3

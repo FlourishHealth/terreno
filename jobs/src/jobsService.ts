@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 
 import {Job} from "./models/job";
 import type {JobDocument} from "./modelTypes";
+import {DEFAULT_BACKOFF_MS, DEFAULT_MAX_BACKOFF_MS} from "./retryBackoff";
 import type {EnqueueJobParams, JobDefinition} from "./types";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
@@ -36,11 +37,15 @@ export class JobsService {
 
     const runAt = params.runAt ?? DateTime.utc().toJSDate();
     const maxAttempts = definition.retry?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    const backoffMs = definition.retry?.backoffMs ?? DEFAULT_BACKOFF_MS;
+    const maxBackoffMs = definition.retry?.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
 
     return Job.create({
       attemptCount: 0,
+      backoffMs,
       idempotencyKey: params.idempotencyKey,
       maxAttempts,
+      maxBackoffMs,
       name: params.name,
       payload: params.payload,
       payloadRedacted: false,

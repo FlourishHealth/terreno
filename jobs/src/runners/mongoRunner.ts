@@ -1,16 +1,20 @@
-import os from "node:os";
 import {createScopedLogger, runWithRequestContext} from "@terreno/api";
 import {DateTime} from "luxon";
 
+import {
+  buildClaimOwnershipFilter,
+  createClaimLock,
+  isAbortError,
+  type JobClaimLock,
+} from "../claimLock";
 import {Job} from "../models/job";
-import type {JobDocument} from "../modelTypes";
+import type {JobAttempt, JobDocument} from "../modelTypes";
+import {computeRetryRunAt} from "../retryBackoff";
 import type {JobRunner, JobRunnerStartOptions} from "../types";
 
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 
-const WORKER_ID = `${os.hostname()}:${process.pid}`;
-
-export const getWorkerId = (): string => WORKER_ID;
+export {getWorkerId, hasWorkerIdPrefix} from "../claimLock";
 
 const buildLockExpiry = (lockTtlMs: number): Date =>
   DateTime.utc().minus({milliseconds: lockTtlMs}).toJSDate();
@@ -34,6 +38,17 @@ const waitForAbortOrTimeout = (signal: AbortSignal, timeoutMs: number): Promise<
 
     signal.addEventListener("abort", onAbort, {once: true});
   });
+
+const readClaimLock = (job: JobDocument): JobClaimLock => {
+  if (!job.lockedAt || !job.lockedBy) {
+    throw new Error(`Job ${job._id.toString()} is missing claim lock metadata`);
+  }
+
+  return {
+    lockedAt: job.lockedAt,
+    lockedBy: job.lockedBy,
+  };
+};
 
 export class MongoJobRunner implements JobRunner {
   readonly id = "mongo";
@@ -89,6 +104,7 @@ export class MongoJobRunner implements JobRunner {
   private async processNext(options: JobRunnerStartOptions): Promise<boolean> {
     const now = DateTime.utc().toJSDate();
     const lockExpiry = buildLockExpiry(options.jobs.getLockTtlMs());
+    const claim = createClaimLock(now);
 
     const claimed = await Job.findOneAndUpdate(
       {
@@ -98,8 +114,8 @@ export class MongoJobRunner implements JobRunner {
       },
       {
         $set: {
-          lockedAt: now,
-          lockedBy: WORKER_ID,
+          lockedAt: claim.lockedAt,
+          lockedBy: claim.lockedBy,
           status: "running",
         },
       },
@@ -114,23 +130,98 @@ export class MongoJobRunner implements JobRunner {
     return true;
   }
 
-  private async releaseLockToPending(jobId: JobDocument["_id"]): Promise<void> {
-    await Job.updateOne(
-      {_id: jobId},
-      {
-        $set: {status: "pending"},
+  private async releaseLockToPending(
+    jobId: JobDocument["_id"],
+    claim: JobClaimLock
+  ): Promise<void> {
+    await Job.updateOne(buildClaimOwnershipFilter(jobId, claim), {
+      $set: {status: "pending"},
+      $unset: {lockedAt: "", lockedBy: ""},
+    });
+  }
+
+  private async recordHandlerSuccess(
+    jobId: JobDocument["_id"],
+    claim: JobClaimLock
+  ): Promise<void> {
+    await Job.updateOne(buildClaimOwnershipFilter(jobId, claim), {
+      $set: {lastError: undefined, status: "completed"},
+    });
+  }
+
+  private async recordHandlerFailure(
+    job: JobDocument,
+    error: unknown,
+    options: JobRunnerStartOptions,
+    claim: JobClaimLock
+  ): Promise<void> {
+    if (options.signal.aborted && isAbortError(error)) {
+      await this.releaseLockToPending(job._id, claim);
+      return;
+    }
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorClass = error instanceof Error ? error.name : "Error";
+    const attemptedAt = DateTime.utc().toJSDate();
+    const attemptEntry: JobAttempt = {
+      at: attemptedAt,
+      error: errorMessage,
+      errorClass,
+    };
+    const nextAttemptCount = job.attemptCount + 1;
+    const ownershipFilter = buildClaimOwnershipFilter(job._id, claim);
+
+    if (nextAttemptCount >= job.maxAttempts) {
+      await Job.updateOne(ownershipFilter, {
+        $push: {attempts: attemptEntry},
+        $set: {
+          attemptCount: nextAttemptCount,
+          lastError: errorMessage,
+          status: "dead",
+        },
         $unset: {lockedAt: "", lockedBy: ""},
-      }
-    );
+      });
+      return;
+    }
+
+    const runAt = computeRetryRunAt({
+      attemptCount: nextAttemptCount,
+      backoffMs: job.backoffMs,
+      from: DateTime.utc(),
+      maxBackoffMs: job.maxBackoffMs,
+    }).toJSDate();
+
+    await Job.updateOne(ownershipFilter, {
+      $push: {attempts: attemptEntry},
+      $set: {
+        attemptCount: nextAttemptCount,
+        lastError: errorMessage,
+        runAt,
+        status: "pending",
+      },
+      $unset: {lockedAt: "", lockedBy: ""},
+    });
+  }
+
+  private async recordMissingHandlerFailure(
+    job: JobDocument,
+    message: string,
+    claim: JobClaimLock
+  ): Promise<void> {
+    await Job.updateOne(buildClaimOwnershipFilter(job._id, claim), {
+      $set: {
+        lastError: message,
+        status: "failed",
+      },
+    });
   }
 
   private async executeClaimedJob(job: JobDocument, options: JobRunnerStartOptions): Promise<void> {
+    const claim = readClaimLock(job);
     const definition = options.jobs.getDefinition(job.name);
     if (!definition) {
       const message = `No handler registered for job name "${job.name}"`;
-      job.lastError = message;
-      job.status = "failed";
-      await job.save();
+      await this.recordMissingHandlerFailure(job, message, claim);
       return;
     }
 
@@ -148,18 +239,9 @@ export class MongoJobRunner implements JobRunner {
         });
       });
 
-      job.status = "completed";
-      job.lastError = undefined;
-      await job.save();
+      await this.recordHandlerSuccess(job._id, claim);
     } catch (error: unknown) {
-      if (options.signal.aborted) {
-        await this.releaseLockToPending(job._id);
-        return;
-      }
-
-      job.lastError = error instanceof Error ? error.message : String(error);
-      job.status = "failed";
-      await job.save();
+      await this.recordHandlerFailure(job, error, options, claim);
     }
   }
 }

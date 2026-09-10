@@ -8,7 +8,7 @@ import {DateTime} from "luxon";
 import {JobsApp} from "../jobsApp";
 import {getJobsService} from "../jobsService";
 import {Job} from "../models/job";
-import {getWorkerId} from "../runners/mongoRunner";
+import {getWorkerId, hasWorkerIdPrefix} from "../runners/mongoRunner";
 
 const typedUserModel = UserModel as unknown as UserModelType;
 
@@ -105,7 +105,8 @@ describe("jobs worker lifecycle", () => {
     assert.equal(executionCount, 1);
     const reclaimed = await Job.findExactlyOne({_id: staleJob._id});
     assert.equal(reclaimed.status, "completed");
-    assert.equal(reclaimed.lockedBy, getWorkerId());
+    assert.isTrue(hasWorkerIdPrefix(reclaimed.lockedBy));
+    assert.notEqual(reclaimed.lockedBy, getWorkerId());
   });
 
   it("executes a reclaimed job exactly once when two workers race", async (): Promise<void> => {
@@ -167,7 +168,8 @@ describe("jobs worker lifecycle", () => {
     await jobsApp.stopWorker();
 
     const completed = await Job.findExactlyOne({_id: enqueued._id});
-    assert.equal(completed.lockedBy, `${os.hostname()}:${process.pid}`);
+    assert.isTrue(hasWorkerIdPrefix(completed.lockedBy));
+    assert.match(completed.lockedBy ?? "", new RegExp(`^${os.hostname()}:${process.pid}:`));
   });
 
   it("stopWorker aborts the poll loop and resolves cleanly", async (): Promise<void> => {
@@ -274,7 +276,9 @@ describe("jobs worker lifecycle", () => {
     jobsApp.define("abort-throw", {
       handler: async (_payload, ctx) => {
         await waitUntil(() => Promise.resolve(ctx.signal.aborted));
-        throw new Error("worker shutdown");
+        const abortError = new Error("Aborted");
+        abortError.name = "AbortError";
+        throw abortError;
       },
     });
 
@@ -311,7 +315,9 @@ describe("jobs worker lifecycle", () => {
         handlerRuns += 1;
         if (throwOnAbort) {
           await waitUntil(() => Promise.resolve(ctx.signal.aborted));
-          throw new Error("worker shutdown");
+          const abortError = new Error("Aborted");
+          abortError.name = "AbortError";
+          throw abortError;
         }
       },
     });
@@ -465,12 +471,13 @@ describe("jobs worker lifecycle", () => {
     assert.isFalse(jobsApp.isWorkerActive());
   });
 
-  it("marks handler failures as failed without stopping the worker", async (): Promise<void> => {
+  it("marks handler failures as pending retries without stopping the worker", async (): Promise<void> => {
     const jobsApp = new JobsApp({pollIntervalMs: 25});
     jobsApp.define("boom", {
       handler: async () => {
         throw new Error("handler exploded");
       },
+      retry: {backoffMs: 500, maxAttempts: 5},
     });
 
     new TerrenoApp({
@@ -486,14 +493,15 @@ describe("jobs worker lifecycle", () => {
     });
 
     await jobsApp.startWorker();
-    await waitUntil(
-      async () => (await Job.findExactlyOne({_id: enqueued._id})).status === "failed"
-    );
+    await waitUntil(async () => {
+      const row = await Job.findExactlyOne({_id: enqueued._id});
+      return row.status === "pending" && row.attemptCount === 1;
+    });
     assert.isTrue(jobsApp.isWorkerActive());
     await jobsApp.stopWorker();
 
-    const failed = await Job.findExactlyOne({_id: enqueued._id});
-    assert.equal(failed.status, "failed");
-    assert.match(failed.lastError ?? "", /handler exploded/);
+    const pending = await Job.findExactlyOne({_id: enqueued._id});
+    assert.equal(pending.status, "pending");
+    assert.match(pending.lastError ?? "", /handler exploded/);
   });
 });

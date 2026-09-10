@@ -32,6 +32,11 @@ const jobSchema: JobSchema = new mongoose.Schema<JobDocument, JobModel>(
         },
       ],
     },
+    backoffMs: {
+      default: 1_000,
+      description: "Base delay in milliseconds for exponential retry backoff",
+      type: Number,
+    },
     idempotencyKey: {
       description: "Optional deduplication key scoped to the job name",
       type: String,
@@ -51,6 +56,11 @@ const jobSchema: JobSchema = new mongoose.Schema<JobDocument, JobModel>(
     maxAttempts: {
       default: 5,
       description: "Maximum execution attempts before the job is dead-lettered",
+      type: Number,
+    },
+    maxBackoffMs: {
+      default: 15 * 60 * 1_000,
+      description: "Maximum retry delay in milliseconds before backoff is capped",
       type: Number,
     },
     name: {

@@ -21,12 +21,14 @@ export type JobMethods = Record<never, never>;
 export interface JobDocument extends mongoose.Document<mongoose.Types.ObjectId>, JobMethods {
   attemptCount: number;
   attempts: JobAttempt[];
+  backoffMs: number;
   created: Date;
   idempotencyKey?: string;
   lastError?: string;
   lockedAt?: Date;
   lockedBy?: string;
   maxAttempts: number;
+  maxBackoffMs: number;
   name: string;
   payload?: unknown;
   payloadRedacted: boolean;
