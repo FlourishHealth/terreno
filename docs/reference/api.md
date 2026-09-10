@@ -613,6 +613,23 @@ Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a
 `Membership` statics: `findActiveForUser`, `isOrgAdmin`, `isMember` (active rows only). Per-org
 `org-admin` is stored on Membership, not on `user.roles`.
 
+### OrgsApp routes
+
+| Method | Path | Required access |
+| --- | --- | --- |
+| `POST` | `/orgs` | `organization:create` |
+| `GET` | `/orgs` | `organization:list` |
+| `GET` | `/orgs/mine` | Active org-admin membership, operator, or superadmin |
+| `GET` | `/orgs/:id` | `organization:read` in that org |
+| `PATCH` | `/orgs/:id` | `organization:update`; disabling also requires `organization:disable` |
+| `DELETE` | `/orgs/:id` | `organization:delete` |
+| `GET` / `POST` | `/orgs/:id/members` | `organization:manageMembers` |
+| `PATCH` / `DELETE` | `/orgs/:id/members/:memberId` | `organization:manageMembers`; cannot remove or demote the last org-admin |
+
+Creating an organization does not create a membership automatically. Member
+attach accepts an existing `userId` or email; it does not send an invitation.
+Disabling or deleting an organization suspends its memberships.
+
 ### Request organization context
 
 Tenant-scoped routes run `orgContextMiddleware({required: true})` after auth, then

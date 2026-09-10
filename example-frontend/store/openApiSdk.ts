@@ -580,7 +580,11 @@ const injectedRtkApi = api
       }),
       patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
         invalidatesTags: ["organizations"],
-        query: (queryArg) => ({method: "PATCH", url: `/orgs/${queryArg}`}),
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}`,
+        }),
       }),
       patchOrgsByIdMembersAndMemberId: build.mutation<
         PatchOrgsByIdMembersAndMemberIdRes,
@@ -588,6 +592,7 @@ const injectedRtkApi = api
       >({
         invalidatesTags: ["organizations"],
         query: (queryArg) => ({
+          body: queryArg.body,
           method: "PATCH",
           url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
         }),
@@ -845,13 +850,18 @@ const injectedRtkApi = api
       }),
       postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
         invalidatesTags: ["organizations"],
-        query: () => ({method: "POST", url: `/orgs/`}),
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/orgs/`,
+        }),
       }),
       postOrgsByIdMembers: build.mutation<PostOrgsByIdMembersRes, PostOrgsByIdMembersArgs>({
         invalidatesTags: ["organizations"],
         query: (queryArg) => ({
+          body: queryArg.body,
           method: "POST",
-          url: `/orgs/${queryArg}/members`,
+          url: `/orgs/${queryArg.id}/members`,
         }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
@@ -3920,7 +3930,12 @@ export type PatchAdminUsersByIdArgs = {
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
 export type PostOrgsRes = unknown;
-export type PostOrgsArgs = undefined;
+export type PostOrgsArgs = {
+  /** Organization name */
+  name: string;
+  /** App-defined organization settings */
+  settings?: object;
+};
 export type GetOrgsRes = unknown;
 export type GetOrgsArgs = undefined;
 export type GetOrgsMineRes = unknown;
@@ -3928,17 +3943,43 @@ export type GetOrgsMineArgs = undefined;
 export type GetOrgsByIdRes = unknown;
 export type GetOrgsByIdArgs = string;
 export type PatchOrgsByIdRes = unknown;
-export type PatchOrgsByIdArgs = string;
+export type PatchOrgsByIdArgs = {
+  id: string;
+  body: {
+    /** Disable the organization */
+    disabled?: boolean;
+    /** Organization name */
+    name?: string;
+    /** App-defined organization settings */
+    settings?: object;
+  };
+};
 export type DeleteOrgsByIdRes = unknown;
 export type DeleteOrgsByIdArgs = string;
 export type GetOrgsByIdMembersRes = unknown;
 export type GetOrgsByIdMembersArgs = string;
 export type PostOrgsByIdMembersRes = unknown;
-export type PostOrgsByIdMembersArgs = string;
+export type PostOrgsByIdMembersArgs = {
+  id: string;
+  body: {
+    /** Existing user email */
+    email?: string;
+    /** Membership role */
+    roleName?: string;
+    /** Existing user id */
+    userId?: string;
+  };
+};
 export type PatchOrgsByIdMembersAndMemberIdRes = unknown;
 export type PatchOrgsByIdMembersAndMemberIdArgs = {
   id: string;
   memberId: string;
+  body: {
+    /** Membership role */
+    roleName?: string;
+    /** Membership status */
+    status?: string;
+  };
 };
 export type DeleteOrgsByIdMembersAndMemberIdRes = unknown;
 export type DeleteOrgsByIdMembersAndMemberIdArgs = {

@@ -42,7 +42,7 @@ This creates:
 
 ``````typescript
 interface AdminOptions {
-  models: AdminModelConfig[];
+  models?: AdminModelConfig[];
   basePath?: string;  // Default: "/admin"
   organizations?: boolean; // Default: false
 }

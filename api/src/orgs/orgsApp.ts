@@ -5,7 +5,7 @@ import {asyncHandler, type OpenApiMiddleware} from "../api";
 import {authenticateMiddleware, type User, type UserModel} from "../auth";
 import {APIError, ConflictError, ForbiddenError, NotFoundError} from "../errors";
 import {logger} from "../logger";
-import {createOpenApiBuilder} from "../openApiBuilder";
+import {createOpenApiBuilder, type OpenApiSchemaProperty} from "../openApiBuilder";
 import type {AnyTerrenoAccess} from "../rbac/types";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {MembershipDocument} from "../types/membership";
@@ -155,17 +155,27 @@ export class OrgsApp implements TerrenoPlugin {
   register(app: Application, openApi?: unknown): void {
     const router = Router();
     const openApiMiddleware = openApi as OpenApiMiddleware | undefined;
-    const docs = (summary: string) =>
-      createOpenApiBuilder({openApi: openApiMiddleware})
+    const docs = (
+      summary: string,
+      requestBody?: Record<string, OpenApiSchemaProperty>
+    ): ReturnType<ReturnType<typeof createOpenApiBuilder>["build"]> => {
+      const builder = createOpenApiBuilder({openApi: openApiMiddleware})
         .withTags(["organizations"])
-        .withSummary(summary)
-        .build();
+        .withSummary(summary);
+      if (requestBody) {
+        builder.withRequestBody(requestBody);
+      }
+      return builder.build();
+    };
 
     router.post(
       "/",
       authenticateMiddleware(),
       this.access.middleware({organization: ["create"]}),
-      docs("Create an organization"),
+      docs("Create an organization", {
+        name: {description: "Organization name", required: true, type: "string"},
+        settings: {description: "App-defined organization settings", type: "object"},
+      }),
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
@@ -250,7 +260,11 @@ export class OrgsApp implements TerrenoPlugin {
     router.patch(
       "/:id",
       authenticateMiddleware(),
-      docs("Update an organization"),
+      docs("Update an organization", {
+        disabled: {description: "Disable the organization", type: "boolean"},
+        name: {description: "Organization name", type: "string"},
+        settings: {description: "App-defined organization settings", type: "object"},
+      }),
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
@@ -355,7 +369,14 @@ export class OrgsApp implements TerrenoPlugin {
     router.post(
       "/:id/members",
       authenticateMiddleware(),
-      docs("Attach an existing user as a member"),
+      docs("Attach an existing user as a member", {
+        email: {description: "Existing user email", type: "string"},
+        roleName: {
+          description: "Membership role",
+          type: "string",
+        },
+        userId: {description: "Existing user id", type: "string"},
+      }),
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
@@ -411,7 +432,16 @@ export class OrgsApp implements TerrenoPlugin {
     router.patch(
       "/:id/members/:memberId",
       authenticateMiddleware(),
-      docs("Update a membership"),
+      docs("Update a membership", {
+        roleName: {
+          description: "Membership role",
+          type: "string",
+        },
+        status: {
+          description: "Membership status",
+          type: "string",
+        },
+      }),
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));

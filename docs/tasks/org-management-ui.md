@@ -78,7 +78,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: 5.2, 3.2
   - Docs: admin-frontend reference
   - Acceptance: Invite control disabled; billing placeholder visible; last-admin error shown
-- [ ] **Task 5.4**: Host wiring — admin-spa + example-frontend `/admin`
+- [x] **Task 5.4**: Host wiring — admin-spa + example-frontend `/admin`
   - Delivers: routes on both hosts; SDK regen
   - Files: `admin-spa/app/orgs/*`, `example-frontend/app/admin/orgs/*`, `example-frontend/store/openApiSdk.ts` (generated)
   - Blocked by: 5.3

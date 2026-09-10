@@ -12057,6 +12057,30 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
       "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "description": "Organization name",
+                    "required": true,
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
         "responses": {
           "400": {
             "content": {
@@ -12295,6 +12319,30 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             },
           },
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "disabled": {
+                    "description": "Disable the organization",
+                    "type": "boolean",
+                  },
+                  "name": {
+                    "description": "Organization name",
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
         "responses": {
           "400": {
             "content": {
@@ -12419,6 +12467,30 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             },
           },
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Existing user email",
+                    "type": "string",
+                  },
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "Existing user id",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
         "responses": {
           "400": {
             "content": {
@@ -12559,6 +12631,26 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             },
           },
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Membership status",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
         "responses": {
           "400": {
             "content": {
