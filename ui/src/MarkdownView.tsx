@@ -1,5 +1,5 @@
 import React, {lazy, Suspense, useCallback, useEffect, useMemo} from "react";
-import {Linking, Platform, Text} from "react-native";
+import {Linking, Platform} from "react-native";
 import type Markdown from "react-native-markdown-display";
 import {renderRules} from "react-native-markdown-display";
 
