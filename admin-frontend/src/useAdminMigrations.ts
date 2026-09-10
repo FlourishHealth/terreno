@@ -2,18 +2,18 @@ import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
-export interface MigrationStatusRecord {
+interface MigrationStatusRecord {
   appliedAt?: string;
   checksum: string;
   id: string;
 }
 
-export interface MigrationLockStatus {
+interface MigrationLockStatus {
   expiresAt: string;
   holder: string;
 }
 
-export interface AdminMigrationStatus {
+interface AdminMigrationStatus {
   applied: MigrationStatusRecord[];
   lock: MigrationLockStatus | null;
   pending: Array<{checksum: string; id: string}>;

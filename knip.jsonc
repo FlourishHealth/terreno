@@ -8,6 +8,9 @@
   "ignoreIssues": {
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    "api/src/migrations/fixtures/**": ["files"],
+    "example-backend/migrations/**": ["files"],
+    "example-backend/src/migrationsDir.ts": ["files"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "workspaces": {

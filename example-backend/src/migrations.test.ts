@@ -3,6 +3,7 @@ import {
   checkMigrationFiles,
   exerciseReversibleMigrations,
   MIGRATIONS_COLLECTION,
+  type MigrationStoreDoc,
   runSeeds,
 } from "@terreno/api";
 import {assert} from "chai";
@@ -13,6 +14,10 @@ import {seedSteps} from "./scripts/seed-test-data";
 import {start} from "./server";
 
 const expectedId = "20260910120000-todos-title-owner-index";
+
+const migrationsCollection = (): mongoose.Collection<MigrationStoreDoc> => {
+  return mongoose.connection.collection<MigrationStoreDoc>(MIGRATIONS_COLLECTION);
+};
 
 describe("example-backend migrations", () => {
   it("loads timestamped files from migrations/", async () => {
@@ -35,7 +40,7 @@ describe("example-backend migrations", () => {
   });
 
   it("does not wipe terreno_migrations on seed reset", async () => {
-    await mongoose.connection.collection(MIGRATIONS_COLLECTION).insertOne({
+    await migrationsCollection().insertOne({
       _id: "keep-me",
       appliedAt: new Date(),
       checksum: "abc",
@@ -44,9 +49,7 @@ describe("example-backend migrations", () => {
 
     await runSeeds({mode: "reset", name: "example-backend", steps: seedSteps});
 
-    const kept = await mongoose.connection
-      .collection(MIGRATIONS_COLLECTION)
-      .findOne({_id: "keep-me"});
+    const kept = await migrationsCollection().findOne({_id: "keep-me"});
     assert.exists(kept);
   });
 
