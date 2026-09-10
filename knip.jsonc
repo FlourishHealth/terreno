@@ -22,7 +22,8 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "scripts/**/*.test.ts",
-        ".github/scripts/**/*.test.ts"
+        ".github/scripts/**/*.test.ts",
+        "scripts/ci/prepare-package-publish.mjs"
       ]
     },
     "admin-frontend": {
@@ -52,6 +53,46 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/isolated/**/*.isolated.ts"
+      ]
+    },
+    "admin-spa": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "jspdf-native-stub.js"
+      ]
+    },
+    "demo": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "jspdf-native-stub.js",
+        "fingerprint.config.js"
+      ]
+    },
+    "example-frontend": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "openapi-config.ts",
+        "comms-openapi-config.ts",
+        "jspdf-native-stub.js",
+        "fingerprint.config.js",
+        "playwright.circleci.config.ts"
+      ]
+    },
+    "ui": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "babel.config.js"
+      ]
+    },
+    "website": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/theme/DocItem/Footer/index.tsx"
       ]
     }
   }

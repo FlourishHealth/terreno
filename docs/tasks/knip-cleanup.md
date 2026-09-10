@@ -32,7 +32,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Docs: none beyond a comment in `knip.jsonc`
   - Acceptance: no default `files` findings under `mcp-server/src/__tests__/`; mcp `bun test` still runs; `analyze:full` exits 0
 
-- [ ] **Task 1.3**: Register codegen, Metro stubs, Playwright, fingerprint, and Docusaurus theme entries
+- [x] **Task 1.3**: Register codegen, Metro stubs, Playwright, fingerprint, and Docusaurus theme entries
   - Delivers: tool-owned files are entries instead of “unused files”: `openapi-config.ts`, `comms-openapi-config.ts`, `jspdf-native-stub.js`, `fingerprint.config.js`, `playwright.circleci.config.ts`, `ui/babel.config.js`, `website/src/theme/**`, `scripts/ci/prepare-package-publish.mjs`, `scripts/planning/fingerprintRisk.ts`, `scripts/planning/updateDependenciesPr.ts` if they are invoked from `package.json` / CI
   - Files: `knip.jsonc`; `package.json` scripts only if an entry name is wrong
   - Blocked by: none

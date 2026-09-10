@@ -71,4 +71,28 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report codegen, Metro stubs, Playwright, fingerprint, or Docusaurus theme files as unused",
+    (): void => {
+      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      const knownToolEntries = [
+        "example-frontend/openapi-config.ts",
+        "example-frontend/comms-openapi-config.ts",
+        "example-frontend/jspdf-native-stub.js",
+        "example-frontend/fingerprint.config.js",
+        "example-frontend/playwright.circleci.config.ts",
+        "demo/jspdf-native-stub.js",
+        "demo/fingerprint.config.js",
+        "admin-spa/jspdf-native-stub.js",
+        "ui/babel.config.js",
+        "website/src/theme/DocItem/Footer/index.tsx",
+        "scripts/ci/prepare-package-publish.mjs",
+      ];
+      for (const knownEntry of knownToolEntries) {
+        assert.notInclude(unusedFiles, knownEntry);
+      }
+    },
+    {timeout: 180_000}
+  );
 });

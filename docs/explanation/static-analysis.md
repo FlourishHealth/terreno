@@ -39,6 +39,7 @@ patterns for that workspace, so those defaults must be repeated next to extra gl
 | --- | --- | --- |
 | `*.isolated.ts(x)` | Run as `bun test $file`, not `*.test.ts` | `src/isolated/**/*.isolated.{ts,tsx}` on the owning package |
 | `scripts/**/*.test.ts`, `.github/scripts/**/*.test.ts` | Root `test` is `bun run --filter '*' test:ci`, so the Bun plugin never loads them | Root workspace `"."` |
+| OpenAPI codegen configs, Metro `jspdf` stubs, Expo fingerprint configs, Playwright CI config, `ui/babel.config.js`, Docusaurus `src/theme/**` swizzles, `scripts/ci/prepare-package-publish.mjs` | Invoked by Expo/Metro/Docusaurus/CI, not imported from app `index` | Extra `entry` globs on the owning workspace |
 
 ## Ratchets
 
