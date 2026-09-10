@@ -2,6 +2,7 @@ import {createScopedLogger, runWithRequestContext} from "@terreno/api";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
+import {beginActiveJobExecution, endActiveJobExecution} from "./activeJobExecution";
 import {
   buildClaimOwnershipFilter,
   createClaimLock,
@@ -63,7 +64,10 @@ const recordHandlerSuccess = async (
   claim: JobClaimLock
 ): Promise<JobDocument> => {
   const updated = await Job.findOneAndUpdate(
-    buildClaimOwnershipFilter(jobId, claim),
+    {
+      ...buildClaimOwnershipFilter(jobId, claim),
+      status: "running",
+    },
     {
       $set: {lastError: undefined, status: "completed"},
     },
@@ -71,6 +75,11 @@ const recordHandlerSuccess = async (
   );
 
   if (!updated) {
+    const current = await Job.findOneOrNone({_id: jobId});
+    if (current?.status === "cancelled") {
+      return current;
+    }
+
     throw new Error(`Failed to record success for job ${jobId.toString()}`);
   }
 
@@ -112,6 +121,11 @@ const recordHandlerFailure = async ({
   signal: AbortSignal;
 }): Promise<JobDocument> => {
   if (signal.aborted && isAbortError(error)) {
+    const current = await Job.findOneOrNone({_id: job._id});
+    if (current?.status === "cancelled") {
+      return current;
+    }
+
     const released = await Job.findOneAndUpdate(
       buildClaimOwnershipFilter(job._id, claim),
       {
@@ -211,19 +225,22 @@ export const runClaimedJob = async ({
     labels: {jobId: job._id.toString(), jobName: job.name},
     prefix: "[Job]",
   });
+  const executionSignal = beginActiveJobExecution(job._id.toString(), signal);
 
   try {
     await runWithRequestContext({jobId: job._id.toString()}, async () => {
       await definition.handler(job.payload, {
         jobId: job._id.toString(),
         log,
-        signal,
+        signal: executionSignal,
       });
     });
 
     return recordHandlerSuccess(job._id, claim);
   } catch (error: unknown) {
-    return recordHandlerFailure({claim, error, job, signal});
+    return recordHandlerFailure({claim, error, job, signal: executionSignal});
+  } finally {
+    endActiveJobExecution(job._id.toString());
   }
 };
 
@@ -258,6 +275,8 @@ export const claimJobById = async ({
 
   return claimed ?? undefined;
 };
+
+export {abortActiveJobExecution} from "./activeJobExecution";
 
 export const executeJobById = async ({
   host,

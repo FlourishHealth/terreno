@@ -93,7 +93,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
 
 ## Phase 4 — Admin API and UI
 
-- [ ] **Task 4.1**: Admin HTTP + `admin:jobs`
+- [x] **Task 4.1**: Admin HTTP + `admin:jobs`
   - Delivers: list/detail/retry/requeue/cancel + schedule pause/resume; `terrenoStatements.admin` includes `jobs`; 403 without permission; retry creates linked row; requeue from `dead`
   - Files: `jobs/src/routes/jobsAdmin.ts`, `api/src/rbac/statements.ts`, RBAC tests in jobs package, example-backend OpenAPI if needed
   - Blocked by: 2.1, 2.3

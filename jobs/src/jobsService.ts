@@ -1,10 +1,11 @@
-import {APIError} from "@terreno/api";
+import {APIError, NotFoundError} from "@terreno/api";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
+import {abortActiveJobExecution} from "./activeJobExecution";
 import {dispatchJobToRunner} from "./dispatchCompensation";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
-import type {JobDocument} from "./modelTypes";
+import type {JobDocument, JobScheduleDocument} from "./modelTypes";
 import {DEFAULT_BACKOFF_MS, DEFAULT_MAX_BACKOFF_MS} from "./retryBackoff";
 import {
   computeInitialNextRunAt,
@@ -194,6 +195,181 @@ export class JobsService {
     }
 
     return job;
+  }
+
+  async adminRetryJob(jobId: string): Promise<{original: JobDocument; retry: JobDocument}> {
+    if (!mongoose.isValidObjectId(jobId)) {
+      throw new NotFoundError("Job not found");
+    }
+
+    const original = await Job.findOneOrNone({_id: jobId});
+    if (!original) {
+      throw new NotFoundError("Job not found");
+    }
+
+    if (original.retriedById) {
+      throw new APIError({status: 409, title: "Job already retried"});
+    }
+
+    if (original.status !== "dead" && original.status !== "failed") {
+      throw new APIError({
+        detail: `Status is ${original.status}`,
+        status: 400,
+        title: "Job cannot be retried",
+      });
+    }
+
+    const definition = this.definitions.get(original.name);
+    if (!definition) {
+      throw new APIError({status: 400, title: UNKNOWN_JOB_NAME_TITLE});
+    }
+
+    const now = DateTime.utc().toJSDate();
+    const retry = await Job.create({
+      attemptCount: 0,
+      attempts: [],
+      backoffMs: original.backoffMs,
+      maxAttempts: original.maxAttempts,
+      maxBackoffMs: original.maxBackoffMs,
+      name: original.name,
+      payload: original.payload,
+      payloadRedacted: original.payloadRedacted,
+      retriedFromId: original._id,
+      runAt: now,
+      scheduleId: original.scheduleId,
+      status: "pending",
+    });
+
+    const linked = await Job.findOneAndUpdate(
+      {
+        _id: original._id,
+        retriedById: {$exists: false},
+        status: {$in: ["dead", "failed"]},
+      },
+      {$set: {retriedById: retry._id}},
+      {returnDocument: "after"}
+    );
+
+    if (!linked) {
+      await Job.deleteOne({_id: retry._id});
+      const current = await Job.findOneOrNone({_id: original._id});
+      if (current?.retriedById) {
+        throw new APIError({status: 409, title: "Job already retried"});
+      }
+
+      throw new APIError({status: 409, title: "Job state changed"});
+    }
+
+    if (this.runner) {
+      await dispatchJobToRunner(this.runner, retry);
+    }
+
+    return {original: linked, retry};
+  }
+
+  async adminRequeueJob(jobId: string): Promise<JobDocument> {
+    if (!mongoose.isValidObjectId(jobId)) {
+      throw new NotFoundError("Job not found");
+    }
+
+    const now = DateTime.utc().toJSDate();
+    const requeued = await Job.findOneAndUpdate(
+      {
+        _id: jobId,
+        retriedById: {$exists: false},
+        status: {$in: ["cancelled", "dead", "failed"]},
+      },
+      {
+        $set: {runAt: now, status: "pending"},
+        $unset: {lockedAt: "", lockedBy: ""},
+      },
+      {returnDocument: "after"}
+    );
+
+    if (!requeued) {
+      const existing = await Job.findOneOrNone({_id: jobId});
+      if (!existing) {
+        throw new NotFoundError("Job not found");
+      }
+
+      if (existing.retriedById) {
+        throw new APIError({status: 409, title: "Job already retried"});
+      }
+
+      throw new APIError({
+        detail: `Status is ${existing.status}`,
+        status: 400,
+        title: "Job cannot be requeued",
+      });
+    }
+
+    if (this.runner) {
+      await dispatchJobToRunner(this.runner, requeued);
+    }
+
+    return requeued;
+  }
+
+  async adminCancelJob(jobId: string): Promise<JobDocument> {
+    if (!mongoose.isValidObjectId(jobId)) {
+      throw new NotFoundError("Job not found");
+    }
+
+    const cancelled = await Job.findOneAndUpdate(
+      {
+        _id: jobId,
+        status: {$in: ["pending", "running", "scheduled"]},
+      },
+      {
+        $set: {status: "cancelled"},
+        $unset: {lockedAt: "", lockedBy: ""},
+      },
+      {returnDocument: "after"}
+    );
+
+    if (!cancelled) {
+      const existing = await Job.findOneOrNone({_id: jobId});
+      if (!existing) {
+        throw new NotFoundError("Job not found");
+      }
+
+      throw new APIError({
+        detail: `Status is ${existing.status}`,
+        status: 400,
+        title: "Job cannot be cancelled",
+      });
+    }
+
+    abortActiveJobExecution(jobId);
+    return cancelled;
+  }
+
+  async pauseSchedule(name: string): Promise<JobScheduleDocument> {
+    const updated = await JobSchedule.findOneAndUpdate(
+      {name},
+      {$set: {enabled: false}},
+      {returnDocument: "after"}
+    );
+
+    if (!updated) {
+      throw new NotFoundError("Schedule not found");
+    }
+
+    return updated;
+  }
+
+  async resumeSchedule(name: string): Promise<JobScheduleDocument> {
+    const updated = await JobSchedule.findOneAndUpdate(
+      {name},
+      {$set: {enabled: true}},
+      {returnDocument: "after"}
+    );
+
+    if (!updated) {
+      throw new NotFoundError("Schedule not found");
+    }
+
+    return updated;
   }
 }
 

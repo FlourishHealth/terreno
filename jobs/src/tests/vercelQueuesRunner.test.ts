@@ -122,7 +122,11 @@ const buildJob = (overrides?: Partial<JobDocument>): JobDocument =>
   }) as JobDocument;
 
 const registerJobsApp = (jobsApp: JobsApp): void => {
-  jobsApp.register({} as never);
+  const app = {
+    get: (): typeof app => app,
+    post: (): typeof app => app,
+  };
+  jobsApp.register(app as never);
 };
 
 describe("VercelQueuesRunner", () => {

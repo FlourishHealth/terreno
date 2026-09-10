@@ -2,6 +2,15 @@ import type {ScopedLogger} from "@terreno/api";
 
 import type {JobDocument} from "./modelTypes";
 
+export interface JobsAdminPayloadViewInput {
+  name: string;
+  payload: unknown;
+  payloadRedacted: boolean;
+}
+
+/** Projects job payload for admin list/detail responses. Omit/return undefined to hide payload. */
+export type JobsAdminRedactPayload = (input: JobsAdminPayloadViewInput) => unknown | undefined;
+
 export interface JobHandlerContext {
   jobId: string;
   log: ScopedLogger;

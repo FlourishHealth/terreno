@@ -1,19 +1,26 @@
-import type {TerrenoPlugin} from "@terreno/api";
-import {logger} from "@terreno/api";
+import {
+  type AdminContribution,
+  type AnyTerrenoAccess,
+  logger,
+  type TerrenoPlugin,
+} from "@terreno/api";
 import type express from "express";
 
 import {type ExecuteJobOutcome, executeJobById} from "./jobExecutor";
 import {JobsService, registerJobsService} from "./jobsService";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
+import {registerJobsAdminRoutes} from "./routes/jobsAdmin";
 import {type ExecuteAuthVerifier, registerJobsExecuteRoute} from "./routes/jobsExecute";
 
+export type {JobsAdminPayloadViewInput, JobsAdminRedactPayload} from "./types";
 export type {ExecuteAuthVerifier};
 
 import {MongoJobRunner} from "./runners/mongoRunner";
-import type {JobDefinition, JobRunner, JobsRunnerHost} from "./types";
+import type {JobDefinition, JobRunner, JobsAdminRedactPayload, JobsRunnerHost} from "./types";
 
 export interface JobsAppOptions {
+  accessControl?: AnyTerrenoAccess;
   basePath?: string;
   /** Verifies inbound execute HTTP requests (required when the execute route is mounted). */
   executeAuth?: ExecuteAuthVerifier;
@@ -21,6 +28,8 @@ export interface JobsAppOptions {
   /** Mount internal `POST {basePath}/execute` for cloud/custom dispatch. */
   mountExecuteRoute?: boolean;
   pollIntervalMs?: number;
+  /** Admin list/detail payload projection. Default omits payload; identity hook may expose raw payload. */
+  redactPayload?: JobsAdminRedactPayload;
   runner?: JobRunner;
   timezone?: string;
 }
@@ -103,8 +112,19 @@ export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
     await this.service.tickSchedules(now);
   }
 
-  register(app: express.Application, _openApi?: unknown): void {
+  register(app: express.Application, openApi?: unknown): void {
     registerJobsService(this.service);
+
+    registerJobsAdminRoutes({
+      app,
+      options: {
+        accessControl: this.options.accessControl,
+        basePath: this.getBasePath(),
+        jobsService: this.service,
+        openApi,
+        redactPayload: this.options.redactPayload,
+      },
+    });
 
     if (this.shouldMountExecuteRoute()) {
       if (!this.options.executeAuth) {
@@ -130,6 +150,19 @@ export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
     void JobSchedule.init().catch((error: unknown) => {
       logger.error(`[jobs] Failed to build JobSchedule indexes: ${String(error)}`);
     });
+  }
+
+  adminContribution(): AdminContribution {
+    return {
+      customScreens: [
+        {
+          displayName: "Jobs",
+          icon: "clock",
+          name: "jobs",
+        },
+      ],
+      homeWidgets: [{displayName: "Jobs", icon: "clock", id: "jobs"}],
+    };
   }
 
   private shouldMountExecuteRoute(): boolean {
