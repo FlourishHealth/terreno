@@ -1,7 +1,7 @@
 import {APIError} from "@terreno/api";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
-
+import {dispatchJobToRunner} from "./dispatchCompensation";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
 import type {JobDocument} from "./modelTypes";
@@ -12,7 +12,7 @@ import {
   validateScheduleDefinition,
 } from "./scheduleCron";
 import {tickDueSchedules} from "./scheduler";
-import type {EnqueueJobParams, JobDefinition} from "./types";
+import type {EnqueueJobParams, JobDefinition, JobRunner} from "./types";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_TIMEZONE = "UTC";
@@ -30,11 +30,13 @@ export class JobsService {
   private readonly defaultTimezone: string;
   private readonly definitions = new Map<string, JobDefinition>();
   private readonly lockTtlMs: number;
+  private readonly runner: JobRunner | undefined;
   private schedulesDirty = false;
 
-  constructor(options?: {defaultTimezone?: string; lockTtlMs?: number}) {
+  constructor(options?: {defaultTimezone?: string; lockTtlMs?: number; runner?: JobRunner}) {
     this.defaultTimezone = options?.defaultTimezone ?? DEFAULT_TIMEZONE;
     this.lockTtlMs = options?.lockTtlMs ?? 15 * 60 * 1000;
+    this.runner = options?.runner;
   }
 
   define(name: string, definition: JobDefinition): void {
@@ -173,8 +175,9 @@ export class JobsService {
       ...(params.scheduleId ? {scheduleId: new mongoose.Types.ObjectId(params.scheduleId)} : {}),
     };
 
+    let job: JobDocument;
     try {
-      return await Job.create(createPayload);
+      job = await Job.create(createPayload);
     } catch (error: unknown) {
       if (!idempotencyKey || !isDuplicateKeyError(error)) {
         throw error;
@@ -185,6 +188,12 @@ export class JobsService {
         name: params.name,
       });
     }
+
+    if (this.runner) {
+      await dispatchJobToRunner(this.runner, job);
+    }
+
+    return job;
   }
 }
 

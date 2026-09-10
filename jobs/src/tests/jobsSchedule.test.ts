@@ -464,9 +464,10 @@ describe("jobs recurring schedules", () => {
       {cron: "0 9 * * *", timezone: "UTC"}
     );
 
+    await jobsApp.stopWorker();
+
     const overdue = DateTime.utc().minus({minutes: 10}).toJSDate();
     await JobSchedule.updateOne({name: "restart-catchup"}, {$set: {nextRunAt: overdue}});
-    await jobsApp.stopWorker();
 
     await getJobsService().reconcileSchedules();
     const afterReconcile = await JobSchedule.findExactlyOne({name: "restart-catchup"});
@@ -476,6 +477,7 @@ describe("jobs recurring schedules", () => {
     await waitUntil(async () => handlerRuns >= 1);
     await jobsApp.stopWorker();
 
+    assert.equal(handlerRuns, 1);
     assert.equal(await Job.countDocuments({name: "restart-catchup"}), 1);
   });
 });

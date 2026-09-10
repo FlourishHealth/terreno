@@ -6,7 +6,7 @@ import {JobsService, registerJobsService} from "./jobsService";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
 import {MongoJobRunner} from "./runners/mongoRunner";
-import type {JobDefinition, JobRunner} from "./types";
+import type {JobDefinition, JobRunner, JobsRunnerHost} from "./types";
 
 export interface JobsAppOptions {
   basePath?: string;
@@ -23,13 +23,14 @@ export interface JobsAppOptions {
  * start a worker poll loop. Call {@link JobsApp.startWorker} explicitly from the
  * API process or a dedicated worker entrypoint.
  */
-export class JobsApp implements TerrenoPlugin {
+export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
   private readonly options: JobsAppOptions;
   private readonly runner: JobRunner;
   private readonly service: JobsService;
   private abortController: AbortController | undefined;
   private workerActive = false;
   private workerPromise: Promise<void> | undefined;
+  private workerStartPromise: Promise<void> | undefined;
 
   constructor(options?: JobsAppOptions) {
     this.options = options ?? {};
@@ -37,6 +38,7 @@ export class JobsApp implements TerrenoPlugin {
     this.service = new JobsService({
       defaultTimezone: this.options.timezone ?? "UTC",
       lockTtlMs: this.options.lockTtlMs,
+      runner: this.runner,
     });
   }
 
@@ -107,27 +109,17 @@ export class JobsApp implements TerrenoPlugin {
       return;
     }
 
-    if (!this.runner.start) {
-      throw new Error(`Job runner "${this.runner.id}" does not support start()`);
+    if (this.workerStartPromise !== undefined) {
+      await this.workerStartPromise;
+      return;
     }
 
-    await this.service.reconcileSchedules();
-
-    this.workerActive = true;
-    this.abortController = new AbortController();
-
-    this.workerPromise = this.runner
-      .start({
-        jobs: this,
-        pollIntervalMs: this.getPollIntervalMs(),
-        signal: this.abortController.signal,
-      })
-      .catch((error: unknown) => {
-        this.workerActive = false;
-        this.abortController = undefined;
-        this.workerPromise = undefined;
-        logger.error(`[jobs] Worker stopped with error: ${String(error)}`);
-      });
+    this.workerStartPromise = this.beginWorkerStart();
+    try {
+      await this.workerStartPromise;
+    } finally {
+      this.workerStartPromise = undefined;
+    }
   }
 
   async stopWorker(): Promise<void> {
@@ -146,8 +138,43 @@ export class JobsApp implements TerrenoPlugin {
 
     await stopPromise;
 
+    this.resetWorkerState();
+  }
+
+  private resetWorkerState(): void {
     this.workerActive = false;
     this.abortController = undefined;
     this.workerPromise = undefined;
+  }
+
+  private async beginWorkerStart(): Promise<void> {
+    if (this.workerActive) {
+      return;
+    }
+
+    if (!this.runner.start) {
+      throw new Error(`Job runner "${this.runner.id}" does not support start()`);
+    }
+
+    this.workerActive = true;
+
+    try {
+      await this.service.reconcileSchedules();
+
+      this.abortController = new AbortController();
+      this.workerPromise = this.runner
+        .start({
+          jobs: this,
+          pollIntervalMs: this.getPollIntervalMs(),
+          signal: this.abortController.signal,
+        })
+        .catch((error: unknown) => {
+          this.resetWorkerState();
+          logger.error(`[jobs] Worker stopped with error: ${String(error)}`);
+        });
+    } catch (error: unknown) {
+      this.resetWorkerState();
+      throw error;
+    }
   }
 }

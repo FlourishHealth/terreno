@@ -17,5 +17,7 @@ export type {
   JobDefinition,
   JobHandlerContext,
   JobRunner,
+  JobRunnerStartOptions,
   JobScheduleDefinition,
+  JobsRunnerHost,
 } from "./types";

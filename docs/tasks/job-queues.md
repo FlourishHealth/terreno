@@ -59,7 +59,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
 
 ## Phase 3 — Runners and execute HTTP
 
-- [ ] **Task 3.1**: `JobRunner` interface + custom runner
+- [x] **Task 3.1**: `JobRunner` interface + custom runner
   - Delivers: injected `runner` used on enqueue/start; test fake runner records `enqueue` calls; Mongo remains default
   - Files: `jobs/src/types.ts`, `jobs/src/runners/custom.ts` (or types-only), tests
   - Blocked by: 1.2

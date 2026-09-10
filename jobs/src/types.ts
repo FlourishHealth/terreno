@@ -32,11 +32,13 @@ export interface EnqueueJobParams {
 }
 
 export interface JobRunnerStartOptions {
+  /** Host surface passed to runners so they can resolve handlers and schedules without importing internals. */
   jobs: JobsRunnerHost;
   pollIntervalMs?: number;
   signal: AbortSignal;
 }
 
+/** Public host surface for {@link JobRunner.start} — implemented by {@link JobsApp}. */
 export interface JobsRunnerHost {
   getDefaultTimezone(): string;
   getDefinition(name: string): JobDefinition | undefined;
@@ -46,6 +48,13 @@ export interface JobsRunnerHost {
   tickSchedules(now?: Date): Promise<void>;
 }
 
+/**
+ * Pluggable job dispatch and worker lifecycle.
+ *
+ * {@link enqueue} is invoked only after a **new** job row is persisted; idempotent
+ * dedupe returns the existing row without redispatching. {@link MongoJobRunner} is
+ * the default — its {@link enqueue} is a no-op because the poll loop claims Mongo rows.
+ */
 export interface JobRunner {
   readonly id: string;
   enqueue(job: JobDocument): Promise<void>;

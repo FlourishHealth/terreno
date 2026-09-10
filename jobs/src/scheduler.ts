@@ -1,6 +1,7 @@
 import {createScopedLogger, logger} from "@terreno/api";
 import {DateTime} from "luxon";
 
+import {JobDispatchError} from "./dispatchError";
 import type {JobsService} from "./jobsService";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
@@ -61,10 +62,20 @@ const tickOneSchedule = async ({
       scheduleId: claimed._id.toString(),
     });
   } catch (error: unknown) {
-    await JobSchedule.updateOne(
-      {_id: claimed._id, nextRunAt: advancedNextRunAt},
-      {$set: {nextRunAt: dueRunAt}}
-    );
+    const shouldRollbackSchedule =
+      !(error instanceof JobDispatchError) || error.compensationSucceeded;
+
+    if (shouldRollbackSchedule) {
+      await JobSchedule.updateOne(
+        {_id: claimed._id, nextRunAt: advancedNextRunAt},
+        {$set: {nextRunAt: dueRunAt}}
+      );
+    } else {
+      logger.error(
+        `[JobSchedule] Dispatch compensation lost race for "${claimed.name}" (${claimed._id.toString()}); schedule nextRunAt left advanced`
+      );
+    }
+
     throw error;
   }
 };
