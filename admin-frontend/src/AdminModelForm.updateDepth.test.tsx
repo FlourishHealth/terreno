@@ -331,3 +331,69 @@ describe("AdminModelForm update-depth regression (unstable navigation)", () => {
     expect(titleField.props.value).toBe(REGRESSION_TITLE);
   });
 });
+
+const PER_CHAR_TITLE = "Review";
+
+describe("AdminModelForm update-depth regression (field onChange identity)", () => {
+  beforeEach(() => {
+    setOptions.mockClear();
+    configState.config = {
+      customScreens: [],
+      models: [todoModelConfig],
+      scripts: [],
+    };
+    readState.data = {
+      completed: false,
+      ownerId: "user-1",
+      priority: "medium",
+      tags: ["sync"],
+      title: "Original title",
+    };
+    readState.isLoading = false;
+  });
+
+  it("keeps a stable title onChange callback across formState updates", async () => {
+    const view = renderTodoEditForm({
+      conflicts: [],
+      resolve: () => {},
+    });
+    const initialField = view.getByTestId("admin-field-title");
+    const initialOnChange = initialField.props.onChange;
+
+    await act(async () => {
+      fireEvent.changeText(initialField, "R");
+    });
+
+    const afterField = view.getByTestId("admin-field-title");
+    expect(afterField.props.onChange).toBe(initialOnChange);
+    expect(afterField.props.value).toBe("R");
+  });
+
+  it("preserves per-character typing when onChange identity churn triggers stale RN Web rebinds", async () => {
+    const view = renderTodoEditForm({
+      conflicts: [],
+      resolve: () => {},
+    });
+
+    for (let i = 0; i < PER_CHAR_TITLE.length; i++) {
+      const partial = PER_CHAR_TITLE.slice(0, i + 1);
+      const field = view.getByTestId("admin-field-title");
+      const previousOnChange = field.props.onChange;
+      const previousValue = field.props.value;
+
+      await act(async () => {
+        fireEvent.changeText(field, partial);
+      });
+
+      const fieldAfterChange = view.getByTestId("admin-field-title");
+      if (fieldAfterChange.props.onChange !== previousOnChange) {
+        await act(async () => {
+          previousOnChange(previousValue ?? "");
+        });
+      }
+    }
+
+    const field = view.getByTestId("admin-field-title");
+    expect(field.props.value).toBe(PER_CHAR_TITLE);
+  });
+});

@@ -389,6 +389,26 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     });
   }, []);
 
+  const handleFieldChangeRef = useRef(handleFieldChange);
+  handleFieldChangeRef.current = handleFieldChange;
+
+  const stableFieldChangeHandlersRef = useRef(new Map<string, (value: AdminFieldValue) => void>());
+
+  const getStableFieldChangeHandler = useCallback(
+    (fieldKey: string): ((value: AdminFieldValue) => void) => {
+      const cached = stableFieldChangeHandlersRef.current.get(fieldKey);
+      if (cached) {
+        return cached;
+      }
+      const handler = (value: AdminFieldValue): void => {
+        handleFieldChangeRef.current(fieldKey, value);
+      };
+      stableFieldChangeHandlersRef.current.set(fieldKey, handler);
+      return handler;
+    },
+    []
+  );
+
   const validate = useCallback((): boolean => {
     if (!modelConfig) {
       return false;
@@ -753,7 +773,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                       fieldKey={fieldKey}
                       key={fieldKey}
                       modelConfigs={modelConfigs}
-                      onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                      onChange={getStableFieldChangeHandler(fieldKey)}
                       parentFormState={formState}
                       readOnly={readonlyKeySet.has(fieldKey)}
                       refRenderers={refRenderers}
@@ -774,7 +794,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                 fieldKey={fieldKey}
                 key={fieldKey}
                 modelConfigs={modelConfigs}
-                onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                onChange={getStableFieldChangeHandler(fieldKey)}
                 parentFormState={formState}
                 readOnly={readonlyKeySet.has(fieldKey)}
                 refRenderers={refRenderers}
