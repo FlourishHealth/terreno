@@ -22,6 +22,7 @@ import {AuthRequiredError, createHttpChannel, type HttpChannel} from "./sync/htt
 import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import {createSocketTransport} from "./sync/socketTransport";
 import type {SendMutationBatchResult, SendMutationResult, SyncTransport} from "./sync/transport";
+import {type HydrateWindowEntitiesResult, hydrateWindowEntities} from "./sync/windowHydrate";
 import type {
   AuthProvider,
   ConflictResolutionStrategy,
@@ -235,6 +236,15 @@ export interface SyncDb {
   mutate: (args: MutateArgs) => {mutationId: string; id: string};
   /** Snapshot-from-cursor catch-up for every collection (no-op without HTTP). */
   reconcile: () => Promise<void>;
+  /**
+   * Upsert a window of known ids (admin membership). Missing rows are fetched
+   * from `GET /sync/entities`; ids the server does not return are ignored.
+   */
+  hydrateWindow: (args: {
+    collection: string;
+    ids: string[];
+    restRows?: Record<string, unknown>;
+  }) => Promise<HydrateWindowEntitiesResult>;
   /**
    * Purge every known stream locally and re-bootstrap from cursor 0. Use when
    * devices have diverged and a full server snapshot is needed without wiping
@@ -1812,6 +1822,27 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return statuses;
   };
 
+  const hydrateWindow = async ({
+    collection,
+    ids,
+    restRows,
+  }: {
+    collection: string;
+    ids: string[];
+    restRows?: Record<string, unknown>;
+  }): Promise<HydrateWindowEntitiesResult> => {
+    if (!httpChannel) {
+      throw new Error("hydrateWindow requires an HTTP channel");
+    }
+    return hydrateWindowEntities({
+      channel: httpChannel,
+      collection,
+      ids,
+      restRows,
+      store,
+    });
+  };
+
   const getSyncStatus = (): SyncStatus => {
     const drainProgress = currentUserId
       ? coordinator.getDrainProgress({userId: currentUserId})
@@ -1904,6 +1935,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     getSyncStatus,
     goOffline,
     goOnline,
+    hydrateWindow,
     mutate,
     onStatusChange,
     outbox,

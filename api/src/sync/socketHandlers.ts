@@ -2,7 +2,7 @@ import type {Server} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {checkPermissions, Permissions} from "../permissions";
 import {awaitSocketFullUser, type SocketWithDecodedToken} from "../realtime/socketUser";
 import type {SyncMutationOutcome} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
@@ -27,15 +27,17 @@ import type {
  *   caller's streams from the sync registry scope config and joins/leaves `sync:{stream}`
  *   rooms. Owner scopes always use the socket's own userId (never a client-supplied one);
  *   tenant and custom scopes resolve stream values via `SyncAppOptions.getUserScopes`.
- *   `mode: "window"` joins `{collection}|admin` only (requires `adminBroadcast`) and
- *   confirms with `sync:subscribed {mode: "window"}` without dumping snapshot pages.
+ *   `mode: "window"` joins `{collection}|admin` only (requires `adminBroadcast` and
+ *   `Permissions.IsAdmin`) and confirms with `sync:subscribed {mode: "window"}`
+ *   without dumping snapshot pages. Non-admin callers get `sync:error`.
  *   Sync deltas fan out through these dedicated `sync:{stream}` rooms rather than the
  *   legacy realtime rooms so the two event families never overlap.
  * - `sync:mutate` — applies a mutation through `applySyncMutation` and replies with
  *   `sync:ack {mutationId, id, seq}` or `sync:nack {mutationId, code, ...}`; when the
  *   client supplied a Socket.io ack callback it also receives `{ack}` / `{nack}`.
  * - `sync:error {collection, message}` — emitted for per-collection subscribe failures
- *   (unknown collection, permission denied, missing scope resolver, cap exceeded).
+ *   (unknown collection, permission denied, non-admin window subscribe, missing scope
+ *   resolver, cap exceeded).
  *
  * ## Wiring
  *
@@ -197,6 +199,14 @@ export const installSyncSocketHandlers = (
           socket.emit("sync:error", {
             collection,
             message: `Window subscribe requires adminBroadcast on ${collection}`,
+          });
+          continue;
+        }
+        if (isWindow && !Permissions.IsAdmin("list", user)) {
+          logInfo(`[sync] User ${userId} denied window subscribe for ${collection}`);
+          socket.emit("sync:error", {
+            collection,
+            message: `Window subscribe requires admin for ${collection}`,
           });
           continue;
         }

@@ -4,7 +4,7 @@ import {asyncHandler} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {APIError, apiErrorMiddleware, apiUnauthorizedMiddleware} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {checkPermissions, Permissions} from "../permissions";
 import {findOneOrNoneFor} from "../plugins";
 import {
   computeStableFrontier,
@@ -696,17 +696,26 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         });
       }
 
-      const memberStreams = await resolveUserStreamsForEntry({
-        entry,
-        getUserScopes: options.getUserScopes,
-        user,
-      });
+      const isAdminWindow =
+        entry.config.adminBroadcast === true && Permissions.IsAdmin("list", user);
+
+      const memberStreams = isAdminWindow
+        ? []
+        : await resolveUserStreamsForEntry({
+            entry,
+            getUserScopes: options.getUserScopes,
+            user,
+          });
       const memberSet = new Set(memberStreams);
 
       // Task 9.19: mirror the REST list endpoint's row-level scoping. Without this, a
       // collection that relies on `queryFilter` (rather than a per-doc read permission)
       // served every requested id here, whatever the caller was allowed to list.
-      const queryFilterResult = await resolveSyncQueryFilter({entry, user});
+      // Admin window hydrate (`adminBroadcast` + admin user) skips that filter so
+      // REST-selected ids can be loaded across owners.
+      const queryFilterResult = isAdminWindow
+        ? {denied: false as const, filter: undefined}
+        : await resolveSyncQueryFilter({entry, user});
       if (queryFilterResult.denied) {
         const deniedResponse: SyncEntitiesResponse = {entities: []};
         return res.json(deniedResponse);
@@ -736,7 +745,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
           doc: docObj,
           scope: entry.config.scope,
         });
-        if (!memberSet.has(stream)) {
+        if (!isAdminWindow && !memberSet.has(stream)) {
           continue;
         }
         const isTombstone = Boolean(docObj.deleted);

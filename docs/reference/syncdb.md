@@ -190,6 +190,7 @@ export const syncDb = createSyncDb({
 | `goOnline()` | End simulated outage; reconnect triggers reconcile + outbox replay. |
 | `mutate({collection, operation, id?, data?})` | Optimistic local write + durable outbox enqueue + fire-and-forget replay. Returns `{mutationId, id}`. |
 | `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. Also runs automatically on (re)connect, on a rate-limited seq-jump hint, and on the periodic timer; each `sync:subscribed` confirmation additionally pages just the streams it names. |
+| `hydrateWindow({collection, ids, restRows?})` | Admin window upsert: REST rows (optional) land immediately; remaining ids are fetched from `GET /sync/entities`. Unknown ids are ignored. |
 | `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. |
 | `replayOutbox()` | Drain queued mutations for the current user now. |
 | `resolveConflict({mutationId, strategy})` | Apply `"useServer"` or `"keepMine"` to a recorded conflict. |
@@ -392,7 +393,7 @@ sync: {
 
 - **Owner** streams use the authenticated socket's user id (client cannot pick another user's stream).
 - **Tenant/custom** scopes resolve memberships via `SyncApp` `getUserScopes`.
-- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join `{collection}|admin` with `sync:subscribe {mode: "window"}` — the server confirms `sync:subscribed {mode: "window"}` and does not dump snapshot pages. Clients listed in `createSyncDb({windowCollections})` skip `GET /sync/snapshot` for those collections (startup, subscribe catch-up, and the reconcile timer). Hydrate known ids via REST + `GET /sync/entities`.
+- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join `{collection}|admin` with `sync:subscribe {mode: "window"}` — **only admin users** (`user.admin` / `Permissions.IsAdmin`) may join; others get `sync:error`. The server confirms `sync:subscribed {mode: "window"}` and does not dump snapshot pages. Clients listed in `createSyncDb({windowCollections})` skip `GET /sync/snapshot` for those collections (startup, subscribe catch-up, and the reconcile timer). Hydrate known ids with `hydrateWindow` (REST rows + `GET /sync/entities`). For that HTTP lookup, an admin caller on an `adminBroadcast` collection is not limited to owner/tenant stream membership.
 - **`snapshotFilter`** restricts `GET /sync/snapshot` server-side. Auto-derived for owner/tenant; required for custom resolver scopes.
 
 ## Sync protocol
@@ -403,7 +404,7 @@ sync: {
 |----------|---------|
 | `GET /sync/snapshot?collection=&stream=&cursor=&limit=` | Bootstrap + catch-up per stream |
 | `GET /sync/streams` | Current stream membership for the user |
-| `GET /sync/entities` | Point lookup for entity repair |
+| `GET /sync/entities` | Point lookup for entity repair and admin window hydrate. Admin + `adminBroadcast` returns requested ids across streams; unknown ids are omitted |
 | `POST /sync/mutate` | Single mutation (HTTP fallback) |
 | `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack) |
 | `GET /sync/key` | Per-user encryption key material (web) |

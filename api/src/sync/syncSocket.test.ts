@@ -297,6 +297,29 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     assert.deepEqual(snapshotLike, []);
   });
 
+  it("nacks window subscribe when the caller is not admin", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: false, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    assert.deepEqual(
+      socket.emitted.filter((e) => e.event === "sync:subscribed"),
+      []
+    );
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.equal(errors[0].collection, "sockStuff");
+    assert.match(errors[0].message, /admin/i);
+  });
+
   it("owner scope never uses a client-supplied user id", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);
