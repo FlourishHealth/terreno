@@ -42,4 +42,10 @@ modelRouter("/todos", Todo, {
 
 `organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
 
-AdminApp auto-write and RBAC fan-in land in later slices of the [framework audit log IP](../implementationPlans/framework-audit-log.md).
+### 3. Admin mutations
+
+When `AuditApp` is registered, AdminApp writes the same `AuditEvent` collection with
+`source: "admin"` after successful admin POST/PATCH/DELETE. You do not need `onAdminAudit` for
+that. `onAdminAudit` remains an extra sink if the app still wants a second destination.
+
+RBAC fan-in lands in a later slice of the [framework audit log IP](../implementationPlans/framework-audit-log.md).

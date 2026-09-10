@@ -13,7 +13,11 @@ import {authAsUser, setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
 import {createAuditEventModel} from "./auditEventModel";
 import {changedFieldDiff, isRedactedSegment} from "./diff";
-import {maybeRecordModelRouterAudit, resetAuditRecorderForTests} from "./record";
+import {
+  maybeRecordAdminAudit,
+  maybeRecordModelRouterAudit,
+  resetAuditRecorderForTests,
+} from "./record";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
 
@@ -266,5 +270,50 @@ describe("modelRouter audit", () => {
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.equal(list.body.data[0].organizationId, "org-req");
+  });
+});
+
+describe("maybeRecordAdminAudit", () => {
+  beforeEach(async () => {
+    deleteNamedModel("Note");
+    deleteNamedModel("AuditEvent");
+    resetAuditRecorderForTests();
+    await setupDb();
+    await mongoose.connection.collection("auditevents").deleteMany({});
+  });
+
+  afterEach(() => {
+    resetAuditRecorderForTests();
+    deleteNamedModel("Note");
+    deleteNamedModel("AuditEvent");
+  });
+
+  it("does not write when AuditApp is not registered", async () => {
+    await maybeRecordAdminAudit({
+      after: {_id: "1", name: "Nope"},
+      modelName: "Food",
+      req: {user: {_id: new mongoose.Types.ObjectId()}} as express.Request,
+      verb: "created",
+    });
+    const count = await mongoose.connection.collection("auditevents").countDocuments();
+    assert.equal(count, 0);
+  });
+
+  it("skips writing an event for the AuditEvent model", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(new AuditApp())
+      .build();
+    assert.ok(app);
+    await maybeRecordAdminAudit({
+      after: {_id: "1", modelName: "Food"},
+      modelName: "AuditEvent",
+      req: {user: {_id: new mongoose.Types.ObjectId()}} as express.Request,
+      verb: "created",
+    });
+    const count = await mongoose.connection.collection("auditevents").countDocuments();
+    assert.equal(count, 0);
   });
 });

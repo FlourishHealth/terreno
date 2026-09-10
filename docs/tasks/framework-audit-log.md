@@ -43,7 +43,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
 
 ## Phase 3 — Admin, example, RBAC
 
-- [ ] **Task 3.1**: AdminApp auto-write
+- [x] **Task 3.1**: AdminApp auto-write
   - Delivers: when recorder is present, successful admin POST/PATCH/DELETE persist `AuditEvent` with `source: "admin"` even if `onAdminAudit` is omitted; still invoke `onAdminAudit` when set; skip `AuditEvent` model; mutation succeeds if the framework write throws
   - Files: `admin-backend/src/adminApp.ts`, `admin-backend/src/adminApp.models.test.ts`
   - Blocked by: 1.2

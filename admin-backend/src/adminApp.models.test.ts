@@ -1,6 +1,7 @@
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, spyOn} from "bun:test";
 import {
   ADMIN_MODEL_ACCESS,
+  AuditApp,
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
@@ -9,6 +10,7 @@ import {
   findOneOrNoneFor,
   modelRouter,
   Permissions,
+  resetAuditRecorderForTests,
   setupAuth,
   type TerrenoApp,
   type TerrenoPlugin,
@@ -1347,6 +1349,88 @@ describe("AdminApp onAdminAudit is best-effort", () => {
     const food = await FoodModel.create({calories: 1, name: "DeleteMe"});
     await agent.delete(`/admin/foods/${food._id}`).expect(204);
     expect(await FoodModel.findById(food._id)).toBeNull();
+  });
+});
+
+const deleteAuditEventModel = (): void => {
+  if (mongoose.connection.models.AuditEvent) {
+    mongoose.connection.deleteModel("AuditEvent");
+  }
+};
+
+const buildAppWithAuditPlugin = (adminOverrides?: Partial<AdminOptions>): express.Application => {
+  const app = getBaseServer();
+  setupAuth(app, UserModel as unknown as UserModelType);
+  addAuthRoutes(app, UserModel as unknown as UserModelType);
+  new AuditApp().register(app);
+  const admin = new AdminApp({
+    basePath: "/admin",
+    models: [foodModelConfig],
+    ...adminOverrides,
+  });
+  admin.register(app);
+  app.use(apiUnauthorizedMiddleware);
+  app.use(apiErrorMiddleware);
+  return app;
+};
+
+describe("AdminApp AuditEvent auto-write", () => {
+  beforeEach(async () => {
+    deleteAuditEventModel();
+    resetAuditRecorderForTests();
+    await setupDb();
+    await mongoose.connection.collection("auditevents").deleteMany({});
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+    await mongoose.connection.collection("auditevents").deleteMany({});
+    resetAuditRecorderForTests();
+    deleteAuditEventModel();
+  });
+
+  it("persists source admin AuditEvent on POST without onAdminAudit", async () => {
+    const localApp = buildAppWithAuditPlugin();
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/foods").send({calories: 5, name: "AuditedFood"}).expect(201);
+    const events = await mongoose.connection.collection("auditevents").find({}).toArray();
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.source, "admin");
+    assert.equal(events[0]?.verb, "created");
+    assert.equal(events[0]?.modelName, "Food");
+    assert.equal(events[0]?.recordLabel, "AuditedFood");
+  });
+
+  it("runs onAdminAudit and persists AuditEvent when both are configured", async () => {
+    const extra: AdminAuditEvent[] = [];
+    const localApp = buildAppWithAuditPlugin({
+      onAdminAudit: async (event): Promise<void> => {
+        extra.push(event);
+      },
+    });
+    const agent = await authAsUser(localApp, "admin");
+    await agent.post("/admin/foods").send({calories: 8, name: "BothSinks"}).expect(201);
+    assert.equal(extra.length, 1);
+    assert.equal(extra[0]?.verb, "created");
+    const events = await mongoose.connection.collection("auditevents").find({}).toArray();
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.source, "admin");
+  });
+
+  it("returns 201 on POST when AuditEvent persistence throws", async () => {
+    const localApp = buildAppWithAuditPlugin();
+    const AuditEvent = mongoose.connection.models.AuditEvent;
+    const createSpy = spyOn(AuditEvent, "create").mockImplementation(() => {
+      throw new Error("recorder boom");
+    });
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent
+      .post("/admin/foods")
+      .send({calories: 5, name: "StillCreated"})
+      .expect(201);
+    createSpy.mockRestore();
+    const stored = await FoodModel.findById(res.body.data._id).lean();
+    assert.equal(stored?.name, "StillCreated");
   });
 });
 

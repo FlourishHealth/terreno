@@ -34,9 +34,60 @@ export const installAuditRecorder = (model: AuditEventModel): void => {
   auditEventModel = model;
 };
 
+export const isAuditRecorderInstalled = (): boolean => Boolean(auditEventModel);
+
 export const resetAuditRecorderForTests = (): void => {
   auditEventModel = undefined;
   missingPluginLogged = false;
+};
+
+const operationFromVerb = (verb: AuditEventVerb): AuditEventOperation => {
+  if (verb === "created") {
+    return "create";
+  }
+  if (verb === "deleted") {
+    return "delete";
+  }
+  return "update";
+};
+
+export const maybeRecordAdminAudit = async ({
+  after,
+  before,
+  modelName,
+  recordLabel,
+  req,
+  verb,
+}: {
+  after?: unknown;
+  before?: unknown;
+  modelName: string;
+  recordLabel?: string;
+  req: Request;
+  verb: AuditEventVerb;
+}): Promise<void> => {
+  if (!auditEventModel) {
+    return;
+  }
+  if (modelName === "AuditEvent") {
+    return;
+  }
+  const beforePlain = toAuditPlain(before);
+  const afterPlain = toAuditPlain(after);
+  const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact: []});
+  const recordIdValue = afterPlain?._id ?? beforePlain?._id;
+  await recordAuditEvent({
+    actorId: actorIdFromRequest(req),
+    after: diff.after,
+    before: diff.before,
+    modelName,
+    operation: operationFromVerb(verb),
+    organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
+    recordId: recordIdValue != null ? String(recordIdValue) : undefined,
+    recordLabel: recordLabel ?? recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
+    source: "admin",
+    verb,
+  });
 };
 
 export const resolveAuditRedact = (audit?: ModelRouterAuditConfig): string[] | undefined => {
