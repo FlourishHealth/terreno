@@ -818,6 +818,15 @@
   },
   {
     "type": "module",
+    "from": "ui/src/CommonIconTypes.js",
+    "to": "ui/src/CommonIconTypes.js",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
     "from": "ui/src/CommonIconTypes.ts",
     "to": "ui/src/CommonIconTypes.ts",
     "rule": {
@@ -838,6 +847,15 @@
     "type": "module",
     "from": "ui/src/signUp/signUpTypes.ts",
     "to": "ui/src/signUp/signUpTypes.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
+    "from": "ui/src/testing/types.js",
+    "to": "ui/src/testing/types.js",
     "rule": {
       "severity": "warn",
       "name": "no-orphans"

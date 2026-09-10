@@ -3052,10 +3052,9 @@ describe("createSyncDb", () => {
       const client = createSyncDb(harness.config);
       await client.start();
       await flush();
-      assert.equal(
-        client.store.getEntity({collection: "todos", id: "local-1"})?.data.title,
-        "stale"
-      );
+      assert.deepEqual(client.store.getEntity({collection: "todos", id: "local-1"})?.data, {
+        title: "stale",
+      });
 
       harness.http.state.pages[DEFAULT_STREAM] = {
         cursor: 9,

@@ -222,7 +222,9 @@ describe("createHttpChannel", () => {
 
   describe("fetchEntities", () => {
     it("GETs /sync/entities with collection and ids", async () => {
-      const body = {entities: [{collection: "todos", id: "a", seq: 1}]};
+      const body = {
+        entities: [{data: {title: "a"}, deleted: false, id: "a", seq: 1}],
+      };
       const {fetchImpl, requests} = makeFetch(() => json(body));
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
       await expect(channel.fetchEntities({collection: "todos", ids: ["a", "b"]})).resolves.toEqual(
