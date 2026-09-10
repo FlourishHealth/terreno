@@ -156,6 +156,11 @@ export type ObservabilityAiServiceFactory = (
   modelId: string
 ) => ObservabilityGenerateClient | undefined;
 
+export type ObservabilityRequestAiServiceFactory = (params: {
+  apiKey?: string;
+  modelId?: string;
+}) => ObservabilityGenerateClient | undefined;
+
 export interface ObservabilityAppOptions {
   aiService?: ObservabilityGenerateClient;
   aiServiceFactory?: ObservabilityAiServiceFactory;
@@ -167,6 +172,7 @@ export interface ObservabilityAppOptions {
   };
   plugins: ObservabilityPlugin[];
   priceMap?: Record<string, ModelPrice>;
+  requestAiServiceFactory?: ObservabilityRequestAiServiceFactory;
   sampleRate?: number;
 }
 

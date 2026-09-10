@@ -47,7 +47,7 @@ import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
 import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes, createServerModel, getAiService} from "./api/ai";
+import {addAiRoutes, createModelFromKey, createServerModel, getAiService} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {projectRouter} from "./api/projects";
@@ -385,6 +385,12 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           },
           plugins: [createLocalObservabilityPlugin()],
           priceMap: parseObservabilityPriceMap(process.env.AI_OBS_PRICE_MAP_JSON),
+          requestAiServiceFactory: ({apiKey, modelId}) => {
+            if (!apiKey) {
+              return undefined;
+            }
+            return new AIService({model: createModelFromKey(apiKey, modelId)});
+          },
         })
       )
       .register(

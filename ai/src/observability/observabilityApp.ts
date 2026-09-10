@@ -23,6 +23,7 @@ import type {
   ObservabilityControlConfig,
   ObservabilityGenerateClient,
   ObservabilityPlugin,
+  ObservabilityRequestAiServiceFactory,
   PromptRegistry,
   ScoreSink,
   TraceRecord,
@@ -46,6 +47,7 @@ export class ObservabilityApp implements TerrenoPlugin {
   readonly control: ObservabilityControlConfig;
   readonly plugins: ReadonlyArray<ObservabilityPlugin>;
   readonly priceMap: ObservabilityAppOptions["priceMap"];
+  readonly requestAiServiceFactory?: ObservabilityRequestAiServiceFactory;
   readonly sampleRate: number;
 
   constructor(options: ObservabilityAppOptions) {
@@ -54,6 +56,7 @@ export class ObservabilityApp implements TerrenoPlugin {
     this.control = validateObservabilityConfig(options);
     this.plugins = options.plugins;
     this.priceMap = options.priceMap;
+    this.requestAiServiceFactory = options.requestAiServiceFactory;
     this.sampleRate = options.sampleRate ?? 0;
     registeredObservabilityApp = this;
   }
@@ -130,6 +133,7 @@ export class ObservabilityApp implements TerrenoPlugin {
           aiService: this.aiService,
           openApi,
           priceMap: this.priceMap,
+          requestAiServiceFactory: this.requestAiServiceFactory,
           store,
         });
       }

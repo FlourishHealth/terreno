@@ -1,12 +1,22 @@
-import {AdminProvider, AdminShellLayout} from "@terreno/admin-frontend";
+import {
+  AdminProvider,
+  type AdminScreenWidgetProps,
+  AdminShellLayout,
+  AiPromptEditorScreenWidget,
+} from "@terreno/admin-frontend";
 import {canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
-import {Box, Spinner, Text} from "@terreno/ui";
+import {Box, Spinner, Text, useStoredState} from "@terreno/ui";
 import {Stack} from "expo-router";
 import React from "react";
 import {useSelector} from "react-redux";
 import {ADMIN_ROUTE} from "@/constants/adminConstants";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import SyncLabScreen from "./SyncLabScreen";
+
+const ExamplePromptEditorScreen: React.FC<AdminScreenWidgetProps> = (props) => {
+  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
+  return <AiPromptEditorScreenWidget {...props} apiKey={geminiApiKey || undefined} />;
+};
 
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main
@@ -49,7 +59,12 @@ const AdminLayout: React.FC = () => {
       api={terrenoApi}
       apiBase={ADMIN_ROUTE}
       routeBase={ADMIN_ROUTE}
-      widgets={{screens: {"sync-lab": SyncLabScreen}}}
+      widgets={{
+        screens: {
+          "ai-prompt-editor": ExamplePromptEditorScreen,
+          "sync-lab": SyncLabScreen,
+        },
+      }}
     >
       <AdminShellLayout
         api={terrenoApi}

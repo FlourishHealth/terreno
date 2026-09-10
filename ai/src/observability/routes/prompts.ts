@@ -10,7 +10,11 @@ import type {
   PlaygroundGenerator,
   PromptVersionFields,
 } from "../local/promptStore";
-import type {ModelPrice, ObservabilityGenerateClient} from "../types";
+import type {
+  ModelPrice,
+  ObservabilityGenerateClient,
+  ObservabilityRequestAiServiceFactory,
+} from "../types";
 
 const BASE_PATH = "/ai/observability";
 
@@ -18,6 +22,7 @@ export interface ObservabilityPromptRouteOptions {
   aiService?: ObservabilityGenerateClient;
   openApi?: unknown;
   priceMap?: Record<string, ModelPrice>;
+  requestAiServiceFactory?: ObservabilityRequestAiServiceFactory;
   store: LocalPromptStore;
 }
 
@@ -212,17 +217,28 @@ export const addObservabilityPromptRoutes = (
         .build(),
     ],
     asyncHandler(async (req, res) => {
-      if (!options.aiService) {
-        throw new APIError({status: 503, title: "AIService is not configured for playground"});
-      }
       const body = req.body as {
+        modelId?: string;
         userPrompt?: string;
         variables?: Record<string, string>;
         version?: number;
       };
+      const aiService =
+        options.aiService ??
+        options.requestAiServiceFactory?.({
+          apiKey: req.header("x-ai-api-key"),
+          modelId: body.modelId,
+        });
+      if (!aiService) {
+        throw new APIError({
+          status: 503,
+          title:
+            "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.",
+        });
+      }
       const data = await options.store.runPlayground({
-        generator: createPlaygroundGenerator(options.aiService),
-        modelId: options.aiService.modelId,
+        generator: createPlaygroundGenerator(aiService),
+        modelId: aiService.modelId,
         name: req.params.name,
         priceMap: options.priceMap,
         userId: asUserId(req.user),

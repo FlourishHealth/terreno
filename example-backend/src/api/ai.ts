@@ -282,7 +282,7 @@ export const createServerModel = (modelId?: string): LanguageModel | undefined =
 };
 
 /** Create a LanguageModel from a per-request API key (always uses Gemini API). */
-const createModelFromKey = (apiKey: string, modelId?: string) => {
+export const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
     throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});

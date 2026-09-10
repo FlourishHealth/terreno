@@ -37,6 +37,8 @@ export interface SetLabelBody {
 }
 
 export interface PlaygroundBody {
+  apiKey?: string;
+  modelId?: string;
   name: string;
   variables?: Record<string, string>;
   version?: number;
@@ -106,8 +108,9 @@ const createPromptsApi = (api: AdminApi) => {
         }),
       }),
       [PLAYGROUND_KEY]: build.mutation({
-        query: ({name, variables, version}: PlaygroundBody) => ({
-          body: {variables, version},
+        query: ({apiKey, modelId, name, variables, version}: PlaygroundBody) => ({
+          body: {modelId, variables, version},
+          headers: apiKey ? {"x-ai-api-key": apiKey} : undefined,
           method: "POST",
           url: `/ai/observability/prompts/${encodeURIComponent(name)}/playground`,
         }),

@@ -64,6 +64,7 @@ const playgroundResult: PlaygroundRunResult = {
 
 const playgroundMutationState = {
   data: undefined as PlaygroundRunResult | undefined,
+  error: undefined as unknown,
   isError: false,
   isLoading: false,
 };
@@ -143,16 +144,25 @@ describe("AiPromptEditorScreenWidget", () => {
   });
 
   it("runs playground once with template variables", async () => {
+    runPlayground.mockClear();
     playgroundMutationState.data = undefined;
     detailState.data = detail;
-    const view = renderWithTheme(<AiPromptEditorScreenWidget {...widgetProps} />);
+    const view = renderWithTheme(
+      <AiPromptEditorScreenWidget {...widgetProps} apiKey="saved-key" />
+    );
     fireEvent.press(view.getByText("Playground"));
     fireEvent.changeText(view.getByTestId("ai-prompt-var-text"), "hello");
     await act(async () => {
       fireEvent.press(view.getByTestId("ai-prompt-run-once"));
       await Promise.resolve();
     });
-    view.rerender(<AiPromptEditorScreenWidget {...widgetProps} />);
+    view.rerender(<AiPromptEditorScreenWidget {...widgetProps} apiKey="saved-key" />);
+    assert.deepEqual(runPlayground.mock.calls[0]?.[0], {
+      apiKey: "saved-key",
+      name: "summarize",
+      variables: {text: "hello"},
+      version: 1,
+    });
     expect(view.getByTestId("ai-prompt-run-result")).toBeTruthy();
     expect(view.getByTestId("ai-prompt-run-output")).toHaveTextContent("ok");
   });
@@ -205,6 +215,7 @@ describe("AiPromptEditorScreenWidget", () => {
   it("surfaces save, production, and playground errors", () => {
     createVersionShouldFail = true;
     labelShouldFail = true;
+    playgroundMutationState.error = {data: {title: "Provide an AI API key."}};
     playgroundMutationState.isError = true;
     detailState.data = detail;
     detailState.isError = false;
@@ -212,9 +223,10 @@ describe("AiPromptEditorScreenWidget", () => {
     expect(view.getByText("Could not save a new version.")).toBeTruthy();
     expect(view.getByText("Could not set production.")).toBeTruthy();
     fireEvent.press(view.getByText("Playground"));
-    expect(view.getByText(/Playground run failed/)).toBeTruthy();
+    expect(view.getByText("Provide an AI API key.")).toBeTruthy();
     createVersionShouldFail = false;
     labelShouldFail = false;
+    playgroundMutationState.error = undefined;
     playgroundMutationState.isError = false;
   });
 });

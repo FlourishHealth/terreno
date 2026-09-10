@@ -36,6 +36,7 @@ const createMockModel = (responseText = "Playground output") => {
 };
 
 describe("observability prompt routes", () => {
+  let aiService: AIService;
   let app: express.Application;
   let doGenerate: ReturnType<typeof mock>;
 
@@ -56,7 +57,7 @@ describe("observability prompt routes", () => {
 
     const model = createMockModel();
     doGenerate = model.doGenerate;
-    const aiService = new AIService({model: model as unknown as LanguageModel});
+    aiService = new AIService({model: model as unknown as LanguageModel});
     app = new TerrenoApp({skipListen: true, userModel: UserModel})
       .register(
         new ObservabilityApp({
@@ -124,6 +125,37 @@ describe("observability prompt routes", () => {
 
     const after = await agent.get("/ai/observability/prompts/greeter");
     expect(after.body.data.versions).toHaveLength(2);
+  });
+
+  it("uses a request-scoped AI service when the server service is unavailable", async () => {
+    const requestAiServiceFactory = mock(({apiKey}: {apiKey?: string}) => {
+      return apiKey === "request-key" ? aiService : undefined;
+    });
+    const requestServiceApp = new TerrenoApp({skipListen: true, userModel: UserModel})
+      .register(
+        new ObservabilityApp({
+          plugins: [createLocalObservabilityPlugin()],
+          requestAiServiceFactory,
+        })
+      )
+      .build();
+    const agent = await authAsUser(requestServiceApp, "admin");
+    await agent.post("/ai/observability/prompts").send({
+      folder: "examples",
+      name: "request-key-greeter",
+      template: "Hello {{name}}",
+      type: "text",
+      variables: [{key: "name", required: true}],
+    });
+
+    const playground = await agent
+      .post("/ai/observability/prompts/request-key-greeter/playground")
+      .set("x-ai-api-key", "request-key")
+      .send({variables: {name: "Ada"}, version: 1});
+
+    assert.equal(playground.status, 200);
+    assert.equal(playground.body.data.output, "Playground output");
+    assert.equal(requestAiServiceFactory.mock.calls[0]?.[0].apiKey, "request-key");
   });
 
   it("forbids non-admins from creating prompts", async () => {

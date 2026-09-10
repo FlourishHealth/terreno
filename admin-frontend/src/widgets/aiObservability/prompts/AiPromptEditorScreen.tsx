@@ -12,7 +12,19 @@ import {
 } from "./promptTypes";
 import {useAiObservabilityPromptsApi} from "./useAiObservabilityPromptsApi";
 
-export const AiPromptEditorScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
+export interface AiPromptEditorScreenWidgetProps extends AdminScreenWidgetProps {
+  apiKey?: string;
+}
+
+const apiErrorTitle = (error: unknown): string | undefined => {
+  if (!error || typeof error !== "object" || !("data" in error)) {
+    return undefined;
+  }
+  return (error as {data?: {title?: string}}).data?.title;
+};
+
+export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProps> = (props) => {
+  const {apiKey} = props;
   const {api, routeBase} = props;
   const params = useLocalSearchParams<{name?: string | string[]}>();
   const nameParam = params.name;
@@ -62,9 +74,9 @@ export const AiPromptEditorScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
       if (!name) {
         return;
       }
-      await runPlayground({name, variables, version}).unwrap();
+      await runPlayground({apiKey, name, variables, version}).unwrap();
     },
-    [name, runPlayground, version]
+    [apiKey, name, runPlayground, version]
   );
 
   const playgroundResult = unwrapPromptPayload<PlaygroundRunResult>(playgroundState.data);
@@ -113,7 +125,8 @@ export const AiPromptEditorScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
         onSetProduction={handleSetProduction}
         playgroundError={
           playgroundState.isError
-            ? "Playground run failed. The backend needs an AI service wired to ObservabilityApp."
+            ? (apiErrorTitle(playgroundState.error) ??
+              "Playground run failed. Configure an AI service or API key.")
             : undefined
         }
         playgroundResult={playgroundResult}

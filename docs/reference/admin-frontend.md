@@ -280,7 +280,10 @@ review screen body hide when `localOn` is false.
 full-width version history rows show `vN`, every label attached to that version, and its creation
 time on one line. The selected row is highlighted. The editor keeps Editor / Playground tabs,
 **Save as vN+1**, and **Set vN as production…** (modal names the outgoing version). Playground
-**Run once** does not create a version; **Save this run to dataset** stays disabled until phase 2.
+**Run once** does not create a version; hosts may pass `apiKey` to
+`AiPromptEditorScreenWidget`, which forwards it as `x-ai-api-key` without putting the key in the
+request body. The example admin supplies the Gemini key saved from Profile. **Save this run to
+dataset** stays disabled until phase 2.
 
 `ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
 sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count

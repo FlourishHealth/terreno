@@ -8,6 +8,7 @@ Register observability on the backend. Registration **is** the feature flag. The
 const priceMap = parseObservabilityPriceMap(process.env.AI_OBS_PRICE_MAP_JSON);
 
 server.register(new ObservabilityApp({
+  aiService,
   plugins: [localPlugin, langfuseAdapter, otelSink].filter(Boolean),
   control: {
     datasets: process.env.AI_OBS_DATASETS_PRIMARY ?? "local",
@@ -19,6 +20,11 @@ server.register(new ObservabilityApp({
   sampleRate: Number(process.env.AI_OBS_SAMPLE_RATE ?? 0),
 }));
 ```
+
+For an admin playground that accepts a user-supplied provider key, add
+`requestAiServiceFactory: ({apiKey, modelId}) => ...`. The playground route passes
+`x-ai-api-key` to that factory only when the server-wide `aiService` is absent. Never persist or
+log the key.
 
 Validate the parsed object before registration: each model needs non-negative numeric
 `inputPerMTok` and `outputPerMTok`. The example implementation is

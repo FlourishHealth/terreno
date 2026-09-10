@@ -7,7 +7,13 @@ import {useAiObservabilityPromptsApi} from "./useAiObservabilityPromptsApi";
 interface CapturedEndpoint {
   invalidatesTags?: unknown;
   providesTags?: unknown;
-  query: (arg: never) => {body?: unknown; method: string; params?: unknown; url: string};
+  query: (arg: never) => {
+    body?: unknown;
+    headers?: Record<string, string>;
+    method: string;
+    params?: unknown;
+    url: string;
+  };
 }
 
 const createApiDouble = () => {
@@ -84,12 +90,15 @@ describe("useAiObservabilityPromptsApi", () => {
     });
     expect(
       endpoints.runAiObservabilityPlayground.query({
+        apiKey: "saved-key",
+        modelId: "gemini-test",
         name: "summarize",
         variables: {text: "hi"},
         version: 1,
       } as never)
     ).toEqual({
-      body: {variables: {text: "hi"}, version: 1},
+      body: {modelId: "gemini-test", variables: {text: "hi"}, version: 1},
+      headers: {"x-ai-api-key": "saved-key"},
       method: "POST",
       url: "/ai/observability/prompts/summarize/playground",
     });

@@ -67,6 +67,7 @@ export type {
   ObservabilityControlConfig,
   ObservabilityGenerateClient,
   ObservabilityPlugin,
+  ObservabilityRequestAiServiceFactory,
   PromptRegistry,
   ReviewQueue,
   ScoreRecord,
