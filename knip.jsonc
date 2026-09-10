@@ -11,10 +11,51 @@
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "workspaces": {
+    // Setting `entry` replaces Knip's default `{index,cli,main}` patterns for that
+    // workspace, so those defaults are repeated wherever extra entries are added.
+    ".": {
+      // Root `package.json` `test` is `bun run --filter '*' test:ci`, so the Bun plugin
+      // never sees `scripts/**/*.test.ts` or `.github/scripts/**/*.test.ts`.
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "scripts/**/*.test.ts",
+        ".github/scripts/**/*.test.ts"
+      ]
+    },
+    "admin-frontend": {
+      // Isolated files are `bun test $file`, not `*.test.ts`, so the Bun plugin skips them.
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.{ts,tsx}"
+      ]
+    },
+    "ai": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts"
+      ]
+    },
     "mcp-server": {
       // Knip 6.34 expects Bun's `test.preload` to be an array, while this package
       // uses Bun's valid scalar form. Tests remain in the project graph.
       "bun": false
+    },
+    "rtk": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts"
+      ]
+    },
+    "syncdb": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts"
+      ]
     }
   }
 }

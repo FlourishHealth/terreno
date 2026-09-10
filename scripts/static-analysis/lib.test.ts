@@ -5,9 +5,11 @@ import {
   compareKnipBaseline,
   fingerprintKnipReport,
   groupFilesByBiomeDirectory,
+  isIsolatedOrRepoScriptTestFile,
   type KnipBaseline,
   parseChangedFileOutput,
   selectAnalyzableFiles,
+  unusedFilePathsFromKnipReport,
 } from "./lib";
 
 describe("static-analysis helpers", (): void => {
@@ -56,6 +58,31 @@ describe("static-analysis helpers", (): void => {
     });
 
     assert.deepEqual(issues, ["default:exports:src/example.ts:unusedExport"]);
+  });
+
+  test("collects unused file paths from a Knip report", (): void => {
+    const paths = unusedFilePathsFromKnipReport({
+      issues: [
+        {
+          file: "scripts/static-analysis/lib.test.ts",
+          files: [{name: "scripts/static-analysis/lib.test.ts"}],
+        },
+      ],
+    });
+    assert.deepEqual(paths, ["scripts/static-analysis/lib.test.ts"]);
+  });
+
+  test("classifies isolated suites and repo script tests", (): void => {
+    assert.isTrue(isIsolatedOrRepoScriptTestFile("rtk/src/isolated/emptyApi.isolated.ts"));
+    assert.isTrue(isIsolatedOrRepoScriptTestFile("scripts/static-analysis/lib.test.ts"));
+    assert.isTrue(
+      isIsolatedOrRepoScriptTestFile(".github/scripts/architectural-pr-review.test.ts")
+    );
+    assert.isFalse(
+      isIsolatedOrRepoScriptTestFile("api/src/sync/scripts/compactTombstones.test.ts")
+    );
+    assert.isFalse(isIsolatedOrRepoScriptTestFile("scripts/static-analysis/full.ts"));
+    assert.isFalse(isIsolatedOrRepoScriptTestFile("example-frontend/e2e/login.spec.ts"));
   });
 
   test("ratchets only findings absent from the baseline", (): void => {

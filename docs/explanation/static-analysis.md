@@ -26,6 +26,20 @@ development runs `bun run bootstrap`; without that exclusion, each package's com
 `dist/*.d.ts` entry point contributes unlisted-dependency findings that CI can never
 reproduce.
 
+## Entry graph
+
+Knip only follows files reachable from entries. Register executed-but-unimported files
+in `knip.jsonc` `workspaces.<name>.entry` instead of deleting them or stuffing them into
+the JSON baseline.
+
+Setting `entry` **replaces** Knip’s default `{index,cli,main}` / `src/{index,cli,main}`
+patterns for that workspace, so those defaults must be repeated next to extra globs.
+
+| Kind | Why Knip misses it | Entry |
+| --- | --- | --- |
+| `*.isolated.ts(x)` | Run as `bun test $file`, not `*.test.ts` | `src/isolated/**/*.isolated.{ts,tsx}` on the owning package |
+| `scripts/**/*.test.ts`, `.github/scripts/**/*.test.ts` | Root `test` is `bun run --filter '*' test:ci`, so the Bun plugin never loads them | Root workspace `"."` |
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The

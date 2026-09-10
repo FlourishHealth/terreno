@@ -17,7 +17,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 1: Entry graph
 
-- [ ] **Task 1.1**: Register isolated suites and repo script tests as Knip entries
+- [x] **Task 1.1**: Register isolated suites and repo script tests as Knip entries
   - Delivers: `*.isolated.ts(x)` and `scripts/**/*.test.ts` (plus `scripts/static-analysis/lib.test.ts`, `.github/scripts/*.test.ts`) stop reporting as unused files
   - Files: `knip.jsonc`, `docs/explanation/static-analysis.md` (entry-graph section: isolated files and `scripts/` tests are first-class entries)
   - Blocked by: none

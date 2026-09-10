@@ -95,6 +95,32 @@ export const groupFilesByBiomeDirectory = ({
     .sort((left, right) => left.cwd.localeCompare(right.cwd));
 };
 
+export const unusedFilePathsFromKnipReport = (report: KnipReport): string[] => {
+  const paths = new Set<string>();
+  for (const fingerprint of fingerprintKnipReport({mode: "default", report})) {
+    if (!fingerprint.startsWith("default:files:")) {
+      continue;
+    }
+    const remainder = fingerprint.slice("default:files:".length);
+    const filePath = remainder.split(":")[0];
+    if (filePath) {
+      paths.add(filePath);
+    }
+  }
+  return [...paths].sort();
+};
+
+export const isIsolatedOrRepoScriptTestFile = (file: string): boolean => {
+  if (file.includes(".isolated.")) {
+    return true;
+  }
+  const isUnderRepoScripts = file.startsWith("scripts/") || file.startsWith(".github/scripts/");
+  if (!isUnderRepoScripts) {
+    return false;
+  }
+  return file.includes(".test.");
+};
+
 export const fingerprintKnipReport = ({
   mode,
   report,
