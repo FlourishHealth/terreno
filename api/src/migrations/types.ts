@@ -44,6 +44,8 @@ export interface RunMigrationsOptions {
   connection: mongoose.Connection;
   mongoose: typeof mongoose;
   logger?: MigrationLogger;
+  lockTtlMs?: number;
+  lockPollMs?: number;
 }
 
 export interface RunMigrationsResult {

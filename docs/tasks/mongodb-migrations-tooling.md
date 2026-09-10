@@ -15,7 +15,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
   - Docs: stub “Migrations” subsection in `docs/reference/api.md`
   - Acceptance: bun tests — dry-run increments a counter inside `up` but history stays empty; wet applies once; second wet is a no-op; edited checksum fails
 
-- [ ] **Task 1.2**: Lock collection (wait, heartbeat, 10-minute steal)
+- [x] **Task 1.2**: Lock collection (wait, heartbeat, 10-minute steal)
   - Delivers: `withMigrationLock` uses `terreno_migrations` `_id: "_lock"`; concurrent second waiter proceeds after steal when `expiresAt` is past; holder heartbeats; `finally` releases
   - Files: `api/src/migrations/lock.ts`, `api/src/migrations/lock.test.ts`; wire lock around wet `runMigrations`
   - Blocked by: 1.1

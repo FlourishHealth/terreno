@@ -2,6 +2,7 @@ import type mongoose from "mongoose";
 
 import {APIError} from "../errors";
 import {logger as defaultLogger} from "../logger";
+import {withMigrationLock} from "./lock";
 import {
   type AppliedMigrationRecord,
   type LoadedMigration,
@@ -52,39 +53,50 @@ const recordApplied = async ({
 export const runMigrations = async ({
   connection,
   dryRun,
+  lockPollMs,
+  lockTtlMs,
   logger = defaultLogger,
   migrations,
   mongoose: mongooseNs,
 }: RunMigrationsOptions): Promise<RunMigrationsResult> => {
-  const appliedRecords = await loadApplied(connection);
-  const applied: string[] = [];
-  const skipped: string[] = [];
+  const execute = async (): Promise<RunMigrationsResult> => {
+    const appliedRecords = await loadApplied(connection);
+    const applied: string[] = [];
+    const skipped: string[] = [];
 
-  for (const migration of migrations) {
-    const existing = appliedRecords.get(migration.id);
-    if (existing) {
-      if (existing.checksum !== migration.checksum) {
-        throw new APIError({
-          detail: `Migration ${migration.id} was applied with checksum ${existing.checksum} but the current file is ${migration.checksum}`,
-          status: 409,
-          title: "Migration checksum mismatch",
-        });
+    for (const migration of migrations) {
+      const existing = appliedRecords.get(migration.id);
+      if (existing) {
+        if (existing.checksum !== migration.checksum) {
+          throw new APIError({
+            detail: `Migration ${migration.id} was applied with checksum ${existing.checksum} but the current file is ${migration.checksum}`,
+            status: 409,
+            title: "Migration checksum mismatch",
+          });
+        }
+        skipped.push(migration.id);
+        continue;
       }
-      skipped.push(migration.id);
-      continue;
+
+      const ctx: MigrationContext = {
+        dryRun,
+        logger,
+        mongoose: mongooseNs,
+      };
+      await migration.up(ctx);
+      applied.push(migration.id);
+      if (!dryRun) {
+        await recordApplied({connection, migration});
+      }
     }
 
-    const ctx: MigrationContext = {
-      dryRun,
-      logger,
-      mongoose: mongooseNs,
-    };
-    await migration.up(ctx);
-    applied.push(migration.id);
-    if (!dryRun) {
-      await recordApplied({connection, migration});
-    }
-  }
+    return {applied, dryRun, skipped};
+  };
 
-  return {applied, dryRun, skipped};
+  return withMigrationLock({
+    connection,
+    fn: execute,
+    pollMs: lockPollMs,
+    ttlMs: lockTtlMs,
+  });
 };

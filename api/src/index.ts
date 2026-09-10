@@ -50,6 +50,7 @@ export type {
   MCPToolResult,
 } from "./mcp/types";
 export * from "./middleware";
+export * from "./migrations/lock";
 export * from "./migrations/runner";
 export * from "./migrations/types";
 export * from "./models/consentForm";
