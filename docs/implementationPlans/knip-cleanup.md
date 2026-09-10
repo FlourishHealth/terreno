@@ -1,6 +1,6 @@
 # Implementation Plan: Empty the Knip baseline
 
-**Status:** Approved  
+**Status:** Complete  
 **Created:** 2026-09-09  
 **Owner:** unassigned  
 **Primary packages:** repo-wide (`knip.jsonc`, `scripts/static-analysis/`, every workspace Knip currently fingerprints)  

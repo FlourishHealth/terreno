@@ -2,7 +2,7 @@
 
 See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cleanup.md)
 
-**Status:** Approved  
+**Status:** Complete  
 **RTK deprecation flag:** None
 
 ## Instructions for the implementing agent
@@ -137,7 +137,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 6: Empty baseline
 
-- [ ] **Task 6.1**: Write empty Knip baseline and rewrite ratchet docs
+- [x] **Task 6.1**: Write empty Knip baseline and rewrite ratchet docs
   - Delivers: live default+production fingerprint set is `[]`; `bun run analyze:baseline` writes `"issues": []`; docs state the Knip baseline must stay empty and new findings are fixed or added to `knip.jsonc` with a reason — not dumped back into the JSON inventory
   - Files: `scripts/static-analysis/knip-baseline.json`, `docs/explanation/static-analysis.md`, `scripts/static-analysis/full.ts` only if log text assumes a non-empty inventory, `scripts/static-analysis/lib.test.ts` if assertions need an empty-baseline case
   - Blocked by: Task 2.1, Task 2.2, Task 2.3, Task 3.2, Task 4.3, Task 5.3
