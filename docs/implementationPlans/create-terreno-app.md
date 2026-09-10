@@ -1,6 +1,6 @@
 # Implementation Plan: create-terreno-app scaffolding CLI
 
-**Status:** Draft — written; awaiting approve → Pick  
+**Status:** Approved — decisions Q1–Q8 confirmed 2026-09-10  
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1174  
 **Branch:** `cursor/create-terreno-app-ip-54bd`  
 **Owner:** unassigned  
