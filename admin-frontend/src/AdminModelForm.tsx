@@ -36,12 +36,6 @@ const debugAdminModelFormLog = (
   };
   globalLogs.__agentAdminModelFormLogs = globalLogs.__agentAdminModelFormLogs ?? [];
   globalLogs.__agentAdminModelFormLogs.push(payload);
-  try {
-    const fs = require("node:fs") as typeof import("node:fs");
-    fs.appendFileSync("/opt/cursor/logs/debug.log", `${JSON.stringify(payload)}\n`);
-  } catch {
-    // ignore when node fs unavailable (native bundle)
-  }
 };
 // #endregion
 
@@ -347,8 +341,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const renderCountRef = useRef(0);
   const handleFieldChangeCountRef = useRef(0);
   const setOptionsCountRef = useRef(0);
-  const prevNavigationRef = useRef<unknown>();
-  const prevNavigationTitleRef = useRef<string>();
+  const prevNavigationRef = useRef<unknown>(undefined);
+  const prevNavigationTitleRef = useRef<string | undefined>(undefined);
 
   renderCountRef.current += 1;
   // #region agent log

@@ -219,12 +219,11 @@ export const TextField: FC<TextFieldProps> = ({
                   timestamp: Date.now(),
                 };
                 console.warn("[agent:TextField]", JSON.stringify(payload));
-                try {
-                  const fs = require("node:fs") as typeof import("node:fs");
-                  fs.appendFileSync("/opt/cursor/logs/debug.log", `${JSON.stringify(payload)}\n`);
-                } catch {
-                  // ignore when node fs unavailable (native bundle)
-                }
+                const globalLogs = globalThis as typeof globalThis & {
+                  __agentTextFieldLogs?: unknown[];
+                };
+                globalLogs.__agentTextFieldLogs = globalLogs.__agentTextFieldLogs ?? [];
+                globalLogs.__agentTextFieldLogs.push(payload);
               }
               // #endregion
               onChange(text);
