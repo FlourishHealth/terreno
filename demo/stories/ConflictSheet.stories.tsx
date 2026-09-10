@@ -37,14 +37,18 @@ export const ConflictSheetDemo: React.FC = (): React.ReactElement => {
 };
 
 export const ConflictSheetEmpty: React.FC = (): React.ReactElement => {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const onDismiss = useCallback((): void => {
     setVisible(false);
   }, []);
   const onResolve = useCallback((): void => {}, []);
+  const openSheet = useCallback((): void => {
+    setVisible(true);
+  }, []);
   return (
     <Box gap={2}>
       <Text>Empty list still dismisses.</Text>
+      <Button onClick={openSheet} text="Open empty conflict sheet" />
       <ConflictSheet conflicts={[]} onDismiss={onDismiss} onResolve={onResolve} visible={visible} />
     </Box>
   );
