@@ -2670,6 +2670,8 @@ export interface DataTableProps extends WithTestID {
   testIDs?: DataTableTestIDs;
   data: DataTableCellData[][];
   columns: DataTableColumn[];
+  /** Content shown below the header when `data` is empty. */
+  emptyContent?: React.ReactNode;
   alternateRowBackground?: boolean;
   totalPages?: number;
   page?: number;

@@ -114,12 +114,23 @@ describe("AdminModelTable", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders empty state when no data present", () => {
-    configState.config = fullConfig;
-    const {toJSON} = renderWithTheme(
+  it("keeps search and filters available when a query returns no rows", () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean" as const}],
+          searchFields: ["email"],
+        },
+      ],
+    };
+    const {getByTestId, getByText} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(toJSON()).toBeDefined();
+    expect(getByTestId("data-table-search")).toBeTruthy();
+    expect(getByTestId("data-table-filters-trigger")).toBeTruthy();
+    expect(getByText("No items found.")).toBeTruthy();
     expect(setOptions).toHaveBeenCalled();
   });
 

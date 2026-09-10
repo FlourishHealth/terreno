@@ -738,13 +738,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
             <Card padding={2}>
               {isListLoading ? (
                 <LoadingContent />
-              ) : data.length === 0 ? (
-                <EmptyContent />
               ) : (
                 <DataTable
                   columns={columns}
                   customColumnComponentMap={customColumnComponentMap}
                   data={data}
+                  emptyContent={<EmptyContent />}
                   filterValues={filterState}
                   onFilterValuesChange={handleFilterValuesChange}
                   onSearchChange={

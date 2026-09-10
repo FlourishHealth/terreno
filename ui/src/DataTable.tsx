@@ -888,6 +888,7 @@ const DataTableComponent: FC<DataTableProps> = ({
   testID,
   testIDs,
   getRowTestID,
+  emptyContent,
   search = "",
   searchFields,
   onSearchChange,
@@ -899,6 +900,7 @@ const DataTableComponent: FC<DataTableProps> = ({
   const tableTestIDs = resolveDataTableTestIDsFromProps({testID, testIDs});
   const headerScrollRef = useRef<ScrollView>(null);
   const bodyScrollRef = useRef<ScrollView>(null);
+  const lastEmittedQueryRef = useRef<string | undefined>(undefined);
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [isNativeFiltersOpen, setIsNativeFiltersOpen] = useState(false);
   const [nativeDraftValues, setNativeDraftValues] = useState<Record<string, unknown>>({});
@@ -932,14 +934,18 @@ const DataTableComponent: FC<DataTableProps> = ({
     if (!onQueryChange) {
       return;
     }
-    onQueryChange(
-      buildDataTableListQuery({
-        columns,
-        filterValues,
-        search: debouncedSearch,
-        searchFields,
-      })
-    );
+    const query = buildDataTableListQuery({
+      columns,
+      filterValues,
+      search: debouncedSearch,
+      searchFields,
+    });
+    const signature = JSON.stringify(query);
+    if (signature === lastEmittedQueryRef.current) {
+      return;
+    }
+    lastEmittedQueryRef.current = signature;
+    onQueryChange(query);
   }, [columns, debouncedSearch, filterValues, onQueryChange, searchFields]);
 
   const handleOpenNativeFilters = useCallback((): void => {
@@ -1084,23 +1090,27 @@ const DataTableComponent: FC<DataTableProps> = ({
         />
 
         <View style={{flex: 1, minHeight: 0}}>
-          <DataTableContent
-            alternateRowBackground={alternateRowBackground}
-            bodyScrollRef={bodyScrollRef}
-            columns={columns}
-            customColumnComponentMap={customColumnComponentMap}
-            data={data}
-            defaultTextSize={defaultTextSize}
-            getRowTestID={getRowTestID}
-            moreContentComponent={moreContentComponent}
-            moreContentExtraData={moreContentExtraData}
-            onScroll={handleScroll}
-            pinnedColumns={pinnedColumns}
-            pinnedLeftOffsets={pinnedLeftOffsets}
-            pinnedWidth={pinnedWidth}
-            rowHeight={rowHeight}
-            rowTestIdBase={tableTestIDs.row}
-          />
+          {data.length === 0 && emptyContent ? (
+            emptyContent
+          ) : (
+            <DataTableContent
+              alternateRowBackground={alternateRowBackground}
+              bodyScrollRef={bodyScrollRef}
+              columns={columns}
+              customColumnComponentMap={customColumnComponentMap}
+              data={data}
+              defaultTextSize={defaultTextSize}
+              getRowTestID={getRowTestID}
+              moreContentComponent={moreContentComponent}
+              moreContentExtraData={moreContentExtraData}
+              onScroll={handleScroll}
+              pinnedColumns={pinnedColumns}
+              pinnedLeftOffsets={pinnedLeftOffsets}
+              pinnedWidth={pinnedWidth}
+              rowHeight={rowHeight}
+              rowTestIdBase={tableTestIDs.row}
+            />
+          )}
         </View>
       </View>
 

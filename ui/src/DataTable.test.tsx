@@ -530,6 +530,37 @@ describe("DataTable", () => {
     expect(onQueryChange).toHaveBeenCalled();
   });
 
+  it("does not re-emit an unchanged query when controlled arrays are recreated", async () => {
+    const onQueryChange = mock(() => {});
+    const {rerender} = renderWithTheme(
+      <DataTable
+        columns={[...sampleColumns]}
+        data={sampleData}
+        onQueryChange={onQueryChange}
+        search=""
+        searchFields={["Name"]}
+      />
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <DataTable
+        columns={[...sampleColumns]}
+        data={sampleData}
+        onQueryChange={onQueryChange}
+        search=""
+        searchFields={["Name"]}
+      />
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+  });
+
   it("renders web column filter triggers for filterable columns", () => {
     const originalOS = Platform.OS;
     Platform.OS = "web";
