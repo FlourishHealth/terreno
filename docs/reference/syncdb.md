@@ -394,6 +394,10 @@ sync: {
 - **Owner** streams use the authenticated socket's user id (client cannot pick another user's stream).
 - **Tenant/custom** scopes resolve memberships via `SyncApp` `getUserScopes`.
 - **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join `{collection}|admin` with `sync:subscribe {mode: "window"}`. The gate matches the admin UI shell: with `SyncApp({accessControl})`, the caller needs `admin:access`; without RBAC, `user.admin` / `Permissions.IsAdmin` is enough. When `AdminApp` is mounted it also registers that model's list/read permissions and `queryFilter`, so window subscribe, `GET /sync/entities`, and `|admin` live deltas cannot return rows `/admin` REST would hide (product `IsOwner` still treats `user.admin` as owner). Others get `sync:error`. The server confirms `sync:subscribed {mode: "window"}` and does not dump snapshot pages. Clients listed in `createSyncDb({windowCollections})` skip `GET /sync/snapshot` for those collections (startup, subscribe catch-up, and the reconcile timer). Hydrate known ids with `hydrateWindow` (REST rows + `GET /sync/entities`). For that HTTP lookup, an allowed admin-window caller on an `adminBroadcast` collection is not limited to owner/tenant stream membership. Deltas on `{collection}|admin` update or tombstone **ids already in the local window only**; unknown ids are ignored until Refresh or load-more hydrates them (Refresh = current REST query + `hydrateWindow`).
+- Use a dedicated `createSyncDb` client/store for an admin window when the same app
+  also subscribes to that collection through an owner or tenant stream. One socket
+  subscription has one mode per collection, and a separate store prevents
+  admin-hydrated rows from appearing in the product UI.
 - **`snapshotFilter`** restricts `GET /sync/snapshot` server-side. Auto-derived for owner/tenant; required for custom resolver scopes.
 
 ## Sync protocol

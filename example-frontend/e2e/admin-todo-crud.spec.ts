@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {waitForAdminTable} from "./helpers/adminUi";
@@ -19,23 +20,42 @@ test.describe("Admin Todo CRUD smoke", () => {
     consoleGuard.allow("Failed to load resource: the server responded with a status of 404");
     const apiUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
-    const createdTitle = `Admin CRUD ${Date.now()}`;
-    const editedTitle = `${createdTitle} edited`;
+    const createdTitle = `Admin CRUD ${DateTime.now().toMillis()}`;
+    const refreshedTitle = `${createdTitle} refreshed`;
+    const editedTitle = `${refreshedTitle} edited`;
 
     const createResponse = await request.post(`${apiUrl}/todos`, {
       data: {title: createdTitle},
       headers: {authorization: `Bearer ${token}`},
     });
     expect(createResponse.ok()).toBeTruthy();
+    const created = (await createResponse.json()) as {data?: {_id?: string}};
+    const createdId = created.data?._id;
+    expect(createdId).toBeTruthy();
 
     await loginAsAdmin(page);
     await page.goto("/admin/Todo");
     await waitForAdminTable(page);
+    await expect(page.getByTestId("admin-table-refresh")).toBeVisible();
     await expect(page.getByText(createdTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
     });
 
-    await page.getByText(createdTitle).locator("visible=true").first().click();
+    const updateResponse = await request.patch(`${apiUrl}/todos/${createdId}`, {
+      data: {title: refreshedTitle},
+      headers: {authorization: `Bearer ${token}`},
+    });
+    expect(updateResponse.ok()).toBeTruthy();
+    // A known admin-window id receives the live `{collection}|admin` delta.
+    await expect(page.getByText(refreshedTitle).locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId("admin-table-refresh").click();
+    await expect(page.getByText(refreshedTitle).locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByText(refreshedTitle).locator("visible=true").first().click();
     await page.getByTestId("admin-save-button").waitFor({state: "visible", timeout: 15_000});
     await page.getByTestId("admin-field-title").fill(editedTitle);
     await page.getByTestId("admin-save-button").click();
@@ -43,7 +63,7 @@ test.describe("Admin Todo CRUD smoke", () => {
     await expect(page.getByText(editedTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText(createdTitle, {exact: true}).locator("visible=true")).toHaveCount(
+    await expect(page.getByText(refreshedTitle, {exact: true}).locator("visible=true")).toHaveCount(
       0
     );
 

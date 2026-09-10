@@ -14,6 +14,7 @@ import {betterAuthClient} from "@/lib/betterAuth";
 import {SYNC_COLLECTIONS} from "@/store/syncDbSdk";
 
 export const SYNC_DB_NAME = "terreno-example";
+export const ADMIN_SYNC_DB_NAME = `${SYNC_DB_NAME}-admin`;
 
 /**
  * The Better Auth *react* client delivers session changes through a nanostore atom
@@ -63,6 +64,18 @@ export const syncDb: SyncDb = createSyncDb({
   // conflict on one to never stall unrelated ones.
   haltQueueOnConflict: true,
   name: SYNC_DB_NAME,
+});
+
+/**
+ * Admin windows use a separate store/socket so `{collection}|admin` rows never
+ * enter the owner-scoped product store for the same collection.
+ */
+export const adminSyncDb: SyncDb = createSyncDb({
+  authProvider,
+  baseUrl,
+  collections: [...SYNC_COLLECTIONS],
+  name: ADMIN_SYNC_DB_NAME,
+  windowCollections: [...SYNC_COLLECTIONS],
 });
 
 /**

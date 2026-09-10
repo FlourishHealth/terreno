@@ -135,7 +135,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   sort: "-created",
   // Local-first sync (@terreno/syncdb): stream = todos|owner:{ownerId}.
-  sync: {scope: {type: "owner"}},
+  sync: {adminBroadcast: true, scope: {type: "owner"}},
   validation: {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],

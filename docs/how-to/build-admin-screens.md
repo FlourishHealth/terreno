@@ -22,12 +22,16 @@ Embedded app (`example-frontend`):
 
 ```tsx
 // app/admin/_layout.tsx
+const syncConflicts = useConflicts();
+
 <AdminProvider
   api={api}
   apiBase="/admin"
   apiOrigin={baseUrl}
   getAuthHeaders={getAdminAuthHeaders}
   routeBase="/admin"
+  syncConflicts={syncConflicts}
+  syncDb={adminSyncDb}
   widgets={{screens: {"sync-lab": SyncLabScreen}}}
 >
   <AdminShellLayout
@@ -42,6 +46,12 @@ Embedded app (`example-frontend`):
   </AdminShellLayout>
 </AdminProvider>
 ```
+
+Render this tree inside `SyncDbProvider client={adminSyncDb}`. If product screens
+also sync the same collection, make `adminSyncDb` a dedicated client with a unique
+store name and `windowCollections` set; do not mix admin rows into the owner/tenant
+product store. Start that client after `canOpenAdminPage` succeeds, block the admin
+shell until `start()` resolves, and call `stop()` when the admin layout unmounts.
 
 Gate entry with `canOpenAdminPage` from `@terreno/rtk` (`admin:access`). Do not
 rely on `user.admin` alone when RBAC is on. Import `baseUrl` from `@terreno/rtk`
@@ -111,10 +121,11 @@ for those paths. Otherwise `[model]/[id]` treats the id as a generic document.
 
 ## 5. Fetch data the admin way
 
-- Lists and forms: `useAdminApi(api, apiBase, modelName)` — never `axios` / `fetch`.
-- Config and nav: `useAdminConfig(api, apiBase)`.
-- Non-CRUD admin HTTP: generated SDK hooks after `bun run sdk`.
-- Do **not** put admin collections on `@terreno/syncdb`. Admin is server-first RTK.
+- String-`_id` collections configured with `adminBroadcast` use windowed syncdb
+  when the host passes `syncDb` plus fetch auth.
+- ObjectId model CRUD and API-only hosts keep `useAdminApi`.
+- Bulk patch remains server-side: native admin fetch for windowed hosts, RTK fallback otherwise.
+- Admin RPC uses the host-bound native fetch client. Do not add axios.
 
 ## 6. Sidebar and grouping
 
