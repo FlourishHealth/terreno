@@ -43,7 +43,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 3 — Generate from schema snapshot
 
-- [ ] **Task 3.1**: Schema catalog + diff
+- [x] **Task 3.1**: Schema catalog + diff
   - Delivers: `buildSchemaCatalog(models)` and `diffSchemaCatalog(before, after)` covering indexes, optional fields, required, unique, rename heuristic
   - Files: `api/src/migrations/schemaCatalog.ts`, `api/src/migrations/schemaCatalog.test.ts`
   - Blocked by: none (can parallel 1.x in theory; Pick runs after 2.2)

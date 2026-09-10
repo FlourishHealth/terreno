@@ -1346,6 +1346,8 @@ Files are `migrations/<YYYYMMDDHHmmss>-<slug>.ts`. `checkMigrationFiles({dir})` 
 
 `assertMigrationsAllowed({isProduction, allowEnv, force, dryRun})` gates wet apply. Dry-run is always allowed. Production wet requires `ALLOW_MIGRATIONS=true` and `--force` (or a later boot/admin Apply equivalent).
 
+`buildSchemaCatalog({models})` snapshots Mongoose paths, required/unique flags, and indexes. `diffSchemaCatalog({before, after})` marks optional fields and non-unique index adds as safe, and required fields, unique indexes, and same-type rename heuristics as unsafe (fail-closed generate stubs).
+
 The `@terreno/api` bin `terreno-migrate` runs `check`, `status`, `up`, and `down`. See [Run MongoDB migrations](../how-to/run-mongodb-migrations.md).
 
 ## Script Helpers

@@ -47,6 +47,20 @@ export const down = async ({dryRun, mongoose}): Promise<void> => {
 
 `generate` (schema snapshot) is not in this slice yet.
 
+## What generate can emit
+
+`buildSchemaCatalog` / `diffSchemaCatalog` classify model changes. The generate CLI (next slice) writes one file per non-empty diff:
+
+| Diff | Safe? | Generated `up` |
+|------|-------|----------------|
+| Add optional field | Yes | Snapshot only (Mongo is schemaless); comment, no write |
+| Add / drop non-unique index | Yes | `createIndex` / `dropIndex`, skipped when `dryRun` |
+| Add required field (no default) | No | Fail-closed stub that throws in dry-run and wet until you write a backfill |
+| Unique index | No | Fail-closed stub |
+| Rename (removed + added field, same type) | No | Fail-closed stub |
+
+Do not inspect the live database during generate. Baseline is the last `schemaAfter` snapshot in `migrations/`.
+
 ## Production wet apply
 
 `NODE_ENV=production` wet `up`/`down` requires both:
