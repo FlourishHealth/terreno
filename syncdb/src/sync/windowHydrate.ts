@@ -12,7 +12,8 @@ export interface HydrateWindowEntitiesArgs {
   ids: string[];
   /**
    * Optional REST membership payloads keyed by id. Those rows upsert immediately
-   * and are not re-fetched; remaining ids come from `GET /sync/entities`.
+   * for fast UI; every requested id is still fetched from `GET /sync/entities`
+   * before this call resolves so seq/deleted metadata is canonical.
    */
   restRows?: Record<string, unknown>;
 }
@@ -22,8 +23,10 @@ export interface HydrateWindowEntitiesResult {
 }
 
 /**
- * Upsert a window of known ids into TinyBase. Server ids that `/sync/entities`
- * does not return are ignored (no empty rows).
+ * Upsert a window of known ids into TinyBase. REST rows render immediately;
+ * canonical seq/deleted metadata comes from `GET /sync/entities` for every
+ * requested id before this resolves. Server ids that `/sync/entities` does not
+ * return are ignored (no empty rows) unless a REST row already landed.
  */
 export const hydrateWindowEntities = async ({
   store,
@@ -39,12 +42,10 @@ export const hydrateWindowEntities = async ({
 
   const stream = adminWindowStream(collection);
   const hydrated = new Set<string>();
-  const toFetch: string[] = [];
 
   for (const id of uniqueIds) {
     const restData = restRows?.[id];
     if (restData === undefined) {
-      toFetch.push(id);
       continue;
     }
     const existing = store.getEntity({collection, id});
@@ -60,8 +61,8 @@ export const hydrateWindowEntities = async ({
     hydrated.add(id);
   }
 
-  for (let i = 0; i < toFetch.length; i += MAX_REPAIR_FETCH_IDS) {
-    const chunk = toFetch.slice(i, i + MAX_REPAIR_FETCH_IDS);
+  for (let i = 0; i < uniqueIds.length; i += MAX_REPAIR_FETCH_IDS) {
+    const chunk = uniqueIds.slice(i, i + MAX_REPAIR_FETCH_IDS);
     const response = await channel.fetchEntities({collection, ids: chunk});
     for (const entity of response.entities) {
       if (!uniqueIds.includes(entity.id)) {
@@ -71,9 +72,10 @@ export const hydrateWindowEntities = async ({
       if (existing?.pendingMutationId) {
         continue;
       }
+      const restData = restRows?.[entity.id];
       store.upsertEntity({
         collection,
-        data: entity.data,
+        data: restData !== undefined ? (existing?.data ?? restData) : entity.data,
         deleted: entity.deleted,
         id: entity.id,
         pendingMutationId: "",
