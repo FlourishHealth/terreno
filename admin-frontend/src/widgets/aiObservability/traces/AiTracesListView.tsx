@@ -7,6 +7,7 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   DateTimeField,
+  Link,
   Modal,
   SelectField,
   Spinner,
@@ -46,6 +47,18 @@ const statusOptions = [
   {label: "error", value: "error"},
 ];
 
+const scoreOptions = [
+  {label: "All traces", value: ""},
+  {label: "Has a score", value: "true"},
+  {label: "No scores", value: "false"},
+];
+
+const sensitiveOptions = [
+  {label: "All traces", value: ""},
+  {label: "Sensitive only", value: "true"},
+  {label: "Not sensitive", value: "false"},
+];
+
 export interface AiTracesListViewProps {
   addToDatasetError?: string;
   datasetId: string;
@@ -65,16 +78,21 @@ export interface AiTracesListViewProps {
   onClearSelection: () => void;
   onDatasetChange: (id: string) => void;
   onDismissDatasetModal: () => void;
+  onDismissReviewModal: () => void;
   onEnqueueReview: () => void;
   onEvaluatorChange: (id: string) => void;
   onFiltersChange: (filters: TraceListFilters) => void;
   onOpenAddToDataset: () => void;
+  onOpenReview: () => void;
   onOpenTrace: (id: string) => void;
   onPageChange: (page: number) => void;
   onRunTestMultiStage: () => void;
   onToggleSelect: (id: string) => void;
   page: number;
   pageSize?: number;
+  promptOptions: string[];
+  reviewModalOpen: boolean;
+  routeBase: string;
   selectedIds: string[];
   showMultiStageTest?: boolean;
   total: number;
@@ -110,16 +128,21 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   onClearSelection,
   onDatasetChange,
   onDismissDatasetModal,
+  onDismissReviewModal,
   onEnqueueReview,
   onEvaluatorChange,
   onFiltersChange,
   onOpenAddToDataset,
+  onOpenReview,
   onOpenTrace,
   onPageChange,
   onRunTestMultiStage,
   onToggleSelect,
   page,
   pageSize = 20,
+  promptOptions,
+  reviewModalOpen,
+  routeBase,
   selectedIds,
   showMultiStageTest,
   total,
@@ -198,6 +221,14 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
     [filters, onFiltersChange]
   );
 
+  const handleBooleanFilterChange = useCallback(
+    (key: "hasScore" | "sensitive", value: string): void => {
+      const next = value === "" ? undefined : value === "true";
+      onFiltersChange({...filters, [key]: next});
+    },
+    [filters, onFiltersChange]
+  );
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
 
   return (
@@ -261,10 +292,14 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
             />
           </Box>
           <Box flex="grow" minWidth={180}>
-            <TextField
+            <SelectField
               onChange={(value) => {
                 onFiltersChange({...filters, prompt: value});
               }}
+              options={[
+                {label: "All prompts", value: ""},
+                ...promptOptions.map((prompt) => ({label: prompt, value: prompt})),
+              ]}
               testID="ai-traces-filter-prompt"
               title="Prompt"
               value={filters.prompt}
@@ -290,28 +325,28 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
               value={filters.sessionId}
             />
           </Box>
-          <Button
-            onClick={() => {
-              onFiltersChange({
-                ...filters,
-                hasScore: filters.hasScore === true ? undefined : true,
-              });
-            }}
-            testID="ai-traces-filter-has-score"
-            text={filters.hasScore ? "Has score: on" : "Has score"}
-            variant={filters.hasScore ? "primary" : "secondary"}
-          />
-          <Button
-            onClick={() => {
-              onFiltersChange({
-                ...filters,
-                sensitive: filters.sensitive === true ? undefined : true,
-              });
-            }}
-            testID="ai-traces-filter-sensitive"
-            text={filters.sensitive ? "Sensitive: on" : "Sensitive"}
-            variant={filters.sensitive ? "primary" : "secondary"}
-          />
+          <Box flex="grow" minWidth={160}>
+            <SelectField
+              onChange={(value) => {
+                handleBooleanFilterChange("hasScore", value);
+              }}
+              options={scoreOptions}
+              testID="ai-traces-filter-has-score"
+              title="Score"
+              value={filters.hasScore === undefined ? "" : String(filters.hasScore)}
+            />
+          </Box>
+          <Box flex="grow" minWidth={160}>
+            <SelectField
+              onChange={(value) => {
+                handleBooleanFilterChange("sensitive", value);
+              }}
+              options={sensitiveOptions}
+              testID="ai-traces-filter-sensitive"
+              title="Data sensitivity"
+              value={filters.sensitive === undefined ? "" : String(filters.sensitive)}
+            />
+          </Box>
         </Box>
       </Box>
       {selectedIds.length > 0 ? (
@@ -329,22 +364,11 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
               {`${sensitiveCount} selected ${sensitiveCount === 1 ? "trace is" : "traces are"} marked sensitive.`}
             </Text>
           ) : undefined}
-          <SelectField
-            onChange={onEvaluatorChange}
-            options={
-              evaluators.length > 0
-                ? evaluators.map((entry) => ({label: entry.name, value: entry.id}))
-                : [{label: "No human evaluator installed", value: ""}]
-            }
-            testID="ai-traces-evaluator"
-            title="Evaluator"
-            value={evaluatorId}
-          />
           <Button
-            disabled={isEnqueueing || !evaluatorId || selectedIds.length === 0}
-            onClick={onEnqueueReview}
+            disabled={isEnqueueing || selectedIds.length === 0}
+            onClick={onOpenReview}
             testID="ai-traces-send-review"
-            text="Send to review queue"
+            text="Send to human review"
           />
           <Button
             disabled={isAddingToDataset || selectedIds.length === 0}
@@ -367,6 +391,41 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
           {addToDatasetError}
         </Text>
       ) : undefined}
+      <Modal
+        onDismiss={onDismissReviewModal}
+        title="Send to human review queue"
+        visible={reviewModalOpen}
+      >
+        <Box gap={3} padding={3} testID="ai-traces-review-modal">
+          <Text>
+            A human evaluator defines the score fields and reviewer instructions. Each selected
+            trace becomes one queue item; submitted scores are written back to that trace.
+          </Text>
+          {evaluators.length > 0 ? (
+            <SelectField
+              helperText="Choose the scorecard reviewers will complete for every selected trace."
+              onChange={onEvaluatorChange}
+              options={evaluators.map((entry) => ({label: entry.name, value: entry.id}))}
+              requireValue
+              testID="ai-traces-evaluator"
+              title="Human evaluator"
+              value={evaluatorId}
+            />
+          ) : (
+            <Box gap={1}>
+              <Text color="warning">No human evaluator is available.</Text>
+              <Link href={`${routeBase}/ai-evaluator-new`} text="Create a human evaluator" />
+            </Box>
+          )}
+          <Button
+            disabled={isEnqueueing || !evaluatorId || selectedIds.length === 0}
+            loading={isEnqueueing}
+            onClick={onEnqueueReview}
+            testID="ai-traces-review-confirm"
+            text={`Add ${selectedIds.length} ${selectedIds.length === 1 ? "trace" : "traces"} to queue`}
+          />
+        </Box>
+      </Modal>
       <Modal
         onDismiss={onDismissDatasetModal}
         title="Add traces to dataset"

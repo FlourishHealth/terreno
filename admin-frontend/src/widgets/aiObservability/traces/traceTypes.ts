@@ -92,6 +92,7 @@ export interface FlatSpan {
 export interface EvaluatorOption {
   id: string;
   name: string;
+  type: "human";
 }
 
 export const TRACE_PAGE_SIZE = 20;
@@ -160,11 +161,11 @@ export const unwrapEvaluators = (raw: unknown): EvaluatorOption[] => {
       if (!entry || typeof entry !== "object") {
         return undefined;
       }
-      const row = entry as {id?: string; name?: string};
-      if (!row.id || !row.name) {
+      const row = entry as {id?: string; name?: string; type?: string};
+      if (!row.id || !row.name || row.type !== "human") {
         return undefined;
       }
-      return {id: row.id, name: row.name};
+      return {id: row.id, name: row.name, type: row.type};
     })
     .filter((entry): entry is EvaluatorOption => Boolean(entry));
 };

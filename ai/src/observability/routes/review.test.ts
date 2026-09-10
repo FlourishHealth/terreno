@@ -1,5 +1,6 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {TerrenoApp} from "@terreno/api";
+import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
 
@@ -84,5 +85,36 @@ describe("observability review routes", () => {
     const pending = await agent.get("/ai/observability/review?status=pending");
     expect(pending.body.counts.pending).toBe(0);
     expect(pending.body.counts.done).toBe(1);
+  });
+
+  it("rejects a non-human evaluator from human review intake", async () => {
+    const evaluator = await new LocalEvaluatorStore().create({
+      assertion: {constraint: "exists", path: "output"},
+      dimensions: [{dataType: "boolean", key: "valid", required: true}],
+      name: "queue-automatic",
+      target: "full trace",
+      type: "json-assert",
+    });
+    const trace = await new LocalTraceStore().exportTrace({
+      id: "automatic-review",
+      input: {text: "hello"},
+      name: "gen",
+      output: {summary: "hi"},
+      prompts: [],
+      sensitive: false,
+      spans: [],
+      startedAt: DateTime.utc().toISO() ?? "",
+      status: "ok",
+    });
+    const response = await (await authAsUser(app, "admin"))
+      .post("/ai/observability/traces/review")
+      .send({
+        evaluatorId: evaluator.id,
+        reason: "manual",
+        traceIds: [trace.id],
+      });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.title, "Human review requires a human evaluator");
   });
 });

@@ -406,6 +406,12 @@ server `AIService` when configured, otherwise a request-scoped service built fro
 | `ObsExperiment` | Compares 2–3 prompt versions on a dataset with thresholds and aggregates |
 | `ObsExperimentItem` | Per dataset row: outputs per version, evaluator score maps, gate failure flags |
 
+`POST /ai/observability/traces/review` requires a `human` `ObsEvaluator`. Its
+`dimensions[]` render as reviewer score fields and `instructions` render above the review form.
+Automatic evaluator types return **400** instead of entering the human queue. Submitting a review
+requires every dimension marked `required`; omitted optional dimensions do not create empty score
+rows. The local score store remains the fallback when no external score sink is configured.
+
 `AIService` generate methods:
 
 | Option | Default | Behavior |

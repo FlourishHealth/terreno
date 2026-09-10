@@ -108,8 +108,8 @@ Do this in parallel with steps 1–6 once the feature is reachable.
    - `kind: "thumbs"` + `up` / `down` (helpfulness of suggestions)
    - `kind: "outcome"` + `tp` / `fp` / `tn` / `fn` (flags)
    - `flagDataset: true` to queue the trace as a dataset candidate
-4. In **Admin → AI Observability → Traces**, filter by time, prompt, status, user, session, **Has score**, or **Sensitive**. Rows show a status dot, `sensitive` badge, error line, `N prompts`, tokens, cost, and latency. Open a row for the span tree (kind, indent, duration bar). Sensitive I/O disclosures start **collapsed**.
-5. Select one or more traces. The bulk bar warns when any selected row is `sensitive`. **Send to review queue** (pick a human evaluator) posts `POST /ai/observability/traces/review` with `reason: "manual"`. **Add to dataset** stays disabled until phase 2.
+4. In **Admin → AI Observability → Traces**, filter by time, prompt dropdown, status, user, session, score presence, or data sensitivity. Score and sensitivity dropdowns include both positive and negative states. Rows show a status dot, `sensitive` badge, error line, `N prompts`, tokens, cost, and latency. Open a row for the span tree (kind, indent, duration bar). Sensitive I/O disclosures start **collapsed**.
+5. Select one or more traces. The bulk bar warns when any selected row is `sensitive`. Choose **Send to human review**, read the queue explanation, and pick a human evaluator. The evaluator's dimensions become the score fields and its instructions guide the reviewer. Confirming posts `POST /ai/observability/traces/review` with `reason: "manual"`. Automatic (`llm-judge` / `json-assert`) evaluators cannot enter this queue.
 6. Open **Review queue**. Tabs show Pending / In progress / Done / Skipped counts, and pending
    items are oldest-first. Select **Start reviewing — oldest first**.
 7. On each item, compare **What the AI was given** with **What the AI wrote**. Long fields begin

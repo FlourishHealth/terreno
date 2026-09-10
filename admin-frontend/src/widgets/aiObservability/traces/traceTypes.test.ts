@@ -78,12 +78,13 @@ describe("traceTypes helpers", () => {
     };
     assert.equal(unwrapTraceDetail(detail)?.id, "trace-1");
     assert.equal(unwrapTraceDetail({data: detail})?.id, "trace-1");
-    assert.deepEqual(unwrapEvaluators([{id: "e-1", name: "quality"}]), [
-      {id: "e-1", name: "quality"},
+    assert.deepEqual(unwrapEvaluators([{id: "e-1", name: "quality", type: "human"}]), [
+      {id: "e-1", name: "quality", type: "human"},
     ]);
-    assert.deepEqual(unwrapEvaluators({data: [{id: "e-1", name: "quality"}]}), [
-      {id: "e-1", name: "quality"},
+    assert.deepEqual(unwrapEvaluators({data: [{id: "e-1", name: "quality", type: "human"}]}), [
+      {id: "e-1", name: "quality", type: "human"},
     ]);
+    assert.deepEqual(unwrapEvaluators([{id: "e-2", name: "automatic", type: "llm-judge"}]), []);
   });
 
   it("formats trace list labels and usage", () => {

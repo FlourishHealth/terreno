@@ -285,10 +285,15 @@ time on one line. The selected row is highlighted. The editor keeps Editor / Pla
 request body. The example admin supplies the Gemini key saved from Profile. **Save this run to
 dataset** stays disabled until phase 2.
 
-`ai-traces` lists traces with a filter bar (from/to, prompt, status, user, session, has score,
-sensitive), checkbox selection, and a bulk bar: **Send to review queue**, a sensitive-count
+`ai-traces` lists traces with a filter bar: from/to date fields; dropdowns for prompt, status,
+score presence (**All traces / Has a score / No scores**), and data sensitivity
+(**All traces / Sensitive only / Not sensitive**); plus user and session text fields.
+Checkbox selection opens a bulk bar with **Send to human review**, a sensitive-count
 warning, **Clear**, and **Add to dataset** (opens a dataset picker modal; sensitive traces show a
-warning before bulk add). When local trace storage is on, **Run multi-stage trace test** calls the admin-only smoke endpoint and
+warning before bulk add). **Send to human review** opens a modal that explains how human
+evaluators define the score fields and reviewer instructions, then requires a human evaluator
+before creating one review-queue item per trace. When local trace storage is on,
+**Run multi-stage trace test** calls the admin-only smoke endpoint and
 opens the resulting detail: two schema-validated LLM stages, one deterministic tool span, and a
 final schema-validated combining LLM stage under one CHAIN root. LLM span input includes
 `outputSchema`. Rows show a status dot,

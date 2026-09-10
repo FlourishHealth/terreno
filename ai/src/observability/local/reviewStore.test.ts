@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
@@ -107,5 +108,57 @@ describe("LocalReviewStore", () => {
     await reviewStore.assign(assigned.id, new mongoose.Types.ObjectId().toString());
     const inProgress = await reviewStore.list("in_progress");
     expect(inProgress.data.map((row) => row.id)).toContain(assigned.id);
+  });
+
+  it("rejects automatic evaluators from the human review queue", async () => {
+    const automatic = await new LocalEvaluatorStore().create({
+      assertion: {constraint: "exists", path: "output"},
+      dimensions: [{dataType: "boolean", key: "valid", required: true}],
+      name: "automatic-schema-check",
+      target: "full trace",
+      type: "json-assert",
+    });
+
+    try {
+      await reviewStore.enqueue({
+        evaluatorId: automatic.id,
+        reason: "manual",
+        traceIds: [traceId],
+      });
+      assert.fail("Expected human-review enqueue to reject an automatic evaluator");
+    } catch (error) {
+      assert.deepInclude(error as object, {
+        status: 400,
+        title: "Human review requires a human evaluator",
+      });
+    }
+  });
+
+  it("skips blank optional dimensions and stores scores without configured sinks", async () => {
+    const optionalEvaluator = await new LocalEvaluatorStore().create({
+      dimensions: [
+        {dataType: "boolean", key: "correct", required: true},
+        {dataType: "categorical", key: "failureMode", required: false},
+      ],
+      name: "optional-human-score",
+      target: "full trace",
+      type: "human",
+    });
+    const [item] = await reviewStore.enqueue({
+      evaluatorId: optionalEvaluator.id,
+      reason: "manual",
+      traceIds: [traceId],
+    });
+
+    await reviewStore.submit({
+      id: item.id,
+      scores: {correct: true},
+      sinks: [],
+    });
+
+    const trace = await new LocalTraceStore().getDetail(traceId);
+    assert.deepInclude(trace.scores[0], {name: "correct", value: true});
+    assert.lengthOf(trace.scores, 1);
+    assert.equal((await reviewStore.getDetail(item.id)).status, "done");
   });
 });

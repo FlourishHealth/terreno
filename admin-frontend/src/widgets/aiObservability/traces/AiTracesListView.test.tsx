@@ -58,10 +58,12 @@ const idleHandlers = {
   onClearSelection: () => undefined,
   onDatasetChange: () => undefined,
   onDismissDatasetModal: () => undefined,
+  onDismissReviewModal: () => undefined,
   onEnqueueReview: () => undefined,
   onEvaluatorChange: () => undefined,
   onFiltersChange: () => undefined,
   onOpenAddToDataset: () => undefined,
+  onOpenReview: () => undefined,
   onOpenTrace: () => undefined,
   onPageChange: () => undefined,
   onRunTestMultiStage: () => undefined,
@@ -72,6 +74,9 @@ const datasetDefaults = {
   datasetId: "",
   datasetModalOpen: false,
   datasetOptions: [],
+  promptOptions: ["summarize", "safety"],
+  reviewModalOpen: false,
+  routeBase: "/admin",
 };
 
 describe("AiTracesListView", () => {
@@ -181,7 +186,7 @@ describe("AiTracesListView", () => {
       <AiTracesListView
         {...datasetDefaults}
         evaluatorId="eval-1"
-        evaluators={[{id: "eval-1", name: "correctness"}]}
+        evaluators={[{id: "eval-1", name: "correctness", type: "human"}]}
         filters={emptyTraceFilters()}
         page={1}
         selectedIds={[sensitiveTrace.id, okTrace.id]}
@@ -207,7 +212,7 @@ describe("AiTracesListView", () => {
     const onPageChange = mock(() => undefined);
     const onAddToDataset = mock(() => undefined);
     const onDismissDatasetModal = mock(() => undefined);
-    const {getByTestId, getByText} = renderWithTheme(
+    const {getByTestId, getByText, UNSAFE_root} = renderWithTheme(
       <AiTracesListView
         addToDatasetError="Could not add traces to the dataset."
         datasetId="ds-1"
@@ -215,21 +220,26 @@ describe("AiTracesListView", () => {
         datasetOptions={[{id: "ds-1", name: "gold"}]}
         enqueueError="enqueue failed"
         evaluatorId="eval-1"
-        evaluators={[{id: "eval-1", name: "correctness"}]}
+        evaluators={[{id: "eval-1", name: "correctness", type: "human"}]}
         filters={emptyTraceFilters()}
         more
         onAddToDataset={onAddToDataset}
         onClearSelection={onClearSelection}
         onDatasetChange={() => undefined}
         onDismissDatasetModal={onDismissDatasetModal}
+        onDismissReviewModal={() => undefined}
         onEnqueueReview={() => undefined}
         onEvaluatorChange={() => undefined}
         onFiltersChange={onFiltersChange}
         onOpenAddToDataset={() => undefined}
+        onOpenReview={() => undefined}
         onOpenTrace={() => undefined}
         onPageChange={onPageChange}
         onToggleSelect={onToggleSelect}
         page={1}
+        promptOptions={["summarize", "safety"]}
+        reviewModalOpen
+        routeBase="/admin"
         selectedIds={[okTrace.id]}
         total={40}
         traces={[okTrace]}
@@ -241,15 +251,30 @@ describe("AiTracesListView", () => {
     });
     assert.isAtLeast(onToggleSelect.mock.calls.length, 1);
 
-    fireEvent.changeText(getByTestId("ai-traces-filter-prompt"), "summarize");
-    assert.isAtLeast(onFiltersChange.mock.calls.length, 1);
-    fireEvent.press(getByTestId("ai-traces-filter-has-score"));
-    fireEvent.press(getByTestId("ai-traces-filter-sensitive"));
+    const promptSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "ai-traces-filter-prompt"
+    );
+    const scoreSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "ai-traces-filter-has-score"
+    );
+    const sensitiveSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "ai-traces-filter-sensitive"
+    );
+    assert.isDefined(promptSelect);
+    assert.isDefined(scoreSelect);
+    assert.isDefined(sensitiveSelect);
+    fireEvent(promptSelect!, "onChange", "summarize");
+    fireEvent(scoreSelect!, "onChange", "false");
+    fireEvent(sensitiveSelect!, "onChange", "true");
+    assert.isAtLeast(onFiltersChange.mock.calls.length, 3);
 
     expect(getByText("enqueue failed")).toBeTruthy();
     expect(getByTestId("ai-traces-add-dataset-error")).toBeTruthy();
     expect(getByTestId("ai-traces-dataset-modal")).toBeTruthy();
     expect(getByTestId("ai-traces-dataset-confirm")).toBeTruthy();
+    expect(getByTestId("ai-traces-review-modal")).toHaveTextContent(
+      /human evaluator defines the score fields/
+    );
     expect(getByText("40 traces · more pages")).toBeTruthy();
   });
 
@@ -264,8 +289,8 @@ describe("AiTracesListView", () => {
         datasetOptions={[{id: "ds-1", name: "gold"}]}
         evaluatorId="eval-1"
         evaluators={[
-          {id: "eval-1", name: "correctness"},
-          {id: "eval-2", name: "tone"},
+          {id: "eval-1", name: "correctness", type: "human"},
+          {id: "eval-2", name: "tone", type: "human"},
         ]}
         filters={emptyTraceFilters()}
         more
@@ -273,14 +298,19 @@ describe("AiTracesListView", () => {
         onClearSelection={() => undefined}
         onDatasetChange={() => undefined}
         onDismissDatasetModal={onDismissDatasetModal}
+        onDismissReviewModal={() => undefined}
         onEnqueueReview={() => undefined}
         onEvaluatorChange={onEvaluatorChange}
         onFiltersChange={() => undefined}
         onOpenAddToDataset={() => undefined}
+        onOpenReview={() => undefined}
         onOpenTrace={() => undefined}
         onPageChange={onPageChange}
         onToggleSelect={() => undefined}
         page={1}
+        promptOptions={["summarize", "safety"]}
+        reviewModalOpen
+        routeBase="/admin"
         selectedIds={[okTrace.id]}
         total={40}
         traces={[okTrace]}

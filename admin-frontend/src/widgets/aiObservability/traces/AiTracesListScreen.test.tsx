@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {Modal} from "@terreno/ui";
+import {Modal, SelectField} from "@terreno/ui";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -86,7 +86,11 @@ const injectedHooks = {
     isLoading: false,
   }),
   useAiObservabilityEvaluatorsQuery: () => ({
-    data: [{id: "eval-1", name: "correctness"}],
+    data: [{id: "eval-1", name: "correctness", type: "human"}],
+    isLoading: false,
+  }),
+  useAiObservabilityPromptsQuery: () => ({
+    data: [{folder: "ops", latestVersion: 1, name: "summarize", production: 1, type: "text"}],
     isLoading: false,
   }),
   useAiObservabilityStatusQuery: () => ({
@@ -187,6 +191,13 @@ describe("AiTracesScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-traces-send-review"));
       await Promise.resolve();
     });
+    expect(view.getByTestId("ai-traces-review-modal")).toHaveTextContent(
+      /submitted scores are written back/
+    );
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-review-confirm"));
+      await Promise.resolve();
+    });
     assert.equal(enqueueMutation.mock.calls.length, 1);
 
     await act(async () => {
@@ -227,6 +238,10 @@ describe("AiTracesScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-traces-send-review"));
       await Promise.resolve();
     });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-review-confirm"));
+      await Promise.resolve();
+    });
     expect(view.getByText("Could not send traces to the review queue.")).toBeTruthy();
 
     enqueueShouldFail = false;
@@ -257,9 +272,22 @@ describe("AiTracesScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-traces-clear-selection"));
       await Promise.resolve();
     });
-    fireEvent.changeText(view.getByTestId("ai-traces-filter-prompt"), "summarize");
-    fireEvent.press(view.getByTestId("ai-traces-filter-has-score"));
-    fireEvent.press(view.getByTestId("ai-traces-filter-sensitive"));
+    const filterFields = view.UNSAFE_root.findAllByType(SelectField);
+    const promptFilter = filterFields.find(
+      (field) => field.props.testID === "ai-traces-filter-prompt"
+    );
+    const scoreFilter = filterFields.find(
+      (field) => field.props.testID === "ai-traces-filter-has-score"
+    );
+    const sensitiveFilter = filterFields.find(
+      (field) => field.props.testID === "ai-traces-filter-sensitive"
+    );
+    assert.isDefined(promptFilter);
+    assert.isDefined(scoreFilter);
+    assert.isDefined(sensitiveFilter);
+    fireEvent(promptFilter!, "onChange", "summarize");
+    fireEvent(scoreFilter!, "onChange", "false");
+    fireEvent(sensitiveFilter!, "onChange", "true");
     expect(view.getByTestId("ai-traces-pagination")).toBeTruthy();
     listState = {
       data: {data: loaded, limit: 20, more: false, page: 1, total: 1},
@@ -297,6 +325,8 @@ describe("AiTracesScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-traces-send-review"));
       await Promise.resolve();
     });
+    expect(view.getByText("No human evaluator is available.")).toBeTruthy();
+    expect(view.getByText("Create a human evaluator")).toBeTruthy();
     assert.equal(enqueueMutation.mock.calls.length, 0);
   });
 

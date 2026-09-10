@@ -3,6 +3,8 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
 import {unwrapDatasetList} from "../datasets/datasetTypes";
 import {useAiObservabilityDatasetsApi} from "../datasets/useAiObservabilityDatasetsApi";
+import {unwrapPromptList} from "../prompts/promptTypes";
+import {useAiObservabilityPromptsApi} from "../prompts/useAiObservabilityPromptsApi";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {unwrapObservabilityStatus} from "../shell/aiObservabilityNav";
 import {AiTracesListView} from "./AiTracesListView";
@@ -25,9 +27,11 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
     useTestMultiStageMutation,
   } = useAiObservabilityTracesApi(api);
   const {useAddTracesMutation, useListQuery: useDatasetsQuery} = useAiObservabilityDatasetsApi(api);
+  const {useListQuery: usePromptsQuery} = useAiObservabilityPromptsApi(api);
   const [filters, setFilters] = useState<TraceListFilters>(emptyTraceFilters);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [evaluatorId, setEvaluatorId] = useState("");
   const [enqueueError, setEnqueueError] = useState("");
   const [datasetModalOpen, setDatasetModalOpen] = useState(false);
@@ -42,6 +46,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   });
   const {data: evaluatorsRaw} = useEvaluatorsQuery();
   const {data: datasetsRaw} = useDatasetsQuery();
+  const {data: promptsRaw} = usePromptsQuery({});
   const {data: statusRaw} = useStatusQuery();
   const [enqueueReview, enqueueState] = useEnqueueReviewMutation();
   const [addTraces, addTracesState] = useAddTracesMutation();
@@ -50,10 +55,11 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const listed = useMemo(() => unwrapTraceList(data), [data]);
   const evaluators = useMemo(() => unwrapEvaluators(evaluatorsRaw), [evaluatorsRaw]);
   const datasets = useMemo(() => unwrapDatasetList(datasetsRaw), [datasetsRaw]);
+  const prompts = useMemo(() => unwrapPromptList(promptsRaw), [promptsRaw]);
   const status = useMemo(() => unwrapObservabilityStatus(statusRaw), [statusRaw]);
   const prefix = (routeBase ?? "").replace(/\/$/, "");
 
-  // Use the first installed evaluator so Send to review queue does not require a hidden pick.
+  // Preselect the first human evaluator while keeping the scorecard choice visible in the modal.
   useEffect(() => {
     const first = evaluators[0];
     if (evaluatorId || !first) {
@@ -108,11 +114,17 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         reason: "manual",
         traceIds: selectedIds,
       }).unwrap();
+      setReviewModalOpen(false);
       setSelectedIds([]);
     } catch {
       setEnqueueError("Could not send traces to the review queue.");
     }
   }, [enqueueReview, evaluatorId, selectedIds]);
+
+  const handleOpenReview = useCallback((): void => {
+    setEnqueueError("");
+    setReviewModalOpen(true);
+  }, []);
 
   const handleOpenAddToDataset = useCallback((): void => {
     setAddToDatasetError("");
@@ -174,16 +186,23 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         onDismissDatasetModal={() => {
           setDatasetModalOpen(false);
         }}
+        onDismissReviewModal={() => {
+          setReviewModalOpen(false);
+        }}
         onEnqueueReview={handleEnqueueReview}
         onEvaluatorChange={setEvaluatorId}
         onFiltersChange={handleFiltersChange}
         onOpenAddToDataset={handleOpenAddToDataset}
+        onOpenReview={handleOpenReview}
         onOpenTrace={handleOpenTrace}
         onPageChange={setPage}
         onRunTestMultiStage={handleRunTestMultiStage}
         onToggleSelect={handleToggleSelect}
         page={page}
         pageSize={listed.limit}
+        promptOptions={prompts.map((prompt) => prompt.name)}
+        reviewModalOpen={reviewModalOpen}
+        routeBase={prefix}
         selectedIds={selectedIds}
         showMultiStageTest={status?.localOn === true}
         total={listed.total}

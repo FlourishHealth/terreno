@@ -10,6 +10,7 @@ import {registerObsPrompt} from "./models/obsPrompt";
 import {registerObsPromptVersion} from "./models/obsPromptVersion";
 import {registerObsReviewItem} from "./models/obsReviewItem";
 import {registerObsTrace} from "./models/obsTrace";
+import {LocalTraceStore} from "./traceStore";
 
 export type ReviewStatus = "done" | "in_progress" | "pending" | "skipped";
 
@@ -51,6 +52,12 @@ export class LocalReviewStore {
     });
     if (!evaluator) {
       throw new APIError({status: 404, title: "Unknown evaluator"});
+    }
+    if (evaluator.type !== "human") {
+      throw new APIError({
+        status: 400,
+        title: "Human review requires a human evaluator",
+      });
     }
     const created: ReviewListItem[] = [];
     for (const traceId of params.traceIds) {
@@ -170,18 +177,27 @@ export class LocalReviewStore {
     if (missing) {
       throw new APIError({status: 400, title: `Score "${missing.key}" is required`});
     }
-    const records: ScoreRecord[] = evaluator.dimensions.map((dimension) => {
-      return {
+    const records: ScoreRecord[] = [];
+    for (const dimension of evaluator.dimensions) {
+      const value = params.scores[dimension.key];
+      if (value === undefined) {
+        continue;
+      }
+      records.push({
         comment: params.comment,
         dataType: dimension.dataType,
         evaluatorId: String(evaluator._id),
         name: dimension.key,
         source: "human" as const,
         traceId: String(item.traceId),
-        value: params.scores[dimension.key],
-      };
-    });
+        value,
+      });
+    }
     for (const record of records) {
+      if (params.sinks.length === 0) {
+        await new LocalTraceStore().exportScore(record);
+        continue;
+      }
       const results = await Promise.allSettled(
         params.sinks.map((sink) => {
           return sink.export(record);
