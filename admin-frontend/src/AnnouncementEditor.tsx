@@ -95,12 +95,14 @@ const getEnhancedApi = (api: AdminApi): unknown => {
   const enhanced = api.injectEndpoints({
     endpoints: (build: EndpointBuilder) => ({
       archiveAnnouncement: build.mutation({
+        invalidatesTags: ["admin_Announcement"],
         query: (announcementId: string) => ({
           method: "POST",
           url: `${ANNOUNCEMENT_ACTION_ROUTE}/${announcementId}/archive`,
         }),
       }),
       publishAnnouncement: build.mutation({
+        invalidatesTags: ["admin_Announcement"],
         query: (announcementId: string) => ({
           method: "POST",
           url: `${ANNOUNCEMENT_ACTION_ROUTE}/${announcementId}/publish`,
@@ -209,18 +211,33 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
       throw new Error("Primary action requires both label and URL");
     }
 
-    return {
+    const payload: Record<string, unknown> = {
       audience,
       body: body.trim(),
-      expiresAt: expiresAt ? DateTime.fromISO(expiresAt).toUTC().toJSDate() : undefined,
       platforms: platforms.length > 0 ? platforms : ["ios", "android", "web"],
-      primaryAction,
       priority: parseInt(priority, 10) || 0,
-      publishAt: publishAt ? DateTime.fromISO(publishAt).toUTC().toJSDate() : undefined,
       requiresAcknowledgement,
-      status,
       title: title.trim(),
     };
+
+    if (isEditMode) {
+      payload.expiresAt = expiresAt.trim() ? DateTime.fromISO(expiresAt).toUTC().toJSDate() : null;
+      payload.primaryAction = primaryAction ?? null;
+      payload.publishAt = publishAt.trim() ? DateTime.fromISO(publishAt).toUTC().toJSDate() : null;
+    } else {
+      payload.status = status;
+      if (expiresAt.trim()) {
+        payload.expiresAt = DateTime.fromISO(expiresAt).toUTC().toJSDate();
+      }
+      if (primaryAction) {
+        payload.primaryAction = primaryAction;
+      }
+      if (publishAt.trim()) {
+        payload.publishAt = DateTime.fromISO(publishAt).toUTC().toJSDate();
+      }
+    }
+
+    return payload;
   }, [
     audienceJson,
     body,
@@ -229,6 +246,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
     primaryActionLabel,
     primaryActionUrl,
     priority,
+    isEditMode,
     publishAt,
     requiresAcknowledgement,
     status,
