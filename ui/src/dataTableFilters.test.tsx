@@ -48,4 +48,35 @@ describe("DataTableColumnFilterWeb", () => {
     });
     expect(onApply).toHaveBeenCalledWith({name: "alice"});
   });
+
+  it("calls onApply with a single selected choice value", async () => {
+    const onApply = mock(() => {});
+    const {getByLabelText, getByTestId} = renderWithTheme(
+      <DataTableColumnFilterWeb
+        appliedValues={{}}
+        columnTitle="Role"
+        filter={{
+          field: "role",
+          kind: "choice",
+          options: [
+            {label: "Staff", value: "staff"},
+            {label: "Admin", value: "admin"},
+          ],
+        }}
+        onApply={onApply}
+        testID="role-filter"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("role-filter.trigger"));
+    });
+    await waitFor(() => {
+      expect(getByLabelText("Staff")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText("Staff"));
+      fireEvent.press(getByTestId("role-filter.apply"));
+    });
+    expect(onApply).toHaveBeenCalledWith({role: ["staff"]});
+  });
 });

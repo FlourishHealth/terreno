@@ -1,5 +1,5 @@
 import type React from "react";
-import {type FC, useCallback, useEffect, useMemo, useState} from "react";
+import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform} from "react-native";
 
 import {BooleanField} from "./BooleanField";
@@ -56,11 +56,16 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
   search = "",
   showSearch = false,
 }) => {
+  const draftValuesRef = useRef(draftValues);
+  draftValuesRef.current = draftValues;
+
   const setField = useCallback(
     (key: string, value: unknown): void => {
-      onDraftChange({...draftValues, [key]: value});
+      const next = {...draftValuesRef.current, [key]: value};
+      draftValuesRef.current = next;
+      onDraftChange(next);
     },
-    [draftValues, onDraftChange]
+    [onDraftChange]
   );
 
   const filterFields = useMemo((): React.ReactNode[] => {
@@ -227,12 +232,22 @@ const pickFilterDraft = (
   values: Record<string, unknown>
 ): Record<string, unknown> => {
   if (filter.kind === "dateRange") {
-    return {
-      [`${filter.field}_gte`]: values[`${filter.field}_gte`],
-      [`${filter.field}_lte`]: values[`${filter.field}_lte`],
-    };
+    const next: Record<string, unknown> = {};
+    const gte = values[`${filter.field}_gte`];
+    const lte = values[`${filter.field}_lte`];
+    if (gte !== undefined) {
+      next[`${filter.field}_gte`] = gte;
+    }
+    if (lte !== undefined) {
+      next[`${filter.field}_lte`] = lte;
+    }
+    return next;
   }
-  return {[filter.field]: values[filter.field]};
+  const value = values[filter.field];
+  if (value === undefined) {
+    return {};
+  }
+  return {[filter.field]: value};
 };
 
 const mergeFilterDraft = (
@@ -262,14 +277,33 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
+  const draftValuesRef = useRef(draftValues);
+  draftValuesRef.current = draftValues;
+
+  const setDraftValuesSync = useCallback((next: Record<string, unknown>): void => {
+    draftValuesRef.current = next;
+    setDraftValues(next);
+  }, []);
 
   // Reset draft values from applied state whenever the popover opens.
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-    setDraftValues(pickFilterDraft(filter, appliedValues));
+    const next = pickFilterDraft(filter, appliedValues);
+    draftValuesRef.current = next;
+    setDraftValues(next);
   }, [appliedValues, filter, isOpen]);
+
+  const handleApply = useCallback((): void => {
+    onApply(mergeFilterDraft(filter, appliedValues, draftValuesRef.current));
+  }, [appliedValues, filter, onApply]);
+
+  const handleClear = useCallback((): void => {
+    const next = clearFilterKeys(filter, draftValuesRef.current);
+    draftValuesRef.current = next;
+    setDraftValues(next);
+  }, [filter]);
 
   if (Platform.OS !== "web") {
     return null;
@@ -280,11 +314,9 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
       iconName="filter"
       isOpen={isOpen}
       label=""
-      onApply={() => {
-        onApply(mergeFilterDraft(filter, appliedValues, draftValues));
-      }}
+      onApply={handleApply}
       onCancel={() => setIsOpen(false)}
-      onClear={() => setDraftValues(clearFilterKeys(filter, draftValues))}
+      onClear={handleClear}
       onOpenChange={setIsOpen}
       testID={testID}
       triggerAccessibilityLabel={`Filter ${columnTitle}`}
@@ -293,7 +325,7 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
       <DataTableFilterFields
         draftValues={draftValues}
         filters={[filter]}
-        onDraftChange={setDraftValues}
+        onDraftChange={setDraftValuesSync}
       />
     </Filter>
   );
@@ -313,6 +345,13 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
+  const draftValuesRef = useRef(draftValues);
+  draftValuesRef.current = draftValues;
+
+  const setDraftValuesSync = useCallback((next: Record<string, unknown>): void => {
+    draftValuesRef.current = next;
+    setDraftValues(next);
+  }, []);
 
   // Reset every toolbar-only filter from controlled values whenever its popover opens.
   useEffect(() => {
@@ -323,6 +362,7 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
     for (const filter of filters) {
       Object.assign(next, pickFilterDraft(filter, appliedValues));
     }
+    draftValuesRef.current = next;
     setDraftValues(next);
   }, [appliedValues, filters, isOpen]);
 
@@ -331,16 +371,17 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
     for (const filter of filters) {
       next = clearFilterKeys(filter, next);
     }
-    onApply({...next, ...draftValues});
-  }, [appliedValues, draftValues, filters, onApply]);
+    onApply({...next, ...draftValuesRef.current});
+  }, [appliedValues, filters, onApply]);
 
   const handleClear = useCallback((): void => {
-    let next = {...draftValues};
+    let next = {...draftValuesRef.current};
     for (const filter of filters) {
       next = clearFilterKeys(filter, next);
     }
+    draftValuesRef.current = next;
     setDraftValues(next);
-  }, [draftValues, filters]);
+  }, [filters]);
 
   const handleCancel = useCallback((): void => {
     setIsOpen(false);
@@ -365,7 +406,7 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
       <DataTableFilterFields
         draftValues={draftValues}
         filters={filters}
-        onDraftChange={setDraftValues}
+        onDraftChange={setDraftValuesSync}
       />
     </Filter>
   );
