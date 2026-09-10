@@ -2632,6 +2632,30 @@ export type DataTableCustomComponentMap = Record<
   string,
   React.ComponentType<{column: DataTableColumn; cellData: DataTableCellData}>
 >;
+
+export interface DataTableColumnFilterChoiceOption {
+  label: string;
+  value: string;
+}
+
+export interface DataTableColumnFilterRenderArgs {
+  field: string;
+  onChange: (value: unknown) => void;
+  value: unknown;
+}
+
+export interface DataTableColumnFilter {
+  field: string;
+  kind: "text" | "boolean" | "numberRange" | "dateRange" | "choice";
+  options?: DataTableColumnFilterChoiceOption[];
+  renderFilter?: (args: DataTableColumnFilterRenderArgs) => React.ReactNode;
+}
+
+export interface DataTableQueryParams {
+  [field: string]: unknown;
+  $or?: Array<Record<string, unknown>>;
+}
+
 export interface DataTableColumn {
   title: string;
   columnType: "text" | "number" | "date" | "boolean" | string;
@@ -2639,6 +2663,7 @@ export interface DataTableColumn {
   highlight?: SurfaceColor;
   sortable?: boolean;
   infoModalText?: string;
+  filter?: DataTableColumnFilter;
 }
 
 export interface DataTableProps extends WithTestID {
@@ -2673,6 +2698,16 @@ export interface DataTableProps extends WithTestID {
    * Returns a stable key for row test ids. Defaults to row index when omitted.
    */
   getRowTestID?: (row: DataTableCellData[], rowIndex: number) => string | number;
+  /** Toolbar search string (controlled). Omit with `searchFields` to hide search. */
+  search?: string;
+  /** Fields included in generic `$or` search params. */
+  searchFields?: string[];
+  onSearchChange?: (search: string) => void;
+  /** Controlled column filter draft/applied values keyed by field (and `field_gte` / `field_lte`). */
+  filterValues?: Record<string, unknown>;
+  onFilterValuesChange?: (next: Record<string, unknown>) => void;
+  /** Fires when debounced search or applied filters change. Excludes page, limit, and sort. */
+  onQueryChange?: (params: DataTableQueryParams) => void;
 }
 
 export interface DataTableCellProps {

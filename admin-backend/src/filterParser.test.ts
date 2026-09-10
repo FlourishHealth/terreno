@@ -53,6 +53,43 @@ describe("parseAdminListFilters", () => {
     expect(errors.$where).toBeDefined();
   });
 
+  it("parses choice $in and text $regex filters", () => {
+    const {errors, filter} = parseAdminListFilters(
+      {
+        name: {$options: "i", $regex: "ali"},
+        role: {$in: ["staff", "admin"]},
+      },
+      [
+        {
+          choices: [
+            {label: "Staff", value: "staff"},
+            {label: "Admin", value: "admin"},
+          ],
+          field: "role",
+          kind: "choice",
+        },
+        {field: "name", kind: "text"},
+      ]
+    );
+
+    expect(errors).toEqual({});
+    expect(filter.role).toEqual({$in: ["staff", "admin"]});
+    expect(filter.name).toEqual({$options: "i", $regex: "ali"});
+  });
+
+  it("rejects invalid choice $in values and top-level $or", () => {
+    const {errors} = parseAdminListFilters(
+      {
+        $or: [{name: "alice"}],
+        role: {$in: ["missing"]},
+      },
+      [{choices: [{label: "Staff", value: "staff"}], field: "role", kind: "choice"}]
+    );
+
+    expect(errors.role).toBeDefined();
+    expect(errors.$or).toBeDefined();
+  });
+
   it("drops prototype pollution keys without surfacing them as filter errors", () => {
     const {errors, filter} = parseAdminListFilters(
       {

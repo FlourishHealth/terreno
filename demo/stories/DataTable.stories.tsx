@@ -257,6 +257,66 @@ const buildLargeVirtualRows = (rowCount: number): DataTableCellData[][] =>
     {value: {text: `Badge ${rowIndex + 1}`}},
   ]);
 
+export const FilterableDataTable = (): React.ReactElement => {
+  const [search, setSearch] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
+  const [queryLog, setQueryLog] = useState<string>("{}");
+  const columns: DataTableColumn[] = [
+    {
+      columnType: "text",
+      filter: {field: "name", kind: "text"},
+      sortable: true,
+      title: "Name",
+      width: 180,
+    },
+    {
+      columnType: "boolean",
+      filter: {field: "active", kind: "boolean"},
+      title: "Active",
+      width: 120,
+    },
+    {
+      columnType: "date",
+      filter: {field: "created", kind: "dateRange"},
+      title: "Created",
+      width: 180,
+    },
+    {
+      columnType: "text",
+      filter: {
+        field: "role",
+        kind: "choice",
+        options: [
+          {label: "Staff", value: "staff"},
+          {label: "Admin", value: "admin"},
+        ],
+      },
+      title: "Role",
+      width: 160,
+    },
+  ];
+  const data: DataTableCellData[][] = [
+    [{value: "Alice"}, {value: true}, {value: "2024-01-01"}, {value: "admin"}],
+    [{value: "Bob"}, {value: false}, {value: "2024-02-01"}, {value: "staff"}],
+  ];
+
+  return (
+    <Box direction="column" gap={3} height={500} maxWidth={900} padding={3}>
+      <Text>Latest query: {queryLog}</Text>
+      <DataTable
+        columns={columns}
+        data={data}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        onQueryChange={(params) => setQueryLog(JSON.stringify(params))}
+        onSearchChange={setSearch}
+        search={search}
+        searchFields={["name", "role"]}
+      />
+    </Box>
+  );
+};
+
 export const LargeVirtualizedDataTable = (): React.ReactElement => {
   const [pinnedColumns, setPinnedColumns] = useState(1);
   const [sortColumn, setSortColumn] = useState<

@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
+import {Platform} from "react-native";
 
 import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
 import {DataTable} from "./DataTable";
@@ -500,6 +501,83 @@ describe("DataTable", () => {
         moreButton.props.onPress();
       });
     }
+  });
+
+  it("does not render filter or search controls without filter/search props", () => {
+    const {queryByTestId} = renderWithTheme(
+      <DataTable columns={sampleColumns} data={sampleData} />
+    );
+    expect(queryByTestId("data-table-search")).toBeNull();
+    expect(queryByTestId("data-table-filters-trigger")).toBeNull();
+  });
+
+  it("fires onQueryChange for debounced search", async () => {
+    const onQueryChange = mock(() => {});
+    const onSearchChange = mock(() => {});
+    renderWithTheme(
+      <DataTable
+        columns={sampleColumns}
+        data={sampleData}
+        onQueryChange={onQueryChange}
+        onSearchChange={onSearchChange}
+        search=""
+        searchFields={["Name"]}
+      />
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    expect(onQueryChange).toHaveBeenCalled();
+  });
+
+  it("renders web column filter triggers for filterable columns", () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+    const filterColumns = [
+      {
+        columnType: "text",
+        filter: {field: "name", kind: "text" as const},
+        title: "Name",
+        width: 150,
+      },
+    ];
+    const {getByTestId} = renderWithTheme(
+      <DataTable
+        columns={filterColumns}
+        data={[[{value: "Alice"}]]}
+        filterValues={{}}
+        onFilterValuesChange={() => {}}
+      />
+    );
+    expect(getByTestId("data-table-filter-name.trigger")).toBeTruthy();
+    Platform.OS = originalOS;
+  });
+
+  it("renders native filters trigger instead of per-column filter controls", () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "ios";
+    const filterColumns = [
+      {
+        columnType: "boolean",
+        filter: {field: "active", kind: "boolean" as const},
+        title: "Active",
+        width: 100,
+      },
+    ];
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <DataTable
+        columns={filterColumns}
+        data={[[{value: true}]]}
+        filterValues={{}}
+        onFilterValuesChange={() => {}}
+        onSearchChange={() => {}}
+        search=""
+        searchFields={["Active"]}
+      />
+    );
+    expect(queryByTestId("data-table-filter-active.trigger")).toBeNull();
+    expect(getByTestId("data-table-filters-trigger")).toBeTruthy();
+    Platform.OS = originalOS;
   });
 
   it("handleSort with no setSortColumn is a no-op", () => {

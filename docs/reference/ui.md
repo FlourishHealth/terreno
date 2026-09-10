@@ -574,6 +574,44 @@ import {TerrenoProvider} from "@terreno/ui";
 </TerrenoProvider>
 ``````
 
+## DataTable server-side filtering
+
+`DataTable` is data-layer agnostic. Optional filter and search props emit a
+modelRouter-shaped JavaScript object through `onQueryChange`. The parent merges
+that object with `page`, `limit`, and `sort` before calling a list endpoint.
+
+Import the pure helper when building params outside the component:
+
+```typescript
+import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
+```
+
+### Query contract
+
+| UI | Wire param |
+| --- | --- |
+| Toolbar search (`search` + `searchFields`) | `$or: [{field: {$regex, $options: "i"}}, ...]` (user text escaped) |
+| Text column filter | `{field: {$regex, $options: "i"}}` |
+| Boolean column filter | `{field: true \| false}`; unset omits the key |
+| Date range | `field_gte` / `field_lte` ISO strings |
+| Number range | `{field: {$gte?, $lte?}}` |
+| Choice (one or many) | `{field: {$in: string[]}}` |
+
+`onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
+(250ms, same delay as admin list search).
+
+### Platform chrome
+
+| Platform | Chrome |
+| --- | --- |
+| Web | Toolbar search + per-column `Filter` popovers (`column.filter`) |
+| Native | Toolbar search + one **Filters** sheet (`Modal`) with the same fields |
+
+Omit `column.filter`, `searchFields`, and the related callbacks to keep today's
+sort/page-only table.
+
+Demo: `FilterableDataTable` story in the component demo (`demo:start`, port 8085).
+
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)

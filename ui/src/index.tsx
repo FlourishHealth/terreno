@@ -28,6 +28,7 @@ export * from "./DateTimeField";
 export * from "./DateUtilities";
 export * from "./DecimalRangeActionSheet";
 export * from "./DismissButton";
+export * from "./dataTableListQuery";
 export * from "./EditableCard";
 export * from "./EmailField";
 export * from "./ErrorBoundary";

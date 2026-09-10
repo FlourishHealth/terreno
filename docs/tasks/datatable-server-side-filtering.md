@@ -1,7 +1,7 @@
 # Tasks: DataTable server-side filtering and search
 
 Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../implementationPlans/datatable-server-side-filtering.md)  
-**Status:** Approved — next: Pick Task 1.1  
+**Status:** Pick complete — tasks 1.1–4.1 implemented
 **Closes:** https://github.com/FlourishHealth/terreno/issues/1177
 
 **Feature profile:** false (full IP)
@@ -19,7 +19,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
 
 ### Phase 1 — Tracer (query object, no chrome)
 
-- [ ] **Task 1.1**: `buildDataTableListQuery` + regex escape
+- [x] **Task 1.1**: `buildDataTableListQuery` + regex escape
   - Delivers: Pure helper from filter/search state → modelRouter-shaped object per the IP contract table; empty values omitted; user text escaped; choice always `$in` (including one value)
   - Files: `ui/src/dataTableListQuery.ts`, `ui/src/dataTableListQuery.test.ts`, export from `ui/src/index.tsx` only if other UI modules need it (prefer importing the file, no new barrel)
   - Blocked by: none
@@ -31,7 +31,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
 
 ### Phase 2 — DataTable chrome
 
-- [ ] **Task 2.1**: Types + controlled props
+- [x] **Task 2.1**: Types + controlled props
   - Delivers: `DataTableColumn.filter` and search/filter/`onQueryChange` props; omitted props preserve today’s UI
   - Files: `ui/src/Common.ts`, `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`
   - Blocked by: 1.1
@@ -39,7 +39,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
   - Docs: none beyond types (generated props in 4.1)
   - Acceptance: tests — no filter prop → no filter controls; `onQueryChange` not required; existing sort cycle and pagination tests still pass
 
-- [ ] **Task 2.2**: Web per-column `Filter` + search box
+- [x] **Task 2.2**: Web per-column `Filter` + search box
   - Delivers: Toolbar search (debounced) and header `Filter` popovers; text / boolean / numberRange / dateRange / choice (`MultiselectField`); `renderFilter` slot; Apply/Clear call `onFilterValuesChange` and `onQueryChange`
   - Files: `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`, `demo/stories/DataTable.stories.tsx`
   - Blocked by: 2.1
@@ -47,7 +47,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
   - Docs: demo story is the tutorial surface; reference example in `docs/reference/ui.md`
   - Acceptance: tests fire `onQueryChange` for each kind; demo story renders search + four kinds; `verify-ui-changes` on demo DataTable story
 
-- [ ] **Task 2.3**: Native Filters sheet
+- [x] **Task 2.3**: Native Filters sheet
   - Delivers: On non-web, one Filters control + `Modal` sheet containing the same fields and search; same query object as web
   - Files: `ui/src/DataTable.tsx`, `ui/src/DataTable.test.tsx`
   - Blocked by: 2.2
@@ -59,7 +59,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
 
 ### Phase 3 — Admin
 
-- [ ] **Task 3.1**: `parseAdminListFilters` choice `$in` and text `$regex`
+- [x] **Task 3.1**: `parseAdminListFilters` choice `$in` and text `$regex`
   - Delivers: Declared `choice` accepts `{ $in: string[] }` (subset of `choices`); `text` accepts `{ $regex, $options: "i" }`; scalar choice/text still work; top-level `$or` still errors; values outside `choices` error
   - Files: `admin-backend/src/filterParser.ts`, `admin-backend/src/filterParser.test.ts`
   - Blocked by: none (can parallel 2.x)
@@ -67,7 +67,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
   - Docs: note in `docs/how-to/admin-add-model.md` that choice filters may be multi-value `$in`
   - Acceptance: `bun test admin-backend/src/filterParser.test.ts` covers happy `$in`, invalid choice, text regex, rejected `$or`
 
-- [ ] **Task 3.2**: AdminModelTable adopts DataTable filters
+- [x] **Task 3.2**: AdminModelTable adopts DataTable filters
   - Delivers: Map `filters` → column `filter` / `renderFilter` for `ref`; search → `q`; drop `AdminFilterDrawer` from the table; `buildAdminListQueryParams` forwards `$in` and omits `$or`
   - Files: `admin-frontend/src/AdminModelTable.tsx`, `admin-frontend/src/adminModelListQueryParams.ts`, `admin-frontend/src/adminModelListQueryParams.test.ts`, `admin-frontend/src/AdminModelTable.test.tsx`, `admin-frontend/src/AdminFilterDrawer.tsx` / `index.tsx` if unused
   - Blocked by: 2.2, 3.1
@@ -79,7 +79,7 @@ Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../impleme
 
 ### Phase 4 — Docs and seed
 
-- [ ] **Task 4.1**: Diátaxis + generated props + changelog
+- [x] **Task 4.1**: Diátaxis + generated props + changelog
   - Delivers: Query contract and platform table in `docs/reference/ui.md`; admin how-to/reference/explanation; regenerate UI component reference; CHANGELOG Added; seed IP/task links already in Grow stay accurate
   - Files: `docs/reference/ui.md`, `docs/how-to/admin-add-model.md`, `docs/reference/admin-frontend.md`, `docs/explanation/admin-interface.md`, `docs/explanation/roadmap-seed-issues.md`, `CHANGELOG.md`; `ui` types + `bun run website:generate` as required by `update-docs`
   - Blocked by: 2.3, 3.2

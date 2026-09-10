@@ -473,6 +473,28 @@ describe("AdminModelTable", () => {
     expect(activeCol?.sortable).toBe(false);
   });
 
+  it("renders search on DataTable and does not mount AdminFilterDrawer", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean", label: "Active"}],
+          searchFields: ["email"],
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", active: true, email: "a@b.com"}], total: 1};
+    const {queryByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    expect(queryByTestId("admin-filter-drawer")).toBeNull();
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
+    expect((tables[0] as ReactTestInstance).props.searchFields).toEqual(["email"]);
+    expect(queryByTestId("data-table-search")).toBeTruthy();
+  });
+
   it("uses pageSize from model config for pagination", () => {
     configState.config = {
       customScreens: [],

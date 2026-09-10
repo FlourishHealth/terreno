@@ -6,6 +6,7 @@ import {
   DataTable,
   type DataTableCellData,
   type DataTableColumn,
+  type DataTableColumnFilter,
   type DataTableCustomComponentMap,
   IconButton,
   Link,
@@ -13,7 +14,6 @@ import {
   printDateAndTime,
   Spinner,
   Text,
-  TextField,
   useToast,
 } from "@terreno/ui";
 import type {Href} from "expo-router";
@@ -22,7 +22,7 @@ import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Pressable} from "react-native";
 import {AdminActionMenu} from "./AdminActionMenu";
-import {AdminFilterDrawer} from "./AdminFilterDrawer";
+import {AdminRefField} from "./AdminRefField";
 import {
   ADMIN_LIST_MAX_SELECTION,
   type AdminListFilterState,
@@ -64,6 +64,63 @@ const LINK_COLUMN_TYPE = "adminLink";
 const SELECT_COLUMN_TYPE = "adminSelect";
 const INLINE_BOOL_COLUMN_TYPE = "adminInlineBool";
 const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
+
+const getRefRoutePath = (
+  modelConfigs: Array<{name: string; routePath: string}> | undefined,
+  refModelName: string | undefined
+): string => {
+  if (!refModelName) {
+    return "";
+  }
+  return modelConfigs?.find((m) => m.name === refModelName)?.routePath ?? "";
+};
+
+const toColumnFilter = (
+  filter: NonNullable<AdminModelConfig["filters"]>[number],
+  api: AdminApi,
+  fields: Record<string, AdminFieldConfig>,
+  modelConfigs: Array<{name: string; routePath: string}>
+): DataTableColumnFilter | undefined => {
+  if (filter.kind === "text") {
+    return {field: filter.field, kind: "text"};
+  }
+  if (filter.kind === "boolean") {
+    return {field: filter.field, kind: "boolean"};
+  }
+  if (filter.kind === "dateRange") {
+    return {field: filter.field, kind: "dateRange"};
+  }
+  if (filter.kind === "choice") {
+    return {
+      field: filter.field,
+      kind: "choice",
+      options: filter.choices ?? [],
+    };
+  }
+  if (filter.kind === "ref") {
+    const refModelName =
+      (filter as {refModel?: string}).refModel ?? fields[filter.field]?.ref ?? undefined;
+    const routePath = getRefRoutePath(modelConfigs, refModelName);
+    const label = filter.label ?? startCase(filter.field);
+    return {
+      field: filter.field,
+      kind: "choice",
+      renderFilter: ({onChange, value}) => (
+        <AdminRefField
+          api={api}
+          autocomplete
+          onChange={(next: string) => onChange(next)}
+          refModelName={refModelName ?? "Unknown"}
+          routePath={routePath}
+          testID={`admin-filter-${filter.field}`}
+          title={label}
+          value={String(value ?? "")}
+        />
+      ),
+    };
+  }
+  return undefined;
+};
 
 const getColumnType = (fieldKey: string, fieldConfig?: AdminFieldConfig): string => {
   if (fieldConfig) {
@@ -388,9 +445,13 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [config]
   );
 
-  const handleApplyFilters = useCallback((next: AdminListFilterState) => {
-    setFilterState(next);
+  const handleFilterValuesChange = useCallback((next: Record<string, unknown>) => {
+    setFilterState(next as AdminListFilterState);
     setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((next: string) => {
+    setSearchText(next);
   }, []);
 
   const handleDelete = useCallback(
@@ -544,6 +605,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     );
   }
 
+  const adminFilters = modelConfig.filters ?? [];
   const dataColumns: DataTableColumn[] = displayFields.map((fieldKey) => {
     const fieldConfig = modelConfig.fields[fieldKey];
     const columnType = getColumnType(fieldKey, fieldConfig);
@@ -553,8 +615,13 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const isLink = linkFieldSet.has(fieldKey);
     const isInlineBool =
       fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
+    const declaredFilter = adminFilters.find((filter) => filter.field === fieldKey);
+    const filter = declaredFilter
+      ? toColumnFilter(declaredFilter, api, modelConfig.fields, modelConfigs)
+      : undefined;
     return {
       columnType: isInlineBool ? INLINE_BOOL_COLUMN_TYPE : isLink ? LINK_COLUMN_TYPE : columnType,
+      filter,
       sortable,
       title: startCase(fieldKey),
       width: widthOverride ?? getColumnWidth(fieldKey, columnType),
@@ -635,30 +702,13 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   const totalPages = listData ? Math.ceil((listData.total as number) / pageLimit) : 1;
 
-  const searchHelperText =
-    modelConfig.searchFields && modelConfig.searchFields.length > 0
-      ? `Searching ${modelConfig.searchFields.map((f) => startCase(f)).join(", ")}`
-      : undefined;
-
   const pageIds = listItems.map((row) => String(row._id));
   const allPageSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedIds.has(id));
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0}>
       <Box gap={3} padding={0} testID={`admin-list-${modelName}`}>
-        {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
-          <Card padding={3}>
-            <TextField
-              helperText={searchHelperText}
-              onChange={setSearchText}
-              testID="admin-table-search"
-              title="Search"
-              value={searchText}
-            />
-          </Card>
-        ) : null}
-
-        <Box alignItems="stretch" direction="column" gap={3} mdDirection="row">
+        <Box alignItems="stretch" direction="column" gap={3} width="100%">
           <Box direction="column" flex="grow" gap={3} minWidth={0} width="100%">
             {showSelectColumn ? (
               <Card padding={3}>
@@ -695,8 +745,17 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
                   columns={columns}
                   customColumnComponentMap={customColumnComponentMap}
                   data={data}
+                  filterValues={filterState}
+                  onFilterValuesChange={handleFilterValuesChange}
+                  onSearchChange={
+                    modelConfig.searchFields && modelConfig.searchFields.length > 0
+                      ? handleSearchChange
+                      : undefined
+                  }
                   page={page}
                   pinnedColumns={selectColumn ? 1 : 0}
+                  search={searchText}
+                  searchFields={modelConfig.searchFields}
                   setPage={setPage}
                   setSortColumn={setSortColumn}
                   sortColumn={sortColumn}
@@ -705,17 +764,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
               )}
             </Card>
           </Box>
-
-          {(modelConfig.filters ?? []).length > 0 ? (
-            <AdminFilterDrawer
-              api={api}
-              appliedFilterState={filterState}
-              fields={modelConfig.fields}
-              filters={modelConfig.filters ?? []}
-              modelConfigs={modelConfigs}
-              onApply={handleApplyFilters}
-            />
-          ) : null}
         </Box>
       </Box>
     </Page>

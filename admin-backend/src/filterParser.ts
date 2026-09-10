@@ -60,6 +60,24 @@ const parseTextFilter = (
   return {ok: true, value: scalar};
 };
 
+const parseTextRegexFilter = (
+  field: string,
+  value: unknown
+): {ok: true; value: {$options: "i"; $regex: string}} | {ok: false; error: string} => {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return {error: `${field} must be a case-insensitive regex filter`, ok: false};
+  }
+  const record = value as {$options?: unknown; $regex?: unknown};
+  if (record.$options !== "i") {
+    return {error: `${field} must use $options "i"`, ok: false};
+  }
+  const regex = scalarString(record.$regex);
+  if (!regex) {
+    return {error: `${field} must include a $regex pattern`, ok: false};
+  }
+  return {ok: true, value: {$options: "i", $regex: regex}};
+};
+
 const parseChoiceFilter = (
   field: string,
   value: unknown,
@@ -74,6 +92,36 @@ const parseChoiceFilter = (
     return {error: `${field} must be one of: ${[...allowed].join(", ")}`, ok: false};
   }
   return parsed;
+};
+
+const parseChoiceInFilter = (
+  field: string,
+  value: unknown,
+  choices: {label: string; value: string}[]
+): {ok: true; value: {$in: string[]}} | {ok: false; error: string} => {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return {error: `${field} must be a multi-value choice filter`, ok: false};
+  }
+  const record = value as {$in?: unknown};
+  if (!Array.isArray(record.$in)) {
+    return {error: `${field} must use $in with string values`, ok: false};
+  }
+  const allowed = new Set(choices.map((choice) => choice.value));
+  const values: string[] = [];
+  for (const entry of record.$in) {
+    const scalar = scalarString(entry);
+    if (!scalar) {
+      return {error: `${field} must use $in with string values`, ok: false};
+    }
+    if (!allowed.has(scalar)) {
+      return {error: `${field} must be one of: ${[...allowed].join(", ")}`, ok: false};
+    }
+    values.push(scalar);
+  }
+  if (values.length === 0) {
+    return {error: `${field} must include at least one choice`, ok: false};
+  }
+  return {ok: true, value: {$in: values}};
 };
 
 const parseRefFilter = (
@@ -149,7 +197,13 @@ export const parseAdminListFilters = (
         continue;
       }
       consumedKeys.add(field);
-      const parsed = parseTextFilter(field, safeQuery[field]);
+      const raw = safeQuery[field];
+      const regexParsed = parseTextRegexFilter(field, raw);
+      if (regexParsed.ok) {
+        filter[field] = regexParsed.value;
+        continue;
+      }
+      const parsed = parseTextFilter(field, raw);
       if (!parsed.ok) {
         errors[field] = parsed.error;
         continue;
@@ -163,7 +217,13 @@ export const parseAdminListFilters = (
         continue;
       }
       consumedKeys.add(field);
-      const parsed = parseChoiceFilter(field, safeQuery[field], declared.choices);
+      const raw = safeQuery[field];
+      const inParsed = parseChoiceInFilter(field, raw, declared.choices);
+      if (inParsed.ok) {
+        filter[field] = inParsed.value;
+        continue;
+      }
+      const parsed = parseChoiceFilter(field, raw, declared.choices);
       if (!parsed.ok) {
         errors[field] = parsed.error;
         continue;
