@@ -71,6 +71,17 @@ describe("AdminRolesList", () => {
     mockUpdateRole.mockClear();
     mockUseListStatementsQuery.mockClear();
     mockUseListStatementsQuery.mockClear();
+    mockUseListStatementsQuery.mockReturnValue({
+      data: {
+        statements: {
+          admin: ["access", "runScripts"],
+          adminTodo: ["read", "write", "writeOwned"],
+          todo: ["read", "update"],
+        },
+      },
+      error: null,
+      isLoading: false,
+    });
     mockUseListRolesQuery.mockReturnValue({
       data: undefined,
       error: null,
@@ -243,6 +254,154 @@ describe("AdminRolesList", () => {
     const {getByText} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
 
     expect(getByText("No roles found.")).toBeTruthy();
+  });
+
+  it("shows locked badges, descriptions, and permission statement states", () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    mockUseListStatementsQuery.mockReturnValue({
+      data: undefined,
+      error: new Error("statements failed"),
+      isLoading: true,
+    });
+
+    const {getByText} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
+
+    expect(getByText("locked")).toBeTruthy();
+    expect(getByText("sealed")).toBeTruthy();
+    expect(getByText("Baseline role for signed-up users")).toBeTruthy();
+    expect(getByText("Failed to load permissions.")).toBeTruthy();
+  });
+
+  it("creates a role from the add-role modal and refetches the list", async () => {
+    mockCreateRole.mockImplementation(() => ({unwrap: async () => ({})}));
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId} = renderWithTheme(<AdminRolesList api={mockApi} apiBase="/admin" />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-add-button"));
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-role-name"), "reviewer");
+      fireEvent.changeText(getByTestId("admin-role-display-name"), "Reviewer");
+      fireEvent.changeText(getByTestId("admin-role-description"), "Can review todos");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    const createInput = mockCreateRole.mock.calls[0]?.[0] as {
+      description?: string;
+      displayName?: string;
+      name?: string;
+      permissions?: Record<string, string[]>;
+    };
+    assert.equal(createInput.name, "reviewer");
+    assert.equal(createInput.displayName, "Reviewer");
+    assert.equal(createInput.description, "Can review todos");
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it("shows validation and API errors while saving a role", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-add-button"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+    expect(getByText("Name and display name are required.")).toBeTruthy();
+
+    mockUpdateRole.mockImplementation(() => ({
+      unwrap: async () => {
+        throw {data: {detail: "Role update rejected"}};
+      },
+    }));
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+    expect(getByText("Role update rejected")).toBeTruthy();
+  });
+
+  it("dismisses the role editor without saving", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, queryByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-add-button"));
+    });
+    expect(getByTestId("admin-role-form")).toBeTruthy();
+
+    const modal = UNSAFE_root.findAll((node) => node.props?.testID === "admin-role-modal")[0];
+    await act(async () => {
+      modal?.props?.secondaryButtonOnClick?.();
+    });
+    expect(queryByTestId("admin-role-form")).toBeNull();
+  });
+
+  it("toggles custom permissions and clears standard access", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-edit-todoUser"));
+    });
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-permission-admin-runScripts-clickable"));
+    });
+
+    const accessSelect = UNSAFE_root.findAllByType(SelectField).find(
+      (field) => field.props.testID === "admin-role-access-adminTodo"
+    );
+    await act(async () => {
+      accessSelect?.props.onChange("none");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+
+    const updateInput = mockUpdateRole.mock.calls[0]?.[0] as {
+      changes?: {permissions?: Record<string, string[]>};
+    };
+    assert.deepEqual(updateInput.changes?.permissions, {
+      admin: ["runScripts"],
+    });
   });
 });
 

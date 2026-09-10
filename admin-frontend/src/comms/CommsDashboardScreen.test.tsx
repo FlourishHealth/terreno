@@ -1,5 +1,4 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {Page} from "@terreno/ui";
 import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -65,6 +64,7 @@ const failedRow = {
   to: "a***@example.com",
 };
 
+import {AdminScreenPage} from "../AdminScreenPage";
 import {CommsDashboardScreen} from "./CommsDashboardScreen";
 import {formatCommsTimestamp} from "./commsMessagePayload";
 
@@ -114,7 +114,7 @@ describe("CommsDashboardScreen", () => {
     );
     expect(getByTestId("comms-dashboard-empty")).toBeTruthy();
     expect(getByTestId("comms-stats-range-label")).toBeTruthy();
-    assert.isTrue(UNSAFE_root.findByType(Page).props.backButton);
+    assert.isTrue(UNSAFE_root.findByType(AdminScreenPage).props.backHref !== undefined);
   });
 
   it("writes filter changes through onFiltersChange for URL persistence", () => {

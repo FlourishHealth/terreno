@@ -7,7 +7,9 @@
  */
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import {AdminFilterDrawer} from "../AdminFilterDrawer";
 
@@ -99,7 +101,8 @@ describe("AdminFilterDrawer", () => {
   });
 
   it("renders dateRange, choice, text, and ref filters", () => {
-    const {getByTestId} = renderWithTheme(
+    const onApply = mock(() => {});
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
       <AdminFilterDrawer
         api={{} as never}
         appliedFilterState={{}}
@@ -111,11 +114,74 @@ describe("AdminFilterDrawer", () => {
           {field: "owner", kind: "ref", refModel: "User"},
         ]}
         modelConfigs={[{name: "User", routePath: "/admin/users"}]}
-        onApply={mock(() => {})}
+        onApply={onApply}
       />
     );
     expect(getByTestId("admin-filter-created-gte")).toBeDefined();
     expect(getByTestId("admin-filter-email")).toBeDefined();
     expect(getByTestId("admin-filter-owner")).toBeDefined();
+
+    const invokeChange = (testID: string, value: string): void => {
+      const node = UNSAFE_root.findAll(
+        (candidate: ReactTestInstance) =>
+          candidate.props.testID === testID && typeof candidate.props.onChange === "function"
+      )[0];
+      assert.isDefined(node);
+      act(() => {
+        node.props.onChange(value);
+      });
+    };
+
+    invokeChange("admin-filter-created-gte", "2026-01-01");
+    invokeChange("admin-filter-created-lte", "2026-12-31");
+    invokeChange("admin-filter-status", "a");
+    invokeChange("admin-filter-email", "person@example.com");
+    invokeChange("admin-filter-owner", "owner-1");
+
+    act(() => {
+      const apply = UNSAFE_root.findAll(
+        (candidate: ReactTestInstance) =>
+          candidate.props.testID === "admin-filter-apply" &&
+          typeof candidate.props.onClick === "function"
+      )[0];
+      apply.props.onClick();
+    });
+    assert.deepEqual(onApply.mock.calls.at(-1)?.[0], {
+      created_gte: "2026-01-01",
+      created_lte: "2026-12-31",
+      email: "person@example.com",
+      owner: "owner-1",
+      status: "a",
+    });
+  });
+
+  it("clears an individual boolean filter and collapses the desktop drawer", async () => {
+    const onApply = mock(() => {});
+    const {getByLabelText, getByText, UNSAFE_root} = renderWithTheme(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{active: true}}
+        fields={{active: {required: false, type: "boolean"}}}
+        filters={[{field: "active", kind: "boolean"}]}
+        onApply={onApply}
+      />
+    );
+
+    const clearButton = UNSAFE_root.findAll(
+      (candidate: ReactTestInstance) =>
+        candidate.props.text === "Clear filter" && typeof candidate.props.onClick === "function"
+    )[0];
+    assert.isDefined(clearButton);
+    act(() => {
+      clearButton.props.onClick();
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText("Collapse filters"));
+    });
+    assert.isDefined(getByText("Filters collapsed"));
+    await act(async () => {
+      fireEvent.press(getByLabelText("Expand filters"));
+    });
+    assert.isDefined(getByText("All values"));
   });
 });

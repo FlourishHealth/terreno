@@ -151,18 +151,18 @@ Measured with `bun run ../scripts/check-coverage.ts --threshold=0` from each pac
 | `@terreno/api` | 98.84 | 99.06 | no | — |
 | `@terreno/ui` | 99.78 | 99.65 | no | — |
 | `@terreno/rtk` | 99.67 | 98.98 | no | — |
-| `@terreno/syncdb` | 97.26 | 94.05 | **yes (lines)** | 0.95 pp lines |
+| `@terreno/syncdb` | 97.81 | 96.84 | no | — |
 | `@terreno/ai` | 99.21 | 99.63 | no | — |
 | `@terreno/comms` | 96.76 | 98.22 | no | — |
 | `@terreno/mcp` | 99.68 | 97.44 | no | — |
 | `@terreno/feature-flags` | 100.00 | 99.55 | no | — |
 | `@terreno/api-health` | 100.00 | 100.00 | no | — |
-| `@terreno/admin-backend` | 69.39 | 64.46 | **yes** | 25.61 pp functions, 30.54 pp lines |
-| `@terreno/admin-frontend` | 68.97 | 74.41 | **yes** | 26.03 pp functions, 20.59 pp lines (3 tests failed in the coverage run) |
-| `@terreno/admin-spa` | 32.47 | 29.23 | **yes** | 62.53 pp functions, 65.77 pp lines |
-| `@terreno/test` | 69.30 | 66.01 | **yes** | 25.70 pp functions, 28.99 pp lines |
+| `@terreno/admin-backend` | 97.25 | 96.65 | no | — |
+| `@terreno/admin-frontend` | 95.11 | 95.55 | no | — |
+| `@terreno/admin-spa` | 100.00 | 100.00 | no | — |
+| `@terreno/test` | 96.34 | 95.32 | no | — |
 
-Packages below 95%: `syncdb` (lines), `admin-backend`, `admin-frontend`, `admin-spa`, `test`.
+Packages below 95%: none (all published packages meet the 95% function and line thresholds as of the latest local `test:coverage` runs).
 
 - [x] **Task 3.2**: Wire the threshold into every package CI
   - Description: Add `scripts/check-coverage.ts` (default 95% threshold) to every published package's CI — either the existing dedicated workflow or the new matrix job from Task 3.3. Packages below threshold when this lands will fail CI until catch-up work merges; track that in the implementation PR.
@@ -176,7 +176,7 @@ Packages below 95%: `syncdb` (lines), `admin-backend`, `admin-frontend`, `admin-
   - Depends on: Task 3.2
   - Acceptance: the workflow parses as valid YAML; the matrix covers exactly the published packages without their own workflow; each entry runs compile, lint, test, and coverage at 95%.
 
-- [ ] **Task 3.4**: Catch up packages below threshold
+- [x] **Task 3.4**: Catch up packages below threshold
   - Description: For each package measured below 95% in Task 3.1, add tests until `scripts/check-coverage.ts` passes. This may be a separate PR if the gap is large; do not merge the CI wiring until every package passes or the IP owner explicitly defers a package with a linked issue.
   - Files: package test files as needed
   - Depends on: Task 3.2

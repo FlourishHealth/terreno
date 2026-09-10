@@ -31,11 +31,36 @@ const sampleRun = {
   updated: "2024-01-01T00:00:10Z",
 };
 
-const listRunsResult = {
-  data: {data: [sampleRun], limit: 25, more: true, page: 1, total: 2},
+const secondRun = {
+  ...sampleRun,
+  _id: "run-2",
+  created: "2024-01-02T00:00:00Z",
+  isDryRun: false,
+  taskType: "test-script",
 };
 
-const mockUseListScriptRunsQuery = mock(() => listRunsResult);
+const page1RunsResult = {
+  data: {data: [sampleRun], limit: 25, more: true, page: 1, total: 2},
+};
+const page2RunsResult = {
+  data: {data: [secondRun], limit: 25, more: false, page: 2, total: 2},
+};
+const filteredRunsResult = {
+  data: {data: [sampleRun], limit: 25, more: false, page: 1, total: 1},
+};
+const liveRunResult = {
+  data: {data: [{...sampleRun, isDryRun: false}], limit: 25, more: false, page: 1, total: 1},
+};
+
+const mockUseListScriptRunsQuery = mock((args?: {page?: number; name?: string}) => {
+  if (args?.page && args.page > 1) {
+    return page2RunsResult;
+  }
+  if (args?.name) {
+    return filteredRunsResult;
+  }
+  return page1RunsResult;
+});
 
 mock.module("./useAdminScripts", () => ({
   useAdminScripts: () => ({
@@ -68,6 +93,15 @@ const mockApi = {} as unknown as AdminApi;
 describe("AdminScriptList", () => {
   beforeEach(() => {
     mockUseAdminConfig.mockClear();
+    mockUseListScriptRunsQuery.mockImplementation((args?: {page?: number; name?: string}) => {
+      if (args?.page && args.page > 1) {
+        return page2RunsResult;
+      }
+      if (args?.name) {
+        return filteredRunsResult;
+      }
+      return page1RunsResult;
+    });
   });
 
   it("renders loading state", () => {
@@ -221,6 +255,77 @@ describe("AdminScriptList", () => {
       fireEvent.press(getByText("Open"));
     });
     expect(modalCallbacks.visible).toBe(true);
+  });
+
+  it("switches to run history and loads another page", async () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    const {getByText} = renderWithTheme(<AdminScriptList api={mockApi} baseUrl="/admin" />);
+
+    await act(async () => {
+      fireEvent.press(getByText(/Run history \(2\)/));
+    });
+    expect(getByText(/test-script/)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByText("Load more"));
+    });
+    expect(getByText("#run-2")).toBeTruthy();
+  });
+
+  it("clears a per-script history filter opened from the scripts tab", async () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
+      <AdminScriptList api={mockApi} baseUrl="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-history-test-script-clickable"));
+    });
+    expect(getByText(/Showing runs for test-script/)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-history-clear-filter-clickable"));
+    });
+    expect(queryByText(/Showing runs for test-script/)).toBeNull();
+  });
+
+  it("shows live-run wording on the last-run badge", () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+    mockUseListScriptRunsQuery.mockImplementation((args?: {page?: number; name?: string}) => {
+      if (args?.page && args.page > 1) {
+        return page2RunsResult;
+      }
+      if (args?.name) {
+        return filteredRunsResult;
+      }
+      return liveRunResult;
+    });
+
+    const {getByText} = renderWithTheme(<AdminScriptList api={mockApi} baseUrl="/admin" />);
+    expect(getByText(/live run/)).toBeTruthy();
   });
 
   it("hides scripts when platformTools.viewScripts is false", () => {
