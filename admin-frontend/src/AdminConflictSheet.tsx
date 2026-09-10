@@ -3,31 +3,7 @@ import {
   type SyncConflictItem,
   type SyncConflictResolutionStrategy,
 } from "@terreno/ui";
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-
-// #region agent log
-const debugAdminConflictLog = (
-  hypothesisId: string,
-  message: string,
-  data: Record<string, unknown>
-): void => {
-  const payload = {
-    data,
-    hypothesisId,
-    location: "AdminConflictSheet.tsx",
-    message,
-    timestamp: Date.now(),
-  };
-  console.warn("[agent:AdminConflictSheet]", JSON.stringify(payload));
-  fetch("http://localhost:7242/ingest/0a6a6f42-642a-4d7c-b7e1-5b4a3b2c9f1e", {
-    body: JSON.stringify(payload),
-    headers: {"Content-Type": "application/json", "X-Debug-Session-Id": "de61"},
-    method: "POST",
-  }).catch(() => {});
-};
-let adminConflictSheetInstanceCounter = 0;
-
-// #endregion
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 
 export interface AdminConflictSheetProps {
   collection: string;
@@ -46,22 +22,16 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
   loadedIds,
   resolve,
 }) => {
-  const instanceIdRef = useRef<number>();
-  if (instanceIdRef.current === undefined) {
-    adminConflictSheetInstanceCounter += 1;
-    instanceIdRef.current = adminConflictSheetInstanceCounter;
-  }
-  const [dismissedConflictKey, setDismissedConflictKey] = useState<string | undefined>();
-  const renderCountRef = useRef(0);
-  const prevLoadedIdsRef = useRef<string[] | undefined>();
-  const prevConflictsRef = useRef<SyncConflictItem[] | undefined>();
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  const loadedIdKey = useMemo((): string => [...loadedIds].sort().join("|"), [loadedIds]);
 
   const adminConflicts = useMemo((): SyncConflictItem[] => {
     const loadedIdSet = new Set(loadedIds);
     return conflicts.filter(
       (conflict) => conflict.collection === collection && loadedIdSet.has(conflict.entityId)
     );
-  }, [collection, conflicts, loadedIds]);
+  }, [collection, conflicts, loadedIdKey, loadedIds]);
 
   const conflictKey = useMemo(
     (): string =>
@@ -71,51 +41,27 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
         .join("|"),
     [adminConflicts]
   );
+
   const handleDismiss = useCallback((): void => {
-    // #region agent log
-    debugAdminConflictLog("H2", "handleDismiss called", {
-      collection,
-      conflictKey,
-      dismissedConflictKey,
-    });
-    // #endregion
-    setDismissedConflictKey(conflictKey);
-  }, [collection, conflictKey]);
+    setIsDismissed(true);
+  }, []);
 
-  renderCountRef.current += 1;
-  const visible = dismissedConflictKey !== conflictKey;
-  const loadedIdsIdentityChanged = prevLoadedIdsRef.current !== loadedIds;
-  const conflictsIdentityChanged = prevConflictsRef.current !== conflicts;
-  prevLoadedIdsRef.current = loadedIds;
-  prevConflictsRef.current = conflicts;
-
-  // #region agent log
+  // A new mutation-id set is a fresh conflict episode — reopen after an earlier dismiss.
+  // Skip the empty key: clearing conflicts also sets conflictKey to "" and must not
+  // undo ConflictSheet's onDismiss in the same episode.
   useEffect(() => {
-    debugAdminConflictLog("H1", "AdminConflictSheet render snapshot", {
-      adminConflictsCount: adminConflicts.length,
-      collection,
-      conflictKey,
-      conflictsIdentityChanged,
-      conflictsTotal: conflicts.length,
-      dismissedConflictKey,
-      instanceId: instanceIdRef.current,
-      loadedIds,
-      loadedIdsIdentityChanged,
-      renderCount: renderCountRef.current,
-      visible,
-    });
-    if (renderCountRef.current > 50) {
-      debugAdminConflictLog("H5", "AdminConflictSheet high render count", {
-        adminConflictsCount: adminConflicts.length,
-        collection,
-        conflictKey,
-        dismissedConflictKey,
-        renderCount: renderCountRef.current,
-        visible,
-      });
+    if (conflictKey.length > 0) {
+      setIsDismissed(false);
     }
-  });
-  // #endregion
+  }, [conflictKey]);
+
+  // Admin unmounts ConflictSheet when the window has no conflicts; reset so the next
+  // episode does not inherit a stale dismissed flag.
+  useEffect(() => {
+    if (adminConflicts.length === 0) {
+      setIsDismissed(false);
+    }
+  }, [adminConflicts.length]);
 
   if (adminConflicts.length === 0) {
     return null;
@@ -128,7 +74,7 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
       onResolve={resolve}
       testID="admin-conflict-sheet"
       title="Admin changes don't match"
-      visible={visible}
+      visible={!isDismissed}
     />
   );
 };

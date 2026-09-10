@@ -1,7 +1,7 @@
 import {describe, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
-import React from "react";
+import React, {useState} from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 
 import {AdminConflictSheet} from "./AdminConflictSheet";
@@ -70,5 +70,77 @@ describe("AdminConflictSheet", () => {
     );
 
     assert.isNull(view.queryByTestId("admin-conflict-sheet"));
+  });
+
+  it("does not spin renders when conflicts clear after keep all", async () => {
+    const resolve = mock((_args: {mutationId: string; strategy: "keepMine" | "useServer"}) => {});
+    let renderCount = 0;
+
+    const Harness: React.FC = () => {
+      const [conflicts, setConflicts] = useState([createConflict()]);
+      renderCount += 1;
+      if (renderCount > 40) {
+        throw new Error("Maximum update depth exceeded");
+      }
+
+      return (
+        <AdminConflictSheet
+          collection="todos"
+          conflicts={conflicts}
+          loadedIds={["todo-1"]}
+          resolve={(args) => {
+            resolve(args);
+            setConflicts([]);
+          }}
+        />
+      );
+    };
+
+    const view = renderWithTheme(<Harness />);
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId("conflict-keep-mine-button-mutation-1"));
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 0));
+    });
+
+    assert.isNull(view.queryByTestId("admin-conflict-sheet"));
+    assert.isAtMost(renderCount, 25);
+    assert.equal(resolve.mock.calls.length, 1);
+    assert.deepEqual(resolve.mock.calls[0]?.[0], {
+      mutationId: "mutation-1",
+      strategy: "keepMine",
+    });
+  });
+
+  it("reopens after a new conflict episode once the prior batch was dismissed", async () => {
+    const view = renderWithTheme(
+      <AdminConflictSheet
+        collection="todos"
+        conflicts={[createConflict()]}
+        loadedIds={["todo-1"]}
+        resolve={() => {}}
+      />
+    );
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText("Close modal"));
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 0));
+    });
+
+    assert.isNull(view.queryByTestId("conflict-item-todo-1"));
+
+    view.rerender(
+      <AdminConflictSheet
+        collection="todos"
+        conflicts={[createConflict({mutationId: "mutation-2"})]}
+        loadedIds={["todo-1"]}
+        resolve={() => {}}
+      />
+    );
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
   });
 });

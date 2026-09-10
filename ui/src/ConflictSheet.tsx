@@ -318,8 +318,6 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   // Whether this open episode ever had conflicts, so a sheet opened deliberately
   // with none (to show the empty state) is not closed out from under the caller.
   const hadConflictsRef = useRef<boolean>(false);
-  const dismissEffectCountRef = useRef(0);
-  const prevOnDismissRef = useRef(onDismiss);
 
   // Dismissal is driven purely by the conflict list emptying, never by a button
   // press: `onResolve` resolutions settle asynchronously in the data layer, and the
@@ -327,28 +325,6 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
   // Closing at press time would hide a resolution that then failed, leaving the
   // conflict unresolved with no visible way back to it.
   useEffect(() => {
-    dismissEffectCountRef.current += 1;
-    const onDismissIdentityChanged = prevOnDismissRef.current !== onDismiss;
-    prevOnDismissRef.current = onDismiss;
-    // #region agent log
-    debugConflictSheetLog("H2", "ConflictSheet dismiss effect", {
-      conflictsLength: conflicts.length,
-      dismissEffectCount: dismissEffectCountRef.current,
-      hadConflicts: hadConflictsRef.current,
-      onDismissIdentityChanged,
-      testID,
-      visible,
-      willCallOnDismiss: visible && conflicts.length === 0 && hadConflictsRef.current,
-    });
-    if (dismissEffectCountRef.current > 20) {
-      debugConflictSheetLog("H4", "ConflictSheet dismiss effect high count", {
-        conflictsLength: conflicts.length,
-        dismissEffectCount: dismissEffectCountRef.current,
-        testID,
-        visible,
-      });
-    }
-    // #endregion
     if (!visible) {
       hadConflictsRef.current = false;
       return;
@@ -358,16 +334,9 @@ export const ConflictSheet: React.FC<ConflictSheetProps> = ({
       return;
     }
     if (hadConflictsRef.current) {
-      // #region agent log
-      debugConflictSheetLog("H2", "ConflictSheet calling onDismiss", {
-        conflictsLength: conflicts.length,
-        testID,
-        visible,
-      });
-      // #endregion
       onDismiss();
     }
-  }, [conflicts.length, onDismiss, testID, visible]);
+  }, [conflicts.length, onDismiss, visible]);
 
   const handleUseServerForAll = useCallback((): void => {
     for (const conflict of conflicts) {
