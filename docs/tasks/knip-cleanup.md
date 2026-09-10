@@ -40,7 +40,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: those paths are absent from live `files` findings or listed as `entry`; comments explain each ignore glob if an ignore is used instead; `analyze:full` exits 0
 
-- [ ] **Task 1.4**: Ignore generated Expo skill script copies; keep the canonical copy in graph if it is real
+- [x] **Task 1.4**: Ignore generated Expo skill script copies; keep the canonical copy in graph if it is real
   - Delivers: duplicate `expo-cicd-workflows/scripts/{fetch,validate}.js` under `.agents/`, `.claude/`, `.cursor/`, `.devin/`, `.github/`, `.rulesync/`, `skills/` do not appear as unused files
   - Files: `knip.jsonc` ignore globs; confirm canonical path (`.rulesync/skills/...` or `skills/...`)
   - Blocked by: none
