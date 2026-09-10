@@ -6,7 +6,7 @@ import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
-import type {AdminApi, AdminConfigResponse} from "./types";
+import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const routerBack = mock(() => {});
 const routerPush = mock(() => {});
@@ -55,15 +55,37 @@ mock.module("./useAdminApi", () => ({
 
 const syncMutateFn = mock((_args: unknown) => ({id: "sync-id", mutationId: "mutation-id"}));
 const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]}));
-const adminContextState: {
-  adminRpc?: (_args: unknown) => Promise<unknown>;
-  syncDb?: {hydrateWindow: typeof hydrateWindowFn; mutate: typeof syncMutateFn};
-} = {};
-mock.module("./adminContext", () => ({
-  useAdminContext: () => adminContextState,
-}));
 
 import {AdminModelForm} from "./AdminModelForm";
+import {AdminProvider} from "./AdminProvider";
+
+const syncDb: AdminSyncDb = {
+  hydrateWindow: hydrateWindowFn,
+  mutate: syncMutateFn,
+  store: {
+    getEntity: () => undefined,
+    raw: {
+      addTableListener: () => "listener",
+      delListener: () => {},
+    },
+  },
+};
+
+const renderWithSyncAdmin = (
+  child: React.ReactElement,
+  syncConflicts?: AdminSyncConflicts
+): ReturnType<typeof renderWithTheme> =>
+  renderWithTheme(
+    <AdminProvider
+      api={{} as unknown as AdminApi}
+      apiBase="/admin"
+      getAuthHeaders={() => ({})}
+      syncConflicts={syncConflicts}
+      syncDb={syncDb}
+    >
+      {child}
+    </AdminProvider>
+  );
 
 const modelConfig = {
   defaultSort: "-created",
@@ -95,8 +117,6 @@ describe("AdminModelForm", () => {
       mutationId: "mutation-id",
     }));
     hydrateWindowFn.mockClear();
-    adminContextState.adminRpc = undefined;
-    adminContextState.syncDb = undefined;
     configState.config = null;
     configState.isLoading = false;
     readState.data = null;
@@ -119,11 +139,9 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    adminContextState.adminRpc = async () => ({});
-    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
     const onSaveSuccess = mock(async (_args: unknown) => {});
 
-    const createForm = renderWithTheme(
+    const createForm = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -151,7 +169,7 @@ describe("AdminModelForm", () => {
     createForm.unmount();
 
     readState.data = {active: true, age: 1, email: "todo@example.com", name: "Todo"};
-    const editForm = renderWithTheme(
+    const editForm = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -194,6 +212,54 @@ describe("AdminModelForm", () => {
     assert.equal(routerBack.mock.calls.length, 3);
   });
 
+  it("shows an edit conflict for the loaded form id", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    readState.data = {email: "todo@example.com", name: "Todo"};
+    const syncConflicts: AdminSyncConflicts = {
+      conflicts: [
+        {
+          collection: "todos",
+          entityId: "todo-1",
+          localData: JSON.stringify({name: "Mine"}),
+          mutationId: "mutation-1",
+          serverData: JSON.stringify({name: "Server"}),
+        },
+        {
+          collection: "todos",
+          entityId: "todo-2",
+          localData: JSON.stringify({name: "Other mine"}),
+          mutationId: "mutation-2",
+          serverData: JSON.stringify({name: "Other server"}),
+        },
+      ],
+      resolve: () => {},
+    };
+
+    const view = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />,
+      syncConflicts
+    );
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+    assert.isNull(view.queryByTestId("conflict-item-todo-2"));
+  });
+
   it("keeps ObjectId model create, update, and delete on the REST mutation path", async () => {
     configState.config = {
       ...config,
@@ -210,10 +276,7 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    adminContextState.adminRpc = async () => ({});
-    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
-
-    const form = renderWithTheme(
+    const form = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -230,7 +293,7 @@ describe("AdminModelForm", () => {
     form.unmount();
 
     readState.data = {active: true, age: 1, email: "user@example.com", name: "User"};
-    const editForm = renderWithTheme(
+    const editForm = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -269,10 +332,7 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    adminContextState.adminRpc = async () => ({});
-    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
-
-    const form = renderWithTheme(
+    const form = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -303,13 +363,11 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    adminContextState.adminRpc = async () => ({});
-    adminContextState.syncDb = {hydrateWindow: hydrateWindowFn, mutate: syncMutateFn};
     syncMutateFn.mockImplementation(() => {
       throw new Error("sync failed");
     });
 
-    const form = renderWithTheme(
+    const form = renderWithSyncAdmin(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         apiBase="/admin"

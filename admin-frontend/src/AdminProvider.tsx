@@ -4,6 +4,7 @@ import {bindAdminRequest} from "./adminRequest";
 import type {
   AdminProviderValue,
   AdminScreenProps,
+  AdminSyncConflicts,
   AdminSyncDb,
   AdminWidgetRegistry,
   FieldWidgetComponent,
@@ -41,6 +42,8 @@ export interface AdminProviderProps extends AdminScreenProps {
   children: React.ReactNode;
   /** Optional windowed TinyBase client for String `_id` + `adminBroadcast` models. */
   syncDb?: AdminSyncDb;
+  /** Optional adapter from the host's `useConflicts()` result. */
+  syncConflicts?: AdminSyncConflicts;
   widgets?: Partial<AdminWidgetRegistry>;
 }
 
@@ -53,6 +56,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   credentials,
   getAuthHeaders,
   routeBase,
+  syncConflicts,
   syncDb,
   widgets: userWidgets,
 }) => {
@@ -73,6 +77,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
       credentials,
       getAuthHeaders,
       routeBase: bases.routeBase,
+      syncConflicts,
       syncDb,
       widgets: mergedWidgets,
     }),
@@ -85,6 +90,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
       credentials,
       getAuthHeaders,
       mergedWidgets,
+      syncConflicts,
       syncDb,
     ]
   );

@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {
@@ -187,7 +188,11 @@ describe("AdminProvider widget registry", () => {
   it("exposes host-injected syncDb on context", () => {
     const syncDb = {
       hydrateWindow: async () => ({hydratedIds: []}),
-      store: {getEntity: () => undefined},
+      mutate: () => ({id: "id", mutationId: "mutation"}),
+      store: {
+        getEntity: () => undefined,
+        raw: {addTableListener: () => "listener", delListener: () => {}},
+      },
     };
     let context: AdminProviderValue | null = null;
     const Probe: React.FC = () => {
@@ -202,5 +207,22 @@ describe("AdminProvider widget registry", () => {
     );
 
     expect(context?.syncDb).toBe(syncDb);
+  });
+
+  it("exposes the host useConflicts adapter on context", () => {
+    const syncConflicts = {conflicts: [], resolve: () => {}};
+    let context: AdminProviderValue | null = null;
+    const Probe: React.FC = () => {
+      context = useAdminContext();
+      return null;
+    };
+
+    renderWithTheme(
+      <AdminProvider api={{} as AdminApi} apiBase="/admin" syncConflicts={syncConflicts}>
+        <Probe />
+      </AdminProvider>
+    );
+
+    assert.strictEqual(context?.syncConflicts, syncConflicts);
   });
 });

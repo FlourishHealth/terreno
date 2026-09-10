@@ -1,6 +1,7 @@
 import {Accordion, Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {AdminConflictSheet} from "./AdminConflictSheet";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import {useAdminContext} from "./adminContext";
 import {isWindowedAdminTable} from "./adminWindowedTable";
@@ -651,6 +652,14 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0} scroll>
+      {isWindowed && itemId && modelConfig.syncCollection && adminContext?.syncConflicts ? (
+        <AdminConflictSheet
+          collection={modelConfig.syncCollection}
+          conflicts={adminContext.syncConflicts.conflicts}
+          loadedIds={[itemId]}
+          resolve={adminContext.syncConflicts.resolve}
+        />
+      ) : null}
       <Box gap={3} padding={4}>
         {isFormWritable || (mode === "edit" && canDeleteRecord) ? (
           <Box alignItems="center" direction="row" gap={2} wrap>

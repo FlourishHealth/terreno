@@ -5,7 +5,7 @@ import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
-import type {AdminApi, AdminConfigResponse, AdminSyncDb} from "./types";
+import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const setOptions = mock((_: unknown) => {});
 mock.module("expo-router", () => ({
@@ -122,6 +122,7 @@ const createFakeSyncDb = (): {
     notifyStore,
     syncDb: {
       hydrateWindow,
+      mutate: mock(() => ({id: "todo-1", mutationId: "mutation-1"})),
       store: {
         getEntity: ({id}: {id: string}) => extraStore.get(id),
         raw: {
@@ -139,13 +140,17 @@ const createFakeSyncDb = (): {
   };
 };
 
-const renderWindowed = (syncDb: AdminSyncDb): ReturnType<typeof renderWithTheme> => {
+const renderWindowed = (
+  syncDb: AdminSyncDb,
+  syncConflicts?: AdminSyncConflicts
+): ReturnType<typeof renderWithTheme> => {
   return renderWithTheme(
     <AdminProvider
       api={{} as unknown as AdminApi}
       apiBase="/admin"
       getAuthHeaders={() => ({})}
       routeBase="/admin"
+      syncConflicts={syncConflicts}
       syncDb={syncDb}
     >
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="Todo" />
@@ -179,6 +184,45 @@ describe("AdminModelTable windowed path", () => {
     assert.isTrue(hydrateWindow.mock.calls.length > 0);
     const firstCall = hydrateWindow.mock.calls[0]?.[0] as {ids: string[]};
     assert.deepEqual(firstCall.ids, ["todo-1", "todo-2"]);
+  });
+
+  it("shows conflicts only for ids on the rendered page", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    const resolve = mock((_args: {mutationId: string; strategy: "useServer" | "keepMine"}) => {});
+    const view = renderWindowed(syncDb, {
+      conflicts: [
+        {
+          collection: "todos",
+          entityId: "todo-1",
+          localData: JSON.stringify({title: "Mine"}),
+          mutationId: "mutation-1",
+          serverData: JSON.stringify({title: "Server"}),
+        },
+        {
+          collection: "todos",
+          entityId: "todo-2",
+          localData: JSON.stringify({title: "Other mine"}),
+          mutationId: "mutation-2",
+          serverData: JSON.stringify({title: "Other server"}),
+        },
+      ],
+      resolve,
+    });
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+    assert.isNull(view.queryByTestId("conflict-item-todo-2"));
+    await act(async () => {
+      fireEvent.press(view.getByTestId("conflict-use-server-button-mutation-1"));
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 600));
+    });
+    assert.deepEqual(resolve.mock.calls[0]?.[0], {
+      mutationId: "mutation-1",
+      strategy: "useServer",
+    });
   });
 
   it("does not render a TinyBase id that is outside REST membership", async () => {

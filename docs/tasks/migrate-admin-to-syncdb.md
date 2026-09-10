@@ -136,7 +136,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: form save tests for both model classes; ObjectId never calls `useMutate`
   - Skills: `terreno-ui`
 
-- [ ] **Task 4.3**: ConflictSheet in admin
+- [x] **Task 4.3**: ConflictSheet in admin
   - Delivers: `useConflicts` + `ConflictSheet` (`useServer` / `keepMine`) for admin-loaded ids, same as example app
   - Files: admin-frontend conflict host (table or shell), tests
   - Blocked by: 4.2

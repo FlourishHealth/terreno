@@ -22,6 +22,7 @@ import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Pressable} from "react-native";
 import {AdminActionMenu} from "./AdminActionMenu";
+import {AdminConflictSheet} from "./AdminConflictSheet";
 import {AdminFilterDrawer} from "./AdminFilterDrawer";
 import {useAdminContext} from "./adminContext";
 import {
@@ -798,6 +799,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0}>
+      {isWindowed && syncCollection && adminContext?.syncConflicts ? (
+        <AdminConflictSheet
+          collection={syncCollection}
+          conflicts={adminContext.syncConflicts.conflicts}
+          loadedIds={pageIds}
+          resolve={adminContext.syncConflicts.resolve}
+        />
+      ) : null}
       <Box gap={3} padding={0} testID={`admin-list-${modelName}`}>
         {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
           <Card padding={3}>

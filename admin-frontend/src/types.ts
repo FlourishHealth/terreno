@@ -233,6 +233,19 @@ export interface AdminSyncDbEntity {
   id: string;
 }
 
+export interface AdminSyncConflict {
+  collection: string;
+  entityId: string;
+  localData: string;
+  mutationId: string;
+  serverData: string;
+}
+
+export interface AdminSyncConflicts {
+  conflicts: AdminSyncConflict[];
+  resolve: (args: {mutationId: string; strategy: "useServer" | "keepMine"}) => void;
+}
+
 export interface AdminSyncDb {
   hydrateWindow: (args: {
     collection: string;
@@ -263,6 +276,7 @@ export interface AdminProviderValue {
   credentials?: RequestCredentials;
   getAuthHeaders?: AdminGetAuthHeaders;
   routeBase: string;
+  syncConflicts?: AdminSyncConflicts;
   syncDb?: AdminSyncDb;
   widgets: AdminWidgetRegistry;
 }

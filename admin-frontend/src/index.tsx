@@ -1,5 +1,6 @@
 export {AdminActionMenu} from "./AdminActionMenu";
 export {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
+export {AdminConflictSheet, type AdminConflictSheetProps} from "./AdminConflictSheet";
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminFilterDrawer} from "./AdminFilterDrawer";
 export {AdminHome} from "./AdminHome";
@@ -75,6 +76,8 @@ export type {
   AdminScreenProps,
   AdminScreenWidgetProps,
   AdminScriptConfig,
+  AdminSyncConflict,
+  AdminSyncConflicts,
   AdminSyncDb,
   AdminSyncDbEntity,
   AdminWidgetRegistry,

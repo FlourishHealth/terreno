@@ -95,6 +95,24 @@ syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record 
 deep-linked form can mutate locally. ObjectId models and hosts without the full
 windowed configuration keep the REST/RTK mutation path.
 
+Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
+Windowed tables and forms render `AdminConflictSheet`, filtered to the ids loaded
+on that page or form, and forward **Use server** / **Keep mine** to syncdb's
+resolver. This adapter keeps `@terreno/syncdb` optional for admin-frontend.
+
+```tsx
+const syncConflicts = useConflicts();
+
+<AdminProvider
+  api={api}
+  apiBase="/admin"
+  syncConflicts={syncConflicts}
+  syncDb={syncDb}
+>
+  {children}
+</AdminProvider>;
+```
+
 ### AdminRolesList
 
 Role editing starts with a dedicated **Admin page** toggle for `admin:access`. That is the only
