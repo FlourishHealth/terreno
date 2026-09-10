@@ -98,7 +98,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: unit/socket test: owner-scoped Todo create emits to `todos|owner:{id}` **and** `todos|admin`; flag false emits only the owner stream
   - Skills: `terreno-backend-api`
 
-- [ ] **Task 3.3**: Window subscribe — no snapshot, no full reconcile
+- [x] **Task 3.3**: Window subscribe — no snapshot, no full reconcile
   - Delivers: admin clients subscribe to `{collection}|admin` (or `sync:subscribe` with window mode) and receive **cursor/ack only**, not a full snapshot; syncdb skips `reconcile()` for that collection while in window mode
   - Files: `api/src/sync/socketHandlers.ts`, `syncdb/src/client.ts`, subscribe/bootstrap/reconcile modules, tests on both sides
   - Blocked by: 3.2
