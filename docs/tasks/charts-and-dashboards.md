@@ -7,7 +7,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
 
 ## Phase 1 — Tracer (`LineChart`)
 
-- [ ] **Task 1.1**: Private scale/path/theme helpers
+- [x] **Task 1.1**: Private scale/path/theme helpers
   - Delivers: linear and band scales plus line/area/arc path strings from `{label, value}[]`; theme paint map from `useTheme`; no public d3 types
   - Files: `ui/src/charts/types.ts`, `ui/src/charts/scales.ts`, `ui/src/charts/paths.ts`, `ui/src/charts/theme.ts`, `ui/src/charts/scales.test.ts`, `ui/src/charts/paths.test.ts`, `ui/package.json` (`d3-scale`, `d3-shape`, types)
   - Blocked by: none
