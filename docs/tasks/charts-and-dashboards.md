@@ -23,7 +23,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: stub `LineChart` in `docs/reference/ui.md` Display list so the tracer is documented when it lands
   - Acceptance: bun tests — 3 points → 3 mark testIDs; empty data shows `emptyText`; `loading` shows spinner; press on a mark shows tooltip copy; `legendLabel` renders. `ui` compile green.
 
-- [ ] **Task 1.3**: `LineChart` demo story
+- [x] **Task 1.3**: `LineChart` demo story
   - Delivers: demo story with default, empty, loading, and tooltip-able data; registered in `demoConfig.tsx`
   - Files: `demo/stories/LineChart.stories.tsx`, `demo/demoConfig.tsx` (and story-config if that package requires a config module)
   - Blocked by: 1.2
