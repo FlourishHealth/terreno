@@ -7,6 +7,8 @@ import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const REGRESSION_TITLE = "Review the sync status banner — admin window verified";
+const AUTOCORRECT_LOOP_TITLE =
+  "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reach threshold fo maximum update depth exc";
 
 const routerBack = mock(() => {});
 const routerPush = mock(() => {});
@@ -140,6 +142,25 @@ describe("AdminModelForm update-depth regression", () => {
       title: "Original title",
     };
     readState.isLoading = false;
+  });
+
+  it("types an autocorrect-sensitive title without runaway setOptions under stable navigation", async () => {
+    const view = renderTodoEditForm({
+      conflicts: [],
+      resolve: () => {},
+    });
+    const titleField = view.getByTestId("admin-field-title");
+
+    await act(async () => {
+      fireEvent.changeText(titleField, AUTOCORRECT_LOOP_TITLE);
+    });
+
+    assert.isAtMost(
+      setOptions.mock.calls.length,
+      3,
+      `setOptions called ${setOptions.mock.calls.length} times after one changeText`
+    );
+    expect(titleField.props.value).toBe(AUTOCORRECT_LOOP_TITLE);
   });
 
   it("types the reported title without runaway setOptions under stable navigation", async () => {

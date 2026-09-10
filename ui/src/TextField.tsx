@@ -139,8 +139,20 @@ export const TextField: FC<TextFieldProps> = ({
     console.warn(`${type} is not yet supported`);
   }
 
+  // RN Web browser autocorrect/spellcheck fights controlled `value` and can oscillate
+  // between variants (e.g. "reachthreshold" vs "reach threshold"), firing onChangeText forever.
   const shouldAutocorrect =
-    ["text", "textarea"].includes(type) && (!autoComplete || autoComplete === "on");
+    Platform.OS !== "web" &&
+    ["text", "textarea"].includes(type) &&
+    (!autoComplete || autoComplete === "on");
+
+  const handleChangeText = (text: string): void => {
+    const currentValue = value ?? "";
+    if (text === currentValue) {
+      return;
+    }
+    onChange(text);
+  };
 
   const keyboardType = keyboardMap[type];
   const textContentType = textContentMap[type || "text"];
@@ -180,6 +192,7 @@ export const TextField: FC<TextFieldProps> = ({
           }}
         >
           <TextInput
+            {...(Platform.OS === "web" ? {spellCheck: false} : {})}
             accessibilityHint="Enter text here"
             accessibilityState={{disabled}}
             aria-label="Text input field"
@@ -208,7 +221,7 @@ export const TextField: FC<TextFieldProps> = ({
               }
               setFocused(false);
             }}
-            onChangeText={onChange}
+            onChangeText={handleChangeText}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;

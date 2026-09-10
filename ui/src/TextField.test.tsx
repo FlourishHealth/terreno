@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, userEvent} from "@testing-library/react-native";
+import type {ReactElement} from "react";
 import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
 
@@ -538,6 +539,70 @@ describe("TextField", () => {
       );
       fireEvent(getByDisplayValue(""), "focus");
       expect(mockOnFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores onChangeText when the text matches the controlled value", async () => {
+      const onChange = mock(() => {});
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField onChange={onChange} value="stable title" />
+      );
+
+      await act(async () => {
+        fireEvent.changeText(getByDisplayValue("stable title"), "stable title");
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("disables browser autocorrect and spellcheck on web", () => {
+      const savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByDisplayValue} = renderWithTheme(
+          <TextField onChange={mockOnChange} type="text" value="controlled title" />
+        );
+        const input = getByDisplayValue("controlled title");
+        expect(input.props.autoCorrect).toBe(false);
+        expect(input.props.spellCheck).toBe(false);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("does not recurse when synthetic onChange alternates by a single-space autocorrect delta", async () => {
+      const savedOS = PlatformModule.OS;
+      const withoutSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reachthreshold fo maximum update depth exc";
+      const withSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reach threshold fo maximum update depth exc";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = withoutSpace;
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+        const alternates = [withSpace, withoutSpace];
+
+        for (let i = 0; i < 6; i++) {
+          const nextText = alternates[i % 2];
+          await act(async () => {
+            fireEvent.changeText(view.getByDisplayValue(value), nextText);
+          });
+          view.rerender(renderField());
+        }
+
+        expect(onChange.mock.calls.length).toBe(6);
+        expect(value).toBe(withoutSpace);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
     });
   });
 });
