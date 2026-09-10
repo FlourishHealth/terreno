@@ -86,7 +86,7 @@ IP: [notification-center.md](../implementationPlans/notification-center.md)
   - Acceptance: bun tests — registered routes exist; demo notify 401 without auth; 200 with auth creates a row
 
 - [x] **Task 4.2**: example-frontend syncdb + bell + prefs
-  - Delivers: collections `notifications` and `notificationPreferences`; bell on todos header; settings preferences screen; `onOpen` uses Expo Router for in-app `href`; optional “send test” calling the demo route
+  - Delivers: collections `notifications` and `notification-preferences`; bell on todos header; settings preferences screen; `onOpen` uses Expo Router for in-app `href`; optional “send test” calling the demo route
   - Files: `example-frontend/store/syncdb.ts` (codegen/list), todos screen, settings route, tests if present
   - Blocked by: 3.1, 3.2, 4.1
   - Skills: `terreno-data-fetching`, `terreno-ui`, `verify-ui-changes`, `generate-sdk` (only if a non-sync demo route needs SDK)

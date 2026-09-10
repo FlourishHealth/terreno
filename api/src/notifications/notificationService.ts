@@ -26,6 +26,21 @@ interface NotificationUserLookup {
   phone?: string;
 }
 
+const escapeHtml = (value: string): string =>
+  value.replace(
+    /[&<>"']/g,
+    (character): string =>
+      (
+        ({
+          "'": "&#39;",
+          '"': "&quot;",
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+        }) as Record<string, string>
+      )[character] ?? character
+  );
+
 export interface NotificationServiceOptions {
   getComms?: () => NotificationsCommsService;
   retainDays?: number;
@@ -140,7 +155,7 @@ export const createNotificationService = (
       if (preferences.mail && user?.email) {
         await comms.sendMail(
           {
-            html: `<p>${body}</p>`,
+            html: `<p>${escapeHtml(body)}</p>`,
             subject: title,
             text: body,
             to: user.email,

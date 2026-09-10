@@ -3,6 +3,7 @@ import {authAsUser as authWithCredentials} from "@terreno/test";
 import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
+import type {Model} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {signupUser, type UserModel as UserMongooseModel} from "../auth";
@@ -17,7 +18,7 @@ import {NotificationsApp} from "./notificationsApp";
 import {notificationsBeforeSend} from "./notificationsBeforeSend";
 
 interface FakeComms {
-  mailCalls: Array<{subject: string; to: string}>;
+  mailCalls: Array<{html?: string; subject: string; to: string}>;
   mailUserIds: Array<string | undefined>;
   pushCalls: Array<{title: string; userId: string}>;
   smsCalls: Array<{body: string; to: string}>;
@@ -28,7 +29,7 @@ const buildFakeComms = (): {
   comms: FakeComms;
   getComms: () => FakeComms & {
     sendMail: (
-      message: {subject: string; to: string},
+      message: {html?: string; subject: string; to: string},
       options?: {userId?: string}
     ) => Promise<{accepted: boolean}>;
     sendPushToUser: (message: {title: string; userId: string}) => Promise<unknown[]>;
@@ -111,7 +112,6 @@ describe("NotificationsApp", () => {
       password: "password",
     });
     await clearNotificationData();
-    await UserModel.updateOne({_id: notAdmin._id}, {phone: "+15551234567"});
   });
 
   afterEach(async () => {
@@ -164,6 +164,18 @@ describe("NotificationsApp", () => {
       .expect(405);
   });
 
+  it("rejects sync create on notifications", async () => {
+    const response = await userAgent.post("/sync/mutate").send({
+      collection: "notifications",
+      data: {body: "x", ownerId: userId, title: "y"},
+      mutationId: "notification-create-rejected",
+      operation: "create",
+    });
+    assert.equal(response.status, 403);
+    assert.equal(response.body.nack?.code, "unauthorized");
+    assert.equal(await Notification.countDocuments({ownerId: userId}), 0);
+  });
+
   it("PATCH readAt persists and strips other fields", async () => {
     const id = await getNotificationService().notify({
       body: "Body",
@@ -175,6 +187,31 @@ describe("NotificationsApp", () => {
     const row = await Notification.findExactlyOne({_id: id});
     assert.equal(row.title, "Original");
     assert.isOk(row.readAt);
+  });
+
+  it("PATCH readAt null marks a notification unread", async () => {
+    const id = await getNotificationService().notify({
+      body: "Body",
+      title: "Read then unread",
+      userId,
+    });
+    await Notification.updateOne({_id: id}, {readAt: DateTime.now().toJSDate()});
+    await userAgent.patch(`/notifications/${id}`).send({readAt: null}).expect(200);
+    const row = await Notification.findExactlyOne({_id: id});
+    assert.isNull(row.readAt);
+  });
+
+  it("rejects invalid readAt values", async () => {
+    const id = await getNotificationService().notify({
+      body: "Body",
+      title: "Invalid readAt",
+      userId,
+    });
+    await userAgent.patch(`/notifications/${id}`).send({readAt: "not-a-date"}).expect(400);
+    await userAgent
+      .patch(`/notifications/${id}`)
+      .send({readAt: {invalid: true}})
+      .expect(400);
   });
 
   it("DELETE soft-deletes from list", async () => {
@@ -192,6 +229,12 @@ describe("NotificationsApp", () => {
     await NotificationPreference.create({mail: false, ownerId: userId});
     const result = await notificationsBeforeSend({channel: "mail", userId});
     assert.deepEqual(result, {cancel: true});
+  });
+
+  it("notificationsBeforeSend cancels push and SMS when their preferences are false", async () => {
+    await NotificationPreference.create({ownerId: userId, push: false, sms: false});
+    assert.deepEqual(await notificationsBeforeSend({channel: "push", userId}), {cancel: true});
+    assert.deepEqual(await notificationsBeforeSend({channel: "sms", userId}), {cancel: true});
   });
 
   it("notificationsBeforeSend does not cancel when preference row is missing", async () => {
@@ -222,6 +265,44 @@ describe("NotificationsApp", () => {
     assert.equal(comms.mailCalls.length, 1);
     assert.equal(comms.mailCalls[0]?.to, "notAdmin@example.com");
     assert.deepEqual(comms.mailUserIds, [userId]);
+    assert.equal(comms.mailCalls[0]?.html, "<p>Body</p>");
+  });
+
+  it("fan-out escapes HTML in mail while preserving plain text", async () => {
+    const {comms, getComms} = buildFakeComms();
+    configureNotificationService({getComms, userModel: UserModel});
+    await getNotificationService().notify({
+      body: '<script>alert("x")</script> & more',
+      title: "Safe mail",
+      userId,
+    });
+    assert.equal(
+      comms.mailCalls[0]?.html,
+      "<p>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; more</p>"
+    );
+  });
+
+  it("fan-out calls SMS and push when preferences and destinations are available", async () => {
+    const {comms, getComms} = buildFakeComms();
+    const userModel = {
+      findById: () => ({
+        select: () => ({
+          lean: async () => ({
+            email: "notAdmin@example.com",
+            phone: "+15551234567",
+          }),
+        }),
+      }),
+    } as unknown as Model<{email?: string; phone?: string}>;
+    configureNotificationService({getComms, userModel});
+    await getNotificationService().notify({
+      body: "Body",
+      title: "Every channel",
+      userId,
+    });
+    assert.deepEqual(comms.smsCalls, [{body: "Every channel: Body", to: "+15551234567"}]);
+    assert.deepEqual(comms.smsUserIds, [userId]);
+    assert.deepEqual(comms.pushCalls, [{body: "Body", title: "Every channel", userId}]);
   });
 
   it("fan-out skips mail when pref off", async () => {
@@ -287,6 +368,23 @@ describe("NotificationsApp", () => {
     const swept = await getNotificationService().sweepExpired();
     assert.equal(swept, 1);
     const tombstoned = await Notification.findOne({_id: row._id, deleted: true});
+    assert.isTrue(tombstoned?.deleted);
+  });
+
+  it("notify sweeps expired rows when retainDays is enabled", async () => {
+    configureNotificationService({retainDays: 1, userModel: UserModel});
+    const stale = await Notification.create({
+      body: "Stale",
+      created: DateTime.now().minus({days: 2}).toJSDate(),
+      ownerId: userId,
+      title: "Stale",
+    });
+    await getNotificationService().notify({
+      body: "Fresh",
+      title: "Fresh",
+      userId,
+    });
+    const tombstoned = await Notification.findOne({_id: stale._id, deleted: true});
     assert.isTrue(tombstoned?.deleted);
   });
 

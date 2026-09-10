@@ -19,6 +19,7 @@ describe("NotificationBell", () => {
       <NotificationBell onPress={() => {}} testID="bell" unreadCount={3} />
     );
     assert.isOk(getByTestId("bell-button"));
+    assert.isOk(getByTestId("bell-badge"));
   });
 
   it("calls onPress when tapped", () => {

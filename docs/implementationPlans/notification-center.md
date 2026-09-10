@@ -45,7 +45,7 @@ through syncdb in the example app.
 | Tap | Optional `href` on the row. UI calls `onOpen(notification)`. Example-frontend routes internal paths; does not call `Linking.openURL` by default. |
 | Retention | `NotificationsApp({retainDays?: number})` default **`0`** (keep). `retainDays > 0` tombstones (`deleted`) rows older than that; no Mongo TTL index (hard delete breaks syncdb). |
 | Mark all read | `POST /notifications/mark-all-read` (authenticated, owner filter) sets `readAt` on unread rows; change streams update clients. |
-| UI split | Presentational components + a `NotificationsSource` callback interface. Example-frontend implements the source with syncdb. Demo uses fixtures. |
+| UI split | Presentational components receive data and callbacks. Example-frontend supplies them with syncdb hooks; the demo uses fixtures. |
 | Admin | No dedicated admin explorer in this IP. Consumer may add the models to `AdminApp` later. |
 | Kind | Optional `kind` string on `notify()` / the document for icons; **not** used for preferences. |
 
