@@ -1,14 +1,21 @@
-import type {DemoConfigurationBase} from "../demoConfig";
+import {DemoConfiguration} from "@config";
+import type {ReactElement} from "react";
+
 import {NotificationCenterDemo} from "../stories/NotificationCenter.stories";
 
-export const NotificationCenterConfiguration: DemoConfigurationBase = {
-  category: "Patterns",
+const renderNotificationCenterDemo = (): ReactElement => <NotificationCenterDemo />;
+
+export const NotificationCenterConfiguration: DemoConfiguration = {
+  additionalDocumentation: [],
+  a11yNotes: [],
+  category: "Pattern",
   component: () => null,
-  demo: () => <NotificationCenterDemo />,
+  demo: renderNotificationCenterDemo,
   demoOptions: {},
   description: "Presentational notification bell, inbox list, and channel preferences.",
   interfaceName: "NotificationBellProps",
   name: "Notification Center",
+  props: {},
   related: ["NotificationBell", "NotificationInbox", "NotificationPreferences"],
   status: {
     android: "ready",

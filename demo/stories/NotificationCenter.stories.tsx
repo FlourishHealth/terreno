@@ -7,6 +7,7 @@ import {
   NotificationPreferences,
   type NotificationPreferencesState,
 } from "@terreno/ui";
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 
@@ -48,7 +49,7 @@ export const NotificationCenterDemo: React.FC = () => {
 
   const handleMarkRead = useCallback((item: NotificationInboxItem): void => {
     setItems((current) =>
-      current.map((row) => (row.id === item.id ? {...row, readAt: new Date().toISOString()} : row))
+      current.map((row) => (row.id === item.id ? {...row, readAt: DateTime.now().toISO()} : row))
     );
   }, []);
 
@@ -62,30 +63,35 @@ export const NotificationCenterDemo: React.FC = () => {
     setItems((current) => current.filter((row) => row.id !== item.id));
   }, []);
 
+  const handleOpenInbox = useCallback((): void => {
+    setInboxOpen(true);
+  }, []);
+
+  const handleCloseInbox = useCallback((): void => {
+    setInboxOpen(false);
+  }, []);
+
+  const handleOpenNotification = useCallback((): void => {
+    setInboxOpen(false);
+  }, []);
+
+  const handleChangePreference = useCallback(
+    (channel: keyof NotificationPreferencesState, value: boolean): void => {
+      setPreferences((current) => ({...current, [channel]: value}));
+    },
+    []
+  );
+
   return (
     <StorybookContainer>
       <Box gap={6} padding={4}>
         <Box alignItems="center" direction="row" gap={3}>
-          <NotificationBell
-            onPress={() => {
-              setInboxOpen(true);
-            }}
-            unreadCount={unreadCount}
-          />
-          <NotificationPreferences
-            onChange={(channel, value) => {
-              setPreferences((current) => ({...current, [channel]: value}));
-            }}
-            preferences={preferences}
-          />
+          <NotificationBell onPress={handleOpenInbox} unreadCount={unreadCount} />
+          <NotificationPreferences onChange={handleChangePreference} preferences={preferences} />
         </Box>
         <Modal
-          onDismiss={() => {
-            setInboxOpen(false);
-          }}
-          secondaryButtonOnClick={() => {
-            setInboxOpen(false);
-          }}
+          onDismiss={handleCloseInbox}
+          secondaryButtonOnClick={handleCloseInbox}
           secondaryButtonText="Close"
           title="Notifications"
           visible={inboxOpen}
@@ -95,9 +101,7 @@ export const NotificationCenterDemo: React.FC = () => {
             onDismiss={handleDismiss}
             onMarkRead={handleMarkRead}
             onMarkUnread={handleMarkUnread}
-            onOpen={() => {
-              setInboxOpen(false);
-            }}
+            onOpen={handleOpenNotification}
           />
         </Modal>
       </Box>
