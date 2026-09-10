@@ -93,4 +93,29 @@ describe("OrgDirectoryScreen", () => {
     });
     expect(createOrganization).toHaveBeenCalledWith({name: "New Org"});
   });
+
+  it("opens and disables an organization from its row", async () => {
+    const onEnterOrganization = mock(() => {});
+    queryState.data = {
+      data: [{_id: "org-1", disabled: false, name: "Acme", slug: "acme"}],
+    };
+    const screen = renderWithTheme(
+      <OrgDirectoryScreen api={api} isOperator onEnterOrganization={onEnterOrganization} />
+    );
+
+    fireEvent(screen.getByLabelText("Open"), "click");
+    expect(onEnterOrganization).toHaveBeenCalledWith({
+      _id: "org-1",
+      disabled: false,
+      name: "Acme",
+      slug: "acme",
+    });
+    await act(async () => {
+      fireEvent(screen.getByLabelText("Disable"), "click");
+    });
+    expect(updateOrganization).toHaveBeenCalledWith({
+      body: {disabled: true},
+      id: "org-1",
+    });
+  });
 });
