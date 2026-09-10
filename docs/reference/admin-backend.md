@@ -44,6 +44,7 @@ This creates:
 interface AdminOptions {
   models: AdminModelConfig[];
   basePath?: string;  // Default: "/admin"
+  organizations?: boolean; // Default: false
 }
 
 interface AdminModelConfig {
@@ -54,6 +55,38 @@ interface AdminModelConfig {
   defaultSort?: string;   // Default: "-created"
 }
 ``````
+
+## Organization scoping
+
+Organization-aware admin CRUD is opt-in so existing single-tenant apps remain
+unchanged. Enable organizations in both access and admin wiring:
+
+``````typescript
+const access = createAccess({
+  connection: mongoose.connection,
+  organizations: true,
+  statements,
+  userModel: User,
+});
+
+new AdminApp({
+  accessControl: access,
+  organizations: true,
+});
+``````
+
+When enabled, models whose schema contains `organizationId`:
+
+- require organization context through `X-Organization-Id` (single-org
+  `org-admin` callers may use context inference);
+- AND `organizationId` into list and search queries;
+- deny read, update, delete, and bulk update for records outside the current org;
+- overwrite client-provided `organizationId` on create with the current org.
+
+Models without `organizationId` and every admin app that omits `organizations`
+keep their existing behavior. Organization directory, settings, and membership
+requests use the shared `OrgsApp` routes mounted by
+`TerrenoApp({organizations: true, accessControl: access})`.
 
 ## Generated Routes
 

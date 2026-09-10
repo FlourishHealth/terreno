@@ -12,12 +12,15 @@ import {
   createOpenApiBuilder,
   createScriptArgs,
   describeModel,
+  getOrgContext,
   type JSONValue,
   logger,
   type ModelRouterOptions,
   modelDescriptionToAdminFields,
   modelRouter,
   type OpenApiMiddleware,
+  OrgQueryFilter,
+  orgContextMiddleware,
   type PermissionMethod,
   Permissions,
   type PopulatePath,
@@ -213,6 +216,11 @@ export interface AdminOptions {
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
    * resource/action permissions (for example `user:update`) from the same Access instance. */
   accessControl?: AnyTerrenoAccess;
+  /**
+   * Scope admin CRUD for models with an `organizationId` schema path.
+   * Default false so existing single-tenant admin panels remain unchanged.
+   */
+  organizations?: boolean;
 }
 
 interface AdminFieldMeta {
@@ -311,7 +319,8 @@ const scrubAdminResponse = (
 const buildAdminListQueryFilter = (
   config: ResolvedAdminModel,
   /** Resolved (possibly derived) search fields from `/admin/config`, not just explicit config. */
-  resolvedSearchFields?: string[]
+  resolvedSearchFields?: string[],
+  isOrganizationScoped = false
 ): NonNullable<ModelRouterOptions<unknown>["queryFilter"]> => {
   const base = config.queryFilter;
   const searchFields = resolvedSearchFields ?? config.searchFields ?? [];
@@ -347,6 +356,9 @@ const buildAdminListQueryFilter = (
         return null;
       }
       merged = {...merged, ...baseResult};
+    }
+    if (isOrganizationScoped) {
+      merged = {...merged, ...OrgQueryFilter(user, merged)};
     }
     const result = andMongoFilters(merged, searchClause);
     return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
@@ -550,6 +562,10 @@ export class AdminApp {
    */
   constructor(options: AdminOptions) {
     this.options = options;
+  }
+
+  private isOrganizationScoped(config: Pick<AdminModelConfig, "model">): boolean {
+    return Boolean(this.options.organizations && config.model.schema.path("organizationId"));
   }
 
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
@@ -1154,6 +1170,7 @@ export class AdminApp {
 
     // Mount search endpoint for each model
     for (const config of modelConfigs) {
+      const isOrganizationScoped = this.isOrganizationScoped(config);
       // Determine searchable fields from the actual Mongoose schema type,
       // not the OpenAPI type (which reports ObjectId as "string")
       const searchableFields: string[] = [];
@@ -1176,6 +1193,7 @@ export class AdminApp {
       app.get(
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
+        ...(isOrganizationScoped ? [orgContextMiddleware({required: true})] : []),
         asyncHandler(async (req, res) => {
           if (
             !(await checkPermissions(
@@ -1216,10 +1234,11 @@ export class AdminApp {
             q,
           });
           try {
-            const scoped = await buildAdminListQueryFilter(config, modelMeta?.searchFields)(
-              req.user as User | undefined,
-              {}
-            );
+            const scoped = await buildAdminListQueryFilter(
+              config,
+              modelMeta?.searchFields,
+              isOrganizationScoped
+            )(req.user as User | undefined, {});
             if (scoped === null) {
               return res.json({data: []});
             }
@@ -1248,6 +1267,7 @@ export class AdminApp {
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
+      const isOrganizationScoped = this.isOrganizationScoped(config);
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const readonlySet = new Set(config.readonlyFields ?? []);
       const excludeFieldSet = new Set(config.excludeFields ?? []);
@@ -1264,10 +1284,14 @@ export class AdminApp {
         if (allowed === false) {
           return [];
         }
-        return this.resourceActionPermissions(config, action);
+        const permissions = this.resourceActionPermissions(config, action);
+        if (isOrganizationScoped && action !== "create") {
+          return [...permissions, Permissions.IsOrganizationMember];
+        }
+        return permissions;
       };
 
-      const updatePermissions = this.resourceActionPermissions(config, "update");
+      const updatePermissions = adminPermission(config.permissions?.update, "update");
 
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
         if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -1617,6 +1641,9 @@ export class AdminApp {
             return body;
           }
           const record = body as Record<string, unknown>;
+          if (isOrganizationScoped) {
+            record.organizationId = getOrgContext()?.organization?._id;
+          }
           if (
             !(await checkPermissions(
               "create",
@@ -1648,7 +1675,11 @@ export class AdminApp {
           listFields: config.listFields,
           searchFields: modelMeta?.searchFields ?? config.searchFields,
         }),
-        queryFilter: buildAdminListQueryFilter(config, modelMeta?.searchFields),
+        queryFilter: buildAdminListQueryFilter(
+          config,
+          modelMeta?.searchFields,
+          isOrganizationScoped
+        ),
         responseHandler: async (value, _method, request): Promise<JSONValue> =>
           addRecordCapabilities(value, request),
         sort: config.defaultSort ?? "-created",
@@ -1657,6 +1688,9 @@ export class AdminApp {
       };
 
       const modelBase = express.Router();
+      if (isOrganizationScoped) {
+        modelBase.use(authenticateMiddleware(), orgContextMiddleware({required: true}));
+      }
       modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));
       modelBase.post(
         "/bulk-patch",
