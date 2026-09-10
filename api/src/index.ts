@@ -61,6 +61,7 @@ export * from "./openApiBuilder";
 export * from "./openApiCompat";
 export * from "./openApiEtag";
 export * from "./openApiValidator";
+export * from "./orgs/organizationModel";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";

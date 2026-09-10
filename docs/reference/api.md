@@ -9,6 +9,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
+- [Organizations](#organizations)
 - [Request Validation](#request-validation)
 - [Middleware](#middleware)
 - [Logging & Tracing](#logging--tracing)
@@ -21,6 +22,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- `Organization`, `Membership`, `organizationSlugFromName`
 - `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
@@ -572,6 +574,35 @@ export const addDefaultPlugins = (schema) => {
 
 // Apply to all schemas
 todoSchema.plugin(addDefaultPlugins);
+``````
+
+## Organizations
+
+Native `Organization` and `Membership` models live in `@terreno/api`. Register `OrgsApp` and org
+context middleware in later slices; this page will document routes and `X-Organization-Id` with
+those tasks.
+
+| Model | Fields |
+| --- | --- |
+| `Organization` | `name` (required), `slug` (unique, generated from name), `ownerId`, `settings` (Mixed), `disabled` |
+| `Membership` | `organizationId`, `userId`, `roleName` (`org-admin` \| `member`, default `member`), `status` (`active` \| `suspended`) |
+
+Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a Mongo duplicate-key error.
+
+`Membership` statics: `findActiveForUser`, `isOrgAdmin`, `isMember` (active rows only). Per-org
+`org-admin` is stored on Membership, not on `user.roles`.
+
+``````typescript
+import {Membership, Organization} from "@terreno/api";
+
+const org = await Organization.create({name: "Acme Corp", ownerId: user._id});
+// org.slug === "acme-corp"
+
+await Membership.create({
+  organizationId: org._id,
+  roleName: "org-admin",
+  userId: user._id,
+});
 ``````
 
 ## Request Validation
