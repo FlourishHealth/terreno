@@ -85,6 +85,13 @@ const PLUGIN_APP_SKILL_DIRECTORIES = [
 
 const PLUGIN_AGENT_NAMES = ["pre-commit", "ui-verifier"] as const;
 
+const GRILLING_BRIEF_HEADINGS = [
+  "## Background",
+  "## The idea",
+  "## The plan",
+  "## Decisions",
+] as const;
+
 const REMOVED_SKILL_DIRECTORIES = [
   "add-app-clip",
   "building-native-ui",
@@ -199,6 +206,12 @@ export const validateStageContent = ({
     }
     if (!content.includes("Decisions table")) {
       errors.push(`${prefix}: Grow must list grilled decisions in a Decisions table`);
+    }
+    if (!content.includes("approval brief")) {
+      errors.push(`${prefix}: Grow must end with a standalone approval brief`);
+    }
+    if (!content.includes("question that prompted")) {
+      errors.push(`${prefix}: Grow decisions must carry the question that prompted them`);
     }
   }
 
@@ -350,6 +363,37 @@ export const validateStageContent = ({
         errors.push(`${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`);
       }
     }
+  }
+
+  return errors;
+};
+
+export const validateGrillingProcedure = (content: string): string[] => {
+  const errors: string[] = [];
+
+  if (!content.includes("## Approval brief")) {
+    errors.push("grilling: Grow's approval output must be a standalone approval brief");
+    return errors;
+  }
+
+  for (const heading of GRILLING_BRIEF_HEADINGS) {
+    if (!content.includes(heading)) {
+      errors.push(`grilling: approval brief must include ${heading}`);
+    }
+  }
+
+  const planIndex = content.indexOf("## The plan");
+  const decisionsIndex = content.indexOf("## Decisions");
+  if (planIndex >= 0 && decisionsIndex >= 0 && planIndex > decisionsIndex) {
+    errors.push("grilling: the idea and the plan must come before the Decisions table");
+  }
+
+  if (!content.includes("| ID | Question asked | Answer |")) {
+    errors.push("grilling: the Decisions table must record the question that prompted each choice");
+  }
+
+  if (!content.includes("no row limit")) {
+    errors.push("grilling: the Decisions table must stay unbounded");
   }
 
   return errors;
@@ -781,6 +825,12 @@ export const validateLifecyclePlugin = ({
       errors.push(`${definition.directory}: Cupping terminology must be migrated to Roast`);
     }
   }
+
+  const grilling = readFileSync(
+    join(skillsDirectory, "terreno-1-grow/references/grilling.md"),
+    "utf8"
+  );
+  errors.push(...validateGrillingProcedure(grilling));
 
   for (const {content, path} of readMarkdownFiles(join(pluginDirectory, "references"))) {
     for (const marker of PORTABILITY_MARKERS) {

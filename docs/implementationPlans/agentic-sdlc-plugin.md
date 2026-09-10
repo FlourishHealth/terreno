@@ -62,7 +62,7 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
-| AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
+| AP11 | Grow ends with a standalone approval brief — orientation paragraph, optional background, idea, plan — then an unbounded Decisions table pairing every grilled decision with the question that prompted it, or omits that table when there were none; grilling stays on a question until the answer is executable |
 | AP12 | Brew and Taste wait until Bugbot, CodeQL, and similar review bots on the current head have reported, preferring hooks targeted to the matched bot or harness subscriptions over timer polling; unfiltered PR-check watches are product-CI waits owned by Taste |
 | AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or documented a not-applicable skip. An unexplained untriggered host prevents Brew `PASS`; a documented skip is terminal for Taste |
 | AP14 | Taste waits in-process with the provider's bounded native watch command (`gh pr checks --watch`, `gh run watch`, `circleci run watch`, `bk build watch`) in a loop until jobs are terminal or the wait times out. Outer loops honor Taste `PENDING` with the same hooks. Watch exit codes trigger a fresh classification rather than becoming stage verdicts directly |
@@ -133,7 +133,8 @@ current head rather than trusting stale state.
 Researches repository facts, distinguishes human decisions from discoverable facts and
 low-risk conventional details, grills until each answer is executable, then writes
 approved, implementation-ready IP/tasks. Every acceptance criterion maps to verification.
-Approval shows a 15-line index plus a full Decisions table when any grilled decisions
+Approval shows a standalone brief — orientation paragraph, optional background, idea,
+plan — plus a full Decisions table with prompting questions when any grilled decisions
 exist.
 
 ### Pick

@@ -8,6 +8,7 @@ import {
   validateCodexPluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
+  validateGrillingProcedure,
   validateLifecyclePlugin,
   validateOuterLoopContent,
   validateProductCiContract,
@@ -19,6 +20,15 @@ const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
 const readStage = (directory: string): string =>
   readFileSync(
     resolve(ROOT_DIRECTORY, "plugins/terreno-planning/skills", directory, "SKILL.md"),
+    "utf8"
+  );
+
+const readGrilling = (): string =>
+  readFileSync(
+    resolve(
+      ROOT_DIRECTORY,
+      "plugins/terreno-planning/skills/terreno-1-grow/references/grilling.md"
+    ),
     "utf8"
   );
 
@@ -431,6 +441,61 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("grilling procedure")));
     assert.isTrue(errors.some((error) => error.includes("Decisions table")));
+  });
+
+  it("rejects Grow that drops the approval brief or the prompting questions", (): void => {
+    const content = readStage("terreno-1-grow")
+      .replaceAll("approval brief", "approval index")
+      .replaceAll("question that prompted", "chosen answer");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-1-grow",
+        nextMarkers: ["next: pick", "next: grow", "next: null"],
+        stage: "grow",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("standalone approval brief")));
+    assert.isTrue(errors.some((error) => error.includes("question that prompted them")));
+  });
+
+  it("accepts the real grilling approval brief", (): void => {
+    assert.deepEqual(validateGrillingProcedure(readGrilling()), []);
+  });
+
+  it("rejects an approval brief that leads with decisions instead of the plan", (): void => {
+    const content = readGrilling()
+      .replace("## The plan", "## Deferred plan")
+      .replace("## Decisions", "## Decisions\n\n## The plan");
+
+    assert.isTrue(
+      validateGrillingProcedure(content).some((error) =>
+        error.includes("must come before the Decisions table")
+      )
+    );
+  });
+
+  it("rejects an approval brief that drops orientation, questions, or the row cap", (): void => {
+    const content = readGrilling()
+      .replace("## The idea", "## Implementation notes")
+      .replace("| ID | Question asked | Answer |", "| ID | Decision | Choice |")
+      .replace("no row limit", "at most five rows");
+    const errors = validateGrillingProcedure(content);
+
+    assert.isTrue(errors.some((error) => error.includes("## The idea")));
+    assert.isTrue(errors.some((error) => error.includes("question that prompted each choice")));
+    assert.isTrue(errors.some((error) => error.includes("stay unbounded")));
+  });
+
+  it("rejects a grilling procedure with no approval brief at all", (): void => {
+    const errors = validateGrillingProcedure(
+      readGrilling().replace("## Approval brief", "## Approval summary")
+    );
+
+    assert.deepEqual(errors, [
+      "grilling: Grow's approval output must be a standalone approval brief",
+    ]);
   });
 
   it("rejects a stage that still disables model invocation", (): void => {

@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.8.0`)
+Plugin: `terreno-planning` (`2.9.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -10,7 +10,7 @@ loops that invoke those stages; they are not stages and must not appear as `stag
 
 | Skill | Preconditions | Primary output | PASS next |
 | --- | --- | --- | --- |
-| `terreno-1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map | Pick (enters inner loop) |
+| `terreno-1-grow` | request/spec + repository | approved IP/tasks + criterion/verification map + standalone approval brief | Pick (enters inner loop) |
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick; pass a task-scoped briefing; do not spawn two unconstrained reviewers |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
@@ -67,6 +67,13 @@ for an actual product/architecture/security/data/destructive/policy decision or
 unreplaceable credential. Before asking, it gives the overall goal/state, completed
 work, decisive evidence, two to four options with impact, and a recommendation; the
 message ends with one exact question.
+
+Grow's human-facing output is a standalone approval brief, not an index. It opens with a
+paragraph on where the repository is and where the change takes it, adds background on
+current state when a reviewer needs it, then the idea, then the plan (tasks, tracer,
+verification, out of scope, risks). A Decisions table follows the plan with no row cap,
+pairing every settled human decision with the question that prompted it; it is omitted
+when grilling settled none. Paths to the IP and task files come last.
 
 GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
 `Verification` are the only visible PR sections; optional detail is expandable; comments
