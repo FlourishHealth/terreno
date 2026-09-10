@@ -208,26 +208,7 @@ export const TextField: FC<TextFieldProps> = ({
               }
               setFocused(false);
             }}
-            onChangeText={(text) => {
-              // #region agent log
-              if (testID?.startsWith("admin-field-")) {
-                const payload = {
-                  data: {testID, textPreview: text.slice(0, 120)},
-                  hypothesisId: "H3",
-                  location: "TextField.tsx",
-                  message: "onChangeText",
-                  timestamp: Date.now(),
-                };
-                console.warn("[agent:TextField]", JSON.stringify(payload));
-                const globalLogs = globalThis as typeof globalThis & {
-                  __agentTextFieldLogs?: unknown[];
-                };
-                globalLogs.__agentTextFieldLogs = globalLogs.__agentTextFieldLogs ?? [];
-                globalLogs.__agentTextFieldLogs.push(payload);
-              }
-              // #endregion
-              onChange(text);
-            }}
+            onChangeText={onChange}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;

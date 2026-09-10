@@ -12,12 +12,8 @@ const routerBack = mock(() => {});
 const routerPush = mock(() => {});
 const setOptions = mock((_opts: Record<string, unknown>) => {});
 
-let navigationInstanceCounter = 0;
 const stableNavigation = {setOptions};
-const unstableUseNavigation = (): {setOptions: typeof setOptions} => {
-  navigationInstanceCounter += 1;
-  return {setOptions};
-};
+const unstableUseNavigation = (): {setOptions: typeof setOptions} => ({setOptions});
 
 mock.module("expo-router", () => ({
   router: {back: routerBack, push: routerPush},
@@ -131,7 +127,6 @@ const renderTodoEditForm = (
 describe("AdminModelForm update-depth repro", () => {
   beforeEach(() => {
     setOptions.mockClear();
-    navigationInstanceCounter = 0;
     configState.config = {
       customScreens: [],
       models: [todoModelConfig],
@@ -160,7 +155,7 @@ describe("AdminModelForm update-depth repro", () => {
 
     assert.isAtMost(
       setOptions.mock.calls.length,
-      30,
+      3,
       `setOptions called ${setOptions.mock.calls.length} times after one changeText`
     );
     expect(titleField.props.value).toBe(REPRO_TITLE);
@@ -234,7 +229,7 @@ describe("AdminModelForm update-depth repro (setOptions triggers parent re-rende
 
     assert.isAtMost(
       setOptionsWithRerender.mock.calls.length,
-      12,
+      3,
       `setOptions rerender storm: ${setOptionsWithRerender.mock.calls.length}`
     );
     expect(titleField.props.value).toBe(REPRO_TITLE);
@@ -255,7 +250,6 @@ describe("AdminModelForm update-depth repro (unstable navigation)", () => {
       useNavigation: unstableUseNavigation,
     }));
     setOptions.mockClear();
-    navigationInstanceCounter = 0;
     configState.config = {
       customScreens: [],
       models: [todoModelConfig],
@@ -271,7 +265,7 @@ describe("AdminModelForm update-depth repro (unstable navigation)", () => {
     readState.isLoading = false;
   });
 
-  it("flags unstable navigation identity causing runaway setOptions when typing title", async () => {
+  it("does not run away when useNavigation returns a new object on every render", async () => {
     const view = renderTodoEditForm({
       conflicts: [],
       resolve: () => {},
@@ -284,14 +278,11 @@ describe("AdminModelForm update-depth repro (unstable navigation)", () => {
     });
 
     const setOptionsAfterOneChange = setOptions.mock.calls.length - setOptionsBefore;
-    // Evidence threshold: stable navigation should be O(1) per title change; unstable loops are much higher.
-    if (setOptionsAfterOneChange > 40) {
-      console.warn(
-        "[repro] unstable navigation setOptions storm:",
-        setOptionsAfterOneChange,
-        "calls"
-      );
-    }
+    assert.isAtMost(
+      setOptionsAfterOneChange,
+      2,
+      `setOptions called ${setOptionsAfterOneChange} times after one changeText with unstable navigation`
+    );
     expect(titleField.props.value).toBe(REPRO_TITLE);
   });
 });

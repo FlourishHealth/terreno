@@ -17,28 +17,6 @@ import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
-// #region agent log
-const debugAdminModelFormLog = (
-  hypothesisId: string,
-  message: string,
-  data: Record<string, unknown>
-): void => {
-  const payload = {
-    data,
-    hypothesisId,
-    location: "AdminModelForm.tsx",
-    message,
-    timestamp: Date.now(),
-  };
-  console.warn("[agent:AdminModelForm]", JSON.stringify(payload));
-  const globalLogs = globalThis as typeof globalThis & {
-    __agentAdminModelFormLogs?: unknown[];
-  };
-  globalLogs.__agentAdminModelFormLogs = globalLogs.__agentAdminModelFormLogs ?? [];
-  globalLogs.__agentAdminModelFormLogs.push(payload);
-};
-// #endregion
-
 /** Parameters for {@link AdminModelFormProps.getScreenTitle}. */
 export interface AdminModelFormScreenTitleParams {
   mode: "create" | "edit";
@@ -338,29 +316,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
-  const renderCountRef = useRef(0);
-  const handleFieldChangeCountRef = useRef(0);
-  const setOptionsCountRef = useRef(0);
-  const prevNavigationRef = useRef<unknown>(undefined);
+  const navigationRef = useRef(navigation);
+  navigationRef.current = navigation;
   const prevNavigationTitleRef = useRef<string | undefined>(undefined);
-
-  renderCountRef.current += 1;
-  // #region agent log
-  if (renderCountRef.current <= 80) {
-    const navigationChanged =
-      prevNavigationRef.current !== undefined && prevNavigationRef.current !== navigation;
-    debugAdminModelFormLog("H4", "render", {
-      itemId,
-      mode,
-      modelName,
-      navigationChanged,
-      renderCount: renderCountRef.current,
-      titleValue:
-        typeof formState.title === "string" ? formState.title.slice(0, 80) : formState.title,
-    });
-    prevNavigationRef.current = navigation;
-  }
-  // #endregion
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
@@ -424,31 +382,18 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [mode, modelConfig, isInitialized]);
 
   const handleFieldChange = useCallback((fieldKey: string, value: AdminFieldValue) => {
-    handleFieldChangeCountRef.current += 1;
-    // #region agent log
-    debugAdminModelFormLog("H1", "handleFieldChange", {
-      callCount: handleFieldChangeCountRef.current,
-      fieldKey,
-      renderCount: renderCountRef.current,
-      valuePreview: typeof value === "string" ? value.slice(0, 120) : value,
+    setFormState((prev) => {
+      if (prev[fieldKey] === value) {
+        return prev;
+      }
+      return {...prev, [fieldKey]: value};
     });
-    // #endregion
-    setFormState((prev) => ({...prev, [fieldKey]: value}));
     setErrors((prev) => {
-      const hadError = Object.hasOwn(prev, fieldKey);
+      if (!Object.hasOwn(prev, fieldKey)) {
+        return prev;
+      }
       const next = {...prev};
       delete next[fieldKey];
-      // #region agent log
-      debugAdminModelFormLog("H2", "setErrors updater", {
-        fieldKey,
-        hadError,
-        nextErrorKeys: Object.keys(next),
-        prevErrorKeys: Object.keys(prev),
-        sameKeys:
-          Object.keys(prev).length === Object.keys(next).length &&
-          Object.keys(prev).every((k) => prev[k] === next[k]),
-      });
-      // #endregion
       return next;
     });
   }, []);
@@ -636,24 +581,20 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   // Set stack / document title. Save and delete live in the form chrome because
   // admin Expo stacks use headerShown: false (same as Create on the table).
+  // navigation is read from a ref so unstable useNavigation() identities cannot
+  // retrigger setOptions and feed back into controlled field inputs.
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    setOptionsCountRef.current += 1;
-    const titleChanged = prevNavigationTitleRef.current !== navigationTitle;
-    // #region agent log
-    debugAdminModelFormLog("H1", "navigation.setOptions effect", {
-      navigationTitle,
-      setOptionsCount: setOptionsCountRef.current,
-      titleChanged,
-    });
-    // #endregion
+    if (prevNavigationTitleRef.current === navigationTitle) {
+      return;
+    }
     prevNavigationTitleRef.current = navigationTitle;
-    navigation.setOptions({
+    navigationRef.current.setOptions({
       title: navigationTitle,
     });
-  }, [navigation, navigationTitle, modelConfig]);
+  }, [navigationTitle, modelConfig]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
     if (!modelConfig) {

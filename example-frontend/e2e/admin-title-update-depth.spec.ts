@@ -11,8 +11,6 @@ test.describe("Admin Todo title update-depth investigation", () => {
     request,
   }) => {
     consoleGuard.allow("UTC is not a valid timezone");
-    consoleGuard.allow("[agent:AdminModelForm]");
-    consoleGuard.allow("[agent:TextField]");
 
     const apiUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
@@ -43,27 +41,10 @@ test.describe("Admin Todo title update-depth investigation", () => {
     await titleField.fill("");
     await titleField.pressSequentially(REPRO_TITLE, {delay: 5});
 
-    const agentLogs = await page.evaluate(() => {
-      const logs = (globalThis as typeof globalThis & {__agentAdminModelFormLogs?: unknown[]})
-        .__agentAdminModelFormLogs;
-      return logs ?? [];
-    });
-
     const depthErrors = pageErrors.filter((m) => m.includes("Maximum update depth exceeded"));
     const consoleDepthErrors = consoleGuard
       .messages()
       .filter((m) => m.text.includes("Maximum update depth exceeded"));
-
-    // eslint-disable-next-line no-console
-    console.info(
-      "[repro-summary]",
-      JSON.stringify({
-        agentLogCount: agentLogs.length,
-        consoleDepthErrors,
-        finalTitle: await titleField.inputValue(),
-        pageErrors: depthErrors,
-      })
-    );
 
     expect(depthErrors, `pageerror: ${depthErrors.join("; ")}`).toHaveLength(0);
     expect(
