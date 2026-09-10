@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {useAdminContext} from "./adminContext";
 import type {AdminRequestArgs} from "./adminRequest";
 import type {AdminRpc} from "./adminRpc";
@@ -66,7 +66,9 @@ export const useAdminRpcQuery = <T = unknown>({
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(Boolean(rpc) && !skip);
+  const [isFetching, setIsFetching] = useState(Boolean(rpc) && !skip);
   const [generation, setGeneration] = useState(0);
+  const hasLoadedRef = useRef(false);
   const tagsKey = providesTags.join("\u0000");
 
   const refetch = useCallback((): void => {
@@ -77,22 +79,27 @@ export const useAdminRpcQuery = <T = unknown>({
   useEffect(() => {
     if (!rpc || skip) {
       setIsLoading(false);
+      setIsFetching(false);
       return;
     }
     let cancelled = false;
-    setIsLoading(true);
+    setIsLoading(!hasLoadedRef.current);
+    setIsFetching(true);
     setError(null);
     rpc({method: "GET", url})
       .then((result) => {
         if (!cancelled) {
+          hasLoadedRef.current = true;
           setData(result as T);
           setIsLoading(false);
+          setIsFetching(false);
         }
       })
       .catch((caught: unknown) => {
         if (!cancelled) {
           setError(caught);
           setIsLoading(false);
+          setIsFetching(false);
         }
       });
     return () => {
@@ -131,7 +138,7 @@ export const useAdminRpcQuery = <T = unknown>({
     };
   }, [pollingInterval, rpc, skip]);
 
-  return {data, error, isFetching: isLoading, isLoading, refetch};
+  return {data, error, isFetching, isLoading, refetch};
 };
 
 export const useAdminRpcMutation = (

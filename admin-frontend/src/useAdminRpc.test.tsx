@@ -106,6 +106,7 @@ describe("useAdminRpc", () => {
 
   it("refetches mounted queries after a successful tagged mutation", async () => {
     let gets = 0;
+    let resolveRefetch: ((response: Response) => void) | undefined;
     globalThis.fetch = (async (_url: string, init?: RequestInit) => {
       if ((init?.method ?? "GET") === "POST") {
         return new Response(JSON.stringify({saved: true}), {
@@ -114,6 +115,11 @@ describe("useAdminRpc", () => {
         });
       }
       gets += 1;
+      if (gets === 2) {
+        return await new Promise<Response>((resolve) => {
+          resolveRefetch = resolve;
+        });
+      }
       return new Response(JSON.stringify({n: gets}), {
         headers: {"Content-Type": "application/json"},
         status: 200,
@@ -123,10 +129,17 @@ describe("useAdminRpc", () => {
     let trigger:
       | ((args: {method: "POST"; url: string}) => {unwrap: () => Promise<unknown>})
       | undefined;
+    let queryState:
+      | {
+          data?: {n: number};
+          isFetching: boolean;
+          isLoading: boolean;
+        }
+      | undefined;
     const tags = ["items"] as const;
     const Harness: React.FC = () => {
       const rpc = useAdminRpc();
-      useAdminRpcQuery({providesTags: tags, rpc, url: "/items"});
+      queryState = useAdminRpcQuery<{n: number}>({providesTags: tags, rpc, url: "/items"});
       const [mutate] = useAdminRpcMutation(rpc, {invalidatesTags: tags});
       trigger = mutate;
       return null;
@@ -153,6 +166,21 @@ describe("useAdminRpc", () => {
       await Promise.resolve();
     });
     assert.equal(gets, 2);
+    assert.deepEqual(queryState?.data, {n: 1});
+    assert.isFalse(queryState?.isLoading);
+    assert.isTrue(queryState?.isFetching);
+
+    await act(async () => {
+      resolveRefetch?.(
+        new Response(JSON.stringify({n: 2}), {
+          headers: {"Content-Type": "application/json"},
+          status: 200,
+        })
+      );
+      await Promise.resolve();
+    });
+    assert.deepEqual(queryState?.data, {n: 2});
+    assert.isFalse(queryState?.isFetching);
     rendered.unmount();
   });
 

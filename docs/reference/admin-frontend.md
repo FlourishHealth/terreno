@@ -17,7 +17,7 @@ Pass fetch auth on `AdminProvider`:
 | Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session) |
 | Embedded app | `getAuthHeaders` that return `Authorization: Bearer …` (no cookie `credentials`) |
 
-RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK. Passing only `api` keeps `injectEndpoints`. Do not add axios.
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
 
 Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose config includes `adminBroadcast: true` and `syncCollection`. Hosts inject the same `createSyncDb()` client they use for the app. Do not add `@terreno/syncdb` as a hard dependency of admin-frontend.
 
