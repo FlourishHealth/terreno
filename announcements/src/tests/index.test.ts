@@ -30,17 +30,18 @@ describe("@terreno/announcements package exports", () => {
         impressions: [],
       })
     ).toBe(true);
-    expect(
-      toAnnouncementPublic({
-        _id: "a",
-        body: "Body",
-        priority: 1,
-        publishedAt: new Date(),
-        requiresAcknowledgement: false,
-        status: "published",
-        title: "Title",
-        version: 1,
-      } as never).id
-    ).toBe("a");
+    const announcement = {
+      _id: "a",
+      body: "Body",
+      priority: 1,
+      publishedAt: new Date(),
+      requiresAcknowledgement: false,
+      status: "published",
+      title: "Title",
+      version: 1,
+    } as never;
+    expect(toAnnouncementPublic(announcement).id).toBe("a");
+    expect(toAnnouncementPublic(announcement, "always").requiresAcknowledgement).toBe(true);
+    expect(toAnnouncementPublic(announcement, "never").requiresAcknowledgement).toBe(false);
   });
 });

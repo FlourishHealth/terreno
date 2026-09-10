@@ -2,7 +2,8 @@ import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import {type Request, type Response, Router} from "express";
 import {buildHelpStatusFilter, matchesHelpQueries, toHelpDetail, toHelpSummary} from "./help";
 import {Announcement} from "./models/announcement";
-import type {AnnouncementDocument} from "./types";
+import {isAnnouncementVisibleNow} from "./pending";
+import type {AnnouncementDocument, MatchAudienceFunction} from "./types";
 
 const parseHelpQueries = (req: Request): string[] => {
   const raw = req.query.q;
@@ -30,6 +31,13 @@ const parseLimit = (req: Request): number => {
   return Math.min(Math.max(parsed, 1), 50);
 };
 
+const isAnnouncementHelpVisible = (announcement: AnnouncementDocument): boolean => {
+  if (announcement.status === "archived") {
+    return true;
+  }
+  return isAnnouncementVisibleNow({announcement});
+};
+
 const sortHelpResults = (docs: AnnouncementDocument[]): AnnouncementDocument[] => {
   return [...docs].sort((left, right) => {
     if (right.priority !== left.priority) {
@@ -44,24 +52,46 @@ const sortHelpResults = (docs: AnnouncementDocument[]): AnnouncementDocument[] =
 export const registerAnnouncementHelpRoutes = ({
   app,
   basePath,
+  matchAudience,
 }: {
   app: import("express").Application;
   basePath: string;
+  matchAudience?: MatchAudienceFunction;
 }): void => {
+  const audienceMatcher = matchAudience ?? (() => true);
   const router = Router();
 
   router.get(
     "/help/search",
     authenticateMiddleware(),
     asyncHandler(async (req: Request, res: Response) => {
+      const user = req.user;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+
       const queries = parseHelpQueries(req);
       const includeArchived = parseIncludeArchived(req);
       const limit = parseLimit(req);
       const statuses = buildHelpStatusFilter(includeArchived);
 
       const candidates = await Announcement.find({status: {$in: statuses}});
-      const matched = sortHelpResults(candidates.filter((doc) => matchesHelpQueries(doc, queries)));
-      const page = matched.slice(0, limit).map(toHelpSummary);
+      const matched: AnnouncementDocument[] = [];
+      for (const doc of candidates) {
+        if (!isAnnouncementHelpVisible(doc)) {
+          continue;
+        }
+        const matchesAudience = await audienceMatcher(user, doc);
+        if (!matchesAudience) {
+          continue;
+        }
+        if (!matchesHelpQueries(doc, queries)) {
+          continue;
+        }
+        matched.push(doc);
+      }
+
+      const page = sortHelpResults(matched).slice(0, limit).map(toHelpSummary);
 
       return res.json({data: page, total: matched.length});
     })
@@ -71,10 +101,22 @@ export const registerAnnouncementHelpRoutes = ({
     "/help/:id",
     authenticateMiddleware(),
     asyncHandler(async (req: Request, res: Response) => {
+      const user = req.user;
+      if (!user) {
+        throw new APIError({status: 401, title: "Authentication required"});
+      }
+
       const includeArchived = parseIncludeArchived(req);
       const statuses = buildHelpStatusFilter(includeArchived);
       const announcement = await Announcement.findById(req.params.id);
       if (!announcement || !statuses.includes(announcement.status)) {
+        throw new APIError({status: 404, title: "Update note not found"});
+      }
+      if (!isAnnouncementHelpVisible(announcement)) {
+        throw new APIError({status: 404, title: "Update note not found"});
+      }
+      const matchesAudience = await audienceMatcher(user, announcement);
+      if (!matchesAudience) {
         throw new APIError({status: 404, title: "Update note not found"});
       }
       return res.json({data: toHelpDetail(announcement)});

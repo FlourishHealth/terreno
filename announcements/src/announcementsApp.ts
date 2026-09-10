@@ -173,7 +173,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
           platform,
         });
 
-        const current = pending[0] ? toAnnouncementPublic(pending[0]) : null;
+        const current = pending[0] ? toAnnouncementPublic(pending[0], acknowledgementMode) : null;
         const remainingCount = Math.max(pending.length - (current ? 1 : 0), 0);
 
         logger.info("Pending announcements fetched", {
@@ -226,7 +226,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
         });
 
         const start = (page - 1) * limit;
-        const pageItems = sorted.slice(start, start + limit).map(toAnnouncementPublic);
+        const pageItems = sorted
+          .slice(start, start + limit)
+          .map((announcement) => toAnnouncementPublic(announcement, acknowledgementMode));
 
         return res.json({
           data: pageItems,
@@ -355,7 +357,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
     app.use(basePath, userRouter);
     app.use(basePath, adminRouter);
     if (this.options.help?.enabled) {
-      registerAnnouncementHelpRoutes({app, basePath});
+      registerAnnouncementHelpRoutes({app, basePath, matchAudience});
     }
     app.use(basePath, modelRouter(Announcement as Model<AnnouncementDocument>, routerOptions));
 

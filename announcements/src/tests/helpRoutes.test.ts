@@ -90,6 +90,24 @@ describe("announcement help routes", () => {
     await userAgent.get("/announcements/help/000000000000000000000000").expect(404);
   });
 
+  it("hides scheduled announcements until publishAt", async () => {
+    const scheduled = await Announcement.create({
+      body: "Future release notes",
+      publishAt: DateTime.utc().plus({days: 2}).toJSDate(),
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Future billing update",
+    });
+
+    const res = await userAgent.get("/announcements/help/search?q=future").expect(200);
+    expect(res.body.data).toHaveLength(0);
+
+    const detail = await userAgent
+      .get(`/announcements/help/${scheduled._id.toString()}`)
+      .expect(404);
+    expect(detail.body.title).toBeDefined();
+  });
+
   it("supports array query params, includeArchived=1, and limit", async () => {
     const res = await userAgent
       .get("/announcements/help/search?includeArchived=1&limit=1&q=billing&q=legacy")

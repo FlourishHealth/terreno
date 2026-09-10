@@ -6,11 +6,14 @@ import {
   isDeletedPlugin,
 } from "@terreno/api";
 import mongoose from "mongoose";
+import {requiresAcknowledgementForAnnouncement} from "../pending";
 import type {
+  AcknowledgementMode,
   AnnouncementDocument,
   AnnouncementModel,
   AnnouncementPlatform,
   AnnouncementPrimaryAction,
+  AnnouncementPublic,
 } from "../types";
 
 const ALL_PLATFORMS: AnnouncementPlatform[] = ["ios", "android", "web"];
@@ -147,14 +150,18 @@ export const Announcement =
   mongoose.model<AnnouncementDocument, AnnouncementModel>("Announcement", announcementSchema);
 
 export const toAnnouncementPublic = (
-  doc: AnnouncementDocument
-): import("../types").AnnouncementPublic => ({
+  doc: AnnouncementDocument,
+  acknowledgementMode?: AcknowledgementMode
+): AnnouncementPublic => ({
   body: doc.body,
   id: doc._id.toString(),
   primaryAction: doc.primaryAction,
   priority: doc.priority,
   publishedAt: doc.publishedAt?.toISOString(),
-  requiresAcknowledgement: doc.requiresAcknowledgement,
+  requiresAcknowledgement:
+    acknowledgementMode !== undefined
+      ? requiresAcknowledgementForAnnouncement({acknowledgementMode, announcement: doc})
+      : doc.requiresAcknowledgement,
   title: doc.title,
   version: doc.version,
 });
