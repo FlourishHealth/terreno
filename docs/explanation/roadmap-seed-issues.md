@@ -826,7 +826,7 @@ enforcement hooks in the permission layer.
 **Title:** `Framework-level audit log`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Approved`
 
 Generalizes the admin/consent audit patterns into a first-class audit log: an AuditEvent
 model, modelRouter hooks that record who changed what (with before/after diffs), org
@@ -837,6 +837,7 @@ Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1
 
 - **Implementation plan:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/framework-audit-log.md)
 - **Tasks:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/framework-audit-log.md)
+- **How-to:** [audit-log.md](../how-to/audit-log.md)
 - **RTK flag:** None
 - **Depends on:** — (optional `organizationId` now; org-admin list filter waits on org-management-ui)
 

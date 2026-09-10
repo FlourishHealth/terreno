@@ -71,7 +71,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
 
 ## Phase 5 — Docs and roadmap
 
-- [ ] **Task 5.1**: Diátaxis + changelog + rules
+- [x] **Task 5.1**: Diátaxis + changelog + rules
   - Delivers: operator how-to, api reference (full, not stub), admin-interface Platform row, admin-backend `onAdminAudit` note, rulesync api rule, `CHANGELOG.md` Added, `bun run rules` / `skills:sync` if rulesync changed
   - Files: `docs/how-to/audit-log.md`, `docs/reference/api.md`, `docs/explanation/admin-interface.md`, `docs/reference/admin-backend.md`, `.rulesync/rules/api/00-api.mdc`, `CHANGELOG.md`
   - Blocked by: 1.2 (content can land with 2.x–4.x; must match shipped options)
