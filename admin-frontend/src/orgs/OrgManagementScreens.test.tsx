@@ -92,6 +92,21 @@ describe("organization management screens", () => {
     });
   });
 
+  it("renders members from RTK-unwrapped list data", () => {
+    membersState.data = [
+      {
+        _id: "membership-1",
+        roleName: "org-admin",
+        status: "active",
+        userId: {_id: "user-1", email: "admin@example.com", name: "Admin"},
+      },
+    ];
+    const screen = renderWithTheme(<OrgMembersScreen api={api} organizationId="org-1" />);
+
+    expect(screen.getByText("admin@example.com")).toBeTruthy();
+    expect(screen.getByTestId("org-members-table")).toBeTruthy();
+  });
+
   it("shows the backend last-admin error", async () => {
     updateMember.mockImplementation(() => ({
       unwrap: async () => Promise.reject({data: {title: "Cannot remove the last org-admin"}}),

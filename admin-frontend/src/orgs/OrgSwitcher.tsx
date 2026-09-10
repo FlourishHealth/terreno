@@ -3,6 +3,7 @@ import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback, useEffect} from "react";
 import type {AdminApi} from "../types";
+import {normalizeListData} from "./normalizeListData";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
 import {useOrganizationsApi} from "./useOrganizationsApi";
 import {useOrgContext} from "./useOrgContext";
@@ -17,7 +18,7 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
   const {organization, selectOrganization} = useOrgContext();
   const {useMineQuery} = useOrganizationsApi(api, basePath);
   const {data, error, isLoading} = useMineQuery();
-  const organizations = (data?.data ?? []) as OrganizationSummary[];
+  const organizations = normalizeListData<OrganizationSummary>(data);
 
   const handleChange = useCallback(
     (organizationId: string): void => {

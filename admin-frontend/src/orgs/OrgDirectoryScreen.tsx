@@ -13,6 +13,7 @@ import {
 import React, {useCallback, useMemo, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
+import {normalizeListData} from "./normalizeListData";
 import {useOrganizationsApi} from "./useOrganizationsApi";
 
 export interface OrganizationSummary {
@@ -52,7 +53,7 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
   const {data, error, isLoading} = useListQuery(undefined, {skip: !isOperator});
   const [createOrganization, {isLoading: isCreating}] = useCreateMutation();
   const [updateOrganization, {isLoading: isUpdating}] = useUpdateMutation();
-  const organizations = (data?.data ?? []) as OrganizationSummary[];
+  const organizations = normalizeListData<OrganizationSummary>(data);
 
   const handleDismissCreate = useCallback((): void => {
     setIsCreateOpen(false);

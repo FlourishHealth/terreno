@@ -94,6 +94,16 @@ describe("OrgDirectoryScreen", () => {
     expect(createOrganization).toHaveBeenCalledWith({name: "New Org"});
   });
 
+  it("renders directory rows from RTK-unwrapped list data", () => {
+    queryState.data = [{_id: "org-1", disabled: false, name: "Acme", slug: "acme"}];
+    const screen = renderWithTheme(
+      <OrgDirectoryScreen api={api} isOperator onEnterOrganization={mock(() => {})} />
+    );
+
+    expect(screen.getByText("Acme")).toBeTruthy();
+    expect(screen.getByTestId("org-directory-table")).toBeTruthy();
+  });
+
   it("opens and disables an organization from its row", async () => {
     const onEnterOrganization = mock(() => {});
     queryState.data = {

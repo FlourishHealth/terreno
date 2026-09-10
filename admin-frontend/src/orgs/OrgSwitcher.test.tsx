@@ -42,6 +42,20 @@ describe("OrgSwitcher", () => {
     expect(changed).toHaveBeenCalledWith({_id: "org-1", name: "Only Org"});
   });
 
+  it("renders organizations from RTK-unwrapped list data", async () => {
+    mineState.data = [{_id: "org-1", name: "Only Org"}];
+    const changed = mock(() => {});
+    const screen = renderWithTheme(
+      <OrgContextProvider onOrganizationChange={changed}>
+        <OrgSwitcher api={api} />
+      </OrgContextProvider>
+    );
+
+    expect(screen.getByText("Only Org")).toBeTruthy();
+    await act(async () => {});
+    expect(changed).toHaveBeenCalledWith({_id: "org-1", name: "Only Org"});
+  });
+
   it("selects an organization and navigates to its URL", async () => {
     mineState.data = {
       data: [

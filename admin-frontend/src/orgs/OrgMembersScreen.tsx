@@ -13,6 +13,7 @@ import {
 import React, {useCallback, useMemo, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
+import {normalizeListData} from "./normalizeListData";
 import {useOrganizationsApi} from "./useOrganizationsApi";
 
 export interface OrgMembersScreenProps {
@@ -80,7 +81,7 @@ export const OrgMembersScreen: React.FC<OrgMembersScreenProps> = ({
     useMembersQuery,
   } = useOrganizationsApi(api, basePath, organizationId);
   const {data, error, isLoading} = useMembersQuery(organizationId);
-  const memberships = (data?.data ?? []) as OrgMembership[];
+  const memberships = normalizeListData<OrgMembership>(data);
   const [attachMember, {isLoading: isAttaching}] = useMemberAttachMutation();
   const [updateMember, {isLoading: isUpdating}] = useMemberUpdateMutation();
   const [removeMember, {isLoading: isRemoving}] = useMemberRemoveMutation();
