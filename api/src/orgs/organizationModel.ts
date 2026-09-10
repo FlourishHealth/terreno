@@ -172,10 +172,62 @@ membershipSchema.statics = {
   },
 };
 
-export const Organization =
-  (mongoose.models.Organization as OrganizationModel | undefined) ??
-  mongoose.model<OrganizationDocument, OrganizationModel>("Organization", organizationSchema);
+export const getOrganizationModel = (): OrganizationModel => {
+  const existing = mongoose.models.Organization as OrganizationModel | undefined;
+  if (existing) {
+    return existing;
+  }
+  return mongoose.model<OrganizationDocument, OrganizationModel>(
+    "Organization",
+    organizationSchema
+  );
+};
 
-export const Membership =
-  (mongoose.models.Membership as MembershipModel | undefined) ??
-  mongoose.model<MembershipDocument, MembershipModel>("Membership", membershipSchema);
+export const getMembershipModel = (): MembershipModel => {
+  const existing = mongoose.models.Membership as MembershipModel | undefined;
+  if (existing) {
+    return existing;
+  }
+  return mongoose.model<MembershipDocument, MembershipModel>("Membership", membershipSchema);
+};
+
+const createLazyModel = <T extends mongoose.Model<unknown>>(getModel: () => T): T => {
+  const handler: ProxyHandler<object> = {
+    apply(_target, thisArg, argArray) {
+      return Reflect.apply(
+        getModel() as unknown as (...args: unknown[]) => unknown,
+        thisArg,
+        argArray
+      );
+    },
+    construct(_target, argArray) {
+      const Model = getModel() as unknown as new (...args: unknown[]) => object;
+      return new Model(...argArray);
+    },
+    get(_target, prop) {
+      const model = getModel();
+      const value = Reflect.get(model, prop, model);
+      if (typeof value === "function") {
+        return value.bind(model);
+      }
+      return value;
+    },
+    getPrototypeOf() {
+      return Object.getPrototypeOf(getModel());
+    },
+    has(_target, prop) {
+      return prop in getModel();
+    },
+    set(_target, prop, value) {
+      Reflect.set(getModel(), prop, value);
+      return true;
+    },
+  };
+  return new Proxy(function LazyMongooseModel() {}, handler) as unknown as T;
+};
+
+/** Lazy so importing `@terreno/api` does not register Organization until first use. */
+export const Organization = createLazyModel(getOrganizationModel);
+
+/** Lazy so importing `@terreno/api` does not register Membership until first use. */
+export const Membership = createLazyModel(getMembershipModel);

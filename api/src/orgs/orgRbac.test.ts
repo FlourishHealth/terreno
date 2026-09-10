@@ -4,7 +4,11 @@ import mongoose from "mongoose";
 
 import type {User} from "../auth";
 import {createAccess} from "../rbac/access";
-import {createRbacRoleModel, terrenoDefaultRoles} from "../rbac/roleModel";
+import {
+  createRbacRoleModel,
+  organizationOperatorRole,
+  terrenoDefaultRoles,
+} from "../rbac/roleModel";
 import {terrenoStatements} from "../rbac/statements";
 import {setupDb} from "../tests";
 import type {MembershipDocument} from "../types/membership";
@@ -50,12 +54,16 @@ describe("organization RBAC", () => {
   it("seeds a locked operator role with platform org grants", async () => {
     await setupDb();
     const RbacRole = createRbacRoleModel(mongoose.connection);
-    await RbacRole.seedDefaults({statements: terrenoStatements});
+    await RbacRole.seedDefaults({
+      extraRoles: [organizationOperatorRole],
+      statements: terrenoStatements,
+    });
 
-    assert.include(
+    assert.notInclude(
       terrenoDefaultRoles.map((role) => role.name),
       "operator"
     );
+    assert.equal(organizationOperatorRole.name, "operator");
     assert.notInclude(
       terrenoDefaultRoles.map((role) => role.name),
       "org-admin"
@@ -75,6 +83,7 @@ describe("organization RBAC", () => {
     await setupDb();
     const access = createAccess({
       connection: mongoose.connection,
+      organizations: true,
       statements: terrenoStatements,
     });
     await access.roles.seedDefaults();
@@ -108,6 +117,7 @@ describe("organization RBAC", () => {
     await setupDb();
     const access = createAccess({
       connection: mongoose.connection,
+      organizations: true,
       statements: terrenoStatements,
     });
     await access.roles.seedDefaults();
@@ -162,6 +172,7 @@ describe("organization RBAC", () => {
     const access = createAccess({
       cacheTtlMs: 60_000,
       connection: mongoose.connection,
+      organizations: true,
       statements: terrenoStatements,
     });
     await access.roles.seedDefaults();

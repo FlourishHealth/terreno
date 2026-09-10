@@ -150,6 +150,11 @@ export type RbacAuditSink = (record: RbacAuditWrite) => void | Promise<void>;
 export interface AccessOptions<S extends Statements> {
   connection: Connection;
   statements: S;
+  /**
+   * Opt in to organization RBAC: membership `org-admin` grants and the locked `operator` seed.
+   * Default `false` so existing single-tenant apps stay unchanged. New apps from bootstrap pass `true`.
+   */
+  organizations?: boolean;
   userModel?: UserModel;
   defaultRoles?: RoleDefinition[];
   scopes?: ResourceScopes<S>;

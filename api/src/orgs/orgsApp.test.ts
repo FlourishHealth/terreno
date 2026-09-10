@@ -44,6 +44,7 @@ describe("OrgsApp", () => {
     auditEvents = [];
     const access = createAccess({
       connection: mongoose.connection,
+      organizations: true,
       statements: terrenoStatements,
       userModel: UserModel as unknown as AuthUserModel,
     });

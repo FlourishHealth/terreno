@@ -589,9 +589,19 @@ todoSchema.plugin(addDefaultPlugins);
 
 ## Organizations
 
-Native `Organization` and `Membership` models live in `@terreno/api`. Register `OrgsApp` and org
-context middleware in later slices; this page will document routes and `X-Organization-Id` with
-those tasks.
+Organizations are **opt-in**. Existing and single-tenant apps omit them: do not pass
+`organizations: true` to `createAccess` or `TerrenoApp`, and do not register `OrgsApp`.
+New apps from `terreno_bootstrap_app` enable organizations by default.
+
+| App kind | What to do |
+| --- | --- |
+| Existing / single-tenant | Leave `createAccess` and `TerrenoApp` without `organizations`. No `operator` seed, no membership grants, no `/orgs` routes. |
+| New app (bootstrap) | Generated `backend/src/access.ts` uses `createAccess({ organizations: true })`. `TerrenoApp({ organizations: true, accessControl: access })` mounts `OrgsApp`. Seed creates a default org and makes `admin@example.com` an `operator` and `org-admin`. |
+| Existing app adopting orgs | `createAccess({ organizations: true })`, `await access.roles.seedDefaults()`, and `TerrenoApp({ organizations: true, accessControl })` or `.register(new OrgsApp({ access, userModel }))`. |
+
+`Organization` and `Membership` models register on first use, not when you import `@terreno/api`.
+
+Native `Organization` and `Membership` models live in `@terreno/api`.
 
 | Model | Fields |
 | --- | --- |
@@ -631,16 +641,25 @@ and `$or` cannot list another org.
 | Role | Where it lives | Organization grants |
 | --- | --- | --- |
 | `superadmin` | `user.roles` | `*` (includes every organization action) |
-| `operator` | seeded locked `user.roles` | all `organization` actions, plus `admin:access` and `user:list\|read\|update` |
+| `operator` | seeded locked `user.roles` when `createAccess({ organizations: true })` | all `organization` actions, plus `admin:access` and `user:list\|read\|update` |
 | `org-admin` | `Membership.roleName` in the current org context | `organization:read\|update\|manageMembers` and `admin:access` |
 | `admin` | `user.roles` | none of `organization:*` |
 
-`createAccess` always prepends a membership permission source (`ttlMs: 0`). Putting
-`org-admin` on `user.roles` does not grant those permissions. Permission cache keys include
-the current organization id and membership role so org-admin grants do not leak across orgs.
+`createAccess({ organizations: true })` prepends a membership permission source (`ttlMs: 0`) and
+seeds the locked `operator` role. Without that flag, membership `org-admin` grants nothing extra
+and `operator` is not seeded. Putting `org-admin` on `user.roles` does not grant those permissions.
+Permission cache keys include the current organization id and membership role so org-admin grants
+do not leak across orgs.
 
 ``````typescript
-import {Membership, Organization} from "@terreno/api";
+import {createAccess, Membership, Organization, terrenoStatements} from "@terreno/api";
+
+const access = createAccess({
+  connection: mongoose.connection,
+  organizations: true,
+  statements: terrenoStatements,
+  userModel: User,
+});
 
 const org = await Organization.create({name: "Acme Corp", ownerId: user._id});
 // org.slug === "acme-corp"

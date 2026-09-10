@@ -103,6 +103,7 @@ export * from "./rbac/permissionUtils";
 export {
   createRbacRoleModel,
   expandRolePermissions,
+  organizationOperatorRole,
   type RbacRoleDocument,
   type RbacRoleModel,
   READ_ONLY_ROLE_PERMISSIONS,
