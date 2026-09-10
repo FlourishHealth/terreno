@@ -201,7 +201,7 @@ commands:
             done
 
   demo_lint_and_typecheck:
-    description: Compile ui, then lint and typecheck demo, then check story coverage
+    description: Compile ui, then lint, typecheck, and smoke-test demo, then check story coverage
     steps:
       - compile_packages:
           packages: ui
