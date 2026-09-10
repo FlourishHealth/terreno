@@ -2,6 +2,7 @@ import type {TerrenoPlugin} from "@terreno/api";
 import {logger} from "@terreno/api";
 import type express from "express";
 
+import {type ExecuteJobOutcome, executeJobById} from "./jobExecutor";
 import {JobsService, registerJobsService} from "./jobsService";
 import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
@@ -72,6 +73,18 @@ export class JobsApp implements JobsRunnerHost, TerrenoPlugin {
 
   getLockTtlMs(): number {
     return this.service.getLockTtlMs();
+  }
+
+  /** Execute a persisted job by id from an external dispatch surface (queue consumer, execute HTTP). */
+  async executeQueuedJob(
+    jobId: string,
+    signal: AbortSignal = AbortSignal.timeout(30 * 60 * 1_000)
+  ): Promise<ExecuteJobOutcome> {
+    return executeJobById({
+      host: this,
+      jobId,
+      signal,
+    });
   }
 
   getPollIntervalMs(): number {

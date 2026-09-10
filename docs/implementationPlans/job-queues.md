@@ -44,7 +44,7 @@ will enqueue onto later.
 | Schedules | Delayed `runAt` and recurring cron. Timezone is an **IANA** string on each schedule (default **`UTC`**). |
 | Cloud dispatch | **GCP Cloud Tasks** and **Vercel Queues** adapters (mocked-SDK tests). Custom `JobRunner` is a first-class type. |
 | Vercel product | **Queues** only. Job catalog and admin stay in Terreno. |
-| Execute HTTP | `POST {basePath}/execute` for cloud/custom HTTP push. GCP: OIDC. Vercel: platform consumer auth. Mongo runner does **not** mount execute unless a cloud/custom runner needs it. |
+| Execute HTTP | `POST {basePath}/execute` for GCP/custom HTTP push (GCP: OIDC). Vercel uses private `handleCallback` consumers → `executeJobById`. Mongo runner does **not** mount execute unless a cloud/custom runner needs it. |
 | Admin UI | Custom screen `jobs` (comms pattern): list/filter, detail/attempts, retry, DLQ requeue, cancel. Home widget. example-frontend + admin-spa. |
 | Existing `cronjob()` | Leave it. Docs call it process-local. Durable work uses `JobsApp`. |
 | Delivery | At-least-once. Handlers must be idempotent. Optional `idempotencyKey` unique with `name`. |
@@ -69,7 +69,7 @@ JobRunner
 
 MongoJobRunner     — claim via findOneAndUpdate; lock TTL
 GcpCloudTasksRunner — create HTTP task → POST /jobs/execute (OIDC)
-VercelQueuesRunner  — publish → Vercel consumer → POST /jobs/execute
+VercelQueuesRunner  — send(topic,{jobId}) → private handleCallback consumer → executeJobById
 Custom              — app-supplied JobRunner
 ```
 
@@ -151,7 +151,7 @@ Core `@terreno/jobs` has zero cloud SDKs. Tests inject fakes.
 ### Execute HTTP
 
 Mounted only when `JobsApp` `mountExecuteRoute: true` or the runner requests it
-(GCP/Vercel default true; Mongo default false).
+(GCP default true; Vercel uses private `handleCallback` consumers; Mongo default false).
 
 | Status | When |
 |--------|------|

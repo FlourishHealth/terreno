@@ -29,6 +29,10 @@
     "./runners/gcpCloudTasks": {
       "default": "./dist/runners/gcpCloudTasks.js",
       "types": "./dist/runners/gcpCloudTasks.d.ts"
+    },
+    "./runners/vercelQueues": {
+      "default": "./dist/runners/vercelQueues.js",
+      "types": "./dist/runners/vercelQueues.d.ts"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -44,10 +48,14 @@
   "name": "@terreno/jobs",
   "peerDependencies": {
     "@google-cloud/tasks": "7.1.0",
+    "@vercel/queue": "^0.5.1",
     "mongoose": "^8.0.0 || ^9.0.0"
   },
   "peerDependenciesMeta": {
     "@google-cloud/tasks": {
+      "optional": true
+    },
+    "@vercel/queue": {
       "optional": true
     }
   },

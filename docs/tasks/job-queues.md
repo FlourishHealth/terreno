@@ -83,13 +83,13 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: env names listed in 5.1
   - Acceptance: bun test — fake client receives queue/url/oidc; missing config fails startup loud
 
-- [ ] **Task 3.4**: Vercel Queues adapter (mocked)
-  - Delivers: `@terreno/jobs/runners/vercelQueues` optional peer; publish `{jobId}`; consumer auth verified on execute; no Workflows API; no live Vercel
+- [x] **Task 3.4**: Vercel Queues adapter (mocked)
+  - Delivers: `@terreno/jobs/runners/vercelQueues` optional peer; `send(topic,{jobId})` with retention/delay coupling; private `handleCallback` consumer → `executeJobById`; no Workflows API; no live Vercel
   - Files: `jobs/src/runners/vercelQueues.ts`, tests
   - Blocked by: 3.1, 3.2
   - Skills: `terreno-backend-api`
   - Docs: 5.1
-  - Acceptance: bun test — fake queue publish; invalid consumer auth 401
+  - Acceptance: bun test — fake queue publish/send options, consumer retry directives, >7d dispatch compensation; platform auth delegated to vendor `handleCallback`
 
 ## Phase 4 — Admin API and UI
 

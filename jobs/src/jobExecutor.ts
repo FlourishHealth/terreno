@@ -23,7 +23,8 @@ export type ExecuteJobConflictReason = "locked" | "not_due";
 export type ExecuteJobOutcome =
   | {job: JobDocument; kind: "executed"}
   | {job: JobDocument; kind: "noop"}
-  | {kind: "conflict"; reason: ExecuteJobConflictReason}
+  | {kind: "conflict"; reason: "locked"}
+  | {kind: "conflict"; reason: "not_due"; runAt: Date}
   | {kind: "not_found"};
 
 const TERMINAL_NOOP_STATUSES = new Set(["cancelled", "completed", "dead", "failed"]);
@@ -47,7 +48,7 @@ const readClaimLock = (job: JobDocument): JobClaimLock => {
 
 const classifyConflict = (job: JobDocument, lockExpiry: Date, now: Date): ExecuteJobOutcome => {
   if (job.runAt > now) {
-    return {kind: "conflict", reason: "not_due"};
+    return {kind: "conflict", reason: "not_due", runAt: job.runAt};
   }
 
   if (job.status === "running" && isLiveLock(job.lockedAt, lockExpiry)) {
@@ -284,7 +285,7 @@ export const executeJobById = async ({
   }
 
   if (existing.runAt > now) {
-    return {kind: "conflict", reason: "not_due"};
+    return {kind: "conflict", reason: "not_due", runAt: existing.runAt};
   }
 
   if (existing.status === "running" && isLiveLock(existing.lockedAt, lockExpiry)) {
