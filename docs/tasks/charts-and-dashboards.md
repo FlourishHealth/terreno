@@ -33,7 +33,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
 
 ## Phase 2 — Sibling charts
 
-- [ ] **Task 2.1**: `BarChart`
+- [x] **Task 2.1**: `BarChart`
   - Delivers: public `BarChart` on `ChartFrame`; one bar per point; same empty/loading/tooltip/legend/a11y contract as `LineChart`
   - Files: `ui/src/BarChart.tsx`, `ui/src/BarChart.test.tsx`, `ui/src/index.tsx`, `demo/stories/BarChart.stories.tsx`, `demo/demoConfig.tsx`
   - Blocked by: 1.2
