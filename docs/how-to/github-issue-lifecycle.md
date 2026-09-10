@@ -52,20 +52,24 @@ PR.
 
 ## Unattended pickup
 
-1. After triage, apply `status:ready-for-dev` only when Acceptance is roastable and
-   the work fits one Pick comment (at most five tasks). Leave the issue unassigned.
-   Do not edit the issue body after you label it unless you are a maintainer; the
-   skill aborts if an untrusted author changes the body after the label.
+1. After triage, apply `status:ready-for-dev` and leave the issue unassigned.
+   Do not edit the issue body after you label it unless you are a maintainer; pickup
+   aborts if an untrusted author changes the body after the label.
 2. A Cursor Automation (or `/implement-ready-for-dev`) claims the oldest matching
    issue: assignee + `status:in-progress`, remove `status:ready-for-dev`. It skips
    issues that already have an open linked or closing PR (GraphQL references, not
    `linked:<number>`).
-3. It posts `<!-- terreno-pick-plan -->` from that trusted snapshot, Pick ⇄ Roasts
-   that comment, then Brews a **draft** PR with `Fixes #<n>`.
+3. It runs Grow on that trusted snapshot, answers Grow questions from the repo and
+   issue (assumptions posted on the issue), and only stops on GitHub for a genuine
+   human gate (product, security, data ownership, public API, destructive change,
+   rollout, or scope the issue and docs do not settle). Then Pick ⇄ Roast, Brew, and
+   Taste until the PR is mergeable (ready for review). Do not merge.
 4. Dashboard paste: [`implement-ready-for-dev` automation](../../.rulesync/skills/implement-ready-for-dev/references/cursor-automation.md).
 
-Do not apply `status:ready-for-dev` to issues that still need a product decision.
-Those stay `status:needs-info` or go through `/work-github-issues`.
+Do not apply `status:ready-for-dev` to issues that still need a product, security, or
+data-ownership decision. Those stay `status:needs-info` or go through `/work-github-issues`.
+The unattended skill will assume implementation defaults; it will not invent those
+decisions.
 
 Labels live in [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml).
 Sync them with the existing roadmap labels workflow before expecting pickup.

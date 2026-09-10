@@ -1643,6 +1643,7 @@ jobs:
             bun run check:upgrade-docs "$CIRCLE_TAG"
       - run:
           name: Publish packages in dependency order
+          no_output_timeout: 20m
           command: |
             version="$CIRCLE_TAG"
             if [[ "$version" == *-* ]]; then
@@ -1656,6 +1657,7 @@ jobs:
               api-health comms feature-flags mcp-server syncdb
             )
             for package in "${packages[@]}"; do
+              echo "=== Publishing ${package}@${version} ==="
               scripts/ci/publish-package.sh "$package" "$version" "$npm_tag" release
             done
       - run:

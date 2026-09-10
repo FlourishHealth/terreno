@@ -18,4 +18,16 @@ describe("publish-package.sh", () => {
       "reinstall after pinning workspace:* looks for sibling @terreno packages on npm before they exist"
     );
   });
+
+  it("runs test:ci before falling back to test so watch-mode scripts cannot hang publish", () => {
+    const testCiIndex = script.indexOf("bun run test:ci");
+    const testIndex = script.indexOf("bun run test)");
+    assert.notEqual(testCiIndex, -1, "expected bun run test:ci");
+    assert.notEqual(testIndex, -1, "expected bun run test fallback");
+    assert.ok(
+      testCiIndex < testIndex,
+      "test:ci must run before test; ui's test script is bun test --watch"
+    );
+    assert.match(script, /pkg\.scripts\?\.\['test:ci'\]/, "expected test:ci script detection");
+  });
 });

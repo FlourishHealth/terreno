@@ -213,7 +213,10 @@ Semver git tags (`57.3.0`, `57.3.0-beta.1`) automatically start
 tarball, then compiles and tests against the root workspace install. It must
 not `bun install` after that pin: sibling `@terreno/*` packages are not on npm
 yet, so bun would look up `@terreno/test@X.Y.Z` (and similar) on the registry
-and fail the whole job.
+and fail the whole job. Tests use `test:ci` when that script exists, not
+`test`. `@terreno/ui`'s `test` is `bun test --watch` and would hang the
+publish step after the suite finishes. `publish-release` uses a 20-minute
+no-output timeout as a backstop.
 
 Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
 `{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
