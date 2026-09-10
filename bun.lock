@@ -503,6 +503,24 @@
         "mongoose": "^8.0.0 || ^9.0.0",
       },
     },
+    "jobs": {
+      "name": "@terreno/jobs",
+      "version": "57.2.0",
+      "dependencies": {
+        "@terreno/api": "workspace:*",
+        "express": "catalog:",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@terreno/test": "workspace:*",
+        "@types/bun": "catalog:",
+        "@types/express": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "mongoose": "^8.0.0 || ^9.0.0",
+      },
+    },
     "mcp-server": {
       "name": "@terreno/mcp",
       "version": "57.2.0",
@@ -2347,6 +2365,8 @@
     "@terreno/example-frontend": ["@terreno/example-frontend@workspace:example-frontend"],
 
     "@terreno/feature-flags": ["@terreno/feature-flags@workspace:feature-flags"],
+
+    "@terreno/jobs": ["@terreno/jobs@workspace:jobs"],
 
     "@terreno/mcp": ["@terreno/mcp@workspace:mcp-server"],
 

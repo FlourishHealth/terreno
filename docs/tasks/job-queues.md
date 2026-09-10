@@ -7,7 +7,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
 
 ## Phase 1 — Tracer (package, enqueue, Mongo worker)
 
-- [ ] **Task 1.1**: Scaffold `@terreno/jobs`
+- [x] **Task 1.1**: Scaffold `@terreno/jobs`
   - Delivers: workspace package compiles and lints; root `jobs:compile` / `jobs:test` / `jobs:lint` scripts; empty `JobsApp` registers as `TerrenoPlugin` without starting a worker
   - Files: `jobs/package.json`, `jobs/tsconfig.json`, `jobs/src/index.ts`, `jobs/src/jobsApp.ts`, root `package.json`
   - Blocked by: none
