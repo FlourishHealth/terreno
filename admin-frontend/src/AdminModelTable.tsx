@@ -645,7 +645,15 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         for (const k of action.patchKeys) {
           patch[k] = true;
         }
-        const result = (await bulkPatch({ids, patch}).unwrap()) as {
+        const result = (
+          isWindowed && adminContext?.adminRpc
+            ? await adminContext.adminRpc({
+                body: {ids, patch},
+                method: "POST",
+                url: `${modelConfig.routePath}/bulk-patch`,
+              })
+            : await bulkPatch({ids, patch}).unwrap()
+        ) as {
           failures?: {id: string; title: string}[];
           updated?: number;
         };
@@ -659,7 +667,16 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       }
       setSelectedIds(new Set());
     },
-    [bulkPatch, enqueueBackground, modelConfig, selectedIds, toast, visibleActions]
+    [
+      adminContext?.adminRpc,
+      bulkPatch,
+      enqueueBackground,
+      isWindowed,
+      modelConfig,
+      selectedIds,
+      toast,
+      visibleActions,
+    ]
   );
 
   const handleInlineBooleanToggle = useCallback(

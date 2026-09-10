@@ -143,7 +143,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: test: conflict row shows sheet; keepMine / useServer callbacks invoked
   - Skills: `terreno-ui`
 
-- [ ] **Task 4.4**: Bulk-patch stays fetch
+- [x] **Task 4.4**: Bulk-patch stays fetch
   - Delivers: existing bulk-patch still uses fetch/RTK dual-run (not sync mutate) with goldens from 1.5/1.6 still passing
   - Files: table bulk actions wiring
   - Blocked by: 2.3, 4.1

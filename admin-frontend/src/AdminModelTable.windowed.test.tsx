@@ -29,12 +29,10 @@ const listState: {data: {data: Array<Record<string, unknown>>; total: number}} =
   data: {data: [], total: 0},
 };
 const listRefetch = mock(async () => ({data: listState.data}));
+const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 1})}));
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 1})})),
-      {isLoading: false},
-    ],
+    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
     useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useListQuery: () => ({
@@ -97,6 +95,7 @@ const collectTitleTexts = (root: ReactTestInstance): string[] => {
 const createFakeSyncDb = (): {
   extraStore: Map<string, {data: unknown; deleted?: boolean; id: string}>;
   hydrateWindow: ReturnType<typeof mock>;
+  mutate: ReturnType<typeof mock>;
   notifyStore: () => void;
   syncDb: AdminSyncDb;
 } => {
@@ -116,13 +115,15 @@ const createFakeSyncDb = (): {
     }
     return {hydratedIds: args.ids};
   });
+  const mutate = mock(() => ({id: "todo-1", mutationId: "mutation-1"}));
   return {
     extraStore,
     hydrateWindow,
+    mutate,
     notifyStore,
     syncDb: {
       hydrateWindow,
-      mutate: mock(() => ({id: "todo-1", mutationId: "mutation-1"})),
+      mutate,
       store: {
         getEntity: ({id}: {id: string}) => extraStore.get(id),
         raw: {
@@ -162,6 +163,7 @@ describe("AdminModelTable windowed path", () => {
   beforeEach(() => {
     setOptions.mockClear();
     listRefetch.mockClear();
+    bulkPatchFn.mockClear();
     configState.config = windowedConfig;
     listState.data = {data: [], total: 0};
     listRefetch.mockImplementation(async () => ({data: listState.data}));
@@ -478,6 +480,56 @@ describe("AdminModelTable windowed path", () => {
     await act(async () => {
       await actionMenus[0].props.onRunAction("noop");
     });
+  });
+
+  it("uses the fetch client for bulk patch in the windowed path", async () => {
+    configState.config = {
+      ...windowedConfig,
+      models: windowedConfig.models.map((model) => ({
+        ...model,
+        actions: [{id: "activate", label: "Activate", patchKeys: ["active"]}],
+      })),
+    };
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    const originalFetch = globalThis.fetch;
+    const fetchMock = mock(
+      async () =>
+        new Response(JSON.stringify({updated: 1}), {
+          headers: {"Content-Type": "application/json"},
+          status: 200,
+        })
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      const {mutate, syncDb} = createFakeSyncDb();
+      const {UNSAFE_root, getByTestId} = renderWindowed(syncDb);
+      await act(async () => {
+        await Promise.resolve();
+        fireEvent.press(getByTestId("admin-table-select-all"));
+      });
+      const actionMenu = UNSAFE_root.find(
+        (node: ReactTestInstance) => typeof node.props?.onRunAction === "function"
+      );
+      await act(async () => {
+        await actionMenu.props.onRunAction("activate");
+      });
+
+      assert.equal(fetchMock.mock.calls.length, 1);
+      assert.equal(fetchMock.mock.calls[0]?.[0], "/admin/todos/bulk-patch");
+      const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      assert.equal(request.method, "POST");
+      assert.deepEqual(JSON.parse(String(request.body)), {
+        ids: ["todo-1"],
+        patch: {active: true},
+      });
+      assert.equal(bulkPatchFn.mock.calls.length, 0);
+      assert.equal(mutate.mock.calls.length, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("drops a selected row that a live tombstone removed from the window", async () => {

@@ -99,6 +99,8 @@ Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
 Windowed tables and forms render `AdminConflictSheet`, filtered to the ids loaded
 on that page or form, and forward **Use server** / **Keep mine** to syncdb's
 resolver. This adapter keeps `@terreno/syncdb` optional for admin-frontend.
+Bulk actions remain server operations: windowed models call the host fetch
+client at `{routePath}/bulk-patch`, while API-only/ObjectId hosts retain RTK.
 
 ```tsx
 const syncConflicts = useConflicts();
