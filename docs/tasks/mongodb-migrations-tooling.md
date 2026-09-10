@@ -99,7 +99,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
   - Docs: example commands on the how-to
   - Acceptance: `bun test` in example-backend covers migrate check + up/down; seed `--reset` leaves history collection
 
-- [ ] **Task 7.2**: Diátaxis, changelog, mongoose-schema-safety
+- [x] **Task 7.2**: Diátaxis, changelog, mongoose-schema-safety
   - Delivers: how-to complete; api/env/admin reference; skill tells authors to use versioned migrations for backfills; `CHANGELOG.md` Added; `bun run skills:sync` / `bun run rules` if the skill source changed
   - Files: `docs/how-to/run-mongodb-migrations.md`, `docs/how-to/README.md`, `docs/reference/*`, `docs/how-to/seed-a-database.md`, `plugins/terreno-planning/skills/mongoose-schema-safety/SKILL.md` (canonical then sync), `CHANGELOG.md`
   - Blocked by: 3.2, 4.1, 6.1, 7.1 (content must match shipped CLI/UI)
