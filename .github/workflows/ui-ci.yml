@@ -50,8 +50,8 @@ jobs:
         run: bun run types
         working-directory: ui
 
-      - name: Run UI tests
-        run: bun run test:ci
+      - name: Run UI tests with coverage threshold
+        run: bun run test:coverage
         working-directory: ui
         env:
           CI: true

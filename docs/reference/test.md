@@ -109,8 +109,11 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 
 ## Coverage gates
 
-Package CI uses `scripts/check-coverage.ts` to enforce the package-wide thresholds
-declared in `bunfig.toml`.
+Package CI uses `scripts/check-coverage.ts` (`bun run test:coverage`, default 95%
+functions and lines) as the live gate. Dedicated CircleCI jobs (`api-ci`, `ai-ci`,
+`rtk-ci`, `ui-ci`, `syncdb-ci`, `comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run
+that script. Retained GitHub Actions twins stay in lockstep. Packages without a
+dedicated workflow are covered by the matrix job in Task 3.3.
 
 Demo CI uses `scripts/check-demo-coverage.ts` to fail when a PascalCase component
 exported from `ui/src/index.tsx` has neither a `demo/story-config` registration nor

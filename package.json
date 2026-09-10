@@ -208,6 +208,7 @@
     "check:lifecycle-skills": "bun run scripts/planning/checkLifecycleSkills.ts",
     "check:new-file-coverage": "bun run scripts/check-new-file-coverage.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
+    "check:package-coverage-ci": "bun run scripts/check-package-coverage-ci.ts",
     "check:source-rules": "bun run scripts/check-source-rules/check.ts",
     "check:upgrade-docs": "bun run scripts/check-upgrade-docs/check.ts",
     "changelog:assemble": "bun run scripts/changelog/assemble.ts",

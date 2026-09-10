@@ -1,3 +1,4 @@
 [test]
 root = "./src"
 coveragePathIgnorePatterns = ["**/*.test.ts", "dist/**", "src/dist/**", "**/node_modules/**"]
+coverageThreshold = { line = 95, function = 95 }

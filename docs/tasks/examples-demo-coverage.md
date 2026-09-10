@@ -164,7 +164,7 @@ Measured with `bun run ../scripts/check-coverage.ts --threshold=0` from each pac
 
 Packages below 95%: `syncdb` (lines), `admin-backend`, `admin-frontend`, `admin-spa`, `test`.
 
-- [ ] **Task 3.2**: Wire the threshold into every package CI
+- [x] **Task 3.2**: Wire the threshold into every package CI
   - Description: Add `scripts/check-coverage.ts` (default 95% threshold) to every published package's CI — either the existing dedicated workflow or the new matrix job from Task 3.3. Packages below threshold when this lands will fail CI until catch-up work merges; track that in the implementation PR.
   - Files: `.github/workflows/ui-ci.yml`, `ai-ci.yml`, `admin-spa-ci.yml`, `.github/workflows/packages-ci.yml`, package `package.json` files as needed
   - Depends on: Task 3.1

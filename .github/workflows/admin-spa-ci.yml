@@ -32,8 +32,8 @@ jobs:
       - name: Typecheck app
         run: bunx tsc --noEmit -p tsconfig.json
 
-      - name: Unit tests (serve plugin)
-        run: bun run test:ci
+      - name: Unit tests with coverage threshold
+        run: bun run test:coverage
 
       - name: Build web export
         run: bun run build:web

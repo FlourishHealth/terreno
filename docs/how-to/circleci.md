@@ -130,6 +130,11 @@ ambient OIDC token for GCP impersonation.
 Branch protection must require the CircleCI job names below. Remove disabled
 GitHub check names or pull requests will wait for checks that can no longer run.
 
+Dedicated package jobs (`api-ci`, `ai-ci`, `rtk-ci`, `ui-ci`, `syncdb-ci`,
+`comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run `bun run test:coverage`
+(`scripts/check-coverage.ts`, 95% functions and lines). Isolated `syncdb` tests
+are included by that script.
+
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
 | Repository policies / No barrel imports | `no-barrel-imports` |

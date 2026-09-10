@@ -103,7 +103,13 @@ workflows:
             scripts/check-coverage\.ts run-rtk true
             scripts/check-coverage\.ts run-mcp-server true
             scripts/check-coverage\.ts run-syncdb true
+            scripts/check-coverage\.ts run-ui true
+            scripts/check-coverage\.ts run-ai true
+            scripts/check-coverage\.ts run-comms true
+            scripts/check-coverage\.ts run-admin-spa true
             scripts/check-coverage\.ts run-new-file-coverage true
+            scripts/check-package-coverage-ci\.ts run-new-file-coverage true
+            scripts/check-package-coverage-ci\.test.ts run-new-file-coverage true
             example-frontend/.* run-example-frontend true
             admin-frontend/.* run-example-frontend true
             example-backend/.* run-example-backend true

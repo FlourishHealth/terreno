@@ -503,7 +503,7 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
 
   rtk-ci:
     executor: node22
@@ -538,7 +538,7 @@ jobs:
             bun run lint
             bun run compile
             bun run types
-            bun run test:ci
+            bun run test:coverage
 
   syncdb-ci:
     executor: node22
@@ -553,8 +553,7 @@ jobs:
           command: |
             bun run lint
             bun run compile
-            bun run test
-            bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+            bun run test:coverage
 
   new-file-coverage:
     executor: node22_mongo
@@ -577,7 +576,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
@@ -612,7 +611,7 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
 
   mcp-server-ci:
     executor: node22
@@ -798,7 +797,7 @@ jobs:
             bun run lint
             bun run compile
             bunx tsc --noEmit -p tsconfig.json
-            bun run test:ci
+            bun run test:coverage
             bun run build:web
             bun run smoke
       - run:
