@@ -18,6 +18,7 @@ import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
 import {FieldConfiguration} from "@story-config/Field.config";
 import {FilterConfiguration} from "@story-config/Filter.config";
+import {GPTChatConfiguration} from "@story-config/GPTChat.config";
 import {HeadingConfiguration} from "@story-config/Heading.config";
 import {HeightFieldConfiguration} from "@story-config/HeightField.config";
 import {IconConfiguration} from "@story-config/Icon.config";
@@ -47,7 +48,9 @@ import {SideDrawerConfiguration} from "@story-config/SideDrawer.config";
 import {SignatureCaptureFieldConfiguration} from "@story-config/SignatureCaptureField.config";
 import {SignatureFieldConfiguration} from "@story-config/SignatureField.config";
 import {SliderConfiguration} from "@story-config/Slider.config";
+import {SocialLoginButtonConfiguration} from "@story-config/SocialLoginButton.config";
 import {SpinnerConfiguration} from "@story-config/Spinner.config";
+import {SplitPageConfiguration} from "@story-config/SplitPage.config";
 import {TableConfiguration} from "@story-config/Table.config";
 import {TableBadgeConfiguration} from "@story-config/TableBadge.config";
 import {TableBooleanConfiguration} from "@story-config/TableBoolean.config";
@@ -246,6 +249,7 @@ const Config: DemoConfigurationBase[] = [
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,
   FieldConfiguration,
+  GPTChatConfiguration,
   HeadingConfiguration,
   HeightFieldConfiguration,
   IconConfiguration,
@@ -276,7 +280,9 @@ const Config: DemoConfigurationBase[] = [
   SignatureCaptureFieldConfiguration,
   SignatureFieldConfiguration,
   SliderConfiguration,
+  SocialLoginButtonConfiguration,
   SpinnerConfiguration,
+  SplitPageConfiguration,
   TableConfiguration,
   TableBadgeConfiguration,
   TableBooleanConfiguration,
