@@ -91,6 +91,8 @@ workflows:
             ui/.* run-ui true
             demo/.* run-ui true
             demo/.* run-ui-demo true
+            scripts/check-demo-coverage\.ts run-ui-demo true
+            scripts/check-demo-coverage\.test.ts run-ui-demo true
             comms/.* run-comms true
             comms/.* run-example-backend true
             comms/.* run-example-backend-script true

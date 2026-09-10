@@ -201,7 +201,7 @@ commands:
             done
 
   demo_lint_and_typecheck:
-    description: Compile ui, then lint and typecheck demo
+    description: Compile ui, then lint and typecheck demo, then check story coverage
     steps:
       - compile_packages:
           packages: ui
@@ -211,6 +211,12 @@ commands:
             set -euo pipefail
             (cd demo && bun run lint)
             (cd demo && bun run compile)
+      - run:
+          name: Check demo story coverage
+          command: |
+            set -euo pipefail
+            bun test scripts/check-demo-coverage.test.ts
+            bun run check:demo-coverage
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -570,7 +576,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").

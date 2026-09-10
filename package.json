@@ -198,6 +198,7 @@
     "check": "bun run check:no-barrel-imports && bun run check:explicit-any:baseline && bun run check:lifecycle-skills && bun run check:source-rules",
     "check:changelog": "bun run scripts/changelog/check.ts",
     "check:circleci-parity": "bun run scripts/check-circleci-parity/check.ts",
+    "check:demo-coverage": "bun run scripts/check-demo-coverage.ts",
     "check:explicit-any": "bun run scripts/check-explicit-any/check.ts",
     "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",

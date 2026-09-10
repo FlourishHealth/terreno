@@ -112,6 +112,19 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 Package CI uses `scripts/check-coverage.ts` to enforce the package-wide thresholds
 declared in `bunfig.toml`.
 
+Demo CI uses `scripts/check-demo-coverage.ts` to fail when a PascalCase component
+exported from `ui/src/index.tsx` has neither a `demo/story-config` registration nor
+an allowlist reason in `DEMO_COVERAGE_ALLOWLIST`. Run it from the repo root:
+
+```bash
+bun run check:demo-coverage
+```
+
+The `demo_lint_and_typecheck` CircleCI command (and the retained
+`.github/workflows/ui-demo-ci.yml` job) runs the unit tests and this check after
+the demo compiles. Add a story plus `demoConfig.tsx` registration for new
+components, or an allowlist entry with a specific reason — not "hard to demo".
+
 Pull requests also run the `New file coverage` workflow. Every newly added workspace
 `.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%
 line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,

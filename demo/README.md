@@ -36,6 +36,7 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 - `demoConfig.tsx` — registers stories so they appear in the home grid and `[component]` routes
 - `app/demo/` — user-facing showcase routes
 - `app/dev/` — developer playground routes
+- From the repo root, `bun run check:demo-coverage` fails CI when a `@terreno/ui` export has no story and no allowlist reason
 
 ## Add a story
 

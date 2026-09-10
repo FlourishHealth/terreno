@@ -102,13 +102,13 @@ Registered stories (65 configs, including OpenAPI Context): Accordion, AddressFi
 | `OnboardingPage` | cannot | Type, not a component |
 | `PasswordRequirement` | cannot | Type, not a component |
 
-- [ ] **Task 1.2**: Add P0 stories
+- [x] **Task 1.2**: Add P0 stories
   - Description: Write stories for every P0 component from Task 1.1 (expected to include `GPTChat`, `SocialLoginButton`, and `SplitPage` — confirm against the audit). Each story shows multiple states where the component supports them: default, loading, error, disabled, and any variant enumerations. `GPTChat` needs a story that works without a live backend — use a static message list rather than wiring a real AI call. `SocialLoginButton` needs all three providers and both variants. `SplitPage` needs a story demonstrating the responsive breakpoint behavior. Register each in `demoConfig.tsx`.
   - Files: `demo/stories/*.stories.tsx` (new), `demo/demoConfig.tsx`
   - Depends on: Task 1.1
   - Acceptance: every P0 component has a story reachable in the running demo (`bun run demo:start`, port 8085); each shows at least two states; `GPTChat`'s story renders with no backend running; `bun run demo:compile` passes.
 
-- [ ] **Task 1.3**: Add the demo coverage check
+- [x] **Task 1.3**: Add the demo coverage check
   - Description: Create `scripts/check-demo-coverage.ts` (Bun, TypeScript, `const` arrow functions with explicit return types). It parses the export list from `ui/src/index.tsx` and the registered components from `demo/demoConfig.tsx`, then fails with a list of unstoried components. Support an allowlist file or an in-script allowlist where each entry requires a comment explaining why the component cannot be demoed. Add a `check:demo-coverage` script to the root `package.json` and wire it into `.github/workflows/ui-demo-ci.yml`.
   - Files: `scripts/check-demo-coverage.ts` (new), `package.json`, `.github/workflows/ui-demo-ci.yml`
   - Depends on: Task 1.2
