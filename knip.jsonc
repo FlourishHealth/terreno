@@ -66,13 +66,60 @@
       ]
     },
     "admin-spa": {
+      // Expo Router, font loading, persistence, app.json plugins, and the Metro PDF
+      // alias load these without statically importing them from an analyzed source file.
+      "ignoreDependencies": [
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "expo-font",
+        "expo-splash-screen",
+        "expo-status-bar",
+        "expo-system-ui",
+        "expo-updates",
+        "jspdf",
+        "redux-persist"
+      ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "e2e/serveTestApp.ts",
         "jspdf-native-stub.js"
       ]
     },
     "demo": {
+      // The demo resolves UI package peers, native modules, fonts, and Metro polyfills at
+      // bundle/autolink time. They are runtime inputs even without direct demo imports.
+      "ignoreDependencies": [
+        "@expo-google-fonts/comfortaa",
+        "@expo-google-fonts/nunito",
+        "@expo-google-fonts/titillium-web",
+        "@expo/vector-icons",
+        "@react-native-community/datetimepicker",
+        "@react-native-community/slider",
+        "@react-native-picker/picker",
+        "@shopify/react-native-skia",
+        "crypto-browserify",
+        "expo-crypto",
+        "expo-font",
+        "expo-haptics",
+        "expo-image-manipulator",
+        "expo-image-picker",
+        "expo-linear-gradient",
+        "expo-system-ui",
+        "libphonenumber-js",
+        "linkify-it",
+        "mdurl",
+        "react-keyed-flatten-children",
+        "react-native-actions-sheet",
+        "react-native-calendars",
+        "react-native-drawer-layout",
+        "react-native-haptic-feedback",
+        "react-native-hyperlink",
+        "react-native-modalize",
+        "react-native-swiper-flatlist",
+        "stream-browserify",
+        "swiper"
+      ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -81,6 +128,15 @@
       ]
     },
     "example-frontend": {
+      // Expo native modules are autolinked, app.json plugins are string references, and
+      // Metro resolves jspdf to the native stub; none creates a static source import.
+      "ignoreDependencies": [
+        "expo-crypto",
+        "expo-print",
+        "expo-sharing",
+        "expo-system-ui",
+        "jspdf"
+      ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -92,6 +148,23 @@
       ]
     },
     "ui": {
+      // Published UI components expose native/web peers through platform resolution and
+      // consumer bundlers; Knip cannot observe those out-of-repository consumers.
+      "ignoreDependencies": [
+        "@react-native-community/blur",
+        "@react-navigation/native",
+        "expo-notifications",
+        "expo-updates",
+        "expo-web-browser",
+        "react-app-polyfill",
+        "react-date-picker",
+        "react-datetime-picker",
+        "react-dev-utils",
+        "react-native-permissions",
+        "react-native-picker-select",
+        "react-native-webview",
+        "react-time-picker"
+      ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

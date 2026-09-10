@@ -42,6 +42,15 @@ patterns for that workspace, so those defaults must be repeated next to extra gl
 | OpenAPI codegen configs, Metro `jspdf` stubs, Expo fingerprint configs, Playwright CI config, `ui/babel.config.js`, Docusaurus `src/theme/**` swizzles, `scripts/ci/prepare-package-publish.mjs` | Invoked by Expo/Metro/Docusaurus/CI, not imported from app `index` | Extra `entry` globs on the owning workspace |
 | Generated `expo-cicd-workflows/scripts/*.js` (including `.rulesync/`) | Skill copies; they import `ajv` / `js-yaml` outside this repo’s package graph | `ignore` globs |
 
+## Runtime-only dependencies
+
+Do not remove an Expo, React Native, or Metro dependency solely because Knip cannot find
+a static import. Expo autolinking, `app.json` plugin strings, Metro aliases/polyfills,
+platform-specific modules, and published UI peer surfaces load dependencies outside
+Knip's source graph. Keep those dependencies in the owning `package.json` and list them
+under that workspace's `ignoreDependencies` in `knip.jsonc`, with a comment naming the
+runtime loader.
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The

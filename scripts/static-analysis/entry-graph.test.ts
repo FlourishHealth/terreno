@@ -15,6 +15,51 @@ const KNOWN_ENTRY_FILES = [
   ".github/scripts/architectural-pr-review.test.ts",
 ] as const;
 
+const FRONTEND_TOOL_BLIND_DEPENDENCIES = new Map<string, string[]>([
+  [
+    "admin-spa/package.json",
+    [
+      "@expo/vector-icons",
+      "@react-native-async-storage/async-storage",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-status-bar",
+      "expo-system-ui",
+      "expo-updates",
+      "jspdf",
+      "redux-persist",
+    ],
+  ],
+  [
+    "example-frontend/package.json",
+    ["expo-crypto", "expo-print", "expo-sharing", "expo-system-ui", "jspdf"],
+  ],
+  [
+    "demo/package.json",
+    [
+      "@expo-google-fonts/comfortaa",
+      "@expo/vector-icons",
+      "@react-native-community/datetimepicker",
+      "@shopify/react-native-skia",
+      "crypto-browserify",
+      "expo-system-ui",
+      "react-native-actions-sheet",
+      "stream-browserify",
+    ],
+  ],
+  [
+    "ui/package.json",
+    [
+      "@react-native-community/blur",
+      "@react-navigation/native",
+      "expo-notifications",
+      "react-date-picker",
+      "react-native-permissions",
+      "react-native-webview",
+    ],
+  ],
+]);
+
 const isTask11UnusedFileLeak = (file: string): boolean => {
   if (file.includes(".isolated.")) {
     return true;
@@ -43,6 +88,21 @@ const runDefaultKnipReport = (): KnipReport => {
     throw new Error(stderr || "Knip failed without a diagnostic");
   }
   return JSON.parse(result.stdout.toString()) as KnipReport;
+};
+
+const dependencyIssueNames = ({file, report}: {file: string; report: KnipReport}): string[] => {
+  const packageIssues = report.issues.filter(
+    (issue) => issue.file === file || issue.file.startsWith(file.replace("package.json", ""))
+  );
+  return packageIssues
+    .flatMap((issue) => [
+      ...(issue.dependencies ?? []),
+      ...(issue.devDependencies ?? []),
+      ...(issue.optionalPeerDependencies ?? []),
+      ...(issue.unlisted ?? []),
+    ])
+    .map((issue) => issue.name)
+    .sort();
 };
 
 describe("Knip entry graph", (): void => {
@@ -85,6 +145,7 @@ describe("Knip entry graph", (): void => {
         "demo/jspdf-native-stub.js",
         "demo/fingerprint.config.js",
         "admin-spa/jspdf-native-stub.js",
+        "admin-spa/e2e/serveTestApp.ts",
         "ui/babel.config.js",
         "website/src/theme/DocItem/Footer/index.tsx",
         "scripts/ci/prepare-package-publish.mjs",
@@ -104,6 +165,20 @@ describe("Knip entry graph", (): void => {
         unusedFiles.filter((file) => file.includes("expo-cicd-workflows/scripts/")),
         []
       );
+    },
+    {timeout: 180_000}
+  );
+
+  test(
+    "does not report frontend runtime-only dependencies",
+    (): void => {
+      const report = runDefaultKnipReport();
+      for (const [packageFile, dependencyNames] of FRONTEND_TOOL_BLIND_DEPENDENCIES) {
+        const reportedNames = dependencyIssueNames({file: packageFile, report});
+        for (const dependencyName of dependencyNames) {
+          assert.notInclude(reportedNames, dependencyName, `${packageFile}: ${dependencyName}`);
+        }
+      }
     },
     {timeout: 180_000}
   );

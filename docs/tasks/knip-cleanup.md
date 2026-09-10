@@ -50,7 +50,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 2: Documented ignores (cannot fix)
 
-- [ ] **Task 2.1**: Ignore Expo autolink / Metro / font / native `dependencies` Knip cannot see
+- [x] **Task 2.1**: Ignore Expo autolink / Metro / font / native `dependencies` Knip cannot see
   - Delivers: `ignoreDependencies` (or workspace-scoped equivalent) for the live unused-deps list on `demo`, `admin-spa`, `example-frontend`, `ui` that exist for autolinking or Metro, including `jspdf` unlisted from metro stubs and `expo-system-ui` / `expo-updates` unlisted from `app.json`
   - Files: `knip.jsonc`, `docs/explanation/static-analysis.md` (why these stay in `package.json`)
   - Blocked by: Task 1.3
