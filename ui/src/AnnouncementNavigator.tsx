@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef} from "react";
+import React, {useCallback, useEffect, useRef} from "react";
 
 import {AnnouncementScreen} from "./AnnouncementScreen";
 import {Box} from "./Box";
@@ -10,31 +10,13 @@ import {useAnnouncements} from "./useAnnouncements";
 
 interface AnnouncementNavigatorProps {
   api: unknown;
-  acknowledgementMode?: "admin" | "always" | "never";
   baseUrl?: string;
   children: React.ReactNode;
   onError?: (error: unknown) => void;
 }
 
-const resolveRequiresAcknowledgement = ({
-  acknowledgementMode = "admin",
-  requiresAcknowledgement,
-}: {
-  acknowledgementMode?: "admin" | "always" | "never";
-  requiresAcknowledgement: boolean;
-}): boolean => {
-  if (acknowledgementMode === "always") {
-    return true;
-  }
-  if (acknowledgementMode === "never") {
-    return false;
-  }
-  return requiresAcknowledgement;
-};
-
 export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
   api,
-  acknowledgementMode = "admin",
   baseUrl,
   children,
   onError,
@@ -51,11 +33,18 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
   const current = pending?.current ?? null;
   const currentAnnouncementId = current?.id;
   const currentAnnouncementVersion = current?.version;
+  const requiresAcknowledgement = current?.requiresAcknowledgement ?? false;
   const recordedImpressionKeysRef = useRef<Set<string>>(new Set());
 
-  // Record one impression per announcement version while it is the current modal item.
+  const isShowingAnnouncement = !isLoading && !error && Boolean(current);
+
+  // Record one impression per announcement version only while the modal is visible.
   useEffect(() => {
-    if (!currentAnnouncementId || currentAnnouncementVersion === undefined) {
+    if (
+      !isShowingAnnouncement ||
+      !currentAnnouncementId ||
+      currentAnnouncementVersion === undefined
+    ) {
       return;
     }
     const impressionKey = `${currentAnnouncementId}:${currentAnnouncementVersion}`;
@@ -73,18 +62,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     };
 
     void recordCurrentImpression();
-  }, [currentAnnouncementId, currentAnnouncementVersion, recordImpression]);
-
-  const requiresAcknowledgement = useMemo(
-    () =>
-      current
-        ? resolveRequiresAcknowledgement({
-            acknowledgementMode,
-            requiresAcknowledgement: current.requiresAcknowledgement,
-          })
-        : false,
-    [acknowledgementMode, current]
-  );
+  }, [currentAnnouncementId, currentAnnouncementVersion, isShowingAnnouncement, recordImpression]);
 
   const handleAcknowledge = useCallback(async (): Promise<void> => {
     if (!currentAnnouncementId) {

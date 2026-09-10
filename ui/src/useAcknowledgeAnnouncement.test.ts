@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderHook} from "@testing-library/react-native";
+import {Platform} from "react-native";
 
 import {useAcknowledgeAnnouncement} from "./useAcknowledgeAnnouncement";
 
@@ -57,18 +58,21 @@ describe("useAcknowledgeAnnouncement", () => {
       useAcknowledgeAnnouncement(api as unknown as AcknowledgeApi, "/api")
     );
     await result.current.acknowledge("announcement-1");
-    await result.current.recordImpression("announcement-1", "ios");
+    await result.current.recordImpression("announcement-1");
     expect(acknowledgeMutation).toHaveBeenCalled();
     expect(impressionMutation).toHaveBeenCalled();
   });
 
-  it("defaults impression platform to web", async () => {
+  it("uses the client platform for impressions", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "ios";
     const {api, impressionMutation} = buildApi();
     const {result} = renderHook(() => useAcknowledgeAnnouncement(api as unknown as AcknowledgeApi));
     await result.current.recordImpression("announcement-1");
     expect(impressionMutation).toHaveBeenCalledWith({
       announcementId: "announcement-1",
-      platform: "web",
+      platform: "ios",
     });
+    Platform.OS = originalOS;
   });
 });

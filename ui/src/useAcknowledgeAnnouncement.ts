@@ -1,5 +1,7 @@
 import {useCallback, useRef} from "react";
 
+import {getAnnouncementPlatform} from "./announcementPlatform";
+
 interface AcknowledgeAnnouncementMutationResult {
   unwrap: () => Promise<unknown>;
 }
@@ -106,19 +108,21 @@ export const useAcknowledgeAnnouncement = (api: AcknowledgeAnnouncementApi, base
     await acknowledgeMutationRef.current({announcementId}).unwrap();
   }, []);
 
-  const recordImpression = useCallback(
-    async (announcementId: string, platform = "web"): Promise<void> => {
-      await impressionMutationRef.current({announcementId, platform}).unwrap();
-    },
-    []
-  );
+  const recordImpression = useCallback(async (announcementId: string): Promise<void> => {
+    await impressionMutationRef
+      .current({
+        announcementId,
+        platform: getAnnouncementPlatform(),
+      })
+      .unwrap();
+  }, []);
 
   return {
     acknowledge,
     error: acknowledgeError ?? impressionError,
     isAcknowledging,
     isRecordingImpression,
-    isSubmitting: isAcknowledging,
+    isSubmitting: isAcknowledging || isRecordingImpression,
     recordImpression,
   };
 };

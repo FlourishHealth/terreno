@@ -1,6 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import assert from "node:assert";
-import {waitFor} from "@testing-library/react-native";
+import {fireEvent, waitFor} from "@testing-library/react-native";
+import {Linking} from "react-native";
 
 import {MarkdownView} from "./MarkdownView";
 import {renderWithTheme} from "./test-utils";
@@ -118,6 +119,19 @@ describe("MarkdownView", () => {
       expect(getByText("Loaded markdown")).toBeTruthy();
     });
     expect(onLoad).toHaveBeenCalled();
+  });
+
+  it("opens ordinary markdown links", async () => {
+    const openURL = mock(() => Promise.resolve(true));
+    Linking.openURL = openURL;
+    const {getByText} = renderWithTheme(
+      <MarkdownView>[Docs](https://example.com/docs)</MarkdownView>
+    );
+    await waitFor(() => {
+      expect(getByText("Docs")).toBeTruthy();
+    });
+    fireEvent.press(getByText("Docs"));
+    expect(openURL).toHaveBeenCalledWith("https://example.com/docs");
   });
 
   it("renders YouTube and Loom links as embed components", async () => {

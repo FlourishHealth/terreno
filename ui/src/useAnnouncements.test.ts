@@ -83,13 +83,24 @@ describe("useAnnouncements", () => {
     expect(result.current.feed[0]?.id).toBe("feed-1");
   });
 
-  it("prefers pending errors over feed errors", () => {
+  it("surfaces pending errors without treating feed errors as blocking", () => {
     const {api} = buildApi({
       feedError: new Error("feed failed"),
       pendingError: new Error("pending failed"),
     });
     const {result} = renderHook(() => useAnnouncements(api as unknown as AnnouncementsApi));
     expect(result.current.error).toEqual(new Error("pending failed"));
+    expect(result.current.feedError).toEqual(new Error("feed failed"));
+  });
+
+  it("keeps feed errors separate from pending errors", () => {
+    const {api} = buildApi({
+      feedError: new Error("feed failed"),
+      pendingData: {data: {current: null, remainingCount: 0}},
+    });
+    const {result} = renderHook(() => useAnnouncements(api as unknown as AnnouncementsApi));
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.feedError).toEqual(new Error("feed failed"));
   });
 
   it("caches enhanced api per base url", () => {

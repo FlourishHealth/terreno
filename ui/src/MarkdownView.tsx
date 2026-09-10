@@ -1,10 +1,10 @@
-import React, {lazy, Suspense, useEffect, useMemo} from "react";
-import {Platform, Text} from "react-native";
+import React, {lazy, Suspense, useCallback, useEffect, useMemo} from "react";
+import {Linking, Platform, Text} from "react-native";
 import type Markdown from "react-native-markdown-display";
 import {renderRules} from "react-native-markdown-display";
 
 import {MarkdownEmbed} from "./MarkdownEmbed";
-import {isEmbeddableMediaUrl} from "./markdownEmbeds";
+import {isEmbeddableMediaUrl, toMediaEmbedUrl} from "./markdownEmbeds";
 import {Spinner} from "./Spinner";
 import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
@@ -151,11 +151,15 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
     };
   }, [textColor, theme.border.default, theme.surface.neutralLight]);
 
+  const handleLinkPress = useCallback((url: string): void => {
+    void Linking.openURL(url);
+  }, []);
+
   const markdownRules = useMemo<React.ComponentProps<typeof Markdown>["rules"]>(() => {
     return {
       image: (node, children, parent, styles, allowedImageHandlers, defaultImageHandler) => {
         const src = node.attributes?.src;
-        if (typeof src === "string" && isEmbeddableMediaUrl(src)) {
+        if (typeof src === "string" && isEmbeddableMediaUrl(src) && toMediaEmbedUrl(src)) {
           return <MarkdownEmbed key={node.key} url={src} />;
         }
         return renderRules.image?.(
@@ -167,24 +171,12 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
           defaultImageHandler
         );
       },
-      link: (node, children, _parent, styles, onLinkPress) => {
+      link: (node, children, parent, styles, onLinkPress) => {
         const href = node.attributes?.href;
-        if (typeof href === "string" && isEmbeddableMediaUrl(href)) {
+        if (typeof href === "string" && isEmbeddableMediaUrl(href) && toMediaEmbedUrl(href)) {
           return <MarkdownEmbed key={node.key} url={href} />;
         }
-        return (
-          <Text
-            key={node.key}
-            onPress={() => {
-              if (typeof href === "string" && onLinkPress) {
-                onLinkPress(href);
-              }
-            }}
-            style={styles.link}
-          >
-            {children}
-          </Text>
-        );
+        return renderRules.link?.(node, children, parent, styles, onLinkPress);
       },
     };
   }, []);
@@ -192,7 +184,7 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
   return (
     <Suspense fallback={<Spinner />}>
       <MarkdownLoadNotifier onLoad={onLoad} />
-      <LazyMarkdown rules={markdownRules} style={markdownStyle}>
+      <LazyMarkdown onLinkPress={handleLinkPress} rules={markdownRules} style={markdownStyle}>
         {children}
       </LazyMarkdown>
     </Suspense>

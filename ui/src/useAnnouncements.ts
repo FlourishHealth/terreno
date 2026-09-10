@@ -1,3 +1,5 @@
+import {getAnnouncementPlatform} from "./announcementPlatform";
+
 export interface AnnouncementPublic {
   id: string;
   title: string;
@@ -79,12 +81,16 @@ const getEnhancedApi = (api: AnnouncementsApi, base: string): AnnouncementsEnhan
         query: (args?: {page?: number; limit?: number}) => {
           const page = args?.page ?? 1;
           const limit = args?.limit ?? 20;
-          return `${base}/announcements/feed?page=${page}&limit=${limit}&platform=web`;
+          const platform = getAnnouncementPlatform();
+          return `${base}/announcements/feed?page=${page}&limit=${limit}&platform=${platform}`;
         },
       }),
       getPendingAnnouncements: build.query({
         providesTags: ["PendingAnnouncements"],
-        query: () => `${base}/announcements/pending?platform=web`,
+        query: () => {
+          const platform = getAnnouncementPlatform();
+          return `${base}/announcements/pending?platform=${platform}`;
+        },
       }),
     }),
     overrideExisting: false,
@@ -122,8 +128,9 @@ export const useAnnouncements = (
     [];
 
   return {
-    error: pendingError ?? feedError,
+    error: pendingError,
     feed: feedPayload,
+    feedError,
     isFeedLoading,
     isLoading: isPendingLoading,
     isPendingLoading,
