@@ -63,7 +63,7 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
           onClick={() => handleChange(organizations[0]._id)}
           testID="org-switcher-single-open"
           text={organizations[0].name}
-          variant="ghost"
+          variant="outline"
         />
       </Box>
     );
