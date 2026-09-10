@@ -16,6 +16,24 @@ import {MongoJobRunner} from "../runners/mongoRunner";
 
 const typedUserModel = UserModel as unknown as UserModelType;
 
+const waitUntil = async (
+  predicate: () => Promise<boolean>,
+  options?: {intervalMs?: number; timeoutMs?: number}
+): Promise<void> => {
+  const intervalMs = options?.intervalMs ?? 25;
+  const timeoutMs = options?.timeoutMs ?? 5_000;
+  const deadline = DateTime.utc().plus({milliseconds: timeoutMs});
+
+  while (DateTime.utc() < deadline) {
+    if (await predicate()) {
+      return;
+    }
+    await Bun.sleep(intervalMs);
+  }
+
+  throw new Error("waitUntil timed out");
+};
+
 const captureError = async (operation: () => Promise<unknown>): Promise<unknown> => {
   try {
     await operation();
@@ -36,7 +54,7 @@ describe("jobs tracer", () => {
     let seenJobId: string | undefined;
     let contextJobId: string | undefined;
 
-    const jobsApp = new JobsApp();
+    const jobsApp = new JobsApp({pollIntervalMs: 25});
     jobsApp.define("echo-payload", {
       handler: async (payload, ctx) => {
         seenPayload = payload;
@@ -65,6 +83,10 @@ describe("jobs tracer", () => {
     );
 
     await jobsApp.startWorker();
+    await waitUntil(
+      async () => (await Job.findExactlyOne({_id: enqueued._id})).status === "completed"
+    );
+    await jobsApp.stopWorker();
 
     const completed = await Job.findExactlyOne({_id: enqueued._id});
     assert.equal(completed.status, "completed");
@@ -74,7 +96,7 @@ describe("jobs tracer", () => {
   });
 
   it("enqueue with an unknown job name throws APIError 400", async (): Promise<void> => {
-    const jobsApp = new JobsApp();
+    const jobsApp = new JobsApp({pollIntervalMs: 25});
     new TerrenoApp({
       skipListen: true,
       userModel: typedUserModel,
@@ -95,7 +117,7 @@ describe("jobs tracer", () => {
   });
 
   it("fails loud when a pending row has no registered handler at execution time", async (): Promise<void> => {
-    const jobsApp = new JobsApp();
+    const jobsApp = new JobsApp({pollIntervalMs: 25});
     new TerrenoApp({
       skipListen: true,
       userModel: typedUserModel,
@@ -113,10 +135,12 @@ describe("jobs tracer", () => {
       status: "pending",
     });
 
-    const error = await captureError(() => jobsApp.startWorker());
+    await jobsApp.startWorker();
+    await waitUntil(
+      async () => (await Job.findExactlyOne({name: "orphan-job"})).status === "failed"
+    );
+    await jobsApp.stopWorker();
 
-    assert.isTrue(isAPIError(error));
-    assert.equal((error as APIError).status, 500);
     const failed = await Job.findExactlyOne({name: "orphan-job"});
     assert.equal(failed.status, "failed");
     assert.match(failed.lastError ?? "", /No handler registered/);

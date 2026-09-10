@@ -32,7 +32,7 @@ describe("JobsApp", () => {
   });
 
   it("starts and stops a worker only when explicitly requested", async () => {
-    const jobsApp = new JobsApp();
+    const jobsApp = new JobsApp({pollIntervalMs: 50});
 
     expect(jobsApp.isWorkerActive()).toBe(false);
     await jobsApp.startWorker();

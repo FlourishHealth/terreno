@@ -26,6 +26,7 @@ export interface EnqueueJobParams {
 
 export interface JobRunnerStartOptions {
   jobs: JobsRunnerHost;
+  pollIntervalMs?: number;
   signal: AbortSignal;
 }
 

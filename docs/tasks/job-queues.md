@@ -23,7 +23,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: stub one sentence in `docs/reference/jobs.md` if the file exists; else wait for 5.1
   - Acceptance: bun test — enqueue then `startWorker` completes the job; missing handler fails loud; every schema field has `description`
 
-- [ ] **Task 1.3**: Explicit `startWorker` in-process and lock reclaim
+- [x] **Task 1.3**: Explicit `startWorker` in-process and lock reclaim
   - Delivers: `JobsApp.register` does **not** poll; `startWorker()` starts the runner; `stopWorker()` aborts; expired `lockedAt` reclaims `running`; two workers claim one job once
   - Files: `jobs/src/jobsApp.ts`, `jobs/src/runners/mongoRunner.ts`, tests
   - Blocked by: 1.2

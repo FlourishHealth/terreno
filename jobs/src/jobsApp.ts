@@ -10,6 +10,7 @@ import type {JobDefinition, JobRunner} from "./types";
 export interface JobsAppOptions {
   basePath?: string;
   lockTtlMs?: number;
+  pollIntervalMs?: number;
   runner?: JobRunner;
   timezone?: string;
 }
@@ -25,8 +26,9 @@ export class JobsApp implements TerrenoPlugin {
   private readonly options: JobsAppOptions;
   private readonly runner: JobRunner;
   private readonly service: JobsService;
-  private workerActive = false;
   private abortController: AbortController | undefined;
+  private workerActive = false;
+  private workerPromise: Promise<void> | undefined;
 
   constructor(options?: JobsAppOptions) {
     this.options = options ?? {};
@@ -51,6 +53,10 @@ export class JobsApp implements TerrenoPlugin {
     return this.service.getLockTtlMs();
   }
 
+  getPollIntervalMs(): number {
+    return this.options.pollIntervalMs ?? 1_000;
+  }
+
   register(_app: express.Application, _openApi?: unknown): void {
     registerJobsService(this.service);
 
@@ -63,36 +69,56 @@ export class JobsApp implements TerrenoPlugin {
     return this.workerActive;
   }
 
+  /**
+   * Starts the background worker poll loop without awaiting it.
+   *
+   * Fire-and-forget: resolves once the runner has been scheduled. Runner errors are
+   * logged and worker state is reset; they are not thrown from this method.
+   */
   async startWorker(): Promise<void> {
     if (this.workerActive) {
       return;
     }
 
-    this.workerActive = true;
-    this.abortController = new AbortController();
-
     if (!this.runner.start) {
-      this.workerActive = false;
-      this.abortController = undefined;
       throw new Error(`Job runner "${this.runner.id}" does not support start()`);
     }
 
-    try {
-      await this.runner.start({
+    this.workerActive = true;
+    this.abortController = new AbortController();
+
+    this.workerPromise = this.runner
+      .start({
         jobs: this,
+        pollIntervalMs: this.getPollIntervalMs(),
         signal: this.abortController.signal,
+      })
+      .catch((error: unknown) => {
+        this.workerActive = false;
+        this.abortController = undefined;
+        this.workerPromise = undefined;
+        logger.error(`[jobs] Worker stopped with error: ${String(error)}`);
       });
-    } catch (error: unknown) {
-      this.workerActive = false;
-      this.abortController = undefined;
-      throw error;
-    }
   }
 
   async stopWorker(): Promise<void> {
+    if (!this.workerActive) {
+      return;
+    }
+
+    const stopPromise = this.runner.stop?.();
     this.abortController?.abort();
-    await this.runner.stop?.();
+
+    try {
+      await this.workerPromise;
+    } catch {
+      // startWorker is fire-and-forget; runner errors are logged in workerPromise.catch.
+    }
+
+    await stopPromise;
+
     this.workerActive = false;
     this.abortController = undefined;
+    this.workerPromise = undefined;
   }
 }
