@@ -16,7 +16,7 @@ export const openapi = createSessionApi().enhanceEndpoints({
   addTagTypes: ["admin-models", "admin-version-config", "admin-scripts", "profile"],
 });
 
-export interface AdminSpaProfile {
+interface AdminSpaProfile {
   admin?: boolean;
   permissions?: Record<string, readonly string[]>;
   roles?: string[];
