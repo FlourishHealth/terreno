@@ -1,4 +1,4 @@
-export const TERRENO_MCP_WRITE_SCAFFOLD_ENV = "TERRENO_MCP_WRITE_SCAFFOLD";
+const TERRENO_MCP_WRITE_SCAFFOLD_ENV = "TERRENO_MCP_WRITE_SCAFFOLD";
 
 export const disableScaffoldWrites = (): void => {
   delete process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];

@@ -14,7 +14,8 @@
     "mcp-server": {
       // Knip 6.34 expects Bun's `test.preload` to be an array, while this package
       // uses Bun's valid scalar form. Tests remain in the project graph.
-      "bun": false
+      "bun": false,
+      "entry": ["src/index.ts", "src/local/index.ts", "src/__tests__/**/*.test.ts"]
     }
   }
 }

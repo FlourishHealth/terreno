@@ -20,7 +20,7 @@ import {isScaffoldWriteEnabled} from "./scaffoldWriteMode.js";
 
 export {PLAYWRIGHT_MCP_PACKAGE_VERSION};
 
-export interface BootstrapToolArgs extends BootstrapArgs {
+interface BootstrapToolArgs extends BootstrapArgs {
   /** Absolute parent directory that will contain `<appName>/`. Local MCP only when write guard is set. */
   targetDir?: string;
 }
@@ -32,7 +32,7 @@ const shellQuote = (value: string): string => {
   return `'${value.replace(/'/g, "'\\''")}'`;
 };
 
-export const formatBootstrapCliCommand = (args: BootstrapArgs): string => {
+const formatBootstrapCliCommand = (args: BootstrapArgs): string => {
   const parts = [
     "bunx create-terreno-app",
     shellQuote(args.appName),
@@ -51,7 +51,7 @@ export const formatBootstrapCliCommand = (args: BootstrapArgs): string => {
   return parts.join(" ");
 };
 
-export const validateBootstrapTargetDir = (targetDir: unknown): string | undefined => {
+const validateBootstrapTargetDir = (targetDir: unknown): string | undefined => {
   if (targetDir === undefined || targetDir === null) {
     return undefined;
   }

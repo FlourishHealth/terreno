@@ -887,7 +887,7 @@ jobs:
           command: bun test scripts/planning/
       - run:
           name: Test release tooling
-          command: bun test scripts/ci/
+          command: bun run test:ci-tools
 
   license-coverage:
     executor: node22

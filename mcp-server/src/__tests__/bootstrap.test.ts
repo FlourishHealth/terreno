@@ -11,11 +11,9 @@ import {
   handleBootstrapToolCall,
   PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
-import {
-  disableScaffoldWrites,
-  enableScaffoldWrites,
-  TERRENO_MCP_WRITE_SCAFFOLD_ENV,
-} from "../scaffoldWriteMode.js";
+import {disableScaffoldWrites, enableScaffoldWrites} from "../scaffoldWriteMode.js";
+
+const TERRENO_MCP_WRITE_SCAFFOLD_ENV = "TERRENO_MCP_WRITE_SCAFFOLD";
 
 const withWriteScaffoldEnv = (value: string | undefined, run: () => void): void => {
   const previous = process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];
