@@ -28,7 +28,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
-- Migrations: `assertMigrationsAllowed`, `runMigrations`, `runDownMigrations`, `checkMigrationFiles`, `MIGRATIONS_COLLECTION` (`terreno-migrate` bin)
+- Migrations: `assertMigrationsAllowed`, `runMigrations`, `runDownMigrations`, `checkMigrationFiles`, `exerciseReversibleMigrations`, `MIGRATIONS_COLLECTION` (`terreno-migrate` bin)
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
@@ -1351,7 +1351,7 @@ for (let i = 0; i < 3; i++) {
 
 `runDownMigrations({migrations, dryRun, connection, mongoose, steps})` rolls back the last `steps` applied files (default 1 via the CLI). Dry-run calls `down({dryRun: true})` and leaves history in place. Wet deletes the history row after `down`. Missing `down` throws `Migration has no down` (400) and does not change history.
 
-Files are `migrations/<YYYYMMDDHHmmss>-<slug>.ts`. `checkMigrationFiles({dir})` (alias `loadMigrations`) loads them in filename order without connecting to Mongo; the exported `id` must match the filename stem. Optional `down` is allowed. Duplicate ids and invalid names fail with 400 `APIError`.
+Files are `migrations/<YYYYMMDDHHmmss>-<slug>.ts`. `checkMigrationFiles({dir})` (alias `loadMigrations`) loads them in filename order without connecting to Mongo; the exported `id` must match the filename stem. Optional `down` is allowed. Duplicate ids and invalid names fail with 400 `APIError`. `exerciseReversibleMigrations({dir, connect})` applies every file on a connected database, then rolls back in reverse until a file without `down` stops the chain (that id is recorded; earlier files stay applied).
 
 `assertMigrationsAllowed({isProduction, allowEnv, force, dryRun})` gates wet apply. Dry-run is always allowed. Production wet requires `ALLOW_MIGRATIONS=true` and `--force` (or a later boot/admin Apply equivalent).
 

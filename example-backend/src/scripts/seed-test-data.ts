@@ -602,6 +602,7 @@ export const seedSteps: SeedStep[] = [
     dependsOn: ["users"],
     name: "commsMessages",
     reset: async (context) => {
+      // Intentionally does not touch terreno_migrations; seed reset is not a schema rollback.
       await context.deleteMany(CommsMessage, {"metadata.demoSeed": true});
     },
     run: async (context) => {

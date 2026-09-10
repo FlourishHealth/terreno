@@ -72,6 +72,17 @@ Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
 
 Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The UI page is a later slice.
 
+## Example app
+
+`example-backend` keeps files in `migrations/` and wires the same directory into
+`TerrenoApp` and `AdminApp`. From `example-backend/`:
+
+```bash
+bun run migrate:check
+bun run migrate:status
+bun run migrate:up
+```
+
 
 ## Production wet apply
 

@@ -52,6 +52,7 @@ import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
+import {EXAMPLE_MIGRATIONS_DIR} from "./migrationsDir";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -176,6 +177,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         enabled: true,
         publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
+      migrations: {dir: EXAMPLE_MIGRATIONS_DIR},
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
@@ -391,6 +393,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             },
             title: "Example administration",
           },
+          migrations: {dir: EXAMPLE_MIGRATIONS_DIR},
           models: [
             mcpServiceTokenAdminModel,
             {

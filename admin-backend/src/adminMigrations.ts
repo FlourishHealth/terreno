@@ -69,7 +69,7 @@ export const mountAdminMigrationRoutes = ({
 
       const now = DateTime.now().toJSDate();
       const task = (await BackgroundTask.create({
-        createdBy: actor._id as mongoose.Types.ObjectId,
+        createdBy: actor._id as unknown as mongoose.Types.ObjectId,
         isDryRun: !isWetRun,
         logs: [
           {

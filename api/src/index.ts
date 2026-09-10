@@ -50,6 +50,7 @@ export type {
   MCPToolResult,
 } from "./mcp/types";
 export * from "./middleware";
+export * from "./migrations/exercise";
 export * from "./migrations/gate";
 export * from "./migrations/generate";
 export * from "./migrations/load";

@@ -84,5 +84,6 @@ are true:
 2. `allowProductionReset` returns `true` (normally from a dedicated environment variable).
 
 Reset handlers should delete only records owned by the seed plan. Preserve
-authentication, migration history, and operator-created data unless the plan
-explicitly manages them.
+authentication, migration history (`terreno_migrations`), and operator-created
+data unless the plan explicitly manages them. Do not `dropDatabase` or delete
+the history collection in seed `--reset`.
