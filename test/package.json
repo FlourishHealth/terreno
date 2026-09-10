@@ -5,7 +5,6 @@
   },
   "dependencies": {
     "express": "catalog:",
-    "lodash": "catalog:",
     "luxon": "catalog:",
     "qs": "catalog:",
     "winston": "catalog:"

@@ -178,6 +178,51 @@
         "playwright.circleci.config.ts"
       ]
     },
+    "example-backend": {
+      // Knip's Bun plugin also discovers `src/index.ts` from `bun run src/index.ts`.
+      // In production mode that plugin-owned duplicate incorrectly wins over the explicit
+      // `src/index.ts!` entry, leaving every runtime dependency unreachable.
+      "bun": false,
+      // Production-only (`!`) exceptions for dependencies statically imported from
+      // src/index.ts. Default-mode Knip still detects genuinely unused dependencies.
+      "ignoreDependencies": [
+        "@ai-sdk/google!",
+        "@ai-sdk/google-vertex!",
+        "@google-cloud/opentelemetry-cloud-trace-exporter!",
+        "@google-cloud/secret-manager!",
+        "@google-cloud/trace-agent!",
+        "@opentelemetry/instrumentation-express!",
+        "@opentelemetry/instrumentation-http!",
+        "@opentelemetry/resources!",
+        "@opentelemetry/sdk-node!",
+        "@opentelemetry/semantic-conventions!",
+        "@sentry/bun!",
+        "@socket.io/mongo-adapter!",
+        "@socket.io/redis-adapter!",
+        "@terreno/admin-backend!",
+        "@terreno/admin-spa!",
+        "@terreno/ai!",
+        "@terreno/api-health!",
+        "@terreno/comms!",
+        "@terreno/feature-flags!",
+        "@thream/socketio-jwt!",
+        "ai!",
+        "expo-server-sdk!",
+        "express!",
+        "luxon!",
+        "pdf-lib!",
+        "socket.io!",
+        "twilio!"
+      ],
+      "entry": [
+        "src/index.ts!",
+        "src/**/*.test.ts",
+        "src/tests/setup.ts",
+        "src/scripts/runAdminScript.ts",
+        "src/scripts/seed-test-data.ts",
+        "src/scripts/syncConsents.ts"
+      ]
+    },
     "ui": {
       // Published UI components expose native/web peers through platform resolution and
       // consumer bundlers; Knip cannot observe those out-of-repository consumers.
@@ -207,8 +252,12 @@
       ]
     },
     "website": {
-      // generate-api-reference.ts passes this plugin name to the TypeDoc subprocess.
-      "ignoreDependencies": ["typedoc-plugin-markdown"],
+      // Docusaurus loads these from build-time config that production-mode Knip excludes.
+      "ignoreDependencies": [
+        "@easyops-cn/docusaurus-search-local",
+        "prism-react-renderer",
+        "typedoc-plugin-markdown"
+      ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

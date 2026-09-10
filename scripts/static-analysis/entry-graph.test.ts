@@ -69,7 +69,7 @@ const isTask11UnusedFileLeak = (file: string): boolean => {
   return isRepoScriptTest;
 };
 
-const runDefaultKnipReport = (): KnipReport => {
+const runKnipReport = ({isProduction = false}: {isProduction?: boolean} = {}): KnipReport => {
   const result = Bun.spawnSync({
     cmd: [
       "node",
@@ -78,6 +78,7 @@ const runDefaultKnipReport = (): KnipReport => {
       "--no-exit-code",
       "--reporter",
       "json",
+      ...(isProduction ? ["--production"] : []),
     ],
     cwd: REPO_ROOT,
     stderr: "pipe",
@@ -114,7 +115,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report isolated suites or repo script tests as unused files",
     (): void => {
-      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
       for (const knownEntry of KNOWN_ENTRY_FILES) {
         assert.notInclude(unusedFiles, knownEntry);
       }
@@ -126,7 +127,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report mcp-server tests as unused files",
     (): void => {
-      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
       assert.notInclude(unusedFiles, "mcp-server/src/__tests__/tools.test.ts");
       assert.notInclude(unusedFiles, "mcp-server/src/__tests__/preload.ts");
       assert.deepEqual(
@@ -140,7 +141,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report codegen, Metro stubs, Playwright, fingerprint, or Docusaurus theme files as unused",
     (): void => {
-      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
       const knownToolEntries = [
         "example-frontend/openapi-config.ts",
         "example-frontend/comms-openapi-config.ts",
@@ -165,7 +166,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report generated Expo skill script copies as unused files",
     (): void => {
-      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
       assert.deepEqual(
         unusedFiles.filter((file) => file.includes("expo-cicd-workflows/scripts/")),
         []
@@ -177,7 +178,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report frontend runtime-only dependencies",
     (): void => {
-      const report = runDefaultKnipReport();
+      const report = runKnipReport();
       for (const [packageFile, dependencyNames] of FRONTEND_TOOL_BLIND_DEPENDENCIES) {
         const reportedNames = dependencyIssueNames({file: packageFile, report});
         for (const dependencyName of dependencyNames) {
@@ -191,7 +192,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report externally installed binaries, catalog pins, or public optional peers",
     (): void => {
-      const report = runDefaultKnipReport();
+      const report = runKnipReport();
       assert.notInclude(dependencyIssueNames({file: "package.json", report}), "maestro");
       assert.notInclude(
         dependencyIssueNames({file: "package.json", report}),
@@ -209,7 +210,7 @@ describe("Knip entry graph", (): void => {
   test(
     "does not report declared optional, test-only, or type-only modules as unlisted",
     (): void => {
-      const report = runDefaultKnipReport();
+      const report = runKnipReport();
       const expectedDeclarations = [
         ["ai/package.json", "@ai-sdk/google-vertex"],
         ["ai/package.json", "express"],
@@ -223,6 +224,28 @@ describe("Knip entry graph", (): void => {
           dependencyName,
           `${packageFile}: ${dependencyName}`
         );
+      }
+    },
+    {timeout: 180_000}
+  );
+
+  test(
+    "traces example backend runtime imports in production mode",
+    (): void => {
+      const report = runKnipReport({isProduction: true});
+      const reportedNames = dependencyIssueNames({
+        file: "example-backend/package.json",
+        report,
+      });
+      for (const runtimeDependency of [
+        "@sentry/bun",
+        "@terreno/admin-backend",
+        "@terreno/api",
+        "express",
+        "luxon",
+        "socket.io",
+      ]) {
+        assert.notInclude(reportedNames, runtimeDependency);
       }
     },
     {timeout: 180_000}

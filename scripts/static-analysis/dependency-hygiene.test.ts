@@ -37,6 +37,23 @@ const UNUSED_DEV_DEPENDENCIES = new Map<string, string[]>([
   ],
 ]);
 
+const UNUSED_RUNTIME_DEPENDENCIES = new Map<string, string[]>([
+  [
+    "example-backend/package.json",
+    [
+      "@google-cloud/logging",
+      "@google-cloud/logging-winston",
+      "@opentelemetry/instrumentation-mongoose",
+      "lodash",
+      "path-to-regexp",
+      "qs",
+    ],
+  ],
+  ["api/package.json", ["@sentry/profiling-node", "generaterr", "scmp"]],
+  ["test/package.json", ["lodash"]],
+  ["website/package.json", ["clsx"]],
+]);
+
 describe("dependency hygiene", (): void => {
   test("does not retain unused development dependencies", async (): Promise<void> => {
     for (const [manifestPath, dependencyNames] of UNUSED_DEV_DEPENDENCIES) {
@@ -51,5 +68,29 @@ describe("dependency hygiene", (): void => {
         );
       }
     }
+  });
+
+  test("does not retain unused runtime dependencies", async (): Promise<void> => {
+    for (const [manifestPath, dependencyNames] of UNUSED_RUNTIME_DEPENDENCIES) {
+      const manifest = (await Bun.file(join(REPO_ROOT, manifestPath)).json()) as {
+        dependencies?: Record<string, string>;
+      };
+      for (const dependencyName of dependencyNames) {
+        assert.notProperty(
+          manifest.dependencies ?? {},
+          dependencyName,
+          `${manifestPath}: ${dependencyName}`
+        );
+      }
+    }
+  });
+
+  test("keeps admin SPA e2e-only luxon in devDependencies", async (): Promise<void> => {
+    const manifest = (await Bun.file(join(REPO_ROOT, "admin-spa/package.json")).json()) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    assert.notProperty(manifest.dependencies ?? {}, "luxon");
+    assert.property(manifest.devDependencies ?? {}, "luxon");
   });
 });
