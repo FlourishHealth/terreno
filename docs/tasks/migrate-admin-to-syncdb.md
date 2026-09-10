@@ -122,7 +122,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
 
 ## Phase 4 — Admin UI dual-run
 
-- [ ] **Task 4.1**: `AdminModelTable` windowed path
+- [x] **Task 4.1**: `AdminModelTable` windowed path
   - Delivers: when `syncDb` + fetch client present and model is String `_id` + synced + `adminBroadcast`, table membership from REST, rows from TinyBase, load more hydrates, Refresh control visible
   - Files: `admin-frontend/src/AdminModelTable.tsx`, tests
   - Blocked by: 3.4, 3.5, 2.2, 1.7
