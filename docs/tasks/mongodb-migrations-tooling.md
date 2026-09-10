@@ -61,7 +61,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 4 — Boot hook
 
-- [ ] **Task 4.1**: `TerrenoApp` `migrations.runOnStart`
+- [x] **Task 4.1**: `TerrenoApp` `migrations.runOnStart`
   - Delivers: option default off; when true, wet `up` after DB connect before listen; prod still needs `ALLOW_MIGRATIONS`; failure prevents listen
   - Files: `api/src/terrenoApp.ts`, `api/src/terrenoApp.migrations.test.ts` (or extend existing app tests)
   - Blocked by: 2.2

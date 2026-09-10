@@ -81,6 +81,15 @@ const app = new TerrenoApp({userModel: User})
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
 
+`migrations.runOnStart` defaults to **false**. When `true`, `start()` runs wet `up` after `ensureSyncIndexes` and before listen. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  migrations: {dir: "./migrations", runOnStart: true},
+});
+```
+
 ### HTTP rate limiting
 
 Opt-in. Pass `rateLimit: {}` on `TerrenoApp` to enable (omitted = off; Terreno 58 defaults on).

@@ -56,6 +56,7 @@ export * from "./migrations/load";
 export * from "./migrations/lock";
 export * from "./migrations/runner";
 export * from "./migrations/schemaCatalog";
+export * from "./migrations/startup";
 export * from "./migrations/types";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";

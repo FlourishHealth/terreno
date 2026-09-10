@@ -3,6 +3,7 @@ import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
+import mongoose from "mongoose";
 import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
@@ -32,6 +33,7 @@ import {
   resolveMcpServiceTokensOption,
 } from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
+import {runStartupMigrations} from "./migrations/startup";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
@@ -125,6 +127,11 @@ export interface TerrenoAppOptions {
    * mounts `/mcp/service-tokens` and accepts `Authorization: Bearer mcp_…` on `/mcp`.
    */
   mcpServiceTokens?: McpServiceTokensAppOption;
+  /**
+   * Versioned MongoDB migrations. `runOnStart` defaults to false. When true, wet `up`
+   * runs after indexes and before listen. Production still requires `ALLOW_MIGRATIONS=true`.
+   */
+  migrations?: import("./migrations/startup").StartupMigrationsOption;
 }
 
 /**
@@ -581,6 +588,10 @@ export class TerrenoApp {
       void (async (): Promise<void> => {
         try {
           await ensureSyncIndexes();
+          await runStartupMigrations({
+            migrations: this.options.migrations,
+            mongoose,
+          });
           const server = createServer(app);
 
           // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
