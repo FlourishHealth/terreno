@@ -65,6 +65,7 @@ export * from "./orgs/organizationModel";
 export * from "./orgs/orgContext";
 export * from "./orgs/orgPermissions";
 export * from "./orgs/orgPlugin";
+export * from "./orgs/orgsApp";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";

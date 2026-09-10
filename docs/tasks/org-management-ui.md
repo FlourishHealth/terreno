@@ -27,7 +27,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 2 — RBAC
 
-- [ ] **Task 2.1**: `organization` statements + `operator` role + membership-scoped `org-admin`
+- [x] **Task 2.1**: `organization` statements + `operator` role + membership-scoped `org-admin`
   - Delivers: platform vs org grants as in the IP tables
   - Files: `api/src/rbac/statements.ts`, `roleModel.ts`, resolve/can path for Membership `roleName`, tests
   - Blocked by: 1.3
