@@ -391,6 +391,7 @@
         "@terreno/api-health": "workspace:*",
         "@terreno/comms": "workspace:*",
         "@terreno/feature-flags": "workspace:*",
+        "@terreno/jobs": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
         "expo-server-sdk": "^6.0.0",
@@ -518,12 +519,20 @@
         "@types/bun": "catalog:",
         "@types/express": "catalog:",
         "@types/luxon": "catalog:",
+        "@types/supertest": "catalog:",
         "chai": "catalog:",
+        "supertest": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {
+        "@google-cloud/tasks": "7.1.0",
+        "@vercel/queue": "^0.5.1",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
+      "optionalPeers": [
+        "@google-cloud/tasks",
+        "@vercel/queue",
+      ],
     },
     "mcp-server": {
       "name": "@terreno/mcp",

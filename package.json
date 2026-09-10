@@ -234,6 +234,7 @@
     "jobs:compile": "bun run --filter '@terreno/jobs' compile",
     "jobs:lint": "bun run --filter '@terreno/jobs' lint",
     "jobs:test": "bun run --filter '@terreno/jobs' test",
+    "jobs:worker": "bun run --filter '@terreno/example-backend' jobs:worker",
     "frontend:android": "bun run --filter '@terreno/example-frontend' android",
     "frontend:ios": "bun run --filter '@terreno/example-frontend' ios",
     "frontend:lint": "bun run --filter '@terreno/example-frontend' lint",

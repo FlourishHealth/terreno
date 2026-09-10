@@ -109,8 +109,8 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: `docs/how-to/admin-import-prebuilt.md` in 5.1
   - Acceptance: bun tests for render/filter/actions; no `fetch`/`axios`; no syncdb
 
-- [ ] **Task 4.3**: example-backend + example-frontend + admin-spa + UI verify
-  - Delivers: example registers `JobsApp` + Mongo runner; demo job; optional `jobs:worker` script; routes `/admin/jobs`; admin-spa `/jobs`; SDK regen if OpenAPI changed
+- [x] **Task 4.3**: example-backend + example-frontend + admin-spa + UI verify *(manual UI verification pending on parent)*
+  - Delivers: example registers `JobsApp` + Mongo runner; demo job; optional `jobs:worker` script; routes `/admin/jobs`; admin-spa `/jobs`; SDK regen if OpenAPI changed; `JOBS_START_WORKER` gates API-process worker (default true)
   - Files: `example-backend/src/server.ts`, worker entry, `example-frontend/app/admin/**`, `admin-spa/app/**`, `store/openApiSdk.ts` (generated)
   - Blocked by: 4.2, 1.3
   - Skills: `building-admin-interfaces`, `verify-ui-changes`, `generate-sdk`
