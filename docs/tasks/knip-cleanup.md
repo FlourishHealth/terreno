@@ -81,7 +81,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Docs: none unless a documented install step named a removed tool
   - Acceptance: `rg` of the repo and `package.json` scripts show no remaining reference; `bun run compile` (or package `compile`) and the package test script still pass for each touched package; live unused-devDep list for those names is empty; `analyze:full` exits 0
 
-- [ ] **Task 3.2**: Remove unused runtime deps that are not Expo/autolink
+- [x] **Task 3.2**: Remove unused runtime deps that are not Expo/autolink
   - Delivers: example-backend / website / test / api leftovers (`clsx`, unused `lodash` in `@terreno/test`, `generaterr` / `scmp` / `@sentry/profiling-node` **only if** nothing loads them including Sentry init). If a dep is loaded via string/dynamic import, ignore it instead
   - Files: affected `package.json`, source if an import must move
   - Blocked by: Task 2.1, Task 3.1
