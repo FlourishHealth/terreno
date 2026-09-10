@@ -505,7 +505,7 @@ import {connectToMongoDB} from "./utils/database";
 
 const isDeployed = process.env.NODE_ENV === "production";
 
-export async function start(skipListen = false): Promise<express.Application> {
+export const start = async (skipListen = false): Promise<express.Application> => {
   await connectToMongoDB();
 
   logger.info(\`Starting ${appDisplayName} server on port \${process.env.PORT || 4000}\`);
@@ -525,7 +525,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       })
     : undefined;
 
-  const app = new TerrenoApp({
+  const terraApp = new TerrenoApp({
     corsOrigin: getWebOrigins(),
     loggingOptions: {
       disableConsoleColors: isDeployed,
@@ -539,7 +539,7 @@ export async function start(skipListen = false): Promise<express.Application> {
   }).configure(AppConfiguration);
 
   if (betterAuthConfig) {
-    app.register(
+    terraApp.register(
       new BetterAuthApp({
         config: betterAuthConfig,
         userModel: User as unknown as TerrenoAuthUserModel,
@@ -547,7 +547,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     );
   }
 
-  app
+  return terraApp
     .register(userRouter)
     .register(
       new HealthApp({
@@ -594,9 +594,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       })
     )
     .start();
-
-  return app;
-}
+};
 
 start().catch((error) => {
   logger.error(\`Fatal error starting server: \${error}\`);
@@ -930,9 +928,11 @@ export * from "./user";
 
 const generateBackendUserRoutes = (): string => {
   return `import {Permissions, modelRouter} from "@terreno/api";
+import type {Model} from "mongoose";
 import {User} from "../models/user";
+import type {UserDocument} from "../types";
 
-export const userRouter = modelRouter("/users", User, {
+export const userRouter = modelRouter("/users", User as unknown as Model<UserDocument>, {
   permissions: {
     create: [Permissions.IsAdmin],
     delete: [Permissions.IsAdmin],
@@ -960,6 +960,10 @@ const generateBackendUserTypes = (): string => {
   return `import type {APIErrorConstructor} from "@terreno/api";
 import type mongoose from "mongoose";
 import type {Document, Model} from "mongoose";
+import type {
+  PassportLocalMongooseDocument,
+  PassportLocalMongooseModel,
+} from "passport-local-mongoose";
 
 type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
@@ -994,13 +998,13 @@ export type UserStatics = DefaultStatics<UserDocument> & {
 
 export type UserModel = DefaultModel<UserDocument> &
   UserStatics &
-  mongoose.PassportLocalModel<UserDocument>;
+  PassportLocalMongooseModel<UserDocument>;
 
 export type UserSchema = mongoose.Schema<UserDocument, UserModel, UserMethods>;
 
 export type UserDocument = DefaultDoc &
   UserMethods &
-  mongoose.PassportLocalDocument & {
+  PassportLocalMongooseDocument & {
     admin: boolean;
     betterAuthId?: string;
     email: string;

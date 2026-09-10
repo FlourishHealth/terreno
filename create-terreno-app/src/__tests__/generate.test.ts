@@ -293,4 +293,38 @@ describe("generateAllFiles", () => {
     assert.include(server, "healthy: mongoConnected");
     assert.include(server, "process.env.PORT");
   });
+
+  test("generated backend server returns express.Application from TerrenoApp.start()", () => {
+    const server = generateAllFiles({
+      appDisplayName: "Start App",
+      appName: "start-app",
+    }).find((file) => file.path === "backend/src/server.ts")?.content;
+
+    assert.include(server, "const terraApp = new TerrenoApp");
+    assert.include(server, "return terraApp");
+    assert.include(server, ".start();");
+    assert.notInclude(server, "return app;");
+  });
+
+  test("generated users router casts User for modelRouter compatibility", () => {
+    const users = generateAllFiles({
+      appDisplayName: "Users App",
+      appName: "users-app",
+    }).find((file) => file.path === "backend/src/api/users.ts")?.content;
+
+    assert.include(users, "User as unknown as Model<UserDocument>");
+  });
+
+  test("generated userTypes import passport-local-mongoose model types", () => {
+    const userTypes = generateAllFiles({
+      appDisplayName: "Types App",
+      appName: "types-app",
+    }).find((file) => file.path === "backend/src/types/models/userTypes.ts")?.content;
+
+    assert.include(userTypes, 'from "passport-local-mongoose"');
+    assert.include(userTypes, "PassportLocalMongooseModel<UserDocument>");
+    assert.include(userTypes, "PassportLocalMongooseDocument");
+    assert.notInclude(userTypes, "mongoose.PassportLocalModel");
+    assert.notInclude(userTypes, "mongoose.PassportLocalDocument");
+  });
 });
