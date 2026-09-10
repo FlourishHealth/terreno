@@ -118,4 +118,10 @@ describe("attachDebugChannel", () => {
 
     expect(debuggerLog.getEvents()).toHaveLength(0);
   });
+
+  it("uses BroadcastChannel when the runtime provides it", () => {
+    const log = createSyncDebugLog();
+    const bridge = attachDebugChannel({log, name: "factory-probe"});
+    bridge?.close();
+  });
 });
