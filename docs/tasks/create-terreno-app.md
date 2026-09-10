@@ -17,7 +17,7 @@ Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/
 
 ### Phase 1: Shared generator
 
-- [ ] **Task 1.1**: Workspace package + extracted `generateAllFiles`
+- [x] **Task 1.1**: Workspace package + extracted `generateAllFiles`
   - Delivers: `create-terreno-app` workspace package exports `generateAllFiles`; generated `@terreno/*` versions are `^` + this package’s `version`; `mcp-server` imports the export instead of inlining generators
   - Files: `create-terreno-app/package.json`, `create-terreno-app/src/generate.ts` (and helpers split as needed), `create-terreno-app/src/__tests__/generate.test.ts`, `mcp-server/src/bootstrap.ts`, `mcp-server/package.json`, root `package.json` workspaces
   - Blocked by: none

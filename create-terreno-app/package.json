@@ -1,4 +1,7 @@
 {
+  "bin": {
+    "create-terreno-app": "./dist/cli.js"
+  },
   "bugs": {
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
@@ -14,6 +17,10 @@
     ".": {
       "default": "./dist/generate.js",
       "types": "./dist/generate.d.ts"
+    },
+    "./writeScaffold": {
+      "default": "./dist/writeScaffold.js",
+      "types": "./dist/writeScaffold.d.ts"
     }
   },
   "files": [
@@ -41,9 +48,9 @@
     "compile:watch": "tsc -w",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
-    "test": "bun test src/",
+    "test": "bun run compile && bun test src/",
     "test:agent": "AGENT=1 bun test --only-failures src/",
-    "test:ci": "bun test src/"
+    "test:ci": "bun run compile && bun test src/"
   },
   "type": "module",
   "version": "57.2.0"
