@@ -15,15 +15,15 @@
  * isolated test file is run in its own `bun test` invocation (because those
  * tests rely on module-level `mock.module` calls that leak across files and
  * would otherwise pollute unrelated suites). The resulting LCOV coverage
- * reports are merged so the reported percentage reflects the union of all
- * passes.
+ * reports are merged (only files with hits from an isolated pass) so the
+ * reported percentage reflects the union of executed code.
  *
  * Usage:
  *   bun run ../scripts/check-coverage.ts [--threshold=95]
  */
 import {spawn} from "node:child_process";
-import {existsSync, readFileSync, readdirSync, rmSync} from "node:fs";
-import {join, resolve, basename} from "node:path";
+import {existsSync, readdirSync, readFileSync, rmSync} from "node:fs";
+import {basename, isAbsolute, join, relative, resolve} from "node:path";
 
 export interface ParsedArgs {
   threshold: number;
@@ -82,10 +82,10 @@ export const evaluateCoverage = (
 ): CoverageFailure[] => {
   const failures: CoverageFailure[] = [];
   if (summary.functions < threshold) {
-    failures.push({metric: "functions", actual: summary.functions, threshold});
+    failures.push({actual: summary.functions, metric: "functions", threshold});
   }
   if (summary.lines < threshold) {
-    failures.push({metric: "lines", actual: summary.lines, threshold});
+    failures.push({actual: summary.lines, metric: "lines", threshold});
   }
   return failures;
 };
@@ -128,7 +128,15 @@ const createFileCoverage = (): FileCoverage => ({
   lines: new Map(),
 });
 
-export const parseLcov = (text: string): Map<string, FileCoverage> => {
+export const normalizeLcovPath = (filePath: string, cwd: string): string => {
+  const posix = filePath.replaceAll("\\", "/");
+  if (isAbsolute(filePath)) {
+    return relative(cwd, filePath).replaceAll("\\", "/");
+  }
+  return posix;
+};
+
+export const parseLcov = (text: string, cwd: string = process.cwd()): Map<string, FileCoverage> => {
   const result = new Map<string, FileCoverage>();
   let current: FileCoverage | null = null;
   // FN records come before FNDA. Anonymous functions can share a name, so we
@@ -139,7 +147,7 @@ export const parseLcov = (text: string): Map<string, FileCoverage> => {
   for (const rawLine of text.split("\n")) {
     const line = rawLine.trim();
     if (line.startsWith("SF:")) {
-      const path = line.slice(3);
+      const path = normalizeLcovPath(line.slice(3), cwd);
       current = result.get(path) ?? createFileCoverage();
       result.set(path, current);
       nameToKeys = new Map();
@@ -224,6 +232,97 @@ export const parseLcov = (text: string): Map<string, FileCoverage> => {
   return result;
 };
 
+export const coverageHasHits = (entry: FileCoverage): boolean => {
+  for (const hits of entry.lines.values()) {
+    if (hits > 0) {
+      return true;
+    }
+  }
+  for (const hits of entry.functions.values()) {
+    if (hits > 0) {
+      return true;
+    }
+  }
+  return entry.functionsHit > 0;
+};
+
+/** Isolated bun test LCOV lists untouched project files at 0%; merging those would dilute. */
+export const onlyHitFiles = (coverage: Map<string, FileCoverage>): Map<string, FileCoverage> => {
+  const next = new Map<string, FileCoverage>();
+  for (const [path, entry] of coverage) {
+    if (coverageHasHits(entry)) {
+      next.set(path, entry);
+    }
+  }
+  return next;
+};
+
+export const countHitLines = (entry: FileCoverage): number => {
+  let hit = 0;
+  for (const hits of entry.lines.values()) {
+    if (hits > 0) {
+      hit += 1;
+    }
+  }
+  return hit;
+};
+
+/**
+ * Isolated runs often instrument a different line set than the main suite
+ * (different preload, fewer files loaded). Union-by-line-number then leaves
+ * the main file's uncovered lines in place and does not get credit for the
+ * isolated run's executed lines. Prefer the snapshot with more hit lines.
+ */
+export const mergeIsolatedLcov = (
+  target: Map<string, FileCoverage>,
+  source: Map<string, FileCoverage>
+): Map<string, FileCoverage> => {
+  for (const [path, src] of source.entries()) {
+    if (path.includes(".isolated.")) {
+      continue;
+    }
+    const existing = target.get(path);
+    if (!existing) {
+      mergeLcov(target, new Map([[path, src]]));
+      continue;
+    }
+    const srcHits = countHitLines(src);
+    const dstHits = countHitLines(existing);
+    const srcPct = srcHits / Math.max(src.lines.size, 1);
+    const dstPct = dstHits / Math.max(existing.lines.size, 1);
+    if (srcPct > dstPct) {
+      existing.lines = new Map(src.lines);
+      existing.functions = new Map(src.functions);
+      existing.functionsFound = src.functionsFound;
+      existing.functionsHit = src.functionsHit;
+      existing.hasFnRecords = src.hasFnRecords;
+      continue;
+    }
+    for (const [lineNo, hits] of src.lines.entries()) {
+      const prev = existing.lines.get(lineNo) ?? 0;
+      if (hits > prev) {
+        existing.lines.set(lineNo, hits);
+      }
+    }
+    for (const [name, hits] of src.functions.entries()) {
+      const prev = existing.functions.get(name) ?? 0;
+      if (hits > prev) {
+        existing.functions.set(name, hits);
+      }
+    }
+    if (src.functionsFound > existing.functionsFound) {
+      existing.functionsFound = src.functionsFound;
+    }
+    if (src.functionsHit > existing.functionsHit) {
+      existing.functionsHit = src.functionsHit;
+    }
+    if (src.hasFnRecords) {
+      existing.hasFnRecords = true;
+    }
+  }
+  return target;
+};
+
 export const mergeLcov = (
   target: Map<string, FileCoverage>,
   source: Map<string, FileCoverage>
@@ -295,19 +394,19 @@ export const summarizeLcov = (coverage: Map<string, FileCoverage>): CoverageSumm
   };
 };
 
-const runBunTest = async (
-  args: readonly string[]
-): Promise<{exitCode: number; output: string}> => {
+const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; output: string}> => {
   const srcRoot = join(process.cwd(), "src");
   const prependSrcRoot =
     existsSync(srcRoot) &&
     !args.some((a) => a.startsWith("./") || /[/\\][^/\\]+\.test\.(t|j)sx?$/.test(a));
   const srcRootArg = prependSrcRoot ? (["src"] as const) : [];
+  // Do not pass CLI --path-ignore-patterns: Bun replaces bunfig.toml [test]
+  // pathIgnorePatterns (and can drop preload) instead of merging.
 
-  // mcp-server tests set process.env.TERRENO_MCP_DOCS_DIR; default parallel
-  // execution races with other files that read bundled docs at import time.
-  const mcpServerConcurrency =
-    basename(process.cwd()) === "mcp-server" ? (["--max-concurrency=1"] as const) : [];
+  // mcp-server: TERRENO_MCP_DOCS_DIR races across files.
+  // admin-frontend: mock.module doubles leak across concurrently loaded files.
+  const serialPackage = ["mcp-server", "admin-frontend"].includes(basename(process.cwd()));
+  const mcpServerConcurrency = serialPackage ? (["--max-concurrency=1"] as const) : [];
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn("bun", ["test", ...mcpServerConcurrency, ...srcRootArg, ...args], {
       env: {...process.env, FORCE_COLOR: "0"},
@@ -332,14 +431,24 @@ const runBunTest = async (
 };
 
 const findIsolatedFiles = (cwd: string): string[] => {
-  const dir = join(cwd, "src", "isolated");
-  if (!existsSync(dir)) {
-    return [];
+  const files: string[] = [];
+  const srcDir = join(cwd, "src");
+  if (existsSync(srcDir)) {
+    for (const f of readdirSync(srcDir)) {
+      if (f.endsWith(".isolated.ts") || f.endsWith(".isolated.tsx")) {
+        files.push(`././src/${f}`);
+      }
+    }
   }
-  return readdirSync(dir)
-    .filter((f) => f.endsWith(".isolated.ts") || f.endsWith(".isolated.tsx"))
-    .map((f) => `./${join("src", "isolated", f)}`)
-    .sort();
+  const isolatedDir = join(cwd, "src", "isolated");
+  if (existsSync(isolatedDir)) {
+    for (const f of readdirSync(isolatedDir)) {
+      if (f.endsWith(".isolated.ts") || f.endsWith(".isolated.tsx")) {
+        files.push(`././src/isolated/${f}`);
+      }
+    }
+  }
+  return files.sort();
 };
 
 const readLcov = (coverageDir: string): Map<string, FileCoverage> => {
@@ -356,10 +465,7 @@ const main = async (): Promise<void> => {
   const isolated = findIsolatedFiles(cwd);
 
   if (isolated.length === 0) {
-    const {exitCode, output} = await runBunTest([
-      "--coverage",
-      "--coverage-reporter=text",
-    ]);
+    const {exitCode, output} = await runBunTest(["--coverage", "--coverage-reporter=text"]);
     if (exitCode !== 0) {
       console.error(`\nbun test exited with code ${exitCode}`);
       process.exit(exitCode);
@@ -412,7 +518,7 @@ const main = async (): Promise<void> => {
       console.error(`\nbun test ${testFile} exited with code ${run.exitCode}`);
       process.exit(run.exitCode);
     }
-    mergeLcov(mergedCoverage, readLcov(dir));
+    mergeIsolatedLcov(mergedCoverage, onlyHitFiles(readLcov(dir)));
   }
 
   const summary = summarizeLcov(mergedCoverage);
