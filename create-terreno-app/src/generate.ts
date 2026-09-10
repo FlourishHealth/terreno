@@ -3,6 +3,11 @@ import packageJson from "../package.json" with {type: "json"};
 /** Pinned so `npx -y` does not resolve a moving `@latest` target in generated MCP configs. */
 export const PLAYWRIGHT_MCP_PACKAGE_VERSION = "0.0.76";
 
+/** Bun-safe Mongo stack — caret ranges resolve to mongoose 9.10 / mongodb 7.6 / bson 7.3 and crash Bun. */
+export const MONGOOSE_VERSION = "9.7.4";
+export const MONGODB_VERSION = "7.2.0";
+export const BSON_VERSION = "7.2.0";
+
 export const PACKAGE_VERSION = packageJson.version;
 const TERRENO_DEP_VERSION = `^${PACKAGE_VERSION}`;
 
@@ -335,7 +340,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@terreno/api": TERRENO_DEP_VERSION,
         "@terreno/api-health": TERRENO_DEP_VERSION,
         luxon: "^3.7.2",
-        mongoose: "^9.7.4",
+        mongoose: MONGOOSE_VERSION,
         "passport-local-mongoose": "^9.0.1",
       },
       devDependencies: {
@@ -346,6 +351,10 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         typescript: "~5.9.2",
       },
       name: `@${appName}/backend`,
+      overrides: {
+        bson: BSON_VERSION,
+        mongodb: MONGODB_VERSION,
+      },
       private: true,
       scripts: {
         build: "bun build src/index.ts --outdir ./dist --target node",
@@ -2415,7 +2424,7 @@ jobs:
           mongodb-version: \${{ matrix.mongodb-version }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
         working-directory: backend
 
       - name: Lint
@@ -2468,7 +2477,7 @@ jobs:
             bun-\${{ runner.os }}-
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
         working-directory: frontend
 
       - name: Lint

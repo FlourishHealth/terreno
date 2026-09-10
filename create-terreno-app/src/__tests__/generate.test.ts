@@ -1,8 +1,14 @@
 import {describe, test} from "bun:test";
 import {assert} from "chai";
-
+import rootPackageJson from "../../../package.json";
 import packageJson from "../../package.json";
-import {generateAllFiles, PLAYWRIGHT_MCP_PACKAGE_VERSION} from "../generate.js";
+import {
+  BSON_VERSION,
+  generateAllFiles,
+  MONGODB_VERSION,
+  MONGOOSE_VERSION,
+  PLAYWRIGHT_MCP_PACKAGE_VERSION,
+} from "../generate.js";
 
 const EXPECTED_PATHS = [
   ".cursor/mcp.json",
@@ -207,6 +213,50 @@ describe("generateAllFiles", () => {
     assert.include(
       readme,
       "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/build-for-web.md"
+    );
+  });
+
+  test("pins backend Mongo stack for Bun (exact mongoose + mongodb/bson overrides)", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Mongo App",
+      appName: "mongo-app",
+    });
+    const backendPackageJson = JSON.parse(
+      files.find((file) => file.path === "backend/package.json")?.content ?? "{}"
+    ) as {
+      dependencies: Record<string, string>;
+      overrides?: Record<string, string>;
+    };
+
+    assert.equal(MONGOOSE_VERSION, "9.7.4");
+    assert.equal(MONGODB_VERSION, "7.2.0");
+    assert.equal(BSON_VERSION, "7.2.0");
+    assert.equal(MONGOOSE_VERSION, rootPackageJson.catalog.mongoose);
+    assert.equal(MONGODB_VERSION, rootPackageJson.overrides.mongodb);
+    assert.equal(BSON_VERSION, rootPackageJson.overrides.bson);
+    assert.equal(backendPackageJson.dependencies.mongoose, "9.7.4");
+    assert.notInclude(backendPackageJson.dependencies.mongoose, "^");
+    assert.deepEqual(backendPackageJson.overrides, {
+      bson: "7.2.0",
+      mongodb: "7.2.0",
+    });
+  });
+
+  test("generated CI installs before a lockfile exists", () => {
+    const files = generateAllFiles({
+      appDisplayName: "CI App",
+      appName: "ci-app",
+    });
+
+    for (const path of [".github/workflows/backend-ci.yml", ".github/workflows/frontend-ci.yml"]) {
+      const workflow = files.find((file) => file.path === path)?.content ?? "";
+      assert.include(workflow, "run: bun install");
+      assert.notInclude(workflow, "--frozen-lockfile");
+    }
+    assert.notInclude(
+      files.map((file) => file.path),
+      "bun.lock",
+      "generator does not emit an install-resolved lockfile"
     );
   });
 
