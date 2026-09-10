@@ -32,6 +32,6 @@ export const generateTestEmail = (): string => {
 /**
  * Clean up all test data
  */
-export const cleanupTestData = async (): Promise<void> => {
+const _cleanupTestData = async (): Promise<void> => {
   await User.deleteMany({});
 };

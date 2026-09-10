@@ -13,7 +13,7 @@ export interface ProfileData {
   permissions?: Record<string, readonly string[]>;
 }
 
-export const useReadProfile = (): ProfileData | undefined => {
+const _useReadProfile = (): ProfileData | undefined => {
   const userId = useSelector(selectBetterAuthUserId);
   const {data: profile} = useGetMeQuery(undefined, {skip: !userId});
 

@@ -6,13 +6,13 @@ export interface BiomeRun {
   files: string[];
 }
 
-export interface KnipIssue {
+interface KnipIssue {
   name: string;
   namespace?: string;
   [key: string]: unknown;
 }
 
-export interface KnipFileIssues {
+interface KnipFileIssues {
   file: string;
   owners?: Array<{name: string}>;
   [issueType: string]: string | KnipIssue[] | Array<{name: string}> | undefined;

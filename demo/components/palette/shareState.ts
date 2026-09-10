@@ -10,7 +10,7 @@ import {ANCHOR_FAMILIES} from "./paletteTypes";
  */
 
 /** Query-string parameter that carries the encoded state. */
-export const SHARE_PARAM = "s";
+const SHARE_PARAM = "s";
 
 export interface ShareState {
   anchors: PaletteAnchors;

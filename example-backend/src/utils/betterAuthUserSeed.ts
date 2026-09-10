@@ -33,7 +33,7 @@ const extractCookieHeader = (res: Response): string | undefined => {
  * Better Auth email endpoints. Returns the session cookie header for follow-up
  * requests that should sync the user into the Mongoose User model.
  */
-export const signUpOrSignInBetterAuthUser = async ({
+const _signUpOrSignInBetterAuthUser = async ({
   apiUrl = process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? DEFAULT_API_URL,
   user,
 }: {
@@ -81,7 +81,7 @@ export const signUpOrSignInBetterAuthUser = async ({
 };
 
 /** Hit an authenticated route so Better Auth session middleware syncs into Mongoose. */
-export const syncBetterAuthUserToMongoose = async ({
+const _syncBetterAuthUserToMongoose = async ({
   apiUrl = process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? DEFAULT_API_URL,
   cookie,
   token,

@@ -1,4 +1,4 @@
-export const CHANGELOG_CATEGORIES = [
+const CHANGELOG_CATEGORIES = [
   "Breaking",
   "Added",
   "Changed",
@@ -7,9 +7,9 @@ export const CHANGELOG_CATEGORIES = [
   "Fixed",
 ] as const;
 
-export type ChangelogCategory = (typeof CHANGELOG_CATEGORIES)[number];
+type ChangelogCategory = (typeof CHANGELOG_CATEGORIES)[number];
 
-export const UNRELEASED_HEADING = "## [Unreleased]";
+const _UNRELEASED_HEADING = "## [Unreleased]";
 
 export const UNRELEASED_POINTER =
   "Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.";
@@ -19,7 +19,7 @@ const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
 const RELEASE_HEADING_PATTERN = /^## \[([^\]]+)\](?:\s+-\s+.*)?$/gm;
 const UNRELEASED_HEADING_IN_SECTION_PATTERN = /^###\s+/m;
 
-export const RESERVED_FRAGMENT_NAMES = new Set(["readme.md"]);
+const RESERVED_FRAGMENT_NAMES = new Set(["readme.md"]);
 
 export interface ChangelogFragment {
   body: string;
@@ -119,8 +119,8 @@ export const renderFragmentBody = (body: string): string => {
   return [`- ${lead}`, ...continuation].join("\n");
 };
 
-export const groupFragmentsByCategory = (
-  fragments: ChangelogFragment[],
+const groupFragmentsByCategory = (
+  fragments: ChangelogFragment[]
 ): Map<ChangelogCategory, ChangelogFragment[]> => {
   const grouped = new Map<ChangelogCategory, ChangelogFragment[]>();
 
@@ -128,9 +128,7 @@ export const groupFragmentsByCategory = (
     grouped.set(category, []);
   }
 
-  const sorted = [...fragments].sort((left, right) =>
-    left.fileName.localeCompare(right.fileName),
-  );
+  const sorted = [...fragments].sort((left, right) => left.fileName.localeCompare(right.fileName));
 
   for (const fragment of sorted) {
     grouped.get(fragment.category)?.push(fragment);
@@ -156,7 +154,7 @@ export const renderUnreleasedSection = (fragments: ChangelogFragment[]): string 
   return sections.join("\n\n");
 };
 
-export const getUnreleasedSection = (changelog: string): string | undefined => {
+const getUnreleasedSection = (changelog: string): string | undefined => {
   const headings = [...changelog.matchAll(RELEASE_HEADING_PATTERN)];
   const unreleasedHeading = headings.find((match) => match[1] === "Unreleased");
 
@@ -173,7 +171,7 @@ export const getUnreleasedSection = (changelog: string): string | undefined => {
 };
 
 export const checkUnreleasedSection = (
-  changelog: string,
+  changelog: string
 ): ChangelogValidationFailure | undefined => {
   const unreleasedSection = getUnreleasedSection(changelog);
 

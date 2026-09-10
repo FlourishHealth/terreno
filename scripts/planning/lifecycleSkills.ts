@@ -1,8 +1,8 @@
 import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
-export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
-export const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
+const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
+const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
 
 interface StageDefinition {
   directory: string;

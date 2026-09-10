@@ -17,7 +17,7 @@ import {DARK_ROLE_MAP} from "./darkTheme";
  * theme primitives.
  */
 
-export type ChatRole = "user" | "assistant" | "system";
+type ChatRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;
@@ -69,7 +69,7 @@ export const DEFAULT_ANCHORS: PaletteAnchors = {
 export type ThemeMode = "light" | "dark";
 
 /** A semantic theme role, resolved to a concrete primitive via the active light/dark role map. */
-export interface RoleRef {
+interface RoleRef {
   group: "text" | "surface" | "border";
   key: string;
 }
@@ -225,9 +225,8 @@ export const runContrastChecks = (
 };
 
 /** Convenience aggregate for the header badge ("3 issues"). */
-export const countContrastFailures = (results: ContrastResult[]): number => {
+const _countContrastFailures = (results: ContrastResult[]): number => {
   return results.filter((result) => !result.passes).length;
 };
 
 export type {MainFamily, StatusFamily};
-export {MAIN_FAMILIES, STATUS_FAMILIES};

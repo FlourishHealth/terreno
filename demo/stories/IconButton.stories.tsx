@@ -146,7 +146,7 @@ export const NavigationIconButton = (props: Partial<IconButtonProps>) => {
   );
 };
 
-export const DisabledIconButton = (props: Partial<IconButtonProps>) => {
+const _DisabledIconButton = (props: Partial<IconButtonProps>) => {
   return (
     <Box padding={4}>
       <IconButton

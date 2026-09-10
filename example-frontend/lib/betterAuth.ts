@@ -24,19 +24,15 @@ export const signInWithSocial = async (provider: "google" | "github" | "apple"):
   await betterAuthClient.signIn.social({provider});
 };
 
-export const signInWithEmail = async (email: string, password: string): Promise<void> => {
+const _signInWithEmail = async (email: string, password: string): Promise<void> => {
   await betterAuthClient.signIn.email({email, password});
 };
 
-export const signUpWithEmail = async (
-  email: string,
-  password: string,
-  name: string
-): Promise<void> => {
+const _signUpWithEmail = async (email: string, password: string, name: string): Promise<void> => {
   await betterAuthClient.signUp.email({email, name, password});
 };
 
-export const signOut = async (): Promise<void> => {
+const _signOut = async (): Promise<void> => {
   await betterAuthClient.signOut();
 };
 
@@ -44,14 +40,14 @@ interface BetterAuthActionResult {
   error?: {message?: string} | null;
 }
 
-export const getPasswordResetRedirectUrl = (): string => {
+const getPasswordResetRedirectUrl = (): string => {
   if (typeof window !== "undefined" && window.location?.origin) {
     return `${window.location.origin}/resetPassword`;
   }
   return `${getAppScheme()}://resetPassword`;
 };
 
-export const getEmailVerifyRedirectUrl = (): string => {
+const getEmailVerifyRedirectUrl = (): string => {
   if (typeof window !== "undefined" && window.location?.origin) {
     return `${window.location.origin}/verifyEmail`;
   }
@@ -80,7 +76,7 @@ export const resetPasswordWithToken = async ({
   return {error: result.error};
 };
 
-export const sendVerificationEmail = async (email: string): Promise<BetterAuthActionResult> => {
+const _sendVerificationEmail = async (email: string): Promise<BetterAuthActionResult> => {
   const result = await betterAuthClient.$fetch("/send-verification-email", {
     body: {callbackURL: getEmailVerifyRedirectUrl(), email},
     method: "POST",
@@ -99,7 +95,7 @@ export const verifyEmailWithToken = async ({
   return {error: result.error};
 };
 
-export const getSession = async () => {
+const _getSession = async () => {
   return betterAuthClient.getSession();
 };
 

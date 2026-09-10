@@ -20,7 +20,7 @@ export const TooltipDemo = (props: Partial<TooltipProps>) => {
   );
 };
 
-export const ChevronTooltip = ({
+const ChevronTooltip = ({
   idealPosition,
   text = "Short Tooltip Text",
   includeArrow,
@@ -47,7 +47,7 @@ export const ChevronTooltip = ({
   />
 );
 
-export const FiveTooltips = ({
+const FiveTooltips = ({
   text,
   includeArrow = false,
 }: {

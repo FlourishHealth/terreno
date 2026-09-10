@@ -5,7 +5,7 @@ import {DateTime} from "luxon";
 import type {AnyAuditSummary, RemediationStatus} from "./lib";
 import {REPO_ROOT} from "./lib";
 
-export const BASELINE_PATH = join(REPO_ROOT, "scripts/check-explicit-any/baseline.json");
+const BASELINE_PATH = join(REPO_ROOT, "scripts/check-explicit-any/baseline.json");
 
 export interface ExplicitAnyBaseline {
   byFile: Record<string, number>;
@@ -23,7 +23,7 @@ export interface ExplicitAnyBaseline {
   version: 2;
 }
 
-export interface BaselineRegression {
+interface BaselineRegression {
   baseline: number;
   current: number;
   metric: string;
@@ -36,8 +36,7 @@ export interface BaselineComparison {
 
 const countUndocumented = (summary: AnyAuditSummary): number => {
   return (
-    summary.byRemediationStatus["suppressed-only"] +
-    summary.byRemediationStatus["file-blanket"]
+    summary.byRemediationStatus["suppressed-only"] + summary.byRemediationStatus["file-blanket"]
   );
 };
 
@@ -59,9 +58,9 @@ export const summaryToBaseline = (summary: AnyAuditSummary): ExplicitAnyBaseline
     fileBlanketFiles: summary.fileBlanketFiles,
     generatedAt: DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
     ratchet: {
+      totalUsages: summary.totalUsages,
       undocumented: countUndocumented(summary),
       violations: summary.byRemediationStatus.violation,
-      totalUsages: summary.totalUsages,
     },
     totalFiles: summary.totalFiles,
     totalUsages: summary.totalUsages,
@@ -78,7 +77,7 @@ export const writeBaseline = (
   return baseline;
 };
 
-export const loadBaseline = (baselinePath: string = BASELINE_PATH): ExplicitAnyBaseline => {
+const _loadBaseline = (baselinePath: string = BASELINE_PATH): ExplicitAnyBaseline => {
   const raw = readFileSync(baselinePath, "utf8");
   const parsed = JSON.parse(raw) as ExplicitAnyBaseline;
   if (parsed.version !== 2) {

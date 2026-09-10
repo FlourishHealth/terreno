@@ -27,6 +27,8 @@
     "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    // Generated syncdb SDK surface may include hooks before an example screen adopts them.
+    "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "ignoreFiles": [

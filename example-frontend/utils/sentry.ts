@@ -26,9 +26,9 @@ const _IGNORE_ERRORS = [
   /^.*Zn is not a function*$/,
 ];
 
-export const reactNavigationIntegration: unknown | undefined = undefined;
+const _reactNavigationIntegration: unknown | undefined = undefined;
 
-export const setupUnhandledRejectionHandler = (): void => {
+const _setupUnhandledRejectionHandler = (): void => {
   if (IsWeb && typeof window !== "undefined") {
     window.addEventListener("unhandledrejection", (event) => {
       const error = event.reason;
@@ -61,7 +61,7 @@ export const setupUnhandledRejectionHandler = (): void => {
   }
 };
 
-export const sentryInit = (environment: string, debug = false): void => {
+const _sentryInit = (environment: string, debug = false): void => {
   try {
     if (!IsWeb) {
       // @sentry/react-native requires a custom dev build with native modules.
@@ -105,7 +105,7 @@ export const captureException = (error: unknown | Error): void => {
   }
 };
 
-export const captureEvent = (message: string, extra?: Record<string, string>): void => {
+const _captureEvent = (message: string, extra?: Record<string, string>): void => {
   if (!IsWeb) {
     return;
   }
@@ -135,7 +135,7 @@ export const captureMessage = (message: string, extra?: Record<string, string>):
   }
 };
 
-export const pageOnError = (error: Error, stack: unknown): void => {
+const _pageOnError = (error: Error, stack: unknown): void => {
   console.error("Page Error:", error, stack);
   captureException(error);
 };
@@ -148,7 +148,7 @@ export const createSentryReduxEnhancer = (): unknown => {
   return (next: unknown) => next;
 };
 
-export const sentrySetUser = (
+const _sentrySetUser = (
   user: {
     _id: string;
     type?: string;

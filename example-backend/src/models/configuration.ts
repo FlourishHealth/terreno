@@ -611,7 +611,7 @@ export const initConfiguration = async (): Promise<void> => {
 /**
  * Get all configuration as a debug string
  */
-export const getConfiguration = async (): Promise<string> => {
+const _getConfiguration = async (): Promise<string> => {
   const allConfig = Configuration.getAll();
   return JSON.stringify(allConfig, null, 2);
 };

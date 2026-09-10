@@ -112,7 +112,7 @@ export const AvatarOutlines = () => {
   );
 };
 
-export const AvatarStatusDemo = () => {
+const _AvatarStatusDemo = () => {
   const renderIcon = (
     text: string,
     size: "xs" | "sm" | "md" | "lg" | "xl",

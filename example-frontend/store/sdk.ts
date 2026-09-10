@@ -47,7 +47,7 @@ export interface ProfileResponse {
 }
 
 // AI Request Explorer types
-export interface AIRequestExplorerItem {
+interface AIRequestExplorerItem {
   _id: string;
   aiModel: string;
   created: string;
@@ -78,7 +78,7 @@ export interface AIRequestExplorerParams {
 }
 
 // Selectable AI chat model option returned by GET /ai/models
-export interface AiModelOption {
+interface AiModelOption {
   label: string;
   value: string;
 }
@@ -101,7 +101,7 @@ export interface SetAdminUserPasswordRequest {
 
 // GptHistory endpoints are hand-maintained: nested modelRouter mounts under /gpt/histories
 // are not always present in the generated OpenAPI SDK after regen.
-export interface GptHistoryPrompt {
+interface GptHistoryPrompt {
   args?: Record<string, unknown>;
   content?: Array<{
     filename?: string;
@@ -313,11 +313,6 @@ export const terrenoApi = openapi
 
 export const {
   useDeleteGptHistoriesByIdMutation,
-  useEmailLoginMutation,
-  useGoogleLoginMutation,
-  useCreateEmailUserMutation,
-  useEmailSignUpMutation,
-  useGetGptHistoriesByIdQuery,
   useGetGptHistoriesQuery,
   useResetPasswordMutation,
   useGetMeQuery,
@@ -327,9 +322,7 @@ export const {
   usePostAuthSendVerificationMutation,
   usePostAuthVerifyEmailMutation,
   usePostCommsDevTestPushMutation,
-  useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
-  usePostGptHistoriesMutation,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
@@ -340,7 +333,7 @@ type OpenApiEndpoints = Record<string, unknown>;
 // Get hooks from the @terreno/rtk generated SDK for CRUD/list operations.
 // Returns the appropriate RTK Query hook based on model name and operation type
 // Return type is Record<string, unknown> as it varies based on operation and model
-export const getSdkHook = (
+const _getSdkHook = (
   modelName: string,
   type: "list" | "read" | "create" | "update" | "remove"
 ): Record<string, unknown> => {

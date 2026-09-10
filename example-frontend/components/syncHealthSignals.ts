@@ -24,7 +24,7 @@ export const GLOBAL_TOAST_ID = "sync-health-global";
 export const collectionToastId = (collection: string): string =>
   `sync-health-collection:${collection}`;
 
-export type HealthSignalAction = "resolveConflicts" | "retryFailed";
+type HealthSignalAction = "resolveConflicts" | "retryFailed";
 
 export interface HealthSignal {
   /** Stable toast id: one per collection, plus one for the global backlog. */

@@ -74,7 +74,7 @@ const collectionLabel = ({
 }): string =>
   collectionLabels[collection] ?? `${collection.slice(0, 1).toUpperCase()}${collection.slice(1)}`;
 
-export interface SyncHealthConflictsModalArgs {
+interface SyncHealthConflictsModalArgs {
   visible: boolean;
   onDismiss: () => void;
   /** Conflicts to show — already narrowed to `collection` when one is set. */

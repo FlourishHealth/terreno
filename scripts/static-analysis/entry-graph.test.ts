@@ -294,4 +294,23 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "reports no unused internal symbols in scripts, examples, or demo",
+    (): void => {
+      const report = runKnipReport();
+      const internalPrefixes = ["scripts/", "example-backend/", "example-frontend/", "demo/"];
+      const findings = report.issues.flatMap((issue) => {
+        if (!internalPrefixes.some((prefix) => issue.file.startsWith(prefix))) {
+          return [];
+        }
+        return [
+          ...(issue.exports ?? []).map((entry) => `${issue.file}:export:${entry.name}`),
+          ...(issue.types ?? []).map((entry) => `${issue.file}:type:${entry.name}`),
+        ];
+      });
+      assert.deepEqual(findings, []);
+    },
+    {timeout: 180_000}
+  );
 });

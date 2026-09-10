@@ -255,7 +255,7 @@ export const createMonitoredAggregate = (originalAggregate: ModelAggregateFn): M
   };
 };
 
-export const setupMongooseMonitoring = (): void => {
+const _setupMongooseMonitoring = (): void => {
   // Dynamic require for untyped monkey-patching of Mongoose internals
   const mongoose = require("mongoose");
 

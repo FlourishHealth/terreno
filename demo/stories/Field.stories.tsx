@@ -397,7 +397,7 @@ interface SignatureFieldProps {
   setScrollEnabled: (scrollEnabled: boolean) => void;
 }
 
-export const SignatureFieldStory = ({setScrollEnabled}: SignatureFieldProps) => {
+const _SignatureFieldStory = ({setScrollEnabled}: SignatureFieldProps) => {
   const [signature, setValue] = useState("");
   return (
     <StorybookContainer>

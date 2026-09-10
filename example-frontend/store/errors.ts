@@ -82,11 +82,7 @@ export const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: Unkn
 /**
  * Log a warning, show an error toast and send error from UI to Sentry.
  */
-export const useSentryAndToast = (): ((
-  errorMessage: string,
-  e?: Error,
-  extraInfo?: string
-) => void) => {
+const _useSentryAndToast = (): ((errorMessage: string, e?: Error, extraInfo?: string) => void) => {
   const toast = useToast();
   return (error: string, e?: Error, extraInfo?: string): void => {
     if (!error) {
@@ -113,7 +109,7 @@ export const useSentryAndToast = (): ((
  * A function that will throw an error in dev, but only log a warning in prod. In dev,
  * we'll get a stack trace.
  */
-export const devError = (message: string): void => {
+const _devError = (message: string): void => {
   if (isDevelopment) {
     // throw new Error(message);
   } else {
@@ -122,7 +118,7 @@ export const devError = (message: string): void => {
   }
 };
 
-export const versionErrorTitleIncluded = (e: unknown, formInstanceId: string): boolean => {
+const _versionErrorTitleIncluded = (e: unknown, formInstanceId: string): boolean => {
   return (
     (e as {data?: {title?: string}})?.data?.title?.includes(
       `No matching document found for id "${formInstanceId}" version`

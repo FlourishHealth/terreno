@@ -143,7 +143,7 @@ export const rgbToHex = ({r, g, b}: Rgb): string => {
 };
 
 /** Convert an RGB triple (0-255) to HSL. */
-export const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
+const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -173,7 +173,7 @@ export const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
 };
 
 /** Convert HSL to an RGB triple (0-255). */
-export const hslToRgb = ({h, s, l}: Hsl): Rgb => {
+const hslToRgb = ({h, s, l}: Hsl): Rgb => {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const hp = (((h % 360) + 360) % 360) / 60;
   const x = c * (1 - Math.abs((hp % 2) - 1));
@@ -293,7 +293,7 @@ export const generatePrimitivesFromAnchors = (
  * (center + max deviation, in degrees) plus optional saturation limits (0-1). Families without a
  * lock (primary/secondary/accent) are free brand colors.
  */
-export interface ToneLock {
+interface ToneLock {
   /** Center hue in degrees the family should stay near. */
   hueCenter?: number;
   /** Maximum allowed deviation from `hueCenter` in degrees (circular). */
@@ -309,7 +309,7 @@ export interface ToneLock {
  * warning orange/amber, success green, and neutral a low-saturation gray. Bands are intentionally
  * generous so users still have room to pick a specific shade within the correct tone.
  */
-export const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLock>> = {
+const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLock>> = {
   error: {hueCenter: 0, hueTolerance: 18},
   neutral: {maxSaturation: 0.12},
   success: {hueCenter: 130, hueTolerance: 45},

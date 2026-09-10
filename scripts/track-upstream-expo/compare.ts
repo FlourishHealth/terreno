@@ -1,4 +1,4 @@
-export const LOOP_STATUSES = ["blocked", "idle", "open", "ready"] as const;
+const LOOP_STATUSES = ["blocked", "idle", "open", "ready"] as const;
 
 export type LoopStatus = (typeof LOOP_STATUSES)[number];
 
@@ -262,7 +262,7 @@ export const decideProbe = ({
   };
 };
 
-export const nextTrackedState = ({
+const _nextTrackedState = ({
   expoVersion,
   loopStatus,
   npmTag,
