@@ -615,12 +615,8 @@
         "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@terreno/api": "workspace:*",
         "mongoose": "^8.0.0 || ^9.0.0",
       },
-      "optionalPeers": [
-        "@terreno/api",
-      ],
     },
     "ui": {
       "name": "@terreno/ui",

@@ -152,8 +152,9 @@
       ]
     },
     "test": {
-      // The test logger optionally discovers @terreno/api at runtime while API itself
-      // depends on @terreno/test; an optional peer avoids a package dependency cycle.
+      // The test logger discovers @terreno/api through a runtime require. Declaring it
+      // here would cycle with API's own @terreno/test dependency and break the
+      // topological order that .github/scripts/compile-workspace-deps.js relies on.
       "ignoreDependencies": ["@terreno/api"],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

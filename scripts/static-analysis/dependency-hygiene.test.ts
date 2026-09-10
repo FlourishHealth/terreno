@@ -4,6 +4,76 @@ import {assert} from "chai";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
 
+const WORKSPACE_DEPENDENCY_TYPES = ["dependencies", "devDependencies", "peerDependencies"] as const;
+
+interface WorkspaceManifest {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  name?: string;
+  peerDependencies?: Record<string, string>;
+  workspaces?: string[];
+}
+
+const readManifest = async (manifestPath: string): Promise<WorkspaceManifest> =>
+  (await Bun.file(join(REPO_ROOT, manifestPath)).json()) as WorkspaceManifest;
+
+const readWorkspaceDependencyGraph = async (): Promise<Map<string, string[]>> => {
+  const root = await readManifest("package.json");
+  const graph = new Map<string, string[]>();
+  for (const workspaceDir of root.workspaces ?? []) {
+    const manifest = await readManifest(`${workspaceDir}/package.json`);
+    if (!manifest.name) {
+      continue;
+    }
+    const terrenoDependencies = new Set<string>();
+    for (const dependencyType of WORKSPACE_DEPENDENCY_TYPES) {
+      for (const dependencyName of Object.keys(manifest[dependencyType] ?? {})) {
+        if (dependencyName.startsWith("@terreno/")) {
+          terrenoDependencies.add(dependencyName);
+        }
+      }
+    }
+    graph.set(manifest.name, [...terrenoDependencies]);
+  }
+  return graph;
+};
+
+const findDependencyCycle = (graph: Map<string, string[]>): string[] | null => {
+  const visited = new Set<string>();
+  const stack: string[] = [];
+
+  const walk = (packageName: string): string[] | null => {
+    const cycleStart = stack.indexOf(packageName);
+    if (cycleStart !== -1) {
+      return [...stack.slice(cycleStart), packageName];
+    }
+    if (visited.has(packageName)) {
+      return null;
+    }
+    visited.add(packageName);
+    stack.push(packageName);
+    for (const dependencyName of graph.get(packageName) ?? []) {
+      if (!graph.has(dependencyName)) {
+        continue;
+      }
+      const cycle = walk(dependencyName);
+      if (cycle) {
+        return cycle;
+      }
+    }
+    stack.pop();
+    return null;
+  };
+
+  for (const packageName of graph.keys()) {
+    const cycle = walk(packageName);
+    if (cycle) {
+      return cycle;
+    }
+  }
+  return null;
+};
+
 const UNUSED_DEV_DEPENDENCIES = new Map<string, string[]>([
   ["package.json", ["tsx"]],
   ["api/package.json", ["@types/bcrypt", "@types/cron", "@types/sinon", "sinon"]],
@@ -92,6 +162,15 @@ describe("dependency hygiene", (): void => {
         );
       }
     }
+  });
+
+  test("declares @terreno workspace dependencies without a cycle", async (): Promise<void> => {
+    const graph = await readWorkspaceDependencyGraph();
+    const cycle = findDependencyCycle(graph);
+    assert.isNull(
+      cycle,
+      `compile-workspace-deps.js compiles packages in dependency order, so a cycle breaks it: ${cycle?.join(" -> ")}`
+    );
   });
 
   test("keeps admin SPA e2e-only luxon in devDependencies", async (): Promise<void> => {

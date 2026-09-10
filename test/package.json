@@ -42,13 +42,7 @@
   "main": "dist/index.js",
   "name": "@terreno/test",
   "peerDependencies": {
-    "@terreno/api": "workspace:*",
     "mongoose": "^8.0.0 || ^9.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@terreno/api": {
-      "optional": true
-    }
   },
   "publishConfig": {
     "access": "public"
