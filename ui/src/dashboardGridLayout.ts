@@ -1,6 +1,7 @@
 import {Platform} from "react-native";
 
 export interface DashboardCellStyle {
+  [key: string]: unknown;
   flexGrow: 0;
   flexShrink: 0;
   maxWidth: number | string;
