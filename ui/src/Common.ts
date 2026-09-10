@@ -2619,6 +2619,23 @@ export interface PaginationProps extends WithTestID {
   totalPages: number;
 }
 
+export interface LineChartProps extends WithTestID {
+  /** Summary announced for the whole chart. */
+  accessibilityLabel?: string;
+  /** Single series of labeled numeric points. */
+  data: Array<{color?: string; label: string; value: number}>;
+  /** Copy shown when `data` is empty. */
+  emptyText?: string;
+  /** Formats the numeric value in tooltips. */
+  formatValue?: (value: number) => string;
+  /** Plot height in pixels. */
+  height?: number;
+  /** Series name shown under the plot. */
+  legendLabel?: string;
+  /** When true, shows a spinner instead of the plot. */
+  loading?: boolean;
+}
+
 /**
  * Data Table
  */

@@ -19,6 +19,16 @@ const getYDomain = (points: ChartPoint[]): [number, number] => {
   return [min, max];
 };
 
+export const getYTickValues = (points: ChartPoint[]): number[] => {
+  if (points.length === 0) {
+    return [];
+  }
+
+  const [min, max] = getYDomain(points);
+  const mid = min + (max - min) / 2;
+  return [min, mid, max];
+};
+
 export const createCartesianScales = ({
   plot,
   points,

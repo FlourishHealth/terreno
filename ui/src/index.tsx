@@ -53,6 +53,7 @@ export * from "./ImageBackground";
 export * from "./InfoModalIcon";
 export * from "./InfoTooltipButton";
 export * from "./icons/BarsFilterIcon";
+export * from "./LineChart";
 export * from "./Link";
 export {
   AIRequestExplorer,
@@ -159,7 +160,6 @@ export * from "./WebAddressAutocomplete";
 
 // export * from "./Layout";
 // export * from "./Drawer";
-// export * from "./Chart";
 
 // Lifted from react-native
 type ImageRequireSource = number;

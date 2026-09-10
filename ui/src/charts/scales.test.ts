@@ -1,6 +1,6 @@
 import {describe, expect, it} from "bun:test";
 
-import {createCartesianScales} from "./scales";
+import {createCartesianScales, getYTickValues} from "./scales";
 import type {ChartPoint} from "./types";
 
 const FIXTURE_POINTS: ChartPoint[] = [
@@ -25,6 +25,14 @@ describe("createCartesianScales", () => {
     expect(scales.y(0)).toBe(100);
     expect(scales.y(100)).toBe(0);
     expect(scales.y(50)).toBe(50);
+  });
+
+  it("returns three ticks from the y domain including zero", () => {
+    expect(getYTickValues(FIXTURE_POINTS)).toEqual([0, 50, 100]);
+  });
+
+  it("returns no ticks for empty points", () => {
+    expect(getYTickValues([])).toEqual([]);
   });
 
   it("does not throw on empty points", () => {

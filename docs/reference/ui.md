@@ -6,7 +6,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 - Layout: `Box`, `Page`, `SplitPage`, `Card`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
@@ -57,6 +57,20 @@ const customStyle: StyleProp<ViewStyle> = {
 - Avoids version mismatches between your app's react-native and @terreno/ui's react-native
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
+
+### LineChart
+
+Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`. Press or hover a point for `{label}: {value}`.
+
+```tsx
+<LineChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups"
+/>
+```
+
+Hit targets use `Box` `onClick`, so testIDs are `{testID}.point.{index}-clickable`.
 
 ## Component Behaviors
 
