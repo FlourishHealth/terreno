@@ -21,6 +21,11 @@ mock.module("react-native", () => ({
   useWindowDimensions: () => ({height: 800, width: mockWindowWidth}),
 }));
 
+mock.module("../AdminRefField", () => ({
+  AdminRefField: (props: Record<string, unknown>) =>
+    React.createElement("AdminRefField", {testID: props.testID, ...props}),
+}));
+
 describe("AdminFilterDrawer", () => {
   beforeEach(() => {
     mockWindowWidth = 1200;
@@ -91,5 +96,26 @@ describe("AdminFilterDrawer", () => {
     });
     expect(onApply).toHaveBeenCalledTimes(2);
     expect(onApply.mock.calls[1]?.[0]).toEqual({});
+  });
+
+  it("renders dateRange, choice, text, and ref filters", () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminFilterDrawer
+        api={{} as never}
+        appliedFilterState={{}}
+        fields={{owner: {ref: "User", required: false, type: "string"}}}
+        filters={[
+          {field: "created", kind: "dateRange", label: "Created"},
+          {choices: [{label: "A", value: "a"}], field: "status", kind: "choice"},
+          {field: "email", kind: "string"},
+          {field: "owner", kind: "ref", refModel: "User"},
+        ]}
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        onApply={mock(() => {})}
+      />
+    );
+    expect(getByTestId("admin-filter-created-gte")).toBeDefined();
+    expect(getByTestId("admin-filter-email")).toBeDefined();
+    expect(getByTestId("admin-filter-owner")).toBeDefined();
   });
 });

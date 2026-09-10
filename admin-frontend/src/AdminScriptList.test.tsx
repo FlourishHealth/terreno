@@ -18,6 +18,31 @@ mock.module("./useAdminConfig", () => ({
   useAdminConfig: (...args: unknown[]) => mockUseAdminConfig(...args),
 }));
 
+const sampleRun = {
+  _id: "run-1",
+  completedAt: "2024-01-01T00:00:10Z",
+  created: "2024-01-01T00:00:00Z",
+  createdByName: "Ada",
+  isDryRun: true,
+  logs: [{level: "error" as const, message: "failed once", timestamp: "2024-01-01T00:00:01Z"}],
+  startedAt: "2024-01-01T00:00:01Z",
+  status: "completed" as const,
+  taskType: "test-script",
+  updated: "2024-01-01T00:00:10Z",
+};
+
+const listRunsResult = {
+  data: {data: [sampleRun], limit: 25, more: true, page: 1, total: 2},
+};
+
+const mockUseListScriptRunsQuery = mock(() => listRunsResult);
+
+mock.module("./useAdminScripts", () => ({
+  useAdminScripts: () => ({
+    useListScriptRunsQuery: mockUseListScriptRunsQuery,
+  }),
+}));
+
 const modalCallbacks: {
   scriptName: string | null;
   visible: boolean;
@@ -170,5 +195,45 @@ describe("AdminScriptList", () => {
     const button = getByTestId("admin-script-run-test-script");
     // The button should have aria-disabled or similar when disabled
     expect(button).toBeTruthy();
+  });
+
+  it("shows last-run status when script history is available", async () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    const {getByText, getByTestId} = renderWithTheme(
+      <AdminScriptList api={mockApi} baseUrl="/admin" />
+    );
+    expect(getByText(/Last run/)).toBeTruthy();
+    expect(getByTestId("admin-script-history-test-script-clickable")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-history-test-script-clickable"));
+    });
+    expect(getByText(/Showing runs for test-script/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByText("Open"));
+    });
+    expect(modalCallbacks.visible).toBe(true);
+  });
+
+  it("hides scripts when platformTools.viewScripts is false", () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        platformTools: {runScripts: false, viewScripts: false},
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+    const {queryByTestId} = renderWithTheme(<AdminScriptList api={mockApi} baseUrl="/admin" />);
+    expect(queryByTestId("admin-script-run-test-script")).toBeTruthy();
   });
 });
