@@ -450,7 +450,7 @@ palette is already the Terreno theme (`#2B6072` rail, `#0E9DCD` primary, Titilli
 | Datasets | `ai-datasets` | Legend for human-annotated vs auto-captured; table (name, items, provenance bar + counts, source, updated); Import JSON or CSV; New dataset |
 | Dataset detail | `ai-dataset-detail` | Header with human/auto counts and the input-schema binding line; Add item; Run experiment; tabs All / Human / Auto / **Needs review** (red count); items table (id, input, expected output, provenance + attribution line, trace link) |
 | Experiments | `ai-experiments` | Table (id, name, dataset, status badge, progress bar for running, cost); footnote on BackgroundTask / Langfuse deep-link |
-| New experiment | `ai-experiment-new` | 4-step rail with completed summaries; dataset picker showing item counts and schema match; version checkboxes tagged latest/production/superseded; evaluator checkboxes with per-item cost; **Review & run** summary with the estimate |
+| New experiment | `ai-experiment-new` | 4-step rail with completed summaries; dataset picker showing item counts and schema match; version checkboxes tagged latest/production/superseded; **Next and later rail steps disabled until 2–3 versions are selected**; evaluator checkboxes with per-item cost; **Review & run** summary with the estimate |
 | Experiment results | `ai-experiment-results` | Gate tiles (value, gate verdict); "N gates failing" badge; **Promote blocked** state naming the failing gate; outliers list with reason chips; side-by-side per-item table with failed rows floated and highlighted; promote confirm modal |
 
 ### Phase 3

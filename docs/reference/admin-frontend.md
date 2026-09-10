@@ -334,7 +334,8 @@ flow-height table for these screens. Columns take a `title` and optional `minWid
 
 `ai-experiments` lists experiments with status, running progress, and cost. **New experiment**
 opens a four-step wizard (dataset with counts, prompt versions tagged latest/production/superseded,
-evaluators, review & run with estimate). `includeUnproofread` and optional model override are on
+evaluators, review & run with estimate). On the prompt-versions step, **Next** and the later
+wizard rail buttons stay disabled until 2–3 versions are selected. `includeUnproofread` and optional model override are on
 the wizard. `ai-experiment-results?id=` polls while pending/running, shows gate tiles per version,
 failing gate count, outliers, a side-by-side per-item output table (failed rows first from the
 API), and **Promote to production** with a confirm modal; promote is blocked when gates fail (409).

@@ -9,7 +9,11 @@ import {unwrapPromptDetail, unwrapPromptList} from "../prompts/promptTypes";
 import {useAiObservabilityPromptsApi} from "../prompts/useAiObservabilityPromptsApi";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {AiExperimentNewView, type ExperimentWizardStep} from "./AiExperimentNewView";
-import {type ExperimentEstimate, unwrapObservabilityPayload} from "./experimentTypes";
+import {
+  type ExperimentEstimate,
+  isValidExperimentVersionCount,
+  unwrapObservabilityPayload,
+} from "./experimentTypes";
 import {useAiObservabilityExperimentsApi} from "./useAiObservabilityExperimentsApi";
 
 export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
@@ -65,6 +69,7 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
   }, [datasetId, initialDatasetId]);
 
   const handleVersionToggle = useCallback((version: number): void => {
+    setValidationError("");
     setVersions((current) => {
       if (current.includes(version)) {
         return current.filter((entry) => entry !== version);
@@ -75,6 +80,19 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
       return [...current, version].sort((left, right) => left - right);
     });
   }, []);
+
+  const handleStepChange = useCallback(
+    (next: ExperimentWizardStep): void => {
+      if (next > 2 && !isValidExperimentVersionCount(versions.length)) {
+        setValidationError("Select 2–3 prompt versions.");
+        setStep(2);
+        return;
+      }
+      setValidationError("");
+      setStep(next);
+    },
+    [versions.length]
+  );
 
   const handleEvaluatorToggle = useCallback((id: string): void => {
     setEvaluatorIds((current) => {
@@ -105,7 +123,7 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
       setValidationError("Select a prompt.");
       return false;
     }
-    if (versions.length < 2 || versions.length > 3) {
+    if (!isValidExperimentVersionCount(versions.length)) {
       setValidationError("Select 2–3 prompt versions.");
       return false;
     }
@@ -202,7 +220,7 @@ export const AiExperimentNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
         onNameChange={setName}
         onPromptChange={handlePromptChange}
         onRun={handleRun}
-        onStepChange={setStep}
+        onStepChange={handleStepChange}
         onVersionToggle={handleVersionToggle}
         promptDetail={promptDetail}
         promptName={promptName}

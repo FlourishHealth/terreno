@@ -129,3 +129,10 @@ export const parsePromoteBlockedTitle = (error: unknown): string | undefined => 
   }
   return title;
 };
+
+export const MIN_EXPERIMENT_VERSIONS = 2;
+export const MAX_EXPERIMENT_VERSIONS = 3;
+
+export const isValidExperimentVersionCount = (count: number): boolean => {
+  return count >= MIN_EXPERIMENT_VERSIONS && count <= MAX_EXPERIMENT_VERSIONS;
+};

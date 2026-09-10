@@ -5,6 +5,7 @@ import {
   experimentProgressPercent,
   failingGateCount,
   gatesForVersion,
+  isValidExperimentVersionCount,
   parsePromoteBlockedTitle,
   unwrapExperimentList,
   unwrapExperimentRecord,
@@ -87,5 +88,13 @@ describe("experimentTypes helpers", () => {
       "Gate failed for v2"
     );
     assert.isUndefined(parsePromoteBlockedTitle(null));
+  });
+
+  it("accepts only 2 or 3 selected prompt versions", () => {
+    assert.isFalse(isValidExperimentVersionCount(0));
+    assert.isFalse(isValidExperimentVersionCount(1));
+    assert.isTrue(isValidExperimentVersionCount(2));
+    assert.isTrue(isValidExperimentVersionCount(3));
+    assert.isFalse(isValidExperimentVersionCount(4));
   });
 });

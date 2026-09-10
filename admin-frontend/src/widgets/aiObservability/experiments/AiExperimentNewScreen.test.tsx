@@ -201,23 +201,14 @@ describe("AiExperimentNewScreenWidget", () => {
       fireEvent.press(view.getByLabelText("Version 1"));
       await Promise.resolve();
     });
+    expect(view.getByTestId("ai-experiment-version-help")).toBeTruthy();
     await act(async () => {
       fireEvent.press(view.getByTestId("ai-experiment-next"));
+      fireEvent.press(view.getByTestId("ai-experiment-step-3"));
       await Promise.resolve();
     });
-    await act(async () => {
-      fireEvent.press(view.getByLabelText("quality"));
-      await Promise.resolve();
-    });
-    await act(async () => {
-      fireEvent.press(view.getByTestId("ai-experiment-next"));
-      await Promise.resolve();
-    });
-    await act(async () => {
-      fireEvent.press(view.getByTestId("ai-experiment-run"));
-      await Promise.resolve();
-    });
-    expect(view.getByTestId("ai-experiment-validation-error")).toBeTruthy();
+    expect(view.getByTestId("ai-experiment-step-prompt")).toBeTruthy();
+    expect(view.queryByTestId("ai-experiment-step-evaluators")).toBeNull();
   });
 
   it("surfaces estimate and create errors", async () => {
@@ -281,18 +272,25 @@ describe("AiExperimentNewScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-experiment-step-3"));
       await Promise.resolve();
     });
+    expect(view.getByTestId("ai-experiment-step-prompt")).toBeTruthy();
+    expect(view.queryByTestId("ai-experiment-step-evaluators")).toBeNull();
+
     await act(async () => {
-      fireEvent.press(view.getByLabelText("quality"));
+      fireEvent.press(view.getByLabelText("Version 2"));
+      fireEvent.press(view.getByLabelText("Version 1"));
+      fireEvent.press(view.getByLabelText("Version 2"));
       await Promise.resolve();
     });
     await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-step-3"));
+      await Promise.resolve();
+    });
+    expect(view.getByTestId("ai-experiment-step-evaluators")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(view.getByLabelText("quality"));
       fireEvent.press(view.getByTestId("ai-experiment-step-4"));
       await Promise.resolve();
     });
-    await act(async () => {
-      fireEvent.press(view.getByTestId("ai-experiment-run"));
-      await Promise.resolve();
-    });
-    expect(view.getByTestId("ai-experiment-validation-error")).toBeTruthy();
+    expect(view.getByTestId("ai-experiment-step-review")).toBeTruthy();
   });
 });

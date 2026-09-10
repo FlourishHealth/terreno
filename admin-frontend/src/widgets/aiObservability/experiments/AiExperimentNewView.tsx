@@ -3,7 +3,7 @@ import React from "react";
 import type {DatasetRecord} from "../datasets/datasetTypes";
 import type {EvaluatorRecord} from "../evaluators/evaluatorTypes";
 import type {PromptDetail, PromptListItem} from "../prompts/promptTypes";
-import type {ExperimentEstimate} from "./experimentTypes";
+import {type ExperimentEstimate, isValidExperimentVersionCount} from "./experimentTypes";
 
 export type ExperimentWizardStep = 1 | 2 | 3 | 4;
 
@@ -37,6 +37,8 @@ export interface AiExperimentNewViewProps {
 }
 
 const STEP_LABELS = ["Dataset", "Prompt versions", "Evaluators", "Review & run"];
+
+const EXPERIMENT_VERSION_HELP = "Select 2–3 prompt versions to compare.";
 
 const versionTags = (version: number, detail?: PromptDetail): string[] => {
   const tags: string[] = [];
@@ -85,6 +87,8 @@ export const AiExperimentNewView: React.FC<AiExperimentNewViewProps> = ({
   versions,
 }) => {
   const selectedDataset = datasets.find((entry) => entry.id === datasetId);
+  const hasVersionSelection = isValidExperimentVersionCount(versions.length);
+  const isNextDisabled = step === 2 && !hasVersionSelection;
 
   return (
     <Box gap={4} testID="ai-experiment-new">
@@ -94,8 +98,12 @@ export const AiExperimentNewView: React.FC<AiExperimentNewViewProps> = ({
           const completed = step > stepNumber;
           return (
             <Button
+              disabled={stepNumber > 2 && !hasVersionSelection}
               key={label}
               onClick={() => {
+                if (stepNumber > 2 && !hasVersionSelection) {
+                  return;
+                }
                 onStepChange(stepNumber);
               }}
               testID={`ai-experiment-step-${stepNumber}`}
@@ -180,6 +188,13 @@ export const AiExperimentNewView: React.FC<AiExperimentNewViewProps> = ({
               </Box>
             );
           })}
+          <Text
+            color={hasVersionSelection ? "secondaryDark" : "error"}
+            size="sm"
+            testID="ai-experiment-version-help"
+          >
+            {EXPERIMENT_VERSION_HELP}
+          </Text>
         </Box>
       ) : undefined}
       {step === 3 ? (
@@ -241,7 +256,11 @@ export const AiExperimentNewView: React.FC<AiExperimentNewViewProps> = ({
       ) : undefined}
       {step < 4 ? (
         <Button
+          disabled={isNextDisabled}
           onClick={() => {
+            if (isNextDisabled) {
+              return;
+            }
             onStepChange((step + 1) as ExperimentWizardStep);
           }}
           testID="ai-experiment-next"

@@ -136,7 +136,18 @@ describe("AiExperimentNewView wizard steps", () => {
       <AiExperimentNewView {...baseProps} onStepChange={onStepChange} step={2} versions={[1]} />
     );
     await act(async () => {
+      fireEvent.press(getByTestId("ai-experiment-next"));
       fireEvent.press(getByTestId("ai-experiment-step-3"));
+      await Promise.resolve();
+    });
+    expect(getByTestId("ai-experiment-version-help")).toBeTruthy();
+    assert.equal(onStepChange.mock.calls.length, 1);
+
+    rerender(
+      <AiExperimentNewView {...baseProps} onStepChange={onStepChange} step={2} versions={[1, 2]} />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-experiment-next"));
       await Promise.resolve();
     });
     assert.isAtLeast(onStepChange.mock.calls.length, 2);
