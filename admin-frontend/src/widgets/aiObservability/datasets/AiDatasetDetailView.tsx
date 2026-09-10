@@ -1,16 +1,10 @@
-import {
-  Badge,
-  Box,
-  Button,
-  DataTable,
-  type DataTableCellData,
-  type DataTableColumn,
-  Modal,
-  SegmentedControl,
-  Text,
-  TextArea,
-} from "@terreno/ui";
+import {Badge, Box, Button, Modal, SegmentedControl, Text, TextArea} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
+import {
+  ObservabilityTable,
+  type ObservabilityTableColumn,
+  type ObservabilityTableRow,
+} from "../shell/ObservabilityTable";
 import {
   type DatasetItemRecord,
   type DatasetItemTab,
@@ -46,11 +40,11 @@ const tabLabel = (tab: DatasetItemTab, needsReviewCount: number): string => {
   return "Needs review";
 };
 
-const COLUMNS: DataTableColumn[] = [
-  {columnType: "text", title: "Input", width: 200},
-  {columnType: "text", title: "Expected", width: 200},
-  {columnType: "text", title: "Provenance", width: 180},
-  {columnType: "traceOpen", title: "Trace", width: 120},
+const COLUMNS: ObservabilityTableColumn[] = [
+  {minWidth: 200, title: "Input"},
+  {minWidth: 200, title: "Expected"},
+  {minWidth: 150, title: "Provenance"},
+  {minWidth: 110, title: "Trace"},
 ];
 
 export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
@@ -72,39 +66,33 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   }, [items, tab]);
 
   const needsReviewCount = dataset.counts.needsReview;
-  const customColumnComponentMap = useMemo(
-    () => ({
-      traceOpen: ({cellData}: {cellData: DataTableCellData}) => {
-        const traceId = String(cellData.value ?? "");
-        if (!traceId || !onOpenTrace) {
-          return <Text>—</Text>;
-        }
-        return (
-          <Button
-            onClick={() => {
-              onOpenTrace(traceId);
-            }}
-            size="sm"
-            text="Open trace"
-            variant="ghost"
-          />
-        );
-      },
-    }),
-    [onOpenTrace]
-  );
 
-  const rows: DataTableCellData[][] = useMemo(() => {
+  const rows: ObservabilityTableRow[] = useMemo(() => {
     return filtered.map((item) => {
       const attribution = item.annotatedBy?.label ?? (item.proofread ? "Human" : "Needs review");
-      return [
-        {value: summarizeJson(item.input)},
-        {value: summarizeJson(item.expectedOutput)},
-        {value: `${item.origin} · ${attribution}`},
-        {value: item.sourceTraceId ?? ""},
-      ];
+      const traceId = item.sourceTraceId;
+      return {
+        cells: [
+          summarizeJson(item.input),
+          summarizeJson(item.expectedOutput),
+          `${item.origin} · ${attribution}`,
+          traceId && onOpenTrace ? (
+            <Button
+              onClick={() => {
+                onOpenTrace(traceId);
+              }}
+              size="sm"
+              text="Open trace"
+              variant="ghost"
+            />
+          ) : (
+            "—"
+          ),
+        ],
+        key: item.id,
+      };
     });
-  }, [filtered]);
+  }, [filtered, onOpenTrace]);
 
   const selectedIndex = TAB_OPTIONS.indexOf(tab);
   const handleAddItem = useCallback(async (): Promise<void> => {
@@ -170,12 +158,7 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
           <Text color="secondaryDark">No items in this tab.</Text>
         </Box>
       ) : (
-        <DataTable
-          columns={COLUMNS}
-          customColumnComponentMap={customColumnComponentMap}
-          data={rows}
-          testID="ai-dataset-items-table"
-        />
+        <ObservabilityTable columns={COLUMNS} rows={rows} testID="ai-dataset-items-table" />
       )}
       <Modal
         onDismiss={() => {

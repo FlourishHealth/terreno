@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
+import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
@@ -41,6 +41,35 @@ const items: DatasetItemRecord[] = [
     updated: "2026-01-01T00:00:00.000Z",
   },
 ];
+
+describe("AiDatasetDetailView items table", () => {
+  it("keeps long inputs readable and shows a dash when an item has no trace", () => {
+    const longItems: DatasetItemRecord[] = [
+      {
+        ...items[0]!,
+        expectedOutput: {
+          text: "One React Native codebase ships to web, iOS, and Android from one project.",
+        },
+        input: {question: "How does the universal app run on web, iOS, and Android?"},
+      },
+    ];
+    const {getByTestId} = renderWithTheme(
+      <AiDatasetDetailView
+        dataset={dataset}
+        items={longItems}
+        onAddItem={async () => undefined}
+        onOpenExperiment={() => undefined}
+        onOpenTrace={() => undefined}
+        routeBase="/admin"
+      />
+    );
+    const table = within(getByTestId("ai-dataset-items-table"));
+    expect(table.getByText(/How does the universal app run/)).toBeTruthy();
+    expect(table.getByText(/One React Native codebase ships/)).toBeTruthy();
+    expect(table.getByText("manual · reviewer")).toBeTruthy();
+    expect(table.getByText("—")).toBeTruthy();
+  });
+});
 
 describe("AiDatasetDetailView tabs", () => {
   it("shows empty state for human tab when only auto items exist", async () => {

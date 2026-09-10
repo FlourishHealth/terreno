@@ -316,15 +316,21 @@ type (human / JSON assert / LLM judge), target, dimension builder, type-specific
 prompt name, assertion path/constraint, or reviewer instructions), live-sampling rate, and inline
 schema-mismatch errors naming the missing dimension key. `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
 badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
-experiments. Its dimension and usage rows use flow-height layout instead of `DataTable`, which sizes
-to a height-constrained parent and collapses inside this scrolling page.
+experiments. Its dimension and usage rows use the shared `ObservabilityTable` instead of
+`DataTable`, which sizes to a height-constrained parent and collapses inside a scrolling page.
 
 `ai-datasets` lists datasets with item counts, provenance bar, input-schema binding, and updated
 time. **New dataset** creates a dataset; **Import** on each row accepts `.json` or `.csv` via
 `FilePickerButton` (local URI read) or paste, posting `{rows}` for JSON or `{format:'csv',content}`
 for CSV. `ai-dataset-detail?id=` shows counts, schema binding, tabs **All / Human / Auto / Needs
 review**, an items table (input, expected, provenance, trace link), **Add item**, and **Run
-experiment** navigation.
+experiment** navigation. The items table uses `ObservabilityTable`: rows grow with their content
+and cells wrap to three lines before truncating, so long inputs and expected outputs no longer
+overlap adjacent rows.
+
+`ObservabilityTable` (`widgets/aiObservability/shell/ObservabilityTable.tsx`) is the shared
+flow-height table for these screens. Columns take a `title` and optional `minWidth`; rows take a
+`key` and `cells`, where a string cell renders truncated text and a node cell renders as-is.
 
 `ai-experiments` lists experiments with status, running progress, and cost. **New experiment**
 opens a four-step wizard (dataset with counts, prompt versions tagged latest/production/superseded,

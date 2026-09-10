@@ -1,6 +1,11 @@
 import {Badge, Box, Button, Heading, Link, Text, TextField} from "@terreno/ui";
 import React, {useMemo} from "react";
 import {
+  ObservabilityTable,
+  type ObservabilityTableColumn,
+  type ObservabilityTableRow,
+} from "../shell/ObservabilityTable";
+import {
   DIMENSION_DATA_TYPES,
   EVALUATOR_TARGET_OPTIONS,
   EVALUATOR_TYPE_LABELS,
@@ -16,7 +21,8 @@ export const EVALUATOR_NEW_INTRO =
   "An evaluator scores traces and experiment outputs. Each score is a named dimension (boolean, numeric, or categorical). Attach the same evaluator to experiments, live sampling, or the human review queue.";
 
 export const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
-  human: "A person scores items in Human review. Scores wait in the queue until a reviewer submits them. Live sampling is not allowed.",
+  human:
+    "A person scores items in Human review. Scores wait in the queue until a reviewer submits them. Live sampling is not allowed.",
   "json-assert":
     "Terreno checks a JSON path on the target against a constraint. No model call. Use for schema presence, enums, or numeric thresholds.",
   "llm-judge":
@@ -38,7 +44,8 @@ const EVALUATOR_DIMENSIONS_HELP =
 
 const EVALUATOR_DIMENSION_KEY_HELP = "Score name stored on results, e.g. correct or toxicity.";
 
-const EVALUATOR_DIMENSION_RANGE_HELP = "Optional. For numeric scores, e.g. 0-1. Leave blank for boolean.";
+const EVALUATOR_DIMENSION_RANGE_HELP =
+  "Optional. For numeric scores, e.g. 0-1. Leave blank for boolean.";
 
 const EVALUATOR_INSTRUCTIONS_HELP =
   "Shown at the top of the review item. Tell the reviewer what pass/fail means and which failure modes to watch for.";
@@ -90,56 +97,18 @@ export interface AiEvaluatorNewViewProps {
   type: EvaluatorRecord["type"];
 }
 
-const DIMENSION_COLUMNS = ["Key", "Data type", "Range", "Required"];
+const DIMENSION_COLUMNS: ObservabilityTableColumn[] = [
+  {minWidth: 120, title: "Key"},
+  {minWidth: 100, title: "Data type"},
+  {minWidth: 80, title: "Range"},
+  {minWidth: 80, title: "Required"},
+];
 
-const USAGE_COLUMNS = ["Experiment", "30d runs", "Cost"];
-
-/**
- * Flow-height table for the short, static lists on this screen. `DataTable` sizes itself to a
- * height-constrained parent, so inside this scrolling detail page it collapses and its border
- * overlaps the next section. These rows also stretch to the available width instead of leaving
- * a wide empty gutter beside fixed pixel columns.
- */
-const DetailTable: React.FC<{
-  columns: string[];
-  rows: string[][];
-  testID: string;
-}> = ({columns, rows, testID}) => {
-  return (
-    <Box border="default" rounding="md" testID={testID}>
-      <Box direction="row" gap={2} padding={3}>
-        {columns.map((column) => {
-          return (
-            <Box flex="grow" key={column} minWidth={80}>
-              <Text bold size="sm">
-                {column}
-              </Text>
-            </Box>
-          );
-        })}
-      </Box>
-      {rows.map((row, rowIndex) => {
-        return (
-          <Box
-            borderTop="default"
-            direction="row"
-            gap={2}
-            key={row[0] ?? `row-${rowIndex}`}
-            padding={3}
-          >
-            {row.map((cell, cellIndex) => {
-              return (
-                <Box flex="grow" key={columns[cellIndex] ?? `cell-${cellIndex}`} minWidth={80}>
-                  <Text>{cell}</Text>
-                </Box>
-              );
-            })}
-          </Box>
-        );
-      })}
-    </Box>
-  );
-};
+const USAGE_COLUMNS: ObservabilityTableColumn[] = [
+  {minWidth: 160, title: "Experiment"},
+  {minWidth: 90, title: "30d runs"},
+  {minWidth: 90, title: "Cost"},
+];
 
 const renderTypePanel = ({
   assertionConstraint,
@@ -283,24 +252,30 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
   routeBase,
   usageRows,
 }) => {
-  const dimensionRows: string[][] = useMemo(() => {
-    return evaluator.dimensions.map((dimension) => {
-      return [
-        dimension.key,
-        dimension.dataType,
-        dimension.range ?? "—",
-        dimension.required ? "Yes" : "No",
-      ];
+  const dimensionRows: ObservabilityTableRow[] = useMemo(() => {
+    return evaluator.dimensions.map((dimension, index) => {
+      return {
+        cells: [
+          dimension.key,
+          dimension.dataType,
+          dimension.range ?? "—",
+          dimension.required ? "Yes" : "No",
+        ],
+        key: dimension.key || `dimension-${index}`,
+      };
     });
   }, [evaluator.dimensions]);
 
-  const usageTableRows: string[][] = useMemo(() => {
-    return usageRows.map((row) => {
-      return [
-        row.experimentName,
-        String(row.runs),
-        row.costUsd !== undefined ? `$${row.costUsd.toFixed(2)}` : "—",
-      ];
+  const usageTableRows: ObservabilityTableRow[] = useMemo(() => {
+    return usageRows.map((row, index) => {
+      return {
+        cells: [
+          row.experimentName,
+          String(row.runs),
+          row.costUsd !== undefined ? `$${row.costUsd.toFixed(2)}` : "—",
+        ],
+        key: row.experimentId ?? `usage-${index}`,
+      };
     });
   }, [usageRows]);
 
@@ -325,7 +300,7 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
       </Box>
       <Box gap={2}>
         <Heading size="sm">Dimensions</Heading>
-        <DetailTable
+        <ObservabilityTable
           columns={DIMENSION_COLUMNS}
           rows={dimensionRows}
           testID="ai-evaluator-dimensions"
@@ -354,7 +329,7 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
             No experiments in the last 30 days.
           </Text>
         ) : (
-          <DetailTable
+          <ObservabilityTable
             columns={USAGE_COLUMNS}
             rows={usageTableRows}
             testID="ai-evaluator-used-by"

@@ -6,9 +6,9 @@ import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {
   AiEvaluatorDetailView,
   AiEvaluatorNewView,
+  defaultEvaluatorRunModes,
   EVALUATOR_TARGET_HELP,
   EVALUATOR_TYPE_HELP,
-  defaultEvaluatorRunModes,
   initialNewEvaluatorDimensions,
 } from "./AiEvaluatorPanels";
 import {judgeSchemaMissingDimensions} from "./evaluatorTypes";
