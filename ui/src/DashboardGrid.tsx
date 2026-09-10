@@ -4,7 +4,7 @@ import {Children, useCallback, useState} from "react";
 import {Box} from "./Box";
 import type {DashboardGridProps, LayoutChangeEvent} from "./Common";
 import {getSpacing} from "./Common";
-import {getDashboardCellWidth} from "./dashboardGridLayout";
+import {getDashboardCellBoxStyle} from "./dashboardGridLayout";
 import {useResponsiveBreakpoint} from "./ResponsiveBreakpoint";
 import {resolveTestID} from "./testing/resolveTestId";
 
@@ -35,7 +35,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
   const breakpoint = useResponsiveBreakpoint({enabled: true});
   const [rowWidth, setRowWidth] = useState(0);
   const columnCount = Math.max(resolveColumnCount({breakpoint, columns}), 1);
-  const cellWidth = getDashboardCellWidth({
+  const cellStyle = getDashboardCellBoxStyle({
     columnCount,
     gapPx: getSpacing(gap),
     rowWidth,
@@ -53,12 +53,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
       {Children.map(children, (child: ReactNode, index: number) => (
         <Box
           dangerouslySetInlineStyle={{
-            __style: {
-              flexGrow: 0,
-              flexShrink: 0,
-              maxWidth: cellWidth,
-              width: cellWidth,
-            },
+            __style: cellStyle,
           }}
           key={`dashboard-cell-${index}`}
           testID={resolveTestID(testID, `cell.${index}`)}
