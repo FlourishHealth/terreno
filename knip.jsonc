@@ -29,6 +29,11 @@
     "**/openApiSdk.ts": ["exports", "types"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
+  "ignoreFiles": [
+    // Generated communications SDK is retained as a codegen contract even before a
+    // product screen imports it; exports/types remain analyzed by ignoreIssues above.
+    "example-frontend/store/commsOpenApiSdk.ts"
+  ],
   "workspaces": {
     // mcp-server `bunfig.toml` `test.preload` is an array so Knip's Bun plugin can
     // `preload.map`. A scalar string crashes the plugin (hence it used to set bun: false).
@@ -173,6 +178,7 @@
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "openapi-config.ts",
         "comms-openapi-config.ts",
+        "e2e/**/*.ts",
         "jspdf-native-stub.js",
         "fingerprint.config.js",
         "playwright.circleci.config.ts"

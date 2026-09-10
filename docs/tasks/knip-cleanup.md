@@ -89,7 +89,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 4: Dead files
 
-- [ ] **Task 4.1**: Delete in-repo-dead example-frontend modules
+- [x] **Task 4.1**: Delete in-repo-dead example-frontend modules
   - Delivers: remove unused files Knip still reports after Phase 1 (candidates from snapshot: `hooks/useLogoutUser.ts`, `useSentryUserSetup.ts`, `useUpdateProfile.ts`, `constants/Colors.ts`, and any unused store helpers). Keep files that routes, tests, or docs still import — those need an entry or a real import
   - Files: `example-frontend/**` listed by live Knip `files`
   - Blocked by: Task 1.3

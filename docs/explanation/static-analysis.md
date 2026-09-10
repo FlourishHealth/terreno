@@ -39,6 +39,8 @@ patterns for that workspace, so those defaults must be repeated next to extra gl
 | --- | --- | --- |
 | `*.isolated.ts(x)` | Run as `bun test $file`, not `*.test.ts` | `src/isolated/**/*.isolated.{ts,tsx}` on the owning package |
 | `scripts/**/*.test.ts`, `.github/scripts/**/*.test.ts` | Root `test` is `bun run --filter '*' test:ci`, so the Bun plugin never loads them | Root workspace `"."` |
+| `example-frontend/e2e/**/*.ts` | Playwright helpers and setup files are executed through project configuration, not app imports | `example-frontend` entry glob |
+| Generated SDK contracts not yet imported by a screen | Codegen output is retained for compatibility verification | `ignoreFiles` for only the unused-file issue; exports and dependencies remain analyzed |
 | OpenAPI codegen configs, Metro `jspdf` stubs, Expo fingerprint configs, Playwright CI config, `ui/babel.config.js`, Docusaurus `src/theme/**` swizzles, `scripts/ci/prepare-package-publish.mjs` | Invoked by Expo/Metro/Docusaurus/CI, not imported from app `index` | Extra `entry` globs on the owning workspace |
 | Generated `expo-cicd-workflows/scripts/*.js` (including `.rulesync/`) | Skill copies; they import `ajv` / `js-yaml` outside this repo’s package graph | `ignore` globs |
 | `example-backend` production dependencies | Knip's package-script entry for `bun run src/index.ts` shadows the explicit `src/index.ts!` entry in production mode | Keep default-mode enforcement; use exact dependency names suffixed with `!` as production-only exceptions |

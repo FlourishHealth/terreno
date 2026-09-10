@@ -250,4 +250,20 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report example frontend e2e and generated SDK contracts as unused",
+    (): void => {
+      const unusedFiles = unusedFilePathsFromKnipReport(runKnipReport());
+      for (const retainedFile of [
+        "example-frontend/e2e/auth.setup.ts",
+        "example-frontend/e2e/helpers/mongoReplicaSet.ts",
+        "example-frontend/e2e/helpers/offlineHelpers.ts",
+        "example-frontend/store/commsOpenApiSdk.ts",
+      ]) {
+        assert.notInclude(unusedFiles, retainedFile);
+      }
+    },
+    {timeout: 180_000}
+  );
 });
