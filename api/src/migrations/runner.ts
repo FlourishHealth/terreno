@@ -1,3 +1,5 @@
+import type mongoose from "mongoose";
+
 import {APIError} from "../errors";
 import {logger as defaultLogger} from "../logger";
 import {
