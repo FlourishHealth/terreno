@@ -208,7 +208,27 @@ export const TextField: FC<TextFieldProps> = ({
               }
               setFocused(false);
             }}
-            onChangeText={onChange}
+            onChangeText={(text) => {
+              // #region agent log
+              if (testID?.startsWith("admin-field-")) {
+                const payload = {
+                  data: {testID, textPreview: text.slice(0, 120)},
+                  hypothesisId: "H3",
+                  location: "TextField.tsx",
+                  message: "onChangeText",
+                  timestamp: Date.now(),
+                };
+                console.warn("[agent:TextField]", JSON.stringify(payload));
+                try {
+                  const fs = require("node:fs") as typeof import("node:fs");
+                  fs.appendFileSync("/opt/cursor/logs/debug.log", `${JSON.stringify(payload)}\n`);
+                } catch {
+                  // ignore when node fs unavailable (native bundle)
+                }
+              }
+              // #endregion
+              onChange(text);
+            }}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;

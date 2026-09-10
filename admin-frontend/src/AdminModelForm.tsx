@@ -1,6 +1,6 @@
 import {Accordion, Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AdminConflictSheet} from "./AdminConflictSheet";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import {useAdminContext} from "./adminContext";
@@ -16,6 +16,34 @@ import type {
 import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
+
+// #region agent log
+const debugAdminModelFormLog = (
+  hypothesisId: string,
+  message: string,
+  data: Record<string, unknown>
+): void => {
+  const payload = {
+    data,
+    hypothesisId,
+    location: "AdminModelForm.tsx",
+    message,
+    timestamp: Date.now(),
+  };
+  console.warn("[agent:AdminModelForm]", JSON.stringify(payload));
+  const globalLogs = globalThis as typeof globalThis & {
+    __agentAdminModelFormLogs?: unknown[];
+  };
+  globalLogs.__agentAdminModelFormLogs = globalLogs.__agentAdminModelFormLogs ?? [];
+  globalLogs.__agentAdminModelFormLogs.push(payload);
+  try {
+    const fs = require("node:fs") as typeof import("node:fs");
+    fs.appendFileSync("/opt/cursor/logs/debug.log", `${JSON.stringify(payload)}\n`);
+  } catch {
+    // ignore when node fs unavailable (native bundle)
+  }
+};
+// #endregion
 
 /** Parameters for {@link AdminModelFormProps.getScreenTitle}. */
 export interface AdminModelFormScreenTitleParams {
@@ -316,6 +344,29 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
+  const renderCountRef = useRef(0);
+  const handleFieldChangeCountRef = useRef(0);
+  const setOptionsCountRef = useRef(0);
+  const prevNavigationRef = useRef<unknown>();
+  const prevNavigationTitleRef = useRef<string>();
+
+  renderCountRef.current += 1;
+  // #region agent log
+  if (renderCountRef.current <= 80) {
+    const navigationChanged =
+      prevNavigationRef.current !== undefined && prevNavigationRef.current !== navigation;
+    debugAdminModelFormLog("H4", "render", {
+      itemId,
+      mode,
+      modelName,
+      navigationChanged,
+      renderCount: renderCountRef.current,
+      titleValue:
+        typeof formState.title === "string" ? formState.title.slice(0, 80) : formState.title,
+    });
+    prevNavigationRef.current = navigation;
+  }
+  // #endregion
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
@@ -379,10 +430,31 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [mode, modelConfig, isInitialized]);
 
   const handleFieldChange = useCallback((fieldKey: string, value: AdminFieldValue) => {
+    handleFieldChangeCountRef.current += 1;
+    // #region agent log
+    debugAdminModelFormLog("H1", "handleFieldChange", {
+      callCount: handleFieldChangeCountRef.current,
+      fieldKey,
+      renderCount: renderCountRef.current,
+      valuePreview: typeof value === "string" ? value.slice(0, 120) : value,
+    });
+    // #endregion
     setFormState((prev) => ({...prev, [fieldKey]: value}));
     setErrors((prev) => {
+      const hadError = Object.hasOwn(prev, fieldKey);
       const next = {...prev};
       delete next[fieldKey];
+      // #region agent log
+      debugAdminModelFormLog("H2", "setErrors updater", {
+        fieldKey,
+        hadError,
+        nextErrorKeys: Object.keys(next),
+        prevErrorKeys: Object.keys(prev),
+        sameKeys:
+          Object.keys(prev).length === Object.keys(next).length &&
+          Object.keys(prev).every((k) => prev[k] === next[k]),
+      });
+      // #endregion
       return next;
     });
   }, []);
@@ -574,6 +646,16 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (!modelConfig) {
       return;
     }
+    setOptionsCountRef.current += 1;
+    const titleChanged = prevNavigationTitleRef.current !== navigationTitle;
+    // #region agent log
+    debugAdminModelFormLog("H1", "navigation.setOptions effect", {
+      navigationTitle,
+      setOptionsCount: setOptionsCountRef.current,
+      titleChanged,
+    });
+    // #endregion
+    prevNavigationTitleRef.current = navigationTitle;
     navigation.setOptions({
       title: navigationTitle,
     });
