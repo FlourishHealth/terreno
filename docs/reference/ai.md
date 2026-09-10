@@ -383,6 +383,12 @@ creates `examples/example-summarize` with production on v1 and an experimental v
 dataset bound to the prompt input schema. Invalid price JSON or negative/non-numeric prices
 fail startup with `AI_OBS_PRICE_MAP_JSON` in the error.
 
+`POST /ai/example-summarize` (example backend) runs that seeded prompt with
+`promptLabel: "production"`, `userId`, and `sessionId` from `x-ai-session-id`. It uses the
+server `AIService` when configured, otherwise a request-scoped service built from
+`x-ai-api-key`, and returns **503** when neither exists. The example frontend calls it from
+**Todos → Summarize**.
+
 ### Local observability models
 
 | Model | Role |

@@ -106,6 +106,11 @@ call, then opens the nested trace. Each LLM span input includes `outputSchema`.
 6. Open its `example-summarize` trace, send it to Review, score **correct**, and submit
    until the queue reports **Queue clear**.
 
+The example app also calls this route from the UI: **Todos → Summarize** sends the user's todo
+list, so each press produces a trace with the production prompt reference, `userId`, and a
+per-app-run `x-ai-session-id`. Without server credentials the screen forwards the Gemini key
+saved in **Profile** as `x-ai-api-key`; otherwise the route answers **503**.
+
 The route sends `text` as the user prompt. The labelled registry version supplies the
 system prompt and the route uses `TemperaturePresets.LOW`.
 

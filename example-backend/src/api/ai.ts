@@ -746,17 +746,24 @@ export const addAiRoutes = (
       })
       .build(),
     asyncHandler(async (req, res) => {
-      if (!aiService) {
+      // Prefer the server-wide service; fall back to the caller's own key so the example app
+      // still traces real runs when the backend has no provider credentials.
+      const requestApiKey = req.header("x-ai-api-key");
+      const effectiveAiService =
+        aiService ??
+        (requestApiKey ? new AIService({model: createModelFromKey(requestApiKey)}) : undefined);
+      if (!effectiveAiService) {
         throw new APIError({
           status: 503,
-          title: "Configure GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY to run AI examples",
+          title:
+            "Configure GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY, or save a Gemini API key in Profile",
         });
       }
       const text = (req.body as {text?: string}).text?.trim();
       if (!text) {
         throw new APIError({status: 400, title: "text is required"});
       }
-      const output = await aiService.generateText({
+      const output = await effectiveAiService.generateText({
         prompt: text,
         promptLabel: "production",
         promptName: EXAMPLE_SUMMARIZE_PROMPT_NAME,

@@ -48,6 +48,12 @@ The example backend always registers the local plugin. Its idempotent seed creat
 resolve the production prompt → emit a trace → inspect spans and sensitive I/O → send the
 trace to Review → record a human score.
 
+The example frontend supplies that first step from real product usage: **Todos → Summarize**
+calls `/ai/example-summarize`, which resolves `example-summarize` by name and `production`
+label server-side. Prompt selection stays on the server, while the client only contributes
+identity (`x-ai-session-id`) and, when the backend has no provider credentials, the user's own
+key.
+
 `AI_OBS_PRICE_MAP_JSON` belongs to deployment configuration because prices change
 independently of prompt versions. A missing model price preserves token counts and omits
 USD cost; it never invents `$0`.
