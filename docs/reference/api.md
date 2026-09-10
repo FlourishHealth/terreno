@@ -623,6 +623,22 @@ and `$or` cannot list another org.
 `user.admin` is not operator. Platform org actors are `user.roles` containing `operator` or
 `superadmin`.
 
+### Organization RBAC
+
+`terrenoStatements.organization` actions: `create`, `list`, `read`, `update`, `delete`,
+`manageMembers`, `disable`.
+
+| Role | Where it lives | Organization grants |
+| --- | --- | --- |
+| `superadmin` | `user.roles` | `*` (includes every organization action) |
+| `operator` | seeded locked `user.roles` | all `organization` actions, plus `admin:access` and `user:list\|read\|update` |
+| `org-admin` | `Membership.roleName` in the current org context | `organization:read\|update\|manageMembers` and `admin:access` |
+| `admin` | `user.roles` | none of `organization:*` |
+
+`createAccess` always prepends a membership permission source (`ttlMs: 0`). Putting
+`org-admin` on `user.roles` does not grant those permissions. Permission cache keys include
+the current organization id and membership role so org-admin grants do not leak across orgs.
+
 ``````typescript
 import {Membership, Organization} from "@terreno/api";
 

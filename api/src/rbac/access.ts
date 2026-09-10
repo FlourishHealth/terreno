@@ -1,6 +1,7 @@
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {normalizeRbacAuditSinks} from "./auditModel";
+import {membershipOrgAdminPermissionSource} from "./membershipOrgAdminSource";
 import {createIsPermitted, createRequireAccess} from "./middleware";
 import {createPermissionResolver} from "./resolve";
 import {createRoleManager} from "./roleManager";
@@ -44,7 +45,7 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
     cacheTtlMs: options.cacheTtlMs,
     rbacRoleModel,
     resolvePermissions: options.resolvePermissions,
-    sources: options.sources,
+    sources: [membershipOrgAdminPermissionSource(), ...(options.sources ?? [])],
     statements: mergedStatements,
   });
 

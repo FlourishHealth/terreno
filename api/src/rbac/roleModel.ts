@@ -98,6 +98,16 @@ export const terrenoDefaultRoles: RoleDefinition[] = [
     permissions: "*",
   },
   {
+    displayName: "Operator",
+    isLocked: true,
+    name: "operator",
+    permissions: {
+      admin: ["access"],
+      organization: ["create", "list", "read", "update", "delete", "manageMembers", "disable"],
+      user: ["list", "read", "update"],
+    },
+  },
+  {
     displayName: "Admin",
     isLocked: true,
     name: "admin",

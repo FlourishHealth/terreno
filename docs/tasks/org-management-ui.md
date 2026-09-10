@@ -18,7 +18,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: 1.1
   - Docs: none until 6.1
   - Acceptance: save without org fails; index present
-- [ ] **Task 1.3**: Org context middleware + `OrgQueryFilter`
+- [x] **Task 1.3**: Org context middleware + `OrgQueryFilter`
   - Delivers: Q13 header matrix; lists never cross orgs
   - Files: `api/src/orgs/orgContext.ts`, `orgPermissions.ts`, `api/src/permissions.ts` (stop using `User.organizationIds`)
   - Blocked by: 1.1, 1.2

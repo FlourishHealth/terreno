@@ -10,7 +10,7 @@ describe("rbac role model", () => {
   it("defines terreno default roles with expected names", () => {
     const names = terrenoDefaultRoles.map((role) => role.name);
 
-    expect(names).toEqual(["superadmin", "admin", "auditor", "member"]);
+    expect(names).toEqual(["superadmin", "operator", "admin", "auditor", "member"]);
   });
 
   it("seeds default roles with expanded permissions", async () => {
@@ -25,6 +25,13 @@ describe("rbac role model", () => {
     expect(superadmin.permissions.featureFlag).toContain("list");
     expect(superadmin.permissions.consentForm).toContain("list");
     expect(superadmin.permissions.consentResponse).toEqual(["list", "read"]);
+    expect(superadmin.permissions.organization).toContain("list");
+
+    const operator = await RbacRole.findExactlyOne({name: "operator"});
+    expect(operator.isLocked).toBe(true);
+    expect(operator.permissions.organization).toEqual([...terrenoStatements.organization]);
+    expect(operator.permissions.admin).toEqual(["access"]);
+    expect(operator.permissions.user).toEqual(["list", "read", "update"]);
 
     const auditor = await RbacRole.findExactlyOne({name: "auditor"});
     expect(auditor.permissions.user).toEqual(["list", "read"]);

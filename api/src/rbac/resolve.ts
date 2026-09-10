@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
+import {getOrgContext} from "../orgs/orgContext";
 import {unionPermissionSets} from "./permissionUtils";
 import type {RbacRoleModel} from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
@@ -24,6 +25,26 @@ const DEFAULT_MAX_CACHE_ENTRIES = 10_000;
 const getUserRoles = (user: User): string[] => {
   const withRoles = user as User & {roles?: string[]};
   return withRoles.roles ?? [];
+};
+
+const permissionCacheKeyForUser = (user: User): string => {
+  const ctx = getOrgContext();
+  const organizationId = ctx?.organization?._id?.toString() ?? "";
+  const membershipRole = ctx?.membership?.roleName ?? "";
+  return `${user.id}::org=${organizationId}::role=${membershipRole}`;
+};
+
+const deletePermissionCacheForUser = (
+  permissionCache: Map<string, CacheEntry>,
+  userId: string
+): void => {
+  permissionCache.delete(userId);
+  const prefix = `${userId}::`;
+  for (const key of [...permissionCache.keys()]) {
+    if (key.startsWith(prefix)) {
+      permissionCache.delete(key);
+    }
+  }
 };
 
 export const createPermissionResolver = <S extends Statements>(args: {
@@ -79,7 +100,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
 
   const invalidateCache = (invalidateArgs?: {userId?: string}): void => {
     if (invalidateArgs?.userId) {
-      permissionCache.delete(invalidateArgs.userId);
+      deletePermissionCacheForUser(permissionCache, invalidateArgs.userId);
       sourceCache.delete(invalidateArgs.userId);
       return;
     }
@@ -205,10 +226,11 @@ export const createPermissionResolver = <S extends Statements>(args: {
     user: User,
     shouldCache: boolean
   ): Promise<PermissionSet> => {
+    const cacheKey = permissionCacheKeyForUser(user);
     if (shouldCache) {
-      const cached = permissionCache.get(user.id);
+      const cached = permissionCache.get(cacheKey);
       if (cached && cached.expiresAt > DateTime.now().toMillis()) {
-        rememberPermissions(user.id, cached);
+        rememberPermissions(cacheKey, cached);
         return cached.permissions;
       }
     }
@@ -251,7 +273,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
 
     if (shouldCache) {
-      rememberPermissions(user.id, {
+      rememberPermissions(cacheKey, {
         expiresAt: DateTime.now().plus({milliseconds: cacheTtlMs}).toMillis(),
         permissions,
       });

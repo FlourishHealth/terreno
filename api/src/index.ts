@@ -92,6 +92,11 @@ export {
   backfillAdmins,
 } from "./rbac/backfillAdmins";
 export * from "./rbac/fieldViews";
+export {
+  MEMBERSHIP_ORG_ADMIN_PERMISSION_SOURCE_NAME,
+  membershipOrgAdminPermissionSource,
+  ORG_ADMIN_PERMISSION_BUNDLE,
+} from "./rbac/membershipOrgAdminSource";
 export * from "./rbac/middleware";
 export * from "./rbac/permissionUtils";
 export {
