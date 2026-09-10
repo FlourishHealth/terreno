@@ -7,7 +7,7 @@ import {
   Text,
 } from "@terreno/ui";
 import type React from "react";
-import {type FC, useState} from "react";
+import {type FC, useCallback, useState} from "react";
 
 const CustomColumnComponent: FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
   cellData,
@@ -261,6 +261,9 @@ export const FilterableDataTable = (): React.ReactElement => {
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
   const [queryLog, setQueryLog] = useState<string>("{}");
+  const handleQueryChange = useCallback((params: Record<string, unknown>): void => {
+    setQueryLog(JSON.stringify(params));
+  }, []);
   const columns: DataTableColumn[] = [
     {
       columnType: "text",
@@ -304,11 +307,22 @@ export const FilterableDataTable = (): React.ReactElement => {
     <Box direction="column" gap={3} height={500} maxWidth={900} padding={3}>
       <Text>Latest query: {queryLog}</Text>
       <DataTable
+        additionalFilters={[
+          {
+            field: "department",
+            kind: "choice",
+            label: "Department",
+            options: [
+              {label: "Engineering", value: "engineering"},
+              {label: "Operations", value: "operations"},
+            ],
+          },
+        ]}
         columns={columns}
         data={data}
         filterValues={filterValues}
         onFilterValuesChange={setFilterValues}
-        onQueryChange={(params) => setQueryLog(JSON.stringify(params))}
+        onQueryChange={handleQueryChange}
         onSearchChange={setSearch}
         search={search}
         searchFields={["name", "role"]}
