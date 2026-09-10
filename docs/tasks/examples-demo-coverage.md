@@ -184,13 +184,13 @@ Packages below 95%: none (all published packages meet the 95% function and line 
 
 ## Phase 4: Codecov
 
-- [ ] **Task 4.1**: Configure Codecov
+- [x] **Task 4.1**: Configure Codecov
   - Description: Add `codecov.yml` configuring per-package flags so each package's coverage is reported separately, a target of "auto" with a small allowed threshold so trivial deltas do not fail PRs, and comment settings that post the delta on pull requests. Add the upload step to every package CI workflow. Note in the file where the `CODECOV_TOKEN` secret must be configured (a maintainer action for a public repo, though public repos often need no token — verify current Codecov requirements before documenting).
   - Files: `codecov.yml` (new), every package CI workflow
   - Depends on: Task 3.4
   - Acceptance: `codecov.yml` is valid; every package workflow uploads with a distinct flag; the token requirement is documented accurately for a public repo.
 
-- [ ] **Task 4.2**: Add the coverage badge
+- [x] **Task 4.2**: Add the coverage badge
   - Description: Add a Codecov badge to `README.md` next to the existing npm and license badges. Add a "Testing and coverage" section to `CONTRIBUTING.md` explaining: the 95% coverage expectation for new code, that coverage must not drop in a PR, and how to run coverage locally per package.
   - Files: `README.md`, `CONTRIBUTING.md`
   - Depends on: Task 4.1
