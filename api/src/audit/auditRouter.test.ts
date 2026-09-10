@@ -12,7 +12,7 @@ import {TerrenoApp} from "../terrenoApp";
 import {authAsUser, setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
 import {createAuditEventModel} from "./auditEventModel";
-import {changedFieldDiff, isRedactedSegment} from "./diff";
+import {changedFieldDiff} from "./diff";
 import {
   maybeRecordAdminAudit,
   maybeRecordModelRouterAudit,
@@ -73,8 +73,6 @@ const buildApp = (audit: true | {redact: string[]} = true): express.Application 
 
 describe("changedFieldDiff", () => {
   it("redacts default secret segments case-insensitively", () => {
-    assert.isTrue(isRedactedSegment("Password"));
-    assert.isTrue(isRedactedSegment("refreshToken"));
     const diff = changedFieldDiff({
       after: {password: "secret", title: "Hi", token: "abc"},
       before: {password: "old", title: "Lo", token: "xyz"},

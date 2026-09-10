@@ -1,4 +1,4 @@
-export const DEFAULT_AUDIT_REDACT_SEGMENTS = [
+const DEFAULT_AUDIT_REDACT_SEGMENTS = [
   "hash",
   "password",
   "refreshToken",
@@ -13,7 +13,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 
 const DEFAULT_REDACT_LOWER = DEFAULT_AUDIT_REDACT_SEGMENTS.map((segment) => segment.toLowerCase());
 
-export const isRedactedSegment = (name: string, extraRedact: string[] = []): boolean => {
+const isRedactedSegment = (name: string, extraRedact: string[] = []): boolean => {
   const lower = name.toLowerCase();
   if (DEFAULT_REDACT_LOWER.includes(lower)) {
     return true;

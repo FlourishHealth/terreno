@@ -90,7 +90,7 @@ export const maybeRecordAdminAudit = async ({
   });
 };
 
-export const resolveAuditRedact = (audit?: ModelRouterAuditConfig): string[] | undefined => {
+const resolveAuditRedact = (audit?: ModelRouterAuditConfig): string[] | undefined => {
   if (!audit) {
     return undefined;
   }
@@ -100,7 +100,7 @@ export const resolveAuditRedact = (audit?: ModelRouterAuditConfig): string[] | u
   return audit.redact ?? [];
 };
 
-export const actorIdFromRequest = (req: Request): string | undefined => {
+const actorIdFromRequest = (req: Request): string | undefined => {
   const user = req.user;
   if (!user) {
     return undefined;
@@ -133,7 +133,7 @@ const idString = (value: unknown): string | undefined => {
   return String(value);
 };
 
-export const organizationIdFromAuditContext = (
+const organizationIdFromAuditContext = (
   req: Request,
   after?: Record<string, unknown>,
   before?: Record<string, unknown>

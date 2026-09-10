@@ -18,9 +18,9 @@ export type AuditEventOperation =
   | "delete"
   | "update";
 
-export type AuditEventMethods = Record<string, never>;
+type AuditEventMethods = Record<string, never>;
 
-export interface AuditEventStatics
+interface AuditEventStatics
   extends FindExactlyOnePlugin<AuditEventDocument>,
     FindOneOrNonePlugin<AuditEventDocument> {}
 
@@ -28,11 +28,7 @@ export interface AuditEventModel
   extends mongoose.Model<AuditEventDocument, object, AuditEventMethods>,
     AuditEventStatics {}
 
-export type AuditEventSchema = mongoose.Schema<
-  AuditEventDocument,
-  AuditEventModel,
-  AuditEventMethods
->;
+type AuditEventSchema = mongoose.Schema<AuditEventDocument, AuditEventModel, AuditEventMethods>;
 
 export interface AuditEventDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;
@@ -124,21 +120,11 @@ auditEventSchema.plugin(createdUpdatedPlugin);
 auditEventSchema.plugin(findOneOrNone);
 auditEventSchema.plugin(findExactlyOne);
 
-export const ttlExpireAfterSeconds = (retentionDays?: number): number | undefined => {
+const ttlExpireAfterSeconds = (retentionDays?: number): number | undefined => {
   if (retentionDays === undefined || retentionDays <= 0) {
     return undefined;
   }
   return retentionDays * 86400;
-};
-
-export const getAuditEventIndexSpecs = (): Array<Record<string, number>> => {
-  return auditEventSchema.indexes().map(([fields]) => fields as Record<string, number>);
-};
-
-export const getAuditEventIndexOptions = (): Array<Record<string, unknown>> => {
-  return auditEventSchema
-    .indexes()
-    .map(([, options]) => (options ?? {}) as Record<string, unknown>);
 };
 
 export const createAuditEventModel = (
