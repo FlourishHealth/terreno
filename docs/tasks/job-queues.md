@@ -41,7 +41,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (5.1)
   - Acceptance: bun test — three failures with `maxAttempts: 3` land `dead`; between attempts status is `pending` with future `runAt`; Luxon used for delay math
 
-- [ ] **Task 2.2**: Delayed `runAt` + `idempotencyKey`
+- [x] **Task 2.2**: Delayed `runAt` + `idempotencyKey`
   - Delivers: `enqueue({runAt})` not claimed before `runAt`; duplicate `(name, idempotencyKey)` returns the existing job and does not insert a second row
   - Files: `jobs/src/jobsService.ts`, Job indexes, tests
   - Blocked by: 1.2

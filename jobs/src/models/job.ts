@@ -114,8 +114,14 @@ jobSchema.plugin(createdUpdatedPlugin);
 jobSchema.plugin(findOneOrNone);
 jobSchema.plugin(findExactlyOne);
 
-// biome-ignore assist/source/useSortedKeys: IP specifies (name, idempotencyKey) index field order
-jobSchema.index({name: 1, idempotencyKey: 1}, {sparse: true, unique: true});
+jobSchema.index(
+  // biome-ignore assist/source/useSortedKeys: IP specifies (name, idempotencyKey) index field order
+  {name: 1, idempotencyKey: 1},
+  {
+    partialFilterExpression: {idempotencyKey: {$exists: true, $type: "string"}},
+    unique: true,
+  }
+);
 // biome-ignore assist/source/useSortedKeys: IP specifies (status, runAt) claim index field order
 jobSchema.index({status: 1, runAt: 1});
 

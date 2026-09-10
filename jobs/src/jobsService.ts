@@ -9,6 +9,14 @@ import type {EnqueueJobParams, JobDefinition} from "./types";
 const DEFAULT_MAX_ATTEMPTS = 5;
 const UNKNOWN_JOB_NAME_TITLE = "Unknown job name";
 
+const isDuplicateKeyError = (error: unknown): boolean =>
+  Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as {code: unknown}).code === 11_000
+  );
+
 export class JobsService {
   private readonly definitions = new Map<string, JobDefinition>();
   private readonly lockTtlMs: number;
@@ -39,19 +47,43 @@ export class JobsService {
     const maxAttempts = definition.retry?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     const backoffMs = definition.retry?.backoffMs ?? DEFAULT_BACKOFF_MS;
     const maxBackoffMs = definition.retry?.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
+    const idempotencyKey = params.idempotencyKey?.trim();
 
-    return Job.create({
+    if (idempotencyKey) {
+      const existing = await Job.findOneOrNone({
+        idempotencyKey,
+        name: params.name,
+      });
+      if (existing) {
+        return existing;
+      }
+    }
+
+    const createPayload = {
       attemptCount: 0,
       backoffMs,
-      idempotencyKey: params.idempotencyKey,
       maxAttempts,
       maxBackoffMs,
       name: params.name,
       payload: params.payload,
       payloadRedacted: false,
       runAt,
-      status: "pending",
-    });
+      status: "pending" as const,
+      ...(idempotencyKey ? {idempotencyKey} : {}),
+    };
+
+    try {
+      return await Job.create(createPayload);
+    } catch (error: unknown) {
+      if (!idempotencyKey || !isDuplicateKeyError(error)) {
+        throw error;
+      }
+
+      return Job.findExactlyOne({
+        idempotencyKey,
+        name: params.name,
+      });
+    }
   }
 }
 
