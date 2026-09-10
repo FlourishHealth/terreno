@@ -13,6 +13,7 @@ import {terrenoStatements} from "../rbac/statements";
 import {setupDb} from "../tests";
 import type {MembershipDocument} from "../types/membership";
 import type {OrganizationDocument} from "../types/organization";
+import {Membership, Organization} from "./organizationModel";
 import {type ResolvedOrgContext, runWithOrgContext} from "./orgContext";
 
 const createTestUser = (
@@ -165,6 +166,74 @@ describe("organization RBAC", () => {
       user: admin,
     });
     assert.isFalse(adminList.allowed);
+  });
+
+  it("grants only admin:access outside org context when the user has an active org-admin membership", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      organizations: true,
+      statements: terrenoStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const userId = new mongoose.Types.ObjectId();
+    const user = createTestUser({_id: userId as unknown as User["_id"], id: userId.toString()});
+    const org = await Organization.create({
+      name: "Alpha Workspace",
+      ownerId: userId,
+    });
+    await Membership.create({
+      organizationId: org._id,
+      roleName: "org-admin",
+      userId,
+    });
+
+    const shellAccess = await access.can({
+      permissions: {admin: ["access"]},
+      user,
+    });
+    assert.isTrue(shellAccess.allowed);
+
+    const orgList = await access.can({
+      permissions: {organization: ["list"]},
+      user,
+    });
+    assert.isFalse(orgList.allowed);
+
+    const orgUpdate = await access.can({
+      permissions: {organization: ["update"]},
+      user,
+    });
+    assert.isFalse(orgUpdate.allowed);
+  });
+
+  it("denies admin:access outside org context when the user has only member memberships", async () => {
+    await setupDb();
+    const access = createAccess({
+      connection: mongoose.connection,
+      organizations: true,
+      statements: terrenoStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const userId = new mongoose.Types.ObjectId();
+    const user = createTestUser({_id: userId as unknown as User["_id"], id: userId.toString()});
+    const org = await Organization.create({
+      name: "Member Org",
+      ownerId: userId,
+    });
+    await Membership.create({
+      organizationId: org._id,
+      roleName: "member",
+      userId,
+    });
+
+    const shellAccess = await access.can({
+      permissions: {admin: ["access"]},
+      user,
+    });
+    assert.isFalse(shellAccess.allowed);
   });
 
   it("does not leak org-admin grants across organization contexts via the permission cache", async () => {
