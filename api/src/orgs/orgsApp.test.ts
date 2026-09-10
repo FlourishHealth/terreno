@@ -217,6 +217,7 @@ describe("OrgsApp", () => {
       .post(`/orgs/${org._id}/members`)
       .send({email: "ghost@example.com", roleName: "member"});
     assert.equal(missing.status, 404);
+    assert.equal(missing.body.title, "User not found");
 
     const attached = await operatorAgent
       .post(`/orgs/${org._id}/members`)
@@ -249,8 +250,32 @@ describe("OrgsApp", () => {
       .patch(`/orgs/${org._id}/members/${membership._id}`)
       .send({roleName: "member"});
     assert.equal(demote.status, 400);
+    assert.equal(demote.body.title, "Cannot remove the last org-admin");
 
     const removed = await operatorAgent.delete(`/orgs/${org._id}/members/${membership._id}`);
     assert.equal(removed.status, 400);
+    assert.equal(removed.body.title, "Cannot remove the last org-admin");
+    const stillAdmin = await Membership.findById(membership._id);
+    assert.equal(stillAdmin?.roleName, "org-admin");
+  });
+
+  it("lets an org-admin attach another existing user", async () => {
+    const owner = await createUser({email: "owner@example.com", roles: ["operator"]});
+    const orgAdmin = await createUser({email: "orgadmin@example.com"});
+    await createUser({email: "teammate@example.com"});
+    const org = await Organization.create({name: "Acme", ownerId: owner._id});
+    await Membership.create({
+      organizationId: org._id,
+      roleName: "org-admin",
+      userId: orgAdmin._id,
+    });
+    const orgAdminAgent = await loginWithPassword(app, {
+      email: "orgadmin@example.com",
+      password: PASSWORD,
+    });
+    const attached = await orgAdminAgent
+      .post(`/orgs/${org._id}/members`)
+      .send({email: "teammate@example.com", roleName: "member"});
+    assert.equal(attached.status, 201);
   });
 });
