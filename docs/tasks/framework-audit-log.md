@@ -25,7 +25,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
 
 ## Phase 2 — Array ops + org field
 
-- [ ] **Task 2.1**: Array mutations
+- [x] **Task 2.1**: Array mutations
   - Delivers: modelRouter array push/update/remove with `audit: true` write `verb: "updated"` and `operation` `arrayPush` / `arrayUpdate` / `arrayRemove`; `recordId` set
   - Files: `api/src/api.ts`, `api/src/audit/*.test.ts`
   - Blocked by: 1.2

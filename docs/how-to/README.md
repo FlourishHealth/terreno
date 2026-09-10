@@ -19,6 +19,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
 - [Receive inbound webhooks](inbound-webhooks.md) — HMAC, Stripe, Twilio, and SendGrid signatures on `WebhooksApp`
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
+- [Enable the framework audit log](audit-log.md) — `AuditApp`, per-router `audit`, append-only events
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)

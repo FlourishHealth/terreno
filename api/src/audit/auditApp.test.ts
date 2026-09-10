@@ -20,6 +20,7 @@ describe("AuditApp", () => {
   beforeEach(async () => {
     deleteAuditEventModel();
     await setupDb();
+    await mongoose.connection.collection("auditevents").deleteMany({});
   });
 
   afterEach(() => {

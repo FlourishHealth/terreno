@@ -21,6 +21,7 @@ interface Note {
   calories?: number;
   password?: string;
   ssn?: string;
+  tags?: string[];
   title: string;
 }
 
@@ -29,6 +30,7 @@ const noteSchema = new mongoose.Schema<Note>(
     calories: {description: "Calories", type: Number},
     password: {description: "Secret password", type: String},
     ssn: {description: "Social security number", type: String},
+    tags: {description: "Tags", type: [String]},
     title: {description: "Note title", required: true, type: String},
   },
   {strict: "throw"}
@@ -161,11 +163,12 @@ describe("modelRouter audit", () => {
   it("still returns 201 when the recorder throws", async () => {
     const app = buildApp();
     const model = createAuditEventModel(mongoose.connection);
-    spyOn(model, "create").mockImplementation(() => {
+    const createSpy = spyOn(model, "create").mockImplementation(() => {
       throw new Error("disk full");
     });
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({title: "Keep"}).expect(201);
+    createSpy.mockRestore();
   });
 
   it("skips writes and logs once when AuditApp is omitted", async () => {
@@ -206,5 +209,30 @@ describe("modelRouter audit", () => {
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.equal(list.body.data.length, 0);
+  });
+
+  it("array push/update/remove each write one updated event with recordId", async () => {
+    const app = buildApp();
+    const agent = await authAsUser(app, "notAdmin");
+    const created = await agent
+      .post("/notes")
+      .send({tags: ["a"], title: "Tagged"})
+      .expect(201);
+    const id = created.body.data._id;
+
+    await agent.post(`/notes/${id}/tags`).send({tags: "b"}).expect(200);
+    await agent.patch(`/notes/${id}/tags/a`).send({tags: "alpha"}).expect(200);
+    await agent.delete(`/notes/${id}/tags/b`).expect(200);
+
+    const admin = await authAsUser(app, "admin");
+    const list = await admin.get("/audit-events").expect(200);
+    const events = list.body.data.filter((row: {verb: string}) => row.verb === "updated");
+    assert.equal(events.length, 3);
+    const operations = events.map((row: {operation: string}) => row.operation).sort();
+    assert.deepEqual(operations, ["arrayPush", "arrayRemove", "arrayUpdate"].sort());
+    for (const event of events) {
+      assert.equal(event.recordId, id);
+      assert.equal(event.source, "modelRouter");
+    }
   });
 });

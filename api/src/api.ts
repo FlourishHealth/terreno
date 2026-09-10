@@ -1317,6 +1317,20 @@ const _buildModelRouter = <T>(
         });
       }
     }
+
+    const arrayAuditOperation =
+      operation === "POST" ? "arrayPush" : operation === "PATCH" ? "arrayUpdate" : "arrayRemove";
+    await maybeRecordModelRouterAudit({
+      after: doc,
+      audit: options.audit,
+      before: prevDoc,
+      modelName: model.modelName,
+      operation: arrayAuditOperation,
+      recordId: String(doc._id),
+      req,
+      verb: "updated",
+    });
+
     return res.json({
       data: serialize<T>(req, options, doc as unknown as Document<unknown, unknown, unknown> & T),
     });
