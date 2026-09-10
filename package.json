@@ -292,6 +292,7 @@
     "api",
     "api-health",
     "comms",
+    "create-terreno-app",
     "demo",
     "example-backend",
     "example-frontend",
