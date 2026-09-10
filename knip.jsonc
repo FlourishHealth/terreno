@@ -17,6 +17,10 @@
   ],
   // Maestro is installed by CI and developer toolchains rather than package.json.
   "ignoreBinaries": ["maestro"],
+  // Root tooling loads these through package scripts or child CLIs rather than imports:
+  // Biome powers hooks, RTK codegen is resolved by generate-sdk.ts, and ts-node loads
+  // TypeScript codegen configuration.
+  "ignoreDependencies": ["@biomejs/biome", "@rtk-query/codegen-openapi", "ts-node"],
   "ignoreIssues": {
     // Keep the Sentry React Native catalog pin stable for consumer/native fingerprint
     // compatibility even though no current workspace declares it.
@@ -158,7 +162,9 @@
         "expo-print",
         "expo-sharing",
         "expo-system-ui",
-        "jspdf"
+        "jspdf",
+        // RTK OpenAPI's CLI loads TypeScript configuration through ts-node.
+        "ts-node"
       ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -186,7 +192,11 @@
         "react-native-permissions",
         "react-native-picker-select",
         "react-native-webview",
-        "react-time-picker"
+        "react-time-picker",
+        // Tests mock expo-modules-core subpaths by string; TypeDoc is invoked by
+        // the package's `types` script.
+        "expo-modules-core",
+        "typedoc"
       ],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -195,6 +205,8 @@
       ]
     },
     "website": {
+      // generate-api-reference.ts passes this plugin name to the TypeDoc subprocess.
+      "ignoreDependencies": ["typedoc-plugin-markdown"],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

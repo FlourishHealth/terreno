@@ -127,7 +127,6 @@
     "rulesync": "^9.6.3",
     "simple-git-hooks": "^2.14.0",
     "ts-node": "^10.9.2",
-    "tsx": "^4.23.12",
     "zod": "catalog:"
   },
   "engines": {

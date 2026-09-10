@@ -44,11 +44,8 @@
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
     "@types/express": "catalog:",
-    "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/supertest": "catalog:",
-    "@types/winston": "^2.4.4",
-    "mongodb": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:"
   },

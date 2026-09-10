@@ -29,8 +29,7 @@
     "mongoose": "catalog:",
     "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
-    "typescript": "catalog:",
-    "winston": "catalog:"
+    "typescript": "catalog:"
   },
   "exports": {
     ".": {
