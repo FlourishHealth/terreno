@@ -50,7 +50,9 @@ describe("organization management screens", () => {
     attachMember.mockClear();
     updateMember.mockClear();
     removeMember.mockClear();
+    attachMember.mockImplementation(() => ({unwrap: async () => ({})}));
     updateMember.mockImplementation(() => ({unwrap: async () => ({})}));
+    removeMember.mockImplementation(() => ({unwrap: async () => ({})}));
   });
 
   it("saves organization settings and shows the billing placeholder", async () => {
@@ -101,6 +103,38 @@ describe("organization management screens", () => {
     });
     await waitFor(() => {
       expect(screen.getByText("Cannot remove the last org-admin")).toBeTruthy();
+    });
+  });
+
+  it("shows attach errors inside the open modal", async () => {
+    attachMember.mockImplementation(() => ({
+      unwrap: async () => Promise.reject({data: {title: "User not found"}}),
+    }));
+    const screen = renderWithTheme(<OrgMembersScreen api={api} organizationId="org-1" />);
+    await act(async () => {
+      fireEvent(screen.getByTestId("org-members-add"), "click");
+    });
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId("org-members-email"), "missing@example.com");
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByText("Add member"));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("org-members-add-modal")).toBeTruthy();
+      expect(screen.getByText("User not found")).toBeTruthy();
+    });
+  });
+
+  it("removes a member from the row action", async () => {
+    const screen = renderWithTheme(<OrgMembersScreen api={api} organizationId="org-1" />);
+    await act(async () => {
+      fireEvent(screen.getByLabelText("Remove"), "click");
+    });
+    expect(removeMember).toHaveBeenCalledWith({
+      body: {},
+      id: "org-1",
+      memberId: "membership-1",
     });
   });
 });

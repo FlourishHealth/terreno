@@ -71,6 +71,7 @@ export const OrgMembersScreen: React.FC<OrgMembersScreenProps> = ({
 }) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [attachError, setAttachError] = useState<string>();
   const [actionError, setActionError] = useState<string>();
   const {
     useMemberAttachMutation,
@@ -88,23 +89,24 @@ export const OrgMembersScreen: React.FC<OrgMembersScreenProps> = ({
   const handleDismiss = useCallback((): void => {
     setIsAddOpen(false);
     setEmail("");
-    setActionError(undefined);
+    setAttachError(undefined);
   }, []);
 
   const handleAttach = useCallback(async (): Promise<void> => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setActionError("Email is required.");
+      setAttachError("Email is required.");
       return;
     }
     try {
+      setAttachError(undefined);
       await attachMember({
         body: {email: normalizedEmail, roleName: "member"},
         id: organizationId,
       }).unwrap();
       handleDismiss();
     } catch (mutationError) {
-      setActionError(mutationErrorTitle(mutationError, "Could not add member."));
+      setAttachError(mutationErrorTitle(mutationError, "Could not add member."));
     }
   }, [attachMember, email, handleDismiss, organizationId]);
 
@@ -236,7 +238,14 @@ export const OrgMembersScreen: React.FC<OrgMembersScreenProps> = ({
         title="Add existing user"
         visible={isAddOpen}
       >
-        <TextField onChange={setEmail} testID="org-members-email" title="Email" value={email} />
+        <Box gap={2}>
+          <TextField onChange={setEmail} testID="org-members-email" title="Email" value={email} />
+          {attachError ? (
+            <Text color="error" testID="org-members-attach-error">
+              {attachError}
+            </Text>
+          ) : null}
+        </Box>
       </Modal>
     </AdminScreenPage>
   );
