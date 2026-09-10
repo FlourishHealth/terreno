@@ -35,7 +35,7 @@ import {AnnouncementNavigator} from "@terreno/ui";
 </AnnouncementNavigator>
 ```
 
-Place it after consent/onboarding wrappers if you use `ConsentNavigator`.
+Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The navigator sends the native platform (`ios` / `android` / `web`) on pending requests and only blocks the app when pending fails — changelog feed errors are non-fatal.
 
 ## Acknowledgement modes
 

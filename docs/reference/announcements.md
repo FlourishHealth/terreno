@@ -26,8 +26,8 @@ new TerrenoApp({ userModel: User })
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/announcements/pending` | Current modal item + `remainingCount` |
-| GET | `/announcements/feed` | Paginated published changelog |
+| GET | `/announcements/pending` | Current modal item + `remainingCount` (`platform` query: `ios` \| `android` \| `web`; defaults from `User-Agent`) |
+| GET | `/announcements/feed` | Paginated published changelog (`platform` query as above) |
 | POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version) |
 | POST | `/announcements/:id/impression` | Record a view |
 
@@ -42,7 +42,7 @@ Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressi
 
 ## Help API (optional)
 
-When `help.enabled` is true, authenticated users can search product update notes for MCP and in-app help. Draft announcements are never exposed.
+When `help.enabled` is true, authenticated users can search product update notes for MCP and in-app help. Draft announcements are never exposed. Results respect `matchAudience`, `publishAt` / `expiresAt`, and the same visibility rules as `/pending`.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -70,4 +70,7 @@ Set these environment variables on the MCP server to include live announcements:
 
 `@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `useAnnouncements`, and `useAcknowledgeAnnouncement`.
 
-Markdown bodies support YouTube and Loom embeds via `MarkdownView`.
+- Pending and feed requests send the current client platform (`ios`, `android`, or `web`) automatically.
+- `requiresAcknowledgement` on pending/feed items is resolved server-side from `acknowledgementMode`; the navigator trusts that flag.
+- Feed failures do not block the modal queue — only pending errors surface in `AnnouncementNavigator`.
+- Markdown bodies support YouTube and Loom embeds via `MarkdownView`; ordinary links open with `Linking.openURL`.
