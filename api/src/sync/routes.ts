@@ -7,6 +7,11 @@ import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {findOneOrNoneFor} from "../plugins";
 import type {AnyTerrenoAccess} from "../rbac/types";
+import {
+  canListAdminBroadcastScope,
+  getAdminBroadcastScope,
+  resolveAdminBroadcastQueryFilter,
+} from "./adminBroadcastScope";
 import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import {
   computeStableFrontier,
@@ -59,6 +64,8 @@ export interface SyncAppOptions {
   /**
    * When set, `{collection}|admin` window subscribe and cross-owner entity
    * hydrate require `admin:access` instead of the legacy `user.admin` flag.
+   * AdminApp also registers per-model list/read/`queryFilter` so hydrate and
+   * `|admin` deltas match `/admin` REST, not product `IsOwner`.
    */
   accessControl?: AnyTerrenoAccess;
   /**
@@ -715,6 +722,11 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
           canOpenAdminWindow: options.canOpenAdminWindow,
           user,
         }));
+      const adminScope = isAdminWindow ? getAdminBroadcastScope(entry.modelName) : undefined;
+      if (adminScope && !(await canListAdminBroadcastScope({scope: adminScope, user}))) {
+        const deniedResponse: SyncEntitiesResponse = {entities: []};
+        return res.json(deniedResponse);
+      }
 
       const memberStreams = isAdminWindow
         ? []
@@ -728,11 +740,13 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
       // Task 9.19: mirror the REST list endpoint's row-level scoping. Without this, a
       // collection that relies on `queryFilter` (rather than a per-doc read permission)
       // served every requested id here, whatever the caller was allowed to list.
-      // Admin window hydrate (`adminBroadcast` + admin panel access) skips that filter so
-      // REST-selected ids can be loaded across owners.
-      const queryFilterResult = isAdminWindow
-        ? {denied: false as const, filter: undefined}
-        : await resolveSyncQueryFilter({entry, user});
+      // Admin window hydrate skips the *product* filter so REST-selected ids can load
+      // across owners, then applies AdminApp list/read/`queryFilter` when registered.
+      const queryFilterResult = adminScope
+        ? await resolveAdminBroadcastQueryFilter({scope: adminScope, user})
+        : isAdminWindow
+          ? {denied: false as const, filter: undefined}
+          : await resolveSyncQueryFilter({entry, user});
       if (queryFilterResult.denied) {
         const deniedResponse: SyncEntitiesResponse = {entities: []};
         return res.json(deniedResponse);
@@ -752,7 +766,9 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
 
       const entities: SyncEntityPayload[] = [];
       for (const doc of docs as mongoose.Document[]) {
-        const allowed = await checkPermissions("read", entry.options.permissions.read, user, doc);
+        const allowed = adminScope
+          ? await checkPermissions("read", adminScope.readPermissions, user, doc)
+          : await checkPermissions("read", entry.options.permissions.read, user, doc);
         if (!allowed) {
           continue;
         }

@@ -23,6 +23,7 @@ import {
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
 import {setupDb} from "../tests";
 import {defaultResponseHandler} from "../transformers";
+import {registerAdminBroadcastScope} from "./adminBroadcastScope";
 import {SyncCounter, SyncMutation, SyncScopeMove} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
@@ -344,6 +345,28 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     const errors = syncErrors(socket);
     assert.equal(errors.length, 1);
     assert.match(errors[0].message, /admin panel access/i);
+  });
+
+  it("nacks window subscribe when AdminApp list permission is denied", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    registerAdminBroadcastScope("SockStuff", {
+      listPermissions: [() => false],
+      readPermissions: [() => true],
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /admin collection access/i);
   });
 
   it("owner scope never uses a client-supplied user id", async () => {
@@ -1137,6 +1160,40 @@ describe("emitSyncDeltaForChange", () => {
     assert.strictEqual(adminDelta?.seq, 11);
     assert.strictEqual(ownerDelta?.method, "create");
     assert.strictEqual(ownerDelta?.seq, 11);
+  });
+
+  it("adminBroadcast room skips sockets excluded by AdminApp queryFilter", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    registerAdminBroadcastScope("SockStuff", {
+      listPermissions: [() => true],
+      queryFilter: () => ({ownerId: "acme"}),
+      readPermissions: [() => true],
+    });
+    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-other-tenant", _syncSeq: 12, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-other-tenant",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const adminDeltas = io.emissions.filter(
+      (e) => e.event === "sync:delta" && (e.payload as SyncDelta).stream === "sockStuff|admin"
+    );
+    assert.deepEqual(adminDeltas, []);
   });
 
   it("adminBroadcast false: create emits only the owner stream", async () => {

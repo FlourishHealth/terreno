@@ -10,6 +10,7 @@ import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
+import {registerAdminBroadcastScope} from "./adminBroadcastScope";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {clearSyncRegistry, registerSync} from "./registry";
@@ -810,6 +811,51 @@ describe("sync routes", () => {
       const gatedAdmin = await authAsUser(gatedApp, "admin");
 
       const res = await gatedAdmin
+        .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
+        .expect(200);
+      assert.deepEqual(res.body.entities, []);
+    });
+
+    it("omits ids excluded by a registered AdminApp queryFilter", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      registerAdminBroadcastScope("SyncRouteStuff", {
+        listPermissions: [() => true],
+        queryFilter: () => ({ownerId: adminId}),
+        readPermissions: [() => true],
+      });
+      const inScope = await RouteStuffModel.create({name: "in-tenant", ownerId: adminId});
+      const outOfScope = await RouteStuffModel.create({name: "other-tenant", ownerId: notAdminId});
+
+      const res = await adminAgent
+        .get(`/sync/entities?collection=routeStuff&ids=${inScope._id},${outOfScope._id}`)
+        .expect(200);
+      assert.deepEqual(
+        res.body.entities.map((entity: SnapshotEntity) => entity.id),
+        [String(inScope._id)]
+      );
+    });
+
+    it("returns no entities when AdminApp list permission is denied", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      registerAdminBroadcastScope("SyncRouteStuff", {
+        listPermissions: [() => false],
+        readPermissions: [() => true],
+      });
+      const theirs = await RouteStuffModel.create({name: "hidden-model", ownerId: notAdminId});
+
+      const res = await adminAgent
         .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
         .expect(200);
       assert.deepEqual(res.body.entities, []);

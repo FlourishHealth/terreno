@@ -22,6 +22,7 @@ import {
   type PermissionMethod,
   Permissions,
   type PopulatePath,
+  registerAdminBroadcastScope,
   type ScriptArgDef,
   type ScriptArgValue,
   type ScriptContext,
@@ -1676,6 +1677,12 @@ export class AdminApp {
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
+
+      registerAdminBroadcastScope(config.model.modelName, {
+        listPermissions: adminPermission(true, "list"),
+        queryFilter: routerOptions.queryFilter,
+        readPermissions: adminPermission(true, "read"),
+      });
 
       const modelBase = express.Router();
       modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));

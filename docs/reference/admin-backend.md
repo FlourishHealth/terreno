@@ -117,6 +117,10 @@ without it. Script, configuration, RBAC, and per-model permissions never grant e
 
 Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.admin`).
 
+`AdminApp.register` also installs each model's list/read permissions and `queryFilter` on
+the sync admin window (`registerAdminBroadcastScope`). `GET /sync/entities` and
+`{collection}|admin` deltas then use that contract, not product `IsOwner`.
+
 With `accessControl`, each model can use a standard admin resource with three actions:
 
 | Action | Access |

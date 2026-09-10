@@ -4,6 +4,7 @@ import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {awaitSocketFullUser, type SocketWithDecodedToken} from "../realtime/socketUser";
+import {canListAdminBroadcastScope, getAdminBroadcastScope} from "./adminBroadcastScope";
 import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import type {SyncMutationOutcome} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
@@ -30,8 +31,9 @@ import type {
  *   tenant and custom scopes resolve stream values via `SyncAppOptions.getUserScopes`.
  *   `mode: "window"` joins `{collection}|admin` only (requires `adminBroadcast` and
  *   admin panel access: `admin:access` when `SyncApp` has `accessControl`, else
- *   `user.admin`) and confirms with `sync:subscribed {mode: "window"}`
- *   without dumping snapshot pages. Callers without that access get `sync:error`.
+ *   `user.admin`). When AdminApp has registered a broadcast scope, list
+ *   permission for that model is required as well. Confirms with
+ *   `sync:subscribed {mode: "window"}` without dumping snapshot pages.
  *   Sync deltas fan out through these dedicated `sync:{stream}` rooms rather than the
  *   legacy realtime rooms so the two event families never overlap.
  * - `sync:mutate` — applies a mutation through `applySyncMutation` and replies with
@@ -218,6 +220,17 @@ export const installSyncSocketHandlers = (
             message: `Window subscribe requires admin panel access for ${collection}`,
           });
           continue;
+        }
+        if (isWindow) {
+          const adminScope = getAdminBroadcastScope(entry.modelName);
+          if (adminScope && !(await canListAdminBroadcastScope({scope: adminScope, user}))) {
+            logInfo(`[sync] User ${userId} denied window subscribe list for ${collection}`);
+            socket.emit("sync:error", {
+              collection,
+              message: `Window subscribe requires admin collection access for ${collection}`,
+            });
+            continue;
+          }
         }
         const streams = isWindow
           ? [adminBroadcastStream(collection)]

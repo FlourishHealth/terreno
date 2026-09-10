@@ -10,6 +10,10 @@ import {APIError} from "../errors";
 import {logger} from "../logger";
 import type {PermissionMethod} from "../permissions";
 import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
+import {
+  authorizeAdminBroadcastDocument,
+  isAdminBroadcastSocketRoom,
+} from "../sync/adminBroadcastScope";
 import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
 import {serializeSyncPayload} from "../sync/serialize";
@@ -192,9 +196,14 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
  * `RealtimeRegistryEntry` and `SyncRegistryEntry` satisfy it structurally.
  */
 export interface AuthorizedEmitEntry {
+  collectionTag?: string;
   modelName: string;
   options: {permissions: {read: PermissionMethod<unknown>[]}};
+  routePath?: string;
 }
+
+const emitCollectionTag = (entry: AuthorizedEmitEntry): string | undefined =>
+  entry.collectionTag ?? (entry.routePath ? getCollectionTag(entry.routePath) : undefined);
 
 const canReadDocument = async (
   entry: AuthorizedEmitEntry,
@@ -357,6 +366,22 @@ export const emitPayloadToAuthorizedRoom = async ({
       // Hard deletes have no document context; use an empty object so object-scoped
       // permission helpers fail closed instead of treating the check as preflight.
       const permissionDocument = fullDocument ?? {};
+      const collectionTag = emitCollectionTag(entry);
+      if (collectionTag && isAdminBroadcastSocketRoom(room, collectionTag)) {
+        const adminDecision = await authorizeAdminBroadcastDocument({
+          doc: fullDocument,
+          modelName: entry.modelName,
+          user,
+        });
+        if (adminDecision === "deny") {
+          logDebug(`[realtime] Skipped ${room} for ${socket.id}: admin broadcast scope denied`);
+          continue;
+        }
+        if (adminDecision === "allow") {
+          socket.emit(eventName, await buildPayload(user));
+          continue;
+        }
+      }
       const canRead = await canReadDocument(entry, user, permissionDocument);
       if (!canRead) {
         logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);

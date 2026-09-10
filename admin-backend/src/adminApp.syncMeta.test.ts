@@ -8,6 +8,7 @@ import {
   isDeletedPlugin,
   Permissions,
   registerSync,
+  SyncApp,
   setupAuth,
   syncPlugin,
   type UserModel as UserModelType,
@@ -111,5 +112,54 @@ describe("GET /admin/config sync window meta", () => {
     assert.isDefined(todoMeta);
     assert.strictEqual(todoMeta?.adminBroadcast, true);
     assert.strictEqual(todoMeta?.syncCollection, "todos");
+  });
+});
+
+describe("AdminApp adminBroadcast scope", () => {
+  afterEach(() => {
+    clearSyncRegistry();
+  });
+
+  it("applies per-model queryFilter to GET /sync/entities hydrate", async () => {
+    clearSyncRegistry();
+    await setupDb();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: ConfigSyncMetaTodoModel,
+      options: syncOptions,
+      routePath: "/todos",
+    });
+    const app = getBaseServer();
+    setupAuth(app, UserModel as unknown as UserModelType);
+    addAuthRoutes(app, UserModel as unknown as UserModelType);
+    new AdminApp({
+      basePath: "/admin",
+      models: [
+        {
+          ...todoModelConfig,
+          queryFilter: (): Record<string, unknown> => ({ownerId: "tenant-a"}),
+        },
+      ],
+    }).register(app);
+    new SyncApp().register(app);
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+
+    const inScope = await ConfigSyncMetaTodoModel.create({
+      ownerId: "tenant-a",
+      title: "visible",
+    });
+    const outOfScope = await ConfigSyncMetaTodoModel.create({
+      ownerId: "tenant-b",
+      title: "hidden",
+    });
+    const agent = await authAsUser(app, "admin");
+    const res = await agent
+      .get(`/sync/entities?collection=todos&ids=${inScope._id},${outOfScope._id}`)
+      .expect(200);
+    assert.deepEqual(
+      (res.body.entities as {id: string}[]).map((entity) => entity.id),
+      [String(inScope._id)]
+    );
   });
 });
