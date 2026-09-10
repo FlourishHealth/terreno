@@ -25,7 +25,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: live default Knip report has no `files` finding whose path contains `.isolated.` or `scripts/` + `.test.`; `bun run analyze:full` exits 0; docs name this entry rule
 
-- [ ] **Task 1.2**: Put mcp-server tests back on the Bun plugin
+- [x] **Task 1.2**: Put mcp-server tests back on the Bun plugin
   - Delivers: `mcp-server/src/__tests__/**` are in the graph (today `workspaces.mcp-server.bun: false` because Knip 6.34 wants `test.preload` as an array)
   - Files: `knip.jsonc` and/or `mcp-server/package.json` (`test.preload` array form if required)
   - Blocked by: none

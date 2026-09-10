@@ -57,4 +57,18 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report mcp-server tests as unused files",
+    (): void => {
+      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      assert.notInclude(unusedFiles, "mcp-server/src/__tests__/tools.test.ts");
+      assert.notInclude(unusedFiles, "mcp-server/src/__tests__/preload.ts");
+      assert.deepEqual(
+        unusedFiles.filter((file) => file.startsWith("mcp-server/src/__tests__/")),
+        []
+      );
+    },
+    {timeout: 180_000}
+  );
 });
