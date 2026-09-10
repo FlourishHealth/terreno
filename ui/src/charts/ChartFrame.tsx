@@ -17,7 +17,7 @@ export interface ChartFrameProps {
 }
 
 export const ChartFrame: FC<ChartFrameProps> = ({
-  accessibilityLabel,
+  accessibilityLabel: _accessibilityLabel,
   children,
   emptyText,
   isEmpty,
@@ -30,11 +30,6 @@ export const ChartFrame: FC<ChartFrameProps> = ({
 
   return (
     <Box {...toTestProps(testID)}>
-      {accessibilityLabel ? (
-        <Box display="visuallyHidden">
-          <Text skipLinking>{accessibilityLabel}</Text>
-        </Box>
-      ) : null}
       {loading ? (
         <Box padding={4}>
           <Spinner testID={resolveTestID(testID, "spinner")} />

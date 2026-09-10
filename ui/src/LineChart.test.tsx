@@ -23,9 +23,12 @@ describe("LineChart", () => {
   });
 
   it("shows emptyText when data is empty", () => {
-    const {getByText} = renderWithTheme(<LineChart data={[]} emptyText="Nothing yet" />);
+    const {getByText, queryByText} = renderWithTheme(
+      <LineChart data={[]} emptyText="Nothing yet" />
+    );
 
     expect(getByText("Nothing yet")).toBeTruthy();
+    expect(queryByText("Line chart")).toBeNull();
   });
 
   it("shows the default empty copy", () => {

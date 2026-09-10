@@ -85,15 +85,24 @@ export const LineChart: FC<LineChartProps> = ({
     >
       <Box width="100%">
         <Box direction="row" height={height}>
-          <Box justifyContent="between" paddingY={1} width={Y_AXIS_WIDTH}>
-            {yTicks
-              .slice()
-              .reverse()
-              .map((tick) => (
-                <Text color="secondaryDark" key={`ytick-${tick}`} size="sm">
+          <Box height={height} position="relative" width={Y_AXIS_WIDTH}>
+            {yTicks.map((tick) => (
+              <Box
+                dangerouslySetInlineStyle={{
+                  __style: {
+                    left: 0,
+                    position: "absolute",
+                    top: scales.y(tick) - 7,
+                    width: Y_AXIS_WIDTH,
+                  },
+                }}
+                key={`ytick-${tick}`}
+              >
+                <Text align="right" color="secondaryDark" size="sm">
                   {formatValue(tick)}
                 </Text>
-              ))}
+              </Box>
+            ))}
           </Box>
           <Box flex="grow" height={height} onLayout={handleLayout} overflow="hidden">
             <Svg height={height} width={chartWidth}>
@@ -150,7 +159,13 @@ export const LineChart: FC<LineChartProps> = ({
             })}
           </Box>
         </Box>
-        <Box direction="row" justifyContent="between" paddingX={2}>
+        <Box
+          dangerouslySetInlineStyle={{
+            __style: {paddingLeft: Y_AXIS_WIDTH},
+          }}
+          direction="row"
+          justifyContent="between"
+        >
           {data.map((point) => (
             <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm">
               {point.label}
