@@ -19,6 +19,7 @@ const typedUserModel = UserModel as unknown as AuthUserModel;
 
 interface Note {
   calories?: number;
+  organizationId?: string;
   password?: string;
   ssn?: string;
   tags?: string[];
@@ -28,6 +29,7 @@ interface Note {
 const noteSchema = new mongoose.Schema<Note>(
   {
     calories: {description: "Calories", type: Number},
+    organizationId: {description: "Tenant organization id", type: String},
     password: {description: "Secret password", type: String},
     ssn: {description: "Social security number", type: String},
     tags: {description: "Tags", type: [String]},
@@ -121,6 +123,7 @@ describe("modelRouter audit", () => {
     assert.equal(event.after.title, "Hello");
     assert.isUndefined(event.before);
     assert.isUndefined(event.after.password);
+    assert.isUndefined(event.organizationId);
   });
 
   it("PATCH title yields one event with before.title and after.title", async () => {
@@ -234,5 +237,34 @@ describe("modelRouter audit", () => {
       assert.equal(event.recordId, id);
       assert.equal(event.source, "modelRouter");
     }
+  });
+
+  it("copies organizationId from the document", async () => {
+    const app = buildApp();
+    const agent = await authAsUser(app, "notAdmin");
+    await agent.post("/notes").send({organizationId: "org-doc", title: "Tenant"}).expect(201);
+    const admin = await authAsUser(app, "admin");
+    const list = await admin.get("/audit-events").expect(200);
+    assert.equal(list.body.data[0].organizationId, "org-doc");
+  });
+
+  it("prefers req.organization over the document field", async () => {
+    const NoteModel = mongoose.model<Note>("Note", noteSchema);
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(new AuditApp())
+      .build();
+    app.use((req, _res, next) => {
+      (req as express.Request & {organization?: {id: string}}).organization = {id: "org-req"};
+      next();
+    });
+    app.use("/notes", modelRouter(NoteModel, {audit: true, permissions: notePermissions}));
+    const agent = await authAsUser(app, "notAdmin");
+    await agent.post("/notes").send({organizationId: "org-doc", title: "Both"}).expect(201);
+    const admin = await authAsUser(app, "admin");
+    const list = await admin.get("/audit-events").expect(200);
+    assert.equal(list.body.data[0].organizationId, "org-req");
   });
 });

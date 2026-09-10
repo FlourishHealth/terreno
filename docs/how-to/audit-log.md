@@ -40,4 +40,6 @@ modelRouter("/todos", Todo, {
 
 `source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are omitted; extra `redact` names merge with that list.
 
+`organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
+
 AdminApp auto-write and RBAC fan-in land in later slices of the [framework audit log IP](../implementationPlans/framework-audit-log.md).

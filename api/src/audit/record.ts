@@ -63,6 +63,39 @@ export const actorIdFromRequest = (req: Request): string | undefined => {
   return undefined;
 };
 
+const idString = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    return value.length > 0 ? value : undefined;
+  }
+  if (typeof value === "object" && ("id" in value || "_id" in value)) {
+    const record = value as {_id?: unknown; id?: unknown};
+    if (record.id !== undefined && record.id !== null) {
+      return String(record.id);
+    }
+    if (record._id !== undefined && record._id !== null) {
+      return String(record._id);
+    }
+  }
+  return String(value);
+};
+
+export const organizationIdFromAuditContext = (
+  req: Request,
+  after?: Record<string, unknown>,
+  before?: Record<string, unknown>
+): string | undefined => {
+  const organization = (req as Request & {organization?: unknown}).organization;
+  const fromRequest = idString(organization);
+  if (fromRequest) {
+    return fromRequest;
+  }
+  const fromDoc = after?.organizationId ?? before?.organizationId;
+  return idString(fromDoc);
+};
+
 const persistAuditEvent = async (write: AuditEventWrite): Promise<void> => {
   if (write.modelName === "AuditEvent") {
     return;
@@ -128,6 +161,7 @@ export const maybeRecordModelRouterAudit = async ({
     before: diff.before,
     modelName,
     operation,
+    organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
     recordId,
     recordLabel: recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
     source: "modelRouter",

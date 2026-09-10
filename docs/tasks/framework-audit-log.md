@@ -33,7 +33,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
   - Docs: operation table in `docs/how-to/audit-log.md` (create page if 5.1 not started)
   - Acceptance: bun + supertest for each array verb; one event each; product array tests still pass
 
-- [ ] **Task 2.2**: Optional `organizationId`
+- [x] **Task 2.2**: Optional `organizationId`
   - Delivers: copy `req.organization` id when set, else string `doc.organizationId`; omit when neither exists; list `queryFields` includes `organizationId`
   - Files: `api/src/audit/record.ts`, tests
   - Blocked by: 1.2
