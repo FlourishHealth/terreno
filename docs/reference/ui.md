@@ -61,7 +61,7 @@ const customStyle: StyleProp<ViewStyle> = {
 
 ### DashboardGrid
 
-Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s.
+Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s. Cell width is `(rowWidth - gap × (columns - 1)) / columns` so flex `gap` does not wrap extra columns.
 
 ```tsx
 <DashboardGrid>

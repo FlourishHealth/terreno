@@ -6,4 +6,4 @@ Terreno charts are drawn with `react-native-svg` and private `d3-scale` / `d3-sh
 
 `BarChart` grows each bar from the zero baseline (up for positives, down for negatives). A zero value draws no sliver; the press/hover hit stays at least 24px so the tooltip still works.
 
-`DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`.
+`DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.
