@@ -176,4 +176,41 @@ describe("bindAdminRequest host auth", () => {
     const headers = new Headers(state.captured?.headers);
     assert.strictEqual(headers.get("Authorization"), "Bearer test-session-token");
   });
+
+  it("prefixes relative RPC URLs with the embedded API origin", async () => {
+    let capturedUrl = "";
+    globalThis.fetch = (async (url: string) => {
+      capturedUrl = String(url);
+      return new Response(JSON.stringify({ok: true}), {
+        headers: {"Content-Type": "application/json"},
+        status: 200,
+      });
+    }) as typeof fetch;
+    const request = bindAdminRequest({
+      getAuthHeaders: () => ({Authorization: "Bearer test-session-token"}),
+      origin: "http://localhost:4000/",
+    });
+
+    await request({method: "GET", url: "/admin/config"});
+
+    assert.strictEqual(capturedUrl, "http://localhost:4000/admin/config");
+  });
+
+  it("leaves absolute RPC URLs unchanged when origin is set", async () => {
+    let capturedUrl = "";
+    globalThis.fetch = (async (url: string) => {
+      capturedUrl = String(url);
+      return new Response(JSON.stringify({ok: true}), {
+        headers: {"Content-Type": "application/json"},
+        status: 200,
+      });
+    }) as typeof fetch;
+    const request = bindAdminRequest({
+      origin: "http://localhost:4000",
+    });
+
+    await request({method: "GET", url: "https://api.example.com/admin/config"});
+
+    assert.strictEqual(capturedUrl, "https://api.example.com/admin/config");
+  });
 });

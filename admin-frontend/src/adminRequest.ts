@@ -161,16 +161,39 @@ export const adminRequest = async <T = unknown>({
 export interface BindAdminRequestOptions {
   credentials?: RequestCredentials;
   getAuthHeaders?: AdminGetAuthHeaders;
+  /**
+   * API origin for embedded hosts (e.g. `http://localhost:4000`). Absolute `url`
+   * values are left unchanged. Relative paths such as `/admin/config` and
+   * `/rbac/roles` are prefixed so they do not hit the Expo web origin.
+   */
+  origin?: string;
 }
+
+/**
+ * Prefix a relative admin RPC URL with the host API origin. Same-origin SPA
+ * hosts omit `origin` and keep path-only URLs.
+ */
+const resolveAdminFetchUrl = ({origin, url}: {origin?: string; url: string}): string => {
+  if (!origin) {
+    return url;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith("//")) {
+    return url;
+  }
+  const trimmedOrigin = origin.replace(/\/$/, "");
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${trimmedOrigin}${path}`;
+};
 
 /**
  * Bind host auth onto {@link adminRequest}.
  * SPA: `credentials: "same-origin"` and no Bearer headers.
- * Embedded: `getAuthHeaders` returns `Authorization: Bearer …`.
+ * Embedded: `getAuthHeaders` returns `Authorization: Bearer …` plus `origin`.
  */
 export const bindAdminRequest = ({
   credentials,
   getAuthHeaders,
+  origin,
 }: BindAdminRequestOptions): ((args: AdminRequestArgs) => Promise<unknown>) => {
   return async (args: AdminRequestArgs): Promise<unknown> => {
     const headers = new Headers(args.headers);
@@ -184,6 +207,7 @@ export const bindAdminRequest = ({
       ...args,
       credentials: args.credentials ?? credentials,
       headers,
+      url: resolveAdminFetchUrl({origin, url: args.url}),
     });
   };
 };

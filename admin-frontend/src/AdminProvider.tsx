@@ -49,6 +49,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   api,
   baseUrl,
   apiBase,
+  apiOrigin,
   credentials,
   getAuthHeaders,
   routeBase,
@@ -61,13 +62,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
     if (credentials === undefined && getAuthHeaders === undefined) {
       return undefined;
     }
-    return bindAdminRequest({credentials, getAuthHeaders});
-  }, [credentials, getAuthHeaders]);
+    return bindAdminRequest({credentials, getAuthHeaders, origin: apiOrigin});
+  }, [apiOrigin, credentials, getAuthHeaders]);
   const value = useMemo(
     (): AdminProviderValue => ({
       adminRpc,
       api,
       apiBase: bases.apiBase,
+      apiOrigin,
       credentials,
       getAuthHeaders,
       routeBase: bases.routeBase,
@@ -77,6 +79,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
     [
       adminRpc,
       api,
+      apiOrigin,
       bases.apiBase,
       bases.routeBase,
       credentials,

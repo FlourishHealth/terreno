@@ -14,10 +14,10 @@ Pass fetch auth on `AdminProvider`:
 
 | Host | Props |
 | --- | --- |
-| Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session) |
-| Embedded app | `getAuthHeaders` that return `Authorization: Bearer …` (no cookie `credentials`) |
+| Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session). Omit `apiOrigin`. |
+| Embedded app | `getAuthHeaders` that return `Authorization: Bearer …`, plus `apiOrigin` set to the API origin (`@terreno/rtk` `baseUrl`) |
 
-RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders, origin})` then `adminRequest`. Relative URLs such as `/admin/config` are prefixed with `origin` when it is set. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
 
 Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose config includes `adminBroadcast: true` and `syncCollection`. Hosts inject the same `createSyncDb()` client they use for the app. Do not add `@terreno/syncdb` as a hard dependency of admin-frontend.
 
@@ -64,7 +64,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
-- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome as well as `headerRight`, because admin stacks often use `headerShown: false`. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 

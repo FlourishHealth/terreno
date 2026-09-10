@@ -25,6 +25,7 @@ Embedded app (`example-frontend`):
 <AdminProvider
   api={api}
   apiBase="/admin"
+  apiOrigin={baseUrl}
   getAuthHeaders={getAdminAuthHeaders}
   routeBase="/admin"
   widgets={{screens: {"sync-lab": SyncLabScreen}}}
@@ -43,11 +44,15 @@ Embedded app (`example-frontend`):
 ```
 
 Gate entry with `canOpenAdminPage` from `@terreno/rtk` (`admin:access`). Do not
-rely on `user.admin` alone when RBAC is on.
+rely on `user.admin` alone when RBAC is on. Import `baseUrl` from `@terreno/rtk`
+and pass it as `apiOrigin` so admin RPC (`GET /admin/config`, `/rbac/roles`, …)
+hits the API instead of the Expo web origin.
 
 Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`, `credentials="same-origin"`,
 and `getAuthHeaders` that return `{}` so the cookie session is sent without a Bearer header.
-Each route wraps `AdminShellLayout` because the root layout is only providers.
+Omit `apiOrigin`. Each route wraps `AdminShellLayout` because the root layout is only
+providers. Model tables render **Create** in the table chrome (`testID="admin-create-button"`)
+because Expo stacks use `headerShown: false`.
 
 ## 3. Keep generic model routes generic
 

@@ -158,6 +158,30 @@ describe("AdminProvider widget registry", () => {
 
     expect(context?.credentials).toBe("same-origin");
     expect(context?.getAuthHeaders).toBe(getAuthHeaders);
+    expect(context?.apiOrigin).toBeUndefined();
+  });
+
+  it("exposes apiOrigin and binds it onto RPC context", () => {
+    let context: AdminProviderValue | null = null;
+    const Probe: React.FC = () => {
+      context = useAdminContext();
+      return null;
+    };
+
+    renderWithTheme(
+      <AdminProvider
+        api={{} as AdminApi}
+        apiBase="/admin"
+        apiOrigin="http://localhost:4000"
+        getAuthHeaders={() => ({Authorization: "Bearer ctx-token"})}
+        routeBase="/admin"
+      >
+        <Probe />
+      </AdminProvider>
+    );
+
+    expect(context?.apiOrigin).toBe("http://localhost:4000");
+    expect(context?.adminRpc).toBeDefined();
   });
 
   it("exposes host-injected syncDb on context", () => {

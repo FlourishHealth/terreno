@@ -444,12 +444,13 @@ describe("AdminModelTable", () => {
         headerRight = opts.headerRight();
       }
     });
-    renderWithTheme(
+    const {queryByTestId} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(headerRight).not.toBeNull();
     const header = renderWithTheme(headerRight as unknown as React.ReactElement);
     expect(header.queryByTestId("admin-create-button")).toBeNull();
+    expect(queryByTestId("admin-create-button")).toBeNull();
   });
 
   it("marks only sortableFields as sortable columns", () => {

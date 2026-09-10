@@ -14,12 +14,15 @@ workflow (consent publish, comms message detail, password-on-create).
 
 | Host | When to use | Route prefix (`routeBase`) | API prefix (`apiBase`) | Fetch auth |
 | --- | --- | --- | --- | --- |
-| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` | `getAuthHeaders` → `Authorization: Bearer …` |
-| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` | `credentials="same-origin"`; empty `getAuthHeaders` |
+| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` | `getAuthHeaders` → Bearer, plus `apiOrigin` = RTK `baseUrl` so RPC does not hit the Expo origin |
+| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` | `credentials="same-origin"`; empty `getAuthHeaders`; omit `apiOrigin` |
 
 `apiBase` is the HTTP path for `/config` and CRUD. `routeBase` is the Expo Router
 prefix the sidebar concatenates onto `/{model.name}` and `/{screen.name}`. Mixing
-them puts nav on the wrong URL.
+them puts nav on the wrong URL. Embedded hosts must also set `apiOrigin` (the
+backend origin, e.g. `http://localhost:4000`) on `AdminProvider`. Native `fetch`
+RPC uses that origin to prefix `/admin/config` and `/rbac/roles`. Do not put the
+origin in `apiBase` — that would rewrite in-app navigation.
 
 ## Screen kinds
 

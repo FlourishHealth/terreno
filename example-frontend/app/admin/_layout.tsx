@@ -1,5 +1,5 @@
 import {AdminProvider, AdminShellLayout} from "@terreno/admin-frontend";
-import {canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
+import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {Box, Spinner, Text} from "@terreno/ui";
 import {Stack} from "expo-router";
 import React from "react";
@@ -49,6 +49,7 @@ const AdminLayout: React.FC = () => {
     <AdminProvider
       api={terrenoApi}
       apiBase={ADMIN_ROUTE}
+      apiOrigin={baseUrl}
       getAuthHeaders={getAdminAuthHeaders}
       routeBase={ADMIN_ROUTE}
       widgets={{screens: {"sync-lab": SyncLabScreen}}}

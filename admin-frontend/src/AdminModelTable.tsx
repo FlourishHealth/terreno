@@ -809,16 +809,26 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
           </Card>
         ) : null}
 
-        {isWindowed ? (
-          <Box alignItems="start">
-            <Button
-              onClick={() => {
-                void handleRefresh();
-              }}
-              testID="admin-table-refresh"
-              text="Refresh"
-              variant="outline"
-            />
+        {createEnabled || isWindowed ? (
+          <Box alignItems="center" direction="row" gap={2} wrap>
+            {createEnabled ? (
+              <Button
+                onClick={() => router.push(`${resolvedRouteBase}/${modelName}/create` as Href)}
+                testID="admin-create-button"
+                text="Create"
+                variant="primary"
+              />
+            ) : null}
+            {isWindowed ? (
+              <Button
+                onClick={() => {
+                  void handleRefresh();
+                }}
+                testID="admin-table-refresh"
+                text="Refresh"
+                variant="outline"
+              />
+            ) : null}
           </Box>
         ) : null}
 

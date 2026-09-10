@@ -252,6 +252,8 @@ export interface AdminProviderValue {
   adminRpc?: AdminRpc;
   api: AdminApi;
   apiBase: string;
+  /** API origin for cross-origin embedded RPC (`http://localhost:4000`). */
+  apiOrigin?: string;
   credentials?: RequestCredentials;
   getAuthHeaders?: AdminGetAuthHeaders;
   routeBase: string;
@@ -329,6 +331,12 @@ export interface AdminScreenProps {
   credentials?: RequestCredentials;
   /** Extra headers for {@link adminRequest} (embedded hosts return `Authorization: Bearer …`). */
   getAuthHeaders?: AdminGetAuthHeaders;
+  /**
+   * Backend origin for native `fetch` RPC when the Expo app and API are on
+   * different hosts. Do not put this in `apiBase` — that stays a path prefix
+   * (`/admin`) so navigation `routeBase` is not rewritten to the API origin.
+   */
+  apiOrigin?: string;
 }
 
 /**

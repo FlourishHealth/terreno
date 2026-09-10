@@ -194,6 +194,7 @@ describe("AdminModelTable windowed path", () => {
     });
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
     assert.isNotNull(queryByTestId("admin-table-refresh"));
+    assert.isNotNull(queryByTestId("admin-create-button"));
   });
 
   it("re-renders known membership rows when TinyBase receives a delta", async () => {
