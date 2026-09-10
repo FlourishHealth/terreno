@@ -59,6 +59,7 @@ const EXPECTED_PATHS = [
   "frontend/package.json",
   "frontend/scripts/generate-sdk.ts",
   "frontend/store/appState.ts",
+  "frontend/store/betterAuthApi.ts",
   "frontend/store/errors.ts",
   "frontend/store/index.ts",
   "frontend/store/openApiSdk.ts",
@@ -326,5 +327,125 @@ describe("generateAllFiles", () => {
     assert.include(userTypes, "PassportLocalMongooseDocument");
     assert.notInclude(userTypes, "mongoose.PassportLocalModel");
     assert.notInclude(userTypes, "mongoose.PassportLocalDocument");
+  });
+});
+
+describe("generated frontend Terreno 57 compatibility", () => {
+  const files = generateAllFiles({
+    appDisplayName: "Compat App",
+    appName: "compat-app",
+  });
+
+  const read = (path: string): string => files.find((file) => file.path === path)?.content ?? "";
+
+  test("tabs layout uses ColorValue and theme tokens for tab bar tint", () => {
+    const layout = read("frontend/app/(tabs)/_layout.tsx");
+    assert.include(layout, 'import type {ColorValue} from "react-native"');
+    assert.include(layout, "color: ColorValue");
+    assert.include(layout, "useTheme");
+    assert.include(layout, "tabBarActiveTintColor: theme.surface.primary");
+    assert.notInclude(layout, "@/constants/theme");
+  });
+
+  test("home and not-found screens use current @terreno/ui props", () => {
+    const home = read("frontend/app/(tabs)/index.tsx");
+    const notFound = read("frontend/app/+not-found.tsx");
+
+    assert.include(home, 'color="secondaryDark"');
+    assert.notInclude(home, 'color="secondary"');
+
+    assert.include(notFound, 'flex="grow"');
+    assert.include(notFound, "<Heading");
+    assert.notInclude(notFound, "weight=");
+    assert.notInclude(notFound, "flex={1}");
+  });
+
+  test("admin screens pass a type-erased AdminApi instance", () => {
+    const sdk = read("frontend/store/sdk.ts");
+    const adminIndex = read("frontend/app/(tabs)/admin/index.tsx");
+    const adminConfig = read("frontend/app/(tabs)/admin/configuration.tsx");
+
+    assert.include(sdk, "adminTerrenoApi");
+    assert.include(sdk, 'as unknown as AdminScreenProps["api"]');
+    assert.include(adminIndex, "adminTerrenoApi");
+    assert.include(adminConfig, "adminTerrenoApi");
+    assert.notInclude(adminIndex, "api={terrenoApi}");
+  });
+
+  test("store wires Better Auth, dev store, and app-local RootState", () => {
+    const storeIndex = read("frontend/store/index.ts");
+    const appState = read("frontend/store/appState.ts");
+    const syncdb = read("frontend/store/syncdb.ts");
+
+    assert.include(storeIndex, "as unknown as BetterAuthClientInterface");
+    assert.include(
+      storeIndex,
+      "registerTerrenoDevStore(store as unknown as Store<Record<string, unknown>>)"
+    );
+    assert.include(appState, 'import type {RootState} from "./index"');
+    assert.notInclude(appState, "@terreno/rtk");
+    assert.include(syncdb, "syncAuthClient");
+    assert.include(syncdb, "sessionAtom");
+    assert.include(syncdb, "getSession: () => betterAuthClient.getSession()");
+    assert.notInclude(syncdb, "betterAuthClient as unknown as BetterAuthClientLike");
+  });
+
+  test("OpenAPI SDK uses Better Auth base API, not JWT emptySplitApi", () => {
+    const openapiConfig = read("frontend/openapi-config.ts");
+    const openApiSdk = read("frontend/store/openApiSdk.ts");
+    const betterAuthApi = read("frontend/store/betterAuthApi.ts");
+
+    assert.include(openapiConfig, 'apiFile: "./store/betterAuthApi.ts"');
+    assert.include(openApiSdk, 'from "./betterAuthApi"');
+    assert.notInclude(openApiSdk, 'from "@terreno/rtk"');
+    assert.include(betterAuthApi, "readSessionToken");
+    assert.include(betterAuthApi, 'headers.set("authorization"');
+    assert.include(betterAuthApi, 'credentials: "include"');
+    assert.include(betterAuthApi, "betterAuthClient.getSession()");
+  });
+
+  test("profile screen reads unwrapped profile fields from Better Auth base query", () => {
+    const profile = read("frontend/app/(tabs)/profile.tsx");
+    const sdk = read("frontend/store/sdk.ts");
+
+    assert.include(profile, "const user = profile;");
+    assert.notInclude(profile, "profile?.data");
+    assert.include(sdk, "profile fields are top-level on the response");
+    assert.notInclude(sdk, "data: {");
+  });
+
+  test("tsconfig omits deprecated baseUrl for TypeScript 6", () => {
+    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
+      compilerOptions: {
+        baseUrl?: string;
+        ignoreDeprecations?: string;
+        paths: Record<string, string[]>;
+      };
+    };
+
+    assert.isUndefined(tsconfig.compilerOptions.baseUrl);
+    assert.equal(tsconfig.compilerOptions.ignoreDeprecations, "6.0");
+    assert.deepEqual(tsconfig.compilerOptions.paths["@/*"], ["./*"]);
+  });
+
+  test("SDK stub declares profile tags and generate-sdk script typechecks", () => {
+    const openApiSdk = read("frontend/store/openApiSdk.ts");
+    const sdk = read("frontend/store/sdk.ts");
+    const generateSdk = read("frontend/scripts/generate-sdk.ts");
+    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
+      compilerOptions: {types?: string[]};
+    };
+    const frontendPackageJson = JSON.parse(read("frontend/package.json")) as {
+      devDependencies: Record<string, string>;
+    };
+
+    assert.include(openApiSdk, '"profile"');
+    assert.include(sdk, 'addTagTypes: ["profile"]');
+    assert.include(sdk, 'providesTags: ["profile"]');
+    assert.isTrue(sdk.indexOf('addTagTypes: ["profile"]') < sdk.indexOf("injectEndpoints"));
+    assert.include(generateSdk, "execFile");
+    assert.include(tsconfig.compilerOptions.types ?? [], "bun-types");
+    assert.property(frontendPackageJson.devDependencies, "@types/bun");
+    assert.property(frontendPackageJson.devDependencies, "ts-node");
   });
 });

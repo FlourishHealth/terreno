@@ -1044,9 +1044,11 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
         "@rtk-query/codegen-openapi": "^2.2.0",
+        "@types/bun": "^1.4.0",
         "@types/lodash": "^4.17.17",
         "@types/luxon": "^3.7.1",
         "@types/react": "~19.2.14",
+        "ts-node": "^10.9.2",
         tsx: "^4.23.12",
         typescript: "~6.0.3",
       },
@@ -1113,6 +1115,7 @@ const generateFrontendTsConfig = (): string => {
         allowJs: true,
         allowSyntheticDefaultImports: true,
         esModuleInterop: true,
+        ignoreDeprecations: "6.0",
         jsx: "react-jsx",
         lib: ["DOM", "ESNext"],
         module: "esnext",
@@ -1130,7 +1133,7 @@ const generateFrontendTsConfig = (): string => {
         skipLibCheck: true,
         strict: true,
         target: "ESNext",
-        types: ["react-native", "@types/react"],
+        types: ["bun-types", "react-native", "@types/react"],
       },
       extends: "expo/tsconfig.base",
       include: ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
@@ -1184,10 +1187,12 @@ const generateFrontendTsConfigCodegen = (): string => {
     {
       compilerOptions: {
         esModuleInterop: true,
+        ignoreDeprecations: "6.0",
         module: "commonjs",
         moduleResolution: "node",
         resolveJsonModule: true,
         skipLibCheck: true,
+        strict: true,
         target: "ES2020",
       },
     },
@@ -1280,11 +1285,81 @@ const generateFrontendBiomeJsonc = (): string => {
 `;
 };
 
+const generateFrontendBetterAuthApi = (): string => {
+  return `/**
+ * RTK Query API base for Better Auth session cookies.
+ *
+ * Unlike \`@terreno/rtk\`'s JWT \`emptySplitApi\`, this base query reads the Better Auth
+ * session token on every request and sends it as a Bearer header with credentials.
+ */
+import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
+import {baseUrl, IsWeb, type VersionCheckResponse} from "@terreno/rtk";
+import Constants from "expo-constants";
+import {betterAuthClient} from "@/lib/betterAuth";
+
+const readSessionToken = async (): Promise<string | null> => {
+  try {
+    const result = await betterAuthClient.getSession();
+    const envelope = (result as {data?: {session?: {token?: string}}})?.data ?? result;
+    const session = (envelope as {session?: {token?: string}})?.session;
+    return session?.token ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const betterAuthBaseQuery = fetchBaseQuery({
+  baseUrl,
+  credentials: "include",
+  prepareHeaders: async (headers) => {
+    const token = await readSessionToken();
+    if (token) {
+      headers.set("authorization", \`Bearer \${token}\`);
+    }
+    const version = Constants.expoConfig?.version;
+    if (version) {
+      headers.set("App-Version", version);
+    }
+    headers.set("App-Platform", IsWeb ? "web" : "mobile");
+    return headers;
+  },
+  responseHandler: async (response) => {
+    if (response.status === 204) {
+      return null;
+    }
+    const result = await response.json();
+    if (result && typeof result === "object" && "more" in result) {
+      return result;
+    }
+    if (result?.data) {
+      return result.data;
+    }
+    return result;
+  },
+});
+
+export const emptySplitApi = createApi({
+  baseQuery: betterAuthBaseQuery,
+  endpoints: (builder) => ({
+    getVersionCheck: builder.query<VersionCheckResponse, {platform: string; version: number}>({
+      query: ({platform, version}) => ({
+        params: {platform, version},
+        url: "/version-check",
+      }),
+    }),
+  }),
+  reducerPath: "terreno-rtk",
+});
+
+export const {useGetVersionCheckQuery, useLazyGetVersionCheckQuery} = emptySplitApi;
+`;
+};
+
 const generateFrontendOpenApiConfig = (): string => {
   return `import type {ConfigFile} from "@rtk-query/codegen-openapi";
 
 const config: ConfigFile = {
-  apiFile: "@terreno/rtk",
+  apiFile: "./store/betterAuthApi.ts",
   apiImport: "emptySplitApi",
   argSuffix: "Args",
   exportName: "openapi",
@@ -1303,9 +1378,9 @@ export default config;
 const generateFrontendGenerateSdk = (): string => {
   return `#!/usr/bin/env bun
 
-import {exec} from "node:child_process";
-import {existsSync, readFileSync, writeFileSync} from "node:fs";
-import {join} from "node:path";
+import {execFile} from "node:child_process";
+import {existsSync, readFileSync, realpathSync, writeFileSync} from "node:fs";
+import {basename, dirname, extname, join, resolve, sep} from "node:path";
 
 const cliPath = join(
   __dirname,
@@ -1317,39 +1392,70 @@ const cliPath = join(
   "bin",
   "cli.mjs"
 );
-const configPath = join(__dirname, "..", "openapi-config.ts");
+const configFile = process.argv[2] ?? "openapi-config.ts";
+const sdkFile = process.argv[3] ?? "store/openApiSdk.ts";
+const projectRoot = resolve(__dirname, "..");
+const configPath = resolve(projectRoot, configFile);
+const sdkPath = resolve(projectRoot, sdkFile);
 const tsConfigPath = join(__dirname, "..", "tsconfig.codegen.json");
+const canonicalProjectRoot = realpathSync(projectRoot);
 
-const command = \`TS_NODE_PROJECT=\${tsConfigPath} tsx \${cliPath} \${configPath}\`;
-
-exec(command, (error, _stdout, stderr) => {
-  if (error) {
-    console.error(\`Error: \${error.message}\`);
-    process.exit(1);
+const isProjectFile = (filePath: string): boolean => {
+  if (!filePath.startsWith(\`\${projectRoot}\${sep}\`) || extname(filePath) !== ".ts") {
+    return false;
   }
-  if (stderr) {
-    console.error(\`stderr: \${stderr}\`);
+  try {
+    const canonicalPath = existsSync(filePath)
+      ? realpathSync(filePath)
+      : resolve(realpathSync(dirname(filePath)), basename(filePath));
+    return canonicalPath.startsWith(\`\${canonicalProjectRoot}\${sep}\`);
+  } catch {
+    return false;
   }
+};
 
-  const sdkPath = join(__dirname, "..", "store", "openApiSdk.ts");
+if (!isProjectFile(configPath) || !isProjectFile(sdkPath)) {
+  console.error("SDK config and output must be TypeScript files inside frontend/");
+  process.exit(1);
+}
 
-  if (existsSync(sdkPath)) {
-    let content = readFileSync(sdkPath, "utf8");
-    content = content.replace(/^export const \\{\\} = injectedRtkApi;\\n?/m, "");
-    writeFileSync(sdkPath, content, "utf8");
-  }
-
-  exec(
-    "bunx biome check --unsafe --write store/openApiSdk.ts",
-    {cwd: join(__dirname, "..")},
-    (formatError) => {
-      if (formatError) {
-        console.error(\`Formatting error: \${formatError.message}\`);
-        process.exit(1);
-      }
+execFile(
+  "tsx",
+  [cliPath, configPath],
+  {env: {...process.env, TS_NODE_PROJECT: tsConfigPath}},
+  (error, _stdout, stderr) => {
+    if (error) {
+      console.error(\`Error: \${error.message}\`);
+      process.exit(1);
     }
-  );
-});
+    if (stderr) {
+      console.error(\`stderr: \${stderr}\`);
+    }
+
+    if (existsSync(sdkPath)) {
+      let content = readFileSync(sdkPath, "utf8");
+      content = content.replace(/^export const \\{\\} = injectedRtkApi;\\n?/m, "");
+      if (!content.startsWith("// biome-ignore-all lint/suspicious/noExplicitAny")) {
+        content =
+          "// biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas\\n" +
+          content;
+      }
+      writeFileSync(sdkPath, content, "utf8");
+    }
+
+    execFile(
+      "bunx",
+      ["biome", "check", "--unsafe", "--write", sdkPath],
+      {cwd: projectRoot},
+      (formatError) => {
+        if (formatError) {
+          console.error(\`Formatting error: \${formatError.message}\`);
+          process.exit(1);
+        }
+      }
+    );
+  }
+);
 `;
 };
 
@@ -1561,22 +1667,26 @@ export default SignUp;
 
 const generateFrontendTabsLayout = (): string => {
   return `import FontAwesome from "@expo/vector-icons/FontAwesome";
+import {useTheme} from "@terreno/ui";
 import {Tabs} from "expo-router";
 import type React from "react";
-import {colors} from "@/constants/theme";
+import type {ColorValue} from "react-native";
 
 const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
+  color: ColorValue;
 }> = ({name, color}) => {
   return <FontAwesome color={color} name={name} size={24} style={{marginBottom: -3}} />;
 };
 
 const TabLayout: React.FC = () => {
+  const {theme} = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
+        headerShown: false,
+        tabBarActiveTintColor: theme.surface.primary,
       }}
     >
       <Tabs.Screen
@@ -1621,7 +1731,7 @@ const HomeScreen: React.FC = () => {
       <Box padding={4} gap={4}>
         <Heading>Welcome to ${appDisplayName}</Heading>
         <Text>Your app is ready for development!</Text>
-        <Text color="secondary">
+        <Text color="secondaryDark">
           Start by adding models to the backend and screens to the frontend.
         </Text>
       </Box>
@@ -1650,7 +1760,7 @@ const ProfileScreen: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const user = profile?.data;
+  const user = profile;
 
   // Copy the server name into local state without resetting an in-progress email edit.
   useEffect(() => {
@@ -1785,12 +1895,12 @@ export default AdminLayout;
 const generateFrontendAdminIndex = (): string => {
   return `import {AdminModelList} from "@terreno/admin-frontend";
 import type React from "react";
-import {terrenoApi} from "@/store/sdk";
+import {adminTerrenoApi} from "@/store/sdk";
 
 const AdminListScreen: React.FC = () => {
   return (
     <AdminModelList
-      api={terrenoApi}
+      api={adminTerrenoApi}
       baseUrl="/admin"
       configurationPath="/admin/configuration"
     />
@@ -1804,10 +1914,10 @@ export default AdminListScreen;
 const generateFrontendAdminConfiguration = (): string => {
   return `import {ConfigurationScreen} from "@terreno/admin-frontend";
 import type React from "react";
-import {terrenoApi} from "@/store/sdk";
+import {adminTerrenoApi} from "@/store/sdk";
 
 const ConfigurationPage: React.FC = () => {
-  return <ConfigurationScreen api={terrenoApi} />;
+  return <ConfigurationScreen api={adminTerrenoApi} />;
 };
 
 export default ConfigurationPage;
@@ -1815,7 +1925,7 @@ export default ConfigurationPage;
 };
 
 const generateFrontendNotFound = (): string => {
-  return `import {Box, Text} from "@terreno/ui";
+  return `import {Box, Heading, Text} from "@terreno/ui";
 import {Link, Stack} from "expo-router";
 import type React from "react";
 
@@ -1823,12 +1933,12 @@ const NotFoundScreen: React.FC = () => {
   return (
     <>
       <Stack.Screen options={{title: "Oops!"}} />
-      <Box flex={1} alignItems="center" justifyContent="center" padding={4}>
-        <Text size="lg" weight="bold">
-          This screen doesn't exist.
-        </Text>
-        <Link href="/" style={{marginTop: 16}}>
-          <Text color="link">Go to home screen</Text>
+      <Box alignItems="center" flex="grow" justifyContent="center" padding={4}>
+        <Heading size="xl">This screen doesn't exist.</Heading>
+        <Link href="/" style={{marginTop: 15, paddingVertical: 15}}>
+          <Text color="link" size="md">
+            Go to home screen!
+          </Text>
         </Link>
       </Box>
     </>
@@ -1841,8 +1951,12 @@ export default NotFoundScreen;
 
 const generateFrontendStoreIndex = (): string => {
   return `import AsyncStorage from "@react-native-async-storage/async-storage";
-import {combineReducers, configureStore} from "@reduxjs/toolkit";
-import {generateBetterAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
+import {combineReducers, configureStore, type Store} from "@reduxjs/toolkit";
+import {
+  type BetterAuthClientInterface,
+  generateBetterAuthSlice,
+  registerTerrenoDevStore,
+} from "@terreno/rtk";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage} from "redux-persist";
@@ -1853,7 +1967,9 @@ import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
 import {terrenoApi} from "./sdk";
 
-const betterAuth = generateBetterAuthSlice({authClient: betterAuthClient});
+const betterAuth = generateBetterAuthSlice({
+  authClient: betterAuthClient as unknown as BetterAuthClientInterface,
+});
 
 export const logout = betterAuth.actions.logout;
 export const syncBetterAuthSession = betterAuth.syncSession;
@@ -1922,7 +2038,7 @@ const store = configureStore({
   reducer: persistedReducer,
 });
 
-registerTerrenoDevStore(store);
+registerTerrenoDevStore(store as unknown as Store<Record<string, unknown>>);
 
 export const persistor = persistStore(store);
 
@@ -1937,8 +2053,8 @@ export default store;
 
 const generateFrontendStoreAppState = (): string => {
   return `import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
-import type {RootState} from "@terreno/rtk";
 import {type TypedUseSelectorHook, useSelector} from "react-redux";
+import type {RootState} from "./index";
 
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
@@ -1969,15 +2085,11 @@ export const appStateSlice = createSlice({
 export const {setDarkMode, setLanguage, resetAppState} = appStateSlice.actions;
 
 export const useSelectDarkMode = (): boolean => {
-  return useAppSelector((state: RootState): boolean => {
-    return state.appState.darkMode;
-  });
+  return useAppSelector((state) => state.appState.darkMode);
 };
 
 export const useSelectLanguage = (): string => {
-  return useAppSelector((state: RootState): string => {
-    return state.appState.language;
-  });
+  return useAppSelector((state) => state.appState.language);
 };
 
 export default appStateSlice.reducer;
@@ -2041,18 +2153,18 @@ export const useSentryAndToast = (): ((errorMessage: string) => void) => {
 };
 
 const generateFrontendStoreSdk = (): string => {
-  return `import {generateTags} from "@terreno/rtk";
+  return `import type {AdminScreenProps} from "@terreno/admin-frontend";
+import {generateTags} from "@terreno/rtk";
 import startCase from "lodash/startCase";
 
 import {addTagTypes, openapi} from "./openApiSdk";
 
+/** emptyApi unwraps the \`data\` envelope — profile fields are top-level on the response. */
 export interface ProfileResponse {
-  data: {
-    _id: string;
-    id: string;
-    email: string;
-    name: string;
-  };
+  _id: string;
+  id: string;
+  email: string;
+  name: string;
 }
 
 export interface UpdateProfileRequest {
@@ -2062,6 +2174,9 @@ export interface UpdateProfileRequest {
 }
 
 export const terrenoApi = openapi
+  .enhanceEndpoints({
+    addTagTypes: ["profile"],
+  })
   .injectEndpoints({
     endpoints: (builder) => ({
       getMe: builder.query<ProfileResponse, void>({
@@ -2082,11 +2197,13 @@ export const terrenoApi = openapi
     }),
   })
   .enhanceEndpoints({
-    addTagTypes: ["profile"],
     endpoints: {
       ...generateTags(openapi, [...addTagTypes]),
     },
   });
+
+/** Type-erased API instance for @terreno/admin-frontend screens. */
+export const adminTerrenoApi = terrenoApi as unknown as AdminScreenProps["api"];
 
 export const {
   useGetMeQuery,
@@ -2124,8 +2241,8 @@ const generateFrontendStoreOpenApiSdk = (): string => {
   return `// THIS FILE IS AUTO-GENERATED. DO NOT EDIT.
 // Run "bun run sdk" to regenerate this file from the backend OpenAPI spec.
 
-import {emptySplitApi as api} from "@terreno/rtk";
-export const addTagTypes = ["Users", "Auth"] as const;
+import {emptySplitApi as api} from "./betterAuthApi";
+export const addTagTypes = ["Users", "Auth", "profile"] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -2331,7 +2448,12 @@ const generateFrontendSyncDb = (args: BootstrapArgs): string => {
   const {appName} = args;
   const dbName = appName.replace(/-/g, "-");
   return `import {baseUrl} from "@terreno/rtk";
-import {betterAuthAdapter, createSyncDb, type SyncDb} from "@terreno/syncdb";
+import {
+  type BetterAuthClientLike,
+  betterAuthAdapter,
+  createSyncDb,
+  type SyncDb,
+} from "@terreno/syncdb";
 import {betterAuthClient} from "@/lib/betterAuth";
 
 export const SYNC_DB_NAME = "${dbName}";
@@ -2339,7 +2461,28 @@ export const SYNC_DB_NAME = "${dbName}";
 /** Add synced collection names here as you register modelRouter sync scopes on the backend. */
 export const SYNC_COLLECTIONS: string[] = [];
 
-const authProvider = betterAuthAdapter(betterAuthClient, {pollIntervalMs: 60_000});
+/**
+ * The Better Auth *react* client delivers session changes through a nanostore atom
+ * (\`$store.atoms.session\`), but its \`useSession\` is a React hook without \`.subscribe\`.
+ * betterAuthAdapter looks for \`useSession.subscribe\`; without it, it falls back to
+ * polling \`getSession()\` every 5s (constant /api/auth/get-session traffic). Bridge the
+ * atom to the shape the adapter expects so auth changes are event-driven instead.
+ */
+type SessionAtomLike = {subscribe: (listener: (value: unknown) => void) => () => void};
+const sessionAtom = (
+  betterAuthClient as unknown as {$store?: {atoms?: {session?: SessionAtomLike}}}
+).$store?.atoms?.session;
+
+const syncAuthClient: BetterAuthClientLike = {
+  getSession: () => betterAuthClient.getSession(),
+  ...(sessionAtom
+    ? {useSession: {subscribe: (listener): (() => void) => sessionAtom.subscribe(listener)}}
+    : {}),
+};
+
+// pollIntervalMs is only used as a fallback if the session atom bridge above is
+// unavailable (e.g. a future Better Auth client shape change); keep it slow.
+const authProvider = betterAuthAdapter(syncAuthClient, {pollIntervalMs: 60_000});
 
 export const syncDb: SyncDb = createSyncDb({
   authProvider,
@@ -2583,6 +2726,7 @@ export const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendStoreAppState(), path: `${frontendDir}/store/appState.ts`},
     {content: generateFrontendStoreErrors(), path: `${frontendDir}/store/errors.ts`},
     {content: generateFrontendStoreSdk(), path: `${frontendDir}/store/sdk.ts`},
+    {content: generateFrontendBetterAuthApi(), path: `${frontendDir}/store/betterAuthApi.ts`},
     {content: generateFrontendStoreOpenApiSdk(), path: `${frontendDir}/store/openApiSdk.ts`},
     {content: generateFrontendBetterAuthLib(args), path: `${frontendDir}/lib/betterAuth.ts`},
     {content: generateFrontendSyncDb(args), path: `${frontendDir}/store/syncdb.ts`},
