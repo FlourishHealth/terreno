@@ -122,7 +122,7 @@ Registered stories (65 configs, including OpenAPI Context): Accordion, AddressFi
 
 ## Phase 2: Remaining demo stories
 
-- [ ] **Task 2.1**: Add P1 stories
+- [x] **Task 2.1**: Add P1 stories
   - Description: Write stories for every P1 component from the Task 1.1 audit (expected to include `ActionSheet`, `ModalSheet`, `FilePickerButton`, and `Image`). Interactive components need a story that can actually be triggered from the demo UI, not just a static render. Register each in `demoConfig.tsx`.
   - Files: `demo/stories/*.stories.tsx` (new), `demo/demoConfig.tsx`
   - Depends on: Task 1.3
