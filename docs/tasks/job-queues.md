@@ -75,7 +75,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (5.1)
   - Acceptance: bun + supertest; path can be omitted from SDK codegen (internal tag); rate-limit not skipped
 
-- [ ] **Task 3.3**: GCP Cloud Tasks adapter (mocked)
+- [x] **Task 3.3**: GCP Cloud Tasks adapter (mocked)
   - Delivers: `@terreno/jobs/runners/gcpCloudTasks` optional peer `@google-cloud/tasks`; `enqueue` creates HTTP task to `{publicUrl}/jobs/execute` with OIDC audience; no live GCP
   - Files: `jobs/src/runners/gcpCloudTasks.ts`, tests with fake client, `jobs/package.json` exports/peers
   - Blocked by: 3.1, 3.2

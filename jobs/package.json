@@ -21,6 +21,16 @@
     "supertest": "catalog:",
     "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./runners/gcpCloudTasks": {
+      "default": "./dist/runners/gcpCloudTasks.js",
+      "types": "./dist/runners/gcpCloudTasks.d.ts"
+    }
+  },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "background-jobs",
@@ -33,7 +43,13 @@
   "main": "dist/index.js",
   "name": "@terreno/jobs",
   "peerDependencies": {
+    "@google-cloud/tasks": "7.1.0",
     "mongoose": "^8.0.0 || ^9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@google-cloud/tasks": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"
