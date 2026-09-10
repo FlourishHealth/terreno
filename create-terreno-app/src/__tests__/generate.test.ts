@@ -7,11 +7,15 @@ import {generateAllFiles, PLAYWRIGHT_MCP_PACKAGE_VERSION} from "../generate.js";
 const EXPECTED_PATHS = [
   ".cursor/mcp.json",
   ".cursorrules",
+  ".dockerignore",
   ".github/workflows/backend-ci.yml",
   ".github/workflows/frontend-ci.yml",
   ".gitignore",
   "CLAUDE.md",
+  "Dockerfile",
+  "README.md",
   "backend/.env",
+  "backend/.env.example",
   "backend/biome.jsonc",
   "backend/package.json",
   "backend/src/api/users.ts",
@@ -29,6 +33,7 @@ const EXPECTED_PATHS = [
   "backend/src/utils/database.ts",
   "backend/tsconfig.json",
   "frontend/.env",
+  "frontend/.env.example",
   "frontend/app.json",
   "frontend/app/(tabs)/_layout.tsx",
   "frontend/app/(tabs)/admin/_layout.tsx",
@@ -130,5 +135,98 @@ describe("generateAllFiles", () => {
     ) as {mcpServers: {terreno: {url: string}}};
 
     assert.equal(mcpJson.mcpServers.terreno.url, "https://custom.mcp.example.com/mcp");
+  });
+
+  test("includes a consumer backend Dockerfile with PORT and /health", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Deploy App",
+      appName: "deploy-app",
+    });
+    const dockerfile = files.find((file) => file.path === "Dockerfile")?.content ?? "";
+    const dockerignore = files.find((file) => file.path === ".dockerignore")?.content ?? "";
+    const backendPackageJson = JSON.parse(
+      files.find((file) => file.path === "backend/package.json")?.content ?? "{}"
+    ) as {scripts: Record<string, string>};
+
+    assert.include(dockerfile, "FROM oven/bun:1-slim");
+    assert.include(dockerfile, "ENV PORT=8080");
+    assert.include(dockerfile, "EXPOSE 8080");
+    assert.include(dockerfile, `CMD curl -fsS "http://127.0.0.1:\${PORT}/health"`);
+    assert.include(dockerfile, 'CMD ["bun", "run", "start"]');
+    assert.equal(backendPackageJson.scripts.start, "bun run src/index.ts");
+    assert.notInclude(dockerfile, "example-backend");
+    assert.notInclude(dockerfile, "COPY . .");
+    assert.notInclude(dockerfile, "@terreno/api compile");
+    assert.include(dockerignore, "backend/.env");
+    assert.include(dockerignore, "frontend/.env");
+  });
+
+  test("writes env examples alongside local .env defaults", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Env App",
+      appName: "env-app",
+    });
+    const backendEnv = files.find((file) => file.path === "backend/.env")?.content ?? "";
+    const backendEnvExample =
+      files.find((file) => file.path === "backend/.env.example")?.content ?? "";
+    const frontendEnv = files.find((file) => file.path === "frontend/.env")?.content ?? "";
+    const frontendEnvExample =
+      files.find((file) => file.path === "frontend/.env.example")?.content ?? "";
+
+    assert.include(backendEnv, "MONGO_URI=mongodb://127.0.0.1:27017/env_app?replicaSet=rs0");
+    assert.include(backendEnv, "PORT=4000");
+    assert.include(backendEnvExample, "MONGO_URI=");
+    assert.include(backendEnvExample, "BETTER_AUTH_SECRET=");
+    assert.include(backendEnvExample, "PORT=8080");
+    assert.include(backendEnvExample, "NODE_ENV=production");
+
+    assert.include(frontendEnv, "EXPO_PUBLIC_API_URL=http://localhost:4000");
+    assert.include(frontendEnvExample, "EXPO_PUBLIC_API_URL=");
+  });
+
+  test("README documents local run, deploy, and Terreno how-to links", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Readme App",
+      appName: "readme-app",
+    });
+    const readme = files.find((file) => file.path === "README.md")?.content ?? "";
+
+    assert.include(readme, "Readme App");
+    assert.include(readme, "bun run dev");
+    assert.include(readme, "bun run seed");
+    assert.include(readme, "bun run web");
+    assert.include(readme, "docker build");
+    assert.include(
+      readme,
+      "https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/deployment-baseline.md"
+    );
+    assert.include(
+      readme,
+      "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/deploy-backend-to-cloud-run.md"
+    );
+    assert.include(
+      readme,
+      "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/build-for-web.md"
+    );
+  });
+
+  test("generated backend registers /health via @terreno/api-health", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Health App",
+      appName: "health-app",
+    });
+    const backendPackageJson = JSON.parse(
+      files.find((file) => file.path === "backend/package.json")?.content ?? "{}"
+    ) as {dependencies: Record<string, string>};
+    const server = files.find((file) => file.path === "backend/src/server.ts")?.content ?? "";
+
+    assert.deepInclude(backendPackageJson.dependencies, {
+      "@terreno/api-health": TERRENO_RANGE,
+    });
+    assert.include(server, "HealthApp");
+    assert.include(server, "@terreno/api-health");
+    assert.include(server, "mongoose.connection.readyState");
+    assert.include(server, "healthy: mongoConnected");
+    assert.include(server, "process.env.PORT");
   });
 });

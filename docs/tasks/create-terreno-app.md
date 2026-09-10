@@ -29,7 +29,7 @@ Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/
 
 ### Phase 2: CLI writer
 
-- [ ] **Task 2.1**: `create-terreno-app` bin writes an empty target
+- [x] **Task 2.1**: `create-terreno-app` bin writes an empty target
   - Delivers: `bunx create-terreno-app my-app --display-name "My App"` (cwd or explicit parent) writes files via `writeScaffold`; `--yes` derives display name; missing names or non-empty target (anything except `.git` / `.gitignore`) exits non-zero without writing app files; does not run install/seed
   - Files: `create-terreno-app/src/cli.ts`, `create-terreno-app/src/writeScaffold.ts`, `create-terreno-app/src/__tests__/cli.test.ts`, `create-terreno-app/package.json` `bin`
   - Blocked by: Task 1.1
