@@ -1,5 +1,5 @@
 import {describe, it} from "bun:test";
-import {ConsentForm, runSeeds} from "@terreno/api";
+import {ConsentForm, Membership, Organization, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
 import {DateTime} from "luxon";
@@ -14,25 +14,47 @@ describe("seedDefaultData", () => {
     await seedDefaultData();
 
     const admin = await User.findByEmail("admin@example.com");
+    const operator = await User.findByEmail("operator@example.com");
+    const alphaAdmin = await User.findByEmail("orgadmin-alpha@example.com");
+    const betaAdmin = await User.findByEmail("orgadmin-beta@example.com");
     const superadmin = await User.findByEmail("superadmin@example.com");
     const user = await User.findByEmail("test@example.com");
 
     assert.exists(admin);
+    assert.exists(operator);
+    assert.exists(alphaAdmin);
+    assert.exists(betaAdmin);
     assert.exists(superadmin);
     assert.exists(user);
-    if (!admin || !superadmin || !user) {
+    if (!admin || !operator || !alphaAdmin || !betaAdmin || !superadmin || !user) {
       assert.fail("Default users were not seeded");
     }
 
     assert.isTrue(admin.admin);
     assert.isTrue(superadmin.admin);
     assert.include(superadmin.roles, "superadmin");
-    assert.deepEqual(admin.organizationIds, ["org-example"]);
+    assert.include(operator.roles, "operator");
+    const alpha = await Organization.findExactlyOne({name: "Alpha Workspace"});
+    const beta = await Organization.findExactlyOne({name: "Beta Workspace"});
+    assert.isTrue(await Membership.isOrgAdmin(alphaAdmin._id, alpha._id));
+    assert.isTrue(await Membership.isOrgAdmin(betaAdmin._id, beta._id));
+    assert.isTrue(await Membership.isMember(user._id, alpha._id));
     assert.equal(
-      await User.countDocuments({email: {$in: [admin.email, superadmin.email, user.email]}}),
-      3
+      await User.countDocuments({
+        email: {
+          $in: [
+            admin.email,
+            operator.email,
+            alphaAdmin.email,
+            betaAdmin.email,
+            superadmin.email,
+            user.email,
+          ],
+        },
+      }),
+      6
     );
-    assert.equal(await Project.countDocuments({organizationId: "org-example"}), 2);
+    assert.equal(await Project.countDocuments({organizationId: String(alpha._id)}), 2);
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
     assert.equal(await ConsentForm.countDocuments({}), 3);
     assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
