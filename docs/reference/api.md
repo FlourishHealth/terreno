@@ -27,6 +27,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
+- Migrations: `runMigrations`, `MIGRATIONS_COLLECTION` (CLI generate/up and admin page in later tasks)
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
@@ -1333,6 +1334,12 @@ for (let i = 0; i < 3; i++) {
   }
 }
 ``````
+
+## Migrations
+
+`runMigrations({migrations, dryRun, connection, mongoose})` applies pending versioned `up` functions in array order. Dry-run calls `up({dryRun: true})` and does **not** write history. Wet runs insert `{id, checksum, appliedAt}` into Mongo collection `terreno_migrations`. Already-applied ids are skipped; a checksum change after apply throws `Migration checksum mismatch` (409).
+
+Locking, the `terreno-migrate` CLI, generate-from-schema-diff, boot `runOnStart`, and the admin Migrations page are specified in [MongoDB migrations tooling](../implementationPlans/mongodb-migrations-tooling.md). Operator how-to: pending until those tasks land.
 
 ## Script Helpers
 

@@ -7,7 +7,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 1 — Runner, lock, history
 
-- [ ] **Task 1.1**: Migration context + in-memory/programmatic runner
+- [x] **Task 1.1**: Migration context + in-memory/programmatic runner
   - Delivers: `runMigrations({migrations, dryRun})` runs pending `up` in order; dry-run calls `up({dryRun: true})` and does **not** record applied ids; wet records checksum + `appliedAt`; already-applied ids are skipped; checksum mismatch throws
   - Files: `api/src/migrations/types.ts`, `api/src/migrations/runner.ts`, `api/src/migrations/runner.test.ts`
   - Blocked by: none

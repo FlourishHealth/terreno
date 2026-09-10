@@ -50,6 +50,8 @@ export type {
   MCPToolResult,
 } from "./mcp/types";
 export * from "./middleware";
+export * from "./migrations/runner";
+export * from "./migrations/types";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
 export * from "./models/mcpServiceToken";
