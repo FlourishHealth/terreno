@@ -6,6 +6,8 @@ import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {
   AiEvaluatorDetailView,
   AiEvaluatorNewView,
+  EVALUATOR_TARGET_HELP,
+  EVALUATOR_TYPE_HELP,
   defaultEvaluatorRunModes,
   initialNewEvaluatorDimensions,
 } from "./AiEvaluatorPanels";
@@ -47,6 +49,81 @@ describe("AiEvaluatorNewView schema mismatch", () => {
       />
     );
     expect(getByTestId("ai-evaluator-schema-mismatch").props.children).toContain("correct");
+  });
+});
+
+describe("AiEvaluatorNewView helper text", () => {
+  it("explains what an evaluator is and what the selected type and target mean", () => {
+    const {getByTestId, getByText, rerender} = renderWithTheme(
+      <AiEvaluatorNewView
+        assertionConstraint="exists"
+        assertionPath=""
+        dimensions={[{dataType: "boolean", key: "pass", required: true}]}
+        instructions=""
+        isCreating={false}
+        judgePromptName=""
+        name=""
+        onAddDimension={() => undefined}
+        onAssertionConstraintChange={() => undefined}
+        onAssertionPathChange={() => undefined}
+        onCreate={() => undefined}
+        onDimensionChange={() => undefined}
+        onInstructionsChange={() => undefined}
+        onJudgePromptNameChange={() => undefined}
+        onLiveSampleRateChange={() => undefined}
+        onNameChange={() => undefined}
+        onRemoveDimension={() => undefined}
+        onTargetChange={() => undefined}
+        onTypeChange={() => undefined}
+        runModes={{allowManualRun: true, availableInExperiments: true, liveSampleRate: 0}}
+        target="full trace"
+        type="human"
+      />
+    );
+    expect(getByTestId("ai-evaluator-help-intro")).toHaveTextContent(/An evaluator scores traces/);
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(EVALUATOR_TYPE_HELP.human);
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(
+      EVALUATOR_TARGET_HELP["full trace"]
+    );
+    expect(getByText(/Stable id used in lists/)).toBeTruthy();
+    expect(getByText(/Each dimension is one score/)).toBeTruthy();
+    expect(getByText(/Shown at the top of the review item/)).toBeTruthy();
+    expect(getByText(/Human evaluators must stay at 0/)).toBeTruthy();
+
+    rerender(
+      <AiEvaluatorNewView
+        assertionConstraint="exists"
+        assertionPath="output.text"
+        dimensions={[{dataType: "boolean", key: "pass", required: true}]}
+        instructions=""
+        isCreating={false}
+        judgePromptName=""
+        name="assert"
+        onAddDimension={() => undefined}
+        onAssertionConstraintChange={() => undefined}
+        onAssertionPathChange={() => undefined}
+        onCreate={() => undefined}
+        onDimensionChange={() => undefined}
+        onInstructionsChange={() => undefined}
+        onJudgePromptNameChange={() => undefined}
+        onLiveSampleRateChange={() => undefined}
+        onNameChange={() => undefined}
+        onRemoveDimension={() => undefined}
+        onTargetChange={() => undefined}
+        onTypeChange={() => undefined}
+        runModes={{allowManualRun: true, availableInExperiments: true, liveSampleRate: 0}}
+        target="generation span"
+        type="json-assert"
+      />
+    );
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(
+      EVALUATOR_TYPE_HELP["json-assert"]
+    );
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(
+      EVALUATOR_TARGET_HELP["generation span"]
+    );
+    expect(getByText(/Dot path into the target JSON/)).toBeTruthy();
+    expect(getByText(/How to check the path/)).toBeTruthy();
   });
 });
 

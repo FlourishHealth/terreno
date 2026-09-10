@@ -12,6 +12,49 @@ import {
   judgeSchemaMissingDimensions,
 } from "./evaluatorTypes";
 
+export const EVALUATOR_NEW_INTRO =
+  "An evaluator scores traces and experiment outputs. Each score is a named dimension (boolean, numeric, or categorical). Attach the same evaluator to experiments, live sampling, or the human review queue.";
+
+export const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
+  human: "A person scores items in Human review. Scores wait in the queue until a reviewer submits them. Live sampling is not allowed.",
+  "json-assert":
+    "Terreno checks a JSON path on the target against a constraint. No model call. Use for schema presence, enums, or numeric thresholds.",
+  "llm-judge":
+    "Terreno calls a registered prompt whose outputSchema must include every required dimension key. Each run is a billed model call.",
+};
+
+export const EVALUATOR_TARGET_HELP: Record<EvaluatorRecord["target"], string> = {
+  "dataset item":
+    "Score one dataset row during an experiment (input, expected output, and model output).",
+  "full trace": "Score the whole trace: nested spans, the compiled prompt, and the final output.",
+  "generation span": "Score one generation span (one model call) instead of the whole trace.",
+};
+
+const EVALUATOR_NAME_HELP =
+  "Stable id used in lists, experiments, and score rows. Lowercase kebab-case, unique in this app.";
+
+const EVALUATOR_DIMENSIONS_HELP =
+  "Each dimension is one score written onto traces and experiment items. Keys must match llm-judge outputSchema properties. At least one dimension is required.";
+
+const EVALUATOR_DIMENSION_KEY_HELP = "Score name stored on results, e.g. correct or toxicity.";
+
+const EVALUATOR_DIMENSION_RANGE_HELP = "Optional. For numeric scores, e.g. 0-1. Leave blank for boolean.";
+
+const EVALUATOR_INSTRUCTIONS_HELP =
+  "Shown at the top of the review item. Tell the reviewer what pass/fail means and which failure modes to watch for.";
+
+const EVALUATOR_ASSERTION_PATH_HELP =
+  "Dot path into the target JSON, e.g. output.text or output.score. The value at this path is what the constraint checks.";
+
+const EVALUATOR_ASSERTION_CONSTRAINT_HELP =
+  "How to check the path. Use exists, a literal match, or a numeric compare such as gte 0.8.";
+
+const EVALUATOR_JUDGE_PROMPT_HELP =
+  "Name of a prompt already saved in Observability. Its production outputSchema must declare every required dimension key.";
+
+const EVALUATOR_LIVE_SAMPLE_HELP =
+  "0 means off. Greater than 0 runs this evaluator on that percent of matching production traffic. Human evaluators must stay at 0.";
+
 export interface AiEvaluatorDetailViewProps {
   evaluator: EvaluatorRecord;
   judgeOutputSchema?: Record<string, unknown>;
@@ -162,6 +205,7 @@ const renderTypePanel = ({
           </Box>
         ) : (
           <TextField
+            helperText={EVALUATOR_JUDGE_PROMPT_HELP}
             onChange={onJudgePromptNameChange ?? (() => undefined)}
             testID="ai-evaluator-judge-prompt"
             title="Judge prompt name"
@@ -195,12 +239,14 @@ const renderTypePanel = ({
         ) : (
           <>
             <TextField
+              helperText={EVALUATOR_ASSERTION_PATH_HELP}
               onChange={onAssertionPathChange ?? (() => undefined)}
               testID="ai-evaluator-assertion-path"
               title="Assertion path"
               value={assertionPath ?? ""}
             />
             <TextField
+              helperText={EVALUATOR_ASSERTION_CONSTRAINT_HELP}
               onChange={onAssertionConstraintChange ?? (() => undefined)}
               testID="ai-evaluator-assertion-constraint"
               title="Constraint"
@@ -217,6 +263,7 @@ const renderTypePanel = ({
         <Text>{evaluator.instructions ?? "No reviewer instructions."}</Text>
       ) : (
         <TextField
+          helperText={EVALUATOR_INSTRUCTIONS_HELP}
           multiline
           onChange={onInstructionsChange ?? (() => undefined)}
           rows={4}
@@ -350,7 +397,17 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
 
   return (
     <Box gap={4} testID="ai-evaluator-new">
-      <TextField onChange={onNameChange} testID="ai-evaluator-name" title="Name" value={name} />
+      <Box border="default" gap={2} padding={4} rounding="md" testID="ai-evaluator-help-intro">
+        <Heading size="sm">What is an evaluator?</Heading>
+        <Text color="secondaryDark">{EVALUATOR_NEW_INTRO}</Text>
+      </Box>
+      <TextField
+        helperText={EVALUATOR_NAME_HELP}
+        onChange={onNameChange}
+        testID="ai-evaluator-name"
+        title="Name"
+        value={name}
+      />
       <Box gap={2}>
         <Text bold>Type</Text>
         <Box direction="row" gap={2} wrap>
@@ -368,6 +425,9 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
             );
           })}
         </Box>
+        <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-type">
+          {EVALUATOR_TYPE_HELP[type]}
+        </Text>
       </Box>
       <Box gap={2}>
         <Text bold>Target</Text>
@@ -386,6 +446,9 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
             );
           })}
         </Box>
+        <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-target">
+          {EVALUATOR_TARGET_HELP[target]}
+        </Text>
       </Box>
       <Box gap={2}>
         <Box direction="row" gap={2} justifyContent="between">
@@ -396,6 +459,9 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
             text="Add dimension"
           />
         </Box>
+        <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-dimensions">
+          {EVALUATOR_DIMENSIONS_HELP}
+        </Text>
         {dimensions.map((dimension, index) => {
           return (
             <Box
@@ -408,27 +474,35 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
               wrap
             >
               <TextField
+                helperText={EVALUATOR_DIMENSION_KEY_HELP}
                 onChange={(value) => {
                   onDimensionChange(index, {...dimension, key: value});
                 }}
                 title="Key"
                 value={dimension.key}
               />
-              <Box direction="row" gap={1} wrap>
-                {DIMENSION_DATA_TYPES.map((dataType) => {
-                  return (
-                    <Button
-                      key={dataType}
-                      onClick={() => {
-                        onDimensionChange(index, {...dimension, dataType});
-                      }}
-                      text={dataType}
-                      variant={dimension.dataType === dataType ? "primary" : "ghost"}
-                    />
-                  );
-                })}
+              <Box gap={1}>
+                <Text size="sm">Data type</Text>
+                <Box direction="row" gap={1} wrap>
+                  {DIMENSION_DATA_TYPES.map((dataType) => {
+                    return (
+                      <Button
+                        key={dataType}
+                        onClick={() => {
+                          onDimensionChange(index, {...dimension, dataType});
+                        }}
+                        text={dataType}
+                        variant={dimension.dataType === dataType ? "primary" : "ghost"}
+                      />
+                    );
+                  })}
+                </Box>
+                <Text color="secondaryDark" size="sm">
+                  boolean is pass/fail, numeric is a number, categorical is a labeled bucket.
+                </Text>
               </Box>
               <TextField
+                helperText={EVALUATOR_DIMENSION_RANGE_HELP}
                 onChange={(value) => {
                   onDimensionChange(index, {...dimension, range: value});
                 }}
@@ -461,6 +535,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
       <Box gap={2}>
         <Text bold>Run modes</Text>
         <TextField
+          helperText={EVALUATOR_LIVE_SAMPLE_HELP}
           onChange={(value) => {
             const parsed = Number(value);
             if (!Number.isNaN(parsed)) {

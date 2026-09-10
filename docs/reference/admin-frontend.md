@@ -310,10 +310,11 @@ dimensions (numeric slider, boolean Pass / Fail, categorical pills). Actions are
 or **Queue clear**.
 
 `ai-evaluators` lists evaluators with type badge, dimension summary, target, and run-mode chips.
-**Create evaluator** opens `ai-evaluator-new` with type (human / JSON assert / LLM judge), target,
-dimension builder, type-specific config (judge prompt name, assertion path/constraint, or reviewer
-instructions), live-sampling rate, and inline schema-mismatch errors naming the missing dimension
-key. `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
+**Create evaluator** opens `ai-evaluator-new` with an intro that explains what an evaluator is,
+per-field helper text (name, type, target, dimensions, type-specific config, live sample rate),
+type (human / JSON assert / LLM judge), target, dimension builder, type-specific config (judge
+prompt name, assertion path/constraint, or reviewer instructions), live-sampling rate, and inline
+schema-mismatch errors naming the missing dimension key. `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
 badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
 experiments. Its dimension and usage rows use flow-height layout instead of `DataTable`, which sizes
 to a height-constrained parent and collapses inside this scrolling page.
