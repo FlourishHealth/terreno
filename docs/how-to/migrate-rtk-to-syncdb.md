@@ -453,7 +453,7 @@ Before a collection can sync:
 - [ ] `syncPlugin` on schema (`_syncSeq` stamping)
 - [ ] `modelRouter("/path", Model, {sync: {scope: ...}})` three-argument form
 - [ ] Custom scopes include `snapshotFilter`
-- [ ] `new SyncApp({getUserScopes?})` for tenant/custom scopes
+- [ ] `new SyncApp({getUserScopes?, accessControl?})` for tenant/custom scopes and admin-window `admin:access`
 - [ ] `new RealtimeApp({betterAuth?})` + MongoDB replica set
 - [ ] No `updateMany`, `deleteMany`, `deleteOne`, `findOneAndDelete`, or `bulkWrite` on synced models
 
