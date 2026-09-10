@@ -313,8 +313,10 @@ or **Queue clear**.
 **Create evaluator** opens `ai-evaluator-new` with type (human / JSON assert / LLM judge), target,
 dimension builder, type-specific config (judge prompt name, assertion path/constraint, or reviewer
 instructions), live-sampling rate, and inline schema-mismatch errors naming the missing dimension
-key. `ai-evaluator-detail?id=` shows dimensions, type-specific config, run modes, and a **Used by**
-table derived from recent experiments.
+key. `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
+badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
+experiments. Its dimension and usage rows use flow-height layout instead of `DataTable`, which sizes
+to a height-constrained parent and collapses inside this scrolling page.
 
 `ai-datasets` lists datasets with item counts, provenance bar, input-schema binding, and updated
 time. **New dataset** creates a dataset; **Import** on each row accepts `.json` or `.csv` via

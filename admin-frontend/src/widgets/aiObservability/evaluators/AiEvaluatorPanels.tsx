@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Box,
-  Button,
-  DataTable,
-  type DataTableCellData,
-  type DataTableColumn,
-  Link,
-  Text,
-  TextField,
-} from "@terreno/ui";
+import {Badge, Box, Button, Heading, Link, Text, TextField} from "@terreno/ui";
 import React, {useMemo} from "react";
 import {
   DIMENSION_DATA_TYPES,
@@ -57,18 +47,56 @@ export interface AiEvaluatorNewViewProps {
   type: EvaluatorRecord["type"];
 }
 
-const DIMENSION_COLUMNS: DataTableColumn[] = [
-  {columnType: "text", title: "Key", width: 140},
-  {columnType: "text", title: "Data type", width: 120},
-  {columnType: "text", title: "Range", width: 120},
-  {columnType: "text", title: "Required", width: 100},
-];
+const DIMENSION_COLUMNS = ["Key", "Data type", "Range", "Required"];
 
-const USAGE_COLUMNS: DataTableColumn[] = [
-  {columnType: "text", title: "Experiment", width: 220},
-  {columnType: "text", title: "30d runs", width: 100},
-  {columnType: "text", title: "Cost", width: 100},
-];
+const USAGE_COLUMNS = ["Experiment", "30d runs", "Cost"];
+
+/**
+ * Flow-height table for the short, static lists on this screen. `DataTable` sizes itself to a
+ * height-constrained parent, so inside this scrolling detail page it collapses and its border
+ * overlaps the next section. These rows also stretch to the available width instead of leaving
+ * a wide empty gutter beside fixed pixel columns.
+ */
+const DetailTable: React.FC<{
+  columns: string[];
+  rows: string[][];
+  testID: string;
+}> = ({columns, rows, testID}) => {
+  return (
+    <Box border="default" rounding="md" testID={testID}>
+      <Box direction="row" gap={2} padding={3}>
+        {columns.map((column) => {
+          return (
+            <Box flex="grow" key={column} minWidth={80}>
+              <Text bold size="sm">
+                {column}
+              </Text>
+            </Box>
+          );
+        })}
+      </Box>
+      {rows.map((row, rowIndex) => {
+        return (
+          <Box
+            borderTop="default"
+            direction="row"
+            gap={2}
+            key={row[0] ?? `row-${rowIndex}`}
+            padding={3}
+          >
+            {row.map((cell, cellIndex) => {
+              return (
+                <Box flex="grow" key={columns[cellIndex] ?? `cell-${cellIndex}`} minWidth={80}>
+                  <Text>{cell}</Text>
+                </Box>
+              );
+            })}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
 
 const renderTypePanel = ({
   assertionConstraint,
@@ -208,23 +236,23 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
   routeBase,
   usageRows,
 }) => {
-  const dimensionRows: DataTableCellData[][] = useMemo(() => {
+  const dimensionRows: string[][] = useMemo(() => {
     return evaluator.dimensions.map((dimension) => {
       return [
-        {value: dimension.key},
-        {value: dimension.dataType},
-        {value: dimension.range ?? "—"},
-        {value: dimension.required ? "Yes" : "No"},
+        dimension.key,
+        dimension.dataType,
+        dimension.range ?? "—",
+        dimension.required ? "Yes" : "No",
       ];
     });
   }, [evaluator.dimensions]);
 
-  const usageTableRows: DataTableCellData[][] = useMemo(() => {
+  const usageTableRows: string[][] = useMemo(() => {
     return usageRows.map((row) => {
       return [
-        {value: row.experimentName},
-        {value: row.runs},
-        {value: row.costUsd !== undefined ? `$${row.costUsd.toFixed(2)}` : "—"},
+        row.experimentName,
+        String(row.runs),
+        row.costUsd !== undefined ? `$${row.costUsd.toFixed(2)}` : "—",
       ];
     });
   }, [usageRows]);
@@ -233,23 +261,31 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
 
   return (
     <Box gap={4} testID="ai-evaluator-detail">
-      <Box direction="row" gap={2} wrap>
-        <Badge status="info" value={EVALUATOR_TYPE_LABELS[evaluator.type]} />
-        <Badge status="neutral" value={evaluator.target} />
-        {chips.map((chip) => {
-          return <Badge key={chip} status="neutral" value={chip} />;
-        })}
+      <Box gap={2}>
+        <Heading size="md" testID="ai-evaluator-name">
+          {evaluator.name}
+        </Heading>
+        {evaluator.description ? (
+          <Text color="secondaryDark">{evaluator.description}</Text>
+        ) : undefined}
+        <Box direction="row" gap={2} wrap>
+          <Badge status="info" value={EVALUATOR_TYPE_LABELS[evaluator.type]} />
+          <Badge status="neutral" value={evaluator.target} />
+          {chips.map((chip) => {
+            return <Badge key={chip} status="neutral" value={chip} />;
+          })}
+        </Box>
       </Box>
       <Box gap={2}>
-        <Text bold>Dimensions</Text>
-        <DataTable
+        <Heading size="sm">Dimensions</Heading>
+        <DetailTable
           columns={DIMENSION_COLUMNS}
-          data={dimensionRows}
+          rows={dimensionRows}
           testID="ai-evaluator-dimensions"
         />
       </Box>
       <Box gap={2}>
-        <Text bold>Type-specific config</Text>
+        <Heading size="sm">Type-specific config</Heading>
         {renderTypePanel({
           evaluator,
           judgeOutputSchema,
@@ -258,20 +294,24 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
         })}
       </Box>
       <Box gap={2}>
-        <Text bold>Run modes</Text>
+        <Heading size="sm">Run modes</Heading>
         <Text size="sm">
           Live sampling at {Math.round(evaluator.runModes.liveSampleRate)}% bills judge calls on
           matching traffic.
         </Text>
       </Box>
       <Box gap={2}>
-        <Text bold>Used by (30 days)</Text>
+        <Heading size="sm">Used by (30 days)</Heading>
         {usageRows.length === 0 ? (
           <Text color="secondaryDark" testID="ai-evaluator-used-by-empty">
             No experiments in the last 30 days.
           </Text>
         ) : (
-          <DataTable columns={USAGE_COLUMNS} data={usageTableRows} testID="ai-evaluator-used-by" />
+          <DetailTable
+            columns={USAGE_COLUMNS}
+            rows={usageTableRows}
+            testID="ai-evaluator-used-by"
+          />
         )}
       </Box>
     </Box>

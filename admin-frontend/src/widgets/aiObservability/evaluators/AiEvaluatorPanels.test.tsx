@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
+import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
@@ -186,10 +186,21 @@ describe("AiEvaluatorDetailView", () => {
       />
     );
     expect(getByTestId("ai-evaluator-detail")).toBeTruthy();
-    expect(getByTestId("ai-evaluator-dimensions")).toBeTruthy();
+    expect(getByTestId("ai-evaluator-name")).toHaveTextContent("quality");
     expect(getByTestId("ai-evaluator-panel-llm-judge")).toBeTruthy();
-    expect(getByTestId("ai-evaluator-used-by")).toBeTruthy();
     expect(getByText("judge")).toBeTruthy();
+
+    // The dimension and usage rows render inline, so their values are readable without a
+    // height-constrained table container.
+    const dimensions = within(getByTestId("ai-evaluator-dimensions"));
+    expect(dimensions.getByText("correct")).toBeTruthy();
+    expect(dimensions.getByText("boolean")).toBeTruthy();
+    expect(dimensions.getByText("Yes")).toBeTruthy();
+
+    const usage = within(getByTestId("ai-evaluator-used-by"));
+    expect(usage.getByText("compare")).toBeTruthy();
+    expect(usage.getByText("3")).toBeTruthy();
+    expect(usage.getByText("$1.20")).toBeTruthy();
   });
 
   it("shows human and json-assert detail panels with empty usage", () => {
@@ -247,7 +258,9 @@ describe("AiEvaluatorDetailView", () => {
         usageRows={[]}
       />
     );
-    expect(noPrompt.getByText("—")).toBeTruthy();
+    expect(noPrompt.getByTestId("ai-evaluator-panel-llm-judge")).toHaveTextContent(
+      /Judge prompt: —/
+    );
 
     const withLink = renderWithTheme(
       <AiEvaluatorDetailView
