@@ -40,6 +40,8 @@ describe("OrgSwitcher", () => {
     expect(screen.getByText("Only Org")).toBeTruthy();
     await act(async () => {});
     expect(changed).toHaveBeenCalledWith({_id: "org-1", name: "Only Org"});
+    fireEvent(screen.getByTestId("org-switcher-single-open"), "click");
+    expect(routerPush).toHaveBeenCalledWith("/admin/orgs/org-1");
   });
 
   it("renders organizations from RTK-unwrapped list data", async () => {

@@ -1,4 +1,4 @@
-import {Box, SelectField, Spinner, Text} from "@terreno/ui";
+import {Box, Button, SelectField, Spinner, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback, useEffect} from "react";
@@ -59,7 +59,12 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
         <Text color="secondaryDark" size="sm">
           Organization
         </Text>
-        <Text bold>{organizations[0].name}</Text>
+        <Button
+          onClick={() => handleChange(organizations[0]._id)}
+          testID="org-switcher-single-open"
+          text={organizations[0].name}
+          variant="ghost"
+        />
       </Box>
     );
   }
