@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T00:00:25.122Z",
+  "generatedAt": "2026-09-10T01:35:28.353Z",
   "issues": [
     "default:binaries:demo/package.json:eas",
     "default:binaries:package.json:maestro",
@@ -379,6 +379,7 @@
     "default:files:mcp-server/src/__tests__/tools.test.ts:mcp-server/src/__tests__/tools.test.ts",
     "default:files:mcp-server/src/__tests__/upgradeGuide.test.ts:mcp-server/src/__tests__/upgradeGuide.test.ts",
     "default:files:mcp-server/src/__tests__/upgradeNoteFormat.test.ts:mcp-server/src/__tests__/upgradeNoteFormat.test.ts",
+    "default:files:mcp-server/src/help/excerpt.test.ts:mcp-server/src/help/excerpt.test.ts",
     "default:files:rtk/src/isolated/buildNumber.isolated.ts:rtk/src/isolated/buildNumber.isolated.ts",
     "default:files:rtk/src/isolated/constants.isolated.ts:rtk/src/isolated/constants.isolated.ts",
     "default:files:rtk/src/isolated/emptyApi.isolated.ts:rtk/src/isolated/emptyApi.isolated.ts",
@@ -800,6 +801,7 @@
     "production:files:admin-frontend/src/isolated/DocumentStorageBrowser.isolated.tsx:admin-frontend/src/isolated/DocumentStorageBrowser.isolated.tsx",
     "production:files:admin-frontend/src/isolated/generateConsentPdf.isolated.ts:admin-frontend/src/isolated/generateConsentPdf.isolated.ts",
     "production:files:admin-frontend/src/isolated/hooks.isolated.tsx:admin-frontend/src/isolated/hooks.isolated.tsx",
+    "production:files:admin-frontend/src/testing/useAdminApiDouble.ts:admin-frontend/src/testing/useAdminApiDouble.ts",
     "production:files:admin-spa/e2e/credentials.ts:admin-spa/e2e/credentials.ts",
     "production:files:admin-spa/e2e/serveTestApp.ts:admin-spa/e2e/serveTestApp.ts",
     "production:files:admin-spa/e2e/smoke.ts:admin-spa/e2e/smoke.ts",
@@ -915,6 +917,7 @@
     "production:files:mcp-server/src/__tests__/tools.test.ts:mcp-server/src/__tests__/tools.test.ts",
     "production:files:mcp-server/src/__tests__/upgradeGuide.test.ts:mcp-server/src/__tests__/upgradeGuide.test.ts",
     "production:files:mcp-server/src/__tests__/upgradeNoteFormat.test.ts:mcp-server/src/__tests__/upgradeNoteFormat.test.ts",
+    "production:files:mcp-server/src/help/excerpt.test.ts:mcp-server/src/help/excerpt.test.ts",
     "production:files:rtk/src/isolated/buildNumber.isolated.ts:rtk/src/isolated/buildNumber.isolated.ts",
     "production:files:rtk/src/isolated/constants.isolated.ts:rtk/src/isolated/constants.isolated.ts",
     "production:files:rtk/src/isolated/emptyApi.isolated.ts:rtk/src/isolated/emptyApi.isolated.ts",
