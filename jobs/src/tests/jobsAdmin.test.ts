@@ -205,6 +205,18 @@ describe("jobs admin routes", () => {
     assert.equal(String(response.body.data._id), String(dead._id));
   });
 
+  it("returns 400 when cancelling completed or dead jobs", async (): Promise<void> => {
+    const jobsApp = new JobsApp();
+    jobsApp.define("cancel-gate", {handler: async () => {}});
+    const app = buildLegacyAuthApp(jobsApp);
+    const admin = await authAsUser(app, "admin");
+
+    for (const status of ["completed", "dead"] as const) {
+      const job = await seedJob({name: "cancel-gate", status});
+      await admin.post(`/jobs/${String(job._id)}/cancel`).expect(400);
+    }
+  });
+
   it("cancel moves pending jobs to cancelled", async (): Promise<void> => {
     const jobsApp = new JobsApp();
     jobsApp.define("cancel-me", {handler: async () => {}});
@@ -521,21 +533,33 @@ describe("jobs admin routes", () => {
 
     const failure = rejected[0] as PromiseRejectedResult;
     assert.isTrue(isAPIError(failure.reason));
-    assert.equal((failure.reason as APIError).status, 409);
+    const loserStatus = (failure.reason as APIError).status;
+    assert.oneOf(loserStatus, [400, 409]);
 
     const refreshed = await Job.findExactlyOne({_id: original._id});
     const linkedRetries = await Job.find({retriedFromId: original._id});
+    const orphanRetries = await Job.find({
+      _id: {$nin: [original._id]},
+      name: "race-job",
+      retriedFromId: {$exists: false},
+      status: "pending",
+    });
 
     if (refreshed.retriedById) {
+      assert.equal(loserStatus, 409);
       assert.oneOf(refreshed.status, ["dead", "failed"]);
       assert.lengthOf(linkedRetries, 1);
       assert.equal(String(linkedRetries[0]?._id), String(refreshed.retriedById));
       assert.equal(linkedRetries[0]?.status, "pending");
+      assert.lengthOf(orphanRetries, 0);
       return;
     }
 
     assert.equal(refreshed.status, "pending");
+    assert.isUndefined(refreshed.retriedById);
     assert.lengthOf(linkedRetries, 0);
+    assert.lengthOf(orphanRetries, 0);
+    assert.oneOf(loserStatus, [400, 409]);
   });
 
   it("returns 401 for unauthenticated mutations", async (): Promise<void> => {
