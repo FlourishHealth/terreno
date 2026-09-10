@@ -14,6 +14,7 @@ import {useCallback, useMemo, useState} from "react";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {usePostNotificationsDevNotifyMutation} from "@/store/sdk";
 import {type Notification, useDeleteNotification, useUpdateNotification} from "@/store/syncDbSdk";
+import {syncDb} from "@/store/syncdb";
 
 const sortByCreatedDesc = (left: Notification, right: Notification): number => {
   const leftMillis = left.created ? DateTime.fromISO(left.created).toMillis() : 0;
@@ -120,10 +121,17 @@ export const NotificationCenter: React.FC = () => {
         href: "/",
         title: "Terreno test notification",
       }).unwrap();
+      // Dev notify writes over HTTP; nudge sync to close the subscribe/reconcile gap so
+      // the new row stays visible without waiting for a periodic reconcile or refresh.
+      if (isSyncDbReady) {
+        void syncDb.reconcile().catch((error: unknown) => {
+          console.warn("Notification test reconcile failed", error);
+        });
+      }
     } catch (error: unknown) {
       console.error("Failed to send test notification", error);
     }
-  }, [sendTestNotification]);
+  }, [isSyncDbReady, sendTestNotification]);
 
   return (
     <>
@@ -141,18 +149,22 @@ export const NotificationCenter: React.FC = () => {
       </Box>
       <Modal
         onDismiss={handleDismissInbox}
-        primaryButtonText="Close"
+        secondaryButtonOnClick={handleDismissInbox}
+        secondaryButtonText="Close"
+        testID="notification-inbox-modal"
         title="Notifications"
         visible={inboxVisible}
       >
-        <NotificationInbox
-          isLoading={!isSyncDbReady}
-          items={inboxItems}
-          onDismiss={handleDismiss}
-          onMarkRead={handleMarkRead}
-          onMarkUnread={handleMarkUnread}
-          onOpen={handleOpen}
-        />
+        <Box maxHeight={420} overflow="scrollY">
+          <NotificationInbox
+            isLoading={!isSyncDbReady}
+            items={inboxItems}
+            onDismiss={handleDismiss}
+            onMarkRead={handleMarkRead}
+            onMarkUnread={handleMarkUnread}
+            onOpen={handleOpen}
+          />
+        </Box>
       </Modal>
     </>
   );
