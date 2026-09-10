@@ -91,8 +91,11 @@ const runDefaultKnipReport = (): KnipReport => {
 };
 
 const dependencyIssueNames = ({file, report}: {file: string; report: KnipReport}): string[] => {
+  const packageDirectory = file.replace("package.json", "");
   const packageIssues = report.issues.filter(
-    (issue) => issue.file === file || issue.file.startsWith(file.replace("package.json", ""))
+    (issue) =>
+      issue.file === file ||
+      (packageDirectory.length > 0 && issue.file.startsWith(packageDirectory))
   );
   return packageIssues
     .flatMap((issue) => [
@@ -100,6 +103,8 @@ const dependencyIssueNames = ({file, report}: {file: string; report: KnipReport}
       ...(issue.devDependencies ?? []),
       ...(issue.optionalPeerDependencies ?? []),
       ...(issue.unlisted ?? []),
+      ...(issue.binaries ?? []),
+      ...(issue.catalog ?? []),
     ])
     .map((issue) => issue.name)
     .sort();
@@ -179,6 +184,24 @@ describe("Knip entry graph", (): void => {
           assert.notInclude(reportedNames, dependencyName, `${packageFile}: ${dependencyName}`);
         }
       }
+    },
+    {timeout: 180_000}
+  );
+
+  test(
+    "does not report externally installed binaries, catalog pins, or public optional peers",
+    (): void => {
+      const report = runDefaultKnipReport();
+      assert.notInclude(dependencyIssueNames({file: "package.json", report}), "maestro");
+      assert.notInclude(
+        dependencyIssueNames({file: "package.json", report}),
+        "@sentry/react-native"
+      );
+      assert.notInclude(dependencyIssueNames({file: "demo/package.json", report}), "eas");
+      assert.notInclude(
+        dependencyIssueNames({file: "admin-frontend/package.json", report}),
+        "react-native-webview"
+      );
     },
     {timeout: 180_000}
   );

@@ -58,7 +58,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: those packages are gone from live `dependencies` / `unlisted` findings; each ignore has a comment; no app/`ui` `package.json` lost an Expo native dep; `analyze:full` exits 0
 
-- [ ] **Task 2.2**: Ignore binaries, catalog-only, and optional peers that are real
+- [x] **Task 2.2**: Ignore binaries, catalog-only, and optional peers that are real
   - Delivers: `eas`, `maestro`, catalog `@sentry/react-native` if unused in this repo but required by the catalog contract, `admin-frontend` optional `react-native-webview`
   - Files: `knip.jsonc`
   - Blocked by: none

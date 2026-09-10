@@ -15,7 +15,12 @@
     "skills/expo-cicd-workflows/scripts/**",
     ".rulesync/skills/expo-cicd-workflows/scripts/**"
   ],
+  // Maestro is installed by CI and developer toolchains rather than package.json.
+  "ignoreBinaries": ["maestro"],
   "ignoreIssues": {
+    // Keep the Sentry React Native catalog pin stable for consumer/native fingerprint
+    // compatibility even though no current workspace declares it.
+    "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
@@ -38,6 +43,9 @@
     },
     "admin-frontend": {
       // Isolated files are `bun test $file`, not `*.test.ts`, so the Bun plugin skips them.
+      // react-native-webview is supplied by consuming apps through this package's
+      // optional peer contract, which Knip reports as an unused optional peer.
+      "ignoreDependencies": ["react-native-webview"],
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -87,6 +95,8 @@
       ]
     },
     "demo": {
+      // EAS CLI is installed by Expo/CI tooling rather than package.json.
+      "ignoreBinaries": ["eas"],
       // The demo resolves UI package peers, native modules, fonts, and Metro polyfills at
       // bundle/autolink time. They are runtime inputs even without direct demo imports.
       "ignoreDependencies": [

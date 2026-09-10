@@ -51,6 +51,11 @@ Knip's source graph. Keep those dependencies in the owning `package.json` and li
 under that workspace's `ignoreDependencies` in `knip.jsonc`, with a comment naming the
 runtime loader.
 
+The same rule covers externally installed CLIs (`maestro`, `eas`), catalog pins retained
+for native fingerprint compatibility, and optional peers consumed by published-package
+users. Declare those narrowly with `ignoreBinaries` or `ignoreDependencies`; do not add a
+fake local import.
+
 ## Ratchets
 
 The repository already contains findings that cannot be removed in one change. The
