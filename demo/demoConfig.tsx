@@ -13,8 +13,10 @@ import {CardConfiguration} from "@story-config/Card.config";
 import {CheckBoxConfiguration} from "@story-config/CheckBox.config";
 import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
+import {DashboardGridConfiguration} from "@story-config/DashboardGrid.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
+import {DonutChartConfiguration} from "@story-config/DonutChart.config";
 import {EditableCardConfiguration} from "@story-config/EditableCard.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
@@ -245,8 +247,10 @@ const Config: DemoConfigurationBase[] = [
   CheckBoxConfiguration,
   ConsentFormScreenConfiguration,
   CustomSelectFieldConfiguration,
+  DashboardGridConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
+  DonutChartConfiguration,
   EditableCardConfiguration,
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,

@@ -2639,6 +2639,15 @@ export interface LineChartProps extends WithTestID {
 export interface AreaChartProps extends LineChartProps {}
 export interface BarChartProps extends LineChartProps {}
 
+export interface DonutChartProps extends LineChartProps {}
+
+export interface DashboardGridProps extends WithTestID {
+  children?: React.ReactNode;
+  /** Column counts by breakpoint. Defaults to `{sm: 1, md: 2, lg: 3}`. */
+  columns?: {lg: number; md: number; sm: number};
+  gap?: UnsignedUpTo12;
+}
+
 /**
  * Data Table
  */

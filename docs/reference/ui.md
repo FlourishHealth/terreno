@@ -4,9 +4,9 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 ## Key exports
 
-- Layout: `Box`, `Page`, `SplitPage`, `Card`
+- Layout: `Box`, `Page`, `SplitPage`, `Card`, `DashboardGrid`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
@@ -58,6 +58,18 @@ const customStyle: StyleProp<ViewStyle> = {
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
 
+### DashboardGrid
+
+Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s.
+
+```tsx
+<DashboardGrid>
+  <Card>
+    <LineChart data={points} legendLabel="Signups" />
+  </Card>
+</DashboardGrid>
+```
+
 ### LineChart
 
 Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`. Press or hover a point for `{label}: {value}`.
@@ -93,6 +105,17 @@ Filled area plus line on the same owned-SVG contract as `LineChart`.
   data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
   legendLabel="Signups"
   testID="signups-area"
+/>
+```
+
+### DonutChart
+
+One slice per `{label, value}` point. Per-slice `color` overrides the theme paint. Legend is one row per slice (`legendLabel` is ignored).
+
+```tsx
+<DonutChart
+  data={[{label: "Open", value: 3}, {color: "#112233", label: "Closed", value: 5}]}
+  testID="status-donut"
 />
 ```
 
