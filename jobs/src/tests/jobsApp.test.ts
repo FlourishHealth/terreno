@@ -1,12 +1,17 @@
-import {describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it} from "bun:test";
 import {TerrenoApp, type UserModel as UserModelType} from "@terreno/api";
-import {UserModel} from "@terreno/api/testing";
+import {setupDb, UserModel} from "@terreno/api/testing";
 
 import {JobsApp} from "../jobsApp";
+import {Job} from "../models/job";
 
 const typedUserModel = UserModel as unknown as UserModelType;
 
 describe("JobsApp", () => {
+  beforeEach(async (): Promise<void> => {
+    await setupDb();
+    await Job.deleteMany({});
+  });
   it("registers with TerrenoApp and builds without starting a worker", () => {
     const jobsApp = new JobsApp();
 

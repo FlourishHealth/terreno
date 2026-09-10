@@ -509,12 +509,15 @@
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
+        "luxon": "catalog:",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@terreno/test": "workspace:*",
         "@types/bun": "catalog:",
         "@types/express": "catalog:",
+        "@types/luxon": "catalog:",
+        "chai": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {

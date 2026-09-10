@@ -15,7 +15,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (Phase 5)
   - Acceptance: `bun run jobs:compile` and `bun run jobs:lint` pass; `new TerrenoApp().register(new JobsApp())` boots in a bun test
 
-- [ ] **Task 1.2**: `Job` model + `define` / `enqueue` + Mongo claim
+- [x] **Task 1.2**: `Job` model + `define` / `enqueue` + Mongo claim
   - Delivers: five-type `Job` model; `jobs.define(name, {handler})`; `getJobsService().enqueue({name, payload})` inserts `pending`; `MongoJobRunner` claims with `findOneAndUpdate`; handler runs inside `runWithRequestContext({jobId})`; unknown `name` throws `APIError` 400
   - Files: `jobs/src/models/job.ts`, `jobs/src/modelTypes.ts`, `jobs/src/jobsService.ts`, `jobs/src/runners/mongoRunner.ts`, tests
   - Blocked by: 1.1
