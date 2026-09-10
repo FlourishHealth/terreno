@@ -38,6 +38,7 @@ const ADMIN_CONFIG_CAPABILITY_KEYS = ["actions", "fieldsets", "filters", "realti
 
 const ADMIN_MODEL_META_ALLOWED_KEYS = new Set([
   "actions",
+  "adminBroadcast",
   "bulkPatchAllowlist",
   "defaultSort",
   "displayName",
@@ -59,10 +60,12 @@ const ADMIN_MODEL_META_ALLOWED_KEYS = new Set([
   "routePath",
   "searchFields",
   "sortableFields",
+  "syncCollection",
 ]);
 
 const ADMIN_MODEL_META_REQUIRED_KEYS = [
   "actions",
+  "adminBroadcast",
   "bulkPatchAllowlist",
   "defaultSort",
   "displayName",
@@ -191,6 +194,8 @@ describe("admin HTTP goldens (membership + config)", () => {
     assert.include(todoMeta?.searchFields as string[], "title");
     const todoFields = todoMeta?.fields as Record<string, {type: string}>;
     assert.strictEqual(todoFields._id.type, "string");
+    assert.strictEqual(todoMeta?.adminBroadcast, false);
+    assert.notProperty(todoMeta as object, "syncCollection");
 
     assert.strictEqual(userMeta?.name, "User");
     assert.deepEqual(userMeta?.listFields, ["email", "name"]);

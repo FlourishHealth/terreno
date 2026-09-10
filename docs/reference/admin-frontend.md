@@ -19,6 +19,8 @@ Pass fetch auth on `AdminProvider`:
 
 RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders})` then `adminRequest`. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Passing only `api` keeps `injectEndpoints`. Do not add axios.
 
+Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose config includes `adminBroadcast: true` and `syncCollection`. Hosts inject the same `createSyncDb()` client they use for the app. Do not add `@terreno/syncdb` as a hard dependency of admin-frontend.
+
 ``````typescript
 // app/admin/index.tsx
 import {AdminHome} from "@terreno/admin-frontend";
@@ -62,6 +64,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 

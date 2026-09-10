@@ -3,6 +3,7 @@ import {bindAdminRequest} from "./adminRequest";
 import type {
   AdminProviderValue,
   AdminScreenProps,
+  AdminSyncDb,
   AdminWidgetRegistry,
   FieldWidgetComponent,
   HomeWidgetComponent,
@@ -37,6 +38,8 @@ export const resetAdminWidgetWarningsForTests = (): void => {
 
 export interface AdminProviderProps extends AdminScreenProps {
   children: React.ReactNode;
+  /** Optional windowed TinyBase client for String `_id` + `adminBroadcast` models. */
+  syncDb?: AdminSyncDb;
   widgets?: Partial<AdminWidgetRegistry>;
 }
 
@@ -48,6 +51,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   credentials,
   getAuthHeaders,
   routeBase,
+  syncDb,
   widgets: userWidgets,
 }) => {
   const bases = resolveAdminBases({apiBase, baseUrl, routeBase});
@@ -66,9 +70,19 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
       credentials,
       getAuthHeaders,
       routeBase: bases.routeBase,
+      syncDb,
       widgets: mergedWidgets,
     }),
-    [adminRpc, api, bases.apiBase, bases.routeBase, credentials, getAuthHeaders, mergedWidgets]
+    [
+      adminRpc,
+      api,
+      bases.apiBase,
+      bases.routeBase,
+      credentials,
+      getAuthHeaders,
+      mergedWidgets,
+      syncDb,
+    ]
   );
 
   return <AdminWidgetContext.Provider value={value}>{children}</AdminWidgetContext.Provider>;

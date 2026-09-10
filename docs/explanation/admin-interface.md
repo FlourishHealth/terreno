@@ -64,7 +64,7 @@ canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and
 | Field widgets | `admin.fieldOverrides.widget` + `widgets.fields` |
 | Expo files | `app/admin/_layout.tsx` (shell once) or per-route shell in admin-spa |
 | Dedicated extra segments (`/comms/:id`) | Explicit Expo files so `[model]/[id]` does not treat them as generic forms |
-| Data fetching | `useAdminConfig` / `useAdminApi` (RTK). Admin is **not** a syncdb collection |
+| Data fetching | `useAdminConfig` / `useAdminApi` for membership and RPC. String `_id` models with `adminBroadcast` overlay TinyBase when the host passes `syncDb` + a fetch client. ObjectId models stay RTK/fetch. |
 
 ## Related
 

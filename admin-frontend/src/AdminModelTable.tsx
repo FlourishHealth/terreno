@@ -23,11 +23,13 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Pressable} from "react-native";
 import {AdminActionMenu} from "./AdminActionMenu";
 import {AdminFilterDrawer} from "./AdminFilterDrawer";
+import {useAdminContext} from "./AdminProvider";
 import {
   ADMIN_LIST_MAX_SELECTION,
   type AdminListFilterState,
   buildAdminListQueryParams,
 } from "./adminModelListQueryParams";
+import {isWindowedAdminTable, resolveWindowedTableRows} from "./adminWindowedTable";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
 import {
   type AdminApi,
@@ -64,6 +66,11 @@ const LINK_COLUMN_TYPE = "adminLink";
 const SELECT_COLUMN_TYPE = "adminSelect";
 const INLINE_BOOL_COLUMN_TYPE = "adminInlineBool";
 const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
+
+interface AdminListEnvelope {
+  data: Array<Record<string, AdminFieldValue>>;
+  total: number;
+}
 
 const getColumnType = (fieldKey: string, fieldConfig?: AdminFieldConfig): string => {
   if (fieldConfig) {
@@ -260,6 +267,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     baseUrl,
     routeBase,
   });
+  const adminContext = useAdminContext();
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const toast = useToast();
   const [page, setPage] = useState(1);
@@ -274,6 +282,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
     [config, modelName]
   );
+  const isWindowed = isWindowedAdminTable({
+    hasFetchClient: Boolean(adminContext?.adminRpc),
+    modelConfig,
+    syncDb: adminContext?.syncDb,
+  });
+  const syncCollection = modelConfig?.syncCollection;
 
   // Debounce search text for list queries.
   useEffect(() => {
@@ -369,11 +383,49 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     modelConfig?.routePath ?? "",
     modelName
   );
-  const {data: listData, isLoading: isListLoading} = useListQuery(listParams, {skip: !modelConfig});
+  const {
+    data: listData,
+    isLoading: isListLoading,
+    refetch,
+  } = useListQuery(listParams, {skip: !modelConfig});
+  const [listSnapshot, setListSnapshot] = useState<AdminListEnvelope | undefined>();
+  const [storeEpoch, setStoreEpoch] = useState(0);
   const [deleteItem] = useDeleteMutation();
   const [patchItem] = useUpdateMutation();
   const [bulkPatch] = useBulkPatchMutation();
   const [enqueueBackground] = useAdminBackgroundTaskMutation(api, resolvedApiBase);
+
+  const membershipRows = useMemo((): Array<Record<string, AdminFieldValue>> => {
+    const envelope = listSnapshot ?? (listData as AdminListEnvelope | undefined);
+    return (envelope?.data ?? []) as Array<Record<string, AdminFieldValue>>;
+  }, [listData, listSnapshot]);
+
+  const membershipTotal = useMemo((): number => {
+    const envelope = listSnapshot ?? (listData as AdminListEnvelope | undefined);
+    return (envelope?.total as number | undefined) ?? 0;
+  }, [listData, listSnapshot]);
+
+  const tableItems = useMemo((): Array<Record<string, AdminFieldValue>> => {
+    if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
+      return membershipRows;
+    }
+    const restById = new Map<string, Record<string, AdminFieldValue>>();
+    const membershipIds: string[] = [];
+    for (const row of membershipRows) {
+      const id = String(row._id ?? "");
+      if (id.length === 0) {
+        continue;
+      }
+      membershipIds.push(id);
+      restById.set(id, row);
+    }
+    return resolveWindowedTableRows({
+      collection: syncCollection,
+      getEntity: adminContext.syncDb.store.getEntity,
+      membershipIds,
+      restById,
+    });
+  }, [adminContext?.syncDb, isWindowed, membershipRows, storeEpoch, syncCollection]);
 
   const deleteEnabled = modelConfig?.permissions?.delete !== false;
   const createEnabled = modelConfig?.permissions?.create !== false;
@@ -392,6 +444,65 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     setFilterState(next);
     setPage(1);
   }, []);
+
+  // Drop Refresh-only list snapshots when pagination, search, or sort change.
+  useEffect(() => {
+    setListSnapshot(undefined);
+  }, [listParams]);
+
+  // Upsert the REST membership page into TinyBase for windowed admin lists.
+  useEffect(() => {
+    if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
+      return;
+    }
+    const ids: string[] = [];
+    const restRows: Record<string, unknown> = {};
+    for (const row of membershipRows) {
+      const id = String(row._id ?? "");
+      if (id.length === 0) {
+        continue;
+      }
+      ids.push(id);
+      restRows[id] = row;
+    }
+    let cancelled = false;
+    void adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows}).then(() => {
+      if (!cancelled) {
+        setStoreEpoch((n) => n + 1);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminContext?.syncDb, isWindowed, membershipRows, syncCollection]);
+
+  const handleRefresh = useCallback(async (): Promise<void> => {
+    if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
+      return;
+    }
+    try {
+      const result = (await refetch()) as {data?: AdminListEnvelope} | undefined;
+      const next = result?.data;
+      if (next) {
+        setListSnapshot(next);
+      }
+      const rows = (next?.data ?? membershipRows) as Array<Record<string, AdminFieldValue>>;
+      const ids: string[] = [];
+      const restRows: Record<string, unknown> = {};
+      for (const row of rows) {
+        const id = String(row._id ?? "");
+        if (id.length === 0) {
+          continue;
+        }
+        ids.push(id);
+        restRows[id] = row;
+      }
+      await adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows});
+      setStoreEpoch((n) => n + 1);
+    } catch (err) {
+      toast.catch(err, "Refresh failed");
+    }
+  }, [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -424,7 +535,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   );
 
   const toggleSelectPage = useCallback(() => {
-    const ids = (listData?.data ?? []).map((row: {_id?: string}) => String(row._id));
+    const ids = membershipRows.map((row) => String(row._id));
     const allSelected = ids.length > 0 && ids.every((id: string) => selectedIds.has(id));
     if (allSelected) {
       setSelectedIds((prev) => {
@@ -449,7 +560,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       }
       return n;
     });
-  }, [listData?.data, selectedIds, toast]);
+  }, [membershipRows, selectedIds, toast]);
 
   const runBulkAction = useCallback(
     async (actionId: string) => {
@@ -581,7 +692,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     },
   ];
 
-  const listItems = (listData?.data ?? []) as Array<Record<string, AdminFieldValue>>;
+  const listItems = tableItems;
   const data = listItems.map((item) => {
     const id = String(item._id ?? "");
     const selected = selectedIds.has(id);
@@ -633,7 +744,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     return [...selectCell, ...fieldCells, actionsCell];
   });
 
-  const totalPages = listData ? Math.ceil((listData.total as number) / pageLimit) : 1;
+  const totalPages = membershipTotal ? Math.ceil(membershipTotal / pageLimit) : 1;
 
   const searchHelperText =
     modelConfig.searchFields && modelConfig.searchFields.length > 0
@@ -656,6 +767,19 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
               value={searchText}
             />
           </Card>
+        ) : null}
+
+        {isWindowed ? (
+          <Box alignItems="start">
+            <Button
+              onClick={() => {
+                void handleRefresh();
+              }}
+              testID="admin-table-refresh"
+              text="Refresh"
+              variant="outline"
+            />
+          </Box>
         ) : null}
 
         <Box alignItems="stretch" direction="column" gap={3} mdDirection="row">

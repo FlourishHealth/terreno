@@ -159,4 +159,24 @@ describe("AdminProvider widget registry", () => {
     expect(context?.credentials).toBe("same-origin");
     expect(context?.getAuthHeaders).toBe(getAuthHeaders);
   });
+
+  it("exposes host-injected syncDb on context", () => {
+    const syncDb = {
+      hydrateWindow: async () => ({hydratedIds: []}),
+      store: {getEntity: () => undefined},
+    };
+    let context: AdminProviderValue | null = null;
+    const Probe: React.FC = () => {
+      context = useAdminContext();
+      return null;
+    };
+
+    renderWithTheme(
+      <AdminProvider api={{} as AdminApi} apiBase="/admin" syncDb={syncDb}>
+        <Probe />
+      </AdminProvider>
+    );
+
+    expect(context?.syncDb).toBe(syncDb);
+  });
 });

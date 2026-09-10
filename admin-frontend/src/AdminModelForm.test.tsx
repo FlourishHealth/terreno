@@ -43,9 +43,13 @@ const updateFn = mock((_: unknown) => ({unwrap: async () => ({_id: "u"})}));
 const deleteFn = mock((_: unknown) => ({unwrap: async () => ({})}));
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useBulkPatchMutation: () => [
+      mock(() => ({unwrap: async () => ({updated: 1})})),
+      {isLoading: false},
+    ],
     useCreateMutation: () => [createFn, {isLoading: false}],
     useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false}),
+    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false, refetch: async () => ({})}),
     useReadQuery: () => ({
       data: readState.data,
       error: null,

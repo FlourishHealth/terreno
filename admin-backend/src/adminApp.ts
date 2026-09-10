@@ -12,6 +12,7 @@ import {
   createOpenApiBuilder,
   createScriptArgs,
   describeModel,
+  findSyncEntryByModelName,
   type JSONValue,
   logger,
   type ModelRouterOptions,
@@ -242,6 +243,13 @@ interface AdminModelMeta {
   fieldOrder?: string[];
   fieldsets?: AdminFieldsetInput[];
   fields: Record<string, AdminFieldMeta>;
+  /** True when the model’s app `sync` config set `adminBroadcast`. */
+  adminBroadcast: boolean;
+  /**
+   * Sync collection tag (`routePath` without a leading slash) when
+   * `adminBroadcast` is true. Omitted otherwise.
+   */
+  syncCollection?: string;
   filters: AdminListFilter[];
   group?: string;
   hiddenFields: string[];
@@ -287,6 +295,16 @@ interface AdminConfigResponse {
   scripts: AdminScriptMeta[];
   widgetIds: string[];
 }
+
+const syncMetaForAdminModel = (
+  modelName: string
+): {adminBroadcast: boolean; syncCollection?: string} => {
+  const entry = findSyncEntryByModelName(modelName);
+  if (entry?.config.adminBroadcast !== true) {
+    return {adminBroadcast: false};
+  }
+  return {adminBroadcast: true, syncCollection: entry.collectionTag};
+};
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
   const map: AdminModelAdminMap = {};
@@ -768,9 +786,11 @@ export class AdminApp {
           readonlyFields,
           schemaPaths: schemaPathKeys,
         });
+      const syncMeta = syncMetaForAdminModel(config.model.modelName);
 
       return {
         actions: config.actions ?? [],
+        adminBroadcast: syncMeta.adminBroadcast,
         bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
@@ -796,6 +816,7 @@ export class AdminApp {
         routePath: `${basePath}${config.routePath}`,
         searchFields,
         sortableFields,
+        ...(syncMeta.syncCollection ? {syncCollection: syncMeta.syncCollection} : {}),
       };
     });
 

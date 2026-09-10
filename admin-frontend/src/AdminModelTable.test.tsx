@@ -52,6 +52,7 @@ mock.module("./useAdminApi", () => ({
         data: listState.data,
         error: null,
         isLoading: listState.isLoading,
+        refetch: async () => ({data: listState.data}),
       };
     },
     useReadQuery: () => ({data: null, error: null, isLoading: false}),

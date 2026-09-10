@@ -79,6 +79,17 @@ export interface AdminModelConfig {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
+  /**
+   * From `GET /admin/config`: true when the app collection registered
+   * `sync.adminBroadcast`. Windowed TinyBase lists require this plus
+   * {@link AdminProviderValue.syncDb} and a fetch client.
+   */
+  adminBroadcast?: boolean;
+  /**
+   * Sync collection tag (`todos`, not `/admin/todos`) when `adminBroadcast`
+   * is true. Omitted on other models.
+   */
+  syncCollection?: string;
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
@@ -215,6 +226,24 @@ import type {AdminRpc} from "./adminRpc";
 
 export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
 
+/** Narrow syncdb surface the admin table uses. Hosts pass `createSyncDb()` as this. */
+export interface AdminSyncDbEntity {
+  data: unknown;
+  deleted?: boolean;
+  id: string;
+}
+
+export interface AdminSyncDb {
+  hydrateWindow: (args: {
+    collection: string;
+    ids: string[];
+    restRows?: Record<string, unknown>;
+  }) => Promise<{hydratedIds: string[]}>;
+  store: {
+    getEntity: (args: {collection: string; id: string}) => AdminSyncDbEntity | undefined;
+  };
+}
+
 export interface AdminProviderValue {
   adminRpc?: AdminRpc;
   api: AdminApi;
@@ -222,6 +251,7 @@ export interface AdminProviderValue {
   credentials?: RequestCredentials;
   getAuthHeaders?: AdminGetAuthHeaders;
   routeBase: string;
+  syncDb?: AdminSyncDb;
   widgets: AdminWidgetRegistry;
 }
 

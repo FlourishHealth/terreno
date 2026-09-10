@@ -91,7 +91,8 @@ For each model, creates standard modelRouter CRUD endpoints plus admin membershi
           required: false,
           default: false
         }
-      }
+      },
+      adminBroadcast: false
     }
   ]
 }
@@ -104,6 +105,8 @@ Field metadata includes:
 - `enum` — Enum values if applicable
 - `default` — Default value
 - `ref` — Referenced model name for ObjectId refs
+- `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set `adminBroadcast`
+- `syncCollection` — Sync collection tag (app `routePath` without a leading slash, e.g. `todos`) when `adminBroadcast` is true; omitted otherwise
 
 Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.
 
