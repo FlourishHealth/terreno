@@ -17,6 +17,7 @@ import {
   formatNextSteps,
   isTargetEmptyEnough,
   parseCliArgs,
+  quoteShellArgument,
   writeScaffold,
 } from "../writeScaffold.js";
 
@@ -170,6 +171,13 @@ describe("deriveDisplayName", () => {
   test("title-cases kebab-case app names", () => {
     assert.equal(deriveDisplayName("my-app"), "My App");
     assert.equal(deriveDisplayName("billing-portal"), "Billing Portal");
+  });
+});
+
+describe("quoteShellArgument", () => {
+  test("single-quotes spaces and shell substitutions", () => {
+    assert.equal(quoteShellArgument("/tmp/my app/$(touch nope)"), "'/tmp/my app/$(touch nope)'");
+    assert.equal(quoteShellArgument("safe-app"), "safe-app");
   });
 });
 

@@ -41,7 +41,7 @@ Plan: [`docs/implementationPlans/create-terreno-app.md`](../implementationPlans/
 
 ### Phase 3: Deployable scaffold
 
-- [ ] **Task 3.1**: Consumer Dockerfile, env examples, README deploy section
+- [x] **Task 3.1**: Consumer Dockerfile, env examples, README deploy section
   - Delivers: generator adds a consumer backend `Dockerfile` (`oven/bun`, `PORT`, `0.0.0.0`, `/health`), `backend/.env.example` + `frontend/.env.example`, keeps local `.env` defaults, README links [deployment baseline](../explanation/deployment-baseline.md), [deploy backend to Cloud Run](../how-to/deploy-backend-to-cloud-run.md), [build for web](../how-to/build-for-web.md)
   - Files: generator helpers in `create-terreno-app/src/`, `create-terreno-app/src/__tests__/generate.test.ts`
   - Blocked by: Task 1.1

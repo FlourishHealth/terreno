@@ -1,4 +1,9 @@
 import {describe, expect, test} from "bun:test";
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {assert} from "chai";
+import {generateAllFiles, getFenceLanguage} from "create-terreno-app";
 import {
   bootstrapPrompts,
   bootstrapTools,
@@ -6,6 +11,29 @@ import {
   handleBootstrapToolCall,
   PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
+import {
+  disableScaffoldWrites,
+  enableScaffoldWrites,
+  TERRENO_MCP_WRITE_SCAFFOLD_ENV,
+} from "../scaffoldWriteMode.js";
+
+const withWriteScaffoldEnv = (value: string | undefined, run: () => void): void => {
+  const previous = process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];
+  if (value === undefined) {
+    delete process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];
+  } else {
+    process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV] = value;
+  }
+  try {
+    run();
+  } finally {
+    if (previous === undefined) {
+      delete process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];
+    } else {
+      process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV] = previous;
+    }
+  }
+};
 
 /**
  * Pull a single generated file's body out of the markdown blob the bootstrap tool returns,
@@ -55,6 +83,13 @@ describe("bootstrap", () => {
       expect(tool).toBeDefined();
       const props = tool?.inputSchema.properties as Record<string, {type?: string}> | undefined;
       expect(props?.packages?.type).toBe("array");
+    });
+
+    test("terreno_bootstrap_app should expose optional targetDir in inputSchema", () => {
+      const tool = bootstrapTools.find((t) => t.name === "terreno_bootstrap_app");
+      expect(tool).toBeDefined();
+      const props = tool?.inputSchema.properties as Record<string, {type?: string}> | undefined;
+      expect(props?.targetDir?.type).toBe("string");
     });
   });
 
@@ -256,6 +291,183 @@ describe("bootstrap", () => {
       const text = result.content[0].text;
       expect(text).toContain("Backend CI");
       expect(text).toContain("Frontend CI");
+    });
+
+    test("dump leads with bunx create-terreno-app CLI command", () => {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+        appDisplayName: "CLI App",
+        appName: "cli-app",
+        description: "A test app",
+        mcpServerUrl: "https://custom.mcp.example.com",
+      });
+      const text = result.content[0].text;
+      const cliIndex = text.indexOf("bunx create-terreno-app");
+      const fileContentsIndex = text.indexOf("## File Contents");
+
+      assert.isAtLeast(cliIndex, 0, "CLI command should be present");
+      assert.isBelow(cliIndex, fileContentsIndex, "CLI command should precede file dump");
+      assert.include(text, "bunx create-terreno-app cli-app --display-name 'CLI App'");
+      assert.include(text, "--description 'A test app'");
+      assert.include(text, "--mcp-server-url https://custom.mcp.example.com");
+      assert.include(text, "backend/package.json");
+    });
+
+    test("dump contains the exact shared generator output", () => {
+      const args = {
+        appDisplayName: "Exact Dump",
+        appName: "exact-dump",
+      };
+      const text = handleBootstrapToolCall("terreno_bootstrap_app", args).content[0].text;
+
+      for (const file of generateAllFiles(args)) {
+        const expectedBlock = [
+          `### \`${file.path}\``,
+          "",
+          `\`\`\`${getFenceLanguage(file.path)}`,
+          file.content,
+          "```",
+        ].join("\n");
+        assert.include(text, expectedBlock, `dump mismatch for ${file.path}`);
+      }
+    });
+
+    test("CLI command single-quotes shell substitutions", () => {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+        appDisplayName: "$(touch /tmp/unsafe)",
+        appName: "safe-app",
+      });
+
+      assert.include(
+        result.content[0].text,
+        "bunx create-terreno-app safe-app --display-name '$(touch /tmp/unsafe)'"
+      );
+    });
+
+    test("rejects invalid appName before emitting shell instructions", () => {
+      const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+        appDisplayName: "Unsafe",
+        appName: "unsafe; touch /tmp/nope",
+      });
+
+      assert.include(result.content[0].text, "Error");
+      assert.notInclude(result.content[0].text, "bunx create-terreno-app");
+    });
+
+    test("writes scaffold when write guard is set and targetDir is absolute", () => {
+      const parentDir = mkdtempSync(join(tmpdir(), "terreno-mcp-bootstrap-"));
+      try {
+        withWriteScaffoldEnv("1", () => {
+          const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+            appDisplayName: "Write App",
+            appName: "write-app",
+            targetDir: parentDir,
+          });
+          const text = result.content[0].text;
+          const targetPath = join(parentDir, "write-app");
+
+          assert.include(text, "Scaffold written");
+          assert.include(text, targetPath);
+          assert.include(text, "bun install");
+          assert.isFalse(text.includes("## File Contents"), "write path should not dump files");
+          for (const file of generateAllFiles({
+            appDisplayName: "Write App",
+            appName: "write-app",
+          })) {
+            const filePath = join(targetPath, file.path);
+            assert.isTrue(existsSync(filePath), `missing ${file.path}`);
+            assert.equal(
+              readFileSync(filePath, "utf8"),
+              file.content,
+              `content mismatch: ${file.path}`
+            );
+          }
+        });
+      } finally {
+        rmSync(parentDir, {force: true, recursive: true});
+      }
+    });
+
+    test("does not write when write guard is unset even with targetDir", () => {
+      const parentDir = mkdtempSync(join(tmpdir(), "terreno-mcp-bootstrap-"));
+      try {
+        withWriteScaffoldEnv(undefined, () => {
+          const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+            appDisplayName: "No Write App",
+            appName: "no-write-app",
+            targetDir: parentDir,
+          });
+          const text = result.content[0].text;
+          const targetPath = join(parentDir, "no-write-app");
+
+          assert.include(text, "bunx create-terreno-app");
+          assert.include(text, "## File Contents");
+          assert.isFalse(existsSync(targetPath));
+        });
+      } finally {
+        rmSync(parentDir, {force: true, recursive: true});
+      }
+    });
+
+    test("rejects relative targetDir without writing when write guard is set", () => {
+      const parentDir = mkdtempSync(join(tmpdir(), "terreno-mcp-bootstrap-"));
+      try {
+        withWriteScaffoldEnv("1", () => {
+          const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+            appDisplayName: "Relative App",
+            appName: "relative-app",
+            targetDir: "relative/parent",
+          });
+          const text = result.content[0].text;
+
+          assert.include(text, "Error");
+          assert.include(text, "absolute");
+          assert.isFalse(existsSync(join(parentDir, "relative-app")));
+        });
+      } finally {
+        rmSync(parentDir, {force: true, recursive: true});
+      }
+    });
+
+    test("reports a non-empty target without overwriting it", () => {
+      const parentDir = mkdtempSync(join(tmpdir(), "terreno-mcp-bootstrap-dirty-"));
+      const targetPath = join(parentDir, "dirty-app");
+      try {
+        mkdirSync(targetPath, {recursive: true});
+        writeFileSync(join(targetPath, "keep.txt"), "keep", "utf8");
+        withWriteScaffoldEnv("1", () => {
+          const result = handleBootstrapToolCall("terreno_bootstrap_app", {
+            appDisplayName: "Dirty App",
+            appName: "dirty-app",
+            targetDir: parentDir,
+          });
+
+          assert.include(result.content[0].text, "Error");
+          assert.equal(readFileSync(join(targetPath, "keep.txt"), "utf8"), "keep");
+          assert.isFalse(existsSync(join(targetPath, "backend")));
+        });
+      } finally {
+        rmSync(parentDir, {force: true, recursive: true});
+      }
+    });
+
+    test("restores and toggles scaffold write mode", () => {
+      const previous = process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV];
+      try {
+        disableScaffoldWrites();
+        assert.isUndefined(process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV]);
+        enableScaffoldWrites();
+        assert.equal(process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV], "1");
+        withWriteScaffoldEnv(undefined, () => {
+          assert.isUndefined(process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV]);
+        });
+        assert.equal(process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV], "1");
+      } finally {
+        if (previous === undefined) {
+          disableScaffoldWrites();
+        } else {
+          process.env[TERRENO_MCP_WRITE_SCAFFOLD_ENV] = previous;
+        }
+      }
     });
   });
 

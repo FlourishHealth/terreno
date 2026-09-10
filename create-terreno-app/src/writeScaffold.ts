@@ -49,6 +49,13 @@ export const isTargetEmptyEnough = (targetPath: string): boolean => {
   return entries.every((entry: string) => ALLOWED_EXISTING_ENTRIES.has(entry));
 };
 
+export const quoteShellArgument = (value: string): string => {
+  if (/^[A-Za-z0-9_./:@-]+$/.test(value)) {
+    return value;
+  }
+  return `'${value.replace(/'/g, "'\\''")}'`;
+};
+
 export const resolveScaffoldTarget = (args: {
   appName: string;
   parentDir?: string;
@@ -77,14 +84,15 @@ export const resolveScaffoldTarget = (args: {
 };
 
 export const formatNextSteps = (targetPath: string): string[] => {
+  const quotedTargetPath = quoteShellArgument(targetPath);
   return [
-    `cd ${targetPath}/backend && bun install`,
-    `cd ${targetPath}/frontend && bun install`,
+    `cd ${quotedTargetPath}/backend && bun install`,
+    `cd ${quotedTargetPath}/frontend && bun install`,
     "# Start MongoDB as a replica set (required for sync/realtime)",
-    `cd ${targetPath}/backend && bun run dev`,
-    `cd ${targetPath}/backend && bun run seed`,
-    `cd ${targetPath}/frontend && bun run sdk`,
-    `cd ${targetPath}/frontend && bun run web`,
+    `cd ${quotedTargetPath}/backend && bun run dev`,
+    `cd ${quotedTargetPath}/backend && bun run seed`,
+    `cd ${quotedTargetPath}/frontend && bun run sdk`,
+    `cd ${quotedTargetPath}/frontend && bun run web`,
     "# Open http://localhost:8082 and sign in as test@example.com / testpassword123",
   ];
 };

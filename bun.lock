@@ -291,6 +291,9 @@
     "create-terreno-app": {
       "name": "create-terreno-app",
       "version": "57.2.0",
+      "bin": {
+        "create-terreno-app": "./dist/cli.js",
+      },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@types/bun": "catalog:",
@@ -536,6 +539,7 @@
         "@biomejs/biome": "catalog:",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
+        "chai": "catalog:",
         "typescript": "catalog:",
       },
     },

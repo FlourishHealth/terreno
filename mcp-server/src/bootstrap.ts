@@ -1,3 +1,5 @@
+import {isAbsolute} from "node:path";
+
 import type {Tool} from "@modelcontextprotocol/server";
 import {
   type BootstrapArgs,
@@ -5,6 +7,7 @@ import {
   getFenceLanguage,
   PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "create-terreno-app";
+import {isValidAppName, writeScaffold} from "create-terreno-app/writeScaffold";
 
 import {
   composePackageGuidelinesForRules,
@@ -13,8 +16,56 @@ import {
   loadPackageGuidelineMarkdown,
   resolveBootstrapGuidelinePackages,
 } from "./packageGuidelines.js";
+import {isScaffoldWriteEnabled} from "./scaffoldWriteMode.js";
 
 export {PLAYWRIGHT_MCP_PACKAGE_VERSION};
+
+export interface BootstrapToolArgs extends BootstrapArgs {
+  /** Absolute parent directory that will contain `<appName>/`. Local MCP only when write guard is set. */
+  targetDir?: string;
+}
+
+const shellQuote = (value: string): string => {
+  if (/^[A-Za-z0-9_./:@-]+$/.test(value)) {
+    return value;
+  }
+  return `'${value.replace(/'/g, "'\\''")}'`;
+};
+
+export const formatBootstrapCliCommand = (args: BootstrapArgs): string => {
+  const parts = [
+    "bunx create-terreno-app",
+    shellQuote(args.appName),
+    "--display-name",
+    shellQuote(args.appDisplayName),
+  ];
+
+  if (args.description) {
+    parts.push("--description", shellQuote(args.description));
+  }
+
+  if (args.mcpServerUrl) {
+    parts.push("--mcp-server-url", shellQuote(args.mcpServerUrl));
+  }
+
+  return parts.join(" ");
+};
+
+export const validateBootstrapTargetDir = (targetDir: unknown): string | undefined => {
+  if (targetDir === undefined || targetDir === null) {
+    return undefined;
+  }
+
+  if (typeof targetDir !== "string" || targetDir.trim() === "") {
+    return "targetDir must be a non-empty absolute path";
+  }
+
+  if (!isAbsolute(targetDir)) {
+    return "targetDir must be an absolute path";
+  }
+
+  return undefined;
+};
 
 export const bootstrapTools: Tool[] = [
   {
@@ -38,6 +89,11 @@ export const bootstrapTools: Tool[] = [
         mcpServerUrl: {
           default: "https://mcp.terreno.flourish.health",
           description: "URL of the Terreno MCP server for AI assistance",
+          type: "string",
+        },
+        targetDir: {
+          description:
+            "Optional absolute parent directory for `<appName>/`. Writes only when TERRENO_MCP_WRITE_SCAFFOLD=1 (terreno-mcp-local). Hosted MCP ignores this and returns the CLI command plus file dump.",
           type: "string",
         },
       },
@@ -546,7 +602,7 @@ export const handleBootstrapToolCall = (
     };
   }
 
-  const bootstrapArgs = args as unknown as BootstrapArgs;
+  const bootstrapArgs = args as unknown as BootstrapToolArgs;
 
   if (!bootstrapArgs.appName || !bootstrapArgs.appDisplayName) {
     return {
@@ -559,11 +615,83 @@ export const handleBootstrapToolCall = (
     };
   }
 
+  if (!isValidAppName(bootstrapArgs.appName)) {
+    return {
+      content: [
+        {
+          text: "Error: appName must be kebab-case (lowercase letters, numbers, and hyphens)",
+          type: "text",
+        },
+      ],
+    };
+  }
+
+  const cliCommand = formatBootstrapCliCommand(bootstrapArgs);
+  const targetDir =
+    typeof bootstrapArgs.targetDir === "string" ? bootstrapArgs.targetDir : undefined;
+
+  if (targetDir && isScaffoldWriteEnabled()) {
+    const targetDirError = validateBootstrapTargetDir(targetDir);
+    if (targetDirError) {
+      return {
+        content: [{text: `Error: ${targetDirError}`, type: "text"}],
+      };
+    }
+
+    const writeResult = writeScaffold({
+      appDisplayName: bootstrapArgs.appDisplayName,
+      appName: bootstrapArgs.appName,
+      description: bootstrapArgs.description,
+      mcpServerUrl: bootstrapArgs.mcpServerUrl,
+      parentDir: targetDir,
+    });
+
+    if (!writeResult.success) {
+      return {
+        content: [
+          {text: `Error: ${writeResult.error ?? "Failed to write scaffold"}`, type: "text"},
+        ],
+      };
+    }
+
+    const nextSteps = writeResult.nextSteps.map((step) => `- \`${step}\``).join("\n");
+
+    return {
+      content: [
+        {
+          text: `# Scaffold written: ${writeResult.targetPath}
+
+Wrote the same files as \`create-terreno-app\` to disk.
+
+## CLI (equivalent)
+
+\`\`\`bash
+${cliCommand}
+\`\`\`
+
+## Next steps
+
+${nextSteps}
+`,
+          type: "text",
+        },
+      ],
+    };
+  }
+
   const files = generateAllFiles(bootstrapArgs);
 
   const fileList = files.map((f) => `- \`${f.path}\``).join("\n");
 
   const instructions = `# Bootstrap ${bootstrapArgs.appDisplayName}
+
+## Recommended: use the CLI
+
+\`\`\`bash
+${cliCommand}
+\`\`\`
+
+Or create files manually from the dump below.
 
 ## Files to Create
 
@@ -573,7 +701,7 @@ ${fileList}
 
 ## Instructions
 
-1. **Create the project directory:**
+1. **Create the project directory** (if not using the CLI above):
    \`\`\`bash
    mkdir ${bootstrapArgs.appName}
    cd ${bootstrapArgs.appName}
