@@ -151,8 +151,9 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
     };
   }, [textColor, theme.border.default, theme.surface.neutralLight]);
 
-  const handleLinkPress = useCallback((url: string): void => {
+  const handleLinkPress = useCallback((url: string): boolean => {
     void Linking.openURL(url);
+    return false;
   }, []);
 
   const markdownRules = useMemo<React.ComponentProps<typeof Markdown>["rules"]>(() => {
