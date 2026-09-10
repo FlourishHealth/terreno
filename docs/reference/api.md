@@ -1339,7 +1339,7 @@ for (let i = 0; i < 3; i++) {
 
 `runMigrations({migrations, dryRun, connection, mongoose})` applies pending versioned `up` functions in array order. Dry-run calls `up({dryRun: true})` and does **not** write history. Wet runs insert `{id, checksum, appliedAt}` into Mongo collection `terreno_migrations`. Already-applied ids are skipped; a checksum change after apply throws `Migration checksum mismatch` (409). Apply is serialized with a lock document `_id: "_lock"` in the same collection: wait, heartbeat, steal after **10 minutes**.
 
-Locking, the `terreno-migrate` CLI, generate-from-schema-diff, boot `runOnStart`, and the admin Migrations page are specified in [MongoDB migrations tooling](../implementationPlans/mongodb-migrations-tooling.md). Operator how-to: pending until those tasks land.
+Files are `migrations/<YYYYMMDDHHmmss>-<slug>.ts`. `checkMigrationFiles({dir})` (alias `loadMigrations`) loads them in filename order without connecting to Mongo; the exported `id` must match the filename stem. Optional `down` is allowed. Duplicate ids and invalid names fail with 400 `APIError`.
 
 ## Script Helpers
 

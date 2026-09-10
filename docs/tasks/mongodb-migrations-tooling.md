@@ -25,7 +25,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 2 — Files, CLI, production gate
 
-- [ ] **Task 2.1**: File loader + `checkMigrationFiles`
+- [x] **Task 2.1**: File loader + `checkMigrationFiles`
   - Delivers: load `migrations/<YYYYMMDDHHmmss>-<slug>.ts`; id must match filename; duplicate ids fail; optional `down`; `checkMigrationFiles` is the no-Mongo CI check
   - Files: `api/src/migrations/load.ts`, `api/src/migrations/load.test.ts`, fixture files under `api/src/migrations/fixtures/`
   - Blocked by: 1.1
