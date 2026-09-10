@@ -37,7 +37,7 @@ export const useAdminMigrations = (api: AdminApi, apiBase: string) => {
     if (typeof api?.injectEndpoints !== "function") {
       return null;
     }
-    return api.injectEndpoints({
+    return api.enhanceEndpoints({addTagTypes: ["admin_migrations"]}).injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
         adminGetMigrations: build.query({
           providesTags: ["admin_migrations"],
