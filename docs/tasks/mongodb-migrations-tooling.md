@@ -33,7 +33,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
   - Docs: file naming in api.md
   - Acceptance: tests for sort order, bad id, missing export, successful load of `up`/`down`
 
-- [ ] **Task 2.2**: Production gate + CLI `status`/`up`/`down`/`check`
+- [x] **Task 2.2**: Production gate + CLI `status`/`up`/`down`/`check`
   - Delivers: `terreno-migrate` bin; prod wet requires `ALLOW_MIGRATIONS=true` and `--force`; `down --steps` stops with a clear error when `down` is missing; `--dry` never writes history
   - Files: `api/src/migrations/cli.ts`, `api/src/migrations/cli.test.ts`, `api/package.json` `bin`, `api/src/index.ts` exports
   - Blocked by: 1.2, 2.1

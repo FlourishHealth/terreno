@@ -3,7 +3,7 @@ import {randomUUID} from "node:crypto";
 import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 
-import {MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./types";
+import {MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION, type MigrationStoreDoc} from "./types";
 
 /** Default lock lifetime before another runner may steal it. */
 export const MIGRATION_LOCK_TTL_MS = 10 * 60 * 1000;
@@ -17,8 +17,10 @@ export interface WithMigrationLockOptions<T> {
   now?: () => DateTime;
 }
 
-const lockCollection = (connection: mongoose.Connection): mongoose.Collection => {
-  return connection.collection(MIGRATIONS_COLLECTION);
+const lockCollection = (
+  connection: mongoose.Connection
+): mongoose.Collection<MigrationStoreDoc> => {
+  return connection.collection<MigrationStoreDoc>(MIGRATIONS_COLLECTION);
 };
 
 const isDuplicateKey = (error: unknown): boolean => {
@@ -35,7 +37,7 @@ const tryAcquire = async ({
   holder,
   nowJs,
 }: {
-  col: mongoose.Collection;
+  col: mongoose.Collection<MigrationStoreDoc>;
   expiresAt: Date;
   holder: string;
   nowJs: Date;

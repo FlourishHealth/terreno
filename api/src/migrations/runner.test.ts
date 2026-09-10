@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose from "mongoose";
 
 import {setupDb} from "../tests";
-import {runMigrations} from "./runner";
+import {runDownMigrations, runMigrations} from "./runner";
 import {type LoadedMigration, MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./types";
 
 const collection = (): mongoose.Collection => {
@@ -138,5 +138,113 @@ describe("runMigrations", () => {
         mongoose,
       })
     ).rejects.toThrow("checksum");
+  });
+});
+
+describe("runDownMigrations", () => {
+  beforeEach(async () => {
+    await setupDb();
+    await collection().deleteMany({});
+  });
+
+  it("rolls back the last applied migration and deletes history", async () => {
+    const events: string[] = [];
+    const migrations: LoadedMigration[] = [
+      {
+        checksum: "one",
+        down: async () => {
+          events.push("down-a");
+        },
+        id: "20260910120000-a",
+        up: async () => {
+          events.push("up-a");
+        },
+      },
+      {
+        checksum: "two",
+        down: async () => {
+          events.push("down-b");
+        },
+        id: "20260910120001-b",
+        up: async () => {
+          events.push("up-b");
+        },
+      },
+    ];
+
+    await runMigrations({
+      connection: mongoose.connection,
+      dryRun: false,
+      migrations,
+      mongoose,
+    });
+    const result = await runDownMigrations({
+      connection: mongoose.connection,
+      dryRun: false,
+      migrations,
+      mongoose,
+      steps: 1,
+    });
+
+    expect(result.reversed).toEqual(["20260910120001-b"]);
+    expect(events).toEqual(["up-a", "up-b", "down-b"]);
+    expect(await appliedIds()).toEqual(["20260910120000-a"]);
+  });
+
+  it("does not delete history on dry-run down", async () => {
+    const migrations: LoadedMigration[] = [
+      {
+        checksum: "dry-down",
+        down: async (ctx) => {
+          expect(ctx.dryRun).toBe(true);
+        },
+        id: "20260910120000-dry-down",
+        up: async () => undefined,
+      },
+    ];
+    await runMigrations({
+      connection: mongoose.connection,
+      dryRun: false,
+      migrations,
+      mongoose,
+    });
+
+    const result = await runDownMigrations({
+      connection: mongoose.connection,
+      dryRun: true,
+      migrations,
+      mongoose,
+      steps: 1,
+    });
+
+    expect(result.reversed).toEqual(["20260910120000-dry-down"]);
+    expect(await appliedIds()).toEqual(["20260910120000-dry-down"]);
+  });
+
+  it("throws when the target migration has no down", async () => {
+    const migrations: LoadedMigration[] = [
+      {
+        checksum: "irreversible",
+        id: "20260910120000-irreversible",
+        up: async () => undefined,
+      },
+    ];
+    await runMigrations({
+      connection: mongoose.connection,
+      dryRun: false,
+      migrations,
+      mongoose,
+    });
+
+    await expect(
+      runDownMigrations({
+        connection: mongoose.connection,
+        dryRun: false,
+        migrations,
+        mongoose,
+        steps: 1,
+      })
+    ).rejects.toThrow("has no down");
+    expect(await appliedIds()).toEqual(["20260910120000-irreversible"]);
   });
 });

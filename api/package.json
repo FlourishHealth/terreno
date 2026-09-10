@@ -1,5 +1,8 @@
 {
   "author": "Josh Gachnang",
+  "bin": {
+    "terreno-migrate": "./src/migrations/cli.ts"
+  },
   "bugs": {
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
@@ -73,6 +76,16 @@
     "typescript": "catalog:",
     "zod": "catalog:"
   },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "default": "./dist/tests.js",
+      "types": "./dist/tests.d.ts"
+    }
+  },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "rest",
@@ -82,23 +95,13 @@
   ],
   "license": "MIT",
   "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./testing": {
-      "types": "./dist/tests.d.ts",
-      "default": "./dist/tests.js"
-    }
-  },
   "name": "@terreno/api",
-  "publishConfig": {
-    "access": "public"
-  },
   "peerDependencies": {
     "mongoose": "^8.0.0 || ^9.0.0",
     "zod": "^4.3.6"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "repository": {
     "type": "git",
@@ -118,11 +121,11 @@
     "load": "bun src/sync/loadHarness.ts",
     "test": "bun test --update-snapshots",
     "test:agent": "AGENT=1 bun test --only-failures",
-    "test:ci": "bun test",
-    "test:coverage": "bun run ../scripts/check-coverage.ts",
     "test:cache:clean": "bun ./src/tests/mongoTestSetup.ts clean",
     "test:cache:setup": "bun ./src/tests/mongoTestSetup.ts setup",
     "test:cache:status": "bun ./src/tests/mongoTestSetup.ts status",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts",
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",

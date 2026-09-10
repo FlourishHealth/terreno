@@ -6,6 +6,17 @@ export const MIGRATIONS_COLLECTION = "terreno_migrations";
 /** Reserved `_id` for the migrate lock row (Task 1.2). */
 export const MIGRATION_LOCK_ID = "_lock";
 
+/** Native collection documents in `terreno_migrations` (string `_id`, not ObjectId). */
+export interface MigrationStoreDoc {
+  _id: string;
+  id?: string;
+  checksum?: string;
+  appliedAt?: Date;
+  holder?: string;
+  heartbeatAt?: Date;
+  expiresAt?: Date;
+}
+
 export interface MigrationLogger {
   debug: (message: string, ...meta: unknown[]) => void;
   info: (message: string, ...meta: unknown[]) => void;
@@ -52,4 +63,26 @@ export interface RunMigrationsResult {
   applied: string[];
   skipped: string[];
   dryRun: boolean;
+}
+
+export interface RunDownMigrationsOptions {
+  migrations: LoadedMigration[];
+  dryRun: boolean;
+  connection: mongoose.Connection;
+  mongoose: typeof mongoose;
+  logger?: MigrationLogger;
+  lockTtlMs?: number;
+  lockPollMs?: number;
+  steps: number;
+}
+
+export interface RunDownMigrationsResult {
+  reversed: string[];
+  dryRun: boolean;
+}
+
+export interface MigrationStatus {
+  applied: AppliedMigrationRecord[];
+  pending: Array<{id: string; checksum: string}>;
+  lock: {holder: string; expiresAt: Date} | null;
 }

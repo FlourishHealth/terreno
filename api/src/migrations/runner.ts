@@ -9,12 +9,18 @@ import {
   MIGRATION_LOCK_ID,
   MIGRATIONS_COLLECTION,
   type MigrationContext,
+  type MigrationStatus,
+  type MigrationStoreDoc,
+  type RunDownMigrationsOptions,
+  type RunDownMigrationsResult,
   type RunMigrationsOptions,
   type RunMigrationsResult,
 } from "./types";
 
-const historyCollection = (connection: mongoose.Connection): mongoose.Collection => {
-  return connection.collection(MIGRATIONS_COLLECTION);
+const historyCollection = (
+  connection: mongoose.Connection
+): mongoose.Collection<MigrationStoreDoc> => {
+  return connection.collection<MigrationStoreDoc>(MIGRATIONS_COLLECTION);
 };
 
 const loadApplied = async (
@@ -91,6 +97,109 @@ export const runMigrations = async ({
     }
 
     return {applied, dryRun, skipped};
+  };
+
+  return withMigrationLock({
+    connection,
+    fn: execute,
+    pollMs: lockPollMs,
+    ttlMs: lockTtlMs,
+  });
+};
+
+const removeApplied = async ({
+  connection,
+  id,
+}: {
+  connection: mongoose.Connection;
+  id: string;
+}): Promise<void> => {
+  await historyCollection(connection).deleteOne({_id: id});
+};
+
+export const getMigrationStatus = async ({
+  connection,
+  migrations,
+}: {
+  connection: mongoose.Connection;
+  migrations: LoadedMigration[];
+}): Promise<MigrationStatus> => {
+  const appliedRecords = await loadApplied(connection);
+  const applied: AppliedMigrationRecord[] = [];
+  const pending: Array<{checksum: string; id: string}> = [];
+  for (const migration of migrations) {
+    const existing = appliedRecords.get(migration.id);
+    if (existing) {
+      applied.push(existing);
+      continue;
+    }
+    pending.push({checksum: migration.checksum, id: migration.id});
+  }
+
+  const lockDoc = await historyCollection(connection).findOne({_id: MIGRATION_LOCK_ID});
+  const lock =
+    lockDoc == null
+      ? null
+      : {
+          expiresAt:
+            lockDoc.expiresAt instanceof Date
+              ? lockDoc.expiresAt
+              : new Date(String(lockDoc.expiresAt)),
+          holder: String(lockDoc.holder ?? ""),
+        };
+
+  return {applied, lock, pending};
+};
+
+export const runDownMigrations = async ({
+  connection,
+  dryRun,
+  lockPollMs,
+  lockTtlMs,
+  logger = defaultLogger,
+  migrations,
+  mongoose: mongooseNs,
+  steps,
+}: RunDownMigrationsOptions): Promise<RunDownMigrationsResult> => {
+  if (!Number.isInteger(steps) || steps < 1) {
+    throw new APIError({
+      detail: "down --steps must be a positive integer",
+      status: 400,
+      title: "Invalid down steps",
+    });
+  }
+
+  const execute = async (): Promise<RunDownMigrationsResult> => {
+    const appliedRecords = await loadApplied(connection);
+    const appliedInOrder = migrations.filter((migration) => appliedRecords.has(migration.id));
+    const targets = appliedInOrder.slice(-steps).reverse();
+    const reversed: string[] = [];
+
+    const reversible = targets.map((migration) => {
+      if (typeof migration.down !== "function") {
+        throw new APIError({
+          detail: `Migration ${migration.id} has no down. Rollback stopped.`,
+          status: 400,
+          title: "Migration has no down",
+        });
+      }
+      return {down: migration.down, id: migration.id};
+    });
+
+    for (const migration of reversible) {
+      const ctx: MigrationContext = {
+        dryRun,
+        logger,
+        mongoose: mongooseNs,
+      };
+      await migration.down(ctx);
+      reversed.push(migration.id);
+      if (!dryRun) {
+        await removeApplied({connection, id: migration.id});
+      }
+    }
+
+    return {dryRun, reversed};
   };
 
   return withMigrationLock({
