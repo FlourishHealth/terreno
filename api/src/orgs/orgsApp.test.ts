@@ -58,6 +58,7 @@ describe("OrgsApp", () => {
       onOrgAudit: (event): void => {
         auditEvents.push(event);
       },
+      userModel: UserModel as unknown as AuthUserModel,
     }).register(app);
     app.use(apiErrorMiddleware);
   });
@@ -201,5 +202,55 @@ describe("OrgsApp", () => {
     const membership = await Membership.findOne({organizationId: org._id});
     assert.equal(membership?.status, "suspended");
     assert.isTrue(auditEvents.some((event) => event.verb === "deleted"));
+  });
+
+  it("attaches an existing user by email and 404s unknown emails", async () => {
+    const operator = await createUser({email: "operator@example.com", roles: ["operator"]});
+    await createUser({email: "member@example.com"});
+    const org = await Organization.create({name: "Acme", ownerId: operator._id});
+    const operatorAgent = await loginWithPassword(app, {
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+
+    const missing = await operatorAgent
+      .post(`/orgs/${org._id}/members`)
+      .send({email: "ghost@example.com", roleName: "member"});
+    assert.equal(missing.status, 404);
+
+    const attached = await operatorAgent
+      .post(`/orgs/${org._id}/members`)
+      .send({email: "member@example.com", roleName: "member"});
+    assert.equal(attached.status, 201);
+    assert.equal(attached.body.data.roleName, "member");
+    assert.isTrue(auditEvents.some((event) => event.verb === "memberAttached"));
+
+    const listed = await operatorAgent.get(`/orgs/${org._id}/members`);
+    assert.equal(listed.status, 200);
+    assert.equal(listed.body.data.length, 1);
+    assert.equal(listed.body.data[0].userId.email, "member@example.com");
+  });
+
+  it("rejects demoting or removing the last org-admin", async () => {
+    const operator = await createUser({email: "operator@example.com", roles: ["operator"]});
+    const orgAdmin = await createUser({email: "orgadmin@example.com"});
+    const org = await Organization.create({name: "Acme", ownerId: operator._id});
+    const membership = await Membership.create({
+      organizationId: org._id,
+      roleName: "org-admin",
+      userId: orgAdmin._id,
+    });
+    const operatorAgent = await loginWithPassword(app, {
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+
+    const demote = await operatorAgent
+      .patch(`/orgs/${org._id}/members/${membership._id}`)
+      .send({roleName: "member"});
+    assert.equal(demote.status, 400);
+
+    const removed = await operatorAgent.delete(`/orgs/${org._id}/members/${membership._id}`);
+    assert.equal(removed.status, 400);
   });
 });

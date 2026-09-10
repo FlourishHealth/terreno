@@ -36,7 +36,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 3 — OrgsApp routes
 
-- [ ] **Task 3.1**: Operator org CRUD + `/orgs/mine`
+- [x] **Task 3.1**: Operator org CRUD + `/orgs/mine`
   - Delivers: create/list-all/mine/read/patch/soft-delete + `onOrgAudit`
   - Files: `api/src/orgs/orgsApp.ts`, exports, OpenAPI, supertest
   - Blocked by: 2.1

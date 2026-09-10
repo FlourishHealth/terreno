@@ -2,8 +2,8 @@ import type express from "express";
 import {type Application, Router} from "express";
 
 import {asyncHandler} from "../api";
-import {authenticateMiddleware, type User} from "../auth";
-import {APIError, ForbiddenError, NotFoundError} from "../errors";
+import {authenticateMiddleware, type User, type UserModel} from "../auth";
+import {APIError, ConflictError, ForbiddenError, NotFoundError} from "../errors";
 import {logger} from "../logger";
 import {createOpenApiBuilder} from "../openApiBuilder";
 import type {AnyTerrenoAccess} from "../rbac/types";
@@ -17,13 +17,21 @@ export interface OrgAuditEvent {
   actorId?: string;
   organizationId?: string;
   organizationLabel?: string;
-  verb: "created" | "updated" | "disabled" | "deleted";
+  verb:
+    | "created"
+    | "updated"
+    | "disabled"
+    | "deleted"
+    | "memberAttached"
+    | "memberUpdated"
+    | "memberRemoved";
 }
 
 export interface OrgsAppOptions {
   access: AnyTerrenoAccess;
   basePath?: string;
   onOrgAudit?: (event: OrgAuditEvent, req: express.Request) => void | Promise<void>;
+  userModel: UserModel;
 }
 
 const pathParam = (value: string | string[] | undefined, title: string): string => {
@@ -84,6 +92,36 @@ const loadActiveMembership = async (
   return membership ?? undefined;
 };
 
+const countActiveOrgAdmins = async (
+  organizationId: OrganizationDocument["_id"]
+): Promise<number> => {
+  return Membership.countDocuments({
+    organizationId,
+    roleName: "org-admin",
+    status: "active",
+  });
+};
+
+const assertNotLastOrgAdmin = async (
+  membership: MembershipDocument,
+  nextRoleName?: string,
+  nextStatus?: string
+): Promise<void> => {
+  const remainsOrgAdmin =
+    (nextRoleName ?? membership.roleName) === "org-admin" &&
+    (nextStatus ?? membership.status) === "active";
+  if (remainsOrgAdmin) {
+    return;
+  }
+  if (membership.roleName !== "org-admin" || membership.status !== "active") {
+    return;
+  }
+  const activeAdmins = await countActiveOrgAdmins(membership.organizationId);
+  if (activeAdmins <= 1) {
+    throw new APIError({status: 400, title: "Cannot remove the last org-admin"});
+  }
+};
+
 const assertCan = async (args: {
   access: AnyTerrenoAccess;
   organization?: OrganizationDocument;
@@ -105,11 +143,13 @@ export class OrgsApp implements TerrenoPlugin {
   private readonly access: AnyTerrenoAccess;
   private readonly basePath: string;
   private readonly onOrgAudit?: OrgsAppOptions["onOrgAudit"];
+  private readonly userModel: UserModel;
 
   constructor(options: OrgsAppOptions) {
     this.access = options.access;
     this.basePath = options.basePath ?? "/orgs";
     this.onOrgAudit = options.onOrgAudit;
+    this.userModel = options.userModel;
   }
 
   register(app: Application, openApi?: unknown): void {
@@ -278,6 +318,172 @@ export class OrgsApp implements TerrenoPlugin {
             organizationId: String(organization._id),
             organizationLabel: organization.name,
             verb: "deleted",
+          },
+          onOrgAudit: this.onOrgAudit,
+          req,
+        });
+        return res.status(204).send();
+      })
+    );
+
+    router.get(
+      "/:id/members",
+      authenticateMiddleware(),
+      docs("List organization members"),
+      asyncHandler(async (req, res) => {
+        const user = requireUser(req);
+        const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        const membership = await loadActiveMembership(user, organization._id);
+        await runWithOrgContext({membership, organization}, () =>
+          assertCan({
+            access: this.access,
+            organization,
+            permissions: {organization: ["manageMembers"]},
+            user,
+          })
+        );
+        const members = await Membership.find({organizationId: organization._id})
+          .sort({created: 1})
+          .populate({path: "userId", select: "email name"});
+        return res.json({data: members});
+      })
+    );
+
+    router.post(
+      "/:id/members",
+      authenticateMiddleware(),
+      docs("Attach an existing user as a member"),
+      asyncHandler(async (req, res) => {
+        const user = requireUser(req);
+        const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        const actorMembership = await loadActiveMembership(user, organization._id);
+        await runWithOrgContext({membership: actorMembership, organization}, () =>
+          assertCan({
+            access: this.access,
+            organization,
+            permissions: {organization: ["manageMembers"]},
+            user,
+          })
+        );
+        const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+        const userId = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+        let target: User | null = null;
+        if (email) {
+          target = (await this.userModel.findOne({email})) as User | null;
+        } else if (userId) {
+          target = (await this.userModel.findById(userId)) as User | null;
+        } else {
+          throw new APIError({status: 400, title: "email or userId is required"});
+        }
+        if (!target) {
+          throw new NotFoundError("User not found");
+        }
+        const existing = await Membership.findOneOrNone({
+          organizationId: organization._id,
+          userId: userIdOf(target),
+        });
+        if (existing) {
+          throw new ConflictError("User is already a member");
+        }
+        const roleName = req.body?.roleName === "org-admin" ? "org-admin" : "member";
+        const created = await Membership.create({
+          organizationId: organization._id,
+          roleName,
+          userId: userIdOf(target),
+        });
+        await emitOrgAudit({
+          event: {
+            actorId: user.id,
+            organizationId: String(organization._id),
+            organizationLabel: organization.name,
+            verb: "memberAttached",
+          },
+          onOrgAudit: this.onOrgAudit,
+          req,
+        });
+        return res.status(201).json({data: created});
+      })
+    );
+
+    router.patch(
+      "/:id/members/:memberId",
+      authenticateMiddleware(),
+      docs("Update a membership"),
+      asyncHandler(async (req, res) => {
+        const user = requireUser(req);
+        const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        const actorMembership = await loadActiveMembership(user, organization._id);
+        await runWithOrgContext({membership: actorMembership, organization}, () =>
+          assertCan({
+            access: this.access,
+            organization,
+            permissions: {organization: ["manageMembers"]},
+            user,
+          })
+        );
+        const member = await Membership.findOneOrNone({
+          _id: pathParam(req.params.memberId, "memberId is required"),
+          organizationId: organization._id,
+        });
+        if (!member) {
+          throw new NotFoundError("Membership not found");
+        }
+        const nextRoleName =
+          typeof req.body?.roleName === "string" ? req.body.roleName : member.roleName;
+        const nextStatus = typeof req.body?.status === "string" ? req.body.status : member.status;
+        await assertNotLastOrgAdmin(member, nextRoleName, nextStatus);
+        if (typeof req.body?.roleName === "string") {
+          member.roleName = req.body.roleName === "org-admin" ? "org-admin" : "member";
+        }
+        if (typeof req.body?.status === "string") {
+          member.status = req.body.status === "suspended" ? "suspended" : "active";
+        }
+        await member.save();
+        await emitOrgAudit({
+          event: {
+            actorId: user.id,
+            organizationId: String(organization._id),
+            organizationLabel: organization.name,
+            verb: "memberUpdated",
+          },
+          onOrgAudit: this.onOrgAudit,
+          req,
+        });
+        return res.json({data: member});
+      })
+    );
+
+    router.delete(
+      "/:id/members/:memberId",
+      authenticateMiddleware(),
+      docs("Remove a membership"),
+      asyncHandler(async (req, res) => {
+        const user = requireUser(req);
+        const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        const actorMembership = await loadActiveMembership(user, organization._id);
+        await runWithOrgContext({membership: actorMembership, organization}, () =>
+          assertCan({
+            access: this.access,
+            organization,
+            permissions: {organization: ["manageMembers"]},
+            user,
+          })
+        );
+        const member = await Membership.findOneOrNone({
+          _id: pathParam(req.params.memberId, "memberId is required"),
+          organizationId: organization._id,
+        });
+        if (!member) {
+          throw new NotFoundError("Membership not found");
+        }
+        await assertNotLastOrgAdmin(member, "member", "suspended");
+        await member.deleteOne();
+        await emitOrgAudit({
+          event: {
+            actorId: user.id,
+            organizationId: String(organization._id),
+            organizationLabel: organization.name,
+            verb: "memberRemoved",
           },
           onOrgAudit: this.onOrgAudit,
           req,
