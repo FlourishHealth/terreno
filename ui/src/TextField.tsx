@@ -18,6 +18,11 @@ import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
+import {
+  createTextFieldOscillationState,
+  recordTextFieldOscillation,
+  shouldSuppressTextFieldOscillation,
+} from "./textFieldOscillationGuard";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -148,6 +153,7 @@ export const TextField: FC<TextFieldProps> = ({
 
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
+  const oscillationRef = useRef(createTextFieldOscillationState());
   valueRef.current = value;
   onChangeRef.current = onChange;
 
@@ -156,6 +162,26 @@ export const TextField: FC<TextFieldProps> = ({
     if (text === currentValue) {
       return;
     }
+
+    const now = performance.now();
+    const oscillationState = oscillationRef.current;
+    if (
+      shouldSuppressTextFieldOscillation({
+        currentValue,
+        now,
+        state: oscillationState,
+        text,
+      })
+    ) {
+      return;
+    }
+
+    recordTextFieldOscillation({
+      currentValue,
+      now,
+      state: oscillationState,
+      text,
+    });
     onChangeRef.current(text);
   }, []);
 

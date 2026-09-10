@@ -659,9 +659,47 @@ describe("TextField", () => {
           view.rerender(renderField());
         }
 
-        expect(onChange.mock.calls.length).toBe(6);
-        expect(value).toBe(withoutSpace);
+        expect(onChange.mock.calls.length).toBe(1);
+        expect(onChange.mock.calls[0]?.[0]).toBe(withSpace);
+        expect(value).toBe(withSpace);
       } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("allows backspace and retype after the oscillation window", async () => {
+      const savedOS = PlatformModule.OS;
+      const originalNow = performance.now.bind(performance);
+      let fakeNow = 10_000;
+
+      try {
+        PlatformModule.OS = "web";
+        performance.now = () => fakeNow;
+
+        let value = "hello";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const view = renderWithTheme(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hell");
+        });
+        view.rerender(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        fakeNow += 600;
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hello");
+        });
+
+        expect(onChange.mock.calls.map((call) => call[0])).toEqual(["hell", "hello"]);
+      } finally {
+        performance.now = originalNow;
         PlatformModule.OS = savedOS;
       }
     });
