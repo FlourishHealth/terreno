@@ -11,7 +11,7 @@ const getYDomain = (points: ChartPoint[]): [number, number] => {
 
   const values = points.map((point) => point.value);
   const min = Math.min(0, ...values);
-  const max = Math.max(...values);
+  const max = Math.max(0, ...values);
   if (min === max) {
     return [min, min + 1];
   }

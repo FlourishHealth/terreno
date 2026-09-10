@@ -1,5 +1,10 @@
 import {DemoConfiguration} from "@config";
-import {BarChartDefaultStory, BarChartDemo, BarChartEmptyStory} from "@stories/BarChart.stories";
+import {
+  BarChartDefaultStory,
+  BarChartDemo,
+  BarChartEmptyStory,
+  BarChartZeroNegativeStory,
+} from "@stories/BarChart.stories";
 import {BarChart} from "@terreno/ui";
 
 export const BarChartConfiguration: DemoConfiguration = {
@@ -7,7 +12,7 @@ export const BarChartConfiguration: DemoConfiguration = {
   component: BarChart,
   related: ["LineChart", "AreaChart", "DashboardGrid"],
   description:
-    "Single-series bar chart drawn with owned SVG. Press or hover a bar for `{label}: {value}`.",
+    "Single-series bar chart drawn with owned SVG. Press or hover a bar for `{label}: {value}`. Zero and negative values stay pressable and grow from the zero baseline.",
   a11yNotes: ["Each bar is a clickable Box with an accessibility label of `{label}: {value}`."],
   category: "Component",
   status: {
@@ -37,5 +42,6 @@ export const BarChartConfiguration: DemoConfiguration = {
   stories: {
     Default: {render: BarChartDefaultStory},
     Empty: {render: BarChartEmptyStory},
+    "Zero and negative": {render: BarChartZeroNegativeStory},
   },
 };

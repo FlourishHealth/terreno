@@ -27,7 +27,7 @@ export const OpsDashboard: FC = () => {
 
 1. Pass a single series of `{label, value}` points.
 2. Use `emptyText` and `loading` on the chart, not a custom overlay.
-3. Press or hover a mark for `{label}: {value}`.
+3. Press or hover a mark for `{label}: {value}`. Zero and negative bars stay pressable; bars grow from the zero baseline.
 4. Keep `DashboardGrid` eager; import charts from `@terreno/ui/LineChart` when cold start matters.
 
 `DonutChart` ignores `legendLabel` and draws one legend row per slice. Override a slice with `color` on that point.

@@ -34,3 +34,19 @@ export const BarChartEmptyStory = (): React.ReactElement => {
     </StorybookContainer>
   );
 };
+
+export const BarChartZeroNegativeStory = (): React.ReactElement => {
+  return (
+    <StorybookContainer>
+      <BarChart
+        data={[
+          {label: "Mon", value: -8},
+          {label: "Tue", value: 0},
+          {label: "Wed", value: 14},
+        ]}
+        legendLabel="Delta"
+        testID="bar-chart-zero-negative"
+      />
+    </StorybookContainer>
+  );
+};

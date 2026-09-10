@@ -4,6 +4,7 @@ import {Rect, Svg, Line as SvgLine} from "react-native-svg";
 
 import {Box} from "./Box";
 import type {BarChartProps, LayoutChangeEvent} from "./Common";
+import {getBarLayout} from "./charts/bars";
 import {ChartFrame} from "./charts/ChartFrame";
 import {createCartesianScales, getYTickValues} from "./charts/scales";
 import {getChartPaint} from "./charts/theme";
@@ -121,15 +122,24 @@ export const BarChart: FC<BarChartProps> = ({
                 );
               })}
               {data.map((point) => {
-                const barHeight = Math.max(baselineY - scales.y(point.value), 1);
+                const layout = getBarLayout({
+                  barWidth,
+                  baselineY,
+                  value: point.value,
+                  xCenter: scales.xCenter(point.label),
+                  y: scales.y,
+                });
+                if (layout.height === 0) {
+                  return null;
+                }
                 return (
                   <Rect
                     fill={point.color ?? paint.series}
-                    height={barHeight}
+                    height={layout.height}
                     key={`bar-${point.label}`}
-                    width={barWidth}
-                    x={scales.xCenter(point.label) - barWidth / 2}
-                    y={scales.y(point.value)}
+                    width={layout.width}
+                    x={layout.x}
+                    y={layout.y}
                   />
                 );
               })}
@@ -138,18 +148,24 @@ export const BarChart: FC<BarChartProps> = ({
               const onPress = (): void => {
                 handleMarkPress(point);
               };
-              const barHeight = Math.max(baselineY - scales.y(point.value), 1);
+              const layout = getBarLayout({
+                barWidth,
+                baselineY,
+                value: point.value,
+                xCenter: scales.xCenter(point.label),
+                y: scales.y,
+              });
               return (
                 <Box
                   accessibilityHint={`Show value for ${point.label}`}
                   accessibilityLabel={`${point.label}: ${formatValue(point.value)}`}
                   dangerouslySetInlineStyle={{
                     __style: {
-                      height: barHeight,
-                      left: scales.xCenter(point.label) - barWidth / 2,
+                      height: layout.hitHeight,
+                      left: layout.hitX,
                       position: "absolute",
-                      top: scales.y(point.value),
-                      width: barWidth,
+                      top: layout.hitY,
+                      width: layout.hitWidth,
                     },
                   }}
                   key={`mark-${point.label}`}

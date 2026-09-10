@@ -31,6 +31,19 @@ describe("createCartesianScales", () => {
     expect(getYTickValues(FIXTURE_POINTS)).toEqual([0, 50, 100]);
   });
 
+  it("anchors all-negative values at zero so bars can grow downward", () => {
+    const points: ChartPoint[] = [
+      {label: "A", value: -10},
+      {label: "B", value: -5},
+    ];
+    const scales = createCartesianScales({plot: PLOT, points});
+
+    expect(getYTickValues(points)).toEqual([-10, -5, 0]);
+    expect(scales.y(0)).toBe(PLOT.top);
+    expect(scales.y(-10)).toBe(PLOT.top + PLOT.height);
+    expect(scales.y(-5)).toBe(PLOT.top + PLOT.height / 2);
+  });
+
   it("returns no ticks for empty points", () => {
     expect(getYTickValues([])).toEqual([]);
   });
