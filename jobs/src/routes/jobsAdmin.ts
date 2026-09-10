@@ -151,6 +151,33 @@ const parseListFilters = (query: Record<string, unknown>): JobsListFilters => ({
   status: parseStatusFilter(query.status),
 });
 
+const EMPTY_STATUS_COUNTS: Record<JobStatus, number> = {
+  cancelled: 0,
+  completed: 0,
+  dead: 0,
+  failed: 0,
+  pending: 0,
+  running: 0,
+  scheduled: 0,
+};
+
+const buildStatusCounts = (
+  grouped: Array<{_id: JobStatus; count: number}>
+): {byStatus: Record<JobStatus, number>; total: number} => {
+  const byStatus = {...EMPTY_STATUS_COUNTS};
+  let total = 0;
+
+  for (const row of grouped) {
+    if (!VALID_JOB_STATUSES.has(row._id)) {
+      continue;
+    }
+    byStatus[row._id] = row.count;
+    total += row.count;
+  }
+
+  return {byStatus, total};
+};
+
 const buildListMatch = (filters: JobsListFilters): Record<string, unknown> => {
   const match: Record<string, unknown> = {};
 
@@ -407,6 +434,33 @@ export const registerJobsAdminRoutes = ({
         page,
         total,
       });
+    })
+  );
+
+  app.get(
+    `${basePath}/stats`,
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(routeOpenApi)
+        .withTags(["admin", "jobs"])
+        .withSummary("Aggregate background job counts by status")
+        .withResponse(200, {
+          data: {
+            properties: {
+              byStatus: {type: "object"},
+              total: {type: "number"},
+            },
+            type: "object",
+          },
+        })
+        .build(),
+    ],
+    asyncHandler(async (req: Request, res: Response) => {
+      await requireJobsAdmin(req);
+      const grouped = await Job.aggregate<{_id: JobStatus; count: number}>([
+        {$group: {_id: "$status", count: {$sum: 1}}},
+      ]);
+      return res.json({data: buildStatusCounts(grouped)});
     })
   );
 

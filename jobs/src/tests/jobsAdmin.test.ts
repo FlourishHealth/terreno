@@ -106,6 +106,7 @@ describe("jobs admin routes", () => {
 
     await supertest(app).get("/jobs").expect(401);
     await supertest(app).get("/jobs/schedules").expect(401);
+    await supertest(app).get("/jobs/stats").expect(401);
   });
 
   it("returns 403 for authenticated non-admins on legacy admin", async (): Promise<void> => {
@@ -116,7 +117,31 @@ describe("jobs admin routes", () => {
 
     await user.get("/jobs").expect(403);
     await user.get("/jobs/schedules").expect(403);
+    await user.get("/jobs/stats").expect(403);
     await user.post(`/jobs/${new mongoose.Types.ObjectId().toString()}/retry`).expect(403);
+  });
+
+  it("returns status counts from a single stats aggregation", async (): Promise<void> => {
+    const jobsApp = new JobsApp();
+    jobsApp.define("stats-job", {handler: async () => {}});
+    const app = buildLegacyAuthApp(jobsApp);
+    const admin = await authAsUser(app, "admin");
+
+    await seedJob({status: "dead"});
+    await seedJob({status: "dead"});
+    await seedJob({status: "running"});
+    await seedJob({status: "pending"});
+    await seedJob({status: "completed"});
+
+    const stats = await admin.get("/jobs/stats").expect(200);
+    assert.equal(stats.body.data.total, 5);
+    assert.equal(stats.body.data.byStatus.dead, 2);
+    assert.equal(stats.body.data.byStatus.running, 1);
+    assert.equal(stats.body.data.byStatus.pending, 1);
+    assert.equal(stats.body.data.byStatus.completed, 1);
+    assert.equal(stats.body.data.byStatus.failed, 0);
+    assert.equal(stats.body.data.byStatus.cancelled, 0);
+    assert.equal(stats.body.data.byStatus.scheduled, 0);
   });
 
   it("allows legacy admins to list, filter, and paginate jobs", async (): Promise<void> => {
@@ -284,6 +309,24 @@ describe("jobs admin routes", () => {
     assert.isTrue(resumed.body.data.enabled);
   });
 
+  it("routes /jobs/stats before /jobs/:id", async (): Promise<void> => {
+    const jobsApp = new JobsApp();
+    jobsApp.define("stats-job", {handler: async () => {}});
+    const app = buildLegacyAuthApp(jobsApp);
+    const admin = await authAsUser(app, "admin");
+
+    await seedJob({status: "dead"});
+    await seedJob({status: "running"});
+
+    const stats = await admin.get("/jobs/stats").expect(200);
+    assert.equal(stats.body.data.total, 2);
+    assert.equal(stats.body.data.byStatus.dead, 1);
+    assert.equal(stats.body.data.byStatus.running, 1);
+
+    await admin.get("/jobs/stats").query({page: 1}).expect(200);
+    await admin.get("/jobs/not-an-id").expect(404);
+  });
+
   it("routes /jobs/schedules before /jobs/:id", async (): Promise<void> => {
     const jobsApp = new JobsApp();
     jobsApp.define("schedules", {handler: async () => {}});
@@ -308,6 +351,7 @@ describe("jobs admin routes", () => {
     assert.property(response.body.paths, "/jobs/{id}/retry");
     assert.property(response.body.paths, "/jobs/{id}/requeue");
     assert.property(response.body.paths, "/jobs/{id}/cancel");
+    assert.property(response.body.paths, "/jobs/stats");
     assert.property(response.body.paths, "/jobs/schedules");
     assert.property(response.body.paths, "/jobs/schedules/{name}/pause");
     assert.property(response.body.paths, "/jobs/schedules/{name}/resume");
@@ -337,6 +381,12 @@ describe("jobs admin routes", () => {
     assert.equal(schedulesSchema.properties.data.items.properties.name.type, "string");
     assert.equal(schedulesSchema.properties.data.items.properties.cron.type, "string");
     assert.equal(schedulesSchema.properties.data.items.properties.enabled.type, "boolean");
+
+    const statsSchema =
+      response.body.paths["/jobs/stats"].get.responses["200"].content["application/json"].schema;
+    assert.equal(statsSchema.properties.data.type, "object");
+    assert.equal(statsSchema.properties.data.properties.byStatus.type, "object");
+    assert.equal(statsSchema.properties.data.properties.total.type, "number");
   });
 
   it("omits payload from list and detail by default", async (): Promise<void> => {

@@ -101,7 +101,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none (5.1)
   - Acceptance: bun + supertest for 200/403/401; retry vs requeue semantics per IP
 
-- [ ] **Task 4.2**: Admin frontend Jobs screens
+- [x] **Task 4.2**: Admin frontend Jobs screens
   - Delivers: `JOBS_ADMIN_WIDGETS`, `JobsDashboardScreen`, `JobsJobDetail`, home widget `jobs`; built-in registry (no host remap)
   - Files: `admin-frontend/src/jobs/*`, widget registry, tests + isolated specs
   - Blocked by: 4.1
