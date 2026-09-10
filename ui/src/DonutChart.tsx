@@ -138,6 +138,7 @@ export const DonutChart: FC<DonutChartProps> = ({
                     width: 12,
                   },
                 }}
+                testID={resolveTestID(testID, `swatch.${index}`)}
               />
               <Text size="sm">{point.label}</Text>
             </Box>

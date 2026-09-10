@@ -31,8 +31,9 @@ supported and is convenient when startup cost is not material:
 import {Box, DataTable, Icon} from "@terreno/ui";
 ```
 
-Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, and related admin tools) are
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
 re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
+their implementation modules load on first render instead of during the initial root import. `DashboardGrid` stays eager.
 their implementation modules load on first render instead of during the initial root import. `MarkdownView` and
 `DataTable` header info defer `react-native-markdown-display`; `EmojiSelector` defers `emoji-datasource` until open.
 

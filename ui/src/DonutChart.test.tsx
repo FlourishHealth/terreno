@@ -20,6 +20,16 @@ describe("DonutChart", () => {
     expect(queryByTestId("chart.point.2-clickable")).toBeNull();
   });
 
+  it("applies a per-slice color override on the legend swatch", () => {
+    const {getByTestId} = renderWithTheme(<DonutChart data={POINTS} testID="chart" />);
+    const swatchStyle = getByTestId("chart.swatch.1").props.style;
+    const styles = Array.isArray(swatchStyle) ? swatchStyle : [swatchStyle];
+
+    expect(styles).toEqual(
+      expect.arrayContaining([expect.objectContaining({backgroundColor: "#112233"})])
+    );
+  });
+
   it("shows emptyText when data is empty", () => {
     const {getByText} = renderWithTheme(<DonutChart data={[]} emptyText="Nothing yet" />);
 

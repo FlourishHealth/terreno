@@ -88,7 +88,7 @@ TextField, TextArea, SelectField, CustomSelectField, MultiselectField, DateTimeF
 Button, IconButton, DismissButton, SocialLoginButton
 
 ### Data Display
-DataTable, Pagination, Badge, SelectBadge, Avatar
+DataTable, Pagination, Badge, SelectBadge, Avatar, LineChart, BarChart, AreaChart, DonutChart
 
 ### Feedback
 Modal, Toast, Spinner, ErrorPage, ErrorBoundary, Banner

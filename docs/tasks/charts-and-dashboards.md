@@ -41,7 +41,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: add `BarChart` to `docs/reference/ui.md`
   - Acceptance: bun tests for mark count, empty, tooltip copy; demo story registered; compile green
 
-- [ ] **Task 2.2**: `AreaChart`
+- [x] **Task 2.2**: `AreaChart`
   - Delivers: public `AreaChart` (filled path + line) on `ChartFrame`; same contract
   - Files: `ui/src/AreaChart.tsx`, `ui/src/AreaChart.test.tsx`, `ui/src/index.tsx`, `demo/stories/AreaChart.stories.tsx`, `demo/demoConfig.tsx`
   - Blocked by: 1.2
@@ -49,7 +49,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: add `AreaChart` to `docs/reference/ui.md`
   - Acceptance: bun tests for area path presence / mark count, empty, tooltip; demo story registered
 
-- [ ] **Task 2.3**: `DonutChart`
+- [x] **Task 2.3**: `DonutChart`
   - Delivers: public `DonutChart`; one slice per point; per-slice `color` override; legend is one row per slice (ignore `legendLabel`); tooltip on slice press/hover
   - Files: `ui/src/DonutChart.tsx`, `ui/src/DonutChart.test.tsx`, `ui/src/index.tsx`, `demo/stories/DonutChart.stories.tsx`, `demo/demoConfig.tsx`
   - Blocked by: 1.1
@@ -59,7 +59,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
 
 ## Phase 3 — Dashboard grid
 
-- [ ] **Task 3.1**: `DashboardGrid`
+- [x] **Task 3.1**: `DashboardGrid`
   - Delivers: eager public `DashboardGrid`; default columns `{sm: 1, md: 2, lg: 3}`; wraps children with gap; children remain `Card`s supplied by the caller
   - Files: `ui/src/DashboardGrid.tsx`, `ui/src/DashboardGrid.test.tsx`, `ui/src/index.tsx` (eager export), `demo/stories/DashboardGrid.stories.tsx`, `demo/demoConfig.tsx`
   - Blocked by: 1.2 (demo composition uses `LineChart`; grid component itself does not)
@@ -69,7 +69,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
 
 ## Phase 4 — Packaging and docs
 
-- [ ] **Task 4.1**: Lazy root boundary + import regression
+- [x] **Task 4.1**: Lazy root boundary + import regression
   - Delivers: `LineChart`, `BarChart`, `AreaChart`, `DonutChart` on `heavyOptionalExports`; `DashboardGrid` stays eager; root import does not evaluate chart implementation modules; subpath imports still work
   - Files: `ui/src/lazyBoundaries/heavyOptionalExports.tsx`, `ui/src/index.tsx`, `ui/src/RootImportRegression.test.tsx`, `docs/reference/ui-performance.md` (list charts with other heavy widgets)
   - Blocked by: 2.1, 2.2, 2.3, 3.1
@@ -77,7 +77,7 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: `docs/reference/ui.md` performance section names the chart lazy exports
   - Acceptance: `RootImportRegression` (or equivalent) fails if chart files load with the root import; `bun run performance:imports` does not regress beyond documented noise; subpath `import {LineChart} from "@terreno/ui/LineChart"` works
 
-- [ ] **Task 4.2**: Diátaxis + changelog + rules + seed
+- [x] **Task 4.2**: Diátaxis + changelog + rules + seed
   - Delivers: how-to (compose charts in a `DashboardGrid` of `Card`s), explanation (why owned SVG vs victory-native), reference complete, how-to/explanation README links, TypeDoc props, changelog fragment, ui rule export list, roadmap seed IP/task GitHub links, comms/b2b pointers if they still say “not yet written”
   - Files: `docs/how-to/charts-and-dashboards.md`, `docs/how-to/README.md`, `docs/explanation/charts.md`, `docs/explanation/README.md`, `docs/reference/ui.md`, `docs/explanation/roadmap-seed-issues.md`, `docs/implementationPlans/comms-admin-dashboard.md` (link only), `.rulesync/rules/ui/00-ui.mdc`, `changelog/unreleased/charts-and-dashboards.md`; `bun run rules` / `skills:sync` if rulesync requires it; `bun run website:generate` if TypeDoc pages are generated
   - Blocked by: 3.1, 4.1
