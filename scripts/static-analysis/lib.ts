@@ -22,18 +22,6 @@ export interface KnipReport {
   issues: KnipFileIssues[];
 }
 
-export interface KnipBaseline {
-  generatedAt: string;
-  issues: string[];
-  version: 1;
-}
-
-export interface KnipComparison {
-  currentCount: number;
-  newIssues: string[];
-  ok: boolean;
-}
-
 const BIOME_EXTENSIONS = new Set([
   ".cjs",
   ".css",
@@ -149,20 +137,4 @@ export const fingerprintKnipReport = ({
   }
 
   return [...new Set(fingerprints)].sort();
-};
-
-export const compareKnipBaseline = ({
-  currentIssues,
-  baseline,
-}: {
-  currentIssues: string[];
-  baseline: KnipBaseline;
-}): KnipComparison => {
-  const baselineIssues = new Set(baseline.issues);
-  const newIssues = currentIssues.filter((issue) => !baselineIssues.has(issue));
-  return {
-    currentCount: currentIssues.length,
-    newIssues,
-    ok: newIssues.length === 0,
-  };
 };

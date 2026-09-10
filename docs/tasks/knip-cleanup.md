@@ -1,4 +1,4 @@
-# Task List: Empty the Knip baseline
+# Task List: Remove the Knip baseline
 
 See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cleanup.md)
 
@@ -9,7 +9,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 - Re-run Knip (JSON reporter, default + production, same as `scripts/static-analysis/full.ts`) at the start of every task. The IP inventory is a snapshot, not the live list.
 - Disposition order: **entry → ignore (with comment) → unexport → delete**. Never `knip --fix`.
-- Do not empty `knip-baseline.json` until Task 6.1. Earlier tasks must keep `bun run analyze:full` green (current findings ⊆ existing baseline).
+- Do not delete the old Knip baseline until Task 6.1. Earlier tasks must keep `bun run analyze:full` green while the live finding count falls.
 - Do not remove symbols from published package public entries (`src/index.ts` / `src/index.tsx` / `package.json` `exports`).
 - Do not remove Expo autolink, native, or Metro packages from `demo`, `admin-spa`, `example-frontend`, or `ui` `package.json` because Knip cannot see them.
 - Tests: `bun test --only-failures` on the closest package; after config edits, `bun test scripts/static-analysis/lib.test.ts`.
@@ -135,12 +135,12 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: live `exports` and `types` counts are 0; no public `index` export removed; `analyze:full` exits 0
 
-### Phase 6: Empty baseline
+### Phase 6: Remove baseline
 
-- [x] **Task 6.1**: Write empty Knip baseline and rewrite ratchet docs
-  - Delivers: live default+production fingerprint set is `[]`; `bun run analyze:baseline` writes `"issues": []`; docs state the Knip baseline must stay empty and new findings are fixed or added to `knip.jsonc` with a reason — not dumped back into the JSON inventory
-  - Files: `scripts/static-analysis/knip-baseline.json`, `docs/explanation/static-analysis.md`, `scripts/static-analysis/full.ts` only if log text assumes a non-empty inventory, `scripts/static-analysis/lib.test.ts` if assertions need an empty-baseline case
+- [x] **Task 6.1**: Delete the Knip baseline and enforce zero findings directly
+  - Delivers: live default+production fingerprint set is `[]`; no Knip baseline exists; docs state that new findings are fixed or added to `knip.jsonc` with a reason
+  - Files: delete `scripts/static-analysis/knip-baseline.json`; update `docs/explanation/static-analysis.md`, `scripts/static-analysis/full.ts`, and tests
   - Blocked by: Task 2.1, Task 2.2, Task 2.3, Task 3.2, Task 4.3, Task 5.3
   - Docs: `docs/explanation/static-analysis.md`
   - Skills: `update-docs`
-  - Acceptance: `python -c "import json; d=json.load(open('scripts/static-analysis/knip-baseline.json')); assert d['issues']==[]"`; `bun run analyze:full` prints no new Knip findings and exits 0; `bun test scripts/static-analysis/lib.test.ts` passes; docs no longer say the repo “already contains findings that cannot be removed in one change” for Knip (dependency-cruiser may still ratchet)
+  - Acceptance: `test ! -e scripts/static-analysis/knip-baseline.json`; `bun run check:knip` prints no findings and exits 0; `bun run analyze:full` exits 0; static-analysis tests pass

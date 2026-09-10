@@ -2,11 +2,9 @@ import {describe, test} from "bun:test";
 import {assert} from "chai";
 
 import {
-  compareKnipBaseline,
   fingerprintKnipReport,
   groupFilesByBiomeDirectory,
   isIsolatedOrRepoScriptTestFile,
-  type KnipBaseline,
   parseChangedFileOutput,
   selectAnalyzableFiles,
   unusedFilePathsFromKnipReport,
@@ -83,24 +81,5 @@ describe("static-analysis helpers", (): void => {
     );
     assert.isFalse(isIsolatedOrRepoScriptTestFile("scripts/static-analysis/full.ts"));
     assert.isFalse(isIsolatedOrRepoScriptTestFile("example-frontend/e2e/login.spec.ts"));
-  });
-
-  test("ratchets only findings absent from the baseline", (): void => {
-    const baseline: KnipBaseline = {
-      generatedAt: "2026-09-08T00:00:00.000Z",
-      issues: ["default:exports:src/existing.ts:oldExport"],
-      version: 1,
-    };
-    const comparison = compareKnipBaseline({
-      baseline,
-      currentIssues: [
-        "default:exports:src/existing.ts:oldExport",
-        "production:files:src/new.ts:src/new.ts",
-      ],
-    });
-
-    assert.isFalse(comparison.ok);
-    assert.equal(comparison.currentCount, 2);
-    assert.deepEqual(comparison.newIssues, ["production:files:src/new.ts:src/new.ts"]);
   });
 });

@@ -1,4 +1,4 @@
-# Implementation Plan: Empty the Knip baseline
+# Implementation Plan: Remove the Knip baseline
 
 **Status:** Complete  
 **Created:** 2026-09-09  
@@ -8,7 +8,7 @@
 
 ## Goal
 
-`bun run analyze:full` stays green and `scripts/static-analysis/knip-baseline.json` has `issues: []`. Every finding that existed on 2026-09-08 (~1076 fingerprints: 529 default + 547 production) is either **gone from the live Knip report** (fixed) or **declared in `knip.jsonc` with a one-line reason** (disabled). The JSON baseline is not an ignore list.
+`bun run analyze:full` stays green and Knip has no baseline file. Every finding that existed on 2026-09-08 (~1076 fingerprints: 529 default + 547 production) is either **gone from the live Knip report** (fixed) or **declared in `knip.jsonc` with a one-line reason** (disabled).
 
 Inventory snapshot (do not treat as the live list — Pick re-runs Knip):
 
@@ -33,7 +33,7 @@ Inventory snapshot (do not treat as the live list — Pick re-runs Knip):
 
 | Question | Decision |
 |----------|----------|
-| Empty ratchet when done? | Yes. `knip-baseline.json` `issues` is `[]`. Survivors live in `knip.jsonc`. |
+| Knip baseline when done? | None. Survivors live only in `knip.jsonc`. |
 | Unused published exports | Unexport or delete symbols **not** on the public package entry. Ignore leftover public API in `knip.jsonc`. |
 | Expo / native `dependencies` Knip cannot see | `ignoreDependencies` / ignore globs with a reason. Do not remove from `package.json`. |
 | Dead in-repo app/demo code | Delete or stop exporting when nothing in-repo uses it. Keep (then ignore as an entry) only what docs, E2E, or codegen still invoke. |
@@ -48,7 +48,7 @@ knip.jsonc
   entries     → isolated tests, scripts tests, e2e, codegen, stubs
   ignore*     → Expo autolink, binaries, public API leftovers
 code          → delete dead files; unexport internal unused symbols
-analyze:baseline → issues: []
+check:knip    → fail on any finding not handled above
 ```
 
 ### Disposition rules (Pick must apply in this order)
@@ -58,7 +58,7 @@ analyze:baseline → issues: []
 3. **Unexport** — symbol is `export`ed from an internal module and is not on the package public entry. Drop `export` or move to a non-exported binding.
 4. **Delete** — file or dependency unused after (1)–(3), including in-repo-dead example/demo hooks and leftover `devDependencies` such as `sinon` once the graph is honest.
 
-Never use `knip --fix`. Never empty the JSON baseline until the live report is empty.
+Never use `knip --fix`. Delete the old JSON baseline only after the live report is empty.
 
 ### Public vs internal export
 
@@ -74,7 +74,7 @@ None.
 
 ## APIs
 
-None. Operator surface is `knip.jsonc`, `bun run analyze:full`, `bun run analyze:baseline`.
+None. Operator surface is `knip.jsonc`, `bun run check:knip`, and `bun run analyze:full`.
 
 ## Notifications
 
@@ -93,9 +93,9 @@ None. Example-frontend / demo file deletes must not remove screens still routed 
 | 3 True unused packages | Remove `devDependencies` / dependencies that are unused after the graph is honest (`sinon`, stale `@types/*`, etc.). |
 | 4 Dead files | Delete in-repo-dead modules (example hooks, unused stories, unused scripts). |
 | 5 Internal exports | Unexport unused internals. Ignore remaining public unused exports/types. |
-| 6 Contract | Live Knip report empty. Write `issues: []`. Rewrite the ratchet docs. |
+| 6 Contract | Live Knip report empty. Delete the baseline. Rewrite the enforcement docs. |
 
-Keep the existing fat `knip-baseline.json` until Phase 6 so `analyze:full` stays green while counts fall.
+Keep the existing fat baseline until Phase 6, then delete it once the live report is empty.
 
 ## Feature Flags & Migrations
 
@@ -115,9 +115,9 @@ None.
 | File | Role |
 | --- | --- |
 | `knip.jsonc` | Entries, ignores, workspace plugin fixes |
-| `scripts/static-analysis/knip-baseline.json` | Empty `issues` at the end |
-| `scripts/static-analysis/full.ts` / `lib.test.ts` | Only if empty-baseline messaging or tests need a tweak |
-| `docs/explanation/static-analysis.md` | Policy: empty Knip baseline; ignore vs delete |
+| `scripts/static-analysis/knip-baseline.json` | Delete after reaching zero findings |
+| `scripts/static-analysis/full.ts` / `lib.test.ts` | Enforce zero findings directly |
+| `docs/explanation/static-analysis.md` | Policy: no Knip baseline; ignore vs delete |
 | Package `package.json` files | Remove true unused deps only |
 | Dead source files listed by live Knip after Phase 1 | Delete or unexport |
 
@@ -128,9 +128,9 @@ None.
 ## Acceptance Criteria
 
 - [ ] `bun run analyze:full` exits 0.
-- [ ] `scripts/static-analysis/knip-baseline.json` has `"issues": []`.
+- [ ] `scripts/static-analysis/knip-baseline.json` does not exist.
 - [ ] Every `ignore` / `ignoreDependencies` / `ignoreBinaries` / `ignoreIssues` entry in `knip.jsonc` has a comment stating why it cannot be a code fix.
 - [ ] No published `@terreno/*` `index` export was removed.
 - [ ] No Expo autolink/native package was removed from an app or `ui` `package.json` solely because Knip flagged it.
-- [ ] `docs/explanation/static-analysis.md` describes the empty-baseline policy and forbids `knip --fix`.
+- [ ] `docs/explanation/static-analysis.md` describes the no-baseline policy and forbids `knip --fix`.
 - [ ] `bun test scripts/static-analysis/lib.test.ts` still passes.

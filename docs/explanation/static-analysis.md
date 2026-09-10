@@ -12,7 +12,8 @@ repository-wide correctness checks with a partial changed-file scan.
 | --- | --- | --- | --- |
 | Biome | `bun run analyze:fast` | Changed and untracked analyzable files | Agent post-edit hooks |
 | Biome | `bun run analyze:staged` | Staged analyzable files | Git pre-commit |
-| Knip | `bun run analyze:full` | Both development and production module graphs | Agent stop hooks and CI |
+| Knip | `bun run check:knip` | Both development and production module graphs | Dedicated GitHub workflow |
+| Knip | `bun run analyze:full` | Both development and production module graphs | Agent stop hooks and CircleCI |
 | dependency-cruiser | `bun run analyze:full` | Workspace source dependency graph | Agent stop hooks and CI |
 
 Biome runs from the nearest workspace configuration. Knip finds unused files, exports,
@@ -70,29 +71,28 @@ logic without widening the npm entry point. Mark those declarations `@internal`:
 Knip still proves that tests use them, while production mode excludes the test-only seam.
 Generated SDK files use a path-scoped `ignoreIssues` entry instead of hand edits.
 
-## Ratchets
+## Zero-finding policy
 
-The Knip baseline is intentionally empty:
+Knip has no baseline. `bun run check:knip` runs the default and production graphs and
+fails on every finding. The dedicated `Knip / Zero findings` GitHub workflow runs this
+command for every pull request and every push to `master`.
 
-- `scripts/static-analysis/knip-baseline.json` must keep `issues: []`.
-- `.dependency-cruiser-known-violations.json` ratchets the remaining dependency-cruiser
-  findings while rejecting new ones.
+Fix every Knip finding or add the narrowest justified exception to `knip.jsonc` with a
+comment naming the runtime loader, public compatibility promise, generated source, or
+tool limitation. Do not create a Knip baseline or any other separate finding inventory.
 
-Fix every new Knip finding or add the narrowest justified exception to `knip.jsonc` with
-a comment naming the runtime loader, public compatibility promise, generated source, or
-tool limitation. Never accept Knip debt by adding fingerprints back to the JSON baseline.
-
-After intentionally accepting repository-wide analysis changes, regenerate both
-baselines:
+dependency-cruiser still uses `.dependency-cruiser-known-violations.json` to ratchet its
+remaining findings. After intentionally accepting repository-wide dependency-graph
+changes, regenerate only that baseline:
 
 ```bash
-bun run analyze:baseline
+bun run analyze:dependency-baseline
 bun run analyze:full
 ```
 
-Review both baseline diffs before committing. Regeneration must leave Knip `issues: []`;
-dependency-cruiser may only stay level or decrease. Never run `knip --fix` unattended
-because an incomplete entry graph can remove runtime-loaded code.
+Review the dependency-cruiser baseline diff before committing; findings may only stay
+level or decrease. Never run `knip --fix` unattended because an incomplete entry graph
+can remove runtime-loaded code.
 
 ## Agent hooks
 
@@ -114,7 +114,7 @@ gate and the real Git pre-commit hook covers commits made outside an agent.
 | `knip.jsonc` | Entry graph, plugins, generated-code exceptions |
 | `.dependency-cruiser.js` | Dependency rules and resolver conditions |
 | `.rulesync/hooks.json` | Canonical agent lifecycle hooks |
-| `scripts/static-analysis/` | Portable hook commands, ratchet logic, and tests |
+| `scripts/static-analysis/` | Portable direct Knip checks, dependency ratchet logic, and tests |
 
 Generated agent hook files must not be edited directly. Change `.rulesync/hooks.json`,
 then run `bun run rules`.

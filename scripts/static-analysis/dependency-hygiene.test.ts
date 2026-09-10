@@ -11,6 +11,7 @@ interface WorkspaceManifest {
   devDependencies?: Record<string, string>;
   name?: string;
   peerDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
   workspaces?: string[];
 }
 
@@ -127,11 +128,12 @@ const UNUSED_RUNTIME_DEPENDENCIES = new Map<string, string[]>([
 ]);
 
 describe("dependency hygiene", (): void => {
-  test("keeps the Knip baseline empty", async (): Promise<void> => {
-    const baseline = (await Bun.file(
-      join(REPO_ROOT, "scripts/static-analysis/knip-baseline.json")
-    ).json()) as {issues: string[]};
-    assert.deepEqual(baseline.issues, []);
+  test("does not allow a Knip baseline", async (): Promise<void> => {
+    assert.isFalse(
+      await Bun.file(join(REPO_ROOT, "scripts/static-analysis/knip-baseline.json")).exists()
+    );
+    const rootManifest = await readManifest("package.json");
+    assert.notProperty(rootManifest.scripts ?? {}, "analyze:baseline");
   });
 
   test("does not retain unused development dependencies", async (): Promise<void> => {
