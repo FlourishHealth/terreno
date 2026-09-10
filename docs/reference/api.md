@@ -21,6 +21,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- `AuditApp`, `createAuditEventModel`, `persistRbacAuditToAuditEvent`
 - `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
@@ -118,7 +119,38 @@ new TerrenoApp({
 
 ### Audit log (`AuditApp`)
 
-Opt-in. Register `new AuditApp()` on `TerrenoApp` to mount append-only `GET /audit-events` (admin list/read). Non-admin list is **405** (`permissionMiddleware`). Importing `@terreno/api` does **not** register `AuditEvent` on the default mongoose connection — call `createAuditEventModel(connection)` or register the plugin. Set `audit: true` or `audit: {redact: ["ssn"]}` on `modelRouter` to persist redacted changed-field diffs after successful create/update/delete. See the [framework audit log IP](../implementationPlans/framework-audit-log.md).
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+
+```typescript
+import {
+  AuditApp,
+  persistRbacAuditToAuditEvent,
+  TerrenoApp,
+  modelRouter,
+} from "@terreno/api";
+
+new TerrenoApp({userModel: User})
+  .register(new AuditApp()) // optional {retentionDays: 90}
+  .register(
+    modelRouter("/todos", Todo, {
+      audit: true, // or {redact: ["ssn"]}
+      permissions: {/* ... */},
+    })
+  )
+  .start();
+```
+
+| Surface | How it writes |
+| --- | --- |
+| `modelRouter` | `audit: true` or `{redact?: string[]}` after successful HTTP create/update/delete and array push/update/remove |
+| `AdminApp` | Auto when `AuditApp` is registered (`source: "admin"`). `onAdminAudit` is extra |
+| RBAC | `createAccess({auditSink: persistRbacAuditToAuditEvent})` (`source: "rbac"`) |
+
+HTTP is list+read only: `GET /audit-events` with `Permissions.IsAdmin`. Empty create/update/delete permission arrays mean POST/PATCH/DELETE return **405**. Non-admin list is also **405** (`permissionMiddleware`). There is no `isDeletedPlugin`; rows are not soft-deleted.
+
+`createAuditEventModel(connection, {retentionDays?})` is the factory for tests and scripts. Never audit `AuditEvent` itself. Recorder failures log and leave the mutation 2xx.
+
+Default retention is forever (no TTL index). `new AuditApp({retentionDays: n})` for `n > 0` adds `{created: 1, expireAfterSeconds: n * 86400}`. Drop that index yourself if you later remove TTL. Operator steps: [Enable the framework audit log](../how-to/audit-log.md).
 
 ### setupServer (Legacy)
 
@@ -1523,6 +1555,7 @@ SENTRY_DSN=https://...@sentry.io/...
 
 ## Learn more
 
+- [Enable the framework audit log](../how-to/audit-log.md)
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
