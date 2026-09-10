@@ -3,10 +3,7 @@ import {
   type SyncConflictItem,
   type SyncConflictResolutionStrategy,
 } from "@terreno/ui";
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {agentAdminLog, installAgentLogDumper} from "./adminFormDebug";
-
-installAgentLogDumper();
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 
 export interface AdminConflictSheetProps {
   collection: string;
@@ -26,8 +23,6 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
   resolve,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const renderCountRef = useRef(0);
-  const mountGenerationRef = useRef(Math.random().toString(36).slice(2, 10));
 
   const loadedIdKey = useMemo((): string => [...loadedIds].sort().join("|"), [loadedIds]);
 
@@ -47,48 +42,15 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
     [adminConflicts]
   );
 
-  renderCountRef.current += 1;
-  agentAdminLog("AdminConflictSheet", "H6", "render", {
-    adminConflictCount: adminConflicts.length,
-    conflictKey,
-    isDismissed,
-    mountGeneration: mountGenerationRef.current,
-    renderCount: renderCountRef.current,
-  });
-
-  useEffect(() => {
-    agentAdminLog("AdminConflictSheet", "H6", "mount", {
-      collection,
-      loadedIdKey,
-      mountGeneration: mountGenerationRef.current,
-    });
-    return () => {
-      agentAdminLog("AdminConflictSheet", "H6", "unmount", {
-        collection,
-        mountGeneration: mountGenerationRef.current,
-        renderCount: renderCountRef.current,
-      });
-    };
-  }, [collection, loadedIdKey]);
-
   const handleDismiss = useCallback((): void => {
-    agentAdminLog("AdminConflictSheet", "H6", "dismiss", {
-      adminConflictCount: adminConflicts.length,
-      conflictKey,
-    });
     setIsDismissed(true);
-  }, [adminConflicts.length, conflictKey]);
+  }, []);
 
   // A new mutation-id set is a fresh conflict episode — reopen after an earlier dismiss.
   // Skip the empty key: clearing conflicts also sets conflictKey to "" and must not
   // undo ConflictSheet's onDismiss in the same episode.
   useEffect(() => {
-    agentAdminLog("AdminConflictSheet", "H6", "conflictKey effect run", {
-      conflictKey,
-      isDismissed,
-    });
     if (conflictKey.length > 0) {
-      agentAdminLog("AdminConflictSheet", "H6", "conflictKey effect reopen", {conflictKey});
       setIsDismissed(false);
     }
   }, [conflictKey]);
@@ -96,12 +58,7 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
   // Admin unmounts ConflictSheet when the window has no conflicts; reset so the next
   // episode does not inherit a stale dismissed flag.
   useEffect(() => {
-    agentAdminLog("AdminConflictSheet", "H6", "adminConflicts.length effect run", {
-      adminConflictCount: adminConflicts.length,
-      isDismissed,
-    });
     if (adminConflicts.length === 0) {
-      agentAdminLog("AdminConflictSheet", "H6", "adminConflicts.length effect reset dismiss", {});
       setIsDismissed(false);
     }
   }, [adminConflicts.length]);

@@ -1,5 +1,5 @@
 import {getCalendars} from "expo-localization";
-import {type FC, useEffect, useMemo, useRef, useState} from "react";
+import {type FC, useMemo, useState} from "react";
 import {
   type DimensionValue,
   type KeyboardTypeOptions,
@@ -11,11 +11,6 @@ import {
 } from "react-native";
 
 import {AiSuggestionBox} from "./AiSuggestionBox";
-import {
-  agentTextFieldLog,
-  installAgentTextFieldLogDumper,
-  isAdminFieldTestId,
-} from "./agentFieldDebug";
 import type {TextFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
@@ -23,8 +18,6 @@ import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
-
-installAgentTextFieldLogDumper();
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -104,46 +97,6 @@ export const TextField: FC<TextFieldProps> = ({
 
   const [focused, setFocused] = useState(false);
   const [height, setHeight] = useState(rows * 40);
-  const renderCountRef = useRef(0);
-  const mountGenerationRef = useRef(Math.random().toString(36).slice(2, 10));
-  const prevOnChangeRef = useRef(onChange);
-  const prevValueRef = useRef(value);
-  const isAdminField = isAdminFieldTestId(fieldTestIDs.input);
-
-  renderCountRef.current += 1;
-  if (isAdminField) {
-    const onChangeChanged = prevOnChangeRef.current !== onChange;
-    const valueChanged = prevValueRef.current !== value;
-    if (onChangeChanged || valueChanged || renderCountRef.current <= 3) {
-      agentTextFieldLog("render", "H3", {
-        mountGeneration: mountGenerationRef.current,
-        onChangeChanged,
-        renderCount: renderCountRef.current,
-        testID: fieldTestIDs.input,
-        valueChanged,
-        valuePreview: typeof value === "string" ? value.slice(0, 120) : value,
-      });
-    }
-    prevOnChangeRef.current = onChange;
-    prevValueRef.current = value;
-  }
-
-  useEffect(() => {
-    if (!isAdminField) {
-      return;
-    }
-    agentTextFieldLog("mount", "H4", {
-      mountGeneration: mountGenerationRef.current,
-      testID: fieldTestIDs.input,
-    });
-    return () => {
-      agentTextFieldLog("unmount", "H4", {
-        mountGeneration: mountGenerationRef.current,
-        renderCount: renderCountRef.current,
-        testID: fieldTestIDs.input,
-      });
-    };
-  }, [fieldTestIDs.input, isAdminField]);
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -186,8 +139,20 @@ export const TextField: FC<TextFieldProps> = ({
     console.warn(`${type} is not yet supported`);
   }
 
+  // RN Web browser autocorrect/spellcheck fights controlled `value` and can oscillate
+  // between variants (e.g. "reachthreshold" vs "reach threshold"), firing onChangeText forever.
   const shouldAutocorrect =
-    ["text", "textarea"].includes(type) && (!autoComplete || autoComplete === "on");
+    Platform.OS !== "web" &&
+    ["text", "textarea"].includes(type) &&
+    (!autoComplete || autoComplete === "on");
+
+  const handleChangeText = (text: string): void => {
+    const currentValue = value ?? "";
+    if (text === currentValue) {
+      return;
+    }
+    onChange(text);
+  };
 
   const keyboardType = keyboardMap[type];
   const textContentType = textContentMap[type || "text"];
@@ -227,6 +192,7 @@ export const TextField: FC<TextFieldProps> = ({
           }}
         >
           <TextInput
+            {...(Platform.OS === "web" ? {spellCheck: false} : {})}
             accessibilityHint="Enter text here"
             accessibilityState={{disabled}}
             aria-label="Text input field"
@@ -247,61 +213,24 @@ export const TextField: FC<TextFieldProps> = ({
               if (trimOnBlur && value) {
                 finalValue = finalValue.trim();
                 if (finalValue !== value) {
-                  if (isAdminField) {
-                    agentTextFieldLog("onBlur trim onChange", "H3", {
-                      finalValuePreview: finalValue.slice(0, 120),
-                      testID: fieldTestIDs.input,
-                      valuePreview: value.slice(0, 120),
-                    });
-                  }
                   onChange(finalValue);
                 }
               }
               if (onBlur) {
                 onBlur(finalValue);
               }
-              if (isAdminField) {
-                agentTextFieldLog("onBlur", "H3", {
-                  finalValuePreview: finalValue.slice(0, 120),
-                  testID: fieldTestIDs.input,
-                });
-              }
               setFocused(false);
             }}
-            onChangeText={(text) => {
-              if (isAdminField) {
-                agentTextFieldLog("onChangeText", "H3", {
-                  focused,
-                  grow: Boolean(grow),
-                  testID: fieldTestIDs.input,
-                  textPreview: text.slice(0, 120),
-                });
-              }
-              onChange(text);
-            }}
+            onChangeText={handleChangeText}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;
               }
-              const nextHeight = event.nativeEvent.contentSize.height;
-              if (isAdminField) {
-                agentTextFieldLog("onContentSizeChange", "H3", {
-                  nextHeight,
-                  prevHeight: height,
-                  testID: fieldTestIDs.input,
-                });
-              }
-              setHeight(nextHeight);
+              setHeight(event.nativeEvent.contentSize.height);
             }}
             onFocus={() => {
               if (!disabled) {
                 setFocused(true);
-              }
-              if (isAdminField) {
-                agentTextFieldLog("onFocus", "H3", {
-                  testID: fieldTestIDs.input,
-                  valuePreview: typeof value === "string" ? value.slice(0, 120) : value,
-                });
               }
               if (onFocus) {
                 onFocus();
