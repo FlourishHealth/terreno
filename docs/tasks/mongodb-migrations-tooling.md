@@ -71,7 +71,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 
 ## Phase 5 — Admin HTTP
 
-- [ ] **Task 5.1**: Admin migrations routes + config flag
+- [x] **Task 5.1**: Admin migrations routes + config flag
   - Delivers: `GET /admin/migrations` status; `POST /admin/migrations/run?wetRun=` creates BackgroundTask and runs batch pending; poll/cancel via existing script task routes; prod wet 403 without `ALLOW_MIGRATIONS`; `GET /admin/config` includes `migrations.enabled`
   - Files: `admin-backend/src/adminApp.ts`, `admin-backend/src/adminApp.migrations.test.ts`, AdminApp options type
   - Blocked by: 1.2, 2.1

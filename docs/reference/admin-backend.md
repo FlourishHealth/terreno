@@ -34,7 +34,8 @@ admin.register(app);
 ``````
 
 This creates:
-- `GET /admin/config` — Model metadata endpoint
+- `GET /admin/config` — Model metadata endpoint (`migrations.enabled` when `AdminApp` is given `migrations.dir`)
+- `GET /admin/migrations` and `POST /admin/migrations/run?wetRun=` when `migrations.dir` is set
 - Standard CRUD routes for each model at `{basePath}{routePath}`
 - All routes protected with `Permissions.IsAdmin`, or fine-grained RBAC when `accessControl` is set
 

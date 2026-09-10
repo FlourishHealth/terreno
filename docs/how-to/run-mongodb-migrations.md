@@ -60,6 +60,19 @@ export const down = async ({dryRun, mongoose}): Promise<void> => {
 
 Do not inspect the live database during generate. Baseline is the last `schemaAfter` snapshot in `migrations/`.
 
+## Admin HTTP
+
+Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
+
+| Method | Path | Effect |
+|--------|------|--------|
+| GET | `/admin/migrations` | Applied, pending, lock |
+| POST | `/admin/migrations/run?wetRun=true\|false` | One BackgroundTask (`migrations:up`) |
+| GET/DELETE | `/admin/scripts/tasks/:id` | Poll or cancel that task |
+
+Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The UI page is a later slice.
+
+
 ## Production wet apply
 
 `NODE_ENV=production` wet `up`/`down` requires both:
