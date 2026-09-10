@@ -109,14 +109,6 @@ Configuration.register("PR_SERVICE_URL", {
   type: "string",
 });
 
-// ============================================================================
-// Exported convenience getters (backward compatibility)
-// ============================================================================
-
-const _APP_NAME = Configuration.get<string>("APP_NAME");
-const _DEFAULT_PAGE_SIZE = Configuration.get<number>("DEFAULT_PAGE_SIZE");
-const _MAX_PAGE_SIZE = Configuration.get<number>("MAX_PAGE_SIZE");
-
 export const isProduction =
   Configuration.get<string>("NODE_ENV") === "production" &&
   Configuration.get<string>("APP_ENV") === "production";
@@ -126,39 +118,10 @@ export const isStaging = Configuration.get<string>("APP_ENV") === "staging";
 // This is used to determine if the app is deployed to Cloud Run in production or staging or
 // running locally.
 export const isDeployed = Configuration.get<string>("NODE_ENV") === "production";
-const isDev = Configuration.get<string>("NODE_ENV") === "development";
-const isTest = Configuration.get<string>("NODE_ENV") === "test";
 
 export const isWebsocketService =
   Configuration.get<string>("BACKEND_SERVICE") === "websockets" ||
   Configuration.get<string>("BACKEND_SERVICE") === "all";
-
-// During migration, API service will accept websockets connections but only the websocket
-// service should listen to changes. Also applies to all, for dev/pr.
-const _isTasksService =
-  Configuration.get<string>("BACKEND_SERVICE") === "tasks" ||
-  Configuration.get<string>("BACKEND_SERVICE") === "all";
-
-const _isApiService =
-  Configuration.get<string>("BACKEND_SERVICE") === "api" ||
-  Configuration.get<string>("BACKEND_SERVICE") === "all";
-
-const _getEnvironment = (): string => {
-  if (isProduction) {
-    return "PROD";
-  }
-  if (isStaging) {
-    const prNumber = Configuration.get<string>("PR_NUMBER");
-    return prNumber ? `STG-${prNumber}` : "STG";
-  }
-  if (isDev) {
-    return "DEV";
-  }
-  if (isTest) {
-    return "TEST";
-  }
-  return "DEV"; // Default fallback
-};
 
 export const isPullRequest =
   Configuration.get<string>("PR_NUMBER") && Configuration.get<string>("PR_NUMBER") !== "staging";

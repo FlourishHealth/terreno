@@ -261,28 +261,3 @@ export const decideProbe = ({
     sdkLine,
   };
 };
-
-const _nextTrackedState = ({
-  expoVersion,
-  loopStatus,
-  npmTag,
-  releaseBranch,
-  sdkLine,
-  updatedAt,
-}: {
-  expoVersion: string;
-  loopStatus: LoopStatus;
-  npmTag: TrackedState["npmTag"];
-  releaseBranch: string;
-  sdkLine: string;
-  updatedAt: string;
-}): TrackedState => {
-  return {
-    expoVersion,
-    loopStatus,
-    npmTag,
-    releaseBranch,
-    sdkLine,
-    updatedAt,
-  };
-};

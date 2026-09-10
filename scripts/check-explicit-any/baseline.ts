@@ -5,7 +5,7 @@ import {DateTime} from "luxon";
 import type {AnyAuditSummary, RemediationStatus} from "./lib";
 import {REPO_ROOT} from "./lib";
 
-const BASELINE_PATH = join(REPO_ROOT, "scripts/check-explicit-any/baseline.json");
+export const BASELINE_PATH = join(REPO_ROOT, "scripts/check-explicit-any/baseline.json");
 
 export interface ExplicitAnyBaseline {
   byFile: Record<string, number>;
@@ -77,7 +77,7 @@ export const writeBaseline = (
   return baseline;
 };
 
-const _loadBaseline = (baselinePath: string = BASELINE_PATH): ExplicitAnyBaseline => {
+export const loadBaseline = (baselinePath: string = BASELINE_PATH): ExplicitAnyBaseline => {
   const raw = readFileSync(baselinePath, "utf8");
   const parsed = JSON.parse(raw) as ExplicitAnyBaseline;
   if (parsed.version !== 2) {

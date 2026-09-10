@@ -113,7 +113,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
 
 ### Phase 5: Exports and types
 
-- [ ] **Task 5.1**: Unexport unused **internal** symbols in `scripts/` and examples
+- [x] **Task 5.1**: Unexport unused **internal** symbols in `scripts/` and examples
   - Delivers: after tests are in the graph, remaining unused exports/types in `scripts/`, `example-frontend/`, `example-backend/`, `demo/` that are not a public package entry become non-exported (or deleted if the whole helper is dead)
   - Files: modules named by live `exports` / `types` findings in those trees
   - Blocked by: Task 1.1, Task 4.1, Task 4.2

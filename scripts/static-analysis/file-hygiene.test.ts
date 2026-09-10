@@ -8,6 +8,7 @@ const REPO_ROOT = join(import.meta.dir, "../..");
 const DEAD_EXAMPLE_FRONTEND_FILES = [
   "example-frontend/constants/Colors.ts",
   "example-frontend/hooks/useLogoutUser.ts",
+  "example-frontend/hooks/useReadProfile.ts",
   "example-frontend/hooks/useSentryUserSetup.ts",
   "example-frontend/hooks/useUpdateProfile.ts",
 ] as const;

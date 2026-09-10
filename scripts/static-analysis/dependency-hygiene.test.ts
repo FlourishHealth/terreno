@@ -8,6 +8,7 @@ const UNUSED_DEV_DEPENDENCIES = new Map<string, string[]>([
   ["package.json", ["tsx"]],
   ["api/package.json", ["@types/bcrypt", "@types/cron", "@types/sinon", "sinon"]],
   ["example-backend/package.json", ["@types/lodash", "@types/winston", "mongodb"]],
+  ["example-frontend/package.json", ["@types/lodash"]],
   ["admin-backend/package.json", ["passport-local-mongoose"]],
   ["feature-flags/package.json", ["passport-local-mongoose"]],
   ["ai/package.json", ["winston"]],
@@ -50,6 +51,7 @@ const UNUSED_RUNTIME_DEPENDENCIES = new Map<string, string[]>([
     ],
   ],
   ["api/package.json", ["@sentry/profiling-node", "generaterr", "scmp"]],
+  ["example-frontend/package.json", ["lodash"]],
   ["test/package.json", ["lodash"]],
   ["website/package.json", ["clsx"]],
 ]);

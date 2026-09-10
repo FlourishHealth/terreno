@@ -2,7 +2,6 @@
 // we can add extra tags to endpoints.
 
 import {generateTags, realtimeDocument, realtimeList} from "@terreno/rtk";
-import startCase from "lodash/startCase";
 
 import {addTagTypes, openapi} from "./openApiSdk";
 
@@ -326,31 +325,3 @@ export const {
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
-
-// Endpoint type from the OpenAPI generated SDK - uses Record for dynamic structure
-type OpenApiEndpoints = Record<string, unknown>;
-
-// Get hooks from the @terreno/rtk generated SDK for CRUD/list operations.
-// Returns the appropriate RTK Query hook based on model name and operation type
-// Return type is Record<string, unknown> as it varies based on operation and model
-const _getSdkHook = (
-  modelName: string,
-  type: "list" | "read" | "create" | "update" | "remove"
-): Record<string, unknown> => {
-  const modelPath = startCase(modelName).replace(/\s/g, "");
-  const endpoints = openapi.endpoints as OpenApiEndpoints;
-  switch (type) {
-    case "list":
-      return endpoints[`get${modelPath}`] as Record<string, unknown>;
-    case "read":
-      return endpoints[`get${modelPath}ById`] as Record<string, unknown>;
-    case "create":
-      return endpoints[`post${modelPath}`] as Record<string, unknown>;
-    case "update":
-      return endpoints[`patch${modelPath}ById`] as Record<string, unknown>;
-    case "remove":
-      return endpoints[`delete${modelPath}ById`] as Record<string, unknown>;
-    default:
-      throw new Error(`Invalid SDK hook: ${modelName}/${type}`);
-  }
-};

@@ -29,6 +29,9 @@
     "**/openApiSdk.ts": ["exports", "types"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
+    // check-explicit-any/lib.ts loads BASELINE_PATH/loadBaseline through require() so it
+    // can avoid a static lib ↔ baseline cycle; Knip cannot see the destructured names.
+    "scripts/check-explicit-any/baseline.ts": ["exports"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "ignoreFiles": [

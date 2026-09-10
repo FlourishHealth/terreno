@@ -9,8 +9,6 @@ const CHANGELOG_CATEGORIES = [
 
 type ChangelogCategory = (typeof CHANGELOG_CATEGORIES)[number];
 
-const _UNRELEASED_HEADING = "## [Unreleased]";
-
 export const UNRELEASED_POINTER =
   "Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.";
 

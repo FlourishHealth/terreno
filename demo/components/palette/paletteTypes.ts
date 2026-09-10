@@ -224,9 +224,4 @@ export const runContrastChecks = (
   });
 };
 
-/** Convenience aggregate for the header badge ("3 issues"). */
-const _countContrastFailures = (results: ContrastResult[]): number => {
-  return results.filter((result) => !result.passes).length;
-};
-
 export type {MainFamily, StatusFamily};
