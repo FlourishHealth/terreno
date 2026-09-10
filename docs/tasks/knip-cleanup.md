@@ -119,7 +119,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Blocked by: Task 1.1, Task 4.1, Task 4.2
   - Acceptance: those packages have no unused **internal** export/type findings; tests that imported the symbol still compile (they use the same module, not the export); `analyze:full` exits 0
 
-- [ ] **Task 5.2**: Unexport unused **internal** symbols in published packages
+- [x] **Task 5.2**: Unexport unused **internal** symbols in published packages
   - Delivers: same as 5.1 for `api`, `admin-frontend`, `comms`, `syncdb`, `mcp-server`, `ai`. Do **not** remove re-exports from `src/index.ts(x)`
   - Files: internal modules named by live findings
   - Blocked by: Task 1.2
