@@ -1,6 +1,6 @@
 # Implementation Plan: DataTable server-side filtering and search
 
-**Status:** Draft  
+**Status:** Approved  
 **Branch:** `cursor/datatable-server-side-filtering-191d`  
 **Owner:** —  
 **Created:** 2026-09-10  
@@ -169,7 +169,7 @@ No flag. Admin text filters become contains. Call out in CHANGELOG and admin how
 
 ## Activity Log & User Updates
 
-None.
+- 2026-09-10: Grow approved; next Pick Task 1.1.
 
 ## Not Included / Future Work
 

@@ -1,6 +1,7 @@
 # Tasks: DataTable server-side filtering and search
 
 Plan: [`docs/implementationPlans/datatable-server-side-filtering.md`](../implementationPlans/datatable-server-side-filtering.md)  
+**Status:** Approved — next: Pick Task 1.1  
 **Closes:** https://github.com/FlourishHealth/terreno/issues/1177
 
 **Feature profile:** false (full IP)
