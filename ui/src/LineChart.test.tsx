@@ -12,11 +12,14 @@ const POINTS = [
 
 describe("LineChart", () => {
   it("renders one mark testID per point", () => {
-    const {getByTestId} = renderWithTheme(<LineChart data={POINTS} testID="chart" />);
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <LineChart data={POINTS} testID="chart" />
+    );
 
     expect(getByTestId("chart.point.0-clickable")).toBeTruthy();
     expect(getByTestId("chart.point.1-clickable")).toBeTruthy();
     expect(getByTestId("chart.point.2-clickable")).toBeTruthy();
+    expect(queryByTestId("chart.point.3-clickable")).toBeNull();
   });
 
   it("shows emptyText when data is empty", () => {
@@ -31,23 +34,48 @@ describe("LineChart", () => {
     expect(getByText("No data")).toBeTruthy();
   });
 
-  it("shows a spinner when loading", async () => {
-    const {getByTestId} = renderWithTheme(<LineChart data={POINTS} loading testID="chart" />);
+  it("shows a spinner when loading and hides marks", async () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <LineChart data={POINTS} loading testID="chart" />
+    );
+
+    expect(queryByTestId("chart.point.0-clickable")).toBeNull();
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 350));
     });
 
     expect(getByTestId("chart.spinner")).toBeTruthy();
+    expect(queryByTestId("chart.point.0-clickable")).toBeNull();
+  });
+
+  it("prefers loading over empty copy", async () => {
+    const {queryByText, getByTestId} = renderWithTheme(
+      <LineChart data={[]} emptyText="Nothing yet" loading testID="chart" />
+    );
+
+    expect(queryByText("Nothing yet")).toBeNull();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+
+    expect(getByTestId("chart.spinner")).toBeTruthy();
+    expect(queryByText("Nothing yet")).toBeNull();
   });
 
   it("shows tooltip copy after pressing a mark", async () => {
-    const {getByTestId, getByText} = renderWithTheme(<LineChart data={POINTS} testID="chart" />);
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <LineChart data={POINTS} testID="chart" />
+    );
+
+    expect(queryByTestId("chart.tooltip")).toBeNull();
 
     await act(async () => {
       fireEvent.press(getByTestId("chart.point.1-clickable"));
     });
 
+    expect(getByTestId("chart.tooltip")).toBeTruthy();
     expect(getByText("B: 50")).toBeTruthy();
   });
 
