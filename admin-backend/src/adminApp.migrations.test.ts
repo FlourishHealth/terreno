@@ -109,6 +109,8 @@ describe("AdminApp migrations routes", () => {
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task?.isDryRun).toBe(true);
       expect(task?.taskType).toBe("migrations:up");
+      const polled = await adminAgent.get(`/admin/scripts/tasks/${res.body.taskId}`).expect(200);
+      expect(polled.body.task.status).toBe("completed");
     });
 
     it("applies pending on wet run", async () => {

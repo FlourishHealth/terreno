@@ -1784,7 +1784,7 @@ export class AdminApp {
     }
 
     // Mount script routes
-    if (scriptConfigs.length > 0) {
+    if (scriptConfigs.length > 0 || this.options.migrations?.dir) {
       const scriptsRouter = express.Router();
       scriptsRouter.use(authenticateMiddleware());
 
