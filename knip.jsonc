@@ -4,7 +4,17 @@
   // package's `dist/*.d.ts` as source and report its type-only imports as unlisted
   // dependencies. That made the ratchet depend on whether the workspace happened to be
   // compiled: clean in CI, which never builds, and 8 findings after `bun run compile`.
-  "ignore": ["**/dist/**"],
+  "ignore": [
+    "**/dist/**",
+    // Generated copies of installable skills. Canonical source is `.rulesync/skills`.
+    ".agents/skills/expo-cicd-workflows/scripts/**",
+    ".claude/skills/expo-cicd-workflows/scripts/**",
+    ".cursor/skills/expo-cicd-workflows/scripts/**",
+    ".devin/skills/expo-cicd-workflows/scripts/**",
+    ".github/skills/expo-cicd-workflows/scripts/**",
+    "skills/expo-cicd-workflows/scripts/**",
+    ".rulesync/skills/expo-cicd-workflows/scripts/**"
+  ],
   "ignoreIssues": {
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],

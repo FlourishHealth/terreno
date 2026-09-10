@@ -95,4 +95,16 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "does not report generated Expo skill script copies as unused files",
+    (): void => {
+      const unusedFiles = unusedFilePathsFromKnipReport(runDefaultKnipReport());
+      assert.deepEqual(
+        unusedFiles.filter((file) => file.includes("expo-cicd-workflows/scripts/")),
+        []
+      );
+    },
+    {timeout: 180_000}
+  );
 });
