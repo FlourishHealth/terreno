@@ -12,7 +12,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: none
   - Docs: field `description`s (OpenAPI); note in `docs/reference/api.md` stub section if the page is updated later in 6.1
   - Acceptance: unit tests for compound unique index and duplicate membership rejection
-- [ ] **Task 1.2**: `orgScopedPlugin`
+- [x] **Task 1.2**: `orgScopedPlugin`
   - Delivers: required indexed `organizationId` on consumer schemas
   - Files: `api/src/orgs/orgPlugin.ts` + tests
   - Blocked by: 1.1

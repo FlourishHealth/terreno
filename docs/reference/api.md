@@ -603,6 +603,26 @@ Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a
 `Membership` statics: `findActiveForUser`, `isOrgAdmin`, `isMember` (active rows only). Per-org
 `org-admin` is stored on Membership, not on `user.roles`.
 
+### Request organization context
+
+Tenant-scoped routes run `orgContextMiddleware({required: true})` after auth, then
+`queryFilter: OrgQueryFilter`.
+
+| Condition | Result |
+| --- | --- |
+| `X-Organization-Id` present, caller is `operator`/`superadmin` or an active member | `req.organization` set |
+| `X-Organization-Id` present, caller is not a member and not a platform org actor | 403 |
+| Tenant-scoped route, `operator`/`superadmin`, header omitted | 400 |
+| Caller is `org-admin` of exactly one org, header omitted | that org is inferred |
+| Caller is `org-admin` of many orgs, header omitted | 400 |
+| Otherwise on tenant-scoped routes | 403 |
+
+`OrgQueryFilter` always ANDs `{organizationId: context.id}`. Client `organizationId` query params
+and `$or` cannot list another org.
+
+`user.admin` is not operator. Platform org actors are `user.roles` containing `operator` or
+`superadmin`.
+
 ``````typescript
 import {Membership, Organization} from "@terreno/api";
 
