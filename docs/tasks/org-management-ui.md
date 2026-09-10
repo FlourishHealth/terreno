@@ -6,7 +6,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 1 — Models + context
 
-- [ ] **Task 1.1**: Organization + Membership models
+- [x] **Task 1.1**: Organization + Membership models
   - Delivers: persist orgs and per-org `roleName` (`org-admin` \| `member`)
   - Files: `api/src/orgs/organizationModel.ts`, types, `api/src/orgs/*.test.ts`
   - Blocked by: none

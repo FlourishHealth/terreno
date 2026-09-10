@@ -389,6 +389,17 @@ Field descriptions appear in:
 
 @terreno/api provides several Mongoose plugins to extend model functionality with common patterns.
 
+### orgScopedPlugin
+
+Adds a required indexed `organizationId` (ref `Organization`) to consumer schemas. Save fails
+without an organization. Use this on tenant-scoped models; query scoping lands with org context.
+
+``````typescript
+import {orgScopedPlugin} from "@terreno/api";
+
+projectSchema.plugin(orgScopedPlugin);
+``````
+
 ### findExactlyOne & findOneOrNone
 
 **Critical:** Never use `Model.findOne` directly. Use these plugins instead to prevent ambiguous queries.
