@@ -25,6 +25,7 @@ describe("chart paths", () => {
     const path = getAreaPath({baselineY: PLOT.top + PLOT.height, points: FIXTURE_POINTS, scales});
 
     expect(path).toContain("M25,100");
+    expect(path).toContain("L55,50");
     expect(path).toContain("L85,0");
     expect(path).toContain("L85,100");
   });
