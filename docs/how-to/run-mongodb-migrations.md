@@ -37,6 +37,7 @@ export const down = async ({dryRun, mongoose}): Promise<void> => {
 | Command | Mongo | Effect |
 |---------|-------|--------|
 | `terreno-migrate check --dir ./migrations` | No | Load and validate files (CI) |
+| `terreno-migrate generate --dir ./migrations --models ./src/models.ts [--name slug]` | No | Diff current models vs last `schemaAfter`; write one file or print `No schema changes` |
 | `terreno-migrate status --dir ./migrations` | Yes | List applied and pending ids |
 | `terreno-migrate up --dir ./migrations [--dry] [--force]` | Yes | Apply pending `up` in filename order |
 | `terreno-migrate down --dir ./migrations [--dry] [--force] [--steps N]` | Yes | Roll back the last `N` applied files (default 1) |
@@ -45,11 +46,9 @@ export const down = async ({dryRun, mongoose}): Promise<void> => {
 
 `down` fails with `Migration has no down` when the target file omits `down`. History stays unchanged.
 
-`generate` (schema snapshot) is not in this slice yet.
-
 ## What generate can emit
 
-`buildSchemaCatalog` / `diffSchemaCatalog` classify model changes. The generate CLI (next slice) writes one file per non-empty diff:
+`buildSchemaCatalog` / `diffSchemaCatalog` classify model changes. `terreno-migrate generate` writes one file per non-empty diff:
 
 | Diff | Safe? | Generated `up` |
 |------|-------|----------------|

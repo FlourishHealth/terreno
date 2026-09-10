@@ -61,6 +61,17 @@ describe("runMigrateCli", () => {
     expect(`${io.stdout}${io.stderr}`).toContain("check");
   });
 
+  it("generate without --models exits 1", async () => {
+    const io = capture();
+    const code = await runMigrateCli({
+      argv: ["generate", "--dir", fixtures("valid")],
+      stderr: {write: io.writeErr},
+      stdout: {write: io.writeOut},
+    });
+    expect(code).toBe(1);
+    expect(io.stderr).toContain("Missing --models");
+  });
+
   it("check validates files without Mongo", async () => {
     const io = capture();
     const code = await runMigrateCli({

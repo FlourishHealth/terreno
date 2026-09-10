@@ -1,24 +1,31 @@
 #!/usr/bin/env bun
 
+import {isAbsolute, resolve} from "node:path";
+import {pathToFileURL} from "node:url";
 import {parseArgs} from "node:util";
+import type {Model, Document as MongooseDocument} from "mongoose";
 import mongoose from "mongoose";
 
 import {APIError} from "../errors";
 import {logger} from "../logger";
 import {assertMigrationsAllowed} from "./gate";
+import {generateMigration} from "./generate";
 import {checkMigrationFiles} from "./load";
 import {getMigrationStatus, runDownMigrations, runMigrations} from "./runner";
 
 const USAGE = `Usage: terreno-migrate <command> [options]
 
 Commands:
-  check    Validate migration files (no Mongo)
-  status   List applied and pending migrations
-  up       Apply pending migrations
-  down     Roll back applied migrations
+  check     Validate migration files (no Mongo)
+  generate  Write a timestamped file from the model vs schemaAfter diff
+  status    List applied and pending migrations
+  up        Apply pending migrations
+  down      Roll back applied migrations
 
 Options:
   --dir <path>     Migration directory (default: ./migrations)
+  --models <path>  Module exporting models or {models} (generate)
+  --name <slug>    Filename slug for generate (default: auto)
   --dry            Call up/down with dryRun true; do not write history
   --force          Required for production wet up/down (with ALLOW_MIGRATIONS=true)
   --steps <n>      Number of applied migrations to roll back (down only, default 1)
@@ -51,6 +58,22 @@ const errorMessage = (error: unknown): string => {
   return String(error);
 };
 
+const isMongooseModel = (value: unknown): value is Model<MongooseDocument> => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  return "schema" in value && "modelName" in value;
+};
+
+const loadModelsModule = async (modulePath: string): Promise<Model<MongooseDocument>[]> => {
+  const resolved = isAbsolute(modulePath) ? modulePath : resolve(modulePath);
+  const imported = (await import(pathToFileURL(resolved).href)) as Record<string, unknown>;
+  if (Array.isArray(imported.models)) {
+    return imported.models.filter(isMongooseModel);
+  }
+  return Object.values(imported).filter(isMongooseModel);
+};
+
 export const runMigrateCli = async ({
   argv,
   env = process.env,
@@ -63,6 +86,8 @@ export const runMigrateCli = async ({
     dry?: boolean;
     force?: boolean;
     help?: boolean;
+    models?: string;
+    name?: string;
     steps?: string;
   };
   let positionals: string[];
@@ -75,6 +100,8 @@ export const runMigrateCli = async ({
         dry: {default: false, type: "boolean"},
         force: {default: false, type: "boolean"},
         help: {default: false, type: "boolean"},
+        models: {type: "string"},
+        name: {type: "string"},
         steps: {type: "string"},
       },
       strict: true,
@@ -109,6 +136,28 @@ export const runMigrateCli = async ({
       for (const migration of loaded) {
         writeLine(stdout, migration.id);
       }
+      return 0;
+    }
+
+    if (command === "generate") {
+      if (!values.models) {
+        throw new APIError({
+          detail: "Pass --models <module> that exports models",
+          status: 400,
+          title: "Missing --models",
+        });
+      }
+      const models = await loadModelsModule(values.models);
+      const result = await generateMigration({
+        dir,
+        models,
+        name: values.name,
+      });
+      if (result.noop) {
+        writeLine(stdout, "No schema changes");
+        return 0;
+      }
+      writeLine(stdout, `Wrote ${result.path}`);
       return 0;
     }
 

@@ -51,6 +51,7 @@ export type {
 } from "./mcp/types";
 export * from "./middleware";
 export * from "./migrations/gate";
+export * from "./migrations/generate";
 export * from "./migrations/load";
 export * from "./migrations/lock";
 export * from "./migrations/runner";

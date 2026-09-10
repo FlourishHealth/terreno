@@ -51,7 +51,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
   - Docs: what generate can/cannot emit (how-to)
   - Acceptance: fixture schemas produce stable catalogs; required+unique+rename classified unsafe; optional field + index classified safe
 
-- [ ] **Task 3.2**: `generate` CLI writes a timestamped file
+- [x] **Task 3.2**: `generate` CLI writes a timestamped file
   - Delivers: `terreno-migrate generate --dir --models`; uses last `schemaAfter`; no-op diff exits 0; unsafe ops emit throwing stub; generated `up` honors `dryRun` for safe index ops
   - Files: `api/src/migrations/generate.ts`, `api/src/migrations/generate.test.ts`, CLI subcommand
   - Blocked by: 2.2, 3.1
