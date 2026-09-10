@@ -79,6 +79,21 @@ in another.
 When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
 selects it automatically. With multiple organizations it renders a selector.
 
+### OrgSettingsScreen and OrgMembersScreen
+
+Use `OrgSettingsScreen` at `/admin/orgs/:orgId` and `OrgMembersScreen` at
+`/admin/orgs/:orgId/members`. Both send the selected organization header.
+
+`OrgSettingsScreen` edits the organization name and app-defined settings JSON.
+It includes a Billing card marked unavailable; billing is outside the
+organization-management feature.
+
+`OrgMembersScreen` lists current memberships, attaches an existing user by
+email, changes member roles, and removes members. Backend errors such as
+`Cannot remove the last org-admin` are shown inline. Invite is intentionally
+disabled because invitation tokens and email belong to the later invitations
+feature.
+
 ### AdminModelList
 
 Entry screen showing all available models as cards.
