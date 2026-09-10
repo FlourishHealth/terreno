@@ -197,7 +197,6 @@
         "passport-github2": "^0.1.12",
         "passport-jwt": "^4.0.0",
         "passport-local": "^1.0.0",
-        "passport-local-mongoose": "catalog:",
         "path-to-regexp": "^8.4.2",
         "qs": "catalog:",
         "router": "^2.2.0",
@@ -227,6 +226,7 @@
         "@types/supertest": "catalog:",
         "mongodb-memory-server": "catalog:",
         "mongoose": "catalog:",
+        "passport-local-mongoose": "catalog:",
         "supertest": "catalog:",
         "typescript": "catalog:",
         "zod": "catalog:",
@@ -234,10 +234,12 @@
       "peerDependencies": {
         "ioredis": "^5.11.0",
         "mongoose": "^8.0.0 || ^9.0.0",
+        "passport-local-mongoose": "catalog:",
         "zod": "^4.3.6",
       },
       "optionalPeers": [
         "ioredis",
+        "passport-local-mongoose",
       ],
     },
     "api-health": {

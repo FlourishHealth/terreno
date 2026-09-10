@@ -285,4 +285,13 @@ describe("Knip entry graph", (): void => {
     },
     {timeout: 180_000}
   );
+
+  test(
+    "reports no unused files in default or production mode",
+    (): void => {
+      assert.deepEqual(unusedFilePathsFromKnipReport(runKnipReport()), []);
+      assert.deepEqual(unusedFilePathsFromKnipReport(runKnipReport({isProduction: true})), []);
+    },
+    {timeout: 180_000}
+  );
 });

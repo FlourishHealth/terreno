@@ -105,7 +105,7 @@ See: [`docs/implementationPlans/knip-cleanup.md`](../implementationPlans/knip-cl
   - Skills: `update-docs`
   - Acceptance: live `files` findings for those packages are 0 or only ignored globs; relevant `bun test` passes; `analyze:full` exits 0
 
-- [ ] **Task 4.3**: Delete or keep-with-entry remaining unused files (`ui/checkDeps.js`, `processCounties.js`, `compileAuthEntry.ts`, leftover demo tests already covered)
+- [x] **Task 4.3**: Delete or keep-with-entry remaining unused files (`ui/checkDeps.js`, `processCounties.js`, `compileAuthEntry.ts`, leftover demo tests already covered)
   - Delivers: every remaining default `files` finding is either an entry, an ignore glob with comment, or deleted
   - Files: leftover paths from live Knip
   - Blocked by: Task 1.1, Task 1.4, Task 4.1, Task 4.2

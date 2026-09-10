@@ -51,6 +51,12 @@
         "scripts/**/*.test.ts",
         ".github/scripts/**/*.test.ts",
         "scripts/ci/prepare-package-publish.mjs"
+      ],
+      // Policy/release scripts are development entries, not production modules.
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!",
+        "!.github/scripts/**!"
       ]
     },
     "admin-frontend": {
@@ -64,6 +70,12 @@
         "src/isolated/**/*.isolated.{ts,tsx}"
       ]
     },
+    "admin-backend": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
     "ai": {
       // The Vertex provider is loaded dynamically only when an app opts in and supplies
       // the package through @terreno/ai's optional peer contract.
@@ -72,17 +84,26 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/isolated/**/*.isolated.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
       ]
     },
     "api": {
-      // The Redis rate-limit adapter dynamically loads ioredis only when an app selects
-      // that store and supplies the package through @terreno/api's optional peer contract.
-      "ignoreDependencies": ["ioredis"],
+      // The Redis adapter dynamically loads ioredis; legacy auth accepts models enhanced
+      // by passport-local-mongoose. Apps opt into and supply both optional peers.
+      "ignoreDependencies": ["ioredis", "passport-local-mongoose"],
       // auth.compile.test.ts compiles this fixture by absolute path.
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/tests/fixtures/compileAuthEntry.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!",
+        "!src/sync/loadHarness.ts!"
       ]
     },
     "rtk": {
@@ -90,19 +111,34 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/isolated/**/*.isolated.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!test-preload.ts!"
       ]
     },
     "syncdb": {
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/isolated/**/*.isolated.ts"
+        "src/isolated/**/*.isolated.ts",
+        // Platform resolvers select these shipped implementations without an extension.
+        "src/persisters/defaultPersisterFactory.native.ts!",
+        "src/persisters/defaultPersisterFactory.web.ts!"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!test-preload.ts!"
       ]
     },
     "test": {
       // The test logger optionally discovers @terreno/api at runtime while API itself
       // depends on @terreno/test; an optional peer avoids a package dependency cycle.
-      "ignoreDependencies": ["@terreno/api"]
+      "ignoreDependencies": ["@terreno/api"],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/preload/**!"
+      ]
     },
     "admin-spa": {
       // Expo Router, font loading, persistence, app.json plugins, and the Metro PDF
@@ -123,6 +159,10 @@
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "e2e/serveTestApp.ts",
         "jspdf-native-stub.js"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!e2e/**!"
       ]
     },
     "demo": {
@@ -169,6 +209,12 @@
         "fingerprint.config.js"
       ]
     },
+    "comms": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
     "example-frontend": {
       // Expo native modules are autolinked, app.json plugins are string references, and
       // Metro resolves jspdf to the native stub; none creates a static source import.
@@ -192,6 +238,10 @@
         "jspdf-native-stub.js",
         "fingerprint.config.js",
         "playwright.circleci.config.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!"
       ]
     },
     "example-backend": {
@@ -218,6 +268,7 @@
         "@terreno/admin-backend!",
         "@terreno/admin-spa!",
         "@terreno/ai!",
+        "@terreno/api!",
         "@terreno/api-health!",
         "@terreno/comms!",
         "@terreno/feature-flags!",
@@ -225,10 +276,14 @@
         "ai!",
         "expo-server-sdk!",
         "express!",
+        "ioredis!",
         "luxon!",
+        "mongoose!",
+        "passport-local-mongoose!",
         "pdf-lib!",
         "socket.io!",
-        "twilio!"
+        "twilio!",
+        "zod!"
       ],
       "entry": [
         "src/index.ts!",
@@ -240,6 +295,23 @@
         "src/scripts/configuration-example.ts",
         "src/scripts/seed-admin-spa-admin.ts",
         "src/scripts/seedConsents.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/**!"
+      ]
+    },
+    "feature-flags": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "mcp-server": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!",
+        "!src/__tests__/**!"
       ]
     },
     "ui": {
@@ -267,7 +339,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "babel.config.js"
+        "babel.config.js",
+        "utilities/process-counties-script/processCounties.js"
       ]
     },
     "website": {
@@ -281,6 +354,10 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/theme/DocItem/Footer/index.tsx"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!"
       ]
     }
   }

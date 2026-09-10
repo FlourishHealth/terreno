@@ -17,6 +17,7 @@ const DEAD_DEMO_BACKEND_FILES = [
   "api/src/vendor/wesleytodd-openapi/lib/convert-yaml.js",
   "demo/.eslintrc.js",
   "demo/stories/PasswordField.stories.tsx",
+  "ui/checkDeps.js",
 ] as const;
 
 describe("file hygiene", (): void => {
