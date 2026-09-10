@@ -51,7 +51,7 @@ IP: [framework-audit-log.md](../implementationPlans/framework-audit-log.md)
   - Docs: `docs/reference/admin-backend.md` — `onAdminAudit` is extra
   - Acceptance: existing `onAdminAudit` tests still pass; new tests — plugin present, no `onAdminAudit`, POST creates an `AuditEvent`; both configured → both run; throw in recorder → still 201
 
-- [ ] **Task 3.2**: example-backend + RBAC helper + Platform shell
+- [x] **Task 3.2**: example-backend + RBAC helper + Platform shell
   - Delivers: `persistRbacAuditToAuditEvent` exported from `@terreno/api`; example registers `AuditApp`, `audit: true` on Todo, removes `AdminAuditLog` model/`onAdminAudit` persistence, points admin config + scripts + `access.ts` sink at `AuditEvent`; `isAuditLogModel` matches `AuditEvent` (keep old name/path); Recent Activity uses it
   - Files: `api/src/audit/rbacSink.ts`, `example-backend/src/server.ts`, `example-backend/src/access.ts`, `example-backend/src/models/adminAuditLog.ts` (delete), `example-backend/src/modelInterfaces.ts`, `example-backend/src/adminScripts.ts`, `admin-frontend/src/AdminShell.tsx`, `admin-frontend/src/AdminHome.tsx`, matching tests
   - Blocked by: 3.1

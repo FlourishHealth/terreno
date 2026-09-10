@@ -48,4 +48,4 @@ When `AuditApp` is registered, AdminApp writes the same `AuditEvent` collection 
 `source: "admin"` after successful admin POST/PATCH/DELETE. You do not need `onAdminAudit` for
 that. `onAdminAudit` remains an extra sink if the app still wants a second destination.
 
-RBAC fan-in lands in a later slice of the [framework audit log IP](../implementationPlans/framework-audit-log.md).
+RBAC mutations fan into the same collection when `createAccess({auditSink: persistRbacAuditToAuditEvent})` is set. `source` is `rbac`.

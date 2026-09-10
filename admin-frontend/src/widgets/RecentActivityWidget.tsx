@@ -6,7 +6,7 @@ import {useAdminApi} from "../useAdminApi";
 export const RecentActivityWidget: React.FC<AdminHomeWidgetProps> = ({api, auditModel}) => {
   const {useListQuery} = useAdminApi(api, auditModel?.routePath ?? "", auditModel?.name ?? "");
   const {data, isLoading, isError} = useListQuery(
-    {limit: 8, page: 1, sort: "-createdAt"},
+    {limit: 8, page: 1, sort: auditModel?.defaultSort ?? "-created"},
     {skip: !auditModel?.routePath}
   );
 
@@ -21,7 +21,7 @@ export const RecentActivityWidget: React.FC<AdminHomeWidgetProps> = ({api, audit
         <Heading size="sm">Recent activity</Heading>
         <Box marginTop={2}>
           <Text color="secondaryDark" size="sm">
-            Register an AdminAuditLog model to show recent mutations here.
+            Register AuditApp (or an AdminAuditLog model) to show recent mutations here.
           </Text>
         </Box>
       </Card>

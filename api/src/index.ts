@@ -10,6 +10,7 @@ export {
   type AuditEventVerb,
   createAuditEventModel,
 } from "./audit/auditEventModel";
+export {persistRbacAuditToAuditEvent} from "./audit/rbacSink";
 export {
   type AuditEventWrite,
   isAuditRecorderInstalled,
