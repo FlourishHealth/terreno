@@ -72,15 +72,15 @@ Generated SDK files use a path-scoped `ignoreIssues` entry instead of hand edits
 
 ## Ratchets
 
-The repository already contains findings that cannot be removed in one change. The
-checked-in baselines allow existing findings to remain while rejecting new ones:
+The Knip baseline is intentionally empty:
 
-- `scripts/static-analysis/knip-baseline.json`
-- `.dependency-cruiser-known-violations.json`
+- `scripts/static-analysis/knip-baseline.json` must keep `issues: []`.
+- `.dependency-cruiser-known-violations.json` ratchets the remaining dependency-cruiser
+  findings while rejecting new ones.
 
-Knip fingerprints omit line and column positions, so moving an existing declaration does
-not create a false regression. A renamed symbol, moved file, or new finding must be fixed
-or deliberately reviewed into the baseline.
+Fix every new Knip finding or add the narrowest justified exception to `knip.jsonc` with
+a comment naming the runtime loader, public compatibility promise, generated source, or
+tool limitation. Never accept Knip debt by adding fingerprints back to the JSON baseline.
 
 After intentionally accepting repository-wide analysis changes, regenerate both
 baselines:
@@ -90,8 +90,9 @@ bun run analyze:baseline
 bun run analyze:full
 ```
 
-Review the baseline diff before committing it. Never run `knip --fix` unattended because
-an incomplete entry graph can remove runtime-loaded code.
+Review both baseline diffs before committing. Regeneration must leave Knip `issues: []`;
+dependency-cruiser may only stay level or decrease. Never run `knip --fix` unattended
+because an incomplete entry graph can remove runtime-loaded code.
 
 ## Agent hooks
 

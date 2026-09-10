@@ -57,6 +57,13 @@ const UNUSED_RUNTIME_DEPENDENCIES = new Map<string, string[]>([
 ]);
 
 describe("dependency hygiene", (): void => {
+  test("keeps the Knip baseline empty", async (): Promise<void> => {
+    const baseline = (await Bun.file(
+      join(REPO_ROOT, "scripts/static-analysis/knip-baseline.json")
+    ).json()) as {issues: string[]};
+    assert.deepEqual(baseline.issues, []);
+  });
+
   test("does not retain unused development dependencies", async (): Promise<void> => {
     for (const [manifestPath, dependencyNames] of UNUSED_DEV_DEPENDENCIES) {
       const manifest = (await Bun.file(join(REPO_ROOT, manifestPath)).json()) as {
