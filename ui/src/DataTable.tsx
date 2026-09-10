@@ -31,7 +31,11 @@ import type {
   SurfaceColor,
 } from "./Common";
 import {DataTableHeaderInfoMarkdown} from "./DataTableHeaderInfoMarkdown";
-import {DataTableColumnFilterWeb, DataTableFilterFields} from "./dataTableFilters";
+import {
+  DataTableAdditionalFiltersWeb,
+  DataTableColumnFilterWeb,
+  DataTableFilterFields,
+} from "./dataTableFilters";
 import {buildDataTableListQuery, DATA_TABLE_SEARCH_DEBOUNCE_MS} from "./dataTableListQuery";
 import {FlatList} from "./FlatList";
 import {Icon} from "./Icon";
@@ -889,6 +893,7 @@ const DataTableComponent: FC<DataTableProps> = ({
   testIDs,
   getRowTestID,
   emptyContent,
+  additionalFilters = [],
   search = "",
   searchFields,
   onSearchChange,
@@ -906,14 +911,15 @@ const DataTableComponent: FC<DataTableProps> = ({
   const [nativeDraftValues, setNativeDraftValues] = useState<Record<string, unknown>>({});
   const [nativeSearchDraft, setNativeSearchDraft] = useState(search);
 
-  const columnFilters = useMemo(
-    () =>
-      columns
-        .map((column) => column.filter)
-        .filter((filter): filter is NonNullable<typeof filter> => Boolean(filter)),
-    [columns]
-  );
+  const columnFilters = useMemo(() => {
+    const visibleColumnFilters = columns
+      .map((column) => column.filter)
+      .filter((filter): filter is NonNullable<typeof filter> => Boolean(filter));
+    return [...visibleColumnFilters, ...additionalFilters];
+  }, [additionalFilters, columns]);
   const showSearch = Boolean(searchFields && searchFields.length > 0 && onSearchChange);
+  const showAdditionalFilters =
+    Platform.OS === "web" && additionalFilters.length > 0 && Boolean(onFilterValuesChange);
   const showNativeFilters =
     Platform.OS !== "web" &&
     (columnFilters.length > 0 || showSearch) &&
@@ -936,6 +942,7 @@ const DataTableComponent: FC<DataTableProps> = ({
     }
     const query = buildDataTableListQuery({
       columns,
+      filters: additionalFilters,
       filterValues,
       search: debouncedSearch,
       searchFields,
@@ -946,7 +953,7 @@ const DataTableComponent: FC<DataTableProps> = ({
     }
     lastEmittedQueryRef.current = signature;
     onQueryChange(query);
-  }, [columns, debouncedSearch, filterValues, onQueryChange, searchFields]);
+  }, [additionalFilters, columns, debouncedSearch, filterValues, onQueryChange, searchFields]);
 
   const handleOpenNativeFilters = useCallback((): void => {
     setNativeDraftValues(filterValues ?? {});
@@ -1030,7 +1037,7 @@ const DataTableComponent: FC<DataTableProps> = ({
       style={{display: "flex", flexDirection: "column", height: "100%"}}
       testID={tableTestIDs.root}
     >
-      {showSearch || showNativeFilters ? (
+      {showSearch || showNativeFilters || showAdditionalFilters ? (
         <Box
           alignItems="center"
           direction="row"
@@ -1058,6 +1065,13 @@ const DataTableComponent: FC<DataTableProps> = ({
               testID="data-table-filters-trigger"
               text="Filters"
               variant="outline"
+            />
+          ) : null}
+          {showAdditionalFilters && onFilterValuesChange ? (
+            <DataTableAdditionalFiltersWeb
+              appliedValues={filterValues ?? {}}
+              filters={additionalFilters}
+              onApply={onFilterValuesChange}
             />
           ) : null}
         </Box>

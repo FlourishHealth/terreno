@@ -79,6 +79,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
     }
     for (const filter of filters) {
       const field = filter.field;
+      const label = filter.label ?? field;
       if (filter.renderFilter) {
         nodes.push(
           <Box key={field} width="100%">
@@ -99,7 +100,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
             <BooleanField
               onChange={(next: boolean) => setField(field, next)}
               testID={`data-table-filter-${field}`}
-              title={field}
+              title={label}
               value={boolValue}
             />
             {raw !== undefined ? (
@@ -121,14 +122,14 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
             <DateTimeField
               onChange={(next: string) => setField(gteKey, next)}
               testID={`data-table-filter-${field}-gte`}
-              title={`${field} from`}
+              title={`${label} from`}
               type="datetime"
               value={String(draftValues[gteKey] ?? "")}
             />
             <DateTimeField
               onChange={(next: string) => setField(lteKey, next)}
               testID={`data-table-filter-${field}-lte`}
-              title={`${field} to`}
+              title={`${label} to`}
               type="datetime"
               value={String(draftValues[lteKey] ?? "")}
             />
@@ -150,7 +151,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
                 });
               }}
               testID={`data-table-filter-${field}-gte`}
-              title={`${field} min`}
+              title={`${label} min`}
               type="number"
               value={range.$gte === undefined ? "" : String(range.$gte)}
             />
@@ -164,7 +165,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
                 });
               }}
               testID={`data-table-filter-${field}-lte`}
-              title={`${field} max`}
+              title={`${label} max`}
               type="number"
               value={range.$lte === undefined ? "" : String(range.$lte)}
             />
@@ -179,7 +180,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
               onChange={(next: string[]) => setField(field, next)}
               options={filter.options ?? []}
               testID={`data-table-filter-${field}`}
-              title={field}
+              title={label}
               value={toChoiceValue(draftValues[field])}
             />
           </Box>
@@ -191,7 +192,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
           <TextField
             onChange={(next: string) => setField(field, next)}
             testID={`data-table-filter-${field}`}
-            title={field}
+            title={label}
             value={String(draftValues[field] ?? "")}
           />
         </Box>
@@ -254,6 +255,7 @@ export interface DataTableColumnFilterWebProps {
 /** Per-column web filter popover wired to DataTable controlled filter state. */
 export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
   appliedValues,
+  columnTitle,
   filter,
   onApply,
   testID,
@@ -285,11 +287,84 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
       onClear={() => setDraftValues(clearFilterKeys(filter, draftValues))}
       onOpenChange={setIsOpen}
       testID={testID}
+      triggerAccessibilityLabel={`Filter ${columnTitle}`}
       variant="secondary"
     >
       <DataTableFilterFields
         draftValues={draftValues}
         filters={[filter]}
+        onDraftChange={setDraftValues}
+      />
+    </Filter>
+  );
+};
+
+export interface DataTableAdditionalFiltersWebProps {
+  appliedValues: Record<string, unknown>;
+  filters: DataTableColumnFilter[];
+  onApply: (next: Record<string, unknown>) => void;
+}
+
+/** Web toolbar filter for definitions that are not attached to visible columns. */
+export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProps> = ({
+  appliedValues,
+  filters,
+  onApply,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
+
+  // Reset every toolbar-only filter from controlled values whenever its popover opens.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const next: Record<string, unknown> = {};
+    for (const filter of filters) {
+      Object.assign(next, pickFilterDraft(filter, appliedValues));
+    }
+    setDraftValues(next);
+  }, [appliedValues, filters, isOpen]);
+
+  const handleApply = useCallback((): void => {
+    let next = {...appliedValues};
+    for (const filter of filters) {
+      next = clearFilterKeys(filter, next);
+    }
+    onApply({...next, ...draftValues});
+  }, [appliedValues, draftValues, filters, onApply]);
+
+  const handleClear = useCallback((): void => {
+    let next = {...draftValues};
+    for (const filter of filters) {
+      next = clearFilterKeys(filter, next);
+    }
+    setDraftValues(next);
+  }, [draftValues, filters]);
+
+  const handleCancel = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
+
+  if (Platform.OS !== "web") {
+    return null;
+  }
+
+  return (
+    <Filter
+      iconName="filter"
+      isOpen={isOpen}
+      label="More filters"
+      onApply={handleApply}
+      onCancel={handleCancel}
+      onClear={handleClear}
+      onOpenChange={setIsOpen}
+      testID="data-table-additional-filters"
+      variant="secondary"
+    >
+      <DataTableFilterFields
+        draftValues={draftValues}
+        filters={filters}
         onDraftChange={setDraftValues}
       />
     </Filter>

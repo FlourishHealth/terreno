@@ -81,19 +81,21 @@ const toColumnFilter = (
   fields: Record<string, AdminFieldConfig>,
   modelConfigs: Array<{name: string; routePath: string}>
 ): DataTableColumnFilter | undefined => {
+  const label = filter.label ?? startCase(filter.field);
   if (filter.kind === "text") {
-    return {field: filter.field, kind: "text"};
+    return {field: filter.field, kind: "text", label};
   }
   if (filter.kind === "boolean") {
-    return {field: filter.field, kind: "boolean"};
+    return {field: filter.field, kind: "boolean", label};
   }
   if (filter.kind === "dateRange") {
-    return {field: filter.field, kind: "dateRange"};
+    return {field: filter.field, kind: "dateRange", label};
   }
   if (filter.kind === "choice") {
     return {
       field: filter.field,
       kind: "choice",
+      label,
       options: filter.choices ?? [],
     };
   }
@@ -101,10 +103,10 @@ const toColumnFilter = (
     const refModelName =
       (filter as {refModel?: string}).refModel ?? fields[filter.field]?.ref ?? undefined;
     const routePath = getRefRoutePath(modelConfigs, refModelName);
-    const label = filter.label ?? startCase(filter.field);
     return {
       field: filter.field,
       kind: "choice",
+      label,
       renderFilter: ({onChange, value}) => (
         <AdminRefField
           api={api}
@@ -606,6 +608,10 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   }
 
   const adminFilters = modelConfig.filters ?? [];
+  const additionalFilters = adminFilters
+    .filter((filter) => !displayFields.includes(filter.field))
+    .map((filter) => toColumnFilter(filter, api, modelConfig.fields, modelConfigs))
+    .filter((filter): filter is DataTableColumnFilter => Boolean(filter));
   const dataColumns: DataTableColumn[] = displayFields.map((fieldKey) => {
     const fieldConfig = modelConfig.fields[fieldKey];
     const columnType = getColumnType(fieldKey, fieldConfig);
@@ -624,7 +630,10 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       filter,
       sortable,
       title: startCase(fieldKey),
-      width: widthOverride ?? getColumnWidth(fieldKey, columnType),
+      width: Math.max(
+        widthOverride ?? getColumnWidth(fieldKey, columnType),
+        declaredFilter ? 180 : 0
+      ),
     };
   });
 
@@ -740,6 +749,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
                 <LoadingContent />
               ) : (
                 <DataTable
+                  additionalFilters={additionalFilters}
                   columns={columns}
                   customColumnComponentMap={customColumnComponentMap}
                   data={data}

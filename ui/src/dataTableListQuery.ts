@@ -1,4 +1,4 @@
-import type {DataTableColumn, DataTableQueryParams} from "./Common";
+import type {DataTableColumn, DataTableColumnFilter, DataTableQueryParams} from "./Common";
 
 /** Debounce delay for DataTable toolbar search before emitting query params. */
 export const DATA_TABLE_SEARCH_DEBOUNCE_MS = 250;
@@ -10,6 +10,7 @@ export const escapeRegexLiteral = (value: string): string => {
 
 export interface BuildDataTableListQueryInput {
   columns: DataTableColumn[];
+  filters?: DataTableColumnFilter[];
   filterValues?: Record<string, unknown>;
   search?: string;
   searchFields?: string[];
@@ -56,17 +57,20 @@ const parseChoiceValues = (value: unknown): string[] => {
  */
 export const buildDataTableListQuery = ({
   columns,
+  filters = [],
   filterValues = {},
   search = "",
   searchFields = [],
 }: BuildDataTableListQueryInput): DataTableQueryParams => {
   const params: DataTableQueryParams = {};
 
-  for (const column of columns) {
-    const filter = column.filter;
-    if (!filter) {
-      continue;
-    }
+  const declaredFilters = [
+    ...columns
+      .map((column) => column.filter)
+      .filter((filter): filter is DataTableColumnFilter => Boolean(filter)),
+    ...filters,
+  ];
+  for (const filter of declaredFilters) {
     const field = filter.field;
 
     if (filter.kind === "text") {

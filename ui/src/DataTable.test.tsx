@@ -514,21 +514,40 @@ describe("DataTable", () => {
 
   it("fires onQueryChange for debounced search", async () => {
     const onQueryChange = mock(() => {});
-    const onSearchChange = mock(() => {});
-    renderWithTheme(
-      <DataTable
-        columns={sampleColumns}
-        data={sampleData}
-        onQueryChange={onQueryChange}
-        onSearchChange={onSearchChange}
-        search=""
-        searchFields={["Name"]}
-      />
-    );
+    const Harness: FC = () => {
+      const [search, setSearch] = useState("");
+      return (
+        <DataTable
+          columns={sampleColumns}
+          data={sampleData}
+          onQueryChange={onQueryChange}
+          onSearchChange={setSearch}
+          search={search}
+          searchFields={["name"]}
+        />
+      );
+    };
+    const {getByTestId} = renderWithTheme(<Harness />);
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(onQueryChange).toHaveBeenCalled();
+    onQueryChange.mockClear();
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-search"), "Ali.*");
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    expect(onQueryChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    expect(onQueryChange).toHaveBeenCalledWith({
+      $or: [{name: {$options: "i", $regex: "Ali\\.\\*"}}],
+    });
   });
 
   it("does not re-emit an unchanged query when controlled arrays are recreated", async () => {
@@ -581,7 +600,9 @@ describe("DataTable", () => {
         onFilterValuesChange={() => {}}
       />
     );
-    expect(getByTestId("data-table-filter-name.trigger")).toBeTruthy();
+    expect(getByTestId("data-table-filter-name.trigger").props.accessibilityLabel).toBe(
+      "Filter Name"
+    );
     Platform.OS = originalOS;
   });
 

@@ -36,6 +36,13 @@ describe("Button", () => {
     expect(getByTestId("test-button")).toBeTruthy();
   });
 
+  it("supports an accessible name distinct from visible text", () => {
+    const {getByTestId} = renderWithTheme(
+      <Button accessibilityLabel="Filter Name" onClick={() => {}} testID="filter-button" text="" />
+    );
+    expect(getByTestId("filter-button").props.accessibilityLabel).toBe("Filter Name");
+  });
+
   // Variant tests
   it("renders primary variant", () => {
     const {toJSON} = renderWithTheme(

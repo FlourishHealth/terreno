@@ -8,4 +8,4 @@ category: Added
 - **@terreno/admin-frontend `AdminModelTable`**: adopts DataTable filter/search UI;
   list search still uses `q`; choice filters support multi-value `$in`.
 - **@terreno/admin-backend**: `parseAdminListFilters` accepts choice `{$in: string[]}`
-  and text `{$regex, $options: "i"}`.
+  and escaped-literal text `{$regex, $options: "i"}` while rejecting extra operators.

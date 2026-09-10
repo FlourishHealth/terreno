@@ -134,6 +134,27 @@ describe("AdminModelTable", () => {
     expect(setOptions).toHaveBeenCalled();
   });
 
+  it("keeps declared filters available when their fields are not table columns", async () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean" as const}],
+          listFields: ["email"],
+        },
+      ],
+    };
+    const {getByTestId} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-trigger"));
+    });
+    expect(getByTestId("data-table-filter-active.switch")).toBeTruthy();
+  });
+
   it("renders loading state when the list query is loading", () => {
     configState.config = fullConfig;
     listState.isLoading = true;

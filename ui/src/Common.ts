@@ -493,6 +493,8 @@ export interface FilterProps extends WithTestID {
   children: React.ReactNode;
   /** Trigger button label. */
   label?: string;
+  /** Accessible name when the visible trigger label is empty or abbreviated. */
+  triggerAccessibilityLabel?: string;
   /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
   iconName?: IconName;
   /** Controlled open state. Omit to use `defaultOpen`. */
@@ -1892,6 +1894,8 @@ export interface BodyProps {
 export type ButtonPressAnimation = "scale" | "opacity" | "none";
 
 export interface ButtonProps extends WithTestID {
+  /** Accessible name. Defaults to `text`. */
+  accessibilityLabel?: string;
   /**
    * The text content of the confirmation modal.
    * @default "Are you sure you want to continue?"
@@ -2647,6 +2651,7 @@ export interface DataTableColumnFilterRenderArgs {
 export interface DataTableColumnFilter {
   field: string;
   kind: "text" | "boolean" | "numberRange" | "dateRange" | "choice";
+  label?: string;
   options?: DataTableColumnFilterChoiceOption[];
   renderFilter?: (args: DataTableColumnFilterRenderArgs) => React.ReactNode;
 }
@@ -2670,6 +2675,8 @@ export interface DataTableProps extends WithTestID {
   testIDs?: DataTableTestIDs;
   data: DataTableCellData[][];
   columns: DataTableColumn[];
+  /** Filter definitions that are not attached to a visible column. */
+  additionalFilters?: DataTableColumnFilter[];
   /** Content shown below the header when `data` is empty. */
   emptyContent?: React.ReactNode;
   alternateRowBackground?: boolean;

@@ -41,8 +41,11 @@ describe("DataTableColumnFilterWeb", () => {
       expect(getByTestId("name-filter.apply")).toBeTruthy();
     });
     await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-filter-name"), "alice");
+    });
+    await act(async () => {
       fireEvent.press(getByTestId("name-filter.apply"));
     });
-    expect(onApply).toHaveBeenCalled();
+    expect(onApply).toHaveBeenCalledWith({name: "alice"});
   });
 });

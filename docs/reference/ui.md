@@ -602,6 +602,8 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 
 Pass `emptyContent` to keep the table header, search, and filter controls mounted
 while showing an application-specific empty state below the header.
+Use `additionalFilters` for declared server filters whose fields are not visible
+columns; web shows one **More filters** popover and native includes them in the same sheet.
 
 ### Platform chrome
 

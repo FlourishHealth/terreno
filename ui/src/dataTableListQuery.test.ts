@@ -101,4 +101,14 @@ describe("buildDataTableListQuery", () => {
     });
     expect(params.role).toEqual({$in: ["staff"]});
   });
+
+  it("includes toolbar-only filters that are not visible columns", () => {
+    const params = buildDataTableListQuery({
+      columns: [],
+      filters: [{field: "status", kind: "choice"}],
+      filterValues: {status: ["open", "closed"]},
+    });
+
+    expect(params.status).toEqual({$in: ["open", "closed"]});
+  });
 });
