@@ -1,4 +1,4 @@
-import {ActionSheet, Box, Button, NumberPickerActionSheet, Text} from "@terreno/ui";
+import {type ActionSheet, Box, Button, NumberPickerActionSheet, Text} from "@terreno/ui";
 import type React from "react";
 import {createRef, useCallback, useState} from "react";
 
