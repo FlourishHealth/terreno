@@ -112,7 +112,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: tests: hydrate 2 of 3 ids; unknown id ignored; non-admin subscribe to `|admin` nacks
   - Skills: `terreno-backend-api`, `terreno-data-fetching`
 
-- [ ] **Task 3.5**: Known-id-only deltas + Refresh contract
+- [x] **Task 3.5**: Known-id-only deltas + Refresh contract
   - Delivers: delta applier in window mode updates/deletes **existing local ids only**; new server rows do not appear until membership Refresh or load-more upserts them
   - Files: `syncdb/src/sync/deltaApplier.ts`, tests
   - Blocked by: 3.3
