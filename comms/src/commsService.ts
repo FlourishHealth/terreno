@@ -632,6 +632,7 @@ export class CommsService {
       isRetry: sendOptions?.isRetry === true,
       message: this.applyMailDefaults(message),
       provider: provider.id,
+      userId: sendOptions?.userId ? String(sendOptions.userId) : undefined,
     };
     const before = await this.applyBeforeSend(context, hookErrors);
     const activeMessage = this.applyMailDefaults(before.message as MailMessage);
@@ -682,6 +683,7 @@ export class CommsService {
       isRetry: sendOptions?.isRetry === true,
       message,
       provider: provider.id,
+      userId: sendOptions?.userId ? String(sendOptions.userId) : undefined,
     };
     const before = await this.applyBeforeSend(context, hookErrors);
     const activeMessage = before.message as SmsMessage;

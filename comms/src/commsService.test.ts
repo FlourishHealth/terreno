@@ -712,6 +712,29 @@ describe("CommsService", () => {
     assert.equal(result.loggedMessageId, String(row._id));
   });
 
+  it("passes the send option userId to mail and SMS beforeSend hooks", async (): Promise<void> => {
+    const seenUserIds: Array<string | undefined> = [];
+    const service = new CommsService({
+      beforeSend: async (context): Promise<undefined> => {
+        seenUserIds.push(context.userId);
+        return undefined;
+      },
+      mail: {
+        id: "user-aware-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      sms: {
+        id: "user-aware-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"}, {userId: "mail-user"});
+    await service.sendSms({body: "Hello", to: "+15555550100"}, {userId: "sms-user"});
+
+    assert.deepEqual(seenUserIds, ["mail-user", "sms-user"]);
+  });
+
   it("attaches loggedMessageId when beforeSend cancels a push send", async (): Promise<void> => {
     const userId = new mongoose.Types.ObjectId();
     await PushToken.upsert(

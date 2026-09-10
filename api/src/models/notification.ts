@@ -28,7 +28,6 @@ const notificationSchema = new mongoose.Schema<NotificationDocument, Notificatio
     },
     ownerId: {
       description: "The user who owns this inbox row",
-      index: true,
       ref: "User",
       required: true,
       type: mongoose.Schema.Types.ObjectId,

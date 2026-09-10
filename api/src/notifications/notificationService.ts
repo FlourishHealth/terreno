@@ -8,14 +8,17 @@ import type {NotifyInput} from "../types/notification";
 import type {NotificationPreferenceDocument} from "../types/notificationPreference";
 
 export interface NotificationsCommsService {
-  sendMail: (message: {
-    html?: string;
-    subject: string;
-    text?: string;
-    to: string;
-  }) => Promise<unknown>;
+  sendMail: (
+    message: {
+      html?: string;
+      subject: string;
+      text?: string;
+      to: string;
+    },
+    options?: {userId?: string}
+  ) => Promise<unknown>;
   sendPushToUser: (message: {body: string; title: string; userId: string}) => Promise<unknown[]>;
-  sendSms: (message: {body: string; to: string}) => Promise<unknown>;
+  sendSms: (message: {body: string; to: string}, options?: {userId?: string}) => Promise<unknown>;
 }
 
 export interface NotificationUserLookup {
@@ -135,15 +138,18 @@ export const createNotificationService = (
     try {
       const comms = getComms();
       if (preferences.mail && user?.email) {
-        await comms.sendMail({
-          html: `<p>${body}</p>`,
-          subject: title,
-          text: body,
-          to: user.email,
-        });
+        await comms.sendMail(
+          {
+            html: `<p>${body}</p>`,
+            subject: title,
+            text: body,
+            to: user.email,
+          },
+          {userId: input.userId}
+        );
       }
       if (preferences.sms && user?.phone) {
-        await comms.sendSms({body: `${title}: ${body}`, to: user.phone});
+        await comms.sendSms({body: `${title}: ${body}`, to: user.phone}, {userId: input.userId});
       }
       if (preferences.push) {
         await comms.sendPushToUser({

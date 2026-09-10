@@ -94,8 +94,14 @@ new CommsApp({
 });
 ```
 
-`getNotificationService().notify()` fans out to comms independently; register this hook so
-direct `sendMail` / `sendSms` / `sendPushToUser` calls also honor preferences.
+`getNotificationService().notify()` fans out to comms independently. Register this hook and
+pass `{userId}` as the second argument to direct `sendMail` / `sendSms` calls so they honor
+preferences; `sendPushToUser` already supplies its user id.
+
+```typescript
+await getCommsService().sendMail(message, {userId});
+await getCommsService().sendSms(message, {userId});
+```
 
 Each send stores one `CommsMessage` row with `attempts[]`. Rendered payloads are retained
 for `retainPayloadDays` (default 30, `0` disables) after `redactPayload`. Mail payloads

@@ -18,33 +18,49 @@ import {notificationsBeforeSend} from "./notificationsBeforeSend";
 
 interface FakeComms {
   mailCalls: Array<{subject: string; to: string}>;
+  mailUserIds: Array<string | undefined>;
   pushCalls: Array<{title: string; userId: string}>;
   smsCalls: Array<{body: string; to: string}>;
+  smsUserIds: Array<string | undefined>;
 }
 
 const buildFakeComms = (): {
   comms: FakeComms;
   getComms: () => FakeComms & {
-    sendMail: (message: {subject: string; to: string}) => Promise<{accepted: boolean}>;
+    sendMail: (
+      message: {subject: string; to: string},
+      options?: {userId?: string}
+    ) => Promise<{accepted: boolean}>;
     sendPushToUser: (message: {title: string; userId: string}) => Promise<unknown[]>;
-    sendSms: (message: {body: string; to: string}) => Promise<{accepted: boolean}>;
+    sendSms: (
+      message: {body: string; to: string},
+      options?: {userId?: string}
+    ) => Promise<{accepted: boolean}>;
   };
 } => {
-  const comms: FakeComms = {mailCalls: [], pushCalls: [], smsCalls: []};
+  const comms: FakeComms = {
+    mailCalls: [],
+    mailUserIds: [],
+    pushCalls: [],
+    smsCalls: [],
+    smsUserIds: [],
+  };
   return {
     comms,
     getComms: () => ({
       ...comms,
-      sendMail: async (message) => {
+      sendMail: async (message, options) => {
         comms.mailCalls.push(message);
+        comms.mailUserIds.push(options?.userId);
         return {accepted: true};
       },
       sendPushToUser: async (message) => {
         comms.pushCalls.push(message);
         return [{accepted: true}];
       },
-      sendSms: async (message) => {
+      sendSms: async (message, options) => {
         comms.smsCalls.push(message);
+        comms.smsUserIds.push(options?.userId);
         return {accepted: true};
       },
     }),
@@ -205,6 +221,7 @@ describe("NotificationsApp", () => {
     });
     assert.equal(comms.mailCalls.length, 1);
     assert.equal(comms.mailCalls[0]?.to, "notAdmin@example.com");
+    assert.deepEqual(comms.mailUserIds, [userId]);
   });
 
   it("fan-out skips mail when pref off", async () => {
