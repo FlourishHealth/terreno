@@ -699,14 +699,14 @@ native module baseline regardless, so this lands as a JS/OTA feature when schedu
 **Title:** `In-app notification center`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`notification-center` (Draft), Status=`Planned`
 
 Adds a Notification model with per-user preferences, realtime delivery over the existing
 change-stream socket layer, and a bell/inbox UI in `@terreno/ui` with read/unread state —
 the in-app channel beside `@terreno/comms` mail/SMS/push.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [notification-center.md](../implementationPlans/notification-center.md)
+- **Tasks:** [notification-center.md](../tasks/notification-center.md)
 - **RTK flag:** Partial — inbox screens target the syncdb data layer where available
 - **Depends on:** comms-abstraction
 
