@@ -49,7 +49,6 @@ export const projectRouter = modelRouter("/projects", Project, {
   // Local-first sync (@terreno/syncdb): stream = projects|tenant:{organizationId}.
   sync: {scope: {field: "organizationId", type: "tenant"}},
   validation: {
-    excludeFromCreate: ["organizationId"],
     validateCreate: true,
     validateQuery: true,
     validateUpdate: true,

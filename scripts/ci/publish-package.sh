@@ -33,7 +33,16 @@ if bun -e "
   (cd "$package_directory" && bun run compile)
 fi
 
+# Prefer test:ci. Several packages (notably @terreno/ui) define test as
+# `bun test --watch`, which finishes the suite then waits forever with no
+# output. CircleCI then kills the publish step (default 10m no_output_timeout).
+# api's test script also updates snapshots; test:ci is the non-mutating path.
 if bun -e "
+  const pkg = await Bun.file('$package_directory/package.json').json();
+  process.exit(pkg.scripts?.['test:ci'] ? 0 : 1);
+"; then
+  (cd "$package_directory" && bun run test:ci)
+elif bun -e "
   const pkg = await Bun.file('$package_directory/package.json').json();
   process.exit(pkg.scripts?.test ? 0 : 1);
 "; then

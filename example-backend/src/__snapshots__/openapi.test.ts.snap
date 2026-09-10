@@ -16411,6 +16411,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "oneOf": [
                 {
                   "description": "The organization (tenant) this project belongs to",
+                  "required": false,
                   "type": "string",
                 },
                 {
@@ -16517,7 +16518,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                         },
                         "required": [
-                          "organizationId",
                           "title",
                           "_id",
                           "created",
@@ -16687,7 +16687,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",
@@ -16865,7 +16864,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",
@@ -17024,7 +17022,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",
