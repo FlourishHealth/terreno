@@ -1,6 +1,6 @@
 # Implementation Plan: Charts and dashboard primitives
 
-**Status:** Draft  
+**Status:** In progress  
 **Branch:** `cursor/charts-and-dashboards-2bc3`  
 **Owner:** —  
 **Created:** 2026-09-10  
