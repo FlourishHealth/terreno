@@ -225,6 +225,12 @@ preview **deploys** run on open PRs from this repository; fork PRs are skipped.
 If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
 up the open PR for `CIRCLE_BRANCH` via the GitHub API.
 
+`mcp-server-docker` is push-only, matching GitHub Actions. It uses
+`resolve-preview-pr.sh` for that lookup and skips when a PR exists. Its
+production `bun install` passes `--ignore-scripts`: root `prepare` runs
+`simple-git-hooks`, which is a devDependency and is missing from a production
+tree.
+
 ## Path-filter parity guard
 
 `bun run check:circleci-parity` guards active GitHub/CircleCI twins. Deploy
