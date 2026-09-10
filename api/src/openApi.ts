@@ -15,7 +15,7 @@ const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
 };
 
-export const apiErrorContent = {
+const apiErrorContent = {
   "application/json": {
     schema: {$ref: "#/components/schemas/APIError"},
   },

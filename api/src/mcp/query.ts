@@ -3,20 +3,20 @@ import {isFieldExcluded} from "./schemaGenerator";
 import type {MCPConfig, MCPToolArgs} from "./types";
 
 /** Args consumed by pagination/population, never treated as filters. */
-export const RESERVED_LIST_ARGS = new Set(["limit", "page", "populate", "sort"]);
+const RESERVED_LIST_ARGS = new Set(["limit", "page", "populate", "sort"]);
 
 /**
  * Top-level logical operators an MCP client may send. Mirrors the REST list endpoint,
  * which allows `$and` / `$or` and validates every nested key against `queryFields`.
  */
-export const ALLOWED_LOGICAL_OPERATORS = new Set(["$and", "$or"]);
+const ALLOWED_LOGICAL_OPERATORS = new Set(["$and", "$or"]);
 
 /**
  * Comparison operators allowed inside a field's value, e.g. `{completed: {$ne: true}}`.
  * Deliberately excludes evaluation operators that can run arbitrary code or ignore
  * indexes ($where, $expr, $function, $accumulator, $jsonSchema, $text).
  */
-export const ALLOWED_FIELD_OPERATORS = new Set([
+const ALLOWED_FIELD_OPERATORS = new Set([
   "$all",
   "$eq",
   "$exists",

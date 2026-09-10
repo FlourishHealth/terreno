@@ -1,6 +1,6 @@
 import {DateTime} from "luxon";
 
-export interface CommsMessageAttempt {
+interface CommsMessageAttempt {
   at?: string;
   error?: string;
   errorClass?: string;

@@ -80,17 +80,10 @@ interface BootstrapArgs {
   mcpServerUrl?: string;
 }
 
-export interface BootstrapAiRulesArgs extends BootstrapArgs {
+interface BootstrapAiRulesArgs extends BootstrapArgs {
   /** Optional `@terreno/*` package ids to include (e.g. `["api","ui"]`). Omits others from merged guidelines. */
   packages?: string[];
 }
-
-const _toPascalCase = (str: string): string => {
-  return str
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("");
-};
 
 const generateCursorRules = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
@@ -2516,46 +2509,6 @@ Use \`AppConfig.updateConfig(updates)\` to write. All values are persisted in Mo
 `;
 };
 
-const _generateBackendClaudeRulesFile = (args: BootstrapArgs): string => {
-  const {appDisplayName} = args;
-  return `---
-localRoot: true
-targets: ["claudecode"]
-description: "${appDisplayName} backend Claude Code guidelines"
-globs: ["**/*"]
----
-
-# ${appDisplayName} Backend
-
-Express/Mongoose backend using @terreno/api.
-
-## Development
-
-\`\`\`bash
-bun run dev      # Start on port 4000
-bun run test     # Run tests
-bun run lint     # Lint code
-\`\`\`
-
-## Backend Conventions
-
-- Use \`modelRouter\` for CRUD endpoints
-- Use \`APIError\` for error responses: \`throw new APIError({status: 400, title: "Message"})\`
-- Use \`logger.info/warn/error/debug\` for logging
-- Use \`Model.findExactlyOne\` or \`Model.findOneOrNone\` (not \`Model.findOne\`)
-- All model types live in \`src/types/models/\`
-- In routes: \`req.user\` is \`UserDocument | undefined\`
-
-## Adding a New Model
-
-1. Create model in \`src/models/yourModel.ts\`
-2. Create types in \`src/types/models/yourModelTypes.ts\`
-3. Export from \`src/models/index.ts\` and \`src/types/models/index.ts\`
-4. Create route in \`src/api/yourModel.ts\`
-5. Register route in \`src/server.ts\`
-`;
-};
-
 const generateFrontendRulesFile = (
   args: BootstrapArgs,
   packageIds: readonly GuidelinePackageId[]
@@ -2610,45 +2563,6 @@ ${admin}## Expo SDK upgrades
 `;
 };
 
-const _generateFrontendClaudeRulesFile = (args: BootstrapArgs): string => {
-  const {appDisplayName} = args;
-  return `---
-localRoot: true
-targets: ["claudecode"]
-description: "${appDisplayName} frontend Claude Code guidelines"
-globs: ["**/*"]
----
-
-# ${appDisplayName} Frontend
-
-Expo/React Native frontend using @terreno/ui, @terreno/syncdb, and @terreno/rtk.
-
-## Development
-
-\`\`\`bash
-bun run web      # Start web frontend on port 8082
-bun run sdk      # Regenerate SDK from backend OpenAPI spec
-bun run lint     # Lint code
-\`\`\`
-
-## Frontend Conventions
-
-- Use \`@terreno/syncdb/react\` hooks for synced collection CRUD
-- Use generated SDK hooks from \`@/store/openApiSdk\` for non-synced routes only
-- Use @terreno/ui components (Box, Page, Button, TextField, etc.)
-- Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
-- Use Luxon for date operations
-- Better Auth session: \`generateBetterAuthSlice\` + \`lib/betterAuth.ts\`
-
-## Adding a New Screen
-
-1. Regenerate SDK if backend changed: \`bun run sdk\`
-2. Create screen in \`app/\` directory
-3. Use @terreno/ui components for layout
-4. Use SDK hooks for non-synced routes; use syncdb hooks for synced collections
-`;
-};
-
 interface AiRulesFile {
   path: string;
   content: string;
@@ -2685,7 +2599,7 @@ const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
   ];
 };
 
-export const handleBootstrapAiRulesToolCall = (
+const handleBootstrapAiRulesToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   const bootstrapArgs = args as unknown as BootstrapAiRulesArgs;

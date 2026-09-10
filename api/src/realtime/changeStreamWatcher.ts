@@ -58,10 +58,10 @@ let restartAttempts = 0;
 let restartTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** First restart delay; doubles per consecutive attempt up to the max. */
-export const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
+const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
 
 /** Ceiling for the restart backoff — a long outage retries once every 30s, forever. */
-export const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
+const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
 
 /**
  * Socket event telling clients their cached cursors may have gaps and they must

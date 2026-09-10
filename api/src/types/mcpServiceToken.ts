@@ -6,7 +6,7 @@ export interface McpServiceTokenIssueOptions {
   name: string;
 }
 
-export interface McpServiceTokenMethods {
+interface McpServiceTokenMethods {
   deleteOne: (this: McpServiceTokenDocument) => Promise<McpServiceTokenDocument>;
 }
 
@@ -33,12 +33,6 @@ export interface McpServiceTokenStatics
 export interface McpServiceTokenModel
   extends mongoose.Model<McpServiceTokenDocument, object, McpServiceTokenMethods>,
     McpServiceTokenStatics {}
-
-export type McpServiceTokenSchema = mongoose.Schema<
-  McpServiceTokenDocument,
-  McpServiceTokenModel,
-  McpServiceTokenMethods
->;
 
 export interface McpServiceTokenDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;

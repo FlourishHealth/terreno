@@ -20,7 +20,7 @@ import {
   clearSyncIndexCreationTasks,
 } from "./sync/registrationSideEffects";
 
-export interface CollectionSurfaces {
+interface CollectionSurfaces {
   mcp: boolean;
   realtime: boolean;
   sync: boolean;

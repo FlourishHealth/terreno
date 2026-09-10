@@ -32,6 +32,9 @@
     // check-explicit-any/lib.ts loads BASELINE_PATH/loadBaseline through require() so it
     // can avoid a static lib ↔ baseline cycle; Knip cannot see the destructured names.
     "scripts/check-explicit-any/baseline.ts": ["exports"],
+    // Preserve the vendored express-openapi CommonJS API unchanged; Knip cannot trace
+    // properties assigned through module.exports (including serveSwaggerUI used in index.js).
+    "api/src/vendor/wesleytodd-openapi/**": ["exports", "types"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
   "ignoreFiles": [

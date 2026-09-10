@@ -25,7 +25,7 @@ const semverKey = (value: string): number[] => {
   return core.split(".").map((part) => Number.parseInt(part, 10) || 0);
 };
 
-export const compareDocSemver = (left: string, right: string): number => {
+const compareDocSemver = (left: string, right: string): number => {
   const leftParts = semverKey(left);
   const rightParts = semverKey(right);
   const length = Math.max(leftParts.length, rightParts.length);

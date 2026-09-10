@@ -60,6 +60,12 @@ const FRONTEND_TOOL_BLIND_DEPENDENCIES = new Map<string, string[]>([
   ],
 ]);
 
+const PUBLISHED_PUBLIC_SYMBOLS = new Set([
+  "admin-spa/components/AppConfigGate.tsx:AdminSpaAppConfig",
+  "api/src/rbac/roleManager.ts:RbacRoleDocument",
+  "admin-frontend/src/types.ts:AdminHome",
+]);
+
 const isTask11UnusedFileLeak = (file: string): boolean => {
   if (file.includes(".isolated.")) {
     return true;
@@ -308,6 +314,24 @@ describe("Knip entry graph", (): void => {
           ...(issue.exports ?? []).map((entry) => `${issue.file}:export:${entry.name}`),
           ...(issue.types ?? []).map((entry) => `${issue.file}:type:${entry.name}`),
         ];
+      });
+      assert.deepEqual(findings, []);
+    },
+    {timeout: 180_000}
+  );
+
+  test(
+    "reports no unused internal symbols in published packages",
+    (): void => {
+      const report = runKnipReport();
+      const privatePrefixes = ["scripts/", "example-backend/", "example-frontend/", "demo/"];
+      const findings = report.issues.flatMap((issue) => {
+        if (privatePrefixes.some((prefix) => issue.file.startsWith(prefix))) {
+          return [];
+        }
+        return [...(issue.exports ?? []), ...(issue.types ?? [])]
+          .map((entry) => `${issue.file}:${entry.name}`)
+          .filter((entry) => !PUBLISHED_PUBLIC_SYMBOLS.has(entry));
       });
       assert.deepEqual(findings, []);
     },

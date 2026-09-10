@@ -51,7 +51,7 @@ const rowToMutation = (mutationId: string, row: Partial<OutboxRow>): OutboxMutat
   userId: row.userId ?? "",
 });
 
-export interface EnqueueArgs {
+interface EnqueueArgs {
   collection: string;
   operation: SyncMutationOperation;
   entityId: string;
@@ -70,7 +70,7 @@ export interface EnqueueArgs {
   mutationId?: string;
 }
 
-export interface RecoverStartupStateResult {
+interface RecoverStartupStateResult {
   /** mutationIds that were stranded `inFlight` and moved back to `queued`. */
   recoveredInFlight: string[];
   /** entityIds whose stale `pendingMutationId` was cleared (acked-with-pending). */

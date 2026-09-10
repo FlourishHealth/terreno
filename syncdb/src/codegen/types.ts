@@ -1,4 +1,4 @@
-export interface TerrenoSyncExtension {
+interface TerrenoSyncExtension {
   collection: string;
   scope: string;
 }
@@ -18,7 +18,7 @@ export interface OpenApiSchema {
   description?: string;
 }
 
-export interface OpenApiOperation {
+interface OpenApiOperation {
   "x-terreno-sync"?: TerrenoSyncExtension;
   requestBody?: {
     content?: Record<string, {schema?: OpenApiSchema}>;
@@ -31,7 +31,7 @@ export interface OpenApiOperation {
   >;
 }
 
-export interface OpenApiPathItem {
+interface OpenApiPathItem {
   get?: OpenApiOperation;
   post?: OpenApiOperation;
   patch?: OpenApiOperation;
