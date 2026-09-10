@@ -73,6 +73,7 @@ Published together from [`.github/workflows/publish-on-tag.yml`](.github/workflo
 - **api-health/** — Health check plugin for `@terreno/api` (published as `@terreno/api-health`)
 - **comms/** — Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** — Feature flags and A/B testing plugin for `@terreno/api` (published as `@terreno/feature-flags`)
+- **jobs/** — Durable background jobs plugin for `@terreno/api` (published as `@terreno/jobs`)
 - **mcp-server/** — MCP server that gives coding agents Terreno docs, codegen tools, and prompts (published as `@terreno/mcp`)
 - **syncdb/** — Local-first data layer with TinyBase, durable outbox, and delta sync (published as `@terreno/syncdb`)
 

@@ -23,6 +23,7 @@ body:
         - "@terreno/api-health"
         - "@terreno/comms"
         - "@terreno/feature-flags"
+        - "@terreno/jobs"
         - "@terreno/mcp"
         - docs
         - examples

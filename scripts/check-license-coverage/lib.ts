@@ -14,6 +14,7 @@ export const PUBLISHED_PACKAGES = [
   "api-health",
   "comms",
   "feature-flags",
+  "jobs",
   "mcp-server",
 ] as const;
 
@@ -56,8 +57,8 @@ export const checkLicenseCoverage = ({
 
   if (!rootLicense) {
     failures.push({
-      packageDir: "api",
       message: "root package.json is missing a license field",
+      packageDir: "api",
     });
     return failures;
   }
@@ -67,8 +68,8 @@ export const checkLicenseCoverage = ({
 
     if (!existsSync(licensePath)) {
       failures.push({
-        packageDir,
         message: "missing LICENSE file",
+        packageDir,
       });
     }
 
@@ -76,15 +77,15 @@ export const checkLicenseCoverage = ({
 
     if (packageJson.license !== rootLicense) {
       failures.push({
-        packageDir,
         message: `package.json license "${packageJson.license ?? "(missing)"}" does not match root license "${rootLicense}"`,
+        packageDir,
       });
     }
 
     if (packageJson.files && !packageJson.files.includes("LICENSE")) {
       failures.push({
-        packageDir,
         message: 'package.json files array does not include "LICENSE"',
+        packageDir,
       });
     }
   }

@@ -1,3 +1,4 @@
+import {APIError} from "@terreno/api";
 import type {JobsApp} from "@terreno/jobs";
 
 /** Shared demo job catalog for the example API process and standalone worker entry. */
@@ -25,7 +26,11 @@ export const defineExampleJobs = (jobsApp: JobsApp): void => {
   jobsApp.define("example/dlq-demo", {
     handler: async (_payload, ctx) => {
       ctx.log.warn("intentional failure for dead-letter queue demonstration");
-      throw new Error("Intentional failure — use the enqueueDlqDemoJob admin script to demo DLQ");
+      throw new APIError({
+        detail: "Use the enqueueDlqDemoJob admin script to demo dead-letter handling",
+        status: 500,
+        title: "Intentional DLQ demonstration failure",
+      });
     },
     retry: {
       backoffMs: 100,

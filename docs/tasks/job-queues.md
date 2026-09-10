@@ -127,7 +127,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: (this task)
   - Acceptance: stranger can define, enqueue, run a worker, and choose Mongo vs GCP vs Vercel from the how-to; `bun run website:build`; `cronjob()` still documented as process-local
 
-- [ ] **Task 5.2**: CI + publish wiring
+- [x] **Task 5.2**: CI + publish wiring
   - Delivers: `jobs-ci.yml`; `publish-on-tag` for `@terreno/jobs`; `cd.yml` path filter includes `jobs/**`
   - Files: `.github/workflows/*`
   - Blocked by: 1.1

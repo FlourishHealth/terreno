@@ -764,6 +764,15 @@
   },
   {
     "type": "module",
+    "from": "jobs/src/types.ts",
+    "to": "jobs/src/types.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
     "from": "syncdb/src/auth/types.ts",
     "to": "syncdb/src/auth/types.ts",
     "rule": {

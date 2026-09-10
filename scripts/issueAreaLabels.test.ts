@@ -1,11 +1,21 @@
-import {assert} from "chai";
 import {describe, it} from "bun:test";
-import {AREA_BY_PACKAGE, KIND_BY_VALUE, parseKindTypeFromIssueBody, parsePackageAreaFromIssueBody} from "./issueAreaLabels.ts";
+import {assert} from "chai";
+import {
+  AREA_BY_PACKAGE,
+  KIND_BY_VALUE,
+  parseKindTypeFromIssueBody,
+  parsePackageAreaFromIssueBody,
+} from "./issueAreaLabels.ts";
 
 describe("parsePackageAreaFromIssueBody", () => {
   it("maps bug report package values to area labels", (): void => {
     const body = "### Affected package\n\n@terreno/ui\n\n### Version";
     assert.equal(parsePackageAreaFromIssueBody(body), "area:ui");
+  });
+
+  it("maps @terreno/jobs to area:api", (): void => {
+    const body = "### Affected package\n\n@terreno/jobs\n\n### Version";
+    assert.equal(parsePackageAreaFromIssueBody(body), "area:api");
   });
 
   it("maps plugins to area:dx", (): void => {
@@ -75,7 +85,8 @@ describe("dropdown coverage", (): void => {
     };
 
     const packageDropdown = parsed.body?.find(
-      (block) => block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
+      (block) =>
+        block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
     );
     assert.ok(packageDropdown !== undefined, "bug_report.yml has no Affected package dropdown");
 
@@ -92,7 +103,8 @@ describe("dropdown coverage", (): void => {
     };
 
     const packageDropdown = parsed.body?.find(
-      (block) => block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
+      (block) =>
+        block.type === "dropdown" && /affected package/i.test(block.attributes?.label ?? "")
     );
     assert.ok(packageDropdown !== undefined, "work_item.yml has no Affected package dropdown");
 
@@ -122,9 +134,21 @@ describe("dropdown coverage", (): void => {
   it("only maps to labels that exist in labels.yml", async (): Promise<void> => {
     const labels = Bun.YAML.parse(await Bun.file(".github/labels.yml").text()) as {name: string}[];
     const known = new Set(labels.map((label) => label.name));
-    const unknownAreas = [...new Set(Object.values(AREA_BY_PACKAGE))].filter((label) => !known.has(label));
-    assert.deepEqual(unknownAreas, [], `area labels missing from labels.yml: ${unknownAreas.join(", ")}`);
-    const unknownTypes = [...new Set(Object.values(KIND_BY_VALUE))].filter((label) => !known.has(label));
-    assert.deepEqual(unknownTypes, [], `type labels missing from labels.yml: ${unknownTypes.join(", ")}`);
+    const unknownAreas = [...new Set(Object.values(AREA_BY_PACKAGE))].filter(
+      (label) => !known.has(label)
+    );
+    assert.deepEqual(
+      unknownAreas,
+      [],
+      `area labels missing from labels.yml: ${unknownAreas.join(", ")}`
+    );
+    const unknownTypes = [...new Set(Object.values(KIND_BY_VALUE))].filter(
+      (label) => !known.has(label)
+    );
+    assert.deepEqual(
+      unknownTypes,
+      [],
+      `type labels missing from labels.yml: ${unknownTypes.join(", ")}`
+    );
   });
 });

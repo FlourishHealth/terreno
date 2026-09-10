@@ -71,7 +71,7 @@ Use one of:
 `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/syncdb`,
 `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`,
 `@terreno/ai`, `@terreno/api-health`, `@terreno/comms`, `@terreno/feature-flags`,
-`@terreno/mcp`, `docs`, `examples`, `mcp`, `plugins`
+`@terreno/jobs`, `@terreno/mcp`, `docs`, `examples`, `mcp`, `plugins`
 
 `plugins` maps to `area:dx` (skills, rules, lifecycle plugin, CI governance).
 
