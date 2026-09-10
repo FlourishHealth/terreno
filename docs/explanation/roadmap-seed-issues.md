@@ -883,15 +883,17 @@ a Redis/BullMQ driver — so email sends, webhook retries, and billing sync surv
 
 **Title:** `MongoDB migrations tooling`
 
-**Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Labels:** `area:api`, `type:feature`  
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=`mongodb-migrations-tooling`, Status=`Planned`
 
 A migrations runner for Terreno apps: versioned migration files, up/down with a lock
-collection, CI checks, and integration with the mongoose-schema-safety guidance — replacing
-ad-hoc backfill scripts.
+collection, CI checks, CLI generate-from-schema-diff, optional boot apply, and an admin
+Migrations page — replacing ad-hoc backfill scripts for once-per-environment schema changes.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1189.
+
+- **Implementation plan:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/mongodb-migrations-tooling.md)
+- **Tasks:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/mongodb-migrations-tooling.md)
 - **RTK flag:** None
 - **Depends on:** —
 
