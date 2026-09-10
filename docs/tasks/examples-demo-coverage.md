@@ -136,11 +136,33 @@ Registered stories (65 configs, including OpenAPI Context): Accordion, AddressFi
 
 ## Phase 3: Coverage enforcement
 
-- [ ] **Task 3.1**: Measure current coverage per package
+- [x] **Task 3.1**: Measure current coverage per package
   - Description: Run every published package's `test:coverage` on a clean `master` and record the actual coverage. Report which packages are below the 95% threshold in the PR body. This is a planning step — do not lower the threshold or add exemptions.
   - Files: none (findings in the PR body)
   - Depends on: none
   - Acceptance: every published package has a measured coverage value; packages below 95% are listed with their gap.
+
+### Task 3.1 coverage (2026-09-10)
+
+Measured with `bun run ../scripts/check-coverage.ts --threshold=0` from each package directory after compile. Figures are the script's `Coverage summary` when present (isolated-test merge); otherwise the Bun `All files` row. Threshold is **95% functions and 95% lines** — not lowered.
+
+| Package | Functions % | Lines % | Below 95%? | Gap |
+| --- | --- | --- | --- | --- |
+| `@terreno/api` | 98.84 | 99.06 | no | — |
+| `@terreno/ui` | 99.78 | 99.65 | no | — |
+| `@terreno/rtk` | 99.67 | 98.98 | no | — |
+| `@terreno/syncdb` | 97.26 | 94.05 | **yes (lines)** | 0.95 pp lines |
+| `@terreno/ai` | 99.21 | 99.63 | no | — |
+| `@terreno/comms` | 96.76 | 98.22 | no | — |
+| `@terreno/mcp` | 99.68 | 97.44 | no | — |
+| `@terreno/feature-flags` | 100.00 | 99.55 | no | — |
+| `@terreno/api-health` | 100.00 | 100.00 | no | — |
+| `@terreno/admin-backend` | 69.39 | 64.46 | **yes** | 25.61 pp functions, 30.54 pp lines |
+| `@terreno/admin-frontend` | 68.97 | 74.41 | **yes** | 26.03 pp functions, 20.59 pp lines (3 tests failed in the coverage run) |
+| `@terreno/admin-spa` | 32.47 | 29.23 | **yes** | 62.53 pp functions, 65.77 pp lines |
+| `@terreno/test` | 69.30 | 66.01 | **yes** | 25.70 pp functions, 28.99 pp lines |
+
+Packages below 95%: `syncdb` (lines), `admin-backend`, `admin-frontend`, `admin-spa`, `test`.
 
 - [ ] **Task 3.2**: Wire the threshold into every package CI
   - Description: Add `scripts/check-coverage.ts` (default 95% threshold) to every published package's CI — either the existing dedicated workflow or the new matrix job from Task 3.3. Packages below threshold when this lands will fail CI until catch-up work merges; track that in the implementation PR.
