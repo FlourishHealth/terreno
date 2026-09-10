@@ -84,7 +84,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: 5.3
   - Docs: `docs/reference/admin-spa.md` nav entry
   - Acceptance: `cd example-frontend && bun run sdk` compiles; both apps have `/admin/orgs` routes
-- [ ] **Task 5.5**: Frontend verification
+- [x] **Task 5.5**: Frontend verification
   - Delivers: evidence org-admin vs operator flows
   - Files: `/opt/cursor/artifacts/` (not in repo)
   - Blocked by: 5.4, 6.2
@@ -93,7 +93,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 6 — Example + docs
 
-- [ ] **Task 6.1**: Docs (same slice as behavior; can land incrementally but must be complete before Brew)
+- [x] **Task 6.1**: Docs (same slice as behavior; can land incrementally but must be complete before Brew)
   - Delivers: stranger can operate orgs from docs
   - Files: `docs/how-to/add-organizations.md`, `docs/explanation/organizations.md`, `docs/reference/api.md`, `docs/reference/admin-backend.md`, `docs/reference/admin-frontend.md`, `docs/reference/admin-spa.md`, `.rulesync/**` if agent rules need org context
   - Blocked by: 4.1 (content must match shipped routes)
