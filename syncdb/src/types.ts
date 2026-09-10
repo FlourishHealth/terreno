@@ -36,12 +36,18 @@ export interface SyncDelta {
  *
  * Emitted after the server has joined the socket to every `sync:{stream}` room for the
  * collection, so it is the first moment live deltas are guaranteed to reach this client.
+ * `mode: "window"` means the client must not page `GET /sync/snapshot` for those streams
+ * (admin fan-in `{collection}|admin`; hydrate via REST + `/sync/entities` instead).
  */
+export type SyncSubscribeMode = "window";
+
 export interface SyncSubscribed {
   /** Collection tag the confirmation is for. */
   collection: string;
   /** Stream keys now joined for that collection. */
   streams: string[];
+  /** When `window`, skip snapshot/reconcile paging for this collection. */
+  mode?: SyncSubscribeMode;
 }
 
 /** A client mutation sent via `sync:mutate` or `POST /sync/mutate`. */

@@ -112,6 +112,7 @@ export const createSocketTransport = ({
   >();
   let nextBatchId = 1;
   const subscribed = new Set<string>();
+  const subscribeMode = new Map<string, "window">();
 
   const socket: Socket = io(baseUrl, {
     auth: (callback) => {
@@ -177,17 +178,21 @@ export const createSocketTransport = ({
       listener(delta);
     }
   });
-  socket.on("sync:subscribed", (payload: {collection?: unknown; streams?: unknown}) => {
-    if (typeof payload?.collection !== "string" || !Array.isArray(payload.streams)) {
-      return;
+  socket.on(
+    "sync:subscribed",
+    (payload: {collection?: unknown; streams?: unknown; mode?: unknown}) => {
+      if (typeof payload?.collection !== "string" || !Array.isArray(payload.streams)) {
+        return;
+      }
+      const streams = payload.streams.filter(
+        (stream: unknown): stream is string => typeof stream === "string"
+      );
+      const mode = payload.mode === "window" ? ("window" as const) : undefined;
+      for (const listener of subscribedListeners) {
+        listener({collection: payload.collection, streams, ...(mode ? {mode} : {})});
+      }
     }
-    const streams = payload.streams.filter(
-      (stream: unknown): stream is string => typeof stream === "string"
-    );
-    for (const listener of subscribedListeners) {
-      listener({collection: payload.collection, streams});
-    }
-  });
+  );
   socket.on("sync:ack", (ack: SyncAck) => {
     settle(ack.mutationId, {ack, type: "ack"});
   });
@@ -213,7 +218,18 @@ export const createSocketTransport = ({
   socket.on("connect", () => {
     // Server-side subscriptions are per-connection: re-subscribe on reconnect.
     if (subscribed.size > 0) {
-      socket.emit("sync:subscribe", {collections: [...subscribed]});
+      const windowed = [...subscribed].filter(
+        (collection) => subscribeMode.get(collection) === "window"
+      );
+      const full = [...subscribed].filter(
+        (collection) => subscribeMode.get(collection) !== "window"
+      );
+      if (full.length > 0) {
+        socket.emit("sync:subscribe", {collections: full});
+      }
+      if (windowed.length > 0) {
+        socket.emit("sync:subscribe", {collections: windowed, mode: "window"});
+      }
     }
     notifyStatus(true);
   });
@@ -257,14 +273,22 @@ export const createSocketTransport = ({
     rejectAllPending("Transport disconnected");
   };
 
-  const subscribe = (collections: string[]): void => {
+  const subscribe = (collections: string[], options?: {mode?: "window"}): void => {
     for (const collection of collections) {
       subscribed.add(collection);
+      if (options?.mode === "window") {
+        subscribeMode.set(collection, "window");
+      } else {
+        subscribeMode.delete(collection);
+      }
     }
     // Only emit when connected; the connect handler (re)subscribes otherwise —
     // Socket.io would buffer a disconnected emit and duplicate the subscribe.
     if (socket.connected && collections.length > 0) {
-      socket.emit("sync:subscribe", {collections});
+      socket.emit(
+        "sync:subscribe",
+        options?.mode === "window" ? {collections, mode: "window"} : {collections}
+      );
     }
   };
 

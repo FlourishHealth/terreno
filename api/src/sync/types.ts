@@ -72,6 +72,9 @@ export interface SyncConfig {
 
 export type SyncMutationOperation = "create" | "update" | "delete";
 
+/** `sync:subscribe` / `sync:subscribed` window mode for admin fan-in (no snapshot paging). */
+export type SyncSubscribeMode = "window";
+
 /** A single entity in a snapshot response. */
 export interface SyncEntityPayload {
   /** Document id. */

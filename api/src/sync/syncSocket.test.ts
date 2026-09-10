@@ -272,6 +272,31 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     });
   });
 
+  it("window mode joins {collection}|admin and does not emit snapshot pages", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isTrue(socket.rooms.has("sync:sockStuff|admin"));
+    assert.isFalse(socket.rooms.has("sync:sockStuff|owner:user1"));
+    const subscribed = socket.emitted.filter((e) => e.event === "sync:subscribed");
+    assert.deepEqual(
+      subscribed.map((e) => e.payload),
+      [{collection: "sockStuff", mode: "window", streams: ["sockStuff|admin"]}]
+    );
+    const snapshotLike = socket.emitted.filter(
+      (e) => e.event.includes("snapshot") || (e.payload as {entities?: unknown})?.entities
+    );
+    assert.deepEqual(snapshotLike, []);
+  });
+
   it("owner scope never uses a client-supplied user id", async () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);

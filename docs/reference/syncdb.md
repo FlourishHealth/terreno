@@ -392,7 +392,7 @@ sync: {
 
 - **Owner** streams use the authenticated socket's user id (client cannot pick another user's stream).
 - **Tenant/custom** scopes resolve memberships via `SyncApp` `getUserScopes`.
-- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join permission for `|admin` is admin-only. Window subscribe (no snapshot) is a separate protocol step.
+- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join `{collection}|admin` with `sync:subscribe {mode: "window"}` — the server confirms `sync:subscribed {mode: "window"}` and does not dump snapshot pages. Clients listed in `createSyncDb({windowCollections})` skip `GET /sync/snapshot` for those collections (startup, subscribe catch-up, and the reconcile timer). Hydrate known ids via REST + `GET /sync/entities`.
 - **`snapshotFilter`** restricts `GET /sync/snapshot` server-side. Auto-derived for owner/tenant; required for custom resolver scopes.
 
 ## Sync protocol
@@ -414,8 +414,8 @@ Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
 
 | Event | Direction | Payload |
 |-------|-----------|---------|
-| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` |
-| `sync:subscribed` | server → client | `{collection, streams}` — sent after the stream rooms are joined; the client pages each confirmed stream from its cursor so a write landing between the startup snapshot and the join is not missed |
+| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[], mode?: "window"}` |
+| `sync:subscribed` | server → client | `{collection, streams, mode?: "window"}` — sent after the stream rooms are joined; full-mode clients page each confirmed stream from its cursor. `mode: "window"` joins `{collection}\|admin` only and must not trigger snapshot paging |
 | `sync:error` | server → client | `{collection, message}` |
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?, frontierSeq?}` |
 | `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` |

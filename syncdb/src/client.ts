@@ -83,6 +83,12 @@ export interface SyncDbConfig {
   idbSetImpl?: DefaultPersisterFactoryConfig["idbSetImpl"];
   /** Periodic reconcile interval in ms; 0 disables (default 5 minutes). */
   reconcileIntervalMs?: number;
+  /**
+   * Collections that subscribe in admin window mode: join `{collection}|admin`,
+   * skip `GET /sync/snapshot` paging (startup, catch-up, and the reconcile timer).
+   * Hydrate rows via REST membership + `/sync/entities` instead.
+   */
+  windowCollections?: string[];
   /** Rate limit for seq-jump-triggered reconciles per stream (default 30s). */
   seqJumpReconcileMinIntervalMs?: number;
   /** Millisecond clock, injectable for deterministic rate-limit tests. */
@@ -306,6 +312,27 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     collections: config.collections,
     now: () => DateTime.fromMillis(now()).toISO() ?? new Date(now()).toISOString(),
   });
+  const windowCollectionSet = new Set(config.windowCollections ?? []);
+  const isWindowCollection = (collection: string): boolean => windowCollectionSet.has(collection);
+  const skipSnapshotPaging = ({
+    collection,
+    stream,
+    mode,
+  }: {
+    collection: string;
+    stream: string;
+    mode?: "window";
+  }): boolean => isWindowCollection(collection) || mode === "window" || stream.endsWith("|admin");
+  const subscribeConfiguredCollections = (): void => {
+    const windowed = config.collections.filter((collection) => isWindowCollection(collection));
+    const full = config.collections.filter((collection) => !isWindowCollection(collection));
+    if (full.length > 0) {
+      transport.subscribe(full);
+    }
+    if (windowed.length > 0) {
+      transport.subscribe(windowed, {mode: "window"});
+    }
+  };
   const outbox = createOutbox({store});
   const debugLog = resolveDebugLog(config.debug);
   // Mirror the debug log across browser windows/tabs (web only) so a debugger
@@ -649,6 +676,9 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         return;
       }
       for (const [stream, collection] of streams) {
+        if (skipSnapshotPaging({collection, stream})) {
+          continue;
+        }
         await bootstrapStream({channel: httpChannel, collection, store, stream});
         if (isSuperseded()) {
           return;
@@ -739,15 +769,20 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
    */
   const catchUpSubscribedStreams = async ({
     collection,
+    mode,
     streams,
   }: {
     collection: string;
+    mode?: "window";
     streams: string[];
   }): Promise<void> => {
     if (!httpChannel || simulatedOffline || authPaused || streams.length === 0) {
       return;
     }
     if (!store.collections.includes(collection)) {
+      return;
+    }
+    if (mode === "window" || isWindowCollection(collection)) {
       return;
     }
     const myGeneration = generation;
@@ -758,6 +793,9 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       for (const stream of streams) {
         if (isSuperseded()) {
           return;
+        }
+        if (skipSnapshotPaging({collection, mode, stream})) {
+          continue;
         }
         store.addKnownStream({collection, stream});
         await bootstrapStream({channel: httpChannel, collection, store, stream});
@@ -1280,7 +1318,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       warn("transport reconnect after user change failed; continuing offline")(error);
     }
     bindDeltaHandler();
-    transport.subscribe(config.collections);
+    subscribeConfiguredCollections();
   };
 
   const handleStatusChange = ({
@@ -1516,7 +1554,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       if (generation !== myGeneration) {
         return;
       }
-      transport.subscribe(config.collections);
+      subscribeConfiguredCollections();
       // C2: run an initial stream discovery + per-stream bootstrap on start (not only via
       // the reconnect status event) so a client that starts offline-then-online, or with a
       // warm socket, still backfills newly-joined streams and drains legacy cursors.

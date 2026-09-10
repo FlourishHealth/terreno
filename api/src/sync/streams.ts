@@ -68,6 +68,9 @@ export const parseStreamKey = (
   if (rest === "all") {
     return {collectionTag, scopeKind: "all", scopeValue: null};
   }
+  if (rest === "admin") {
+    return {collectionTag, scopeKind: "admin", scopeValue: null};
+  }
   const colon = rest.indexOf(":");
   if (colon < 0) {
     return null;
