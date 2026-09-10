@@ -60,19 +60,19 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
 
 ## Phase 5 — Admin frontend
 
-- [ ] **Task 5.1**: `OrgDirectoryScreen` (operator)
+- [x] **Task 5.1**: `OrgDirectoryScreen` (operator)
   - Delivers: all-orgs table, create, disable, enter org
   - Files: `admin-frontend/src/orgs/OrgDirectoryScreen.tsx` + tests
   - Blocked by: 4.1
   - Docs: `docs/reference/admin-frontend.md` component section
   - Acceptance: loading/error/empty; org-admin nav hidden in unit test via role prop/fixture
-- [ ] **Task 5.2**: `OrgSwitcher` + `useOrgContext` (header + URL)
+- [x] **Task 5.2**: `OrgSwitcher` + `useOrgContext` (header + URL)
   - Delivers: Q10/Q13 client behavior for org-admins and operators-in-org
   - Files: `admin-frontend/src/orgs/OrgSwitcher.tsx`, `useOrgContext.tsx`, `AdminShellLayout` slot
   - Blocked by: 5.1
   - Docs: admin-frontend reference
   - Acceptance: switching sets `X-Organization-Id` on subsequent admin queries (test with mocked api); single-org org-admin still renders org name
-- [ ] **Task 5.3**: Org settings + members table
+- [x] **Task 5.3**: Org settings + members table
   - Delivers: settings PATCH; members DataTable; add existing user; last-admin error; disabled Invite; billing placeholder
   - Files: `admin-frontend/src/orgs/OrgSettingsScreen.tsx`, `OrgMembersScreen.tsx` + tests
   - Blocked by: 5.2, 3.2
@@ -99,7 +99,7 @@ Supporting skills (all tasks): `update-docs`. Models: `mongoose-schema-safety`. 
   - Blocked by: 4.1 (content must match shipped routes)
   - Docs: (this task)
   - Acceptance: `bun run website:build` (or package docs check used in CI); how-to has one minimal OrgsApp + AdminApp example
-- [ ] **Task 6.2**: example-backend migration + seeds
+- [x] **Task 6.2**: example-backend migration + seeds
   - Delivers: Membership instead of `User.organizationIds`; operator + two org-admins
   - Files: `example-backend/src/models/user.ts`, `types/models/userTypes.ts`, `api/projects.ts`, `scripts/seed-*`, `access.ts`, `rbacRoles.ts`, tests
   - Blocked by: 3.2, 2.1

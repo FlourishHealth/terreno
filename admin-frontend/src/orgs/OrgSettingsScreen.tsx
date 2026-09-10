@@ -1,9 +1,12 @@
 import {Box, Button, Card, Spinner, Text, TextField} from "@terreno/ui";
+import type {Href} from "expo-router";
+import {router} from "expo-router";
 import React, {useCallback, useEffect, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
 import {useOrganizationsApi} from "./useOrganizationsApi";
+import {useOptionalOrgContext} from "./useOrgContext";
 
 export interface OrgSettingsScreenProps {
   api: AdminApi;
@@ -37,6 +40,7 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
   const {useReadQuery, useUpdateMutation} = useOrganizationsApi(api, basePath, organizationId);
   const {data, error, isLoading} = useReadQuery(organizationId);
   const organization = (data?.data ?? data) as OrganizationDetail | undefined;
+  const orgContext = useOptionalOrgContext();
   const [name, setName] = useState("");
   const [settingsText, setSettingsText] = useState("{}");
   const [saveError, setSaveError] = useState<string>();
@@ -49,7 +53,10 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
     }
     setName(organization.name);
     setSettingsText(JSON.stringify(organization.settings ?? {}, null, 2));
-  }, [organization]);
+    if (orgContext && orgContext.organizationId !== organization._id) {
+      orgContext.selectOrganization(organization);
+    }
+  }, [orgContext, organization]);
 
   const handleSave = useCallback(async (): Promise<void> => {
     let settings: Record<string, unknown>;
@@ -74,6 +81,9 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
       setSaveError(errorTitle(mutationError, "Could not save organization settings."));
     }
   }, [name, organizationId, settingsText, updateOrganization]);
+  const handleOpenMembers = useCallback((): void => {
+    router.push(`${routeBase}/orgs/${organizationId}/members` as Href);
+  }, [organizationId, routeBase]);
 
   if (isLoading) {
     return (
@@ -116,6 +126,11 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
             testID="org-settings-save"
             text="Save settings"
           />
+        </Card>
+        <Card gap={2} padding={4}>
+          <Text bold>Members</Text>
+          <Text color="secondaryDark">Manage organization roles and access.</Text>
+          <Button onClick={handleOpenMembers} text="Manage members" variant="outline" />
         </Card>
         <Card gap={2} padding={4}>
           <Text bold>Billing</Text>

@@ -1,4 +1,9 @@
-import {AdminProvider, AdminShellLayout} from "@terreno/admin-frontend";
+import {
+  AdminProvider,
+  AdminShellLayout,
+  OrgContextProvider,
+  OrgSwitcher,
+} from "@terreno/admin-frontend";
 import {canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {Box, Spinner, Text} from "@terreno/ui";
 import {Stack} from "expo-router";
@@ -19,6 +24,8 @@ const AdminLayout: React.FC = () => {
     admin: profile?.admin,
     permissions: profile?.permissions,
   });
+  const roles = profile?.roles ?? [];
+  const isOrganizationOperator = roles.includes("operator") || roles.includes("superadmin");
 
   if (userId && isLoading) {
     return (
@@ -51,29 +58,37 @@ const AdminLayout: React.FC = () => {
       routeBase={ADMIN_ROUTE}
       widgets={{screens: {"sync-lab": SyncLabScreen}}}
     >
-      <AdminShellLayout
-        api={terrenoApi}
-        apiBase={ADMIN_ROUTE}
-        configurationPath="/admin/configuration"
-        rolesPath="/roles"
-        routeBase={ADMIN_ROUTE}
-        versionConfigPath="/version-config"
-      >
-        <Stack
-          screenOptions={{
-            contentStyle: {flex: 1},
-            headerShown: false,
-          }}
+      <OrgContextProvider>
+        <AdminShellLayout
+          api={terrenoApi}
+          apiBase={ADMIN_ROUTE}
+          configurationPath="/admin/configuration"
+          isOrganizationOperator={isOrganizationOperator}
+          organizationDirectoryPath="/orgs"
+          organizationSwitcher={<OrgSwitcher api={terrenoApi} routeBase={ADMIN_ROUTE} />}
+          rolesPath="/roles"
+          routeBase={ADMIN_ROUTE}
+          versionConfigPath="/version-config"
         >
-          <Stack.Screen name="index" options={{title: "Admin"}} />
-          <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
-          <Stack.Screen name="configuration" options={{title: "Configuration"}} />
-          <Stack.Screen name="roles" options={{title: "Roles"}} />
-          <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
-          <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
-          <Stack.Screen name="[model]" options={{title: "Model"}} />
-        </Stack>
-      </AdminShellLayout>
+          <Stack
+            screenOptions={{
+              contentStyle: {flex: 1},
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="index" options={{title: "Admin"}} />
+            <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
+            <Stack.Screen name="configuration" options={{title: "Configuration"}} />
+            <Stack.Screen name="roles" options={{title: "Roles"}} />
+            <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
+            <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
+            <Stack.Screen name="orgs/index" options={{title: "Organizations"}} />
+            <Stack.Screen name="orgs/[orgId]/index" options={{title: "Organization settings"}} />
+            <Stack.Screen name="orgs/[orgId]/members" options={{title: "Organization members"}} />
+            <Stack.Screen name="[model]" options={{title: "Model"}} />
+          </Stack>
+        </AdminShellLayout>
+      </OrgContextProvider>
     </AdminProvider>
   );
 };

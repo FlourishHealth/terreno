@@ -16,6 +16,23 @@ export const openapi = createSessionApi().enhanceEndpoints({
   addTagTypes: ["admin-models", "admin-version-config", "admin-scripts", "profile"],
 });
 
+export interface AdminSpaProfile {
+  admin?: boolean;
+  permissions?: Record<string, readonly string[]>;
+  roles?: string[];
+}
+
+const profileApi = openapi.injectEndpoints({
+  endpoints: (build) => ({
+    getAdminSpaProfile: build.query<AdminSpaProfile, void>({
+      providesTags: ["profile"],
+      query: () => ({method: "GET", url: "/auth/me"}),
+    }),
+  }),
+});
+
+export const {useGetAdminSpaProfileQuery} = profileApi;
+
 /**
  * The API instance passed to `@terreno/admin-frontend` screens. Cast to the
  * type-erased `AdminApi` the admin screens accept (RTK's `Api` generics, including the

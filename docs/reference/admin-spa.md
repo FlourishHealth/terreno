@@ -52,6 +52,17 @@ admin-spa/
 
 Boot flow in the SPA: `AppConfigGate` fetches `${basePath}/app-config.json` → `StoreProvider` builds Better Auth + Redux → `AdminGate` redirects anonymous users to `/login` and non-admins to `/forbidden`.
 
+When the backend enables organizations, the bundled SPA exposes:
+
+- `/orgs` — operator-only organization directory;
+- `/orgs/:orgId` — organization settings;
+- `/orgs/:orgId/members` — organization memberships.
+
+`AdminSpaShell` renders `OrgSwitcher` on every admin route. The switcher and
+directory use `/orgs` API routes while generic model CRUD continues under the
+configured `adminApiBasePath`. Org-admins do not receive the directory link.
+The default `/console` mount therefore serves these as `/console/orgs/...`.
+
 ## AdminSpaServeApp
 
 `AdminSpaServeApp` implements `TerrenoPlugin`. Register it on `TerrenoApp` alongside `AdminApp` and auth plugins:
