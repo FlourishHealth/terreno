@@ -513,42 +513,16 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     screenTitle,
   ]);
 
-  // Set stack / document title and header action buttons (save/delete)
+  // Set stack / document title. Save and delete live in the form chrome because
+  // admin Expo stacks use headerShown: false (same as Create on the table).
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
     navigation.setOptions({
-      headerRight: () => (
-        <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
-          {mode === "edit" && canDeleteRecord ? (
-            <DeleteButton loading={isDeleting} onDelete={handleDelete} />
-          ) : null}
-          {isFormWritable ? (
-            <Button
-              loading={isSaving}
-              onClick={handleSave}
-              testID="admin-save-button"
-              text={mode === "create" ? "Create" : "Save"}
-              variant="primary"
-            />
-          ) : null}
-        </Box>
-      ),
       title: navigationTitle,
     });
-  }, [
-    navigation,
-    navigationTitle,
-    modelConfig,
-    mode,
-    isSaving,
-    isDeleting,
-    handleSave,
-    handleDelete,
-    isFormWritable,
-    canDeleteRecord,
-  ]);
+  }, [navigation, navigationTitle, modelConfig]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
     if (!modelConfig) {
@@ -624,6 +598,22 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   return (
     <Page color="transparent" maxWidth="100%" padding={0} scroll>
       <Box gap={3} padding={4}>
+        {isFormWritable || (mode === "edit" && canDeleteRecord) ? (
+          <Box alignItems="center" direction="row" gap={2} wrap>
+            {isFormWritable ? (
+              <Button
+                loading={isSaving}
+                onClick={handleSave}
+                testID="admin-save-button"
+                text={mode === "create" ? "Create" : "Save"}
+                variant="primary"
+              />
+            ) : null}
+            {mode === "edit" && canDeleteRecord ? (
+              <DeleteButton loading={isDeleting} onDelete={handleDelete} />
+            ) : null}
+          </Box>
+        ) : null}
         {fieldSections
           ? fieldSections.map((section, sectionIndex) => (
               <Accordion

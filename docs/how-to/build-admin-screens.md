@@ -53,7 +53,9 @@ and `getAuthHeaders` that return `{}` so the cookie session is sent without a Be
 Omit `apiOrigin`. Each route wraps `AdminShellLayout` because the root layout is only
 providers. Model tables render **Create** once, in the table chrome
 (`testID="admin-create-button"`), because admin Expo stacks use `headerShown: false`.
-The navigator header only receives the model title.
+Model forms render **Save** / **Delete** in the form chrome
+(`testID="admin-save-button"` / `admin-delete-button`) for the same reason.
+The navigator header only receives the screen title.
 
 ## 3. Keep generic model routes generic
 

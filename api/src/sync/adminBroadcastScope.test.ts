@@ -82,6 +82,72 @@ describe("adminBroadcastScope", () => {
     );
   });
 
+  it("allows when queryFilter is omitted", async () => {
+    clearAdminBroadcastScopes();
+    registerAdminBroadcastScope("Scoped", {
+      listPermissions: [() => true],
+      readPermissions: [() => true],
+    });
+    assert.equal(
+      await authorizeAdminBroadcastDocument({
+        doc: {ownerId: "other"},
+        modelName: "Scoped",
+        user: adminUser,
+      }),
+      "allow"
+    );
+  });
+
+  it("denies when queryFilter throws", async () => {
+    clearAdminBroadcastScopes();
+    registerAdminBroadcastScope("Scoped", {
+      listPermissions: [() => true],
+      queryFilter: () => {
+        throw new Error("filter exploded");
+      },
+      readPermissions: [() => true],
+    });
+    assert.equal(
+      await authorizeAdminBroadcastDocument({
+        doc: {ownerId: "other"},
+        modelName: "Scoped",
+        user: adminUser,
+      }),
+      "deny"
+    );
+  });
+
+  it("denies when the user is missing", async () => {
+    clearAdminBroadcastScopes();
+    registerAdminBroadcastScope("Scoped", {
+      listPermissions: [() => true],
+      readPermissions: [() => true],
+    });
+    assert.equal(
+      await authorizeAdminBroadcastDocument({
+        doc: {ownerId: "other"},
+        modelName: "Scoped",
+      }),
+      "deny"
+    );
+  });
+
+  it("denies when read permission fails", async () => {
+    clearAdminBroadcastScopes();
+    registerAdminBroadcastScope("Scoped", {
+      listPermissions: [() => true],
+      readPermissions: [() => false],
+    });
+    assert.equal(
+      await authorizeAdminBroadcastDocument({
+        doc: {ownerId: "other"},
+        modelName: "Scoped",
+        user: adminUser,
+      }),
+      "deny"
+    );
+  });
+
   it("identifies the admin broadcast socket room", () => {
     assert.isTrue(isAdminBroadcastSocketRoom("sync:todos|admin", "todos"));
     assert.isFalse(isAdminBroadcastSocketRoom("sync:todos|owner:u1", "todos"));
