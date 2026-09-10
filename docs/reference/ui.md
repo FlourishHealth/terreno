@@ -600,6 +600,9 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 `onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
 (250ms, same delay as admin list search).
 
+Pass `emptyContent` to keep the table header, search, and filter controls mounted
+while showing an application-specific empty state below the header.
+
 ### Platform chrome
 
 | Platform | Chrome |

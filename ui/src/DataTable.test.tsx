@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act} from "@testing-library/react-native";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {type FC, useState} from "react";
 import {Platform} from "react-native";
 
 import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
@@ -584,9 +585,10 @@ describe("DataTable", () => {
     Platform.OS = originalOS;
   });
 
-  it("renders native filters trigger instead of per-column filter controls", () => {
+  it("applies native sheet filters through the shared query contract", async () => {
     const originalOS = Platform.OS;
     Platform.OS = "ios";
+    const onQueryChange = mock(() => {});
     const filterColumns = [
       {
         columnType: "boolean",
@@ -595,19 +597,36 @@ describe("DataTable", () => {
         width: 100,
       },
     ];
-    const {getByTestId, queryByTestId} = renderWithTheme(
-      <DataTable
-        columns={filterColumns}
-        data={[[{value: true}]]}
-        filterValues={{}}
-        onFilterValuesChange={() => {}}
-        onSearchChange={() => {}}
-        search=""
-        searchFields={["Active"]}
-      />
-    );
+    const Harness: FC = () => {
+      const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
+      return (
+        <DataTable
+          columns={filterColumns}
+          data={[[{value: true}]]}
+          filterValues={filterValues}
+          onFilterValuesChange={setFilterValues}
+          onQueryChange={onQueryChange}
+        />
+      );
+    };
+    const {getByTestId, queryByTestId} = renderWithTheme(<Harness />);
     expect(queryByTestId("data-table-filter-active.trigger")).toBeNull();
-    expect(getByTestId("data-table-filters-trigger")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-trigger"));
+    });
+    await waitFor(() => {
+      expect(getByTestId("data-table-filter-active.switch")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filter-active.switch"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-sheet.primary"));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onQueryChange).toHaveBeenLastCalledWith({active: true});
     Platform.OS = originalOS;
   });
 

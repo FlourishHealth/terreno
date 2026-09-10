@@ -4,6 +4,22 @@ import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
 const POLLUTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+const REGEX_META_CHARACTERS = new Set([
+  "\\",
+  ".",
+  "*",
+  "+",
+  "?",
+  "^",
+  "$",
+  "{",
+  "}",
+  "(",
+  ")",
+  "|",
+  "[",
+  "]",
+]);
 
 const isOperatorKey = (key: string): boolean => {
   return key.startsWith("$");
@@ -29,6 +45,29 @@ const scalarString = (value: unknown): string | undefined => {
     return String(value);
   }
   return undefined;
+};
+
+const hasOnlyKeys = (record: Record<string, unknown>, allowedKeys: string[]): boolean => {
+  const allowed = new Set(allowedKeys);
+  return Object.keys(record).every((key) => allowed.has(key));
+};
+
+const isEscapedRegexLiteral = (value: string): boolean => {
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === "\\") {
+      const escapedCharacter = value[index + 1];
+      if (!escapedCharacter || !REGEX_META_CHARACTERS.has(escapedCharacter)) {
+        return false;
+      }
+      index += 1;
+      continue;
+    }
+    if (REGEX_META_CHARACTERS.has(character)) {
+      return false;
+    }
+  }
+  return true;
 };
 
 const parseBooleanFilter = (
@@ -67,13 +106,16 @@ const parseTextRegexFilter = (
   if (value == null || typeof value !== "object" || Array.isArray(value)) {
     return {error: `${field} must be a case-insensitive regex filter`, ok: false};
   }
-  const record = value as {$options?: unknown; $regex?: unknown};
+  const record = value as Record<string, unknown> & {$options?: unknown; $regex?: unknown};
+  if (!hasOnlyKeys(record, ["$options", "$regex"])) {
+    return {error: `${field} contains an unsupported regex operator`, ok: false};
+  }
   if (record.$options !== "i") {
     return {error: `${field} must use $options "i"`, ok: false};
   }
   const regex = scalarString(record.$regex);
-  if (!regex) {
-    return {error: `${field} must include a $regex pattern`, ok: false};
+  if (!regex || !isEscapedRegexLiteral(regex)) {
+    return {error: `${field} must include an escaped literal $regex pattern`, ok: false};
   }
   return {ok: true, value: {$options: "i", $regex: regex}};
 };
@@ -102,7 +144,10 @@ const parseChoiceInFilter = (
   if (value == null || typeof value !== "object" || Array.isArray(value)) {
     return {error: `${field} must be a multi-value choice filter`, ok: false};
   }
-  const record = value as {$in?: unknown};
+  const record = value as Record<string, unknown> & {$in?: unknown};
+  if (!hasOnlyKeys(record, ["$in"])) {
+    return {error: `${field} contains an unsupported choice operator`, ok: false};
+  }
   if (!Array.isArray(record.$in)) {
     return {error: `${field} must use $in with string values`, ok: false};
   }

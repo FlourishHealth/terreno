@@ -90,6 +90,22 @@ describe("parseAdminListFilters", () => {
     expect(errors.$or).toBeDefined();
   });
 
+  it("rejects executable regex patterns and undeclared nested operators", () => {
+    const {errors} = parseAdminListFilters(
+      {
+        name: {$options: "i", $regex: ".*"},
+        role: {$in: ["staff"], $ne: "admin"},
+      },
+      [
+        {choices: [{label: "Staff", value: "staff"}], field: "role", kind: "choice"},
+        {field: "name", kind: "text"},
+      ]
+    );
+
+    expect(errors.name).toBeDefined();
+    expect(errors.role).toBeDefined();
+  });
+
   it("drops prototype pollution keys without surfacing them as filter errors", () => {
     const {errors, filter} = parseAdminListFilters(
       {

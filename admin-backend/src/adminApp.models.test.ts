@@ -27,6 +27,7 @@ import {
 import {assert} from "chai";
 import type express from "express";
 import mongoose from "mongoose";
+import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -799,6 +800,37 @@ describe("AdminApp model CRUD routes", () => {
     for (const item of res.body.data) {
       expect(item.hidden).toBeUndefined();
     }
+  });
+
+  it("applies declared multi-choice filters through the admin list route", async () => {
+    app = buildApp([
+      {
+        ...foodModelConfig,
+        filters: [
+          {
+            choices: [
+              {label: "Apple", value: "Apple"},
+              {label: "Banana", value: "Banana"},
+              {label: "Carrot", value: "Carrot"},
+            ],
+            field: "name",
+            kind: "choice",
+          },
+        ],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    await FoodModel.create({calories: 120, name: "Apple"});
+    await FoodModel.create({calories: 95, name: "Banana"});
+    await FoodModel.create({calories: 40, name: "Carrot"});
+
+    const query = qs.stringify({name: {$in: ["Apple", "Banana"]}});
+    const res = await agent.get(`/admin/foods?${query}`).expect(200);
+
+    expect(res.body.data.map((item: {name: string}) => item.name).sort()).toEqual([
+      "Apple",
+      "Banana",
+    ]);
   });
 
   it("reads a document via GET /:id", async () => {
