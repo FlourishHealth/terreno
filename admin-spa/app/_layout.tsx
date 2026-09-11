@@ -1,5 +1,5 @@
 import {AdminProvider, useAdminConfig} from "@terreno/admin-frontend";
-import type {SyncDb} from "@terreno/syncdb";
+import {createSyncDb, type SyncDb} from "@terreno/syncdb";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, TerrenoProvider, Text} from "@terreno/ui";
 import {Stack} from "expo-router";
@@ -7,7 +7,7 @@ import React, {useEffect, useMemo, useState} from "react";
 import {AdminGate} from "../components/AdminGate";
 import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
 import {StoreProvider, useAuth} from "../components/StoreProvider";
-import {createAdminSpaSyncDb, resolveAdminSyncCollections} from "../store/adminSyncDb";
+import {createAdminSpaSyncDbConfig, resolveAdminSyncCollections} from "../store/adminSyncDb";
 import {terrenoApi} from "../store/sdk";
 
 const SPA_ADMIN_AUTH_HEADERS = (): HeadersInit => ({});
@@ -85,11 +85,13 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
     if (collections.length === 0) {
       return undefined;
     }
-    return createAdminSpaSyncDb({
-      authClient,
-      collections,
-      origin: typeof window === "undefined" ? "http://localhost:4000" : window.location.origin,
-    });
+    return createSyncDb(
+      createAdminSpaSyncDbConfig({
+        authClient,
+        collections,
+        origin: typeof window === "undefined" ? "http://localhost:4000" : window.location.origin,
+      })
+    );
   }, [authClient, syncCollectionsKey]);
 
   if (client) {

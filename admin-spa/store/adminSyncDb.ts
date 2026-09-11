@@ -1,9 +1,8 @@
 import type {AdminModelConfig} from "@terreno/admin-frontend";
 import {
-  type BetterAuthClientLike,
+  type BetterAuthReactClientLike,
   betterAuthAdapter,
-  createSyncDb,
-  type SyncDb,
+  bridgeBetterAuthReactClient,
   type SyncDbConfig,
 } from "@terreno/syncdb";
 
@@ -21,26 +20,17 @@ export const resolveAdminSyncCollections = (models: AdminModelConfig[]): string[
     ),
   ].sort();
 
-export const createAdminSpaSyncDb = ({
-  authClient,
-  collections,
-  origin,
-}: {
-  authClient: BetterAuthClientLike;
-  collections: string[];
-  origin: string;
-}): SyncDb => createSyncDb(createAdminSpaSyncDbConfig({authClient, collections, origin}));
-
+/** Admin window rows get their own origin-scoped store, separate from any product client. */
 export const createAdminSpaSyncDbConfig = ({
   authClient,
   collections,
   origin,
 }: {
-  authClient: BetterAuthClientLike;
+  authClient: BetterAuthReactClientLike;
   collections: string[];
   origin: string;
 }): SyncDbConfig => ({
-  authProvider: betterAuthAdapter(authClient),
+  authProvider: betterAuthAdapter(bridgeBetterAuthReactClient(authClient)),
   baseUrl: origin,
   collections,
   name: `terreno-admin-spa:${origin}`,

@@ -1,21 +1,22 @@
 import {describe, it} from "bun:test";
 import type {AdminModelConfig} from "@terreno/admin-frontend";
-import type {BetterAuthClientLike} from "@terreno/syncdb";
+import {type BetterAuthReactClientLike, createSyncDb} from "@terreno/syncdb";
 import {assert} from "chai";
-import {
-  createAdminSpaSyncDb,
-  createAdminSpaSyncDbConfig,
-  resolveAdminSyncCollections,
-} from "./adminSyncDb";
+import {createAdminSpaSyncDbConfig, resolveAdminSyncCollections} from "./adminSyncDb";
 
-const createModel = (overrides: Partial<AdminModelConfig>): AdminModelConfig => ({
+const BASE_MODEL: AdminModelConfig = {
+  defaultSort: "-created",
   displayName: "Model",
   fields: {_id: {required: true, type: "string"}},
   listFields: [],
   name: "Model",
   routePath: "/admin/models",
-  ...overrides,
-});
+};
+
+// Spreading Partial<AdminModelConfig> widens required keys to `| undefined`; BASE_MODEL
+// already supplies every one of them, so the merged object is complete.
+const createModel = (overrides: Partial<AdminModelConfig>): AdminModelConfig =>
+  ({...BASE_MODEL, ...overrides}) as AdminModelConfig;
 
 describe("resolveAdminSyncCollections", () => {
   it("returns sorted unique adminBroadcast collections with String ids", () => {
@@ -36,8 +37,8 @@ describe("resolveAdminSyncCollections", () => {
   });
 });
 
-describe("createAdminSpaSyncDb", () => {
-  const authClient: BetterAuthClientLike = {
+describe("createAdminSpaSyncDbConfig", () => {
+  const authClient: BetterAuthReactClientLike = {
     getSession: async () => ({
       data: {session: {token: "session-token"}, user: {id: "admin-1"}},
     }),
@@ -58,12 +59,14 @@ describe("createAdminSpaSyncDb", () => {
     assert.equal(await config.authProvider.getToken(), "session-token");
   });
 
-  it("creates the syncdb client surface", () => {
-    const client = createAdminSpaSyncDb({
-      authClient,
-      collections: ["todos"],
-      origin: "https://admin.example.com",
-    });
+  it("builds a syncdb client from the config", () => {
+    const client = createSyncDb(
+      createAdminSpaSyncDbConfig({
+        authClient,
+        collections: ["todos"],
+        origin: "https://admin.example.com",
+      })
+    );
 
     assert.isFunction(client.start);
     assert.isFunction(client.stop);
