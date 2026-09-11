@@ -27,7 +27,7 @@ Or browse [`mcp-server/src/docs/upgrades/`](../../mcp-server/src/docs/upgrades/)
 | Clean git tree, work on a branch | Rollback is `git checkout -- .` / `git reset --hard` on that branch. |
 | Backend `@terreno/*` first | `/openapi.json` is the contract the frontend typed client is generated from. Regenerating against an old backend omits new routes; screens fail at compile. |
 | Backend compile + tests | Catch API breaks before touching Expo or UI. |
-| Expo SDK (if the Terreno major tracks a new Expo) | `@terreno/ui` pins `react-native` (for example `~0.86.0` on the 57 line in `ui/package.json` `peerDependencies`). Installing Terreno frontend packages before Expo leaves unmet peers. |
+| Expo SDK (if the Terreno major tracks a new Expo) | `@terreno/ui` pins `react-native` (for example `~0.87.0` on the 58 line in `ui/package.json` `peerDependencies`). Installing Terreno frontend packages before Expo leaves unmet peers. |
 | Frontend `@terreno/*` | UI, syncdb, admin-frontend, admin-spa, rtk. |
 | Regenerate typed client | Only after the **upgraded** backend is running. |
 | Compile, lint, tests | Whole app. |
