@@ -48,7 +48,10 @@
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-sharing",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true
