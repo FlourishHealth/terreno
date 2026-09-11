@@ -112,7 +112,7 @@ Built-in ids: `mongo`, `gcp-cloud-tasks`, `vercel-queues`.
 | `maxAttempts` | `5` | From definition at enqueue |
 | `backoffMs` | `1_000` | Retry base |
 | `maxBackoffMs` | `900_000` | Retry cap |
-| `lastError` | — | Latest failure message |
+| `lastError` | — | Latest failure message; `$unset` when the job completes |
 | `lockedAt` / `lockedBy` | — | Claim lease |
 | `idempotencyKey` | — | Partial unique with `name` |
 | `scheduleId` | — | Parent schedule ref |

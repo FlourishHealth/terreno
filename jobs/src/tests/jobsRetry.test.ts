@@ -156,6 +156,53 @@ describe("jobs retry and dead-letter", () => {
     await jobsApp.stopWorker();
   });
 
+  it("clears lastError when a previously failed job completes", async (): Promise<void> => {
+    let handlerRuns = 0;
+
+    const jobsApp = new JobsApp({pollIntervalMs: 25});
+    jobsApp.define("fail-then-succeed", {
+      handler: async () => {
+        handlerRuns += 1;
+        if (handlerRuns === 1) {
+          throw new Error("transient");
+        }
+      },
+      retry: {backoffMs: 500, maxAttempts: 5, maxBackoffMs: 60_000},
+    });
+
+    new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(jobsApp)
+      .build();
+
+    const enqueued = await getJobsService().enqueue({
+      name: "fail-then-succeed",
+      payload: {},
+    });
+
+    await jobsApp.startWorker();
+    await waitUntil(async () => {
+      const row = await Job.findExactlyOne({_id: enqueued._id});
+      return row.status === "pending" && row.attemptCount === 1;
+    });
+
+    const afterFailure = await Job.findExactlyOne({_id: enqueued._id});
+    assert.equal(afterFailure.lastError, "transient");
+
+    await Job.updateOne({_id: enqueued._id}, {$set: {runAt: DateTime.utc().toJSDate()}});
+    await waitUntil(
+      async () => (await Job.findExactlyOne({_id: enqueued._id})).status === "completed"
+    );
+    await jobsApp.stopWorker();
+
+    const completed = await Job.findExactlyOne({_id: enqueued._id});
+    assert.equal(completed.status, "completed");
+    assert.isUndefined(completed.lastError);
+    assert.equal(handlerRuns, 2);
+  });
+
   it("lands dead after maxAttempts failures", async (): Promise<void> => {
     let handlerRuns = 0;
 

@@ -69,7 +69,8 @@ const recordHandlerSuccess = async (
       status: "running",
     },
     {
-      $set: {lastError: undefined, status: "completed"},
+      $set: {status: "completed"},
+      $unset: {lastError: ""},
     },
     {returnDocument: "after"}
   );
