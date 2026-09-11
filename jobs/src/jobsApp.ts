@@ -12,10 +12,6 @@ import {Job} from "./models/job";
 import {JobSchedule} from "./models/jobSchedule";
 import {registerJobsAdminRoutes} from "./routes/jobsAdmin";
 import {type ExecuteAuthVerifier, registerJobsExecuteRoute} from "./routes/jobsExecute";
-
-export type {JobsAdminPayloadViewInput, JobsAdminRedactPayload} from "./types";
-export type {ExecuteAuthVerifier};
-
 import {MongoJobRunner} from "./runners/mongoRunner";
 import type {JobDefinition, JobRunner, JobsAdminRedactPayload, JobsRunnerHost} from "./types";
 

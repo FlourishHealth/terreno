@@ -19,8 +19,6 @@ export interface JobExecutionHost {
   getLockTtlMs(): number;
 }
 
-export type ExecuteJobConflictReason = "locked" | "not_due";
-
 export type ExecuteJobOutcome =
   | {job: JobDocument; kind: "executed"}
   | {job: JobDocument; kind: "noop"}
@@ -245,7 +243,7 @@ export const runClaimedJob = async ({
   }
 };
 
-export const claimJobById = async ({
+const claimJobById = async ({
   host,
   jobId,
   now = DateTime.utc().toJSDate(),
@@ -276,8 +274,6 @@ export const claimJobById = async ({
 
   return claimed ?? undefined;
 };
-
-export {abortActiveJobExecution} from "./activeJobExecution";
 
 export const executeJobById = async ({
   host,

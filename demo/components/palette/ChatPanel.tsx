@@ -10,7 +10,7 @@ import type {ChatMessage} from "./paletteTypes";
  */
 
 /** Starter prompts that showcase both vibe-based and color-anchored requests. */
-export const EXAMPLE_PROMPTS: string[] = [
+const EXAMPLE_PROMPTS: string[] = [
   "I want a warm, earthy palette for a cozy recipe app",
   "Stylish modern SaaS dashboard with indigo as the primary color",
   "Calm, trustworthy healthcare app with teal accents",

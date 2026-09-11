@@ -19,6 +19,7 @@ export interface ComputeRetryRunAtParams extends ComputeRetryDelayMsParams {
 
 const equalJitterFactor = (random: () => number): number => 0.5 + random() * 0.5;
 
+/** @internal */
 export const computeRetryDelayMs = (params: ComputeRetryDelayMsParams): number => {
   const random = params.random ?? Math.random;
   const exponent = Math.max(0, params.attemptCount - 1);

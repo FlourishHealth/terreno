@@ -48,7 +48,7 @@ const DEFAULT_EXCLUDED_FILE_NAMES = new Set(["commsOpenApiSdk.ts", "openApiSdk.t
 
 const DEFAULT_EXCLUDED_FILE_PATTERNS = [/\.template\.tsx?$/, /\/openApiSdk\.ts$/];
 
-export type AnyUsageKind = "annotation" | "cast" | "generic" | "index-signature";
+type AnyUsageKind = "annotation" | "cast" | "generic" | "index-signature";
 
 export type RemediationStatus =
   | "violation"
@@ -57,7 +57,7 @@ export type RemediationStatus =
   | "file-blanket"
   | "out-of-scope";
 
-export interface AnyUsage {
+interface AnyUsage {
   column: number;
   file: string;
   hasBiomeIgnore: boolean;

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import {APIError} from "../errors";
 import type {RateLimitConsumeArgs, RateLimitConsumeResult, RateLimitStore} from "./types";
 
+/** @internal */
 export const RATE_LIMIT_HITS_COLLECTION = "rateLimitHits";
 
 const ensureIndexes = async (collection: mongoose.mongo.Collection): Promise<void> => {

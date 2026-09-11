@@ -9,6 +9,7 @@ import type {JobScheduleDocument} from "./modelTypes";
 import {IN_FLIGHT_JOB_STATUSES} from "./modelTypes";
 import {computeNextRunAtAfter} from "./scheduleCron";
 
+/** @internal */
 export const buildScheduleRunIdempotencyKey = (scheduleId: string, dueRunAt: Date): string =>
   `schedule:${scheduleId}:${dueRunAt.toISOString()}`;
 

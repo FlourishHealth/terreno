@@ -3,6 +3,7 @@ import os from "node:os";
 
 import type {JobDocument} from "./modelTypes";
 
+/** @internal */
 export const getWorkerId = (): string => `${os.hostname()}:${process.pid}`;
 
 export interface JobClaimLock {
@@ -24,6 +25,7 @@ export const buildClaimOwnershipFilter = (
   lockedBy: claim.lockedBy,
 });
 
+/** @internal */
 export const hasWorkerIdPrefix = (lockedBy: string | undefined): boolean => {
   if (!lockedBy) {
     return false;

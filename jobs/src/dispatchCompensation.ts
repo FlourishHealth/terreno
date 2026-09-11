@@ -5,7 +5,7 @@ import {Job} from "./models/job";
 import type {JobDocument} from "./modelTypes";
 import type {JobRunner} from "./types";
 
-export const removeUntouchedPendingJob = async (jobId: JobDocument["_id"]): Promise<boolean> => {
+const removeUntouchedPendingJob = async (jobId: JobDocument["_id"]): Promise<boolean> => {
   const removed = await Job.findOneAndDelete({
     _id: jobId,
     $and: [

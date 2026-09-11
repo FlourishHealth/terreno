@@ -34,7 +34,7 @@ const IGNORED_DIR_NAMES = new Set([
 ]);
 
 /** Package name → absolute path to the package public entry index file. */
-export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
+const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/admin-backend": resolve(REPO_ROOT, "admin-backend/src/index.ts"),
   "@terreno/admin-frontend": resolve(REPO_ROOT, "admin-frontend/src/index.tsx"),
   "@terreno/admin-spa": resolve(REPO_ROOT, "admin-spa/src/index.ts"),
@@ -62,7 +62,7 @@ export interface BarrelViolation {
   resolvedBarrel: string;
 }
 
-export interface PathAliasMap {
+interface PathAliasMap {
   [alias: string]: string[];
 }
 
@@ -72,7 +72,7 @@ const shouldSkipDirectory = (dirName: string): boolean => {
   return IGNORED_DIR_NAMES.has(dirName) || dirName.startsWith(".");
 };
 
-export const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
+const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
   if (!existsSync(directory)) {
     return files;
   }
@@ -125,7 +125,7 @@ const readTsconfigPathAliases = (packageDir: string): PathAliasMap => {
   }
 };
 
-export const loadPathAliases = (repoRoot: string = REPO_ROOT): Map<string, PathAliasMap> => {
+const loadPathAliases = (repoRoot: string = REPO_ROOT): Map<string, PathAliasMap> => {
   const packagesWithAliases = ["example-frontend", "admin-spa", "demo"];
   const aliasByPackageDir = new Map<string, PathAliasMap>();
 
@@ -151,7 +151,7 @@ const findOwningPackageDir = (filePath: string, repoRoot: string): string | null
   return null;
 };
 
-export const resolveImportBase = (
+const resolveImportBase = (
   importPath: string,
   fromFile: string,
   aliasByPackageDir: Map<string, PathAliasMap>,
@@ -208,7 +208,7 @@ export const resolveImportBase = (
   return resolve(dirname(fromFile), importPath);
 };
 
-export const resolveModulePath = (basePath: string): string | null => {
+const resolveModulePath = (basePath: string): string | null => {
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -240,7 +240,7 @@ const isPackagePublicEntry = (filePath: string, repoRoot: string = REPO_ROOT): b
   return /^[^/]+\/src\/index\.tsx?$/.test(relativePath);
 };
 
-export const isBarrelIndexFile = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
+const isBarrelIndexFile = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
   if (!/\/index\.tsx?$/.test(filePath)) {
     return false;
   }

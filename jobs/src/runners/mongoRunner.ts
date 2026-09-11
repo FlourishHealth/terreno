@@ -1,6 +1,6 @@
 import {DateTime} from "luxon";
 
-import {createClaimLock, isAbortError, type JobClaimLock} from "../claimLock";
+import {createClaimLock, type JobClaimLock} from "../claimLock";
 import {runClaimedJob} from "../jobExecutor";
 import {Job} from "../models/job";
 import type {JobDocument} from "../modelTypes";
@@ -8,6 +8,7 @@ import type {JobRunner, JobRunnerStartOptions} from "../types";
 
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 
+/** @internal */
 export {getWorkerId, hasWorkerIdPrefix} from "../claimLock";
 
 const buildLockExpiry = (lockTtlMs: number): Date =>
@@ -132,5 +133,3 @@ export class MongoJobRunner implements JobRunner {
     return true;
   }
 }
-
-export {isAbortError};

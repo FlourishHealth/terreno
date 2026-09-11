@@ -13,6 +13,7 @@ export const resolveScheduleTimezone = ({
   scheduleTimezone?: string;
 }): string => scheduleTimezone ?? defaultTimezone;
 
+/** @internal */
 export const assertValidIanaTimezone = (timezone: string): void => {
   const zoneCheck = DateTime.now().setZone(timezone);
   if (!zoneCheck.isValid) {
@@ -24,6 +25,7 @@ export const assertValidIanaTimezone = (timezone: string): void => {
   }
 };
 
+/** @internal */
 export const assertValidCronExpression = (cron: string, timezone: string): void => {
   try {
     new CronTime(cron, timezone);

@@ -26,7 +26,7 @@ export interface DefaultStatics<T> {
 /**
  * Interface for document properties added by default plugins
  */
-export interface DefaultPluginFields {
+interface DefaultPluginFields {
   // From createdUpdatedPlugin
   created: Date;
   updated: Date;

@@ -127,7 +127,6 @@
     "rulesync": "^9.6.3",
     "simple-git-hooks": "^2.14.0",
     "ts-node": "^10.9.2",
-    "tsx": "^4.23.12",
     "zod": "catalog:"
   },
   "engines": {
@@ -191,7 +190,7 @@
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
     "bootstrap": "bun install && bun run compile",
     "bootstrap:update": "bun install && bun run compile",
-    "analyze:baseline": "bun run scripts/static-analysis/full.ts --write-baseline",
+    "analyze:dependency-baseline": "bun run scripts/static-analysis/full.ts --write-dependency-baseline",
     "analyze:fast": "bun run scripts/static-analysis/fast.ts",
     "analyze:full": "bun run scripts/static-analysis/full.ts",
     "analyze:staged": "bun run scripts/static-analysis/fast.ts --staged",
@@ -205,6 +204,7 @@
     "check:explicit-any:remediate": "bun run scripts/check-explicit-any/remediate.ts",
     "check:licenses": "bun run scripts/check-license-coverage/check.ts",
     "check:lifecycle-skills": "bun run scripts/planning/checkLifecycleSkills.ts",
+    "check:knip": "bun run scripts/static-analysis/full.ts --knip-only",
     "check:new-file-coverage": "bun run scripts/check-new-file-coverage.ts",
     "check:no-barrel-imports": "bun run scripts/no-barrel-imports/check.ts",
     "check:source-rules": "bun run scripts/check-source-rules/check.ts",
@@ -252,6 +252,7 @@
     "mcp:lint": "bun run --filter '@terreno/mcp' lint",
     "mcp:start": "bun run --filter '@terreno/mcp' start",
     "prepare": "simple-git-hooks",
+    "prepush": "bun run lint && bun run compile && bun run analyze:full",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",

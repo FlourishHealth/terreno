@@ -4,14 +4,6 @@ import type {AdminApi, EndpointBuilder} from "../types";
 import type {JobRow, JobScheduleRow, JobsListResponse, JobsStats} from "./jobPayload";
 import type {JobsDashboardFilters} from "./jobsDashboardParams";
 
-export type {
-  JobAttemptRow,
-  JobRow,
-  JobScheduleRow,
-  JobsListResponse,
-  JobsStats,
-} from "./jobPayload";
-
 const LIST_KEY = "jobsDashboardList";
 const DETAIL_KEY = "jobsDashboardDetail";
 const SCHEDULES_KEY = "jobsDashboardSchedules";
