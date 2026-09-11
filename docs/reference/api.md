@@ -629,8 +629,8 @@ Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a
 | `PATCH` / `DELETE` | `/orgs/:id/members/:memberId` | `organization:manageMembers`; cannot remove or demote the last org-admin |
 
 Creating an organization does not create a membership automatically. Member
-attach accepts an existing `userId` or email; it does not send an invitation.
-Disabling or deleting an organization suspends its memberships.
+attach accepts an existing `userId` or email (case-insensitive); it does not send
+an invitation. Disabling or deleting an organization suspends its memberships.
 
 ### Request organization context
 

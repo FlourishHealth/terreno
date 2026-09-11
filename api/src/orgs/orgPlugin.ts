@@ -8,11 +8,7 @@ export interface OrgScoped {
  * Adds a required indexed `organizationId` so tenant-scoped consumer models cannot be saved
  * without an organization.
  */
-export const orgScopedPlugin = (
-  // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-  // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-  schema: Schema<any, any, any, any>
-): void => {
+export const orgScopedPlugin = (schema: Schema): void => {
   schema.add({
     organizationId: {
       description: "Organization this document belongs to",

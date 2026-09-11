@@ -1,5 +1,3 @@
-// noExplicitAny: test mock models type-erased RTK hooks.
-// biome-ignore-all lint/suspicious/noExplicitAny: test-only dynamic hook doubles
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import React from "react";
@@ -24,10 +22,11 @@ mock.module("./useOrganizationsApi", () => ({
 }));
 mock.module("expo-router", () => ({router: {push: mock(() => {})}}));
 
+import type {AdminApi} from "../types";
 import {OrgMembersScreen} from "./OrgMembersScreen";
 import {OrgSettingsScreen} from "./OrgSettingsScreen";
 
-const api = {} as any;
+const api = {} as unknown as AdminApi;
 
 describe("organization management screens", () => {
   beforeEach(() => {

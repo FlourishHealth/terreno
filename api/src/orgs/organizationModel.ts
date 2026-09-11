@@ -223,7 +223,8 @@ const createLazyModel = <T extends mongoose.Model<unknown>>(getModel: () => T): 
       return true;
     },
   };
-  return new Proxy(function LazyMongooseModel() {}, handler) as unknown as T;
+  class LazyMongooseModel {}
+  return new Proxy(LazyMongooseModel, handler) as unknown as T;
 };
 
 /** Lazy so importing `@terreno/api` does not register Organization until first use. */

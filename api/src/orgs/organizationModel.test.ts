@@ -155,4 +155,32 @@ describe("Organization and Membership models", () => {
     assert.isTrue(await Membership.isOrgAdmin(memberUserId.toString(), org._id.toString()));
     assert.isTrue(await Membership.isMember(memberUserId.toString(), org._id.toString()));
   });
+
+  it("forwards construct, apply, has, set, and prototype through the lazy model proxy", () => {
+    assert.isTrue("create" in Organization);
+    assert.equal(Object.getPrototypeOf(Organization), mongoose.Model);
+    const previous = (Organization as unknown as {debugLabel?: string}).debugLabel;
+    (Organization as unknown as {debugLabel?: string}).debugLabel = "org-proxy";
+    assert.equal((Organization as unknown as {debugLabel?: string}).debugLabel, "org-proxy");
+    (Organization as unknown as {debugLabel?: string}).debugLabel = previous;
+    const constructed = new (
+      Organization as unknown as new (doc: {
+        name: string;
+        ownerId: mongoose.Types.ObjectId;
+      }) => {name: string}
+    )({
+      name: "Proxy Construct",
+      ownerId: userId(),
+    });
+    assert.equal(constructed.name, "Proxy Construct");
+    const applied = (
+      Organization as unknown as (doc: {name: string; ownerId: mongoose.Types.ObjectId}) => {
+        name: string;
+      }
+    )({
+      name: "Proxy Apply",
+      ownerId: userId(),
+    });
+    assert.equal(applied.name, "Proxy Apply");
+  });
 });

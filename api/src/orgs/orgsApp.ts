@@ -6,12 +6,32 @@ import {authenticateMiddleware, type User, type UserModel} from "../auth";
 import {APIError, ConflictError, ForbiddenError, NotFoundError} from "../errors";
 import {logger} from "../logger";
 import {createOpenApiBuilder, type OpenApiSchemaProperty} from "../openApiBuilder";
+import {findOneOrNoneFor} from "../plugins";
 import type {AnyTerrenoAccess} from "../rbac/types";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {MembershipDocument} from "../types/membership";
 import type {OrganizationDocument} from "../types/organization";
 import {Membership, Organization, organizationSlugFromName} from "./organizationModel";
 import {isPlatformOrgActor, runWithOrgContext} from "./orgContext";
+
+const escapeRegularExpression = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const findUserForAttach = async (
+  userModel: UserModel,
+  args: {email: string; userId: string}
+): Promise<User | null> => {
+  if (args.email) {
+    return findOneOrNoneFor(userModel, {
+      email: {$options: "i", $regex: `^${escapeRegularExpression(args.email)}$`},
+    } as never);
+  }
+  if (args.userId) {
+    return findOneOrNoneFor(userModel, {_id: args.userId} as never);
+  }
+  throw new APIError({status: 400, title: "email or userId is required"});
+};
 
 export interface OrgAuditEvent {
   actorId?: string;
@@ -391,14 +411,7 @@ export class OrgsApp implements TerrenoPlugin {
         );
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
         const userId = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
-        let target: User | null = null;
-        if (email) {
-          target = (await this.userModel.findOne({email})) as User | null;
-        } else if (userId) {
-          target = (await this.userModel.findById(userId)) as User | null;
-        } else {
-          throw new APIError({status: 400, title: "email or userId is required"});
-        }
+        const target = await findUserForAttach(this.userModel, {email, userId});
         if (!target) {
           throw new NotFoundError("User not found");
         }

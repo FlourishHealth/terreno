@@ -1,5 +1,3 @@
-// noExplicitAny: test fake captures dynamic RTK endpoint definitions.
-// biome-ignore-all lint/suspicious/noExplicitAny: test-only RTK API double
 import {describe, expect, it} from "bun:test";
 import {Button} from "@terreno/ui";
 import {act, fireEvent} from "@testing-library/react-native";
@@ -39,8 +37,7 @@ const secondOrganization: OrganizationSummary = {_id: "org-2", name: "Second"};
 
 const Probe: React.FC = () => {
   const {selectOrganization} = useOrgContext();
-  const {useListQuery} = useAdminApi(api, "/admin/foods", "Food");
-  useListQuery({});
+  useAdminApi(api, "/admin/foods", "Food");
   const handleSwitch = useCallback((): void => {
     selectOrganization(secondOrganization);
   }, [selectOrganization]);

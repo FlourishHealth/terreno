@@ -231,6 +231,27 @@ describe("OrgsApp", () => {
     assert.equal(listed.status, 200);
     assert.equal(listed.body.data.length, 1);
     assert.equal(listed.body.data[0].userId.email, "member@example.com");
+
+    const mixedCase = await operatorAgent
+      .post(`/orgs/${org._id}/members`)
+      .send({email: "Member@Example.com", roleName: "member"});
+    assert.equal(mixedCase.status, 409);
+  });
+
+  it("attaches an existing user by userId", async () => {
+    const operator = await createUser({email: "operator@example.com", roles: ["operator"]});
+    const member = await createUser({email: "member-id@example.com"});
+    const org = await Organization.create({name: "Acme", ownerId: operator._id});
+    const operatorAgent = await loginWithPassword(app, {
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+
+    const attached = await operatorAgent
+      .post(`/orgs/${org._id}/members`)
+      .send({roleName: "member", userId: String(member._id)});
+    assert.equal(attached.status, 201);
+    assert.equal(attached.body.data.roleName, "member");
   });
 
   it("rejects demoting or removing the last org-admin", async () => {
