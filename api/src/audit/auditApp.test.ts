@@ -112,11 +112,21 @@ describe("AuditApp", () => {
     deleteAuditEventModel();
     createAuditEventModel(mongoose.connection, {retentionDays: 1});
     const indexes = mongoose.connection.models.AuditEvent.schema.indexes();
-    const ttl = indexes.find(([, options]) => options && "expireAfterSeconds" in options);
+    const createdAsc = indexes.filter(
+      ([fields]) => (fields as {created?: number}).created === 1 && Object.keys(fields).length === 1
+    );
+    const ttl = createdAsc[0];
     assert.ok(ttl);
-    const ttlFields = ttl[0] as {created?: number};
-    const ttlOptions = ttl[1] as {expireAfterSeconds: number};
-    assert.equal(ttlFields.created, 1);
-    assert.equal(ttlOptions.expireAfterSeconds, 86400);
+    assert.equal((ttl[1] as {expireAfterSeconds?: number}).expireAfterSeconds, 86400);
+  });
+
+  it("disables admin create, update, and delete on the contribution", () => {
+    const contribution = new AuditApp({retentionDays: 90}).adminContribution();
+    assert.equal(new AuditApp({retentionDays: 90}).getRetentionDays(), 90);
+    assert.deepEqual(contribution.models?.[0]?.admin.adminPermissions, {
+      create: [],
+      delete: [],
+      update: [],
+    });
   });
 });

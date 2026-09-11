@@ -12,7 +12,7 @@ import {appDefaultRoles} from "./rbacRoles";
 
 export const appStatements = {
   ...terrenoStatements,
-  adminAuditEvent: ADMIN_MODEL_ACCESS,
+  adminAuditEvent: ["list", "read"],
   adminAuditLog: ["list", "read"],
   adminMcpServiceToken: ADMIN_MODEL_ACCESS,
   adminProject: ADMIN_MODEL_ACCESS,

@@ -21,16 +21,14 @@ const isRedactedSegment = (name: string, extraRedact: string[] = []): boolean =>
   return extraRedact.some((segment) => segment.toLowerCase() === lower);
 };
 
-export const toAuditPlain = (value: unknown): Record<string, unknown> | undefined => {
-  if (value === null || value === undefined) {
-    return undefined;
+const redactValue = (value: unknown, extraRedact: string[]): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactValue(item, extraRedact));
   }
-  const withJson = value as {toJSON?: () => unknown};
-  const raw = typeof withJson.toJSON === "function" ? withJson.toJSON() : value;
-  if (!isPlainObject(raw)) {
-    return undefined;
+  if (isPlainObject(value)) {
+    return redactRecord(value, extraRedact);
   }
-  return JSON.parse(JSON.stringify(raw)) as Record<string, unknown>;
+  return value;
 };
 
 const redactRecord = (
@@ -42,19 +40,21 @@ const redactRecord = (
     if (isRedactedSegment(key, extraRedact)) {
       continue;
     }
-    if (isPlainObject(nested)) {
-      const inner: Record<string, unknown> = {};
-      for (const [innerKey, innerValue] of Object.entries(nested)) {
-        if (!isRedactedSegment(innerKey, extraRedact)) {
-          inner[innerKey] = innerValue;
-        }
-      }
-      out[key] = inner;
-      continue;
-    }
-    out[key] = nested;
+    out[key] = redactValue(nested, extraRedact);
   }
   return out;
+};
+
+export const toAuditPlain = (value: unknown): Record<string, unknown> | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  const withJson = value as {toJSON?: () => unknown};
+  const raw = typeof withJson.toJSON === "function" ? withJson.toJSON() : value;
+  if (!isPlainObject(raw)) {
+    return undefined;
+  }
+  return JSON.parse(JSON.stringify(raw)) as Record<string, unknown>;
 };
 
 const valuesEqual = (left: unknown, right: unknown): boolean => {

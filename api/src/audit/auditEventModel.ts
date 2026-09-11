@@ -127,6 +127,19 @@ const ttlExpireAfterSeconds = (retentionDays?: number): number | undefined => {
   return retentionDays * 86400;
 };
 
+/** createdUpdatedPlugin indexes `{created: 1}`. Put TTL on that same key pattern. */
+const replaceCreatedIndexWithTtl = (schema: mongoose.Schema, expireAfterSeconds: number): void => {
+  const createdPath = schema.path("created") as
+    | (mongoose.SchemaType & {_index?: unknown})
+    | undefined;
+  if (!createdPath) {
+    schema.index({created: 1}, {expireAfterSeconds, name: "AuditEvent_created_ttl"});
+    return;
+  }
+  createdPath.options.index = {expireAfterSeconds};
+  createdPath._index = {expireAfterSeconds};
+};
+
 export const createAuditEventModel = (
   connection: mongoose.Connection,
   options: {retentionDays?: number} = {}
@@ -137,7 +150,7 @@ export const createAuditEventModel = (
   const schema = auditEventSchema.clone();
   const expireAfterSeconds = ttlExpireAfterSeconds(options.retentionDays);
   if (expireAfterSeconds !== undefined) {
-    schema.index({created: 1}, {expireAfterSeconds});
+    replaceCreatedIndexWithTtl(schema as unknown as mongoose.Schema, expireAfterSeconds);
   }
   return connection.model<AuditEventDocument, AuditEventModel>("AuditEvent", schema);
 };

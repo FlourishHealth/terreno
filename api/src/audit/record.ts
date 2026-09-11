@@ -66,28 +66,32 @@ export const maybeRecordAdminAudit = async ({
   req: Request;
   verb: AuditEventVerb;
 }): Promise<void> => {
-  if (!auditEventModel) {
-    return;
+  try {
+    if (!auditEventModel) {
+      return;
+    }
+    if (modelName === "AuditEvent") {
+      return;
+    }
+    const beforePlain = toAuditPlain(before);
+    const afterPlain = toAuditPlain(after);
+    const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact: []});
+    const recordIdValue = afterPlain?._id ?? beforePlain?._id;
+    await recordAuditEvent({
+      actorId: actorIdFromRequest(req),
+      after: diff.after,
+      before: diff.before,
+      modelName,
+      operation: operationFromVerb(verb),
+      organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
+      recordId: recordIdValue != null ? String(recordIdValue) : undefined,
+      recordLabel: recordLabel ?? recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
+      source: "admin",
+      verb,
+    });
+  } catch (error: unknown) {
+    logger.error("Failed to persist AuditEvent", error);
   }
-  if (modelName === "AuditEvent") {
-    return;
-  }
-  const beforePlain = toAuditPlain(before);
-  const afterPlain = toAuditPlain(after);
-  const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact: []});
-  const recordIdValue = afterPlain?._id ?? beforePlain?._id;
-  await recordAuditEvent({
-    actorId: actorIdFromRequest(req),
-    after: diff.after,
-    before: diff.before,
-    modelName,
-    operation: operationFromVerb(verb),
-    organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
-    recordId: recordIdValue != null ? String(recordIdValue) : undefined,
-    recordLabel: recordLabel ?? recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
-    source: "admin",
-    verb,
-  });
 };
 
 const resolveAuditRedact = (audit?: ModelRouterAuditConfig): string[] | undefined => {
@@ -199,23 +203,27 @@ export const maybeRecordModelRouterAudit = async ({
   req: Request;
   verb: AuditEventVerb;
 }): Promise<void> => {
-  const extraRedact = resolveAuditRedact(audit);
-  if (extraRedact === undefined) {
-    return;
+  try {
+    const extraRedact = resolveAuditRedact(audit);
+    if (extraRedact === undefined) {
+      return;
+    }
+    const beforePlain = toAuditPlain(before);
+    const afterPlain = toAuditPlain(after);
+    const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact});
+    await recordAuditEvent({
+      actorId: actorIdFromRequest(req),
+      after: diff.after,
+      before: diff.before,
+      modelName,
+      operation,
+      organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
+      recordId,
+      recordLabel: recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
+      source: "modelRouter",
+      verb,
+    });
+  } catch (error: unknown) {
+    logger.error("Failed to persist AuditEvent", error);
   }
-  const beforePlain = toAuditPlain(before);
-  const afterPlain = toAuditPlain(after);
-  const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact});
-  await recordAuditEvent({
-    actorId: actorIdFromRequest(req),
-    after: diff.after,
-    before: diff.before,
-    modelName,
-    operation,
-    organizationId: organizationIdFromAuditContext(req, afterPlain, beforePlain),
-    recordId,
-    recordLabel: recordLabelFromDoc(afterPlain) ?? recordLabelFromDoc(beforePlain),
-    source: "modelRouter",
-    verb,
-  });
 };

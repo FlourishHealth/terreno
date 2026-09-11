@@ -5,8 +5,8 @@ export const PAGE_WIDTH = 210;
 export const MARGIN_LEFT = 20;
 export const MARGIN_RIGHT = 20;
 export const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-export const PAGE_HEIGHT = 297;
-export const MARGIN_BOTTOM = 20;
+const PAGE_HEIGHT = 297;
+const MARGIN_BOTTOM = 20;
 
 export const formatDate = (value: unknown): string => {
   if (!value) {

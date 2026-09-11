@@ -1432,6 +1432,42 @@ describe("AdminApp AuditEvent auto-write", () => {
     const stored = await FoodModel.findById(res.body.data._id).lean();
     assert.equal(stored?.name, "StillCreated");
   });
+
+  it("returns 405 for admin create on AuditEvent when AuditApp is a plugin", async () => {
+    const auditPlugin = new AuditApp();
+    const terrenoApp = {
+      getPlugins: () => [auditPlugin],
+      getRegistrations: () => [],
+    } as unknown as TerrenoApp;
+    const app = getBaseServer();
+    setupAuth(app, UserModel as unknown as UserModelType);
+    addAuthRoutes(app, UserModel as unknown as UserModelType);
+    auditPlugin.register(app);
+    new AdminApp({basePath: "/admin", models: [foodModelConfig]}).register(
+      app,
+      undefined,
+      terrenoApp
+    );
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+    const agent = await authAsUser(app, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    const auditMeta = (
+      config.body.models as Array<{name: string; permissions: object; routePath: string}>
+    ).find((model) => model.name === "AuditEvent" || model.routePath.includes("audit-events"));
+    assert.ok(
+      auditMeta,
+      JSON.stringify(config.body.models.map((model: {name: string}) => model.name))
+    );
+    assert.deepEqual(auditMeta.permissions, {create: false, delete: false, update: false});
+    const create = await agent.post("/admin/audit-events").send({
+      modelName: "Todo",
+      operation: "create",
+      source: "admin",
+      verb: "created",
+    });
+    assert.equal(create.status, 405, JSON.stringify(create.body));
+  });
 });
 
 describe("AdminApp per-model queryFilter", () => {

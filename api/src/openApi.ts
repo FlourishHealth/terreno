@@ -15,7 +15,7 @@ const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
 };
 
-export const apiErrorContent = {
+const apiErrorContent = {
   "application/json": {
     schema: {$ref: "#/components/schemas/APIError"},
   },
@@ -491,6 +491,7 @@ export const deleteOpenApiMiddleware = <T>(
 
 // This is a generic OpenAPI wrapper for a read that returns any object described by `properties`.
 // Useful for endpoints that don't directly map to a model.
+/** @internal */
 export const readOpenApiMiddleware = <T>(
   options: Partial<ModelRouterOptions<T>>,
   properties: Record<string, unknown>,

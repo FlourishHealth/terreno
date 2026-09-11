@@ -88,6 +88,27 @@ describe("changedFieldDiff", () => {
     });
     assert.deepEqual(diff, {after: {title: "B"}, before: {title: "A"}});
   });
+
+  it("redacts secret keys nested in objects and arrays", () => {
+    const diff = changedFieldDiff({
+      after: {
+        items: [{password: "x", title: "ok"}],
+        settings: {auth: {mode: "a", token: "t"}},
+      },
+      before: {
+        items: [{password: "y", title: "old"}],
+        settings: {auth: {mode: "b", token: "u"}},
+      },
+    });
+    assert.deepEqual(diff.after, {
+      items: [{title: "ok"}],
+      settings: {auth: {mode: "a"}},
+    });
+    assert.deepEqual(diff.before, {
+      items: [{title: "old"}],
+      settings: {auth: {mode: "b"}},
+    });
+  });
 });
 
 describe("modelRouter audit", () => {
@@ -308,6 +329,32 @@ describe("maybeRecordAdminAudit", () => {
     await maybeRecordAdminAudit({
       after: {_id: "1", modelName: "Food"},
       modelName: "AuditEvent",
+      req: {user: {_id: new mongoose.Types.ObjectId()}} as express.Request,
+      verb: "created",
+    });
+    const count = await mongoose.connection.collection("auditevents").countDocuments();
+    assert.equal(count, 0);
+  });
+
+  it("does not throw when toJSON fails after a mutation", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(new AuditApp())
+      .build();
+    assert.ok(app);
+    const after = {
+      toJSON: (): never => {
+        throw new Error("circular");
+      },
+    };
+    await maybeRecordModelRouterAudit({
+      after,
+      audit: true,
+      modelName: "Note",
+      operation: "create",
+      recordId: "1",
       req: {user: {_id: new mongoose.Types.ObjectId()}} as express.Request,
       verb: "created",
     });

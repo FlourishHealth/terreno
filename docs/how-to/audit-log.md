@@ -12,7 +12,7 @@ import {AuditApp, TerrenoApp} from "@terreno/api";
 new TerrenoApp({userModel: User}).register(new AuditApp()).start();
 ```
 
-Importing `@terreno/api` does not register `AuditEvent`. HTTP list/read is admin-only at `GET /audit-events`. Create/update/delete over HTTP are disabled (405).
+Importing `@terreno/api` does not register `AuditEvent`. HTTP list/read is admin-only at `GET /audit-events` and `GET /admin/audit-events`. Create/update/delete over HTTP are disabled (405), including the admin remount.
 
 ### 2. Opt in per router
 
@@ -38,7 +38,7 @@ modelRouter("/todos", Todo, {
 | PATCH `/:id/:field/:itemId` | `updated` | `arrayUpdate` | Changed fields; `recordId` set |
 | DELETE `/:id/:field/:itemId` | `updated` | `arrayRemove` | Changed fields; `recordId` set |
 
-`source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are omitted; extra `redact` names merge with that list.
+`source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are omitted at every object and array depth; extra `redact` names merge with that list.
 
 ### 3. Admin mutations
 
@@ -52,4 +52,4 @@ RBAC mutations fan into the same collection when `createAccess({auditSink: persi
 
 ### 4. Retention
 
-Omit `retentionDays` or set `0` to keep events forever (no TTL index). `new AuditApp({retentionDays: 90})` creates a Mongo TTL index on `created` with `expireAfterSeconds = 90 * 86400`. Mongo expires documents in the background; lowering or removing TTL later requires dropping that index yourself (`db.auditevents.dropIndex(...)`) — Mongoose will not remove it.
+Omit `retentionDays` or set `0` to keep events forever (no TTL index). `new AuditApp({retentionDays: 90})` creates a Mongo TTL index on `created` with `expireAfterSeconds = 90 * 86400`, replacing the default `{created: 1}` field index so Mongo does not reject a duplicate key pattern. Mongo expires documents in the background; lowering or removing TTL later requires dropping that index yourself (`db.auditevents.dropIndex(...)`) — Mongoose will not remove it.

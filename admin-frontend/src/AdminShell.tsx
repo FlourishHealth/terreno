@@ -16,7 +16,7 @@ import {useAdminConfig} from "./useAdminConfig";
 export type AdminShellSidebarVariant = "clinical" | "colorful";
 
 /** Viewport widths below this use the hamburger + drawer navigation. */
-export const ADMIN_SHELL_MOBILE_BREAKPOINT = 768;
+const ADMIN_SHELL_MOBILE_BREAKPOINT = 768;
 
 export interface AdminShellProps {
   /** @deprecated Use `apiBase`/`routeBase`. */

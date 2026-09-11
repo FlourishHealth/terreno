@@ -32,6 +32,11 @@ export class AuditApp implements TerrenoPlugin {
       models: [
         {
           admin: {
+            adminPermissions: {
+              create: [],
+              delete: [],
+              update: [],
+            },
             defaultSort: "-created",
             displayName: "Audit Log",
             listFields: ["created", "verb", "modelName", "recordLabel", "actorId"],
