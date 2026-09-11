@@ -2,10 +2,114 @@ import {describe, expect, it} from "bun:test";
 
 import {registerSentryBunMock} from "./sentryBun";
 
+interface MockFn {
+  (...args: unknown[]): unknown;
+}
+
+interface MockClient {
+  captureException: MockFn;
+  captureMessage: MockFn;
+  close: () => Promise<unknown>;
+  flush: () => Promise<unknown>;
+  getOptions: MockFn;
+}
+
+interface MockHub {
+  addBreadcrumb: MockFn;
+  captureException: MockFn;
+  captureMessage: MockFn;
+  configureScope: MockFn;
+  getClient: () => MockClient;
+  getScope: MockFn;
+  popScope: MockFn;
+  pushScope: MockFn;
+  setContext: MockFn;
+  setTag: MockFn;
+  setTags: MockFn;
+  setUser: MockFn;
+  withScope: MockFn;
+}
+
+interface MockScope {
+  addBreadcrumb: MockFn;
+  clear: MockFn;
+  getSpan: MockFn;
+  setContext: MockFn;
+  setFingerprint: MockFn;
+  setLevel: MockFn;
+  setSpan: MockFn;
+  setTag: MockFn;
+  setTags: MockFn;
+  setTransactionName: MockFn;
+  setUser: MockFn;
+}
+
+interface MockSpan {
+  finish: MockFn;
+  setData: MockFn;
+  setStatus: MockFn;
+  setTag: MockFn;
+  startChild: () => MockSpan;
+}
+
+interface MockTransaction {
+  finish: MockFn;
+  setData: MockFn;
+  setName: MockFn;
+  setStatus: MockFn;
+  setTag: MockFn;
+  startChild: () => MockSpan;
+  toTraceparent: () => string;
+}
+
+interface MockSentryModule {
+  addBreadcrumb: MockFn;
+  captureException: MockFn;
+  captureMessage: MockFn;
+  clearScope: MockFn;
+  close: () => Promise<unknown>;
+  configureScope: MockFn;
+  default: MockSentryModule;
+  flush: () => Promise<unknown>;
+  getClient: () => MockClient;
+  getCurrentHub: () => MockHub;
+  getCurrentScope: () => MockScope;
+  Handlers: {
+    errorHandler: () => MockFn;
+    requestHandler: () => MockFn;
+    tracingHandler: () => MockFn;
+  };
+  init: MockFn;
+  isInitialized: () => boolean;
+  logger: {
+    debug: MockFn;
+    error: MockFn;
+    fatal: MockFn;
+    info: MockFn;
+    trace: MockFn;
+    warn: MockFn;
+  };
+  popScope: MockFn;
+  pushScope: MockFn;
+  setContext: MockFn;
+  setFingerprint: MockFn;
+  setLevel: MockFn;
+  setTag: MockFn;
+  setTags: MockFn;
+  setUser: MockFn;
+  setupExpressErrorHandler: MockFn;
+  Severity: {
+    Error: string;
+    Warning: string;
+  };
+  startTransaction: (opts: {name: string}) => MockTransaction;
+  withScope: (callback: (scope: MockScope) => void) => void;
+}
+
 describe("registerSentryBunMock", () => {
   it("registers a mock @sentry/bun module and exercises mock surfaces", async () => {
     registerSentryBunMock();
-    const sentry = await import("@sentry/bun");
+    const sentry = (await import("@sentry/bun")) as unknown as MockSentryModule;
     expect(typeof sentry.captureException).toBe("function");
     expect(typeof sentry.captureMessage).toBe("function");
     expect(typeof sentry.flush).toBe("function");
