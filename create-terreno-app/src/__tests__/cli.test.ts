@@ -22,13 +22,13 @@ import {
   writeScaffold,
 } from "../writeScaffold.js";
 
-const CLI_PATH = join(import.meta.dir, "../../dist/cli.js");
+const CLI_SOURCE = join(import.meta.dir, "../cli.ts");
 
 const runCliProcess = async (
   args: string[],
   cwd: string
 ): Promise<{exitCode: number; stdout: string; stderr: string}> => {
-  const proc = Bun.spawn(["node", CLI_PATH, ...args], {
+  const proc = Bun.spawn(["bun", CLI_SOURCE, ...args], {
     cwd,
     stderr: "pipe",
     stdout: "pipe",

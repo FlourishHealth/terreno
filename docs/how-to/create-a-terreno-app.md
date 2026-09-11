@@ -145,7 +145,7 @@ docker run --rm -p 8080:8080 \
   my-app-backend
 ```
 
-Cloud Run concepts and commands: [Deploy backend to Cloud Run](deploy-backend-to-cloud-run.md). That guide targets Terreno's monorepo example; for a generated app, keep the root `Dockerfile`, port `8080`, and Better Auth variables shown here.
+Cloud Run concepts and commands: [Deploy backend to Cloud Run](deploy-backend-to-cloud-run.md). That guide targets Terreno's monorepo example; for a generated app, keep the root `Dockerfile`, port `8080`, and Better Auth variables shown here. The generated backend throws if `BETTER_AUTH_SECRET` is unset. `GET /users` list and read require an admin.
 
 **Frontend:** [Build for web](build-for-web.md) — set `EXPO_PUBLIC_API_URL` at export time.
 

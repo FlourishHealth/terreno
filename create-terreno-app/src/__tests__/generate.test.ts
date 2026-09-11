@@ -329,6 +329,21 @@ describe("generateAllFiles", () => {
     }).find((file) => file.path === "backend/src/api/users.ts")?.content;
 
     assert.include(users, "User as unknown as Model<UserDocument>");
+    assert.include(users, "list: [Permissions.IsAdmin]");
+    assert.include(users, "read: [Permissions.IsAdmin]");
+    assert.notInclude(users, "list: [Permissions.IsAuthenticated]");
+    assert.notInclude(users, "read: [Permissions.IsAuthenticated]");
+  });
+
+  test("generated Better Auth config requires BETTER_AUTH_SECRET", () => {
+    const config = generateAllFiles({
+      appDisplayName: "Secret App",
+      appName: "secret-app",
+    }).find((file) => file.path === "backend/src/utils/betterAuthConfig.ts")?.content;
+
+    assert.include(config, "BETTER_AUTH_SECRET is required");
+    assert.notInclude(config, "DEFAULT_BETTER_AUTH_SECRET");
+    assert.notInclude(config, "secret-app-better-auth-secret-dev-only-32chars");
   });
 
   test("generated userTypes import passport-local-mongoose model types", () => {

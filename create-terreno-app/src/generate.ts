@@ -742,7 +742,6 @@ const generateBackendBetterAuthConfig = (args: BootstrapArgs): string => {
   const {appName} = args;
   return `import type {AuthProvider, BetterAuthConfig} from "@terreno/api";
 
-const DEFAULT_BETTER_AUTH_SECRET = "${appName}-better-auth-secret-dev-only-32chars";
 const DEFAULT_BETTER_AUTH_URL = "http://localhost:4000";
 const DEFAULT_WEB_ORIGINS = ["http://localhost:8082", "http://127.0.0.1:8082"];
 const APP_SCHEMES = ["${appName}://", "exp://"];
@@ -768,11 +767,16 @@ export const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
     return undefined;
   }
 
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required when AUTH_PROVIDER=better-auth");
+  }
+
   return {
     baseURL: process.env.BETTER_AUTH_URL ?? DEFAULT_BETTER_AUTH_URL,
     crossDomainCookies: process.env.CROSS_DOMAIN_AUTH_COOKIES === "true",
     enabled: true,
-    secret: process.env.BETTER_AUTH_SECRET ?? DEFAULT_BETTER_AUTH_SECRET,
+    secret,
     trustedOrigins: [...APP_SCHEMES, ...getWebOrigins()],
   };
 };
@@ -936,8 +940,8 @@ export const userRouter = modelRouter("/users", User as unknown as Model<UserDoc
   permissions: {
     create: [Permissions.IsAdmin],
     delete: [Permissions.IsAdmin],
-    list: [Permissions.IsAuthenticated],
-    read: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAdmin],
+    read: [Permissions.IsAdmin],
     update: [Permissions.IsAdmin],
   },
   queryFields: ["email", "name"],
