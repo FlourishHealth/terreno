@@ -1,4 +1,4 @@
-import {syncPlugin} from "@terreno/api";
+import {organizationIdImmutabilityPlugin, syncPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import type {ProjectDocument, ProjectModel} from "../types/models/projectTypes";
 import {addDefaultPlugins} from "./modelPlugins";
@@ -32,6 +32,7 @@ const projectSchema = new mongoose.Schema<ProjectDocument, ProjectModel>(
 );
 
 addDefaultPlugins(projectSchema);
+projectSchema.plugin(organizationIdImmutabilityPlugin);
 // Stamps a per-stream _syncSeq on every write; required by the projects router's sync config.
 projectSchema.plugin(syncPlugin);
 

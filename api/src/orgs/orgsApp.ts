@@ -12,7 +12,7 @@ import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {MembershipDocument} from "../types/membership";
 import type {OrganizationDocument} from "../types/organization";
 import {Membership, Organization, organizationSlugFromName} from "./organizationModel";
-import {isPlatformOrgActor, runWithOrgContext} from "./orgContext";
+import {assertOrganizationEnabled, isPlatformOrgActor, runWithOrgContext} from "./orgContext";
 
 const escapeRegularExpression = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -239,7 +239,7 @@ export class OrgsApp implements TerrenoPlugin {
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         if (isPlatformOrgActor(user)) {
-          const organizations = await Organization.find({}).sort({name: 1});
+          const organizations = await Organization.find({disabled: {$ne: true}}).sort({name: 1});
           return res.json({data: organizations});
         }
         const memberships = await Membership.find({
@@ -252,6 +252,7 @@ export class OrgsApp implements TerrenoPlugin {
         }
         const organizations = await Organization.find({
           _id: {$in: memberships.map((membership) => membership.organizationId)},
+          disabled: {$ne: true},
         }).sort({name: 1});
         return res.json({data: organizations});
       })
@@ -400,6 +401,7 @@ export class OrgsApp implements TerrenoPlugin {
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        assertOrganizationEnabled(organization);
         const actorMembership = await loadActiveMembership(user, organization._id);
         await runWithOrgContext({membership: actorMembership, organization}, () =>
           assertCan({
@@ -458,6 +460,7 @@ export class OrgsApp implements TerrenoPlugin {
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        assertOrganizationEnabled(organization);
         const actorMembership = await loadActiveMembership(user, organization._id);
         await runWithOrgContext({membership: actorMembership, organization}, () =>
           assertCan({
@@ -506,6 +509,7 @@ export class OrgsApp implements TerrenoPlugin {
       asyncHandler(async (req, res) => {
         const user = requireUser(req);
         const organization = await loadOrganization(pathParam(req.params.id, "id is required"));
+        assertOrganizationEnabled(organization);
         const actorMembership = await loadActiveMembership(user, organization._id);
         await runWithOrgContext({membership: actorMembership, organization}, () =>
           assertCan({

@@ -40,11 +40,29 @@ Tenant isolation uses multiple checks rather than one convention:
 2. `OrgQueryFilter` ANDs the selected organization into list and search queries.
 3. `Permissions.IsOrganizationMember` rejects cross-org object reads and writes.
 4. Create hooks overwrite client-supplied organization ids.
-5. Sync scopes resolve active Membership rows and partition streams by organization.
+5. `orgScopedPlugin` rejects any post-create change to `organizationId` (REST, admin, sync, direct save).
+6. Sync scopes resolve active Membership rows and partition streams by organization.
 
 `AdminApp({organizations: true})` applies these boundaries automatically to
 admin models whose schema contains `organizationId`. Models without that path
 remain platform-scoped.
+
+## Disabled organizations
+
+When `Organization.disabled` is `true`, tenant context and membership mutations
+stop, but operators can still manage the organization record itself:
+
+| Surface | Disabled org behavior |
+| --- | --- |
+| `orgContextMiddleware` / inferred org context | 403 `Organization is disabled` |
+| `GET /orgs/mine` | Disabled orgs omitted from the switcher list |
+| `GET /orgs` (operator directory) | Disabled orgs still listed |
+| `GET` / `PATCH /orgs/:id` | Allowed (operators use `PATCH` with `disabled: false` to re-enable) |
+| `POST` / `PATCH` / `DELETE /orgs/:id/members` | 403 while disabled |
+| Soft-deleted orgs | Still 404 everywhere |
+
+Disabling or deleting an organization suspends its memberships. Re-enabling does
+not automatically reactivate them.
 
 ## Why organizations are optional
 

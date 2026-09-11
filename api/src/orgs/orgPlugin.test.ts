@@ -53,4 +53,42 @@ describe("orgScopedPlugin", () => {
     });
     assert.isDefined(saved.organizationId);
   });
+
+  it("rejects changing organizationId after creation on save", async () => {
+    const orgA = new mongoose.Types.ObjectId();
+    const orgB = new mongoose.Types.ObjectId();
+    const widget = await OrgScopedWidgetModel.create({organizationId: orgA, title: "Pinned"});
+
+    widget.organizationId = orgB;
+    let error: unknown;
+    try {
+      await widget.save();
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    assert.isDefined(error);
+    assert.equal((error as {status?: number}).status, 400);
+    assert.equal((error as {title?: string}).title, "organizationId cannot be changed");
+  });
+
+  it("rejects changing organizationId through updateOne", async () => {
+    const orgA = new mongoose.Types.ObjectId();
+    const orgB = new mongoose.Types.ObjectId();
+    const widget = await OrgScopedWidgetModel.create({organizationId: orgA, title: "Pinned"});
+
+    let error: unknown;
+    try {
+      await OrgScopedWidgetModel.updateOne({_id: widget._id}, {$set: {organizationId: orgB}});
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    assert.isDefined(error);
+    assert.equal((error as {status?: number}).status, 400);
+    assert.equal((error as {title?: string}).title, "organizationId cannot be changed");
+
+    const reloaded = await OrgScopedWidgetModel.findById(widget._id);
+    assert.equal(String(reloaded?.organizationId), String(orgA));
+  });
 });

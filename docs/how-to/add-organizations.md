@@ -94,6 +94,11 @@ app.register(projectOrgContextPlugin).register(projectRouter);
 For admin CRUD, use `new AdminApp({accessControl: access, organizations:
 true})`. Models with an `organizationId` schema path are scoped automatically.
 
+`orgScopedPlugin` also makes `organizationId` immutable after the document is
+created. Client PATCH bodies, admin writes, sync updates, and direct Mongoose
+saves that change `organizationId` return HTTP 400 with
+`organizationId cannot be changed`.
+
 ## 4. Send organization context
 
 Send `X-Organization-Id` on tenant-scoped requests. `org-admin` callers with
@@ -102,6 +107,10 @@ Operators and superadmins must select an org.
 
 Frontend admin hosts use `OrgContextProvider` + `OrgSwitcher`.
 `useAdminApi` adds the selected organization header automatically.
+
+Disabled organizations are excluded from `/orgs/mine` and cannot be selected as
+tenant context. Operators re-enable them with `PATCH /orgs/:id` and
+`disabled: false` (see [How organization tenancy works](../explanation/organizations.md#disabled-organizations)).
 
 ## Example app accounts
 

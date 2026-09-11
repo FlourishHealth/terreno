@@ -1,14 +1,16 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, it} from "bun:test";
 import {
   applySyncMutation,
   findSyncEntryByCollectionTag,
   generateTokens,
   Membership,
+  ORGANIZATION_ID_IMMUTABLE_TITLE,
   Organization,
   registerSync,
   TerrenoApp,
   type User,
 } from "@terreno/api";
+import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import supertest from "supertest";
@@ -16,11 +18,7 @@ import {Project} from "../models/project";
 import {User as UserModel} from "../models/user";
 import {projectOrgContextPlugin, projectRouter} from "./projects";
 
-/**
- * Reproduction for Defect B: organizationId can change after creation across REST,
- * admin PATCH, and sync mutation update when the caller belongs to both tenants.
- */
-describe("projects organizationId update escape (Defect B reproduction)", () => {
+describe("projects organizationId immutability", () => {
   let orgA: string;
   let orgB: string;
 
@@ -84,7 +82,7 @@ describe("projects organizationId update escape (Defect B reproduction)", () => 
     }
   });
 
-  it("REST PATCH retargets organizationId when caller belongs to both orgs", async () => {
+  it("rejects REST PATCH attempts to retarget organizationId", async () => {
     const app = buildApp();
     const user = await createUser("patch-move@example.com");
     await Membership.create({organizationId: orgA, userId: user._id});
@@ -98,14 +96,15 @@ describe("projects organizationId update escape (Defect B reproduction)", () => 
       .set("X-Organization-Id", orgA)
       .send({organizationId: orgB});
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.organizationId).toBe(orgB);
+    assert.equal(res.status, 400);
+    assert.equal(res.body.title, ORGANIZATION_ID_IMMUTABLE_TITLE);
 
     const reloaded = await Project.findById(created._id);
-    expect(String(reloaded?.organizationId)).toBe(orgB);
+    assert.equal(String(reloaded?.organizationId), orgA);
+    assert.equal(reloaded?.title, "stay or move");
   });
 
-  it("sync mutation update retargets organizationId when caller belongs to both orgs", async () => {
+  it("rejects sync mutation updates that retarget organizationId", async () => {
     const user = await createUser("sync-move@example.com");
     await Membership.create({organizationId: orgA, userId: user._id});
     await Membership.create({organizationId: orgB, userId: user._id});
@@ -125,9 +124,14 @@ describe("projects organizationId update escape (Defect B reproduction)", () => 
       user: {_id: String(user._id), admin: false, id: String(user._id)} as User,
     });
 
-    expect(outcome.type).toBe("ack");
+    assert.equal(outcome.type, "nack");
+    if (outcome.type === "nack") {
+      assert.equal(outcome.nack.code, "validation");
+      assert.equal(outcome.nack.message, ORGANIZATION_ID_IMMUTABLE_TITLE);
+    }
+
     const reloaded = await Project.findById(created._id);
-    expect(String(reloaded?.organizationId)).toBe(orgB);
-    expect(reloaded?.title).toBe("sync moved");
+    assert.equal(String(reloaded?.organizationId), orgA);
+    assert.equal(reloaded?.title, "sync move");
   });
 });

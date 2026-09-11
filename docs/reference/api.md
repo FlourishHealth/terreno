@@ -401,6 +401,9 @@ Field descriptions appear in:
 
 Adds a required indexed `organizationId` (ref `Organization`) to consumer schemas. Save fails
 without an organization. Use this on tenant-scoped models; query scoping lands with org context.
+After creation, `organizationId` is immutable — REST PATCH, admin writes, sync updates, and
+direct `doc.save()` / `updateOne()` attempts to retarget another organization return HTTP 400
+with title `organizationId cannot be changed`.
 
 ``````typescript
 import {orgScopedPlugin} from "@terreno/api";
@@ -627,7 +630,7 @@ Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a
 | --- | --- | --- |
 | `POST` | `/orgs` | `organization:create` |
 | `GET` | `/orgs` | `organization:list` |
-| `GET` | `/orgs/mine` | Active org-admin membership, operator, or superadmin |
+| `GET` | `/orgs/mine` | Active org-admin membership, operator, or superadmin (disabled orgs omitted) |
 | `GET` | `/orgs/:id` | `organization:read` in that org |
 | `PATCH` | `/orgs/:id` | `organization:update`; disabling also requires `organization:disable` |
 | `DELETE` | `/orgs/:id` | `organization:delete` |
@@ -637,6 +640,9 @@ Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a
 Creating an organization does not create a membership automatically. Member
 attach accepts an existing `userId` or email (case-insensitive); it does not send
 an invitation. Disabling or deleting an organization suspends its memberships.
+Member attach, update, and remove routes reject disabled organizations with 403.
+Operators may still `GET` and `PATCH /orgs/:id` on a disabled organization to
+re-enable it; `GET /orgs` continues to list disabled organizations.
 
 ### Request organization context
 
@@ -645,10 +651,11 @@ Tenant-scoped routes run `orgContextMiddleware({required: true})` after auth, th
 
 | Condition | Result |
 | --- | --- |
-| `X-Organization-Id` present, caller is `operator`/`superadmin` or an active member | `req.organization` set |
+| `X-Organization-Id` present, organization disabled | 403 `Organization is disabled` |
+| `X-Organization-Id` present, caller is `operator`/`superadmin` or an active member, org enabled | `req.organization` set |
 | `X-Organization-Id` present, caller is not a member and not a platform org actor | 403 |
 | Tenant-scoped route, `operator`/`superadmin`, header omitted | 400 |
-| Caller is `org-admin` of exactly one org, header omitted | that org is inferred |
+| Caller is `org-admin` of exactly one enabled org, header omitted | that org is inferred |
 | Caller is `org-admin` of many orgs, header omitted | 400 |
 | Otherwise on tenant-scoped routes | 403 |
 

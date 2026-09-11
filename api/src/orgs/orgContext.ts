@@ -11,6 +11,8 @@ import {Membership, Organization} from "./organizationModel";
 
 export const ORGANIZATION_ID_HEADER = "x-organization-id";
 
+export const ORGANIZATION_DISABLED_TITLE = "Organization is disabled";
+
 export const PLATFORM_ORG_ROLE_NAMES = ["operator", "superadmin"] as const;
 
 export interface ResolvedOrgContext {
@@ -66,6 +68,12 @@ const loadOrganization = async (id: string): Promise<OrganizationDocument> => {
   return organization;
 };
 
+export const assertOrganizationEnabled = (organization: OrganizationDocument): void => {
+  if (organization.disabled) {
+    throw new ForbiddenError(ORGANIZATION_DISABLED_TITLE);
+  }
+};
+
 export const resolveOrgContext = async (args: {
   organizationId?: string;
   required: boolean;
@@ -83,6 +91,7 @@ export const resolveOrgContext = async (args: {
 
   if (args.organizationId) {
     const organization = await loadOrganization(args.organizationId);
+    assertOrganizationEnabled(organization);
     const membership = await Membership.findOneOrNone({
       organizationId: organization._id,
       status: "active",
@@ -112,6 +121,7 @@ export const resolveOrgContext = async (args: {
       throw new ForbiddenError("Organization context required");
     }
     const organization = await Organization.findExactlyOne({_id: membership.organizationId});
+    assertOrganizationEnabled(organization);
     return {membership, organization};
   }
   if (adminMemberships.length > 1) {
