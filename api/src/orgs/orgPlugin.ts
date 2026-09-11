@@ -8,14 +8,29 @@ export interface OrgScoped {
 
 export const ORGANIZATION_ID_IMMUTABLE_TITLE = "organizationId cannot be changed";
 
-const organizationIdsMatch = (
-  left: mongoose.Types.ObjectId | string | undefined,
-  right: mongoose.Types.ObjectId | string | undefined
-): boolean => {
-  if (left === undefined || right === undefined) {
-    return true;
+const updateContainsOrganizationId = (value: unknown): boolean => {
+  if (Array.isArray(value)) {
+    return value.some(updateContainsOrganizationId);
   }
-  return String(left) === String(right);
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  return Object.entries(value).some(([key, nestedValue]) => {
+    if (key === "organizationId" || key.startsWith("organizationId.")) {
+      return true;
+    }
+    if (key === "$rename" && nestedValue && typeof nestedValue === "object") {
+      return Object.entries(nestedValue).some(([source, target]) => {
+        return (
+          source === "organizationId" ||
+          source.startsWith("organizationId.") ||
+          target === "organizationId" ||
+          String(target).startsWith("organizationId.")
+        );
+      });
+    }
+    return updateContainsOrganizationId(nestedValue);
+  });
 };
 
 /** Rejects post-create changes to an existing `organizationId` schema path. */
@@ -27,30 +42,12 @@ export const organizationIdImmutabilityPlugin = (schema: Schema): void => {
     throw new BadRequestError(ORGANIZATION_ID_IMMUTABLE_TITLE);
   });
 
-  schema.pre(["updateOne", "findOneAndUpdate"], async function () {
-    const update = this.getUpdate() as Record<string, unknown> | null;
-    if (!update || typeof update !== "object") {
+  schema.pre(["updateOne", "findOneAndUpdate"], function () {
+    const update = this.getUpdate();
+    if (!updateContainsOrganizationId(update)) {
       return;
     }
-    const setPayload = (update.$set ?? update) as Record<string, unknown>;
-    if (!Object.hasOwn(setPayload, "organizationId")) {
-      return;
-    }
-    const existing = await this.model
-      .findOne(this.getFilter())
-      .select("organizationId")
-      .lean<{organizationId?: mongoose.Types.ObjectId | string}>();
-    if (existing?.organizationId === undefined) {
-      return;
-    }
-    if (
-      !organizationIdsMatch(
-        existing.organizationId,
-        setPayload.organizationId as mongoose.Types.ObjectId | string
-      )
-    ) {
-      throw new BadRequestError(ORGANIZATION_ID_IMMUTABLE_TITLE);
-    }
+    throw new BadRequestError(ORGANIZATION_ID_IMMUTABLE_TITLE);
   });
 };
 

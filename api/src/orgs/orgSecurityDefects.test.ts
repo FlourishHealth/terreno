@@ -134,6 +134,35 @@ describe("org security regressions", () => {
       assert.equal((error as {title?: string}).title, ORGANIZATION_DISABLED_TITLE);
     });
 
+    it("rejects a disabled organization inferred from one active org-admin membership", async () => {
+      const admin = await createUser({email: "orgadmin@example.com"});
+      const org = await Organization.create({
+        disabled: true,
+        name: "Disabled Co",
+        ownerId: admin._id,
+      });
+      await Membership.create({
+        organizationId: org._id,
+        roleName: "org-admin",
+        status: "active",
+        userId: admin._id,
+      });
+
+      let error: unknown;
+      try {
+        await resolveOrgContext({
+          required: true,
+          user: admin as unknown as import("../auth").User,
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      assert.isDefined(error);
+      assert.equal((error as {status?: number}).status, 403);
+      assert.equal((error as {title?: string}).title, ORGANIZATION_DISABLED_TITLE);
+    });
+
     it("excludes disabled organizations from GET /orgs/mine", async () => {
       const operator = await createUser({email: "operator@example.com", roles: ["operator"]});
       await Organization.create({disabled: true, name: "Disabled Co", ownerId: operator._id});
