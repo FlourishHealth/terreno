@@ -68,4 +68,7 @@ export const checkMigrationFiles = async ({dir}: {dir: string}): Promise<LoadedM
   return loaded;
 };
 
-export const loadMigrations = checkMigrationFiles;
+/** Public alias for `checkMigrationFiles`; kept as a wrapper so Knip does not treat it as a duplicate export. */
+export const loadMigrations = async ({dir}: {dir: string}): Promise<LoadedMigration[]> => {
+  return checkMigrationFiles({dir});
+};

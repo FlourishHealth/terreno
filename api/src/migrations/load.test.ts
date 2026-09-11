@@ -1,7 +1,7 @@
 import {describe, expect, it} from "bun:test";
 import {join} from "node:path";
 
-import {checkMigrationFiles} from "./load";
+import {checkMigrationFiles, loadMigrations} from "./load";
 
 const fixtures = (...parts: string[]): string => {
   return join(import.meta.dir, "fixtures", ...parts);
@@ -33,5 +33,15 @@ describe("checkMigrationFiles", () => {
     await expect(checkMigrationFiles({dir: fixtures("missing-up")})).rejects.toThrow(
       "Migration missing up"
     );
+  });
+});
+
+describe("loadMigrations", () => {
+  it("aliases checkMigrationFiles", async () => {
+    const loaded = await loadMigrations({dir: fixtures("valid")});
+    expect(loaded.map((migration) => migration.id)).toEqual([
+      "20260910120000-alpha",
+      "20260910120001-beta",
+    ]);
   });
 });
