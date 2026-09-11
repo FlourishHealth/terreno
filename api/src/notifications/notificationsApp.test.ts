@@ -117,6 +117,7 @@ describe("NotificationsApp", () => {
   afterEach(async () => {
     configureNotificationService({});
     await clearNotificationData();
+    clearSyncRegistry();
   });
 
   it("notify creates one owner row when inapp is on", async () => {

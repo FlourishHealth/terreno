@@ -1,6 +1,7 @@
 import {describe, it} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
+import {StyleSheet} from "react-native";
 
 import {NotificationBell} from "./NotificationBell";
 import {renderWithTheme} from "./test-utils";
@@ -20,6 +21,14 @@ describe("NotificationBell", () => {
     );
     assert.isOk(getByTestId("bell-button"));
     assert.isOk(getByTestId("bell-badge"));
+    assert.include(StyleSheet.flatten(getByTestId("bell").props.style), {
+      position: "relative",
+    });
+    assert.include(StyleSheet.flatten(getByTestId("bell-badge-container").props.style), {
+      position: "absolute",
+      right: -4,
+      top: -4,
+    });
   });
 
   it("calls onPress when tapped", () => {

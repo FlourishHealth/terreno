@@ -1,8 +1,7 @@
 import type {FC} from "react";
-import {Pressable} from "react-native";
+import {Pressable, View} from "react-native";
 
 import {Badge} from "./Badge";
-import {Box} from "./Box";
 import {Icon} from "./Icon";
 
 export interface NotificationBellProps {
@@ -19,7 +18,7 @@ export const NotificationBell: FC<NotificationBellProps> = ({
   const showBadge = unreadCount > 0;
 
   return (
-    <Box style={{position: "relative"}} testID={testID}>
+    <View style={{position: "relative"}} testID={testID}>
       <Pressable
         accessibilityHint="Opens your notification inbox"
         accessibilityLabel="Notifications"
@@ -30,7 +29,10 @@ export const NotificationBell: FC<NotificationBellProps> = ({
         <Icon iconName="bell" size="md" testID={`${testID}-icon`} />
       </Pressable>
       {showBadge ? (
-        <Box style={{position: "absolute", right: -4, top: -4}}>
+        <View
+          style={{position: "absolute", right: -4, top: -4}}
+          testID={`${testID}-badge-container`}
+        >
           <Badge
             maxValue={99}
             status="error"
@@ -38,8 +40,8 @@ export const NotificationBell: FC<NotificationBellProps> = ({
             value={unreadCount}
             variant="numberOnly"
           />
-        </Box>
+        </View>
       ) : null}
-    </Box>
+    </View>
   );
 };

@@ -1,16 +1,12 @@
-# In-app notification center
+---
+category: Added
+---
 
-## Added
-
-- `NotificationsApp` in `@terreno/api` — owner-scoped `Notification` and `NotificationPreference`
+The in-app notification center adds `NotificationsApp` in `@terreno/api` with
+owner-scoped `Notification` and `NotificationPreference`
   models, `getNotificationService().notify()`, `notificationsBeforeSend`, mark-all-read, and
-  optional `retainDays` tombstone sweep
-- `@terreno/ui` — `NotificationBell`, `NotificationInbox`, `NotificationPreferences` (presentational)
-- Example app — syncdb collections, todos header bell, settings preferences screen, dev notify route
-- Docs — `docs/how-to/in-app-notifications.md`, reference updates for api/ui/comms
-- `terreno-syncdb-codegen` — hyphenated sync collection names (e.g. `notification-preferences`)
-
-## Notes
-
-- Inbox rows are synced collections; use syncdb hooks, not new RTK CRUD hooks
-- `NotificationInbox` is list-only; the host wraps it in `Modal` or a sheet
+  optional `retainDays` tombstone sweep. `@terreno/ui` provides presentational
+`NotificationBell`, `NotificationInbox`, and `NotificationPreferences` components.
+The example app demonstrates syncdb collections, a todos-header bell, notification
+preferences, and a development notify route. `terreno-syncdb-codegen` now accepts
+hyphenated collection names such as `notification-preferences`.

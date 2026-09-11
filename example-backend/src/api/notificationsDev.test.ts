@@ -1,5 +1,6 @@
-import {beforeAll, beforeEach, describe, it} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, it} from "bun:test";
 import {
+  clearMCPRegistry,
   generateTokens,
   type ModelRouterOptions,
   type ModelRouterRegistration,
@@ -70,6 +71,10 @@ describe("dev notification route", () => {
 
   beforeAll(() => {
     app = buildApp();
+  });
+
+  afterAll(() => {
+    clearMCPRegistry();
   });
 
   beforeEach(async () => {

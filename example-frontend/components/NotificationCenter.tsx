@@ -155,7 +155,7 @@ export const NotificationCenter: React.FC = () => {
         title="Notifications"
         visible={inboxVisible}
       >
-        <Box maxHeight={420} overflow="scrollY">
+        <Box maxHeight={420} scroll testID="notification-inbox-scroll">
           <NotificationInbox
             isLoading={!isSyncDbReady}
             items={inboxItems}
