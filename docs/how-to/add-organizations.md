@@ -117,3 +117,6 @@ After `bun run backend:seed`, all accounts use password `testpassword123`:
 
 The seed creates Alpha Workspace and Beta Workspace plus two projects in Alpha
 Workspace. Membership rows, not fields on User, are the source of tenant access.
+In-process Better Auth seeding sets `disableRateLimit: true` so production
+preview smoke tests can create all six accounts without hitting Better Auth's
+sign-up limiter.

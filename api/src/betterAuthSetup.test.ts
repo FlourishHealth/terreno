@@ -146,6 +146,33 @@ describe("createBetterAuth", () => {
     expect(auth.api).toBeDefined();
   });
 
+  it("does not 429 a burst of email sign-ups when disableRateLimit is set", async () => {
+    await setup;
+    const config: BetterAuthConfig = {
+      baseURL: "http://localhost:3000",
+      disableRateLimit: true,
+      enabled: true,
+      secret: "test-secret-at-least-32-characters-long",
+    };
+    const auth = createBetterAuth({config, mongoClient: getClient()});
+
+    for (let index = 0; index < 6; index += 1) {
+      const response = await auth.handler(
+        new globalThis.Request("https://localhost:3000/api/auth/sign-up/email", {
+          body: JSON.stringify({
+            email: `seed-burst-${index}@example.com`,
+            name: `Seed Burst ${index}`,
+            password: "testpassword123",
+          }),
+          headers: {"Content-Type": "application/json"},
+          method: "POST",
+        })
+      );
+      assert.notEqual(response.status, 429, `sign-up ${index} was rate-limited`);
+      assert.isTrue(response.ok, `sign-up ${index} failed: ${response.status}`);
+    }
+  });
+
   it("sets cross-site session cookies when crossDomainCookies is enabled", async () => {
     await setup;
     const origin = "https://frontend.example.com";

@@ -326,6 +326,12 @@ Better Auth password and deletes those sessions when `BetterAuthApp` is register
 Optional `authMailTemplates` overrides
 subject/text/html per template id.
 
+In-process seed helpers (for example `seedBetterAuthUserInProcess`) should pass
+`disableRateLimit: true` on that throwaway Better Auth instance. Better Auth
+turns its built-in limiter on when `NODE_ENV=production`, so seeding six demo
+users during a preview smoke test otherwise 429s on the fourth signup. Do not
+set this on the public `BetterAuthApp`.
+
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup
 - `POST /api/auth/signin/email` — Email/password signin

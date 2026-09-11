@@ -90,6 +90,13 @@ export interface BetterAuthConfig {
   authMailTemplates?: Partial<
     Record<"resetPassword" | "verifyEmail", {html?: string; subject: string; text?: string}>
   >;
+
+  /**
+   * Disable Better Auth's built-in IP limiter. Use only on throwaway in-process
+   * seed apps — production `BetterAuthApp` instances keep the default (on in
+   * `NODE_ENV=production`).
+   */
+  disableRateLimit?: boolean;
 }
 
 /**

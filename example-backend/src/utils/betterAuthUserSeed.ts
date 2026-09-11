@@ -59,7 +59,10 @@ export const seedBetterAuthUserInProcess = async (
   const app = express();
   app.use(express.json());
   const betterAuthApp = new BetterAuthApp({
-    config,
+    config: {
+      ...config,
+      disableRateLimit: true,
+    },
     userModel: User as unknown as TerrenoAuthUserModel,
   });
   betterAuthApp.register(app);
