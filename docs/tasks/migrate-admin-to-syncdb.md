@@ -153,7 +153,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
 
 ## Phase 5 — Hosts
 
-- [ ] **Task 5.1**: example-frontend `/admin`
+- [x] **Task 5.1**: example-frontend `/admin`
   - Delivers: `AdminProvider` gets fetch client (Bearer) + existing `syncDb`; example `Todo` `sync` sets `adminBroadcast: true`; `/admin` Todos changelist uses windowed path
   - Files: `example-frontend` admin layout/store, `example-backend/src/api/todos.ts` (`adminBroadcast: true`)
   - Blocked by: 4.3, 4.4
