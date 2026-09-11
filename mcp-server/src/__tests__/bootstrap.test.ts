@@ -3,13 +3,16 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync}
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {assert} from "chai";
-import {generateAllFiles, getFenceLanguage} from "create-terreno-app";
+import {
+  generateAllFiles,
+  getFenceLanguage,
+  PLAYWRIGHT_MCP_PACKAGE_VERSION,
+} from "create-terreno-app";
 import {
   bootstrapPrompts,
   bootstrapTools,
   handleBootstrapPromptRequest,
   handleBootstrapToolCall,
-  PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
 import {disableScaffoldWrites, enableScaffoldWrites} from "../scaffoldWriteMode.js";
 

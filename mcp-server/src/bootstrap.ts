@@ -1,12 +1,7 @@
 import {isAbsolute} from "node:path";
 
 import type {Tool} from "@modelcontextprotocol/server";
-import {
-  type BootstrapArgs,
-  generateAllFiles,
-  getFenceLanguage,
-  PLAYWRIGHT_MCP_PACKAGE_VERSION,
-} from "create-terreno-app";
+import {type BootstrapArgs, generateAllFiles, getFenceLanguage} from "create-terreno-app";
 import {isValidAppName, writeScaffold} from "create-terreno-app/writeScaffold";
 
 import {
@@ -17,8 +12,6 @@ import {
   resolveBootstrapGuidelinePackages,
 } from "./packageGuidelines.js";
 import {isScaffoldWriteEnabled} from "./scaffoldWriteMode.js";
-
-export {PLAYWRIGHT_MCP_PACKAGE_VERSION};
 
 interface BootstrapToolArgs extends BootstrapArgs {
   /** Absolute parent directory that will contain `<appName>/`. Local MCP only when write guard is set. */
@@ -134,7 +127,7 @@ export const bootstrapTools: Tool[] = [
   },
 ];
 
-export interface BootstrapAiRulesArgs extends BootstrapArgs {
+interface BootstrapAiRulesArgs extends BootstrapArgs {
   /** Optional `@terreno/*` package ids to include (e.g. `["api","ui"]`). Omits others from merged guidelines. */
   packages?: string[];
 }
@@ -509,7 +502,7 @@ const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
   ];
 };
 
-export const handleBootstrapAiRulesToolCall = (
+const handleBootstrapAiRulesToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   const bootstrapArgs = args as unknown as BootstrapAiRulesArgs;

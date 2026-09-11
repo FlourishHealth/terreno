@@ -331,10 +331,16 @@
       ]
     },
     "mcp-server": {
-      // Knip 6.34 expects Bun's `test.preload` to be an array, while this package
-      // uses Bun's valid scalar form. Tests remain in the project graph.
+      // Knip 6.34 expects Bun's `test.preload` to be an array. This package uses
+      // the array form in bunfig.toml; with bun: false Knip cannot discover that
+      // preload file from the plugin, so it is listed as an entry.
       "bun": false,
-      "entry": ["src/index.ts", "src/local/index.ts", "src/__tests__/**/*.test.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/local/index.ts",
+        "src/__tests__/**/*.test.ts",
+        "src/__tests__/preload.ts"
+      ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "!scripts/**!"
