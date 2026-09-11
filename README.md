@@ -163,7 +163,8 @@ If you still call `GET …/feature-flags/evaluate`, migrate using [Add feature f
 
 ## Roadmap
 
-Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Background jobs, web SSR, and consumer-installable `/terreno-*` packaging are not shipped yet.
+Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Web SSR and
+consumer-installable `/terreno-*` packaging are not shipped yet.
 
 ## Contributing
 
