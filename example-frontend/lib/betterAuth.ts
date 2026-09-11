@@ -24,38 +24,15 @@ export const signInWithSocial = async (provider: "google" | "github" | "apple"):
   await betterAuthClient.signIn.social({provider});
 };
 
-export const signInWithEmail = async (email: string, password: string): Promise<void> => {
-  await betterAuthClient.signIn.email({email, password});
-};
-
-export const signUpWithEmail = async (
-  email: string,
-  password: string,
-  name: string
-): Promise<void> => {
-  await betterAuthClient.signUp.email({email, name, password});
-};
-
-export const signOut = async (): Promise<void> => {
-  await betterAuthClient.signOut();
-};
-
 interface BetterAuthActionResult {
   error?: {message?: string} | null;
 }
 
-export const getPasswordResetRedirectUrl = (): string => {
+const getPasswordResetRedirectUrl = (): string => {
   if (typeof window !== "undefined" && window.location?.origin) {
     return `${window.location.origin}/resetPassword`;
   }
   return `${getAppScheme()}://resetPassword`;
-};
-
-export const getEmailVerifyRedirectUrl = (): string => {
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}/verifyEmail`;
-  }
-  return `${getAppScheme()}://verifyEmail`;
 };
 
 export const requestPasswordReset = async (email: string): Promise<BetterAuthActionResult> => {
@@ -80,14 +57,6 @@ export const resetPasswordWithToken = async ({
   return {error: result.error};
 };
 
-export const sendVerificationEmail = async (email: string): Promise<BetterAuthActionResult> => {
-  const result = await betterAuthClient.$fetch("/send-verification-email", {
-    body: {callbackURL: getEmailVerifyRedirectUrl(), email},
-    method: "POST",
-  });
-  return {error: result.error};
-};
-
 export const verifyEmailWithToken = async ({
   token,
 }: {
@@ -97,10 +66,6 @@ export const verifyEmailWithToken = async ({
     method: "GET",
   });
   return {error: result.error};
-};
-
-export const getSession = async () => {
-  return betterAuthClient.getSession();
 };
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

@@ -10,6 +10,7 @@ interface VersionInfo {
   version: string;
 }
 
+/** @internal */
 export interface VersionInfoInputs {
   appEnv?: string;
   configVersion?: string;
@@ -19,6 +20,7 @@ export interface VersionInfoInputs {
   updatesVersion?: string;
 }
 
+/** @internal */
 export const buildVersionInfo = ({
   appEnv,
   configVersion,
@@ -35,6 +37,7 @@ export const buildVersionInfo = ({
   };
 };
 
+/** @internal */
 export const versionInfo = (): VersionInfo => {
   return buildVersionInfo({
     appEnv: Constants.expoConfig?.extra?.APP_ENV,

@@ -1,4 +1,4 @@
-export const LOOP_STATUSES = ["blocked", "idle", "open", "ready"] as const;
+const LOOP_STATUSES = ["blocked", "idle", "open", "ready"] as const;
 
 export type LoopStatus = (typeof LOOP_STATUSES)[number];
 
@@ -259,30 +259,5 @@ export const decideProbe = ({
       : `New SDK line ${sdkLine} (${candidate.version}); create ${releaseBranch}`,
     releaseBranch,
     sdkLine,
-  };
-};
-
-export const nextTrackedState = ({
-  expoVersion,
-  loopStatus,
-  npmTag,
-  releaseBranch,
-  sdkLine,
-  updatedAt,
-}: {
-  expoVersion: string;
-  loopStatus: LoopStatus;
-  npmTag: TrackedState["npmTag"];
-  releaseBranch: string;
-  sdkLine: string;
-  updatedAt: string;
-}): TrackedState => {
-  return {
-    expoVersion,
-    loopStatus,
-    npmTag,
-    releaseBranch,
-    sdkLine,
-    updatedAt,
   };
 };
