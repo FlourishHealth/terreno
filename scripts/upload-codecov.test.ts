@@ -23,6 +23,26 @@ describe("upload-codecov.sh", () => {
     assert.include(result.stdout, "skipping Codecov upload");
   });
 
+  it("rejects an uploader whose checksum does not match the pin", () => {
+    const dir = mkdtempSync(join(tmpdir(), "codecov-"));
+    writeFileSync(join(dir, "lcov.info"), "SF:src/a.ts\nDA:1,1\nend_of_record\n");
+    writeFileSync(join(dir, "uploader"), "not-the-codecov-binary");
+    const env = {
+      ...process.env,
+      CODECOV_TOKEN: "test-token",
+      CODECOV_UPLOADER_PATH: join(dir, "uploader-out"),
+      CODECOV_UPLOADER_SHA256: "0".repeat(64),
+      CODECOV_UPLOADER_URL: `file://${join(dir, "uploader")}`,
+    };
+    const result = spawnSync("bash", [script, "api", "lcov.info"], {
+      cwd: dir,
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 1);
+    assert.include(result.stderr, "checksum mismatch");
+  });
+
   it("skips when CODECOV_TOKEN is unset", () => {
     const dir = mkdtempSync(join(tmpdir(), "codecov-"));
     writeFileSync(join(dir, "lcov.info"), "SF:src/a.ts\nDA:1,1\nend_of_record\n");

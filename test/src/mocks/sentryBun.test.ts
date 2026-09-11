@@ -1,5 +1,3 @@
-// noExplicitAny: Sentry mock surface is intentionally untyped
-// biome-ignore-all lint/suspicious/noExplicitAny: Sentry mock surface is intentionally untyped
 import {describe, expect, it} from "bun:test";
 
 import {registerSentryBunMock} from "./sentryBun";
@@ -7,7 +5,7 @@ import {registerSentryBunMock} from "./sentryBun";
 describe("registerSentryBunMock", () => {
   it("registers a mock @sentry/bun module and exercises mock surfaces", async () => {
     registerSentryBunMock();
-    const sentry = (await import("@sentry/bun")) as Record<string, any>;
+    const sentry = await import("@sentry/bun");
     expect(typeof sentry.captureException).toBe("function");
     expect(typeof sentry.captureMessage).toBe("function");
     expect(typeof sentry.flush).toBe("function");

@@ -1,5 +1,3 @@
-// noExplicitAny: isolated UI test doubles intentionally erase props for mobile sheet mocks
-// biome-ignore-all lint/suspicious/noExplicitAny: isolated UI test doubles intentionally erase props
 import {beforeEach, describe, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
 import {assert} from "chai";
@@ -21,23 +19,45 @@ mock.module("react-native", () => ({
 mock.module("@terreno/ui", () => {
   const ReactModule = require("react");
   const ReactNative = require("react-native");
-  const Container = ({children, ...props}: Record<string, any>) =>
+  const Container = ({
+    children,
+    ...props
+  }: {children?: React.ReactNode} & Record<string, unknown>) =>
     ReactModule.createElement(ReactNative.View, props, children);
-  const Button = ({text, onClick, ...props}: Record<string, any>) =>
+  const Button = ({
+    text,
+    onClick,
+    ...props
+  }: {onClick?: () => void; text?: string} & Record<string, unknown>) =>
     ReactModule.createElement(
       ReactNative.Pressable,
       {...props, onPress: onClick},
       ReactModule.createElement(ReactNative.Text, {}, text)
     );
-  const Field = ({onChange, testID, title, value}: Record<string, any>) =>
-    ReactModule.createElement(ReactNative.View, {onChange, testID, title, value});
+  const Field = ({
+    onChange,
+    testID,
+    title,
+    value,
+  }: {
+    onChange?: (value: unknown) => void;
+    testID?: string;
+    title?: string;
+    value?: unknown;
+  }) => ReactModule.createElement(ReactNative.View, {onChange, testID, title, value});
   const Modal = ({
     children,
     onDismiss,
     primaryButtonOnClick,
     secondaryButtonOnClick,
     visible,
-  }: Record<string, any>) =>
+  }: {
+    children?: React.ReactNode;
+    onDismiss?: () => void;
+    primaryButtonOnClick?: () => void;
+    secondaryButtonOnClick?: () => void;
+    visible?: boolean;
+  }) =>
     visible
       ? ReactModule.createElement(
           ReactNative.View,

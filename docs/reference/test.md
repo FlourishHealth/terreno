@@ -119,13 +119,15 @@ run the same lint, compile, and coverage commands via the parameterized
 including `.github/workflows/packages-ci.yml`.
 
 Each of those jobs then uploads `coverage/lcov.info` to Codecov with a distinct
-flag (`api`, `ui`, `rtk`, …) via `scripts/upload-codecov.sh`. `codecov.yml`
-sets per-package flags, `target: auto` with a 1% threshold so trivial deltas
-do not fail PRs, and PR comments for the coverage diff. Uploads skip when
-`CODECOV_TOKEN` is unset. Maintainers set that token in CircleCI project env
-and as a GitHub Actions secret. For a public repo, Codecov still requires a
-token unless the org disables token authentication for public repositories
-(see [Codecov tokens](https://docs.codecov.com/docs/codecov-tokens)).
+flag (`api`, `ui`, `rtk`, …) via `scripts/upload-codecov.sh`. The script
+downloads the linux uploader over HTTPS and refuses to run it unless the
+SHA-256 digest matches the pin in the script (`CODECOV_UPLOADER_SHA256`).
+`codecov.yml` sets per-package flags, `target: auto` with a 1% threshold so
+trivial deltas do not fail PRs, and PR comments for the coverage diff. Uploads
+skip when `CODECOV_TOKEN` is unset. Maintainers set that token in CircleCI
+project env and as a GitHub Actions secret. For a public repo, Codecov still
+requires a token unless the org disables token authentication for public
+repositories (see [Codecov tokens](https://docs.codecov.com/docs/codecov-tokens)).
 
 Demo CI uses `scripts/check-demo-coverage.ts` to fail when a PascalCase component
 exported from `ui/src/index.tsx` has neither a `demo/story-config` registration nor
