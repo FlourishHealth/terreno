@@ -301,13 +301,22 @@ describe("AdminMigrationsView", () => {
   });
 
   it("renders a failed task error", async () => {
-    mockTask.data = {task: {error: "migrate exploded", status: "failed"}};
+    mockTask.data = {
+      task: {
+        error: "migrate exploded",
+        logs: [{level: "error", message: "Migration failed", timestamp: "2026-09-11T22:00:00Z"}],
+        result: ["No migrations applied"],
+        status: "failed",
+      } as BackgroundTask,
+    };
     const {getByTestId, getByText} = renderView();
     await act(async () => {
       fireEvent.press(getByText("Dry run"));
     });
     expect(getByTestId("admin-migrations-task")).toBeTruthy();
     expect(getByText(/migrate exploded/)).toBeTruthy();
+    expect(getByText("Migration failed")).toBeTruthy();
+    expect(getByText("No migrations applied")).toBeTruthy();
   });
 
   it("disables apply while a queued task is in flight", async () => {
