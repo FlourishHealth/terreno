@@ -1,3 +1,4 @@
+import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 
 import {APIError} from "../errors";
@@ -23,6 +24,21 @@ const historyCollection = (
   return connection.collection<MigrationStoreDoc>(MIGRATIONS_COLLECTION);
 };
 
+const toJsDate = (value: Date | string | undefined): Date => {
+  if (value instanceof Date) {
+    const parsed = DateTime.fromJSDate(value, {zone: "utc"});
+    if (!parsed.isValid) {
+      throw new APIError({status: 500, title: "Invalid migration timestamp"});
+    }
+    return parsed.toJSDate();
+  }
+  const parsed = DateTime.fromISO(String(value ?? ""), {zone: "utc"});
+  if (!parsed.isValid) {
+    throw new APIError({status: 500, title: "Invalid migration timestamp"});
+  }
+  return parsed.toJSDate();
+};
+
 const loadApplied = async (
   connection: mongoose.Connection
 ): Promise<Map<string, AppliedMigrationRecord>> => {
@@ -33,7 +49,7 @@ const loadApplied = async (
   for (const doc of docs) {
     const id = String(doc.id ?? doc._id);
     applied.set(id, {
-      appliedAt: doc.appliedAt instanceof Date ? doc.appliedAt : new Date(String(doc.appliedAt)),
+      appliedAt: toJsDate(doc.appliedAt),
       checksum: String(doc.checksum ?? ""),
       id,
     });
@@ -50,13 +66,15 @@ const recordApplied = async ({
 }): Promise<void> => {
   await historyCollection(connection).insertOne({
     _id: migration.id,
-    appliedAt: new Date(),
+    appliedAt: DateTime.utc().toJSDate(),
     checksum: migration.checksum,
     id: migration.id,
   });
 };
 
 export const runMigrations = async ({
+  addLog,
+  checkCancellation,
   connection,
   dryRun,
   lockPollMs,
@@ -85,10 +103,13 @@ export const runMigrations = async ({
       }
 
       const ctx: MigrationContext = {
+        addLog,
+        checkCancellation,
         dryRun,
         logger,
         mongoose: mongooseNs,
       };
+      await checkCancellation?.();
       await migration.up(ctx);
       applied.push(migration.id);
       if (!dryRun) {
@@ -141,10 +162,7 @@ export const getMigrationStatus = async ({
     lockDoc == null
       ? null
       : {
-          expiresAt:
-            lockDoc.expiresAt instanceof Date
-              ? lockDoc.expiresAt
-              : new Date(String(lockDoc.expiresAt)),
+          expiresAt: toJsDate(lockDoc.expiresAt),
           holder: String(lockDoc.holder ?? ""),
         };
 
@@ -192,6 +210,7 @@ export const runDownMigrations = async ({
         logger,
         mongoose: mongooseNs,
       };
+      await ctx.checkCancellation?.();
       await migration.down(ctx);
       reversed.push(migration.id);
       if (!dryRun) {

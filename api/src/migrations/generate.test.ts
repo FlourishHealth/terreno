@@ -174,6 +174,31 @@ describe("generateMigration", () => {
         },
         mongoose,
       });
+      expect(source).toContain("dropIndex");
+      expect(source).toContain("title_1");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
+  it("fails closed when generate is called with no models", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
+    try {
+      await generateMigration({
+        dir,
+        models: makeModels({notes: true}),
+        name: "init",
+        now: () => DateTime.fromISO("2026-09-10T12:00:00.000Z"),
+      });
+      await expect(
+        generateMigration({
+          dir,
+          models: [],
+          name: "oops",
+          now: () => DateTime.fromISO("2026-09-10T12:04:00.000Z"),
+        })
+      ).rejects.toThrow("No Mongoose models found");
+      expect(await checkMigrationFiles({dir})).toHaveLength(1);
     } finally {
       await rm(dir, {force: true, recursive: true});
     }

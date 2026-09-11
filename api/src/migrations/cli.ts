@@ -65,13 +65,28 @@ const isMongooseModel = (value: unknown): value is Model<MongooseDocument> => {
   return "schema" in value && "modelName" in value;
 };
 
+const collectModels = (mod: unknown): Model<MongooseDocument>[] => {
+  if (Array.isArray(mod)) {
+    return mod.filter(isMongooseModel);
+  }
+  if (typeof mod !== "object" || mod === null) {
+    return [];
+  }
+  const record = mod as Record<string, unknown>;
+  if (Array.isArray(record.models)) {
+    return record.models.filter(isMongooseModel);
+  }
+  return Object.values(record).filter(isMongooseModel);
+};
+
 const loadModelsModule = async (modulePath: string): Promise<Model<MongooseDocument>[]> => {
   const resolved = isAbsolute(modulePath) ? modulePath : resolve(modulePath);
   const imported = (await import(pathToFileURL(resolved).href)) as Record<string, unknown>;
-  if (Array.isArray(imported.models)) {
-    return imported.models.filter(isMongooseModel);
+  const fromDefault = collectModels(imported.default);
+  if (fromDefault.length > 0) {
+    return fromDefault;
   }
-  return Object.values(imported).filter(isMongooseModel);
+  return collectModels(imported);
 };
 
 export const runMigrateCli = async ({

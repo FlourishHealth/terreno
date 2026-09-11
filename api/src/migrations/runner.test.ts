@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose from "mongoose";
 
+import {APIError} from "../errors";
 import {setupDb} from "../tests";
 import {runDownMigrations, runMigrations} from "./runner";
 import {type LoadedMigration, MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./types";
@@ -246,5 +247,30 @@ describe("runDownMigrations", () => {
       })
     ).rejects.toThrow("has no down");
     expect(await appliedIds()).toEqual(["20260910120000-irreversible"]);
+  });
+
+  it("stops before up when checkCancellation rejects", async () => {
+    let ran = false;
+    await expect(
+      runMigrations({
+        checkCancellation: async () => {
+          throw new APIError({status: 409, title: "Task was cancelled"});
+        },
+        connection: mongoose.connection,
+        dryRun: false,
+        migrations: [
+          makeMigration({
+            checksum: "cancel",
+            id: "20260910120000-cancel",
+            up: async () => {
+              ran = true;
+            },
+          }),
+        ],
+        mongoose,
+      })
+    ).rejects.toThrow("cancelled");
+    expect(ran).toBe(false);
+    expect(await appliedIds()).toEqual([]);
   });
 });

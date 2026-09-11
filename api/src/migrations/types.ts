@@ -57,6 +57,8 @@ export interface RunMigrationsOptions {
   logger?: MigrationLogger;
   lockTtlMs?: number;
   lockPollMs?: number;
+  checkCancellation?: () => Promise<void>;
+  addLog?: MigrationContext["addLog"];
 }
 
 export interface RunMigrationsResult {

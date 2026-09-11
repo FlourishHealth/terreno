@@ -88,6 +88,9 @@ export const mountAdminMigrationRoutes = ({
         try {
           const migrations = await checkMigrationFiles({dir: migrationsDir});
           const result = await runMigrations({
+            checkCancellation: async () => {
+              await BackgroundTask.checkCancellation(task._id.toString());
+            },
             connection: mongoose.connection,
             dryRun: !isWetRun,
             migrations,
