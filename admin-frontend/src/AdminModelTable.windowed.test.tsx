@@ -55,6 +55,10 @@ mock.module("./useAdminBackgroundTask", () => ({
 
 import {AdminModelTable} from "./AdminModelTable";
 import {AdminProvider} from "./AdminProvider";
+import {
+  markAdminWindowMembershipStale,
+  resetAdminWindowRefreshForTests,
+} from "./adminWindowRefresh";
 
 const windowedConfig: AdminConfigResponse = {
   customScreens: [],
@@ -167,6 +171,7 @@ describe("AdminModelTable windowed path", () => {
     configState.config = windowedConfig;
     listState.data = {data: [], total: 0};
     listRefetch.mockImplementation(async () => ({data: listState.data}));
+    resetAdminWindowRefreshForTests();
   });
 
   it("renders REST membership page ids and hydrates them", async () => {
@@ -301,6 +306,78 @@ describe("AdminModelTable windowed path", () => {
       await Promise.resolve();
     });
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "From refresh"]);
+  });
+
+  it("refetches membership when a windowed write marks the collection stale", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    listRefetch.mockImplementation(async () => {
+      listState.data = {
+        data: [
+          {_id: "todo-1", title: "Alpha"},
+          {_id: "todo-2", title: "Created in form"},
+        ],
+        total: 2,
+      };
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
+
+    await act(async () => {
+      markAdminWindowMembershipStale({collection: "todos"});
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Created in form"]);
+  });
+
+  it("refetches membership when the table remounts while the collection is stale", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    markAdminWindowMembershipStale({collection: "todos"});
+    listRefetch.mockImplementation(async () => {
+      listState.data = {
+        data: [
+          {_id: "todo-1", title: "Alpha"},
+          {_id: "todo-2", title: "Created before remount"},
+        ],
+        total: 2,
+      };
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Created before remount"]);
+    assert.equal(listRefetch.mock.calls.length, 1);
+  });
+
+  it("ignores a stale flag raised for another collection", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      markAdminWindowMembershipStale({collection: "users"});
+      await Promise.resolve();
+    });
+    assert.equal(listRefetch.mock.calls.length, 0);
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
   });
 
   it("surfaces a Refresh failure without throwing", async () => {

@@ -5,6 +5,7 @@ import {AdminConflictSheet} from "./AdminConflictSheet";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import {useAdminContext} from "./adminContext";
 import {isWindowedAdminTable} from "./adminWindowedTable";
+import {markAdminWindowMembershipStale} from "./adminWindowRefresh";
 import type {
   AdminApi,
   AdminFieldConfig,
@@ -468,6 +469,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           operation: mode === "create" ? "create" : "update",
         });
         result = {...payload, _id: mutation.id};
+        if (mode === "create") {
+          markAdminWindowMembershipStale({collection: modelConfig.syncCollection});
+        }
       } else if (mode === "create") {
         result = await createItem(payload).unwrap();
       } else if (itemId) {
@@ -516,6 +520,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           id: itemId,
           operation: "delete",
         });
+        markAdminWindowMembershipStale({collection: modelConfig.syncCollection});
       } else {
         await deleteItem(itemId).unwrap();
       }

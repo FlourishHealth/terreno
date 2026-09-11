@@ -19,7 +19,14 @@ import {
 import type {Href} from "expo-router";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {Pressable} from "react-native";
 import {AdminActionMenu} from "./AdminActionMenu";
 import {AdminConflictSheet} from "./AdminConflictSheet";
@@ -31,6 +38,11 @@ import {
   buildAdminListQueryParams,
 } from "./adminModelListQueryParams";
 import {isWindowedAdminTable, resolveWindowedTableRows} from "./adminWindowedTable";
+import {
+  clearAdminWindowMembershipStale,
+  isAdminWindowMembershipStale,
+  subscribeAdminWindowRefresh,
+} from "./adminWindowRefresh";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
 import {
   type AdminApi,
@@ -544,6 +556,23 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       toast.catch(err, "Refresh failed");
     }
   }, [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]);
+
+  const handleRefreshRef = useRef(handleRefresh);
+  handleRefreshRef.current = handleRefresh;
+  const isMembershipStale = useSyncExternalStore(
+    subscribeAdminWindowRefresh,
+    () => isAdminWindowMembershipStale(syncCollection),
+    () => false
+  );
+
+  // Refetch membership after a windowed create or delete, which never touches the list cache.
+  useEffect(() => {
+    if (!isWindowed || !isMembershipStale || !syncCollection) {
+      return;
+    }
+    clearAdminWindowMembershipStale({collection: syncCollection});
+    void handleRefreshRef.current();
+  }, [isMembershipStale, isWindowed, syncCollection]);
 
   const handleDelete = useCallback(
     async (id: string) => {

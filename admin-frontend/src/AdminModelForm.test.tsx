@@ -58,6 +58,7 @@ const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]
 
 import {AdminModelForm} from "./AdminModelForm";
 import {AdminProvider} from "./AdminProvider";
+import {isAdminWindowMembershipStale, resetAdminWindowRefreshForTests} from "./adminWindowRefresh";
 
 const syncDb: AdminSyncDb = {
   hydrateWindow: hydrateWindowFn,
@@ -121,6 +122,7 @@ describe("AdminModelForm", () => {
     configState.isLoading = false;
     readState.data = null;
     readState.isLoading = false;
+    resetAdminWindowRefreshForTests();
   });
 
   it("uses syncdb mutations for create, update, and delete on windowed String-id models", async () => {
@@ -166,7 +168,9 @@ describe("AdminModelForm", () => {
       result: {_id: "sync-id", active: true, age: 0, email: "", name: ""},
     });
     assert.equal(routerBack.mock.calls.length, 1);
+    assert.isTrue(isAdminWindowMembershipStale("todos"));
     createForm.unmount();
+    resetAdminWindowRefreshForTests();
 
     readState.data = {active: true, age: 1, email: "todo@example.com", name: "Todo"};
     const editForm = renderWithSyncAdmin(
@@ -196,6 +200,7 @@ describe("AdminModelForm", () => {
     });
     assert.equal(updateFn.mock.calls.length, 0);
     assert.equal(routerBack.mock.calls.length, 2);
+    assert.isFalse(isAdminWindowMembershipStale("todos"));
 
     const deleteButton = editForm.UNSAFE_root.findAll(
       (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
@@ -210,6 +215,7 @@ describe("AdminModelForm", () => {
     });
     assert.equal(deleteFn.mock.calls.length, 0);
     assert.equal(routerBack.mock.calls.length, 3);
+    assert.isTrue(isAdminWindowMembershipStale("todos"));
   });
 
   it("shows an edit conflict for the loaded form id", async () => {
