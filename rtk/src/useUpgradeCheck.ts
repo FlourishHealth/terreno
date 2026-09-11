@@ -149,7 +149,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
       return;
     }
     const subscription = ReactNative.AppState.addEventListener("change", (nextAppState) => {
-      const wasBackground = /inactive|background/.test(appState.current);
+      const wasBackground = /inactive|background/.test(appState.current ?? "");
       const isNowActive = nextAppState === "active";
 
       if (wasBackground && isNowActive) {
