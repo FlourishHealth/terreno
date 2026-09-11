@@ -50,7 +50,13 @@ admin-spa/
   dist/                # Pre-built static export (produced by build:web)
 ```
 
-Boot flow in the SPA: `AppConfigGate` fetches `${basePath}/app-config.json` → `StoreProvider` builds Better Auth + Redux → `AdminGate` redirects anonymous users to `/login` and non-admins to `/forbidden`.
+Boot flow in the SPA: `AppConfigGate` fetches `${basePath}/app-config.json` →
+`StoreProvider` builds Better Auth + Redux → `AdminGate` redirects anonymous
+users to `/login` and non-admins to `/forbidden` → the authorized provider reads
+`/admin/config`. When config contains String-`_id` models with `adminBroadcast`
+and `syncCollection`, it starts a same-origin cookie-authenticated syncdb client
+with those collections in window mode and forwards `useConflicts()` to the admin.
+ObjectId and non-broadcast models remain on RTK.
 
 ## AdminSpaServeApp
 

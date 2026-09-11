@@ -1,7 +1,11 @@
 import {Accordion, Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {AdminConflictSheet} from "./AdminConflictSheet";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
+import {useAdminContext} from "./adminContext";
+import {isWindowedAdminTable} from "./adminWindowedTable";
+import {markAdminWindowMembershipStale} from "./adminWindowRefresh";
 import type {
   AdminApi,
   AdminFieldConfig,
@@ -166,6 +170,9 @@ const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fiel
 
 const TITLE_PREFERENCE_KEYS = ["name", "title", "label", "email", "username", "displayName"];
 
+/** Debounce dynamic getScreenTitle updates so setOptions does not rerender parents per keystroke. */
+const NAVIGATION_TITLE_DEBOUNCE_MS = 300;
+
 const readScalarTitleFromRecord = (
   record: Record<string, unknown>,
   fieldKey: string
@@ -179,20 +186,6 @@ const readScalarTitleFromRecord = (
     return undefined;
   }
   return s;
-};
-
-const mergeItemAndFormState = (
-  itemData: unknown,
-  formState: Record<string, AdminFieldValue>
-): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
-  if (itemData && typeof itemData === "object" && !Array.isArray(itemData)) {
-    Object.assign(out, itemData as Record<string, unknown>);
-  }
-  for (const [k, v] of Object.entries(formState)) {
-    out[k] = v;
-  }
-  return out;
 };
 
 const inferEditRecordTitle = (params: {
@@ -308,10 +301,16 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     routeBase,
   });
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
+  const adminContext = useAdminContext();
   const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
+  const navigationRef = useRef(navigation);
+  navigationRef.current = navigation;
+  const prevNavigationTitleRef = useRef<string | undefined>(undefined);
+  const hasAppliedNavigationTitleRef = useRef(false);
+  const navigationTitleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
@@ -333,6 +332,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [createItem, {isLoading: isCreating}] = useCreateMutation();
   const [updateItem, {isLoading: isUpdating}] = useUpdateMutation();
   const [deleteItem, {isLoading: isDeleting}] = useDeleteMutation();
+  const isWindowed = isWindowedAdminTable({
+    hasFetchClient: Boolean(adminContext?.adminRpc),
+    modelConfig,
+    syncDb: adminContext?.syncDb,
+  });
 
   // Initialize form state from fetched item data in edit mode
   useEffect(() => {
@@ -370,13 +374,41 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [mode, modelConfig, isInitialized]);
 
   const handleFieldChange = useCallback((fieldKey: string, value: AdminFieldValue) => {
-    setFormState((prev) => ({...prev, [fieldKey]: value}));
+    setFormState((prev) => {
+      if (prev[fieldKey] === value) {
+        return prev;
+      }
+      return {...prev, [fieldKey]: value};
+    });
     setErrors((prev) => {
+      if (!Object.hasOwn(prev, fieldKey)) {
+        return prev;
+      }
       const next = {...prev};
       delete next[fieldKey];
       return next;
     });
   }, []);
+
+  const handleFieldChangeRef = useRef(handleFieldChange);
+  handleFieldChangeRef.current = handleFieldChange;
+
+  const stableFieldChangeHandlersRef = useRef(new Map<string, (value: AdminFieldValue) => void>());
+
+  const getStableFieldChangeHandler = useCallback(
+    (fieldKey: string): ((value: AdminFieldValue) => void) => {
+      const cached = stableFieldChangeHandlersRef.current.get(fieldKey);
+      if (cached) {
+        return cached;
+      }
+      const handler = (value: AdminFieldValue): void => {
+        handleFieldChangeRef.current(fieldKey, value);
+      };
+      stableFieldChangeHandlersRef.current.set(fieldKey, handler);
+      return handler;
+    },
+    []
+  );
 
   const validate = useCallback((): boolean => {
     if (!modelConfig) {
@@ -419,7 +451,31 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         ? await transformPayload({mode, payload: stripped})
         : stripped;
       let result: AdminFieldValue;
-      if (mode === "create") {
+      if (isWindowed && modelConfig.syncCollection && adminContext?.syncDb) {
+        if (mode === "edit" && itemId) {
+          await adminContext.syncDb.hydrateWindow({
+            collection: modelConfig.syncCollection,
+            ids: [itemId],
+            restRows:
+              itemData && typeof itemData === "object"
+                ? {[itemId]: itemData as Record<string, unknown>}
+                : undefined,
+          });
+        }
+        const mutation = adminContext.syncDb.mutate({
+          collection: modelConfig.syncCollection,
+          data: payload,
+          ...(itemId ? {id: itemId} : {}),
+          operation: mode === "create" ? "create" : "update",
+        });
+        result = {...payload, _id: mutation.id};
+        if (mode === "create") {
+          markAdminWindowMembershipStale({
+            awaitId: mutation.id,
+            collection: modelConfig.syncCollection,
+          });
+        }
+      } else if (mode === "create") {
         result = await createItem(payload).unwrap();
       } else if (itemId) {
         result = await updateItem({body: payload, id: itemId}).unwrap();
@@ -435,8 +491,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     mode,
     formState,
     itemId,
+    itemData,
     modelConfig,
+    adminContext?.syncDb,
     createItem,
+    isWindowed,
     updateItem,
     validate,
     toast,
@@ -450,12 +509,38 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
-      await deleteItem(itemId).unwrap();
+      if (isWindowed && modelConfig?.syncCollection && adminContext?.syncDb) {
+        await adminContext.syncDb.hydrateWindow({
+          collection: modelConfig.syncCollection,
+          ids: [itemId],
+          restRows:
+            itemData && typeof itemData === "object"
+              ? {[itemId]: itemData as Record<string, unknown>}
+              : undefined,
+        });
+        adminContext.syncDb.mutate({
+          collection: modelConfig.syncCollection,
+          id: itemId,
+          operation: "delete",
+        });
+        markAdminWindowMembershipStale({collection: modelConfig.syncCollection});
+      } else {
+        await deleteItem(itemId).unwrap();
+      }
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to delete ${modelName}`);
     }
-  }, [itemId, deleteItem, toast, modelName]);
+  }, [
+    adminContext?.syncDb,
+    deleteItem,
+    isWindowed,
+    itemId,
+    itemData,
+    modelConfig?.syncCollection,
+    modelName,
+    toast,
+  ]);
 
   const isSaving = isCreating || isUpdating;
   const recordCapabilities = (
@@ -492,7 +577,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
     const explicitField = recordTitleFieldProp ?? modelConfig.recordTitleField;
     const fieldKeys = new Set(Object.keys(modelConfig.fields));
-    const record = mergeItemAndFormState(itemData, formState);
+    // Use persisted item data only — not live formState — so typing the title field does not
+    // call navigation.setOptions on every keystroke (RN Web rerenders parents and corrupts input).
+    const record =
+      itemData && typeof itemData === "object" && !Array.isArray(itemData)
+        ? (itemData as Record<string, unknown>)
+        : {};
     return inferEditRecordTitle({
       displayName: modelConfig.displayName,
       explicitField,
@@ -513,42 +603,68 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     screenTitle,
   ]);
 
-  // Set stack / document title and header action buttons (save/delete)
+  // Reset navigation title bookkeeping when the edited record changes.
+  useEffect(() => {
+    hasAppliedNavigationTitleRef.current = false;
+    prevNavigationTitleRef.current = undefined;
+  }, [itemId, mode, modelName]);
+
+  // Set stack / document title. Save and delete live in the form chrome because
+  // admin Expo stacks use headerShown: false (same as Create on the table).
+  // navigation is read from a ref so unstable useNavigation() identities cannot
+  // retrigger setOptions and feed back into controlled field inputs.
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    navigation.setOptions({
-      headerRight: () => (
-        <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
-          {mode === "edit" && canDeleteRecord ? (
-            <DeleteButton loading={isDeleting} onDelete={handleDelete} />
-          ) : null}
-          {isFormWritable ? (
-            <Button
-              loading={isSaving}
-              onClick={handleSave}
-              testID="admin-save-button"
-              text={mode === "create" ? "Create" : "Save"}
-              variant="primary"
-            />
-          ) : null}
-        </Box>
-      ),
-      title: navigationTitle,
-    });
-  }, [
-    navigation,
-    navigationTitle,
-    modelConfig,
-    mode,
-    isSaving,
-    isDeleting,
-    handleSave,
-    handleDelete,
-    isFormWritable,
-    canDeleteRecord,
-  ]);
+
+    const applyNavigationTitle = (title: string): void => {
+      if (prevNavigationTitleRef.current === title) {
+        return;
+      }
+      prevNavigationTitleRef.current = title;
+      navigationRef.current.setOptions({title});
+    };
+
+    const shouldDebounceDynamicTitle = screenTitle === undefined && getScreenTitle !== undefined;
+
+    if (!shouldDebounceDynamicTitle) {
+      applyNavigationTitle(navigationTitle);
+      hasAppliedNavigationTitleRef.current = true;
+      return;
+    }
+
+    if (!hasAppliedNavigationTitleRef.current) {
+      applyNavigationTitle(navigationTitle);
+      hasAppliedNavigationTitleRef.current = true;
+      return;
+    }
+
+    if (navigationTitleDebounceRef.current) {
+      clearTimeout(navigationTitleDebounceRef.current);
+    }
+    navigationTitleDebounceRef.current = setTimeout(() => {
+      navigationTitleDebounceRef.current = null;
+      applyNavigationTitle(navigationTitle);
+    }, NAVIGATION_TITLE_DEBOUNCE_MS);
+
+    return () => {
+      if (navigationTitleDebounceRef.current) {
+        clearTimeout(navigationTitleDebounceRef.current);
+        navigationTitleDebounceRef.current = null;
+      }
+    };
+  }, [getScreenTitle, modelConfig, navigationTitle, screenTitle]);
+
+  // Flush a pending debounced title when the form unmounts.
+  useEffect(() => {
+    return () => {
+      if (navigationTitleDebounceRef.current) {
+        clearTimeout(navigationTitleDebounceRef.current);
+        navigationTitleDebounceRef.current = null;
+      }
+    };
+  }, []);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
     if (!modelConfig) {
@@ -623,7 +739,31 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   return (
     <Page color="transparent" maxWidth="100%" padding={0} scroll>
+      {isWindowed && itemId && modelConfig.syncCollection && adminContext?.syncConflicts ? (
+        <AdminConflictSheet
+          collection={modelConfig.syncCollection}
+          conflicts={adminContext.syncConflicts.conflicts}
+          loadedIds={[itemId]}
+          resolve={adminContext.syncConflicts.resolve}
+        />
+      ) : null}
       <Box gap={3} padding={4}>
+        {isFormWritable || (mode === "edit" && canDeleteRecord) ? (
+          <Box alignItems="center" direction="row" gap={2} wrap>
+            {isFormWritable ? (
+              <Button
+                loading={isSaving}
+                onClick={handleSave}
+                testID="admin-save-button"
+                text={mode === "create" ? "Create" : "Save"}
+                variant="primary"
+              />
+            ) : null}
+            {mode === "edit" && canDeleteRecord ? (
+              <DeleteButton loading={isDeleting} onDelete={handleDelete} />
+            ) : null}
+          </Box>
+        ) : null}
         {fieldSections
           ? fieldSections.map((section, sectionIndex) => (
               <Accordion
@@ -641,7 +781,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                       fieldKey={fieldKey}
                       key={fieldKey}
                       modelConfigs={modelConfigs}
-                      onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                      onChange={getStableFieldChangeHandler(fieldKey)}
                       parentFormState={formState}
                       readOnly={readonlyKeySet.has(fieldKey)}
                       refRenderers={refRenderers}
@@ -662,7 +802,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
                 fieldKey={fieldKey}
                 key={fieldKey}
                 modelConfigs={modelConfigs}
-                onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                onChange={getStableFieldChangeHandler(fieldKey)}
                 parentFormState={formState}
                 readOnly={readonlyKeySet.has(fieldKey)}
                 refRenderers={refRenderers}

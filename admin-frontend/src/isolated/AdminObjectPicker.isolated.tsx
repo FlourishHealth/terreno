@@ -88,6 +88,13 @@ describe("AdminObjectPicker", () => {
     const urls = querySpecs.map((s) => s.url).sort();
     expect(urls).toContain("/admin/users/search");
     expect(urls).toContain("/admin/users/some-id");
+    expect(urls).toContain("/admin/users");
+    const listSpec = querySpecs.find(
+      (s: unknown) =>
+        (s as Record<string, unknown>).url === "/admin/users" &&
+        Boolean((s as {params?: {limit?: number}}).params?.limit)
+    ) as {params?: {limit?: number; page?: number}} | undefined;
+    expect(listSpec?.params).toEqual({limit: 100, page: 1});
     const searchSpec = querySpecs.find(
       (s: unknown) => (s as Record<string, unknown>).url === "/admin/users/search"
     );

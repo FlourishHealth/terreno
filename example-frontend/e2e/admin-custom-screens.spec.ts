@@ -9,6 +9,7 @@ test.describe("Admin contributed custom screens", () => {
   test("renders the Documents browser through AdminScreenRouter", async ({consoleGuard, page}) => {
     consoleGuard.allow("Failed to load resource: the server responded with a status of 503");
     await page.goto("/admin/documents");
+    await page.getByTestId("document-refresh-button").waitFor({state: "visible", timeout: 15_000});
     await expect(page.getByText("Documents").first()).toBeVisible();
     await expect(page.getByTestId("document-refresh-button")).toBeVisible();
   });

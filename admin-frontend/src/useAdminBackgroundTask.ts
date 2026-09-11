@@ -1,7 +1,9 @@
 import {useMemo} from "react";
+import {asJsonBody} from "./adminRpc";
 
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcMutation} from "./useAdminRpc";
 
 export interface AdminBackgroundTaskBody {
   ids?: string[];
@@ -22,8 +24,10 @@ export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
   adminApiRoot: string
 ): AdminBackgroundTaskMutation => {
+  const rpc = useAdminRpc();
+  const root = adminApiRoot.replace(/\/$/, "");
+  const [rpcTrigger, rpcMeta] = useAdminRpcMutation(rpc);
   const enhancedApi = useMemo(() => {
-    const root = adminApiRoot.replace(/\/$/, "");
     return api.enhanceEndpoints({addTagTypes: ["AdminBackgroundTask"]}).injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
         adminPostBackgroundTask: build.mutation({
@@ -37,8 +41,20 @@ export const useAdminBackgroundTaskMutation = (
       }),
       overrideExisting: true,
     });
-  }, [api, adminApiRoot]);
+  }, [api, root]);
 
   const enhanced = asDynamicHookApi(enhancedApi);
-  return enhanced.useAdminPostBackgroundTaskMutation() as AdminBackgroundTaskMutation;
+  const rtkMutation = enhanced.useAdminPostBackgroundTaskMutation() as AdminBackgroundTaskMutation;
+  if (rpc) {
+    return [
+      (body: AdminBackgroundTaskBody) =>
+        rpcTrigger({
+          body: asJsonBody(body),
+          method: "POST",
+          url: `${root}/background-tasks`,
+        }),
+      rpcMeta,
+    ];
+  }
+  return rtkMutation;
 };

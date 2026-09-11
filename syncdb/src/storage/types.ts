@@ -98,6 +98,7 @@ export interface OutboxRow {
   operation: SyncMutationOperation;
   status: OutboxStatus;
   userId: string;
+  mutationMode?: "adminWindow";
 }
 
 /** Primitive row shape for the `_cursors` table; rowId = stream key. */

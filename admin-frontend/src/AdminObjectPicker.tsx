@@ -1,7 +1,9 @@
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {withQueryString} from "./adminRpc";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcQuery} from "./useAdminRpc";
 
 /** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
 interface PickerItem {
@@ -94,6 +96,23 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   const readEndpointKey = `adminSearchRead_${refModelName}`;
   const listEndpointKey = `adminPickerList_${refModelName}`;
 
+  const rpc = useAdminRpc();
+  const searchFetch = useAdminRpcQuery<{data?: PickerItem[]} | PickerItem[]>({
+    rpc,
+    skip: !rpc || !autocomplete || !debouncedQuery,
+    url: withQueryString({params: {q: debouncedQuery}, url: `${routePath}/search`}),
+  });
+  const listFetch = useAdminRpcQuery<{data?: PickerItem[]} | PickerItem[]>({
+    rpc,
+    skip: !rpc || autocomplete || !isOpen,
+    url: withQueryString({params: {limit: 100, page: 1}, url: routePath}),
+  });
+  const readFetch = useAdminRpcQuery<PickerItem>({
+    rpc,
+    skip: !rpc || !value,
+    url: `${routePath}/${value}`,
+  });
+
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
@@ -128,18 +147,25 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   const useReadQuery = enhanced[`use${capitalize(readEndpointKey)}Query`];
   const useListQuery = enhanced[`use${capitalize(listEndpointKey)}Query`];
 
-  const {data: searchData, isFetching: isSearching} = useSearchQuery(debouncedQuery, {
-    skip: !autocomplete || !debouncedQuery,
+  const {data: searchDataRtk, isFetching: isSearchingRtk} = useSearchQuery(debouncedQuery, {
+    skip: Boolean(rpc) || !autocomplete || !debouncedQuery,
   });
 
-  const {data: listData, isFetching: isListLoading} = useListQuery(undefined, {
-    skip: autocomplete || !isOpen,
+  const {data: listDataRtk, isFetching: isListLoadingRtk} = useListQuery(undefined, {
+    skip: Boolean(rpc) || autocomplete || !isOpen,
   });
 
   // Fetch the currently selected item to display its name
-  const {data: selectedItem, isLoading: isSelectedLoading} = useReadQuery(value, {
-    skip: !value,
+  const {data: selectedItemRtk, isLoading: isSelectedLoadingRtk} = useReadQuery(value, {
+    skip: Boolean(rpc) || !value,
   });
+
+  const searchData = rpc ? searchFetch.data : searchDataRtk;
+  const isSearching = rpc ? searchFetch.isFetching : isSearchingRtk;
+  const listData = rpc ? listFetch.data : listDataRtk;
+  const isListLoading = rpc ? listFetch.isFetching : isListLoadingRtk;
+  const selectedItem = rpc ? readFetch.data : selectedItemRtk;
+  const isSelectedLoading = rpc ? readFetch.isLoading : isSelectedLoadingRtk;
 
   // Update display when selected item loads
   useEffect(() => {

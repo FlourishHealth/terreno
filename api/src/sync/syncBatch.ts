@@ -9,6 +9,7 @@ import {
   type SyncMutationScopeResolver,
   validateSyncMutationBatch,
 } from "./mutationHandler";
+import type {SyncAppOptions} from "./routes";
 import type {SyncMutateBatchResponse, SyncMutateRequest, SyncNack} from "./types";
 
 /**
@@ -149,12 +150,14 @@ export const runSyncMutation = async ({
   mutation,
   req,
   scopeResolver,
+  syncOptions,
   user,
 }: {
   mutation: SyncMutateRequest;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
   scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
   user: User;
 }): Promise<SyncMutationRunResult> => {
   const userId = String(user.id);
@@ -168,7 +171,7 @@ export const runSyncMutation = async ({
     };
   }
   return {
-    outcome: await applySyncMutation({mutation, req, scopeResolver, user}),
+    outcome: await applySyncMutation({mutation, req, scopeResolver, syncOptions, user}),
     stage: "applied",
   };
 };
@@ -186,11 +189,13 @@ export const runSyncBatch = async ({
   mutations,
   req,
   scopeResolver,
+  syncOptions,
   user,
 }: {
   mutations: SyncMutateRequest[];
   req?: express.Request;
   scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
   user: User;
 }): Promise<SyncBatchRunResult> => {
   const validation = validateSyncMutationBatch(mutations);
@@ -214,7 +219,7 @@ export const runSyncBatch = async ({
   }
 
   return {
-    response: await applySyncMutationBatch({mutations, req, scopeResolver, user}),
+    response: await applySyncMutationBatch({mutations, req, scopeResolver, syncOptions, user}),
     stage: "applied",
   };
 };

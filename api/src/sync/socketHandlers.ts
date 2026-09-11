@@ -4,10 +4,16 @@ import type {User} from "../auth";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {awaitSocketFullUser, type SocketWithDecodedToken} from "../realtime/socketUser";
+import {canListAdminBroadcastScope, getAdminBroadcastScope} from "./adminBroadcastScope";
+import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import type {SyncMutationOutcome} from "./mutationHandler";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
-import {MissingScopeResolverError, resolveUserStreamsForEntry} from "./streams";
+import {
+  adminBroadcastStream,
+  MissingScopeResolverError,
+  resolveUserStreamsForEntry,
+} from "./streams";
 import {runSyncBatch, runSyncMutation} from "./syncBatch";
 import type {
   SyncMutateBatchRequest,
@@ -19,17 +25,23 @@ import type {
 /**
  * Socket handlers for the SyncDB local-first protocol:
  *
- * - `sync:subscribe {collections}` / `sync:unsubscribe {collections}` — resolves the
+ * - `sync:subscribe {collections, mode?}` / `sync:unsubscribe {collections}` — resolves the
  *   caller's streams from the sync registry scope config and joins/leaves `sync:{stream}`
  *   rooms. Owner scopes always use the socket's own userId (never a client-supplied one);
  *   tenant and custom scopes resolve stream values via `SyncAppOptions.getUserScopes`.
+ *   `mode: "window"` joins `{collection}|admin` only (requires `adminBroadcast` and
+ *   admin panel access: `admin:access` when `SyncApp` has `accessControl`, else
+ *   `user.admin`). When AdminApp has registered a broadcast scope, list
+ *   permission for that model is required as well. Confirms with
+ *   `sync:subscribed {mode: "window"}` without dumping snapshot pages.
  *   Sync deltas fan out through these dedicated `sync:{stream}` rooms rather than the
  *   legacy realtime rooms so the two event families never overlap.
  * - `sync:mutate` — applies a mutation through `applySyncMutation` and replies with
  *   `sync:ack {mutationId, id, seq}` or `sync:nack {mutationId, code, ...}`; when the
  *   client supplied a Socket.io ack callback it also receives `{ack}` / `{nack}`.
  * - `sync:error {collection, message}` — emitted for per-collection subscribe failures
- *   (unknown collection, permission denied, missing scope resolver, cap exceeded).
+ *   (unknown collection, permission denied, non-admin window subscribe, missing scope
+ *   resolver, cap exceeded).
  *
  * ## Wiring
  *
@@ -133,67 +145,112 @@ export const installSyncSocketHandlers = (
     socket.data.syncSubscriptions = subscriptions;
   }
 
-  socket.on("sync:subscribe", async (payload: {collections?: unknown}): Promise<void> => {
-    const collections = Array.isArray(payload?.collections) ? payload.collections : null;
-    if (!collections) {
-      return;
-    }
-    // C8: reject an oversized array up front (length check before iterating).
-    if (collections.length > MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH) {
-      logInfo(`[sync] User ${userId} sent an oversized sync:subscribe array`);
-      socket.emit("sync:error", {
-        collection: "",
-        message: `sync:subscribe accepts at most ${MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH} collections`,
-      });
-      return;
-    }
-    for (const collection of collections) {
-      if (typeof collection !== "string" || collection.length === 0) {
-        continue;
+  socket.on(
+    "sync:subscribe",
+    async (payload: {collections?: unknown; mode?: unknown}): Promise<void> => {
+      const collections = Array.isArray(payload?.collections) ? payload.collections : null;
+      const isWindow = payload?.mode === "window";
+      if (!collections) {
+        return;
       }
-      if (subscriptions.has(collection)) {
-        // Already subscribed — idempotent.
-        continue;
-      }
-      if (subscriptions.size >= MAX_SYNC_COLLECTION_SUBSCRIPTIONS) {
-        logInfo(`[sync] User ${userId} hit sync collection subscription limit`);
+      // C8: reject an oversized array up front (length check before iterating).
+      if (collections.length > MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH) {
+        logInfo(`[sync] User ${userId} sent an oversized sync:subscribe array`);
         socket.emit("sync:error", {
-          collection,
-          message: `Sync subscription limit of ${MAX_SYNC_COLLECTION_SUBSCRIPTIONS} collections reached`,
+          collection: "",
+          message: `sync:subscribe accepts at most ${MAX_SYNC_SUBSCRIBE_ARRAY_LENGTH} collections`,
         });
-        continue;
+        return;
       }
-      const entry = findSyncEntryByCollectionTag(collection);
-      if (!entry) {
-        socket.emit("sync:error", {collection, message: `Unknown sync collection: ${collection}`});
-        continue;
+      for (const collection of collections) {
+        if (typeof collection !== "string" || collection.length === 0) {
+          continue;
+        }
+        if (subscriptions.has(collection)) {
+          // Already subscribed — idempotent.
+          continue;
+        }
+        if (subscriptions.size >= MAX_SYNC_COLLECTION_SUBSCRIPTIONS) {
+          logInfo(`[sync] User ${userId} hit sync collection subscription limit`);
+          socket.emit("sync:error", {
+            collection,
+            message: `Sync subscription limit of ${MAX_SYNC_COLLECTION_SUBSCRIPTIONS} collections reached`,
+          });
+          continue;
+        }
+        const entry = findSyncEntryByCollectionTag(collection);
+        if (!entry) {
+          socket.emit("sync:error", {
+            collection,
+            message: `Unknown sync collection: ${collection}`,
+          });
+          continue;
+        }
+        const user = await currentUser();
+        if (!user) {
+          socket.emit("sync:error", {collection, message: "Authentication required"});
+          continue;
+        }
+        if (!(await checkPermissions("list", entry.options.permissions.list, user))) {
+          logInfo(`[sync] User ${userId} denied sync subscription for ${collection}`);
+          socket.emit("sync:error", {
+            collection,
+            message: `Access to sync collection ${collection} denied`,
+          });
+          continue;
+        }
+        if (isWindow && entry.config.adminBroadcast !== true) {
+          socket.emit("sync:error", {
+            collection,
+            message: `Window subscribe requires adminBroadcast on ${collection}`,
+          });
+          continue;
+        }
+        if (
+          isWindow &&
+          !(await canUseAdminBroadcastWindow({
+            accessControl: options.accessControl,
+            canOpenAdminWindow: options.canOpenAdminWindow,
+            user,
+          }))
+        ) {
+          logInfo(`[sync] User ${userId} denied window subscribe for ${collection}`);
+          socket.emit("sync:error", {
+            collection,
+            message: `Window subscribe requires admin panel access for ${collection}`,
+          });
+          continue;
+        }
+        if (isWindow) {
+          const adminScope = getAdminBroadcastScope(entry.modelName);
+          if (adminScope && !(await canListAdminBroadcastScope({scope: adminScope, user}))) {
+            logInfo(`[sync] User ${userId} denied window subscribe list for ${collection}`);
+            socket.emit("sync:error", {
+              collection,
+              message: `Window subscribe requires admin collection access for ${collection}`,
+            });
+            continue;
+          }
+        }
+        const streams = isWindow
+          ? [adminBroadcastStream(collection)]
+          : await resolveUserStreams({entry, options, socket, user});
+        if (!streams) {
+          continue;
+        }
+        const rooms = new Set(streams.map(syncRoomForStream));
+        for (const room of rooms) {
+          await socket.join(room);
+        }
+        subscriptions.set(collection, rooms);
+        socket.emit(
+          "sync:subscribed",
+          isWindow ? {collection, mode: "window", streams} : {collection, streams}
+        );
+        logInfo(`[sync] User ${userId} subscribed to ${collection}: ${streams.join(", ")}`);
       }
-      const user = await currentUser();
-      if (!user) {
-        socket.emit("sync:error", {collection, message: "Authentication required"});
-        continue;
-      }
-      if (!(await checkPermissions("list", entry.options.permissions.list, user))) {
-        logInfo(`[sync] User ${userId} denied sync subscription for ${collection}`);
-        socket.emit("sync:error", {
-          collection,
-          message: `Access to sync collection ${collection} denied`,
-        });
-        continue;
-      }
-      const streams = await resolveUserStreams({entry, options, socket, user});
-      if (!streams) {
-        continue;
-      }
-      const rooms = new Set(streams.map(syncRoomForStream));
-      for (const room of rooms) {
-        await socket.join(room);
-      }
-      subscriptions.set(collection, rooms);
-      socket.emit("sync:subscribed", {collection, streams});
-      logInfo(`[sync] User ${userId} subscribed to ${collection}: ${streams.join(", ")}`);
     }
-  });
+  );
 
   socket.on("sync:unsubscribe", async (payload: {collections?: unknown}): Promise<void> => {
     const collections = Array.isArray(payload?.collections) ? payload.collections : null;
@@ -251,6 +308,7 @@ export const installSyncSocketHandlers = (
         const {outcome, stage} = await runSyncMutation({
           mutation: payload,
           scopeResolver: options.getUserScopes,
+          syncOptions: options,
           user,
         });
         if (stage === "rate_limited") {
@@ -299,6 +357,7 @@ export const installSyncSocketHandlers = (
         const {response, stage} = await runSyncBatch({
           mutations,
           scopeResolver: options.getUserScopes,
+          syncOptions: options,
           user,
         });
         if (stage === "rate_limited") {

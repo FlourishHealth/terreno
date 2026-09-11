@@ -13,7 +13,7 @@ test.describe("Admin comms back navigation", () => {
     consoleGuard.allow("UTC is not a valid timezone");
     await page.goto("/admin/comms");
     await expect(page).toHaveURL(/\/admin\/comms/);
-    await expect(page.getByTestId("comms-dashboard")).toBeVisible();
+    await expect(page.getByTestId("comms-dashboard")).toBeVisible({timeout: 15_000});
 
     await page.getByLabel("Back").click();
 

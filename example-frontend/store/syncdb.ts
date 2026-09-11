@@ -5,8 +5,8 @@
  */
 import {baseUrl} from "@terreno/rtk";
 import {
-  type BetterAuthClientLike,
   betterAuthAdapter,
+  bridgeBetterAuthReactClient,
   createSyncDb,
   type SyncDb,
 } from "@terreno/syncdb";
@@ -14,29 +14,14 @@ import {betterAuthClient} from "@/lib/betterAuth";
 import {SYNC_COLLECTIONS} from "@/store/syncDbSdk";
 
 export const SYNC_DB_NAME = "terreno-example";
+/** Admin window rows live in their own store so they never leak into the product UI. */
+const ADMIN_SYNC_DB_NAME = `${SYNC_DB_NAME}-admin`;
 
-/**
- * The Better Auth *react* client delivers session changes through a nanostore atom
- * (`$store.atoms.session`), but its `useSession` is a React hook without `.subscribe`.
- * betterAuthAdapter looks for `useSession.subscribe`; without it, it falls back to
- * polling `getSession()` every 5s (constant /api/auth/get-session traffic). Bridge the
- * atom to the shape the adapter expects so auth changes are event-driven instead.
- */
-type SessionAtomLike = {subscribe: (listener: (value: unknown) => void) => () => void};
-const sessionAtom = (
-  betterAuthClient as unknown as {$store?: {atoms?: {session?: SessionAtomLike}}}
-).$store?.atoms?.session;
-
-const syncAuthClient: BetterAuthClientLike = {
-  getSession: () => betterAuthClient.getSession(),
-  ...(sessionAtom
-    ? {useSession: {subscribe: (listener): (() => void) => sessionAtom.subscribe(listener)}}
-    : {}),
-};
-
-// pollIntervalMs is only used as a fallback if the session atom bridge above is
-// unavailable (e.g. a future Better Auth client shape change); keep it slow.
-const authProvider = betterAuthAdapter(syncAuthClient, {pollIntervalMs: 60_000});
+// pollIntervalMs is only used as a fallback if the session atom bridge is unavailable
+// (e.g. a future Better Auth client shape change); keep it slow.
+const authProvider = betterAuthAdapter(bridgeBetterAuthReactClient(betterAuthClient), {
+  pollIntervalMs: 60_000,
+});
 
 /**
  * Singleton local-first client. Started/stopped by the root layout when the user is
@@ -63,6 +48,18 @@ export const syncDb: SyncDb = createSyncDb({
   // conflict on one to never stall unrelated ones.
   haltQueueOnConflict: true,
   name: SYNC_DB_NAME,
+});
+
+/**
+ * Admin windows use a separate store/socket so `{collection}|admin` rows never
+ * enter the owner-scoped product store for the same collection.
+ */
+export const adminSyncDb: SyncDb = createSyncDb({
+  authProvider,
+  baseUrl,
+  collections: [...SYNC_COLLECTIONS],
+  name: ADMIN_SYNC_DB_NAME,
+  windowCollections: [...SYNC_COLLECTIONS],
 });
 
 /**

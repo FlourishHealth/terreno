@@ -19,6 +19,20 @@ import {
   applySyncRegistrationSideEffects,
   clearSyncIndexCreationTasks,
 } from "./sync/registrationSideEffects";
+import type {SyncConfig} from "./sync/types";
+
+const withAdminBroadcastDefault = (config: SyncConfig): SyncConfig => ({
+  ...config,
+  adminBroadcast: config.adminBroadcast === true,
+});
+
+/** Store `adminBroadcast: false` when the host omitted the flag (default). */
+const applyAdminBroadcastDefault = (options: ModelRouterOptions<unknown>): void => {
+  if (!options.sync) {
+    return;
+  }
+  options.sync = withAdminBroadcastDefault(options.sync);
+};
 
 export interface CollectionSurfaces {
   mcp: boolean;
@@ -55,6 +69,7 @@ export const registerCollection = <T>({
   options: ModelRouterOptions<T>;
   routePath: string;
 }): void => {
+  applyAdminBroadcastDefault(options as ModelRouterOptions<unknown>);
   const existing = collectionRegistry.get(routePath);
   const wasSyncEnabled = existing?.surfaces.sync ?? false;
 
@@ -100,6 +115,7 @@ export const replaceCollectionOptions = (
   if (!existing) {
     return;
   }
+  applyAdminBroadcastDefault(options);
   existing.options = options;
 };
 

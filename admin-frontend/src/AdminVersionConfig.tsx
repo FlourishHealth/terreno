@@ -1,8 +1,10 @@
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {asJsonBody} from "./adminRpc";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
+import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 
 interface VersionConfigData {
   mobileRequiredVersion?: number;
@@ -45,6 +47,14 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
 
+  const rpc = useAdminRpc();
+  const fetchState = useAdminRpcQuery<VersionConfigData>({
+    rpc,
+    skip: !rpc,
+    url: `${resolvedApiBase}/version-config`,
+  });
+  const [rpcUpdate] = useAdminRpcMutation(rpc);
+
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
@@ -68,9 +78,27 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
 
   const enhanced = asDynamicHookApi(enhancedApi);
   const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
-  const [updateConfig] = enhanced.useUpdateVersionConfigMutation();
-
-  const {data, isLoading: isFetching, error: fetchError} = useVersionConfigQuery();
+  const [updateConfigRtk] = enhanced.useUpdateVersionConfigMutation();
+  const rtkQuery = useVersionConfigQuery(undefined, {skip: Boolean(rpc)}) as {
+    data?: VersionConfigData;
+    error?: unknown;
+    isLoading: boolean;
+  };
+  const {
+    data,
+    isLoading: isFetching,
+    error: fetchError,
+  } = rpc
+    ? {data: fetchState.data, error: fetchState.error, isLoading: fetchState.isLoading}
+    : rtkQuery;
+  const updateConfig = rpc
+    ? (body: VersionConfigData) =>
+        rpcUpdate({
+          body: asJsonBody(body),
+          method: "PUT",
+          url: `${resolvedApiBase}/version-config`,
+        })
+    : updateConfigRtk;
 
   // Populate form state with fetched config data or defaults when the query completes
   useEffect(() => {

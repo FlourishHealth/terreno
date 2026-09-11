@@ -244,6 +244,77 @@ describe("AdminRolesList", () => {
 
     expect(getByText("No roles found.")).toBeTruthy();
   });
+
+  it("validates and creates a role from the add-role form", async () => {
+    mockUseListRolesQuery.mockReturnValue({
+      data: ROLES,
+      error: null,
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-add-button"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+    });
+    expect(getByText("Name and display name are required.")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-role-name"), "operator");
+      fireEvent.changeText(getByTestId("admin-role-display-name"), "Operator");
+      fireEvent.changeText(getByTestId("admin-role-description"), "  Runs operations  ");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+      await Promise.resolve();
+    });
+
+    expect(mockCreateRole).toHaveBeenCalledWith({
+      description: "Runs operations",
+      displayName: "Operator",
+      name: "operator",
+      permissions: {},
+    });
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it("shows an API detail when role creation fails and dismisses the form", async () => {
+    mockCreateRole.mockImplementationOnce(() => ({
+      unwrap: async () => {
+        throw {data: {detail: "Role already exists"}};
+      },
+    }));
+    const {UNSAFE_root, getByTestId, getByText, queryByText} = renderWithTheme(
+      <AdminRolesList api={mockApi} apiBase="/admin" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-roles-add-button"));
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-role-name"), "operator");
+      fireEvent.changeText(getByTestId("admin-role-display-name"), "Operator");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-role-save-button"));
+      await Promise.resolve();
+    });
+    expect(getByText("Role already exists")).toBeTruthy();
+
+    await act(async () => {
+      const modal = UNSAFE_root.findAll(
+        (node) =>
+          node.props?.testID === "admin-role-modal" && typeof node.props?.onDismiss === "function"
+      )[0];
+      modal.props.onDismiss();
+    });
+    expect(queryByText("Role already exists")).toBeNull();
+  });
 });
 
 describe("AdminRolesField", () => {

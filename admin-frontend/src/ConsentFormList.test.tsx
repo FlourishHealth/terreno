@@ -86,7 +86,7 @@ describe("ConsentFormList", () => {
     };
     const onCreateNew = mock(() => undefined);
     const onRowClick = mock((_: string) => undefined);
-    const {getByTestId} = renderWithTheme(
+    const {getAllByLabelText, getByTestId} = renderWithTheme(
       <ConsentFormList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -96,9 +96,11 @@ describe("ConsentFormList", () => {
     );
     await act(async () => {
       fireEvent.press(getByTestId("consent-form-list-create-button"));
+      fireEvent.press(getAllByLabelText("Edit")[0]);
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(onCreateNew).toHaveBeenCalled();
+    expect(onRowClick).toHaveBeenCalledWith("a");
   });
 
   it("falls back when sort column is out of range (buildSortString returns undefined)", async () => {

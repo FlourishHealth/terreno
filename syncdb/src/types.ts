@@ -8,6 +8,9 @@
 
 export type SyncMutationOperation = "create" | "update" | "delete";
 
+/** Explicit client marker for admin-panel windowed sync writes. */
+export type SyncMutationMode = "adminWindow";
+
 /** A change event delivered by the server via `sync:delta`. */
 export interface SyncDelta {
   /** Collection tag (e.g. "todos"). */
@@ -36,12 +39,18 @@ export interface SyncDelta {
  *
  * Emitted after the server has joined the socket to every `sync:{stream}` room for the
  * collection, so it is the first moment live deltas are guaranteed to reach this client.
+ * `mode: "window"` means the client must not page `GET /sync/snapshot` for those streams
+ * (admin fan-in `{collection}|admin`; hydrate via REST + `/sync/entities` instead).
  */
+type SyncSubscribeMode = "window";
+
 export interface SyncSubscribed {
   /** Collection tag the confirmation is for. */
   collection: string;
   /** Stream keys now joined for that collection. */
   streams: string[];
+  /** When `window`, skip snapshot/reconcile paging for this collection. */
+  mode?: SyncSubscribeMode;
 }
 
 /** A client mutation sent via `sync:mutate` or `POST /sync/mutate`. */
@@ -56,6 +65,11 @@ export interface SyncMutateRequest {
   data?: Record<string, unknown>;
   /** The seq the client last saw for this document; enables LWW conflict detection. */
   baseVersion?: number;
+  /**
+   * When `"adminWindow"`, the server applies AdminApp write semantics instead of
+   * product sync permissions.
+   */
+  mutationMode?: SyncMutationMode;
 }
 
 /** Successful mutation acknowledgement. */
@@ -198,6 +212,8 @@ export interface OutboxMutation {
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   createdAt: string;
+  /** Persisted admin-window marker for durable outbox replay. */
+  mutationMode?: SyncMutationMode;
 }
 
 /** An unresolved conflict between a local mutation and the canonical server state. */

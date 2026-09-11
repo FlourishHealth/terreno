@@ -18,6 +18,7 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
+import {useAdminRpc, useAdminRpcMutation} from "./useAdminRpc";
 
 interface CheckboxConfig {
   label: string;
@@ -184,11 +185,34 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     "ConsentForm"
   );
 
+  const rpc = useAdminRpc();
+  const [publishRpc, publishRpcState] = useAdminRpcMutation(rpc);
+  const [generateRpc, generateRpcState] = useAdminRpcMutation(rpc);
+  const [translateRpc, translateRpcState] = useAdminRpcMutation(rpc);
+
   const enhanced = asDynamicHookApi(getEnhancedApi(api));
-  const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
-  const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
-  const [translateContent, {isLoading: isTranslating}] =
+  const [publishConsentFormRtk, {isLoading: isPublishingRtk}] =
+    enhanced.usePublishConsentFormMutation();
+  const [generateContentRtk, {isLoading: isGeneratingRtk}] =
+    enhanced.useGenerateConsentContentMutation();
+  const [translateContentRtk, {isLoading: isTranslatingRtk}] =
     enhanced.useTranslateConsentContentMutation();
+
+  const publishConsentForm = rpc
+    ? (formId: string) =>
+        publishRpc({method: "POST", url: `${CONSENT_FORM_ROUTE}/${formId}/publish`})
+    : publishConsentFormRtk;
+  const generateContent = rpc
+    ? (body: {type: string; description: string; locale: string}) =>
+        generateRpc({body, method: "POST", url: `${CONSENT_FORM_ROUTE}/generate`})
+    : generateContentRtk;
+  const translateContent = rpc
+    ? (body: {content: string; fromLocale: string; toLocale: string}) =>
+        translateRpc({body, method: "POST", url: `${CONSENT_FORM_ROUTE}/translate`})
+    : translateContentRtk;
+  const isPublishing = rpc ? publishRpcState.isLoading : isPublishingRtk;
+  const isGenerating = rpc ? generateRpcState.isLoading : isGeneratingRtk;
+  const isTranslating = rpc ? translateRpcState.isLoading : isTranslatingRtk;
 
   const {data: formData, isLoading: isFormLoading} = useReadQuery(id ?? "", {
     skip: !isEditMode || !id,

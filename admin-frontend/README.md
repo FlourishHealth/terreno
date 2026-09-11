@@ -50,10 +50,12 @@ Pair with `@terreno/admin-backend` on the API so `/admin/config` and CRUD routes
 
 ## What's included
 
-- `AdminModelList`, `AdminModelTable`, `AdminModelForm` — core CRUD screens
+- `AdminModelList`, `AdminModelTable`, `AdminModelForm` — windowed syncdb CRUD
+  for eligible String-`_id` models, with ObjectId/API-only compatibility
 - `AdminShellLayout` / `AdminShell` — sidebar + main column chrome for Expo Router apps
 - `AdminFieldRenderer`, `AdminRefField` — table cell and reference link rendering
-- `useAdminConfig`, `useAdminApi` — fetch config and generate RTK Query hooks per model
+- `adminRequest` — host-bound fetch for framework admin RPC
+- `useAdminApi` — deprecated Terreno 57 RTK compatibility; removed in Terreno 58
 - `ConfigurationScreen`, consent editors, `DocumentStorageBrowser`, and admin script UI
 - `SYSTEM_FIELDS` — fields skipped in auto-generated forms
 - Types: `AdminModelConfig`, `AdminFieldConfig`, `AdminConfigResponse`, and more

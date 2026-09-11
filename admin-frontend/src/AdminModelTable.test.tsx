@@ -36,30 +36,32 @@ const listState: {data: unknown; isLoading: boolean} = {
   data: {data: [], total: 0},
   isLoading: false,
 };
+const listQueryArgs: unknown[] = [];
 const deleteFn = mock(() => ({unwrap: async () => ({})}));
+const patchFn = mock(() => ({unwrap: async () => ({})}));
+const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 1})}));
+const enqueueBackgroundFn = mock(() => ({unwrap: async () => ({taskId: "t1"})}));
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 0})})),
-      {isLoading: false},
-    ],
+    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
     useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: () => ({
-      data: listState.data,
-      error: null,
-      isLoading: listState.isLoading,
-    }),
+    useListQuery: (params: unknown) => {
+      listQueryArgs.push(params);
+      return {
+        data: listState.data,
+        error: null,
+        isLoading: listState.isLoading,
+        refetch: async () => ({data: listState.data}),
+      };
+    },
     useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useUpdateMutation: () => [patchFn, {isLoading: false}],
   }),
 }));
 
 mock.module("./useAdminBackgroundTask", () => ({
-  useAdminBackgroundTaskMutation: () => [
-    mock(() => ({unwrap: async () => ({taskId: "t1"})})),
-    {isLoading: false},
-  ],
+  useAdminBackgroundTaskMutation: () => [enqueueBackgroundFn, {isLoading: false}],
 }));
 
 import {AdminModelTable} from "./AdminModelTable";
@@ -91,6 +93,10 @@ describe("AdminModelTable", () => {
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();
+    patchFn.mockClear();
+    bulkPatchFn.mockClear();
+    enqueueBackgroundFn.mockClear();
+    listQueryArgs.length = 0;
     configApiBaseCalls.length = 0;
     configState.config = null;
     configState.isLoading = false;
@@ -219,24 +225,19 @@ describe("AdminModelTable", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders the headerRight create button and pushes to the create route on click", async () => {
+  it("renders one create button in the table and pushes to the create route on click", async () => {
     configState.config = fullConfig;
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const {getAllByTestId} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
+    const createButtons = getAllByTestId("admin-create-button");
+    expect(createButtons).toHaveLength(1);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-create-button"));
+      fireEvent.press(createButtons[0]);
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(routerPush).toHaveBeenCalledWith("/admin/User/create");
+    expect(setOptions).toHaveBeenCalledWith({title: "User"});
   });
 
   it("handles delete errors without throwing via the actions cell", async () => {
@@ -378,13 +379,7 @@ describe("AdminModelTable", () => {
   it("fetches config from apiBase but builds row href + create nav from routeBase when split", async () => {
     configState.config = fullConfig;
     listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = (opts.headerRight as () => React.ReactElement)();
-      }
-    });
-    const {UNSAFE_root} = renderWithTheme(
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
       <AdminModelTable
         api={{} as unknown as AdminApi}
         apiBase="/admin"
@@ -400,10 +395,8 @@ describe("AdminModelTable", () => {
     const rows = (tables[0] as ReactTestInstance).props.data as {value: {href?: string}}[][];
     expect(rows[0][0].value.href).toBe("/console/User/u1");
     // The create button must navigate using the route base.
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-create-button"));
+      fireEvent.press(getByTestId("admin-create-button"));
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(routerPush).toHaveBeenCalledWith("/console/User/create");
@@ -432,18 +425,10 @@ describe("AdminModelTable", () => {
       ],
       scripts: [],
     };
-    let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        headerRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const {queryByTestId} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(headerRight).not.toBeNull();
-    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
-    expect(header.queryByTestId("admin-create-button")).toBeNull();
+    expect(queryByTestId("admin-create-button")).toBeNull();
   });
 
   it("marks only sortableFields as sortable columns", () => {
@@ -492,5 +477,154 @@ describe("AdminModelTable", () => {
       (n: ReactTestInstance) => typeof n.props?.totalPages === "number"
     );
     expect((tables[0] as ReactTestInstance).props.totalPages).toBe(2);
+  });
+
+  it("renders search and applies list filters to the query", async () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean", label: "Active"}],
+          searchFields: ["email"],
+        },
+      ],
+      scripts: [],
+    };
+    const {UNSAFE_root, getByTestId} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-table-search"), "alice");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    const filterDrawers = UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        typeof node.props?.onApply === "function" && Array.isArray(node.props?.filters)
+    );
+    await act(async () => {
+      filterDrawers[0].props.onApply({active: true});
+    });
+
+    expect(listQueryArgs.some((params) => (params as {active?: boolean})?.active === true)).toBe(
+      true
+    );
+  });
+
+  it("runs patch and background bulk actions for selected rows", async () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          actions: [
+            {id: "activate", label: "Activate", patchKeys: ["active"]},
+            {background: true, id: "export", label: "Export"},
+          ],
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {
+      data: [{_id: "u1", active: false, email: "a@b.com"}],
+      total: 1,
+    };
+    const {UNSAFE_root, getByTestId} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+    const actionMenus = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => typeof node.props?.onRunAction === "function"
+    );
+    await act(async () => {
+      await actionMenus[0].props.onRunAction("activate");
+    });
+    expect(bulkPatchFn).toHaveBeenCalledWith({ids: ["u1"], patch: {active: true}});
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+    const refreshedActionMenus = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => typeof node.props?.onRunAction === "function"
+    );
+    await act(async () => {
+      await refreshedActionMenus[0].props.onRunAction("export");
+    });
+    expect(enqueueBackgroundFn).toHaveBeenCalledWith({
+      ids: ["u1"],
+      kind: "export",
+      metadata: {actionId: "export"},
+      resourceRoute: "/admin/users",
+    });
+  });
+
+  it("toggles an inline boolean and respects per-record update capability", async () => {
+    configState.config = fullConfig;
+    listState.data = {
+      data: [
+        {_adminCapabilities: {update: true}, _id: "u1", active: false, email: "a@b.com"},
+        {_adminCapabilities: {update: false}, _id: "u2", active: true, email: "c@d.com"},
+      ],
+      total: 2,
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const tables = UNSAFE_root.findAll((node: ReactTestInstance) =>
+      Array.isArray(node.props?.data)
+    );
+    const rows = tables[0].props.data as Array<Array<{value: Record<string, unknown>}>>;
+    const firstActiveCell = rows[0][1].value;
+    const secondActiveCell = rows[1][1].value;
+
+    await act(async () => {
+      (firstActiveCell.onToggle as () => void)();
+    });
+    expect(patchFn).toHaveBeenCalledTimes(1);
+    expect(patchFn).toHaveBeenCalledWith({body: {active: true}, id: "u1"});
+    expect(secondActiveCell.disabled).toBe(true);
+  });
+
+  it("executes rendered link, row-action, and inline-switch callbacks", async () => {
+    configState.config = fullConfig;
+    listState.data = {
+      data: [{_id: "u1", active: false, email: "a@b.com"}],
+      total: 1,
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const link = UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.text === "a@b.com" && typeof node.props?.onClick === "function"
+    )[0];
+    const action = (label: string): ReactTestInstance =>
+      UNSAFE_root.findAll(
+        (node: ReactTestInstance) =>
+          node.props?.accessibilityLabel === label && typeof node.props?.onClick === "function"
+      )[0];
+    const enabledSwitch = UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.accessibilityRole === "switch" &&
+        node.props?.disabled === false &&
+        typeof node.props?.onPress === "function"
+    )[0];
+
+    await act(async () => {
+      link.props.onClick();
+      action("View").props.onClick();
+      action("Edit").props.onClick();
+      action("Delete").props.onClick();
+      enabledSwitch.props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(routerPush).toHaveBeenCalledWith("/admin/User/u1");
+    expect(deleteFn).toHaveBeenCalledWith("u1");
+    expect(patchFn).toHaveBeenCalledWith({body: {active: true}, id: "u1"});
   });
 });

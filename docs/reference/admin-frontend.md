@@ -10,6 +10,22 @@ and [Build admin screens](../how-to/build-admin-screens.md).
 Home is `AdminHome` inside `AdminProvider` + `AdminShellLayout`. Generic models use
 `AdminScreenRouter` on `[model]/index`. See the how-to for `apiBase` vs `routeBase`.
 
+Pass fetch auth on `AdminProvider`:
+
+| Host | Props |
+| --- | --- |
+| Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session). Omit `apiOrigin`. |
+| Embedded app | `getAuthHeaders` that return `Authorization: Bearer …`, plus `apiOrigin` set to the API origin (`@terreno/rtk` `baseUrl`) |
+
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders, origin})` then `adminRequest`. Relative URLs such as `/admin/config` are prefixed with `origin` when it is set. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
+
+Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose
+config includes `adminBroadcast: true` and `syncCollection`. When product screens
+also sync the same collection, inject a dedicated admin client/store configured
+with `windowCollections`; one client cannot join owner/tenant and admin modes for
+the same collection. Do not add `@terreno/syncdb` as a hard dependency of
+admin-frontend.
+
 ``````typescript
 // app/admin/index.tsx
 import {AdminHome} from "@terreno/admin-frontend";
@@ -53,6 +69,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. A windowed create or delete never touches the cached REST list, so the form flags the collection through `markAdminWindowMembershipStale` and the changelist refetches membership automatically — whether it stayed mounted behind the form or remounts when the form pops. A create also passes the new id as `awaitId`, because `mutate` only enqueues on the outbox and the first refetch can beat the server; the changelist retries up to three times, 700 ms apart, then leaves **Refresh** as the fallback. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 
@@ -76,6 +93,34 @@ Auto-generates fields from model schema:
 - `enum` → SelectField with options
 
 System fields (`_id`, `__v`, `created`, `updated`, `deleted`) are automatically skipped.
+
+When `AdminProvider` has `syncDb` plus a fetch client and the model config reports
+`adminBroadcast`, `syncCollection`, and a String `_id`, create/update/delete use the
+syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record so a
+deep-linked form can mutate locally. ObjectId models and hosts without the full
+windowed configuration keep the REST/RTK mutation path.
+
+Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
+Windowed tables and forms render `AdminConflictSheet`, filtered to the ids loaded
+on that page or form, and forward **Use server** / **Keep mine** to syncdb's
+resolver. Only the most recently mounted sheet per collection renders, so a form
+stacked over its changelist shows one sheet instead of two.
+This adapter keeps `@terreno/syncdb` optional for admin-frontend.
+Bulk actions remain server operations: windowed models call the host fetch
+client at `{routePath}/bulk-patch`, while API-only/ObjectId hosts retain RTK.
+
+```tsx
+const syncConflicts = useConflicts();
+
+<AdminProvider
+  api={api}
+  apiBase="/admin"
+  syncConflicts={syncConflicts}
+  syncDb={syncDb}
+>
+  {children}
+</AdminProvider>;
+```
 
 ### AdminRolesList
 
@@ -134,20 +179,31 @@ Returns model metadata from `{baseUrl}/config`.
 
 ### useAdminApi
 
-Generates RTK Query hooks for CRUD operations.
+> Deprecated in Terreno 57: do not add new admin `injectEndpoints`. Terreno 58
+> removes `useAdminApi` and the required `api` prop. During the compatibility
+> window, continue passing `api` for ObjectId model CRUD and API-only hosts.
+
+Generates compatibility RTK Query hooks for list/read/create/update/delete plus
+`POST {routePath}/bulk-patch`.
+Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
+
+Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Bind host auth with `bindAdminRequest`. Do not add axios.
 
 ``````typescript
 const {
   useListQuery,
-  useGetQuery,
+  useReadQuery,
   useCreateMutation,
   useUpdateMutation,
   useDeleteMutation,
-} = useAdminApi(api, baseUrl, modelName);
+  useBulkPatchMutation,
+} = useAdminApi(api, "/admin/users", "User");
 
-const {data, isLoading} = useListQuery({limit: 20, page: 1});
+const {data, isLoading} = useListQuery({limit: 20, page: 1, q: "Ada", sort: "-created"});
 const [create] = useCreateMutation();
 await create({email: "user@example.com"}).unwrap();
+const [bulkPatch] = useBulkPatchMutation();
+await bulkPatch({ids: ["abc"], patch: {name: "Ada"}}).unwrap();
 ``````
 
 ## Expo Router Setup

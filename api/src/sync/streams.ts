@@ -25,6 +25,9 @@ export const getScopeField = (scope: SyncScope): string | null => {
   return null;
 };
 
+/** Fan-in stream for admin window subscribers when `SyncConfig.adminBroadcast` is true. */
+export const adminBroadcastStream = (collectionTag: string): string => `${collectionTag}|admin`;
+
 /** Build a stream key from a collection tag and a raw scope value. */
 export const streamForScopeValue = ({
   collectionTag,
@@ -64,6 +67,9 @@ export const parseStreamKey = (
   const rest = stream.slice(pipe + 1);
   if (rest === "all") {
     return {collectionTag, scopeKind: "all", scopeValue: null};
+  }
+  if (rest === "admin") {
+    return {collectionTag, scopeKind: "admin", scopeValue: null};
   }
   const colon = rest.indexOf(":");
   if (colon < 0) {

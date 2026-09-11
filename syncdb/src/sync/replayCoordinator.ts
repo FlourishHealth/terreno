@@ -384,6 +384,9 @@ export const createReplayCoordinator = ({
         request.data = {};
       }
     }
+    if (mutation.mutationMode !== undefined) {
+      request.mutationMode = mutation.mutationMode;
+    }
     return request;
   };
 

@@ -20,7 +20,7 @@ interface TestServer {
   /** Sockets that have connected, most recent last. */
   sockets: ServerSocket[];
   /** sync:subscribe payloads received, in order. */
-  subscribes: {collections: string[]}[];
+  subscribes: {collections: string[]; mode?: string}[];
   /** Handler answering sync:mutate; replace per test. */
   mutateHandler: (request: SyncMutateRequest, socket: ServerSocket) => void;
   /** Handler answering sync:mutateBatch; replace per test (no-op = unsupported). */
@@ -53,7 +53,7 @@ const startServer = async (): Promise<TestServer> => {
   };
   io.on("connection", (socket) => {
     server.sockets.push(socket);
-    socket.on("sync:subscribe", (payload: {collections: string[]}) => {
+    socket.on("sync:subscribe", (payload: {collections: string[]; mode?: string}) => {
       server.subscribes.push(payload);
     });
     socket.on("sync:mutate", (request: SyncMutateRequest) => {
@@ -140,6 +140,14 @@ describe("createSocketTransport", () => {
     await connecting.connect();
     await connecting.connect();
     expect(server.sockets).toHaveLength(1);
+  });
+
+  it("subscribe emits window mode for window collections", async () => {
+    const subscriber = makeTransport();
+    subscriber.subscribe(["todos"], {mode: "window"});
+    await subscriber.connect();
+    await waitUntil(() => server.subscribes.length === 1);
+    expect(server.subscribes).toEqual([{collections: ["todos"], mode: "window"}]);
   });
 
   it("subscribe emits sync:subscribe when connected and replays it on connect", async () => {

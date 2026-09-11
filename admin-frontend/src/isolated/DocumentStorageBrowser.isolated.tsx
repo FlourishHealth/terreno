@@ -218,6 +218,7 @@ mock.module("../useDocumentStorageApi", () => ({
 }));
 
 import {DocumentStorageBrowser} from "../DocumentStorageBrowser";
+import {DocumentsScreenWidget} from "../widgets/DocumentsScreenWidget";
 
 const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
@@ -244,6 +245,18 @@ describe("DocumentStorageBrowser (isolated)", () => {
     createFolderImpl = async () => ({});
     downloadImpl = async () => new Blob(["hi"]);
     Object.defineProperty(Platform, "OS", {configurable: true, value: "web"});
+  });
+
+  it("renders the built-in documents screen widget", () => {
+    const rendered = renderWithTheme(
+      <DocumentsScreenWidget
+        api={{} as AdminApi}
+        config={{models: [], scripts: []}}
+        routeBase="/console"
+        screenName="documents"
+      />
+    );
+    expect(rendered.toJSON()).toBeDefined();
   });
 
   it("creates a folder via primary button", async () => {

@@ -192,6 +192,8 @@ export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
 export * from "./seedRunner";
+export * from "./sync/adminBroadcastScope";
+export * from "./sync/adminWindowMutation";
 export * from "./sync/executors";
 export * from "./sync/models";
 export * from "./sync/mutationHandler";

@@ -8,6 +8,8 @@ import {
   replaceCollectionOptions,
 } from "../collectionRegistry";
 import {logger} from "../logger";
+import {clearAdminBroadcastScopes} from "./adminBroadcastScope";
+import {clearAdminWindowMutationScopes} from "./adminWindowMutation";
 import {
   clearSyncIndexCreationTasks,
   ensureSyncIndexes,
@@ -116,4 +118,6 @@ export const findSyncEntryByCollectionName = (
 export const clearSyncRegistry = (): void => {
   clearCollectionRegistry();
   clearSyncIndexCreationTasks();
+  clearAdminBroadcastScopes();
+  clearAdminWindowMutationScopes();
 };

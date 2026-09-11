@@ -1,5 +1,5 @@
 import {getCalendars} from "expo-localization";
-import {type FC, useMemo, useState} from "react";
+import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
   type KeyboardTypeOptions,
@@ -18,6 +18,11 @@ import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
+import {
+  createTextFieldOscillationState,
+  recordTextFieldOscillation,
+  shouldSuppressTextFieldOscillation,
+} from "./textFieldOscillationGuard";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -139,8 +144,46 @@ export const TextField: FC<TextFieldProps> = ({
     console.warn(`${type} is not yet supported`);
   }
 
+  // RN Web browser autocorrect/spellcheck fights controlled `value` and can oscillate
+  // between variants (e.g. "reachthreshold" vs "reach threshold"), firing onChangeText forever.
   const shouldAutocorrect =
-    ["text", "textarea"].includes(type) && (!autoComplete || autoComplete === "on");
+    Platform.OS !== "web" &&
+    ["text", "textarea"].includes(type) &&
+    (!autoComplete || autoComplete === "on");
+
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  const oscillationRef = useRef(createTextFieldOscillationState());
+  valueRef.current = value;
+  onChangeRef.current = onChange;
+
+  const handleChangeText = useCallback((text: string): void => {
+    const currentValue = valueRef.current ?? "";
+    if (text === currentValue) {
+      return;
+    }
+
+    const now = performance.now();
+    const oscillationState = oscillationRef.current;
+    if (
+      shouldSuppressTextFieldOscillation({
+        currentValue,
+        now,
+        state: oscillationState,
+        text,
+      })
+    ) {
+      return;
+    }
+
+    recordTextFieldOscillation({
+      currentValue,
+      now,
+      state: oscillationState,
+      text,
+    });
+    onChangeRef.current(text);
+  }, []);
 
   const keyboardType = keyboardMap[type];
   const textContentType = textContentMap[type || "text"];
@@ -180,6 +223,7 @@ export const TextField: FC<TextFieldProps> = ({
           }}
         >
           <TextInput
+            {...(Platform.OS === "web" ? {spellCheck: false} : {})}
             accessibilityHint="Enter text here"
             accessibilityState={{disabled}}
             aria-label="Text input field"
@@ -208,7 +252,7 @@ export const TextField: FC<TextFieldProps> = ({
               }
               setFocused(false);
             }}
-            onChangeText={onChange}
+            onChangeText={handleChangeText}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;

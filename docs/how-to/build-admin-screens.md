@@ -22,7 +22,18 @@ Embedded app (`example-frontend`):
 
 ```tsx
 // app/admin/_layout.tsx
-<AdminProvider api={api} apiBase="/admin" routeBase="/admin" widgets={{screens: {"sync-lab": SyncLabScreen}}}>
+const syncConflicts = useConflicts();
+
+<AdminProvider
+  api={api}
+  apiBase="/admin"
+  apiOrigin={baseUrl}
+  getAuthHeaders={getAdminAuthHeaders}
+  routeBase="/admin"
+  syncConflicts={syncConflicts}
+  syncDb={adminSyncDb}
+  widgets={{screens: {"sync-lab": SyncLabScreen}}}
+>
   <AdminShellLayout
     api={api}
     apiBase="/admin"
@@ -36,11 +47,25 @@ Embedded app (`example-frontend`):
 </AdminProvider>
 ```
 
-Gate entry with `canOpenAdminPage` from `@terreno/rtk` (`admin:access`). Do not
-rely on `user.admin` alone when RBAC is on.
+Render this tree inside `SyncDbProvider client={adminSyncDb}`. If product screens
+also sync the same collection, make `adminSyncDb` a dedicated client with a unique
+store name and `windowCollections` set; do not mix admin rows into the owner/tenant
+product store. Start that client after `canOpenAdminPage` succeeds, block the admin
+shell until `start()` resolves, and call `stop()` when the admin layout unmounts.
 
-Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`. Each route
-wraps `AdminShellLayout` because the root layout is only providers.
+Gate entry with `canOpenAdminPage` from `@terreno/rtk` (`admin:access`). Do not
+rely on `user.admin` alone when RBAC is on. Import `baseUrl` from `@terreno/rtk`
+and pass it as `apiOrigin` so admin RPC (`GET /admin/config`, `/rbac/roles`, …)
+hits the API instead of the Expo web origin.
+
+Standalone SPA (`admin-spa`): `routeBase=""`, `apiBase="/admin"`, `credentials="same-origin"`,
+and `getAuthHeaders` that return `{}` so the cookie session is sent without a Bearer header.
+Omit `apiOrigin`. Each route wraps `AdminShellLayout` because the root layout is only
+providers. Model tables render **Create** once, in the table chrome
+(`testID="admin-create-button"`), because admin Expo stacks use `headerShown: false`.
+Model forms render **Save** / **Delete** in the form chrome
+(`testID="admin-save-button"` / `admin-delete-button`) for the same reason.
+The navigator header only receives the screen title.
 
 ## 3. Keep generic model routes generic
 
@@ -96,10 +121,11 @@ for those paths. Otherwise `[model]/[id]` treats the id as a generic document.
 
 ## 5. Fetch data the admin way
 
-- Lists and forms: `useAdminApi(api, apiBase, modelName)` — never `axios` / `fetch`.
-- Config and nav: `useAdminConfig(api, apiBase)`.
-- Non-CRUD admin HTTP: generated SDK hooks after `bun run sdk`.
-- Do **not** put admin collections on `@terreno/syncdb`. Admin is server-first RTK.
+- String-`_id` collections configured with `adminBroadcast` use windowed syncdb
+  when the host passes `syncDb` plus fetch auth.
+- ObjectId model CRUD and API-only hosts keep `useAdminApi`.
+- Bulk patch remains server-side: native admin fetch for windowed hosts, RTK fallback otherwise.
+- Admin RPC uses the host-bound native fetch client. Do not add axios.
 
 ## 6. Sidebar and grouping
 

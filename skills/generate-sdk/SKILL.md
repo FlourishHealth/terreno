@@ -20,7 +20,12 @@ targets:
 
 Regenerates `example-frontend/store/openApiSdk.ts` from the backend OpenAPI spec via RTK Query codegen.
 
-**Scope:** This skill covers **non-synced** routes only (auth, profile, admin, AI, feature flags, custom RPC). Synced collections use `@terreno/syncdb` hooks (`useQuery`, `useMutate`) — they are **not** in the generated SDK. See [syncdb reference](../../docs/reference/syncdb.md) and [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
+**Scope:** This skill covers **non-synced** routes only (auth, profile, AI,
+feature flags, custom RPC). Synced collections use `@terreno/syncdb` hooks
+(`useQuery`, `useMutate`) — they are **not** in the generated SDK. Built-in
+admin RPC uses admin-frontend's host-bound fetch client; do not add admin
+`injectEndpoints`. See [syncdb reference](../../docs/reference/syncdb.md)
+and [migrate-rtk-to-syncdb.md](../../docs/how-to/migrate-rtk-to-syncdb.md).
 
 ### Legacy RTK data path
 

@@ -85,6 +85,10 @@ export {
   betterAuthAdapter,
   DEFAULT_AUTH_POLL_INTERVAL_MS,
 } from "./auth/betterAuthAdapter";
+export {
+  type BetterAuthReactClientLike,
+  bridgeBetterAuthReactClient,
+} from "./auth/betterAuthReactClient";
 export type {
   BetterAuthClientLike,
   BetterAuthGetSessionResult,
