@@ -118,6 +118,36 @@ describe("hydrateWindowEntities", () => {
     assert.isTrue(row?.deleted);
   });
 
+  it("keeps a newer live delta when the entities snapshot is already stale", async () => {
+    const store = createSyncStore({collections: ["todos"]});
+    const result = await hydrateWindowEntities({
+      channel: {
+        fetchEntities: async () => {
+          // A `{collection}|admin` delta lands while the entities request is in flight.
+          store.upsertEntity({
+            collection: "todos",
+            data: {title: "live-delta"},
+            id: "a",
+            seq: 20,
+            stream: STREAM,
+          });
+          return {
+            entities: [{data: {title: "stale-snapshot"}, deleted: true, id: "a", seq: 12}],
+          };
+        },
+      },
+      collection: "todos",
+      ids: ["a"],
+      store,
+    });
+
+    const row = store.getEntity<{title: string}>({collection: "todos", id: "a"});
+    assert.deepEqual(result.hydratedIds, ["a"]);
+    assert.equal(row?.data.title, "live-delta");
+    assert.equal(row?.seq, 20);
+    assert.isNotTrue(row?.deleted);
+  });
+
   it("skips REST and entities upserts when a pending optimistic mutation owns the row", async () => {
     const store = createSyncStore({collections: ["todos"]});
     store.upsertEntity({

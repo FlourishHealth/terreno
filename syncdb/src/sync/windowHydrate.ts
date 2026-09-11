@@ -72,6 +72,13 @@ export const hydrateWindowEntities = async ({
       if (existing?.pendingMutationId) {
         continue;
       }
+      // A live `{collection}|admin` delta can land while this fetch is in flight. Its seq is
+      // newer than the snapshot being applied here, so writing the snapshot back would rewind
+      // seq/deleted and make the next mutate conflict against a stale baseline.
+      if (existing && existing.seq > entity.seq) {
+        hydrated.add(entity.id);
+        continue;
+      }
       const restData = restRows?.[entity.id];
       store.upsertEntity({
         collection,
