@@ -72,6 +72,9 @@ export interface SyncConfig {
 
 export type SyncMutationOperation = "create" | "update" | "delete";
 
+/** Explicit client marker for admin-panel windowed sync writes. */
+export type SyncMutationMode = "adminWindow";
+
 /** `sync:subscribe` / `sync:subscribed` window mode for admin fan-in (no snapshot paging). */
 export type SyncSubscribeMode = "window";
 
@@ -148,6 +151,13 @@ export interface SyncMutateRequest {
   data?: Record<string, unknown>;
   /** The `_syncSeq` the client last saw for this document; enables LWW conflict detection. */
   baseVersion?: number;
+  /**
+   * When `"adminWindow"`, the server applies AdminApp write semantics (RBAC,
+   * writeOwned, readonly/hidden stripping, audit) instead of product sync
+   * permissions. Ignored unless the collection is `adminBroadcast`, the caller
+   * has admin-window access, and AdminApp registered a write scope.
+   */
+  mutationMode?: SyncMutationMode;
 }
 
 /** Successful mutation acknowledgement. */

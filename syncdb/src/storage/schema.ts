@@ -84,6 +84,7 @@ export const buildTablesSchema = ({collections}: {collections: string[]}): Table
       entityId: {type: "string"},
       errorNackCount: {type: "number"},
       maxAttempts: {type: "number"},
+      mutationMode: {type: "string"},
       operation: {type: "string"},
       status: {type: "string"},
       userId: {type: "string"},

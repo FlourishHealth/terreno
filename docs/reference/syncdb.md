@@ -410,8 +410,8 @@ sync: {
 | `GET /sync/snapshot?collection=&stream=&cursor=&limit=` | Bootstrap + catch-up per stream |
 | `GET /sync/streams` | Current stream membership for the user |
 | `GET /sync/entities` | Point lookup for entity repair and admin window hydrate. Admin-window callers (`admin:access` with RBAC, else `user.admin`) on `adminBroadcast` collections receive requested ids across product streams. When AdminApp registered a scope, list/read/`queryFilter` still apply; unknown or out-of-scope ids are omitted |
-| `POST /sync/mutate` | Single mutation (HTTP fallback) |
-| `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack) |
+| `POST /sync/mutate` | Single mutation (HTTP fallback). Optional `mutationMode: "adminWindow"` applies AdminApp write semantics when the collection is `adminBroadcast`, the caller has admin-window access, and AdminApp registered a write scope |
+| `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack). Each mutation may carry `mutationMode: "adminWindow"` under the same gate as single mutate |
 | `GET /sync/key` | Per-user encryption key material (web) |
 
 Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
@@ -424,7 +424,7 @@ Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
 | `sync:subscribed` | server → client | `{collection, streams, mode?: "window"}` — sent after the stream rooms are joined; full-mode clients page each confirmed stream from its cursor. `mode: "window"` joins `{collection}\|admin` only and must not trigger snapshot paging |
 | `sync:error` | server → client | `{collection, message}` |
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?, frontierSeq?}` |
-| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` |
+| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?, mutationMode?}` — `mutationMode: "adminWindow"` uses the admin-window write path when validated server-side |
 | `sync:ack` | server → client | `{mutationId, id, seq}` |
 | `sync:nack` | server → client | `{mutationId, code, serverDoc?, serverSeq?, serverDeleted?, message?, retryAfterMs?}` |
 | `sync:mutateBatch` | client → server | `{mutations: SyncMutateRequest[], batchId?}` |

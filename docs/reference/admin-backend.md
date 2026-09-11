@@ -121,6 +121,15 @@ Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.a
 the sync admin window (`registerAdminBroadcastScope`). `GET /sync/entities` and
 `{collection}|admin` deltas then use that contract, not product `IsOwner`.
 
+For writes, AdminApp registers an admin-window mutation scope (`registerAdminWindowMutationScope`).
+Sync clients listed in `createSyncDb({windowCollections})` tag outbox rows with
+`mutationMode: "adminWindow"`. The server does not trust the marker alone: it also requires
+`adminBroadcast`, admin-window access (`admin:access` with RBAC, else `user.admin`), and the
+registered scope. Successful admin-window sync mutations enforce the same create/update/delete
+enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, and `onAdminAudit` hooks
+as REST — over both `POST /sync/mutate` / `sync:mutate` and batch paths. Product clients that
+omit the marker keep product sync permissions.
+
 With `accessControl`, each model can use a standard admin resource with three actions:
 
 | Action | Access |

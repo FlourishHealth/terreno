@@ -1,13 +1,6 @@
 /**
- * Characterization tests for the admin windowed sync write authorization gap.
- *
- * AdminModelForm windowed writes call POST /sync/mutate, which runs the **product**
- * modelRouter pipeline (entry.options from registerSync). Admin REST uses a separate
- * AdminApp modelRouter with writeOwned/isOwned, stripProtectedFromBody, permissions
- * toggles, and onAdminAudit — none of which apply on the sync mutation path today.
- *
- * These tests document the mismatch before a fix lands. They assert REST denies while
- * sync allows (or strips vs persists) so CI fails once authorization is aligned.
+ * Admin windowed sync write authorization: REST and `POST /sync/mutate` with
+ * `mutationMode: "adminWindow"` must enforce the same AdminApp semantics.
  */
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {
@@ -26,6 +19,7 @@ import {
   setupAuth,
   syncPlugin,
   terrenoStatements,
+  type User,
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
@@ -90,9 +84,11 @@ const productSyncOptions = {
 const buildHarness = ({
   grants,
   onAdminAudit,
+  resolvePermissions,
 }: {
   grants: Record<string, string[]>;
   onAdminAudit?: (event: AdminAuditEvent) => void | Promise<void>;
+  resolvePermissions?: (args: {user: User}) => Promise<Record<string, string[]>>;
 }): express.Application => {
   clearSyncRegistry();
   registerSync({
@@ -104,7 +100,14 @@ const buildHarness = ({
 
   const accessControl = createAccess({
     connection: mongoose.connection,
-    resolvePermissions: async () => grants,
+    resolvePermissions:
+      resolvePermissions ??
+      (async ({user}) => {
+        if (user?.admin) {
+          return grants;
+        }
+        return {};
+      }),
     statements: {...terrenoStatements, adminWindowTodo: ADMIN_MODEL_ACCESS},
   });
 
@@ -125,13 +128,18 @@ const buildHarness = ({
     ],
     onAdminAudit,
   }).register(app);
-  new SyncApp().register(app);
+  new SyncApp({accessControl}).register(app);
   app.use(apiUnauthorizedMiddleware);
   app.use(apiErrorMiddleware);
   return app;
 };
 
-describe("admin sync mutation authorization mismatch (characterization)", () => {
+const adminWindowMutate = (body: Record<string, unknown>): Record<string, unknown> => ({
+  ...body,
+  mutationMode: "adminWindow",
+});
+
+describe("admin window sync mutation authorization", () => {
   let agent: TestAgent;
   let actorId: string;
   let otherOwnerId: string;
@@ -153,7 +161,7 @@ describe("admin sync mutation authorization mismatch (characterization)", () => 
     await WindowTodoModel.deleteMany({});
   });
 
-  it("REST PATCH denies writeOwned update on another owner's row but POST /sync/mutate applies it", async () => {
+  it("REST PATCH and admin-window sync both deny writeOwned update on another owner's row", async () => {
     const owned = await WindowTodoModel.create({
       ownerId: actorId,
       protectedLabel: "mine",
@@ -167,30 +175,28 @@ describe("admin sync mutation authorization mismatch (characterization)", () => 
 
     await agent.patch(`/admin/window-todos/${other._id}`).send({title: "REST blocked"}).expect(403);
 
-    const ownedPatch = await agent
-      .patch(`/admin/window-todos/${owned._id}`)
-      .send({title: "REST ok"})
-      .expect(200);
-    expect(ownedPatch.body.data.title).toBe("REST ok");
-
     const syncRes = await agent
       .post("/sync/mutate")
-      .send({
-        baseVersion: other._syncSeq ?? 1,
-        collection: "window-todos",
-        data: {title: "Sync bypass"},
-        id: other._id,
-        mutationId: "repro-writeowned-update",
-        operation: "update",
-      })
-      .expect(200);
+      .send(
+        adminWindowMutate({
+          baseVersion: other._syncSeq ?? 1,
+          collection: "window-todos",
+          data: {title: "Sync blocked"},
+          id: other._id,
+          mutationId: "admin-writeowned-deny",
+          operation: "update",
+        })
+      )
+      .expect(403);
 
-    expect(syncRes.body.ack.mutationId).toBe("repro-writeowned-update");
+    expect(syncRes.body.nack.code).toBe("unauthorized");
     const reloaded = await WindowTodoModel.findById(other._id).lean();
-    expect(reloaded?.title).toBe("Sync bypass");
+    expect(reloaded?.title).toBe("Other");
+
+    await agent.patch(`/admin/window-todos/${owned._id}`).send({title: "REST ok"}).expect(200);
   });
 
-  it("REST PATCH strips readonlyFields but POST /sync/mutate persists protected keys", async () => {
+  it("REST PATCH and admin-window sync both strip readonlyFields", async () => {
     const row = await WindowTodoModel.create({
       ownerId: actorId,
       protectedLabel: "keep-me",
@@ -208,23 +214,25 @@ describe("admin sync mutation authorization mismatch (characterization)", () => 
 
     const syncRes = await agent
       .post("/sync/mutate")
-      .send({
-        baseVersion: afterRest?._syncSeq ?? 2,
-        collection: "window-todos",
-        data: {protectedLabel: "Sync wrote protected", title: "After sync"},
-        id: row._id,
-        mutationId: "repro-readonly-bypass",
-        operation: "update",
-      })
+      .send(
+        adminWindowMutate({
+          baseVersion: afterRest?._syncSeq ?? 2,
+          collection: "window-todos",
+          data: {protectedLabel: "Sync stripped", title: "After sync"},
+          id: row._id,
+          mutationId: "admin-readonly-strip",
+          operation: "update",
+        })
+      )
       .expect(200);
 
-    expect(syncRes.body.ack.mutationId).toBe("repro-readonly-bypass");
+    expect(syncRes.body.ack.mutationId).toBe("admin-readonly-strip");
     const afterSync = await WindowTodoModel.findById(row._id).lean();
-    expect(afterSync?.protectedLabel).toBe("Sync wrote protected");
+    expect(afterSync?.protectedLabel).toBe("keep-me");
     expect(afterSync?.title).toBe("After sync");
   });
 
-  it("REST DELETE is disabled but POST /sync/mutate delete still succeeds", async () => {
+  it("REST DELETE disabled and admin-window sync delete both return unauthorized", async () => {
     const row = await WindowTodoModel.create({
       ownerId: actorId,
       title: "To delete",
@@ -235,20 +243,22 @@ describe("admin sync mutation authorization mismatch (characterization)", () => 
 
     const syncRes = await agent
       .post("/sync/mutate")
-      .send({
-        collection: "window-todos",
-        id: row._id,
-        mutationId: "repro-delete-disabled",
-        operation: "delete",
-      })
-      .expect(200);
+      .send(
+        adminWindowMutate({
+          collection: "window-todos",
+          id: row._id,
+          mutationId: "admin-delete-disabled",
+          operation: "delete",
+        })
+      )
+      .expect(403);
 
-    expect(syncRes.body.ack.mutationId).toBe("repro-delete-disabled");
-    const tombstones = await WindowTodoModel.find({_id: row._id, deleted: true});
-    expect(tombstones).toHaveLength(1);
+    expect(syncRes.body.nack.code).toBe("unauthorized");
+    const stillThere = await WindowTodoModel.findById(row._id).lean();
+    expect(stillThere?.deleted).not.toBe(true);
   });
 
-  it("onAdminAudit fires for REST PATCH but not for POST /sync/mutate update", async () => {
+  it("onAdminAudit fires for REST PATCH and admin-window sync update", async () => {
     const auditEvents: AdminAuditEvent[] = [];
     const app = buildHarness({
       grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
@@ -268,16 +278,74 @@ describe("admin sync mutation authorization mismatch (characterization)", () => 
     const current = await WindowTodoModel.findById(row._id).lean();
     await writer
       .post("/sync/mutate")
-      .send({
-        baseVersion: current?._syncSeq ?? 2,
-        collection: "window-todos",
-        data: {title: "Sync no audit"},
-        id: row._id,
-        mutationId: "repro-audit-gap",
-        operation: "update",
-      })
+      .send(
+        adminWindowMutate({
+          baseVersion: current?._syncSeq ?? 2,
+          collection: "window-todos",
+          data: {title: "Sync audit"},
+          id: row._id,
+          mutationId: "admin-sync-audit",
+          operation: "update",
+        })
+      )
       .expect(200);
 
-    expect(auditEvents.filter((event) => event.verb === "updated")).toHaveLength(1);
+    expect(auditEvents.filter((event) => event.verb === "updated")).toHaveLength(2);
+  });
+
+  it("rejects admin-window marker spoofing from a non-admin product user", async () => {
+    const app = buildHarness({
+      grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
+    });
+    const stranger = await authAsUser(app, "notAdmin");
+    const row = await WindowTodoModel.create({
+      ownerId: otherOwnerId,
+      title: "Protected",
+    });
+
+    const syncRes = await stranger
+      .post("/sync/mutate")
+      .send(
+        adminWindowMutate({
+          baseVersion: row._syncSeq ?? 1,
+          collection: "window-todos",
+          data: {title: "Spoofed"},
+          id: row._id,
+          mutationId: "spoof-admin-window",
+          operation: "update",
+        })
+      )
+      .expect(403);
+
+    expect(syncRes.body.nack.code).toBe("unauthorized");
+    const reloaded = await WindowTodoModel.findById(row._id).lean();
+    expect(reloaded?.title).toBe("Protected");
+  });
+
+  it("product sync path without admin-window marker keeps IsOwner semantics", async () => {
+    const app = buildHarness({
+      grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
+    });
+    const productUser = await authAsUser(app, "notAdmin");
+    const row = await WindowTodoModel.create({
+      ownerId: otherOwnerId,
+      title: "Product path",
+    });
+
+    const syncRes = await productUser
+      .post("/sync/mutate")
+      .send({
+        baseVersion: row._syncSeq ?? 1,
+        collection: "window-todos",
+        data: {title: "Product denied"},
+        id: row._id,
+        mutationId: "product-isowner-deny",
+        operation: "update",
+      })
+      .expect(403);
+
+    expect(syncRes.body.nack.code).toBe("unauthorized");
+    const reloaded = await WindowTodoModel.findById(row._id).lean();
+    expect(reloaded?.title).toBe("Product path");
   });
 });

@@ -6,6 +6,11 @@ import {APIError, isAPIError} from "../errors";
 import {createFeatureFlaggedLogger, logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 import {
+  type AdminWindowMutationScope,
+  emitAdminWindowMutationAudit,
+  prepareAdminWindowMutation,
+} from "./adminWindowMutation";
+import {
   executeCreate,
   executeDelete,
   executeUpdate,
@@ -16,6 +21,7 @@ import {
 } from "./executors";
 import {SYNC_MUTATION_LEASE_MS, SyncMutation, type SyncMutationDocument} from "./models";
 import {findSyncEntryByCollectionTag, type SyncRegistryEntry} from "./registry";
+import type {SyncAppOptions} from "./routes";
 import {serializeSyncDoc} from "./routes";
 import {getScopeField} from "./streams";
 import type {
@@ -518,6 +524,7 @@ const applyClaimedMutation = async ({
   request,
   user,
   scopeResolver,
+  syncOptions,
   isLeaseTakeover = false,
 }: {
   claimed: SyncMutationDocument;
@@ -526,31 +533,47 @@ const applyClaimedMutation = async ({
   request: express.Request;
   user: User;
   scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
   /** True when `claimed` was re-claimed from a stale lease rather than freshly inserted. */
   isLeaseTakeover?: boolean;
 }): Promise<SyncMutationOutcome> => {
   const mutationId = mutation.mutationId;
+  let adminWindowScope: AdminWindowMutationScope | undefined;
 
   try {
     // Task 9.18: resolving the model must be INSIDE the try — a MissingSchemaError thrown
     // here would escape without finalizing the claimed row, wedging the mutationId
     // `pending` for the whole lease window instead of nacking it.
     const model = mongoose.model(entry.modelName);
-    // C6 (M6): sync-boundary write-scope backstop before any write pipeline runs.
-    await enforceWriteScope({
-      data: mutation.data,
+    const adminWindow = await prepareAdminWindowMutation({
       entry,
-      operation: mutation.operation,
-      scopeResolver,
+      mutation,
+      req: request,
+      syncOptions,
       user,
     });
+    let effectiveMutation = mutation;
+    if (adminWindow) {
+      effectiveMutation = adminWindow.mutation;
+      adminWindowScope = adminWindow.scope;
+    } else {
+      // C6 (M6): product-path write-scope backstop before any write pipeline runs.
+      await enforceWriteScope({
+        data: effectiveMutation.data,
+        entry,
+        operation: effectiveMutation.operation,
+        scopeResolver,
+        user,
+      });
+    }
+    const skipPermissionChecks = Boolean(adminWindowScope);
 
     let doc: mongoose.Document;
     let postHook: (() => Promise<void>) | undefined;
-    if (mutation.operation === "create") {
-      const body: Record<string, unknown> = {...(mutation.data ?? {})};
-      if (mutation.id) {
-        body._id = mutation.id;
+    if (effectiveMutation.operation === "create") {
+      const body: Record<string, unknown> = {...(effectiveMutation.data ?? {})};
+      if (effectiveMutation.id) {
+        body._id = effectiveMutation.id;
       }
       try {
         const result = await executeCreate({
@@ -558,6 +581,7 @@ const applyClaimedMutation = async ({
           model,
           options: entry.options,
           req: request,
+          skipPermissionChecks,
           skipPostHooks: true,
           user,
         });
@@ -572,8 +596,12 @@ const applyClaimedMutation = async ({
         // client-minted UUIDs make a genuine unrelated _id collision
         // vanishingly unlikely, so gating this on isLeaseTakeover keeps the
         // tolerance scoped to its actual crash-recovery purpose.
-        if (isLeaseTakeover && isE11000Error(createError) && typeof mutation.id === "string") {
-          const existing = await findOneOrNoneFor(model, {_id: mutation.id});
+        if (
+          isLeaseTakeover &&
+          isE11000Error(createError) &&
+          typeof effectiveMutation.id === "string"
+        ) {
+          const existing = await findOneOrNoneFor(model, {_id: effectiveMutation.id});
           if (existing) {
             const {resultId, resultSeq} = await finalizeAlreadyApplied({
               claimedId: claimed._id,
@@ -585,15 +613,16 @@ const applyClaimedMutation = async ({
         }
         throw createError;
       }
-    } else if (mutation.operation === "update") {
+    } else if (effectiveMutation.operation === "update") {
       try {
         const result = await executeUpdate({
-          body: mutation.data ?? {},
-          concurrencyCheck: {baseSeq: mutation.baseVersion ?? 0, type: "seq"},
-          id: mutation.id as string,
+          body: effectiveMutation.data ?? {},
+          concurrencyCheck: {baseSeq: effectiveMutation.baseVersion ?? 0, type: "seq"},
+          id: effectiveMutation.id as string,
           model,
           options: entry.options,
           req: request,
+          skipPermissionChecks,
           skipPostHooks: true,
           user,
         });
@@ -619,8 +648,8 @@ const applyClaimedMutation = async ({
           isLeaseTakeover &&
           isExecutorConflictError(updateError) &&
           updateError.conflictType === "seq" &&
-          updateError.serverSeq === (mutation.baseVersion ?? 0) + 1 &&
-          docMatchesMutationData(updateError.doc, mutation.data)
+          updateError.serverSeq === (effectiveMutation.baseVersion ?? 0) + 1 &&
+          docMatchesMutationData(updateError.doc, effectiveMutation.data)
         ) {
           const {resultId, resultSeq} = await finalizeAlreadyApplied({
             claimedId: claimed._id,
@@ -633,10 +662,11 @@ const applyClaimedMutation = async ({
       }
     } else {
       const result = await executeDelete({
-        id: mutation.id as string,
+        id: effectiveMutation.id as string,
         model,
         options: entry.options,
         req: request,
+        skipPermissionChecks,
         skipPostHooks: true,
         user,
       });
@@ -670,6 +700,22 @@ const applyClaimedMutation = async ({
         mutationId,
       });
     }
+    if (adminWindowScope) {
+      try {
+        await emitAdminWindowMutationAudit({
+          doc,
+          mutation: effectiveMutation,
+          req: request,
+          scope: adminWindowScope,
+        });
+      } catch (auditError: unknown) {
+        logger.error("[sync] Admin window audit hook failed after a committed mutation", {
+          collection: mutation.collection,
+          error: errorMessageOf(auditError),
+          mutationId,
+        });
+      }
+    }
     return {
       ack: {id: resultId, mutationId, seq: resultSeq, ...(warning ? {warning} : {})},
       type: "ack",
@@ -692,12 +738,14 @@ export const applySyncMutation = async ({
   mutation,
   req,
   scopeResolver,
+  syncOptions,
 }: {
   user: User;
   mutation: SyncMutateRequest;
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
   scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
 }): Promise<SyncMutationOutcome> => {
   const mutationId = typeof mutation?.mutationId === "string" ? mutation.mutationId : "";
   const validationNack = (message: string): SyncMutationOutcome =>
@@ -753,6 +801,7 @@ export const applySyncMutation = async ({
           mutation,
           request,
           scopeResolver,
+          syncOptions,
           user,
         }),
       request,
@@ -760,7 +809,15 @@ export const applySyncMutation = async ({
     });
   }
 
-  return applyClaimedMutation({claimed, entry, mutation, request, scopeResolver, user});
+  return applyClaimedMutation({
+    claimed,
+    entry,
+    mutation,
+    request,
+    scopeResolver,
+    syncOptions,
+    user,
+  });
 };
 
 /** Outcome of a batch validation pre-check (before any mutation is attempted). */
@@ -831,16 +888,18 @@ export const applySyncMutationBatch = async ({
   mutations,
   req,
   scopeResolver,
+  syncOptions,
 }: {
   user: User;
   mutations: SyncMutateRequest[];
   /** The real Express request when called over HTTP; hooks receive a `{user}` stub otherwise. */
   req?: express.Request;
   scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
 }): Promise<SyncMutateBatchResponse> => {
   const results: SyncMutateBatchResponse["results"] = [];
   for (const mutation of mutations) {
-    const outcome = await applySyncMutation({mutation, req, scopeResolver, user});
+    const outcome = await applySyncMutation({mutation, req, scopeResolver, syncOptions, user});
     results.push(outcome);
     if (outcome.type === "nack") {
       // Stop-on-error: the client re-sends everything after this point, and

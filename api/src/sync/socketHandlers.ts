@@ -308,6 +308,7 @@ export const installSyncSocketHandlers = (
         const {outcome, stage} = await runSyncMutation({
           mutation: payload,
           scopeResolver: options.getUserScopes,
+          syncOptions: options,
           user,
         });
         if (stage === "rate_limited") {
@@ -356,6 +357,7 @@ export const installSyncSocketHandlers = (
         const {response, stage} = await runSyncBatch({
           mutations,
           scopeResolver: options.getUserScopes,
+          syncOptions: options,
           user,
         });
         if (stage === "rate_limited") {

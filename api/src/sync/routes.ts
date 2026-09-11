@@ -809,6 +809,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         mutation: req.body as SyncMutateRequest,
         req,
         scopeResolver: options.getUserScopes,
+        syncOptions: options,
         user,
       });
       if (outcome.type === "ack") {
@@ -836,6 +837,7 @@ export const addSyncRoutes = (app: express.Application, options: SyncAppOptions 
         mutations,
         req,
         scopeResolver: options.getUserScopes,
+        syncOptions: options,
         user,
       });
       if (stage === "validation") {

@@ -8,6 +8,9 @@
 
 export type SyncMutationOperation = "create" | "update" | "delete";
 
+/** Explicit client marker for admin-panel windowed sync writes. */
+export type SyncMutationMode = "adminWindow";
+
 /** A change event delivered by the server via `sync:delta`. */
 export interface SyncDelta {
   /** Collection tag (e.g. "todos"). */
@@ -62,6 +65,11 @@ export interface SyncMutateRequest {
   data?: Record<string, unknown>;
   /** The seq the client last saw for this document; enables LWW conflict detection. */
   baseVersion?: number;
+  /**
+   * When `"adminWindow"`, the server applies AdminApp write semantics instead of
+   * product sync permissions.
+   */
+  mutationMode?: SyncMutationMode;
 }
 
 /** Successful mutation acknowledgement. */
@@ -204,6 +212,8 @@ export interface OutboxMutation {
   /** The user this mutation belongs to; replay skips mutations from other users. */
   userId: string;
   createdAt: string;
+  /** Persisted admin-window marker for durable outbox replay. */
+  mutationMode?: SyncMutationMode;
 }
 
 /** An unresolved conflict between a local mutation and the canonical server state. */

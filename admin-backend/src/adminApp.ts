@@ -23,6 +23,7 @@ import {
   Permissions,
   type PopulatePath,
   registerAdminBroadcastScope,
+  registerAdminWindowMutationScope,
   type ScriptArgDef,
   type ScriptArgValue,
   type ScriptContext,
@@ -1682,6 +1683,30 @@ export class AdminApp {
         listPermissions: adminPermission(true, "list"),
         queryFilter: routerOptions.queryFilter,
         readPermissions: adminPermission(true, "read"),
+      });
+
+      registerAdminWindowMutationScope(config.model.modelName, {
+        createPermissions: this.resourceActionPermissions(config, "create"),
+        deletePermissions: this.resourceActionPermissions(config, "delete"),
+        emitAudit: auditEligible
+          ? async ({event, req}) => {
+              await safeOnAdminAudit(req, {
+                actorId: event.actorId,
+                modelName: event.modelName,
+                recordId: event.recordId,
+                recordLabel: auditLabelFromListFields(event.doc ?? {}, config.listFields),
+                verb: event.verb,
+              });
+            }
+          : undefined,
+        modelName: config.model.modelName,
+        permissions: {
+          create: config.permissions?.create !== false,
+          delete: config.permissions?.delete !== false,
+          update: config.permissions?.update !== false,
+        },
+        stripMutationData: (data) => stripProtectedFromBody(data),
+        updatePermissions: this.resourceActionPermissions(config, "update"),
       });
 
       const modelBase = express.Router();

@@ -184,6 +184,7 @@ export const executeCreate = async <T>({
   user,
   body,
   req,
+  skipPermissionChecks,
   skipPostHooks,
   writeModelName,
 }: {
@@ -205,10 +206,15 @@ export const executeCreate = async <T>({
    * committed write look like a failure. REST handlers never set this.
    */
   skipPostHooks?: boolean;
+  /** When true, skip modelRouter permission checks (admin-window sync mutations). */
+  skipPermissionChecks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
-  if (!(await checkPermissions("create", options.permissions.create, user))) {
+  if (
+    !skipPermissionChecks &&
+    !(await checkPermissions("create", options.permissions.create, user))
+  ) {
     throw new APIError({
       status: 405,
       title: `Access to CREATE on ${model.modelName} denied for ${user?.id}`,
@@ -348,6 +354,7 @@ export const executeUpdate = async <T>({
   concurrencyCheck,
   existingDoc,
   req,
+  skipPermissionChecks,
   skipPostHooks,
   writeModelName,
 }: {
@@ -371,10 +378,15 @@ export const executeUpdate = async <T>({
    * MCP passes the registry `modelName` because compiled mongoose names can differ.
    */
   writeModelName?: string;
+  /** When true, skip modelRouter permission checks (admin-window sync mutations). */
+  skipPermissionChecks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
-  if (!(await checkPermissions("update", options.permissions.update, user))) {
+  if (
+    !skipPermissionChecks &&
+    !(await checkPermissions("update", options.permissions.update, user))
+  ) {
     throw new APIError({
       status: 405,
       title: `Access to UPDATE on ${model.modelName} denied for ${user?.id}`,
@@ -384,7 +396,10 @@ export const executeUpdate = async <T>({
   let doc =
     existingDoc ?? ((await loadDocOr404<T>(model, id, options.populatePaths)) as ExecutorDoc<T>);
 
-  if (!(await checkPermissions("update", options.permissions.update, user, doc))) {
+  if (
+    !skipPermissionChecks &&
+    !(await checkPermissions("update", options.permissions.update, user, doc))
+  ) {
     throw new APIError({
       status: 403,
       title: `Access to GET on ${model.modelName}:${id} denied for ${user?.id}`,
@@ -603,6 +618,7 @@ export const executeDelete = async <T>({
   id,
   existingDoc,
   req,
+  skipPermissionChecks,
   skipPostHooks,
 }: {
   model: Model<T>;
@@ -618,10 +634,15 @@ export const executeDelete = async <T>({
   req?: express.Request;
   /** C5 (FIX 6): see `executeCreate`'s `skipPostHooks` doc comment. */
   skipPostHooks?: boolean;
+  /** When true, skip modelRouter permission checks (admin-window sync mutations). */
+  skipPermissionChecks?: boolean;
 }): Promise<ExecutorResult<T>> => {
   const request = req ?? stubRequest(user);
 
-  if (!(await checkPermissions("delete", options.permissions.delete, user))) {
+  if (
+    !skipPermissionChecks &&
+    !(await checkPermissions("delete", options.permissions.delete, user))
+  ) {
     throw new APIError({
       status: 405,
       title: `Access to DELETE on ${model.modelName} denied for ${user?.id}`,
@@ -649,7 +670,10 @@ export const executeDelete = async <T>({
         if (!resolved) {
           throw error;
         }
-        if (!(await checkPermissions("delete", options.permissions.delete, user, resolved))) {
+        if (
+          !skipPermissionChecks &&
+          !(await checkPermissions("delete", options.permissions.delete, user, resolved))
+        ) {
           throw new APIError({
             status: 403,
             title: `Access to GET on ${model.modelName}:${id} denied for ${user?.id}`,
@@ -661,7 +685,10 @@ export const executeDelete = async <T>({
     }
   }
 
-  if (!(await checkPermissions("delete", options.permissions.delete, user, doc))) {
+  if (
+    !skipPermissionChecks &&
+    !(await checkPermissions("delete", options.permissions.delete, user, doc))
+  ) {
     throw new APIError({
       status: 403,
       title: `Access to GET on ${model.modelName}:${id} denied for ${user?.id}`,

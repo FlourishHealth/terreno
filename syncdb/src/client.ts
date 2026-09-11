@@ -1695,6 +1695,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       entityId,
       ...(maxAttempts !== undefined ? {maxAttempts} : {}),
       mutationId,
+      ...(windowCollectionSet.has(collection) ? {mutationMode: "adminWindow" as const} : {}),
       operation,
       userId: currentUserId,
     });
