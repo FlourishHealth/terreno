@@ -8,7 +8,6 @@ import {
   validateCodexPluginHost,
   validateDocumentationContract,
   validateGithubAttentionContract,
-  validateGrillingProcedure,
   validateLifecyclePlugin,
   validateOuterLoopContent,
   validateProductCiContract,
@@ -32,9 +31,31 @@ const readGrilling = (): string =>
     "utf8"
   );
 
+const validateGrilling = (grillingContent: string): string[] =>
+  validateStageContent({
+    content: readStage("terreno-1-grow"),
+    definition: {
+      directory: "terreno-1-grow",
+      nextMarkers: ["next: pick", "next: grow", "next: null"],
+      stage: "grow",
+    },
+    grillingContent,
+  });
+
 describe("lifecycle skill architecture", (): void => {
   it("validates the real plugin lifecycle", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
+  });
+
+  it("defines the Terreno prepush gate with lint, typecheck, and static analysis", (): void => {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, "package.json"), "utf8")
+    ) as {scripts?: Record<string, string>};
+
+    assert.equal(
+      packageJson.scripts?.prepush,
+      "bun run lint && bun run compile && bun run analyze:full"
+    );
   });
 
   it("validates the Claude Code plugin host", (): void => {
@@ -156,11 +177,15 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
-  it("rejects Taste that skips the fresh lint/typecheck/test subagent or product-CI wait loop", (): void => {
+  it("rejects Taste that skips prepush, fallback checks, or the product-CI wait loop", (): void => {
     const content = readStage("terreno-5-taste")
       .replaceAll("fresh subagent", "same conversation")
       .replaceAll("no parent conversation", "full parent context")
-      .replaceAll("bun lint", "repo lint")
+      .replaceAll("package.json", "project manifest")
+      .replaceAll("If no root `prepush` script exists", "Skip when no local gate exists")
+      .replaceAll("prepush", "local gate")
+      .replaceAll("repository's package manager", "hard-coded command")
+      .replaceAll("lint script", "repo lint")
       .replaceAll("typecheck script", "build script")
       .replaceAll("locally affected tests", "the full suite")
       .replaceAll("latest `master`", "latest origin")
@@ -179,16 +204,17 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("fresh subagent")));
     assert.isTrue(errors.some((error) => error.includes("no parent conversation")));
-    assert.isTrue(errors.some((error) => error.includes("bun lint")));
+    assert.isTrue(errors.some((error) => error.includes("root prepush")));
+    assert.isTrue(errors.some((error) => error.includes("repository package manager")));
+    assert.isTrue(errors.some((error) => error.includes("fallback checks")));
+    assert.isTrue(errors.some((error) => error.includes("run lint")));
     assert.isTrue(errors.some((error) => error.includes("typecheck")));
     assert.isTrue(errors.some((error) => error.includes("locally affected tests")));
     assert.isTrue(errors.some((error) => error.includes("gh pr checks --watch")));
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("watch loop")));
     assert.isTrue(errors.some((error) => error.includes("latest master")));
-    assert.isTrue(
-      errors.some((error) => error.includes("pull, then lint and typecheck, then watch"))
-    );
+    assert.isTrue(errors.some((error) => error.includes("pull, then local gate, then watch")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {
@@ -461,7 +487,7 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("accepts the real grilling approval brief", (): void => {
-    assert.deepEqual(validateGrillingProcedure(readGrilling()), []);
+    assert.deepEqual(validateGrilling(readGrilling()), []);
   });
 
   it("rejects an approval brief that leads with decisions instead of the plan", (): void => {
@@ -470,7 +496,7 @@ describe("lifecycle skill architecture", (): void => {
       .replace("## Decisions", "## Decisions\n\n## The plan");
 
     assert.isTrue(
-      validateGrillingProcedure(content).some((error) =>
+      validateGrilling(content).some((error) =>
         error.includes("must come before the Decisions table")
       )
     );
@@ -481,7 +507,7 @@ describe("lifecycle skill architecture", (): void => {
       .replace("## The idea", "## Implementation notes")
       .replace("| ID | Question asked | Answer |", "| ID | Decision | Choice |")
       .replace("no row limit", "at most five rows");
-    const errors = validateGrillingProcedure(content);
+    const errors = validateGrilling(content);
 
     assert.isTrue(errors.some((error) => error.includes("## The idea")));
     assert.isTrue(errors.some((error) => error.includes("question that prompted each choice")));
@@ -489,7 +515,7 @@ describe("lifecycle skill architecture", (): void => {
   });
 
   it("rejects a grilling procedure with no approval brief at all", (): void => {
-    const errors = validateGrillingProcedure(
+    const errors = validateGrilling(
       readGrilling().replace("## Approval brief", "## Approval summary")
     );
 

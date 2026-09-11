@@ -9,5 +9,4 @@ plan (tasks, tracer, verification, out of scope, risks). The Decisions table fol
 the plan and now pairs every settled human decision with the question that prompted
 it, so a reviewer can see what was asked as well as what was chosen; it is still
 omitted when grilling settled none. A reviewer should be able to approve from the
-brief alone, without opening the IP, the ticket, or the interview history. Plugin
-`terreno-planning` is `2.9.0`.
+brief alone, without opening the IP, the ticket, or the interview history.

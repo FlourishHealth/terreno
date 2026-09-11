@@ -248,6 +248,7 @@
     "mcp:lint": "bun run --filter '@terreno/mcp' lint",
     "mcp:start": "bun run --filter '@terreno/mcp' start",
     "prepare": "simple-git-hooks",
+    "prepush": "bun run lint && bun run compile && bun run analyze:full",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",

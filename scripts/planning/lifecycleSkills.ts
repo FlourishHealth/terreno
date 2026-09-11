@@ -17,6 +17,7 @@ interface ValidateLifecyclePluginOptions {
 interface ValidateStageContentOptions {
   content: string;
   definition: StageDefinition;
+  grillingContent?: string;
 }
 
 interface TextFile {
@@ -162,6 +163,7 @@ const readMarkdownFiles = (directory: string): TextFile[] => {
 export const validateStageContent = ({
   content,
   definition,
+  grillingContent,
 }: ValidateStageContentOptions): string[] => {
   const errors: string[] = [];
   const prefix = definition.directory;
@@ -212,6 +214,9 @@ export const validateStageContent = ({
     }
     if (!content.includes("question that prompted")) {
       errors.push(`${prefix}: Grow decisions must carry the question that prompted them`);
+    }
+    if (grillingContent) {
+      errors.push(...validateGrillingProcedure(grillingContent));
     }
   }
 
@@ -327,21 +332,28 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before lint, typecheck, and push`);
+      errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(
-        `${prefix}: Taste must order before-push as pull, then lint and typecheck, then watch`
-      );
+      errors.push(`${prefix}: Taste must order before-push as pull, then local gate, then watch`);
     }
     if (!content.includes("fresh subagent")) {
-      errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
+      errors.push(`${prefix}: Taste must spawn a fresh subagent for the local pre-push gate`);
     }
     if (!content.includes("no parent conversation")) {
-      errors.push(`${prefix}: Taste's lint/test subagent must have no parent conversation`);
+      errors.push(`${prefix}: Taste's pre-push subagent must have no parent conversation`);
     }
-    if (!content.includes("bun lint")) {
-      errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    if (!content.includes("package.json") || !content.includes("prepush")) {
+      errors.push(`${prefix}: Taste must run the root prepush package script when present`);
+    }
+    if (!content.includes("repository's package manager")) {
+      errors.push(`${prefix}: Taste must invoke prepush with the repository package manager`);
+    }
+    if (!content.includes("If no root `prepush` script exists")) {
+      errors.push(`${prefix}: Taste must retain affected-package fallback checks`);
+    }
+    if (!content.includes("lint script")) {
+      errors.push(`${prefix}: Taste fallback must run lint in each affected package`);
     }
     if (!content.includes("typecheck script")) {
       errors.push(`${prefix}: Taste must run a typecheck in each affected package`);
@@ -368,7 +380,7 @@ export const validateStageContent = ({
   return errors;
 };
 
-export const validateGrillingProcedure = (content: string): string[] => {
+const validateGrillingProcedure = (content: string): string[] => {
   const errors: string[] = [];
 
   if (!content.includes("## Approval brief")) {
@@ -817,20 +829,25 @@ export const validateLifecyclePlugin = ({
     errors.push(...validateOuterLoopContent({content, directory}));
   }
 
-  for (const definition of STAGE_DEFINITIONS) {
-    const skillPath = join(skillsDirectory, definition.directory, "SKILL.md");
-    const content = readFileSync(skillPath, "utf8");
-    errors.push(...validateStageContent({content, definition}));
-    if (content.includes("Cupping")) {
-      errors.push(`${definition.directory}: Cupping terminology must be migrated to Roast`);
-    }
-  }
-
   const grilling = readFileSync(
     join(skillsDirectory, "terreno-1-grow/references/grilling.md"),
     "utf8"
   );
-  errors.push(...validateGrillingProcedure(grilling));
+
+  for (const definition of STAGE_DEFINITIONS) {
+    const skillPath = join(skillsDirectory, definition.directory, "SKILL.md");
+    const content = readFileSync(skillPath, "utf8");
+    errors.push(
+      ...validateStageContent({
+        content,
+        definition,
+        grillingContent: definition.stage === "grow" ? grilling : undefined,
+      })
+    );
+    if (content.includes("Cupping")) {
+      errors.push(`${definition.directory}: Cupping terminology must be migrated to Roast`);
+    }
+  }
 
   for (const {content, path} of readMarkdownFiles(join(pluginDirectory, "references"))) {
     for (const marker of PORTABILITY_MARKERS) {
