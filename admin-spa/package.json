@@ -95,9 +95,9 @@
     "lint:fix": "biome check --write ./src ./app ./store ./components ./e2e playwright.config.ts playwright.integration.config.ts",
     "smoke": "bun e2e/smoke.ts",
     "start": "expo start",
-    "test": "bun test ./src",
-    "test:agent": "AGENT=1 bun test --only-failures ./src",
-    "test:ci": "bun test ./src",
+    "test": "bun test ./src ./store",
+    "test:agent": "AGENT=1 bun test --only-failures ./src ./store",
+    "test:ci": "bun test ./src ./store",
     "test:e2e": "playwright test",
     "test:integration": "playwright test --config playwright.integration.config.ts",
     "web": "expo start --web --port 8083"

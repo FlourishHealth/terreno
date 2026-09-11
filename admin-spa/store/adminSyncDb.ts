@@ -4,6 +4,7 @@ import {
   betterAuthAdapter,
   createSyncDb,
   type SyncDb,
+  type SyncDbConfig,
 } from "@terreno/syncdb";
 
 export const resolveAdminSyncCollections = (models: AdminModelConfig[]): string[] =>
@@ -28,11 +29,20 @@ export const createAdminSpaSyncDb = ({
   authClient: BetterAuthClientLike;
   collections: string[];
   origin: string;
-}): SyncDb =>
-  createSyncDb({
-    authProvider: betterAuthAdapter(authClient),
-    baseUrl: origin,
-    collections,
-    name: `terreno-admin-spa:${origin}`,
-    windowCollections: collections,
-  });
+}): SyncDb => createSyncDb(createAdminSpaSyncDbConfig({authClient, collections, origin}));
+
+export const createAdminSpaSyncDbConfig = ({
+  authClient,
+  collections,
+  origin,
+}: {
+  authClient: BetterAuthClientLike;
+  collections: string[];
+  origin: string;
+}): SyncDbConfig => ({
+  authProvider: betterAuthAdapter(authClient),
+  baseUrl: origin,
+  collections,
+  name: `terreno-admin-spa:${origin}`,
+  windowCollections: collections,
+});
