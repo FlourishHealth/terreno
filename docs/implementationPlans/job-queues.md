@@ -1,6 +1,6 @@
 # Implementation Plan: Durable background jobs (`@terreno/jobs`)
 
-**Status:** Approved  
+**Status:** Complete — 2026-09-10  
 **Branch:** `cursor/durable-background-jobs-803d`  
 **Owner:** —  
 **Created:** 2026-09-10  
@@ -297,24 +297,24 @@ See [docs/tasks/job-queues.md](../tasks/job-queues.md).
 
 ## Acceptance Criteria
 
-- [ ] `enqueue` then kill the Node process; a new `startWorker()` runs the job.
+- [x] `enqueue` then kill the Node process; a new `startWorker()` runs the job.
       Verified by bun test that simulates crash by leaving `pending` and starting
       a second worker.
-- [ ] Handler throw retries until `maxAttempts` then `status: "dead"`. Admin
+- [x] Handler throw retries until `maxAttempts` then `status: "dead"`. Admin
       requeue returns it to `pending` and the worker runs it. Verified by bun tests
       + admin UI verification.
-- [ ] Delayed `runAt` in the future is not claimed early; cron in a named IANA
+- [x] Delayed `runAt` in the future is not claimed early; cron in a named IANA
       timezone fires `nextRunAt` correctly. Verified by bun tests with frozen clocks
       (Luxon).
-- [ ] Two overlapping `startWorker()` loops claim a job once. Verified by bun test.
-- [ ] Custom `JobRunner` receives `enqueue`; GCP and Vercel adapters create a
+- [x] Two overlapping `startWorker()` loops claim a job once. Verified by bun test.
+- [x] Custom `JobRunner` receives `enqueue`; GCP and Vercel adapters create a
       mocked platform task and `POST /jobs/execute` with valid auth runs the
       handler, invalid auth 401. Verified by bun tests (no live cloud).
-- [ ] Admin Jobs screen lists jobs, opens detail, retries, requeues DLQ, cancels.
+- [x] Admin Jobs screen lists jobs, opens detail, retries, requeues DLQ, cancels.
       Verified by `verify-ui-changes` artifacts.
-- [ ] Apps without `JobsApp` behave as today (`cronjob`, scripts). Verified by
+- [x] Apps without `JobsApp` behave as today (`cronjob`, scripts). Verified by
       existing api/admin-backend tests remaining green.
-- [ ] How-to + jobs reference match the shipped API. Verified in Roast;
+- [x] How-to + jobs reference match the shipped API. Verified in Roast;
       `bun run website:build` on the docs task.
 
 ## Named assumptions

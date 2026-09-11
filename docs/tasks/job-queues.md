@@ -109,13 +109,13 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: `docs/how-to/admin-import-prebuilt.md` in 5.1
   - Acceptance: bun tests for render/filter/actions; no `fetch`/`axios`; no syncdb
 
-- [x] **Task 4.3**: example-backend + example-frontend + admin-spa + UI verify *(manual UI verification pending on parent)*
+- [x] **Task 4.3**: example-backend + example-frontend + admin-spa + UI verify
   - Delivers: example registers `JobsApp` + Mongo runner; demo job; optional `jobs:worker` script; routes `/admin/jobs`; admin-spa `/jobs`; SDK regen if OpenAPI changed; `JOBS_START_WORKER` gates API-process worker (default true)
   - Files: `example-backend/src/server.ts`, worker entry, `example-frontend/app/admin/**`, `admin-spa/app/**`, `store/openApiSdk.ts` (generated)
   - Blocked by: 4.2, 1.3
   - Skills: `building-admin-interfaces`, `verify-ui-changes`, `generate-sdk`
   - Docs: none (5.1)
-  - Acceptance: `verify-ui-changes` artifacts — list, detail, retry or requeue, cancel; worker script documented
+  - Acceptance: `verify-ui-changes` — `/opt/cursor/artifacts/jobs_admin_dlq_workflow.mp4` (script→dead attempts→requeue execution→retry linked row); `/opt/cursor/artifacts/jobs_admin_cancel_scheduled_job.mp4` (scheduled cancel confirmation, refresh persistence, no attempts); worker script documented
 
 ## Phase 5 — Docs, CI, publish
 
@@ -135,7 +135,7 @@ IP: [job-queues.md](../implementationPlans/job-queues.md)
   - Docs: none
   - Acceptance: workflow validates required secrets if any; package listed in publish job graph
 
-- [ ] **Task 5.3**: Positioning row (when Complete)
+- [x] **Task 5.3**: Positioning row (when Complete)
   - Delivers: `docs/explanation/positioning.md` Celery/ActiveJob cell updated only when IP header is **Complete**
   - Files: `docs/explanation/positioning.md`
   - Blocked by: 5.1 and all prior acceptance criteria

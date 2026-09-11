@@ -866,15 +866,18 @@ Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1
 **Title:** `Durable background jobs`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`job-queues`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`job-queues`, Status=`Shipped`
 
-Terreno has an in-process cron helper and admin script runner but no durable queue. Adds
-`@terreno/jobs`: Mongo-recorded jobs with retries, schedules, dead-lettering, in-process or
+Adds `@terreno/jobs`: Mongo-recorded jobs with retries, schedules, dead-lettering, in-process or
 standalone workers, and pluggable runners (Mongo, GCP Cloud Tasks, Vercel Queues, custom).
 Email/webhook/billing consumers enqueue later; this item ships the queue.
 
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1188.
+
 - **Implementation plan:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/job-queues.md)
 - **Tasks:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/job-queues.md)
+- **How-to:** [background-jobs.md](../how-to/background-jobs.md)
+- **Reference:** [jobs.md](../reference/jobs.md)
 - **RTK flag:** Partial — admin screens use generated SDK
 - **Depends on:** —
 
