@@ -68,6 +68,10 @@ import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
+const notificationsApp = new NotificationsApp({
+  getComms: getCommsService,
+  userModel: User,
+});
 
 type RegisterRoutesWithOptions = (
   router: express.Router,
@@ -455,12 +459,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           supportedLocales: ["en", "es"],
         })
       )
-      .register(
-        new NotificationsApp({
-          getComms: getCommsService,
-          userModel: User,
-        })
-      );
+      .register(notificationsApp);
 
     // Register the standalone admin SPA serve plugin when opted in. Gated on an env
     // flag so it stays off in tests and for backend-only consumers.

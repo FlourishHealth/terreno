@@ -30,6 +30,7 @@ export const NotificationBell: FC<NotificationBellProps> = ({
       </Pressable>
       {showBadge ? (
         <View
+          pointerEvents="none"
           style={{position: "absolute", right: -4, top: -4}}
           testID={`${testID}-badge-container`}
         >

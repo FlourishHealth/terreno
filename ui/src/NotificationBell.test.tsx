@@ -29,6 +29,7 @@ describe("NotificationBell", () => {
       right: -4,
       top: -4,
     });
+    assert.equal(getByTestId("bell-badge-container").props.pointerEvents, "none");
   });
 
   it("calls onPress when tapped", () => {

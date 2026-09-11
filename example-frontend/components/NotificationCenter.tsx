@@ -7,13 +7,13 @@ import {
   NotificationInbox,
   type NotificationInboxItem,
 } from "@terreno/ui";
-import {useRouter} from "expo-router";
+import {type Href, useRouter} from "expo-router";
 import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {usePostNotificationsDevNotifyMutation} from "@/store/sdk";
-import {type Notification, useDeleteNotification, useUpdateNotification} from "@/store/syncDbSdk";
+import {type Notification, useDeleteNotification} from "@/store/syncDbSdk";
 import {syncDb} from "@/store/syncdb";
 
 const sortByCreatedDesc = (left: Notification, right: Notification): number => {
@@ -36,7 +36,6 @@ export const NotificationCenter: React.FC = () => {
   const router = useRouter();
   const isSyncDbReady = useSyncDbReady();
   const [inboxVisible, setInboxVisible] = useState<boolean>(false);
-  const [updateNotification] = useUpdateNotification();
   const [deleteNotification] = useDeleteNotification();
   const [sendTestNotification, {isLoading: isSendingTest}] =
     usePostNotificationsDevNotifyMutation();
@@ -69,12 +68,14 @@ export const NotificationCenter: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      updateNotification({
+      syncDb.mutate({
+        collection: "notifications",
         data: {readAt: DateTime.now().toISO()},
         id: item.id,
+        operation: "update",
       });
     },
-    [isSyncDbReady, updateNotification]
+    [isSyncDbReady]
   );
 
   const handleMarkUnread = useCallback(
@@ -82,12 +83,14 @@ export const NotificationCenter: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      updateNotification({
+      syncDb.mutate({
+        collection: "notifications",
         data: {readAt: null},
         id: item.id,
+        operation: "update",
       });
     },
-    [isSyncDbReady, updateNotification]
+    [isSyncDbReady]
   );
 
   const handleDismiss = useCallback(
@@ -107,7 +110,7 @@ export const NotificationCenter: React.FC = () => {
         return;
       }
       if (item.href.startsWith("/")) {
-        router.push(item.href as `/${string}`);
+        router.push(item.href as Href);
         return;
       }
     },

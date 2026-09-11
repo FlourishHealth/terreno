@@ -3,10 +3,9 @@ import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "../plugins";
 
 export type NotificationPreferenceChannel = "inapp" | "mail" | "push" | "sms";
 
-// biome-ignore lint/complexity/noBannedTypes: No methods.
-export type NotificationPreferenceMethods = {};
+type NotificationPreferenceMethods = Record<never, never>;
 
-export interface NotificationPreferenceStatics
+interface NotificationPreferenceStatics
   extends FindExactlyOnePlugin<NotificationPreferenceDocument>,
     FindOneOrNonePlugin<NotificationPreferenceDocument> {}
 

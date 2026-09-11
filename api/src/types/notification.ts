@@ -1,10 +1,9 @@
 import type mongoose from "mongoose";
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "../plugins";
 
-// biome-ignore lint/complexity/noBannedTypes: No methods.
-export type NotificationMethods = {};
+type NotificationMethods = Record<never, never>;
 
-export interface NotificationStatics
+interface NotificationStatics
   extends FindExactlyOnePlugin<NotificationDocument>,
     FindOneOrNonePlugin<NotificationDocument> {}
 

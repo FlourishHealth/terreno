@@ -27,6 +27,7 @@ test.describe("notifications", () => {
 
   test("test notification unread badge persists without refresh", async ({page}) => {
     const badge = page.getByTestId("notification-bell-badge");
+    await page.waitForTimeout(5000);
     const initialCount = (await badge.isVisible())
       ? Number.parseInt((await badge.textContent()) ?? "0", 10)
       : 0;

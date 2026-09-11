@@ -1,11 +1,10 @@
 import {afterAll, beforeAll, beforeEach, describe, it} from "bun:test";
 import {
-  clearMCPRegistry,
+  configureNotificationService,
   generateTokens,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   Notification,
-  NotificationsApp,
   TerrenoApp,
 } from "@terreno/api";
 import {assert} from "chai";
@@ -55,7 +54,6 @@ describe("dev notification route", () => {
       skipListen: true,
       userModel: UserModel as never,
     })
-      .register(new NotificationsApp({userModel: UserModel}))
       .register(createOpenApiAwareRouteRegistration(addDevNotificationRoutes))
       .build();
   };
@@ -70,11 +68,12 @@ describe("dev notification route", () => {
   };
 
   beforeAll(() => {
+    configureNotificationService({userModel: UserModel});
     app = buildApp();
   });
 
   afterAll(() => {
-    clearMCPRegistry();
+    configureNotificationService({});
   });
 
   beforeEach(async () => {

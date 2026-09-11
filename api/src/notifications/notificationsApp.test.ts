@@ -149,6 +149,24 @@ describe("NotificationsApp", () => {
     await supertest(app).get("/notifications").expect(401);
   });
 
+  it("can register the same plugin instance on repeated app builds", async () => {
+    clearSyncRegistry();
+    const notificationsApp = new NotificationsApp({userModel: UserModel});
+    const createApp = (): express.Application =>
+      new TerrenoApp({
+        skipListen: true,
+        userModel: UserModel as unknown as UserMongooseModel,
+      })
+        .register(new SyncApp({}))
+        .register(notificationsApp)
+        .build();
+
+    createApp();
+    const rebuilt = createApp();
+
+    await supertest(rebuilt).get("/notifications").expect(401);
+  });
+
   it("blocks other users from reading a notification", async () => {
     const id = await getNotificationService().notify({
       body: "Private",

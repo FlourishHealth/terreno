@@ -1,7 +1,13 @@
 import type {Application} from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
-import {asyncHandler, type ModelRouterOptions, modelRouter, type OpenApiMiddleware} from "../api";
+import {
+  asyncHandler,
+  type ModelRouterOptions,
+  type ModelRouterRegistration,
+  modelRouter,
+  type OpenApiMiddleware,
+} from "../api";
 import {authenticateMiddleware, type User} from "../auth";
 import {APIError} from "../errors";
 import {logger} from "../logger";
@@ -44,6 +50,7 @@ const parseReadAt = (value: unknown): Date | null => {
 
 export class NotificationsApp implements TerrenoPlugin {
   private readonly options: NotificationsAppOptions;
+  private routers?: ModelRouterRegistration[];
 
   constructor(options: NotificationsAppOptions = {}) {
     this.options = options;
@@ -55,6 +62,13 @@ export class NotificationsApp implements TerrenoPlugin {
       retainDays: this.options.retainDays,
       userModel: this.options.userModel,
     });
+
+    if (this.routers) {
+      for (const router of this.routers) {
+        app.use(router.path, router.router);
+      }
+      return;
+    }
 
     const openApiMiddleware = openApi as OpenApiMiddleware | undefined;
     const sharedRouterOptions: Partial<ModelRouterOptions<NotificationDocument>> = openApiMiddleware
@@ -154,6 +168,7 @@ export class NotificationsApp implements TerrenoPlugin {
       }
     );
     app.use(preferencesRouter.path, preferencesRouter.router);
+    this.routers = [notificationsRouter, preferencesRouter];
 
     logger.info("NotificationsApp registered", {retainDays: this.options.retainDays ?? 0});
   }

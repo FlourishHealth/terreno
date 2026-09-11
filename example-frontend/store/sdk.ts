@@ -156,6 +156,7 @@ export interface GetGptHistoriesArgs {
 }
 
 export const terrenoApi = openapi
+  .enhanceEndpoints({addTagTypes: ["gptHistories", "profile"]})
   .injectEndpoints({
     endpoints: (builder) => ({
       deleteGptHistoriesById: builder.mutation<void, {id: string}>({
@@ -338,8 +339,6 @@ export const {
   usePostAuthVerifyEmailMutation,
   usePostCommsDevTestPushMutation,
   usePostNotificationsDevNotifyMutation,
-  usePostNotificationsMarkAllReadMutation,
-  useGetAiRequestsExplorerQuery,
   useGetAiModelsQuery,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
