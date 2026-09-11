@@ -1,10 +1,8 @@
 import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
+import {adminOrganizationHeaders, buildAdminModelEndpoints} from "./orgs/adminModelEndpoints";
 import {useOptionalOrgContext} from "./orgs/useOrgContext";
 import type {AdminApi, EndpointBuilder} from "./types";
-
-type AdminPayload = Record<string, unknown>;
-type TagArg = unknown;
 
 /**
  * Hook that generates RTK Query CRUD hooks for a specific admin model.
@@ -51,88 +49,16 @@ type TagArg = unknown;
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const organizationId = useOptionalOrgContext()?.organizationId;
-  const headers = useMemo(
-    () => (organizationId ? {"X-Organization-Id": organizationId} : undefined),
-    [organizationId]
-  );
+  const headers = useMemo(() => adminOrganizationHeaders(organizationId), [organizationId]);
   const enhancedApi = useMemo(() => {
-    const listKey = `adminList_${modelName}`;
-    const readKey = `adminRead_${modelName}`;
-    const createKey = `adminCreate_${modelName}`;
-    const updateKey = `adminUpdate_${modelName}`;
-    const deleteKey = `adminDelete_${modelName}`;
-    const bulkPatchKey = `adminBulkPatch_${modelName}`;
-
     const tagType = `admin_${modelName}`;
     return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
-      endpoints: (build: EndpointBuilder) => ({
-        [listKey]: build.query({
-          providesTags: [`admin_${modelName}`],
-          query: (params: Record<string, unknown> | undefined) => ({
-            headers,
-            method: "GET",
-            params: params ?? {},
-            url: routePath,
-          }),
-          serializeQueryArgs: ({endpointName, queryArgs}) =>
-            `${endpointName}:${organizationId ?? ""}:${JSON.stringify(queryArgs ?? {})}`,
-        }),
-        [readKey]: build.query({
-          providesTags: (_result: TagArg, _error: TagArg, id: string) => [
-            {id, type: `admin_${modelName}`},
-          ],
-          query: (id: string) => ({
-            headers,
-            method: "GET",
-            url: `${routePath}/${id}`,
-          }),
-          serializeQueryArgs: ({endpointName, queryArgs}) =>
-            `${endpointName}:${organizationId ?? ""}:${String(queryArgs)}`,
-        }),
-        [createKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: (body: AdminPayload) => ({
-            body,
-            headers,
-            method: "POST",
-            url: routePath,
-          }),
-        }),
-        [updateKey]: build.mutation({
-          invalidatesTags: (_result: TagArg, _error: TagArg, {id}: {id: string}) => [
-            {id, type: `admin_${modelName}`},
-            `admin_${modelName}`,
-          ],
-          query: ({id, body}: {id: string; body: AdminPayload}) => ({
-            body,
-            headers,
-            method: "PATCH",
-            url: `${routePath}/${id}`,
-          }),
-        }),
-        [deleteKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: (id: string) => ({
-            headers,
-            method: "DELETE",
-            url: `${routePath}/${id}`,
-          }),
-        }),
-        [bulkPatchKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: ({ids, patch}: {ids: string[]; patch: Record<string, unknown>}) => ({
-            body: {ids, patch},
-            headers,
-            method: "POST",
-            url: `${routePath}/bulk-patch`,
-          }),
-        }),
-      }),
+      endpoints: (build: EndpointBuilder) =>
+        buildAdminModelEndpoints(build, {headers, modelName, organizationId, routePath}),
       overrideExisting: true,
     });
   }, [api, headers, modelName, organizationId, routePath]);
 
-  // Extract the generated hooks dynamically
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const listKey = `adminList_${modelName}`;
   const readKey = `adminRead_${modelName}`;
