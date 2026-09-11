@@ -23,7 +23,7 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 ## Key exports
 
 - `createSyncDb`, `SyncDb`, `SyncDbConfig`, `MutateArgs`
-- `betterAuthAdapter`, `AuthProvider`
+- `betterAuthAdapter`, `bridgeBetterAuthReactClient`, `AuthProvider`
 - `listConflicts`, `wipeLocalData`, `generateMutationId`
 - React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`, `createCollectionHooks`
 - CLI: `terreno-syncdb-codegen` (generates `SYNC_COLLECTIONS` + friendly hooks from OpenAPI)
@@ -143,15 +143,22 @@ is the fallback.
 ## createSyncDb configuration
 
 ```typescript
-import {betterAuthAdapter, createSyncDb} from "@terreno/syncdb";
+import {betterAuthAdapter, bridgeBetterAuthReactClient, createSyncDb} from "@terreno/syncdb";
 
 export const syncDb = createSyncDb({
   name: "myapp",
   collections: ["todos"],
-  authProvider: betterAuthAdapter(authClient),
+  authProvider: betterAuthAdapter(bridgeBetterAuthReactClient(authClient)),
   baseUrl: "http://localhost:4000",
 });
 ```
+
+Wrap a Better Auth **react** client in `bridgeBetterAuthReactClient`. Its `useSession` is a React
+hook rather than the `.subscribe` surface the adapter watches, so without the bridge the adapter
+falls back to polling `getSession()` and produces constant `/api/auth/get-session` traffic. The
+bridge exposes the client's `$store.atoms.session` atom and degrades to the polling fallback when
+that atom is absent. Clients that already expose `getSession` plus a subscribable `useSession` can
+be passed to `betterAuthAdapter` directly.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
