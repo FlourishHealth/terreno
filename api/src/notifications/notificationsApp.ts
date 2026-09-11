@@ -31,6 +31,8 @@ export interface NotificationsAppOptions extends NotificationServiceOptions {
   userModel?: Model<{email?: string; phone?: string}>;
 }
 
+const PREFERENCE_CHANNELS = ["inapp", "mail", "push", "sms"] as const;
+
 const parseReadAt = (value: unknown): Date | null => {
   if (value === null || value === undefined) {
     return null;
@@ -46,6 +48,17 @@ const parseReadAt = (value: unknown): Date | null => {
     return parsed.toJSDate();
   }
   throw new APIError({status: 400, title: "readAt must be a date or null"});
+};
+
+const sanitizePreferenceUpdate = (body: unknown): NotificationPreferenceDocument => {
+  const payload = body as Partial<NotificationPreferenceDocument>;
+  const update: Partial<NotificationPreferenceDocument> = {};
+  for (const channel of PREFERENCE_CHANNELS) {
+    if (channel in payload) {
+      update[channel] = payload[channel];
+    }
+  }
+  return update as NotificationPreferenceDocument;
 };
 
 export class NotificationsApp implements TerrenoPlugin {
@@ -161,6 +174,7 @@ export class NotificationsApp implements TerrenoPlugin {
             ownerId: user.id,
           } as unknown as NotificationPreferenceDocument;
         },
+        preUpdate: sanitizePreferenceUpdate,
         queryFields: ["ownerId"],
         queryFilter: OwnerQueryFilter,
         sort: "-created",

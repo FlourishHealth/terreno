@@ -1152,7 +1152,8 @@ new TerrenoApp({userModel: User}).register(
 Index: `{ownerId: 1, created: -1}`.
 
 `NotificationPreference` fields: `ownerId` (unique), `inapp`, `mail`, `push`, `sms` (default `true`).
-Missing preference row = all channels on.
+Missing preference row = all channels on. Preference updates accept only the four channel
+booleans; `ownerId` is immutable.
 
 ### `notify(input)`
 

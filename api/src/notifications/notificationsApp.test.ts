@@ -191,6 +191,21 @@ describe("NotificationsApp", () => {
     assert.equal(String(preference.ownerId), userId);
   });
 
+  it("does not allow preference PATCH to change the owner", async () => {
+    const preference = await NotificationPreference.create({ownerId: userId});
+    const otherUser = await UserModel.findOne({email: "other-user@example.com"});
+    assert.isOk(otherUser);
+
+    await userAgent
+      .patch(`/notification-preferences/${preference._id}`)
+      .send({mail: false, ownerId: String(otherUser?._id)})
+      .expect(200);
+
+    const updated = await NotificationPreference.findExactlyOne({_id: preference._id});
+    assert.equal(String(updated.ownerId), userId);
+    assert.isFalse(updated.mail);
+  });
+
   it("rejects sync create on notifications", async () => {
     const response = await userAgent.post("/sync/mutate").send({
       collection: "notifications",
