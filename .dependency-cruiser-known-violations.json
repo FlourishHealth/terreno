@@ -647,24 +647,6 @@
   },
   {
     "type": "module",
-    "from": "demo/stories/PasswordField.stories.tsx",
-    "to": "demo/stories/PasswordField.stories.tsx",
-    "rule": {
-      "severity": "warn",
-      "name": "no-orphans"
-    }
-  },
-  {
-    "type": "module",
-    "from": "example-backend/src/constants/index.ts",
-    "to": "example-backend/src/constants/index.ts",
-    "rule": {
-      "severity": "warn",
-      "name": "no-orphans"
-    }
-  },
-  {
-    "type": "module",
     "from": "example-backend/src/modelInterfaces.ts",
     "to": "example-backend/src/modelInterfaces.ts",
     "rule": {
@@ -730,15 +712,6 @@
     "type": "module",
     "from": "example-frontend/constants/adminConstants.ts",
     "to": "example-frontend/constants/adminConstants.ts",
-    "rule": {
-      "severity": "warn",
-      "name": "no-orphans"
-    }
-  },
-  {
-    "type": "module",
-    "from": "example-frontend/constants/Colors.ts",
-    "to": "example-frontend/constants/Colors.ts",
     "rule": {
       "severity": "warn",
       "name": "no-orphans"

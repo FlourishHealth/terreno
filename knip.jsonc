@@ -4,18 +4,384 @@
   // package's `dist/*.d.ts` as source and report its type-only imports as unlisted
   // dependencies. That made the ratchet depend on whether the workspace happened to be
   // compiled: clean in CI, which never builds, and 8 findings after `bun run compile`.
-  "ignore": ["**/dist/**"],
+  "ignore": [
+    "**/dist/**",
+    // Generated copies of installable skills. Canonical source is `.rulesync/skills`.
+    ".agents/skills/expo-cicd-workflows/scripts/**",
+    ".claude/skills/expo-cicd-workflows/scripts/**",
+    ".cursor/skills/expo-cicd-workflows/scripts/**",
+    ".devin/skills/expo-cicd-workflows/scripts/**",
+    ".github/skills/expo-cicd-workflows/scripts/**",
+    "skills/expo-cicd-workflows/scripts/**",
+    ".rulesync/skills/expo-cicd-workflows/scripts/**"
+  ],
+  // Maestro is installed by CI and developer toolchains rather than package.json.
+  "ignoreBinaries": ["maestro"],
+  // Root tooling loads these through package scripts or child CLIs rather than imports:
+  // Biome powers hooks, RTK codegen is resolved by generate-sdk.ts, and ts-node loads
+  // TypeScript codegen configuration.
+  "ignoreDependencies": ["@biomejs/biome", "@rtk-query/codegen-openapi", "ts-node"],
   "ignoreIssues": {
+    // Keep the Sentry React Native catalog pin stable for consumer/native fingerprint
+    // compatibility even though no current workspace declares it.
+    "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
-    "**/syncDbSdk.ts": ["exports", "types"],
+    // Generated syncdb SDK surface may include hooks before an example screen adopts them.
+    "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
+    // Generated communications SDK may include hooks before an example screen adopts them.
+    "example-frontend/store/commsOpenApiSdk.ts": ["exports", "types"],
+    // check-explicit-any/lib.ts loads BASELINE_PATH/loadBaseline through require() so it
+    // can avoid a static lib ↔ baseline cycle; Knip cannot see the destructured names.
+    "scripts/check-explicit-any/baseline.ts": ["exports"],
+    // Preserve the vendored express-openapi CommonJS API unchanged; Knip cannot trace
+    // properties assigned through module.exports (including serveSwaggerUI used in index.js).
+    "api/src/vendor/wesleytodd-openapi/**": ["exports", "types"],
+    // Published public types may have no in-monorepo consumer; removing them would be a
+    // breaking package API change.
+    "admin-spa/components/AppConfigGate.tsx": ["types"],
+    "api/src/rbac/roleManager.ts": ["types"],
+    // Backwards-compatible public aliases intentionally point at the same implementation.
+    "api/src/api.ts": ["duplicates"],
+    "api/src/rbac/middleware.ts": ["duplicates"],
     "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
   },
+  "ignoreFiles": [
+    // Generated communications SDK is retained as a codegen contract even before a
+    // product screen imports it; generated exports/types are handled by ignoreIssues.
+    "example-frontend/store/commsOpenApiSdk.ts",
+    // Human upgrade docs link this source example; it is intentionally illustrative
+    // rather than imported by the package runtime.
+    "api/src/example.ts"
+  ],
   "workspaces": {
+    // mcp-server `bunfig.toml` `test.preload` is an array so Knip's Bun plugin can
+    // `preload.map`. A scalar string crashes the plugin (hence it used to set bun: false).
+    // Setting `entry` replaces Knip's default `{index,cli,main}` patterns for that
+    // workspace, so those defaults are repeated wherever extra entries are added.
+    ".": {
+      // Root `package.json` `test` is `bun run --filter '*' test:ci`, so the Bun plugin
+      // never sees `scripts/**/*.test.ts` or `.github/scripts/**/*.test.ts`.
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "scripts/**/*.test.ts",
+        ".github/scripts/**/*.test.ts",
+        "scripts/ci/prepare-package-publish.mjs"
+      ],
+      // Policy/release scripts are development entries, not production modules.
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!",
+        "!.github/scripts/**!"
+      ]
+    },
+    "admin-frontend": {
+      // Isolated files are `bun test $file`, not `*.test.ts`, so the Bun plugin skips them.
+      // react-native-webview is supplied by consuming apps through this package's
+      // optional peer contract, which Knip reports as an unused optional peer.
+      "ignoreDependencies": ["react-native-webview"],
+      // Public interfaces used inside this module remain valid package API; interfaces
+      // that become unused both internally and externally are still reported.
+      "ignoreExportsUsedInFile": {"interface": true, "type": true},
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.{ts,tsx}"
+      ]
+    },
+    "admin-backend": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "ai": {
+      // The Vertex provider is loaded dynamically only when an app opts in and supplies
+      // the package through @terreno/ai's optional peer contract.
+      "ignoreDependencies": ["@ai-sdk/google-vertex"],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "api": {
+      // The Redis adapter dynamically loads ioredis; legacy auth accepts models enhanced
+      // by passport-local-mongoose. Apps opt into and supply both optional peers.
+      "ignoreDependencies": ["ioredis", "passport-local-mongoose"],
+      // auth.compile.test.ts compiles this fixture by absolute path.
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/tests/fixtures/compileAuthEntry.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!",
+        "!src/sync/loadHarness.ts!"
+      ]
+    },
+    "rtk": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!test-preload.ts!"
+      ]
+    },
+    "syncdb": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/isolated/**/*.isolated.ts",
+        // Platform resolvers select these shipped implementations without an extension.
+        "src/persisters/defaultPersisterFactory.native.ts!",
+        "src/persisters/defaultPersisterFactory.web.ts!"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!test-preload.ts!"
+      ]
+    },
+    "test": {
+      // The test logger discovers @terreno/api through a runtime require. Declaring it
+      // here would cycle with API's own @terreno/test dependency and break the
+      // topological order that .github/scripts/compile-workspace-deps.js relies on.
+      "ignoreDependencies": ["@terreno/api"],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/preload/**!"
+      ]
+    },
+    "admin-spa": {
+      // Expo Router, font loading, persistence, app.json plugins, and the Metro PDF
+      // alias load these without statically importing them from an analyzed source file.
+      "ignoreDependencies": [
+        "@expo/vector-icons",
+        "@react-native-async-storage/async-storage",
+        "expo-font",
+        "expo-splash-screen",
+        "expo-status-bar",
+        "expo-system-ui",
+        "expo-updates",
+        "jspdf",
+        "redux-persist"
+      ],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "e2e/serveTestApp.ts",
+        "jspdf-native-stub.js"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!e2e/**!"
+      ]
+    },
+    "demo": {
+      // EAS CLI is installed by Expo/CI tooling rather than package.json.
+      "ignoreBinaries": ["eas"],
+      // The demo resolves UI package peers, native modules, fonts, and Metro polyfills at
+      // bundle/autolink time. They are runtime inputs even without direct demo imports.
+      "ignoreDependencies": [
+        "@expo-google-fonts/comfortaa",
+        "@expo-google-fonts/nunito",
+        "@expo-google-fonts/titillium-web",
+        "@expo/vector-icons",
+        "@react-native-community/datetimepicker",
+        "@react-native-community/slider",
+        "@react-native-picker/picker",
+        "@shopify/react-native-skia",
+        "crypto-browserify",
+        "expo-crypto",
+        "expo-font",
+        "expo-haptics",
+        "expo-image-manipulator",
+        "expo-image-picker",
+        "expo-linear-gradient",
+        "expo-system-ui",
+        // Metro resolves the PDF implementation through the jspdf native stub entry.
+        "jspdf",
+        "libphonenumber-js",
+        "linkify-it",
+        "mdurl",
+        "react-keyed-flatten-children",
+        "react-native-actions-sheet",
+        "react-native-calendars",
+        "react-native-drawer-layout",
+        "react-native-haptic-feedback",
+        "react-native-hyperlink",
+        "react-native-modalize",
+        "react-native-swiper-flatlist",
+        "stream-browserify",
+        "swiper"
+      ],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "**/*.test.ts",
+        "jspdf-native-stub.js",
+        "fingerprint.config.js"
+      ]
+    },
+    "comms": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "example-frontend": {
+      // Expo native modules are autolinked, app.json plugins are string references, and
+      // Metro resolves jspdf to the native stub; none creates a static source import.
+      "ignoreDependencies": [
+        "expo-crypto",
+        "expo-print",
+        "expo-sharing",
+        "expo-system-ui",
+        "jspdf",
+        // EXPO_UNSTABLE_MCP_SERVER in start/web/ios loads the Expo MCP package.
+        "expo-mcp",
+        // RTK OpenAPI's CLI loads TypeScript configuration through ts-node.
+        "ts-node"
+      ],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "openapi-config.ts",
+        "comms-openapi-config.ts",
+        "e2e/**/*.ts",
+        "jspdf-native-stub.js",
+        "fingerprint.config.js",
+        "playwright.circleci.config.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!"
+      ]
+    },
+    "example-backend": {
+      // Knip's Bun plugin also discovers `src/index.ts` from `bun run src/index.ts`.
+      // In production mode that plugin-owned duplicate incorrectly wins over the explicit
+      // `src/index.ts!` entry, leaving every runtime dependency unreachable.
+      "bun": false,
+      // Production-only (`!`) exceptions for dependencies statically imported from
+      // src/index.ts. Default-mode Knip still detects genuinely unused dependencies.
+      "ignoreDependencies": [
+        "@ai-sdk/google!",
+        "@ai-sdk/google-vertex!",
+        "@google-cloud/opentelemetry-cloud-trace-exporter!",
+        "@google-cloud/secret-manager!",
+        "@google-cloud/trace-agent!",
+        "@opentelemetry/instrumentation-express!",
+        "@opentelemetry/instrumentation-http!",
+        "@opentelemetry/resources!",
+        "@opentelemetry/sdk-node!",
+        "@opentelemetry/semantic-conventions!",
+        "@sentry/bun!",
+        "@socket.io/mongo-adapter!",
+        "@socket.io/redis-adapter!",
+        "@terreno/admin-backend!",
+        "@terreno/admin-spa!",
+        "@terreno/ai!",
+        "@terreno/api!",
+        "@terreno/api-health!",
+        "@terreno/comms!",
+        "@terreno/feature-flags!",
+        "@thream/socketio-jwt!",
+        "ai!",
+        "expo-server-sdk!",
+        "express!",
+        "ioredis!",
+        "luxon!",
+        "mongoose!",
+        "passport-local-mongoose!",
+        "pdf-lib!",
+        "socket.io!",
+        "twilio!",
+        "zod!"
+      ],
+      "entry": [
+        "src/index.ts!",
+        "src/**/*.test.ts",
+        "src/tests/setup.ts",
+        "src/scripts/runAdminScript.ts",
+        "src/scripts/seed-test-data.ts",
+        "src/scripts/syncConsents.ts",
+        "src/scripts/configuration-example.ts",
+        "src/scripts/seed-admin-spa-admin.ts",
+        "src/scripts/seedConsents.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/**!"
+      ]
+    },
+    "feature-flags": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
     "mcp-server": {
-      // Knip 6.34 expects Bun's `test.preload` to be an array, while this package
-      // uses Bun's valid scalar form. Tests remain in the project graph.
-      "bun": false
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!",
+        "!src/__tests__/**!"
+      ]
+    },
+    "ui": {
+      // Published UI components expose native/web peers through platform resolution and
+      // consumer bundlers; Knip cannot observe those out-of-repository consumers.
+      "ignoreDependencies": [
+        "@react-native-community/blur",
+        "@react-navigation/native",
+        "expo-notifications",
+        "expo-updates",
+        "expo-web-browser",
+        "react-app-polyfill",
+        "react-date-picker",
+        "react-datetime-picker",
+        "react-dev-utils",
+        "react-native-permissions",
+        "react-native-picker-select",
+        "react-native-webview",
+        "react-time-picker",
+        // Tests mock expo-modules-core subpaths by string; TypeDoc is invoked by
+        // the package's `types` script.
+        "expo-modules-core",
+        "typedoc"
+      ],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "babel.config.js",
+        "utilities/process-counties-script/processCounties.js"
+      ]
+    },
+    "website": {
+      // Docusaurus loads these from build-time config that production-mode Knip excludes.
+      "ignoreDependencies": [
+        "@easyops-cn/docusaurus-search-local",
+        "prism-react-renderer",
+        "typedoc-plugin-markdown"
+      ],
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/theme/DocItem/Footer/index.tsx"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!scripts/**!"
+      ]
     }
   }
 }

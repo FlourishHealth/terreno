@@ -34,13 +34,23 @@ import {PersistGate} from "redux-persist/integration/react";
 import {SyncConflictsProvider} from "@/components/SyncConflictsController";
 import {SyncHealthToast} from "@/components/SyncHealthToast";
 import {SyncLabRuntime} from "@/components/SyncLabRuntime";
-import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store/index";
 import {registerExpoPushTokenSafely} from "@/store/registerExpoPushToken";
 import {terrenoApi, useGetMeQuery, usePostCommsPushTokensMutation} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
 import {getCurrentExpoToken} from "@/store/utils";
+
+interface ProfileData {
+  _id: string;
+  id: string;
+  email?: string;
+  name?: string;
+  admin?: boolean;
+  emailVerified?: boolean;
+  roles?: string[];
+  permissions?: Record<string, readonly string[]>;
+}
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;

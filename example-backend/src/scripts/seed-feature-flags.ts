@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 import {Configuration} from "../models/configuration";
 import {connectToMongoDB} from "../utils/database";
 
-export const SEED_FLAGS = [
+const SEED_FLAGS = [
   {
     defaultVariant: "on",
     description: "Show a summary card with todo counts above the todo list",

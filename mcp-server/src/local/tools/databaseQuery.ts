@@ -76,6 +76,7 @@ const filterContainsForbidden = (value: unknown): boolean => {
 const ALLOWED = new Set(["find", "aggregate", "countDocuments", "distinct"]);
 
 /** Exported for unit tests; local `database_query` rejects filters that include these operators. */
+/** @internal */
 export const databaseQueryFilterUsesForbiddenOperators = (filter: unknown): boolean => {
   return filterContainsForbidden(filter ?? {});
 };

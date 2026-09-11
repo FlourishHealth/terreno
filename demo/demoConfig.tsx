@@ -81,7 +81,7 @@ interface TypedocNode {
 }
 const PropsJSON: {children: TypedocNode[]} = require("./ui-types-documentation.json");
 
-export type Categories = "Foundation" | "Component" | "Pattern" | "Data Entry" | "Form";
+type Categories = "Foundation" | "Component" | "Pattern" | "Data Entry" | "Form";
 
 interface DemoConfigurationBase {
   name: string;
