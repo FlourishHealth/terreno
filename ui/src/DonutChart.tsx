@@ -5,7 +5,7 @@ import {Path, Svg} from "react-native-svg";
 import {Box} from "./Box";
 import type {DonutChartProps, LayoutChangeEvent} from "./Common";
 import {ChartFrame} from "./charts/ChartFrame";
-import {getDonutSlicePath} from "./charts/paths";
+import {getDonutSliceAngles, getDonutSliceHitCenter, getDonutSlicePath} from "./charts/paths";
 import {getChartPaint} from "./charts/theme";
 import type {ChartPoint} from "./charts/types/chartTypes";
 import {Text} from "./Text";
@@ -28,14 +28,10 @@ const formatChartTooltip = ({
 const getSliceAngles = (
   data: ChartPoint[]
 ): Array<{end: number; point: ChartPoint; start: number}> => {
-  const total = data.reduce((sum, point) => sum + Math.max(point.value, 0), 0);
-  let cursor = -Math.PI / 2;
-
-  return data.map((point) => {
-    const sweep = total === 0 ? 0 : (Math.max(point.value, 0) / total) * 2 * Math.PI;
-    const start = cursor;
-    cursor += sweep;
-    return {end: cursor, point, start};
+  const angles = getDonutSliceAngles(data);
+  return data.map((point, index) => {
+    const slice = angles[index];
+    return {end: slice?.end ?? 0, point, start: slice?.start ?? 0};
   });
 };
 
@@ -106,6 +102,7 @@ export const DonutChart: FC<DonutChartProps> = ({
             };
             const mid = (slice.start + slice.end) / 2;
             const hitRadius = (innerRadius + outerRadius) / 2;
+            const hitCenter = getDonutSliceHitCenter({center, hitRadius, midAngle: mid});
             return (
               <Box
                 accessibilityHint={`Show value for ${slice.point.label}`}
@@ -113,9 +110,9 @@ export const DonutChart: FC<DonutChartProps> = ({
                 dangerouslySetInlineStyle={{
                   __style: {
                     height: MARK_HIT_SIZE,
-                    left: center + Math.cos(mid) * hitRadius - MARK_HIT_SIZE / 2,
+                    left: hitCenter.x - MARK_HIT_SIZE / 2,
                     position: "absolute",
-                    top: center + Math.sin(mid) * hitRadius - MARK_HIT_SIZE / 2,
+                    top: hitCenter.y - MARK_HIT_SIZE / 2,
                     width: MARK_HIT_SIZE,
                   },
                 }}

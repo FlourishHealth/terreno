@@ -1,6 +1,12 @@
 import {describe, expect, it} from "bun:test";
 
-import {getAreaPath, getDonutSlicePath, getLinePath} from "./paths";
+import {
+  getAreaPath,
+  getDonutSliceAngles,
+  getDonutSliceHitCenter,
+  getDonutSlicePath,
+  getLinePath,
+} from "./paths";
 import {createCartesianScales} from "./scales";
 import type {ChartPoint} from "./types/chartTypes";
 
@@ -50,5 +56,27 @@ describe("chart paths", () => {
 
     expect(path.startsWith("M")).toBe(true);
     expect(path.length).toBeGreaterThan(10);
+  });
+
+  it("starts donut slices at d3-shape 0 (12 o'clock), not -π/2", () => {
+    const [first, second] = getDonutSliceAngles([
+      {value: 50},
+      {value: 50},
+    ]);
+
+    expect(first?.start).toBe(0);
+    expect(first?.end).toBe(Math.PI);
+    expect(second?.start).toBe(Math.PI);
+    expect(second?.end).toBe(Math.PI * 2);
+  });
+
+  it("places equal-slice hit centers on the same side as d3-shape paint", () => {
+    const firstMid = Math.PI / 2;
+    const secondMid = (3 * Math.PI) / 2;
+    const first = getDonutSliceHitCenter({center: 100, hitRadius: 40, midAngle: firstMid});
+    const second = getDonutSliceHitCenter({center: 100, hitRadius: 40, midAngle: secondMid});
+
+    expect(first).toEqual({x: 140, y: 100});
+    expect(second).toEqual({x: 60, y: 100});
   });
 });

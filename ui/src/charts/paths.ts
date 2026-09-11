@@ -65,3 +65,36 @@ export const getDonutSlicePath = ({
 
   return path ?? "";
 };
+
+const TAU = Math.PI * 2;
+
+export const getDonutSliceAngles = (
+  data: {value: number}[]
+): Array<{end: number; start: number}> => {
+  const total = data.reduce((sum, point) => sum + Math.max(point.value, 0), 0);
+  let cursor = 0;
+
+  return data.map((point) => {
+    const sweep = total === 0 ? 0 : (Math.max(point.value, 0) / total) * TAU;
+    const start = cursor;
+    cursor += sweep;
+    return {end: cursor, start};
+  });
+};
+
+/** d3-shape `arc` treats 0 as 12 o'clock by subtracting π/2 before cos/sin. */
+export const getDonutSliceHitCenter = ({
+  center,
+  hitRadius,
+  midAngle,
+}: {
+  center: number;
+  hitRadius: number;
+  midAngle: number;
+}): {x: number; y: number} => {
+  const paintAngle = midAngle - Math.PI / 2;
+  return {
+    x: center + Math.cos(paintAngle) * hitRadius,
+    y: center + Math.sin(paintAngle) * hitRadius,
+  };
+};
