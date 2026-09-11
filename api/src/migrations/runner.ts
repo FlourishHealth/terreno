@@ -157,7 +157,8 @@ export const getMigrationStatus = async ({
     pending.push({checksum: migration.checksum, id: migration.id});
   }
 
-  const lockDoc = await historyCollection(connection).findOne({_id: MIGRATION_LOCK_ID});
+  const collection = historyCollection(connection);
+  const lockDoc = await collection.findOne({_id: MIGRATION_LOCK_ID});
   const lock =
     lockDoc == null
       ? null

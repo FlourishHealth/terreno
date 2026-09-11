@@ -20,35 +20,36 @@ mock.module("./useAdminConfig", () => ({
   useAdminConfig: (...args: unknown[]) => mockUseAdminConfig(...args),
 }));
 
+import {AdminMigrations} from "./AdminMigrations";
+
 const mockRun = mock((_args: {wetRun: boolean}) => ({
   unwrap: async () => ({taskId: "task-1"}),
 }));
 
-mock.module("./useAdminMigrations", () => ({
-  useAdminMigrations: () => ({
-    useGetMigrationsQuery: () => ({
-      data: {
-        applied: [],
-        lock: null,
-        pending: [{checksum: "abc", id: "20260910120000-todos-title-owner-index"}],
-      },
-      error: null,
-      isLoading: false,
-      refetch: mock(() => {}),
+const createApiDouble = (): AdminApi => {
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => ({
+      useAdminGetMigrationsQuery: () => ({
+        data: {
+          applied: [],
+          lock: null,
+          pending: [{checksum: "abc", id: "20260910120000-todos-title-owner-index"}],
+        },
+        error: null,
+        isLoading: false,
+        refetch: mock(() => {}),
+      }),
+      useAdminGetScriptTaskQuery: () => ({
+        data: undefined,
+        error: null,
+        isLoading: false,
+      }),
+      useAdminRunMigrationsMutation: () => [mockRun, {isLoading: false}],
     }),
-    useRunMigrationsMutation: () => [mockRun, {isLoading: false}],
-  }),
-}));
-
-mock.module("./useAdminScripts", () => ({
-  useAdminScripts: () => ({
-    useGetScriptTaskQuery: () => ({data: undefined, error: null, isLoading: false}),
-  }),
-}));
-
-import {AdminMigrations} from "./AdminMigrations";
-
-const mockApi = {} as unknown as AdminApi;
+  };
+  return api as unknown as AdminApi;
+};
 
 describe("AdminMigrations", () => {
   beforeEach(() => {
@@ -63,7 +64,7 @@ describe("AdminMigrations", () => {
 
   it("lists pending files and starts a dry-run", async () => {
     const {getByTestId, getByText} = renderWithTheme(
-      <AdminMigrations api={mockApi} baseUrl="/admin" />
+      <AdminMigrations api={createApiDouble()} baseUrl="/admin" />
     );
 
     expect(getByTestId("admin-migrations")).toBeTruthy();
