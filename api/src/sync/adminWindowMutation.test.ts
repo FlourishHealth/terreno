@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose from "mongoose";
 
 import {addAuthRoutes, setupAuth, type UserModel as UserModelType} from "../auth";
@@ -6,7 +7,10 @@ import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, findOneOrNoneFor, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {
+  auditActorIdFromRequest,
   clearAdminWindowMutationScopes,
+  emitAdminWindowMutationAudit,
+  getAdminWindowMutationScope,
   prepareAdminWindowMutation,
   registerAdminWindowMutationScope,
 } from "./adminWindowMutation";
@@ -33,6 +37,15 @@ windowTodoSchema.plugin(syncPlugin);
 
 const WindowTodoModel =
   mongoose.models.WindowTodo ?? mongoose.model<WindowTodo>("WindowTodo", windowTodoSchema);
+
+const assertStatus = async (promise: Promise<unknown>, status: number): Promise<void> => {
+  try {
+    await promise;
+    assert.fail(`Expected status ${status}`);
+  } catch (error: unknown) {
+    assert.equal((error as {status?: number}).status, status);
+  }
+};
 
 describe("adminWindowMutation", () => {
   beforeEach(async () => {
@@ -145,5 +158,228 @@ describe("adminWindowMutation", () => {
       user,
     });
     expect(prepared?.mutation.data).toEqual({title: "ok"});
+  });
+
+  it("rejects admin-window mode when broadcast or AdminApp write scope is missing", async () => {
+    const user = await loadUser("admin");
+    const entry = findSyncEntryByCollectionTag("window-todos");
+    assert.isDefined(entry);
+    if (!entry) {
+      return;
+    }
+    const mutation = {
+      collection: "window-todos",
+      data: {title: "x"},
+      mutationId: "missing-scope",
+      mutationMode: "adminWindow" as const,
+      operation: "create" as const,
+    };
+
+    entry.config.adminBroadcast = false;
+    await assertStatus(
+      prepareAdminWindowMutation({entry, mutation, req: {user} as never, user}),
+      403
+    );
+    entry.config.adminBroadcast = true;
+    clearAdminWindowMutationScopes();
+    assert.isUndefined(getAdminWindowMutationScope("WindowTodo"));
+    await assertStatus(
+      prepareAdminWindowMutation({entry, mutation, req: {user} as never, user}),
+      403
+    );
+  });
+
+  it("enforces enabled operations, required ids, instance existence, and permissions", async () => {
+    const user = await loadUser("admin");
+    const entry = findSyncEntryByCollectionTag("window-todos");
+    const scope = getAdminWindowMutationScope("WindowTodo");
+    assert.isDefined(entry);
+    assert.isDefined(scope);
+    if (!entry || !scope) {
+      return;
+    }
+
+    for (const operation of ["create", "update", "delete"] as const) {
+      registerAdminWindowMutationScope("WindowTodo", {
+        ...scope,
+        permissions: {...scope.permissions, [operation]: false},
+      });
+      await assertStatus(
+        prepareAdminWindowMutation({
+          entry,
+          mutation: {
+            collection: "window-todos",
+            data: {title: "disabled"},
+            ...(operation === "create" ? {} : {id: "todo-1"}),
+            mutationId: `disabled-${operation}`,
+            mutationMode: "adminWindow",
+            operation,
+          },
+          req: {user} as never,
+          user,
+        }),
+        403
+      );
+      registerAdminWindowMutationScope("WindowTodo", scope);
+    }
+
+    for (const operation of ["update", "delete"] as const) {
+      await assertStatus(
+        prepareAdminWindowMutation({
+          entry,
+          mutation: {
+            collection: "window-todos",
+            mutationId: `missing-${operation}`,
+            mutationMode: "adminWindow",
+            operation,
+          },
+          req: {user} as never,
+          user,
+        }),
+        400
+      );
+    }
+
+    await assertStatus(
+      prepareAdminWindowMutation({
+        entry,
+        mutation: {
+          collection: "window-todos",
+          data: {title: "missing"},
+          id: "missing",
+          mutationId: "missing-update",
+          mutationMode: "adminWindow",
+          operation: "update",
+        },
+        req: {user} as never,
+        user,
+      }),
+      404
+    );
+
+    registerAdminWindowMutationScope("WindowTodo", {
+      ...scope,
+      createPermissions: [async () => false],
+    });
+    await assertStatus(
+      prepareAdminWindowMutation({
+        entry,
+        mutation: {
+          collection: "window-todos",
+          data: {title: "denied"},
+          mutationId: "denied",
+          mutationMode: "adminWindow",
+          operation: "create",
+        },
+        req: {user} as never,
+        user,
+      }),
+      403
+    );
+  });
+
+  it("prepares update and delete against the loaded admin instance", async () => {
+    const user = await loadUser("admin");
+    const entry = findSyncEntryByCollectionTag("window-todos");
+    assert.isDefined(entry);
+    if (!entry) {
+      return;
+    }
+    await WindowTodoModel.create({_id: "todo-1", ownerId: "owner", title: "before"});
+
+    const update = await prepareAdminWindowMutation({
+      entry,
+      mutation: {
+        collection: "window-todos",
+        data: {ownerId: "hijack", title: "after"},
+        id: "todo-1",
+        mutationId: "update",
+        mutationMode: "adminWindow",
+        operation: "update",
+      },
+      req: {user} as never,
+      user,
+    });
+    const remove = await prepareAdminWindowMutation({
+      entry,
+      mutation: {
+        collection: "window-todos",
+        id: "todo-1",
+        mutationId: "delete",
+        mutationMode: "adminWindow",
+        operation: "delete",
+      },
+      req: {user} as never,
+      user,
+    });
+
+    assert.deepEqual(update?.mutation.data, {title: "after"});
+    assert.equal(remove?.mutation.operation, "delete");
+  });
+
+  it("emits create, update, and delete audit events with the request actor", async () => {
+    const events: Array<{actorId?: string; recordId?: string; verb: string}> = [];
+    const scope = getAdminWindowMutationScope("WindowTodo");
+    assert.isDefined(scope);
+    if (!scope) {
+      return;
+    }
+    const auditScope = {
+      ...scope,
+      emitAudit: ({event}: {event: {actorId?: string; recordId?: string; verb: string}}): void => {
+        events.push(event);
+      },
+    };
+    const doc = await WindowTodoModel.create({
+      _id: "audit-1",
+      ownerId: "owner",
+      title: "Audited",
+    });
+    const req = {user: {id: "admin-1"}} as never;
+
+    for (const operation of ["create", "update", "delete"] as const) {
+      await emitAdminWindowMutationAudit({
+        doc,
+        mutation: {
+          collection: "window-todos",
+          id: "audit-1",
+          mutationId: `audit-${operation}`,
+          mutationMode: "adminWindow",
+          operation,
+        },
+        req,
+        scope: auditScope,
+      });
+    }
+    await emitAdminWindowMutationAudit({
+      doc,
+      mutation: {
+        collection: "window-todos",
+        mutationId: "no-audit",
+        mutationMode: "adminWindow",
+        operation: "create",
+      },
+      req,
+      scope,
+    });
+
+    assert.deepEqual(
+      events.map(({actorId, recordId, verb}) => ({actorId, recordId, verb})),
+      [
+        {actorId: "admin-1", recordId: "audit-1", verb: "created"},
+        {actorId: "admin-1", recordId: "audit-1", verb: "updated"},
+        {actorId: "admin-1", recordId: "audit-1", verb: "deleted"},
+      ]
+    );
+  });
+
+  it("auditActorIdFromRequest coalesces req.user._id when id is absent", () => {
+    expect(auditActorIdFromRequest({user: {id: "from-id"}} as never)).toBe("from-id");
+    expect(auditActorIdFromRequest({user: {_id: "from-underscore-id"}} as never)).toBe(
+      "from-underscore-id"
+    );
+    expect(auditActorIdFromRequest({user: {_id: "fallback", id: "preferred"}} as never)).toBe(
+      "preferred"
+    );
   });
 });

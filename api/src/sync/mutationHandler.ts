@@ -7,8 +7,10 @@ import {createFeatureFlaggedLogger, logger} from "../logger";
 import {findOneOrNoneFor} from "../plugins";
 import {
   type AdminWindowMutationScope,
+  buildAdminWindowExecutorOptions,
   emitAdminWindowMutationAudit,
   prepareAdminWindowMutation,
+  withAdminWindowMutationRequestContext,
 } from "./adminWindowMutation";
 import {
   executeCreate,
@@ -567,6 +569,12 @@ const applyClaimedMutation = async ({
       });
     }
     const skipPermissionChecks = Boolean(adminWindowScope);
+    const executorOptions = adminWindowScope
+      ? buildAdminWindowExecutorOptions({productOptions: entry.options, scope: adminWindowScope})
+      : entry.options;
+    const executorRequest = adminWindowScope
+      ? withAdminWindowMutationRequestContext({mutation: effectiveMutation, req: request})
+      : request;
 
     let doc: mongoose.Document;
     let postHook: (() => Promise<void>) | undefined;
@@ -579,15 +587,15 @@ const applyClaimedMutation = async ({
         const result = await executeCreate({
           body,
           model,
-          options: entry.options,
-          req: request,
+          options: executorOptions,
+          req: executorRequest,
           skipPermissionChecks,
           skipPostHooks: true,
           user,
         });
         doc = result.doc;
         postHook = (): Promise<void> =>
-          runPostCreate({doc: result.doc, options: entry.options, request});
+          runPostCreate({doc: result.doc, options: executorOptions, request: executorRequest});
       } catch (createError: unknown) {
         // M4 (lease takeover only): an E11000 on the exact target _id is
         // tolerated as "already applied" — a prior (crashed) attempt at
@@ -620,8 +628,8 @@ const applyClaimedMutation = async ({
           concurrencyCheck: {baseSeq: effectiveMutation.baseVersion ?? 0, type: "seq"},
           id: effectiveMutation.id as string,
           model,
-          options: entry.options,
-          req: request,
+          options: executorOptions,
+          req: executorRequest,
           skipPermissionChecks,
           skipPostHooks: true,
           user,
@@ -632,7 +640,13 @@ const applyClaimedMutation = async ({
         // biome-ignore lint/style/noNonNullAssertion: executeUpdate with skipPostHooks always returns cleanedBody/prevDoc.
         const prevDoc = result.prevDoc!;
         postHook = (): Promise<void> =>
-          runPostUpdate({cleanedBody, doc: result.doc, options: entry.options, prevDoc, request});
+          runPostUpdate({
+            cleanedBody,
+            doc: result.doc,
+            options: executorOptions,
+            prevDoc,
+            request: executorRequest,
+          });
       } catch (updateError: unknown) {
         // M4 (lease takeover only): a conflict whose serverSeq is EXACTLY
         // this mutation's own expected post-write seq COULD mean the write
@@ -664,15 +678,15 @@ const applyClaimedMutation = async ({
       const result = await executeDelete({
         id: effectiveMutation.id as string,
         model,
-        options: entry.options,
-        req: request,
+        options: executorOptions,
+        req: executorRequest,
         skipPermissionChecks,
         skipPostHooks: true,
         user,
       });
       doc = result.doc;
       postHook = (): Promise<void> =>
-        runPostDelete({doc: result.doc, options: entry.options, request});
+        runPostDelete({doc: result.doc, options: executorOptions, request: executorRequest});
     }
 
     const resultId = String(doc._id);
@@ -700,12 +714,12 @@ const applyClaimedMutation = async ({
         mutationId,
       });
     }
-    if (adminWindowScope) {
+    if (adminWindowScope?.emitAudit) {
       try {
         await emitAdminWindowMutationAudit({
           doc,
           mutation: effectiveMutation,
-          req: request,
+          req: executorRequest,
           scope: adminWindowScope,
         });
       } catch (auditError: unknown) {

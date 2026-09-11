@@ -1,10 +1,12 @@
 import type express from "express";
 import mongoose from "mongoose";
 
+import type {ModelRouterOptions} from "../api";
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {checkPermissions, type PermissionMethod} from "../permissions";
 import {findOneOrNoneFor} from "../plugins";
+import type {AnyTerrenoAccess} from "../rbac/types";
 import {canUseAdminBroadcastWindow} from "./adminWindowAccess";
 import type {SyncRegistryEntry} from "./registry";
 import type {SyncAppOptions} from "./routes";
@@ -20,18 +22,82 @@ export interface AdminWindowMutationAuditEvent {
   verb: "created" | "deleted" | "updated";
 }
 
-export interface AdminWindowMutationScope {
+export interface AdminWindowMutationScopeHooks {
+  preCreate?: ModelRouterOptions<unknown>["preCreate"];
+  preUpdate?: ModelRouterOptions<unknown>["preUpdate"];
+  preDelete?: ModelRouterOptions<unknown>["preDelete"];
+  postCreate?: ModelRouterOptions<unknown>["postCreate"];
+  postUpdate?: ModelRouterOptions<unknown>["postUpdate"];
+  postDelete?: ModelRouterOptions<unknown>["postDelete"];
+}
+
+export interface AdminWindowMutationScope extends AdminWindowMutationScopeHooks {
+  /** RBAC access used by AdminApp User admin-flag and role assignment hooks. */
+  accessControl?: AnyTerrenoAccess;
   modelName: string;
   permissions: {create: boolean; update: boolean; delete: boolean};
   createPermissions: PermissionMethod<unknown>[];
   updatePermissions: PermissionMethod<unknown>[];
   deletePermissions: PermissionMethod<unknown>[];
   stripMutationData: (data: Record<string, unknown>) => Record<string, unknown>;
+  /** Legacy standalone audit callback; prefer `postCreate` / `postUpdate` / `postDelete`. */
   emitAudit?: (args: {
     event: AdminWindowMutationAuditEvent;
     req: express.Request;
   }) => void | Promise<void>;
 }
+
+/** Coalesce `req.user.id` and `req.user._id` to match Admin REST audit actor ids. */
+export const auditActorIdFromRequest = (req: express.Request): string | undefined => {
+  const actor = req.user as {id?: unknown; _id?: unknown} | undefined;
+  if (!actor) {
+    return undefined;
+  }
+  if (actor.id != null) {
+    return String(actor.id);
+  }
+  if (actor._id != null) {
+    return String(actor._id);
+  }
+  return undefined;
+};
+
+/**
+ * Admin-window sync mutations use AdminApp router pre/post hooks, not product `modelRouter`
+ * hooks. Product hooks can overwrite stripped or admin-authorized fields (for example by
+ * forcing `ownerId` in `preCreate`).
+ */
+export const buildAdminWindowExecutorOptions = <T>({
+  productOptions,
+  scope,
+}: {
+  productOptions: ModelRouterOptions<T>;
+  scope: AdminWindowMutationScope;
+}): ModelRouterOptions<T> => ({
+  ...productOptions,
+  accessControl: scope.accessControl ?? productOptions.accessControl,
+  postCreate: scope.postCreate as ModelRouterOptions<T>["postCreate"],
+  postDelete: scope.postDelete as ModelRouterOptions<T>["postDelete"],
+  postUpdate: scope.postUpdate as ModelRouterOptions<T>["postUpdate"],
+  preCreate: scope.preCreate as ModelRouterOptions<T>["preCreate"],
+  preDelete: scope.preDelete as ModelRouterOptions<T>["preDelete"],
+  preUpdate: scope.preUpdate as ModelRouterOptions<T>["preUpdate"],
+});
+
+/** Ensure `req.params.id` is set for AdminApp update/delete hooks (User admin-flag gates). */
+export const withAdminWindowMutationRequestContext = ({
+  mutation,
+  req,
+}: {
+  mutation: SyncMutateRequest;
+  req: express.Request;
+}): express.Request => {
+  if (mutation.operation === "create" || mutation.id == null) {
+    return req;
+  }
+  const params = {...(req.params ?? {}), id: mutation.id};
+  return Object.assign(req, {params}) as express.Request;
+};
 
 const adminWindowMutationScopes = new Map<string, AdminWindowMutationScope>();
 
@@ -206,7 +272,7 @@ export const emitAdminWindowMutationAudit = async ({
         : "updated";
   await scope.emitAudit({
     event: {
-      actorId: userIdFromRequest(req),
+      actorId: auditActorIdFromRequest(req),
       doc: plain,
       modelName: scope.modelName,
       recordId,
@@ -214,9 +280,4 @@ export const emitAdminWindowMutationAudit = async ({
     },
     req,
   });
-};
-
-const userIdFromRequest = (req: express.Request): string | undefined => {
-  const actor = req.user as {id?: string} | undefined;
-  return actor?.id != null ? String(actor.id) : undefined;
 };

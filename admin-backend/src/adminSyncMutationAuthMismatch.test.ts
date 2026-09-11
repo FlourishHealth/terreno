@@ -84,17 +84,42 @@ const productSyncOptions = {
 const buildHarness = ({
   grants,
   onAdminAudit,
+  productHookTracker,
   resolvePermissions,
 }: {
   grants: Record<string, string[]>;
   onAdminAudit?: (event: AdminAuditEvent) => void | Promise<void>;
+  productHookTracker?: {postUpdateCalls: number; preCreateCalls: number; preUpdateCalls: number};
   resolvePermissions?: (args: {user: User}) => Promise<Record<string, string[]>>;
 }): express.Application => {
   clearSyncRegistry();
   registerSync({
     config: {adminBroadcast: true, scope: {type: "owner"}},
     model: WindowTodoModel,
-    options: productSyncOptions,
+    options: {
+      ...productSyncOptions,
+      postUpdate: async (doc, cleanedBody, request, prevDoc) => {
+        if (productHookTracker) {
+          productHookTracker.postUpdateCalls++;
+        }
+        void doc;
+        void cleanedBody;
+        void request;
+        void prevDoc;
+      },
+      preCreate: (body, req) => {
+        if (productHookTracker) {
+          productHookTracker.preCreateCalls++;
+        }
+        return productSyncOptions.preCreate(body, req);
+      },
+      preUpdate: (body, _req) => {
+        if (productHookTracker) {
+          productHookTracker.preUpdateCalls++;
+        }
+        return body as Record<string, unknown>;
+      },
+    },
     routePath: "/window-todos",
   });
 
@@ -347,5 +372,101 @@ describe("admin window sync mutation authorization", () => {
     expect(syncRes.body.nack.code).toBe("unauthorized");
     const reloaded = await WindowTodoModel.findById(row._id).lean();
     expect(reloaded?.title).toBe("Product path");
+  });
+
+  it("admin-window sync does not run product pre/post hooks", async () => {
+    const tracker = {postUpdateCalls: 0, preCreateCalls: 0, preUpdateCalls: 0};
+    const app = buildHarness({
+      grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
+      productHookTracker: tracker,
+    });
+    const writer = await authAsUser(app, "admin");
+    const row = await WindowTodoModel.create({
+      ownerId: actorId,
+      title: "Hook isolation",
+    });
+
+    await writer
+      .post("/sync/mutate")
+      .send(
+        adminWindowMutate({
+          baseVersion: row._syncSeq ?? 1,
+          collection: "window-todos",
+          data: {title: "Admin hooks only"},
+          id: row._id,
+          mutationId: "admin-hook-isolation",
+          operation: "update",
+        })
+      )
+      .expect(200);
+
+    expect(tracker.preCreateCalls).toBe(0);
+    expect(tracker.preUpdateCalls).toBe(0);
+    expect(tracker.postUpdateCalls).toBe(0);
+  });
+
+  it("product sync without admin-window marker still runs product preUpdate", async () => {
+    const tracker = {postUpdateCalls: 0, preCreateCalls: 0, preUpdateCalls: 0};
+    const app = buildHarness({
+      grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
+      productHookTracker: tracker,
+    });
+    const owner = await authAsUser(app, "notAdmin");
+    const ownerDoc = await findOneOrNoneFor(UserModel, {email: "notAdmin@example.com"});
+    assert.exists(ownerDoc);
+    const ownerUserId = String(ownerDoc?._id);
+    const row = await WindowTodoModel.create({
+      ownerId: ownerUserId,
+      title: "Owned",
+    });
+
+    await owner
+      .post("/sync/mutate")
+      .send({
+        baseVersion: row._syncSeq ?? 1,
+        collection: "window-todos",
+        data: {title: "Product hook ok"},
+        id: row._id,
+        mutationId: "product-preupdate-runs",
+        operation: "update",
+      })
+      .expect(200);
+
+    expect(tracker.preUpdateCalls).toBe(1);
+    expect(tracker.postUpdateCalls).toBe(1);
+    expect(tracker.preCreateCalls).toBe(0);
+  });
+
+  it("admin-window sync update invokes AdminApp post hooks for audit", async () => {
+    const auditEvents: AdminAuditEvent[] = [];
+    const app = buildHarness({
+      grants: {admin: ["access"], adminWindowTodo: ["read", "write"]},
+      onAdminAudit: async (event) => {
+        auditEvents.push(event);
+      },
+    });
+    const writer = await authAsUser(app, "admin");
+    const row = await WindowTodoModel.create({
+      ownerId: actorId,
+      title: "Post hook audit",
+    });
+
+    await writer
+      .post("/sync/mutate")
+      .send(
+        adminWindowMutate({
+          baseVersion: row._syncSeq ?? 1,
+          collection: "window-todos",
+          data: {title: "Audited via post hook"},
+          id: row._id,
+          mutationId: "admin-post-hook-audit",
+          operation: "update",
+        })
+      )
+      .expect(200);
+
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0]?.verb).toBe("updated");
+    expect(auditEvents[0]?.actorId).toBe(actorId);
   });
 });

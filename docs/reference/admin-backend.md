@@ -126,9 +126,10 @@ Sync clients listed in `createSyncDb({windowCollections})` tag outbox rows with
 `mutationMode: "adminWindow"`. The server does not trust the marker alone: it also requires
 `adminBroadcast`, admin-window access (`admin:access` with RBAC, else `user.admin`), and the
 registered scope. Successful admin-window sync mutations enforce the same create/update/delete
-enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, and `onAdminAudit` hooks
-as REST — over both `POST /sync/mutate` / `sync:mutate` and batch paths. Product clients that
-omit the marker keep product sync permissions.
+enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, User admin-flag/role
+gates, and `onAdminAudit` post hooks as REST — via AdminApp executor callbacks on the shared
+sync write pipeline (Mongoose validation, conflict/baseVersion checks, and ledger ordering
+unchanged). Product clients that omit the marker keep product sync permissions and hooks.
 
 With `accessControl`, each model can use a standard admin resource with three actions:
 

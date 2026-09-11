@@ -5,6 +5,7 @@ import {
   type AnyTerrenoAccess,
   APIError,
   asyncHandler,
+  auditActorIdFromRequest,
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
@@ -473,13 +474,7 @@ const coerceAdminFlag = (value: unknown): boolean => {
   throw new APIError({status: 400, title: "admin must be a boolean"});
 };
 
-const auditActorId = (request: express.Request): string | undefined => {
-  const user = request.user as {_id?: unknown} | undefined;
-  if (!user || user._id == null) {
-    return undefined;
-  }
-  return String(user._id);
-};
+const auditActorId = auditActorIdFromRequest;
 
 interface ArraySchemaTypeCompatibility {
   caster?: mongoose.SchemaType;
@@ -1686,25 +1681,20 @@ export class AdminApp {
       });
 
       registerAdminWindowMutationScope(config.model.modelName, {
+        accessControl: this.options.accessControl,
         createPermissions: this.resourceActionPermissions(config, "create"),
         deletePermissions: this.resourceActionPermissions(config, "delete"),
-        emitAudit: auditEligible
-          ? async ({event, req}) => {
-              await safeOnAdminAudit(req, {
-                actorId: event.actorId,
-                modelName: event.modelName,
-                recordId: event.recordId,
-                recordLabel: auditLabelFromListFields(event.doc ?? {}, config.listFields),
-                verb: event.verb,
-              });
-            }
-          : undefined,
         modelName: config.model.modelName,
         permissions: {
           create: config.permissions?.create !== false,
           delete: config.permissions?.delete !== false,
           update: config.permissions?.update !== false,
         },
+        postCreate: routerOptions.postCreate,
+        postDelete: routerOptions.postDelete,
+        postUpdate: routerOptions.postUpdate,
+        preCreate: routerOptions.preCreate,
+        preUpdate: routerOptions.preUpdate,
         stripMutationData: (data) => stripProtectedFromBody(data),
         updatePermissions: this.resourceActionPermissions(config, "update"),
       });
