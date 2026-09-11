@@ -113,35 +113,76 @@ Confirm and I will write the plan. Change any bullet if I have it wrong.
 
 Do not write the IP until they confirm.
 
-## Approval summary
+## Approval brief
 
-After writing, show a final verification index capped at 15 lines:
+After writing the IP and task list, post one **approval brief**. It is a standalone
+document: a reviewer who never saw the grilling rounds, the ticket, or the repository
+can read it top to bottom and approve or push back without opening another file.
+
+Write it in this order. Orientation first, then the proposal, then the plan, then the
+decisions that shaped them, then the pointers.
 
 ```markdown
-Plan: <path>
-Tasks: <path>
-Destination: <one sentence>
-In: <short tags>
-Out: <short tags>
-Tracer: <public seam>
-Tasks: <count; frontier IDs; blocked IDs>
-Verification: <criterion/method summary>
-Supporting skills: <names or none found>
+# <Change title>
+
+<Orientation paragraph. Three to five sentences covering where the repository is today,
+where this change takes it, and why that is worth doing now. Name the user or operator
+who feels the difference. No file paths, no task IDs, no lifecycle jargon.>
+
+## Background
+
+<Current state a reviewer needs before the proposal makes sense: how the affected area
+works today, the constraint or gap driving the change, and any research finding that
+overturned an obvious approach. Cite the code, docs, or history you read. Omit this
+whole section when the orientation paragraph already carries the reader.>
+
+## The idea
+
+<The shape of the solution in a short paragraph or a few bullets: the contract, model,
+API, or seam that changes, and what is observably different afterwards. State the
+alternative you rejected and why in one line when a reviewer would otherwise ask.>
+
+## The plan
+
+| # | Task | Lands in | Proves it |
+| --- | --- | --- | --- |
+| T1 | <task title> | <files or seam> | <test, probe, artifact, or UI exercise> |
+
+Tracer: <public seam the first task cuts through>
+Order: <frontier task IDs; blocked task IDs and what unblocks them>
+Out of scope: <short tags>
+Open risks: <none, or one line each>
+
+## Decisions
+
+| ID | Question asked | Answer | What it changes |
+| --- | --- | --- | --- |
+| Q1 | <the question as it was asked> | <the settled choice, not a paraphrase of the reply> | <the design consequence a reviewer should check> |
+
+## Artifacts
+
+- Plan: <path>
+- Tasks: <path>
+- Supporting skills: <names, or none found>
+
 Next: approve → Pick
 ```
 
-This is an index for fast approval, not a second copy of the IP. Do not compress
-decisions into that index.
+Rules for the brief:
 
-If any human decisions were grilled, add this table **after** the index, with no row
-limit. List every settled decision. Skip the table entirely when there were none; do not
-mention decisions, an empty table, or "none".
-
-```markdown
-| ID | Decision | Choice |
-| --- | --- | --- |
-| Q1 | <question title> | <chosen answer> |
-```
+- The first paragraph is the whole change in prose. A reviewer who reads only that
+  paragraph should know the destination and the reason.
+- Background is optional; everything else is required. Drop Background when the change
+  is self-explanatory rather than padding it.
+- The idea and the plan come **before** the Decisions table. Decisions justify the plan;
+  they are not the pitch.
+- The Decisions table has **no row limit**. List every settled human decision with the
+  question that prompted it, so the reviewer can see what was asked and what was chosen.
+  Skip the table entirely when grilling settled none; do not mention decisions, an empty
+  table, or "none".
+- Every acceptance criterion in the plan table names how it is proved. "Manual check" is
+  not a verification method.
+- Do not restate the IP. The brief orients and points; the IP holds the detail.
 
 ## Anti-patterns
 
@@ -152,3 +193,6 @@ mention decisions, an empty table, or "none".
 - Recapping the entire interview at the end of every round
 - Writing the IP in the same turn as unanswered questions
 - Hiding decisions in a one-line `Q#=choice` summary
+- An approval brief that opens with file paths or task IDs instead of the destination
+- A Decisions table that lists choices without the questions that prompted them
+- A brief a reviewer cannot act on without opening the IP

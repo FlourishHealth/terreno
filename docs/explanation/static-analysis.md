@@ -3,6 +3,18 @@
 Run `bun run analyze:full` before pushing changes that alter imports, exports, package
 dependencies, or module boundaries.
 
+Taste does not need to infer that policy in this repository. The root `prepush` package
+script is the canonical local gate and runs lint, TypeScript compilation, and full static
+analysis:
+
+```bash
+bun run prepush
+```
+
+The reusable Taste stage checks for a root `prepush` script before every push and runs it
+in a fresh, no-context subagent. Repositories without one retain Taste's fallback:
+package-level lint, typecheck, and locally affected tests.
+
 Terreno uses two analysis speeds so agents receive quick edit feedback without replacing
 repository-wide correctness checks with a partial changed-file scan.
 
