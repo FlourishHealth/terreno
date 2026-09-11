@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeEach, describe, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -145,11 +145,18 @@ const createFakeSyncDb = (): {
   };
 };
 
+/**
+ * This package has no global testing-library teardown and `cleanup()` permanently tears down the
+ * shared test renderer, so each render is tracked and unmounted here. A table left mounted keeps
+ * its adminWindowRefresh subscription and races later tests over the shared list mock.
+ */
+const mountedViews: Array<ReturnType<typeof renderWithTheme>> = [];
+
 const renderWindowed = (
   syncDb: AdminSyncDb,
   syncConflicts?: AdminSyncConflicts
 ): ReturnType<typeof renderWithTheme> => {
-  return renderWithTheme(
+  const view = renderWithTheme(
     <AdminProvider
       api={{} as unknown as AdminApi}
       apiBase="/admin"
@@ -161,9 +168,17 @@ const renderWindowed = (
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="Todo" />
     </AdminProvider>
   );
+  mountedViews.push(view);
+  return view;
 };
 
 describe("AdminModelTable windowed path", () => {
+  afterEach(() => {
+    while (mountedViews.length > 0) {
+      mountedViews.pop()?.unmount();
+    }
+  });
+
   beforeEach(() => {
     setOptions.mockClear();
     listRefetch.mockClear();
@@ -306,6 +321,66 @@ describe("AdminModelTable windowed path", () => {
       await Promise.resolve();
     });
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "From refresh"]);
+  });
+
+  it("retries membership until a queued create appears, then stops", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    let refetchCount = 0;
+    listRefetch.mockImplementation(async () => {
+      refetchCount += 1;
+      // The first refetch races the outbox: the server does not have the row yet.
+      if (refetchCount > 1) {
+        listState.data = {
+          data: [
+            {_id: "todo-1", title: "Alpha"},
+            {_id: "todo-2", title: "Accepted by server"},
+          ],
+          total: 2,
+        };
+      }
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      markAdminWindowMembershipStale({awaitId: "todo-2", collection: "todos"});
+      await new Promise((resolve) => setTimeout(resolve, 1_600));
+    });
+
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Accepted by server"]);
+    assert.equal(refetchCount, 2);
+  });
+
+  it("gives up retrying after the attempt budget and leaves Refresh available", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    let refetchCount = 0;
+    listRefetch.mockImplementation(async () => {
+      refetchCount += 1;
+      return {data: listState.data};
+    });
+    const {queryByTestId} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      markAdminWindowMembershipStale({awaitId: "never-accepted", collection: "todos"});
+      await new Promise((resolve) => setTimeout(resolve, 2_600));
+    });
+
+    assert.equal(refetchCount, 3);
+    assert.isNotNull(queryByTestId("admin-table-refresh"));
   });
 
   it("refetches membership when a windowed write marks the collection stale", async () => {

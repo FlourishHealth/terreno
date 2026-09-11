@@ -40,7 +40,7 @@ import {
 import {isWindowedAdminTable, resolveWindowedTableRows} from "./adminWindowedTable";
 import {
   clearAdminWindowMembershipStale,
-  isAdminWindowMembershipStale,
+  getAdminWindowMembershipStale,
   subscribeAdminWindowRefresh,
 } from "./adminWindowRefresh";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
@@ -79,6 +79,10 @@ const LINK_COLUMN_TYPE = "adminLink";
 const SELECT_COLUMN_TYPE = "adminSelect";
 const INLINE_BOOL_COLUMN_TYPE = "adminInlineBool";
 const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
+
+/** A windowed create is queued in the outbox, so membership may need a few tries to catch up. */
+const MEMBERSHIP_SETTLE_ATTEMPTS = 3;
+const MEMBERSHIP_SETTLE_RETRY_MS = 700;
 
 interface AdminListEnvelope {
   data: Array<Record<string, AdminFieldValue>>;
@@ -515,9 +519,10 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     };
   }, [adminContext?.syncDb, isWindowed, membershipRows, syncCollection]);
 
-  const handleRefresh = useCallback(async (): Promise<void> => {
+  /** Resolves to the refetched membership ids, or undefined when the refresh was abandoned. */
+  const handleRefresh = useCallback(async (): Promise<string[] | undefined> => {
     if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
-      return;
+      return undefined;
     }
     const generation = refreshGenerationRef.current + 1;
     refreshGenerationRef.current = generation;
@@ -527,11 +532,11 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
         | {data?: AdminListEnvelope; error?: unknown; isError?: boolean}
         | undefined;
       if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
-        return;
+        return undefined;
       }
       if (result?.isError || result?.error) {
         toast.catch(result.error ?? new Error("Refresh failed"), "Refresh failed");
-        return;
+        return undefined;
       }
       const rows = (result?.data?.data ?? membershipRows) as Array<Record<string, AdminFieldValue>>;
       const ids: string[] = [];
@@ -546,33 +551,59 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       }
       await adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows});
       if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
-        return;
+        return undefined;
       }
       setStoreEpoch((n) => n + 1);
+      return ids;
     } catch (err) {
       if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
-        return;
+        return undefined;
       }
       toast.catch(err, "Refresh failed");
+      return undefined;
     }
   }, [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]);
 
   const handleRefreshRef = useRef(handleRefresh);
   handleRefreshRef.current = handleRefresh;
-  const isMembershipStale = useSyncExternalStore(
+  const isMountedRef = useRef(true);
+
+  // Stop the membership settle loop from scheduling work after the table goes away.
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  const membershipStale = useSyncExternalStore(
     subscribeAdminWindowRefresh,
-    () => isAdminWindowMembershipStale(syncCollection),
-    () => false
+    () => getAdminWindowMembershipStale(syncCollection),
+    () => undefined
   );
 
   // Refetch membership after a windowed create or delete, which never touches the list cache.
   useEffect(() => {
-    if (!isWindowed || !isMembershipStale || !syncCollection) {
+    if (!isWindowed || !membershipStale || !syncCollection) {
       return;
     }
+    // Claim the flag before awaiting so a remount does not start a second settle loop.
     clearAdminWindowMembershipStale({collection: syncCollection});
-    void handleRefreshRef.current();
-  }, [isMembershipStale, isWindowed, syncCollection]);
+    const awaitId = membershipStale.awaitId;
+    const settleMembership = async (): Promise<void> => {
+      for (let attempt = 0; attempt < MEMBERSHIP_SETTLE_ATTEMPTS; attempt += 1) {
+        const ids = await handleRefreshRef.current();
+        // `undefined` means the refresh was abandoned — unmounted, re-paged, or failed.
+        if (!ids || !awaitId || ids.includes(awaitId)) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, MEMBERSHIP_SETTLE_RETRY_MS));
+        if (!isMountedRef.current) {
+          return;
+        }
+      }
+    };
+    void settleMembership();
+  }, [isWindowed, membershipStale, syncCollection]);
 
   const handleDelete = useCallback(
     async (id: string) => {

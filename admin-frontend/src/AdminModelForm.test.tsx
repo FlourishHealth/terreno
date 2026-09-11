@@ -58,7 +58,7 @@ const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]
 
 import {AdminModelForm} from "./AdminModelForm";
 import {AdminProvider} from "./AdminProvider";
-import {isAdminWindowMembershipStale, resetAdminWindowRefreshForTests} from "./adminWindowRefresh";
+import {getAdminWindowMembershipStale, resetAdminWindowRefreshForTests} from "./adminWindowRefresh";
 
 const syncDb: AdminSyncDb = {
   hydrateWindow: hydrateWindowFn,
@@ -168,7 +168,7 @@ describe("AdminModelForm", () => {
       result: {_id: "sync-id", active: true, age: 0, email: "", name: ""},
     });
     assert.equal(routerBack.mock.calls.length, 1);
-    assert.isTrue(isAdminWindowMembershipStale("todos"));
+    assert.deepEqual(getAdminWindowMembershipStale("todos"), {awaitId: "sync-id"});
     createForm.unmount();
     resetAdminWindowRefreshForTests();
 
@@ -200,7 +200,7 @@ describe("AdminModelForm", () => {
     });
     assert.equal(updateFn.mock.calls.length, 0);
     assert.equal(routerBack.mock.calls.length, 2);
-    assert.isFalse(isAdminWindowMembershipStale("todos"));
+    assert.isUndefined(getAdminWindowMembershipStale("todos"));
 
     const deleteButton = editForm.UNSAFE_root.findAll(
       (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
@@ -215,7 +215,7 @@ describe("AdminModelForm", () => {
     });
     assert.equal(deleteFn.mock.calls.length, 0);
     assert.equal(routerBack.mock.calls.length, 3);
-    assert.isTrue(isAdminWindowMembershipStale("todos"));
+    assert.deepEqual(getAdminWindowMembershipStale("todos"), {});
   });
 
   it("shows an edit conflict for the loaded form id", async () => {

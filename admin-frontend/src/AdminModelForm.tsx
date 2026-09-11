@@ -470,7 +470,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         });
         result = {...payload, _id: mutation.id};
         if (mode === "create") {
-          markAdminWindowMembershipStale({collection: modelConfig.syncCollection});
+          markAdminWindowMembershipStale({
+            awaitId: mutation.id,
+            collection: modelConfig.syncCollection,
+          });
         }
       } else if (mode === "create") {
         result = await createItem(payload).unwrap();
