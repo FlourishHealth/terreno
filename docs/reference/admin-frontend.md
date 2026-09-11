@@ -69,7 +69,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
-- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. Passing only `api` keeps the RTK list.
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. A windowed create or delete never touches the cached REST list, so the form flags the collection through `markAdminWindowMembershipStale` and the changelist refetches membership automatically — whether it stayed mounted behind the form or remounts when the form pops. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 
@@ -103,7 +103,9 @@ windowed configuration keep the REST/RTK mutation path.
 Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
 Windowed tables and forms render `AdminConflictSheet`, filtered to the ids loaded
 on that page or form, and forward **Use server** / **Keep mine** to syncdb's
-resolver. This adapter keeps `@terreno/syncdb` optional for admin-frontend.
+resolver. Only the most recently mounted sheet per collection renders, so a form
+stacked over its changelist shows one sheet instead of two.
+This adapter keeps `@terreno/syncdb` optional for admin-frontend.
 Bulk actions remain server operations: windowed models call the host fetch
 client at `{routePath}/bulk-patch`, while API-only/ObjectId hosts retain RTK.
 
