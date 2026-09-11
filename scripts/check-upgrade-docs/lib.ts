@@ -15,7 +15,7 @@ interface CheckUpgradeDocumentationOptions {
   version: string;
 }
 
-export const getReleaseChangelogSection = ({
+const getReleaseChangelogSection = ({
   changelog,
   version,
 }: {
@@ -37,9 +37,9 @@ export const getReleaseChangelogSection = ({
   return changelog.slice(sectionStart, sectionEnd);
 };
 
-export const getUpgradeNoteTriggeringSections = (releaseSection: string): string[] => {
+const getUpgradeNoteTriggeringSections = (releaseSection: string): string[] => {
   return [...releaseSection.matchAll(UPGRADE_NOTE_SECTION_PATTERN)].map((match) =>
-    match[1].toLowerCase(),
+    match[1].toLowerCase()
   );
 };
 

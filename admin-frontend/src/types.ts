@@ -66,7 +66,7 @@ export interface AdminFieldConfig {
   itemRef?: string;
 }
 
-export interface AdminModelPermissions {
+interface AdminModelPermissions {
   create?: boolean;
   delete?: boolean;
   update?: boolean;
@@ -132,7 +132,7 @@ export interface AdminScriptConfig {
 }
 
 /** Admin UI v2 home layout slots (Django template-block analogue). */
-export interface AdminHomeSlots {
+interface AdminHomeSlots {
   contentTop?: string[];
   main?: string[];
   navGlobal?: string[];
@@ -220,13 +220,13 @@ export interface AdminProviderValue {
   widgets: AdminWidgetRegistry;
 }
 
-export interface BackgroundTaskProgress {
+interface BackgroundTaskProgress {
   percentage: number;
   stage?: string;
   message?: string;
 }
 
-export interface BackgroundTaskLog {
+interface BackgroundTaskLog {
   timestamp: string;
   level: "info" | "warn" | "error";
   message: string;

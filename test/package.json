@@ -5,7 +5,6 @@
   },
   "dependencies": {
     "express": "catalog:",
-    "lodash": "catalog:",
     "luxon": "catalog:",
     "qs": "catalog:",
     "winston": "catalog:"
@@ -24,6 +23,13 @@
     "supertest": "catalog:",
     "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./preload/memoryMongo": "./src/preload/memoryMongo.ts"
+  },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "bun",
@@ -34,13 +40,6 @@
   ],
   "license": "MIT",
   "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./preload/memoryMongo": "./src/preload/memoryMongo.ts"
-  },
   "name": "@terreno/test",
   "peerDependencies": {
     "mongoose": "^8.0.0 || ^9.0.0"
@@ -64,5 +63,5 @@
     "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.3.0"
 }

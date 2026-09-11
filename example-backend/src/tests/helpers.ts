@@ -28,10 +28,3 @@ export const createTestUser = async (
 export const generateTestEmail = (): string => {
   return `test-${DateTime.now().toMillis()}-${Math.random().toString(36).substring(7)}@example.com`;
 };
-
-/**
- * Clean up all test data
- */
-export const cleanupTestData = async (): Promise<void> => {
-  await User.deleteMany({});
-};

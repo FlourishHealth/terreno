@@ -1,12 +1,10 @@
 /** Stable git branch for the daily update-dependencies run. Never invent a second. */
 export const UPDATE_DEPENDENCIES_BRANCH = "chore/update-dependencies";
 
-export const UPDATE_DEPENDENCIES_BASE_BRANCH = "master";
+const UPDATE_DEPENDENCIES_BASE_BRANCH = "master";
 
 /** Hidden marker in the rolling PR body so later runs find the same PR. */
 export const UPDATE_DEPENDENCIES_PR_MARKER = "<!-- terreno-update-dependencies -->";
-
-export const UPDATE_DEPENDENCIES_PR_TITLE = "chore(deps): daily dependency updates";
 
 interface RollingPrCandidate {
   baseRefName: string;

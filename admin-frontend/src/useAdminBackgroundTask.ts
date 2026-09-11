@@ -3,7 +3,7 @@ import {useMemo} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
-export interface AdminBackgroundTaskBody {
+interface AdminBackgroundTaskBody {
   ids?: string[];
   kind: string;
   metadata?: Record<string, unknown>;

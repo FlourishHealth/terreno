@@ -11,7 +11,6 @@
     "@modelcontextprotocol/node": "catalog:",
     "@modelcontextprotocol/server": "catalog:",
     "@sentry/bun": "catalog:",
-    "@sentry/profiling-node": "^10.25.0",
     "@terreno/test": "workspace:*",
     "@thream/socketio-jwt": "catalog:",
     "@types/qs": "catalog:",
@@ -23,7 +22,6 @@
     "cors": "^2.8.5",
     "cron": "^4.3.4",
     "express": "catalog:",
-    "generaterr": "^1.5.0",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "catalog:",
@@ -36,11 +34,9 @@
     "passport-github2": "^0.1.12",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
-    "passport-local-mongoose": "catalog:",
     "path-to-regexp": "^8.4.2",
     "qs": "catalog:",
     "router": "^2.2.0",
-    "scmp": "^2.1.0",
     "serve-static": "^2.2.1",
     "socket.io": "catalog:",
     "swagger-parser": "^10.0.3",
@@ -53,10 +49,8 @@
     "@biomejs/biome": "catalog:",
     "@modelcontextprotocol/client": "catalog:",
     "@terreno/syncdb": "workspace:*",
-    "@types/bcrypt": "^6.0.0",
     "@types/bun": "catalog:",
     "@types/cors": "^2.8.17",
-    "@types/cron": "^2.4.3",
     "@types/express": "catalog:",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "catalog:",
@@ -67,11 +61,10 @@
     "@types/passport-github2": "^1.2.9",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
-    "@types/sinon": "^21.0.0",
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongoose": "catalog:",
-    "sinon": "^22.0.0",
+    "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:",
     "zod": "catalog:"
@@ -97,8 +90,18 @@
   "main": "dist/index.js",
   "name": "@terreno/api",
   "peerDependencies": {
+    "ioredis": "^5.11.0",
     "mongoose": "^8.0.0 || ^9.0.0",
+    "passport-local-mongoose": "catalog:",
     "zod": "^4.3.6"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    },
+    "passport-local-mongoose": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"
@@ -129,5 +132,5 @@
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.3.0"
 }

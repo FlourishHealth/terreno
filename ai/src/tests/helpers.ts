@@ -5,7 +5,7 @@ import mongoose, {type Model} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import type TestAgent from "supertest/lib/agent";
 
-export type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
 
 export interface AiTestUser {
   admin?: boolean;
@@ -20,7 +20,7 @@ export interface AiTestUserDoc {
   name?: string;
 }
 
-export const createTestUserModel = (): Model<AiTestUserDoc> => {
+const createTestUserModel = (): Model<AiTestUserDoc> => {
   if (mongoose.models.User) {
     return mongoose.models.User as Model<AiTestUserDoc>;
   }
@@ -43,7 +43,7 @@ export const createTestUserModel = (): Model<AiTestUserDoc> => {
 
 export const UserModel = createTestUserModel();
 
-export const STANDARD_AI_TEST_USERS = {
+const STANDARD_AI_TEST_USERS = {
   admin: {admin: true, email: "admin@example.com", name: "Admin", password: "securePassword"},
   notAdmin: {admin: false, email: "notAdmin@example.com", name: "User", password: "password"},
 } as const;
