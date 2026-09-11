@@ -19,7 +19,7 @@ export const PUBLISHED_PACKAGES = [
 
 export type PublishedPackage = (typeof PUBLISHED_PACKAGES)[number];
 
-export interface PackageJson {
+interface PackageJson {
   files?: string[];
   license?: string;
 }
@@ -29,12 +29,12 @@ export interface LicenseCheckFailure {
   message: string;
 }
 
-export const readPackageJson = (repoRoot: string, packageDir: PublishedPackage): PackageJson => {
+const readPackageJson = (repoRoot: string, packageDir: PublishedPackage): PackageJson => {
   const packageJsonPath = join(repoRoot, packageDir, "package.json");
   return JSON.parse(readFileSync(packageJsonPath, "utf8")) as PackageJson;
 };
 
-export const readRootLicense = (repoRoot: string): string | undefined => {
+const readRootLicense = (repoRoot: string): string | undefined => {
   const rootPackageJsonPath = join(repoRoot, "package.json");
   if (!existsSync(rootPackageJsonPath)) {
     return undefined;
@@ -56,8 +56,8 @@ export const checkLicenseCoverage = ({
 
   if (!rootLicense) {
     failures.push({
-      packageDir: "api",
       message: "root package.json is missing a license field",
+      packageDir: "api",
     });
     return failures;
   }
@@ -67,8 +67,8 @@ export const checkLicenseCoverage = ({
 
     if (!existsSync(licensePath)) {
       failures.push({
-        packageDir,
         message: "missing LICENSE file",
+        packageDir,
       });
     }
 
@@ -76,15 +76,15 @@ export const checkLicenseCoverage = ({
 
     if (packageJson.license !== rootLicense) {
       failures.push({
-        packageDir,
         message: `package.json license "${packageJson.license ?? "(missing)"}" does not match root license "${rootLicense}"`,
+        packageDir,
       });
     }
 
     if (packageJson.files && !packageJson.files.includes("LICENSE")) {
       failures.push({
-        packageDir,
         message: 'package.json files array does not include "LICENSE"',
+        packageDir,
       });
     }
   }

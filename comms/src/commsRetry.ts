@@ -4,9 +4,9 @@ import {DateTime} from "luxon";
 import type {CommsMessageDocument} from "./modelTypes";
 import type {CommsChannel} from "./types";
 
-export const COMMS_RETRY_NOT_RETRYABLE = "comms-retry-not-retryable";
-export const COMMS_RETRY_PAYLOAD_EXPIRED = "comms-retry-payload-expired";
-export const COMMS_RETRY_CHANNEL_UNCONFIGURED = "comms-retry-channel-unconfigured";
+const COMMS_RETRY_NOT_RETRYABLE = "comms-retry-not-retryable";
+const COMMS_RETRY_PAYLOAD_EXPIRED = "comms-retry-payload-expired";
+const COMMS_RETRY_CHANNEL_UNCONFIGURED = "comms-retry-channel-unconfigured";
 
 export interface CommsRetryBlock {
   code: string;
@@ -15,7 +15,7 @@ export interface CommsRetryBlock {
 
 const RETRYABLE_STATUSES = new Set(["bounced", "failed"]);
 
-export const isPayloadPresent = (message: CommsMessageDocument): boolean => {
+const isPayloadPresent = (message: CommsMessageDocument): boolean => {
   if (message.payload === undefined || message.payload === null) {
     return false;
   }

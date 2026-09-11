@@ -109,14 +109,6 @@ Configuration.register("PR_SERVICE_URL", {
   type: "string",
 });
 
-// ============================================================================
-// Exported convenience getters (backward compatibility)
-// ============================================================================
-
-export const APP_NAME = Configuration.get<string>("APP_NAME");
-export const DEFAULT_PAGE_SIZE = Configuration.get<number>("DEFAULT_PAGE_SIZE");
-export const MAX_PAGE_SIZE = Configuration.get<number>("MAX_PAGE_SIZE");
-
 export const isProduction =
   Configuration.get<string>("NODE_ENV") === "production" &&
   Configuration.get<string>("APP_ENV") === "production";
@@ -126,62 +118,15 @@ export const isStaging = Configuration.get<string>("APP_ENV") === "staging";
 // This is used to determine if the app is deployed to Cloud Run in production or staging or
 // running locally.
 export const isDeployed = Configuration.get<string>("NODE_ENV") === "production";
-export const isDev = Configuration.get<string>("NODE_ENV") === "development";
-export const isTest = Configuration.get<string>("NODE_ENV") === "test";
 
 export const isWebsocketService =
   Configuration.get<string>("BACKEND_SERVICE") === "websockets" ||
   Configuration.get<string>("BACKEND_SERVICE") === "all";
 
-// During migration, API service will accept websockets connections but only the websocket
-// service should listen to changes. Also applies to all, for dev/pr.
-export const isTasksService =
-  Configuration.get<string>("BACKEND_SERVICE") === "tasks" ||
-  Configuration.get<string>("BACKEND_SERVICE") === "all";
-
-export const isApiService =
-  Configuration.get<string>("BACKEND_SERVICE") === "api" ||
-  Configuration.get<string>("BACKEND_SERVICE") === "all";
-
-export const getEnvironment = (): string => {
-  if (isProduction) {
-    return "PROD";
-  }
-  if (isStaging) {
-    const prNumber = Configuration.get<string>("PR_NUMBER");
-    return prNumber ? `STG-${prNumber}` : "STG";
-  }
-  if (isDev) {
-    return "DEV";
-  }
-  if (isTest) {
-    return "TEST";
-  }
-  return "DEV"; // Default fallback
-};
-
-// Calculate URLs based on PR environment
-const PR_SERVICE_URL = Configuration.get<string>("PR_SERVICE_URL");
 export const isPullRequest =
   Configuration.get<string>("PR_NUMBER") && Configuration.get<string>("PR_NUMBER") !== "staging";
 
-let API_URL = Configuration.get<string>("API_URL");
-let TASKS_URL = Configuration.get<string>("TASKS_URL");
-
-if (isPullRequest) {
-  const prNumber = Configuration.get<string>("PR_NUMBER");
-  API_URL = `https://pr-${prNumber}---${PR_SERVICE_URL}`;
-  // Tasks run on the same instance in PR.
-  TASKS_URL = API_URL;
-}
-
-export {API_URL, TASKS_URL};
-
 export const WEBSOCKETS_DEBUG = Configuration.get<boolean>("WEBSOCKETS_DEBUG");
-export const SYNC_DEBUG = Configuration.get<boolean>("SYNC_DEBUG");
-export const ADMIN_SPA_ENABLED = Configuration.get<boolean>("ADMIN_SPA_ENABLED");
-export const ADMIN_SPA_DEV_PROXY = Configuration.get<string>("ADMIN_SPA_DEV_PROXY");
-export const ADMIN_SPA_DIST_DIR = Configuration.get<string>("ADMIN_SPA_DIST_DIR");
 
 Configuration.register("LANGFUSE_BASE_URL", {
   defaultValue: "https://cloud.langfuse.com",

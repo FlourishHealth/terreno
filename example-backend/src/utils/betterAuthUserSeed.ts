@@ -12,93 +12,11 @@ import supertest from "supertest";
 import {User} from "../models/user";
 import {buildBetterAuthConfig} from "./betterAuthConfig";
 
-const DEFAULT_API_URL = "http://localhost:4000";
-
 export interface BetterAuthSeedUser {
   email: string;
   name: string;
   password: string;
 }
-
-const extractCookieHeader = (res: Response): string | undefined => {
-  const cookies = res.headers.getSetCookie();
-  if (cookies.length === 0) {
-    return undefined;
-  }
-  return cookies.map((cookie) => cookie.split(";")[0]).join("; ");
-};
-
-/**
- * Sign a user up (or sign in if they already exist) through the running backend's
- * Better Auth email endpoints. Returns the session cookie header for follow-up
- * requests that should sync the user into the Mongoose User model.
- */
-export const signUpOrSignInBetterAuthUser = async ({
-  apiUrl = process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? DEFAULT_API_URL,
-  user,
-}: {
-  apiUrl?: string;
-  user: BetterAuthSeedUser;
-}): Promise<string> => {
-  const signUpRes = await fetch(`${apiUrl}/api/auth/sign-up/email`, {
-    body: JSON.stringify({email: user.email, name: user.name, password: user.password}),
-    headers: {"Content-Type": "application/json"},
-    method: "POST",
-  });
-  if (signUpRes.ok) {
-    const cookie = extractCookieHeader(signUpRes);
-    if (!cookie) {
-      throw new APIError({
-        status: 500,
-        title: `Better Auth sign-up for ${user.email} succeeded but returned no session cookie`,
-      });
-    }
-    logger.info(`Signed up Better Auth user: ${user.email}`);
-    return cookie;
-  }
-
-  const signInRes = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
-    body: JSON.stringify({email: user.email, password: user.password}),
-    headers: {"Content-Type": "application/json"},
-    method: "POST",
-  });
-  if (!signInRes.ok) {
-    const body = await signInRes.text();
-    throw new APIError({
-      status: 500,
-      title: `Better Auth sign-up (${signUpRes.status}) and sign-in (${signInRes.status}) failed for ${user.email}: ${body}`,
-    });
-  }
-  const cookie = extractCookieHeader(signInRes);
-  if (!cookie) {
-    throw new APIError({
-      status: 500,
-      title: `Better Auth sign-in for ${user.email} succeeded but returned no session cookie`,
-    });
-  }
-  logger.info(`Signed in existing Better Auth user: ${user.email}`);
-  return cookie;
-};
-
-/** Hit an authenticated route so Better Auth session middleware syncs into Mongoose. */
-export const syncBetterAuthUserToMongoose = async ({
-  apiUrl = process.env.BETTER_AUTH_URL ?? process.env.API_URL ?? DEFAULT_API_URL,
-  cookie,
-  token,
-}: {
-  apiUrl?: string;
-  cookie?: string;
-  token?: string;
-}): Promise<void> => {
-  const headers: Record<string, string> = {};
-  if (cookie) {
-    headers.cookie = cookie;
-  }
-  if (token) {
-    headers.authorization = `Bearer ${token}`;
-  }
-  await fetch(`${apiUrl}/auth/me`, {headers});
-};
 
 const waitMs = (ms: number): Promise<void> => {
   return new Promise((resolve) => {
