@@ -1,4 +1,5 @@
 import {expect, test} from "@playwright/test";
+import {DateTime} from "luxon";
 
 const ADMIN_EMAIL = process.env.ADMIN_SPA_E2E_EMAIL ?? "admin-spa-e2e@example.com";
 const ADMIN_PASSWORD = process.env.ADMIN_SPA_E2E_PASSWORD ?? "admin-spa-e2e-password";
@@ -19,18 +20,33 @@ test.describe("admin SPA Todo CRUD smoke", () => {
       timeout: 30_000,
     });
 
-    const createdTitle = `SPA CRUD ${Date.now()}`;
-    const editedTitle = `${createdTitle} edited`;
+    const createdTitle = `SPA CRUD ${DateTime.now().toMillis()}`;
+    const refreshedTitle = `${createdTitle} refreshed`;
+    const editedTitle = `${refreshedTitle} edited`;
     const createResponse = await page.request.post("/todos", {data: {title: createdTitle}});
     expect(createResponse.ok()).toBeTruthy();
+    const created = (await createResponse.json()) as {data?: {_id?: string}};
+    const createdId = created.data?._id;
+    expect(createdId).toBeTruthy();
 
     await page.goto("/console/Todo");
     await page.getByTestId("admin-create-button").waitFor({state: "visible", timeout: 15_000});
+    await expect(page.getByTestId("admin-table-refresh")).toBeVisible();
     await expect(page.getByText(createdTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
     });
 
-    await page.getByText(createdTitle).locator("visible=true").first().click();
+    const updateResponse = await page.request.patch(`/todos/${createdId}`, {
+      data: {title: refreshedTitle},
+    });
+    expect(updateResponse.ok()).toBeTruthy();
+    await expect(page.getByText(refreshedTitle).locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId("admin-table-refresh").click();
+    await expect(page.getByText(refreshedTitle).locator("visible=true").first()).toBeVisible();
+
+    await page.getByText(refreshedTitle).locator("visible=true").first().click();
     await page.getByTestId("admin-save-button").waitFor({state: "visible", timeout: 15_000});
     await page.getByTestId("admin-field-title").fill(editedTitle);
     await page.getByTestId("admin-save-button").click();
