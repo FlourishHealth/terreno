@@ -1,7 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {DateTime} from "luxon";
 
-import {ensureSpace, formatDate, PAGE_HEIGHT} from "./pdfUtils";
+import {ensureSpace, formatDate} from "./pdfUtils";
 
 describe("formatDate", () => {
   it("returns an empty string for missing values", () => {
@@ -24,7 +24,7 @@ describe("formatDate", () => {
 describe("ensureSpace", () => {
   it("adds a page and resets y when the remaining space is too small", () => {
     const addPage = mock(() => {});
-    const nextY = ensureSpace({addPage} as never, PAGE_HEIGHT - 5, 40);
+    const nextY = ensureSpace({addPage} as never, 292, 40);
     expect(addPage).toHaveBeenCalled();
     expect(nextY).toBe(20);
   });
