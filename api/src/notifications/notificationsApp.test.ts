@@ -183,6 +183,14 @@ describe("NotificationsApp", () => {
       .expect(405);
   });
 
+  it("creates notification preferences for the authenticated owner", async () => {
+    const response = await userAgent.post("/notification-preferences").send({mail: false});
+    assert.include([200, 201], response.status);
+    const preference = await NotificationPreference.findExactlyOne({ownerId: userId});
+    assert.isFalse(preference.mail);
+    assert.equal(String(preference.ownerId), userId);
+  });
+
   it("rejects sync create on notifications", async () => {
     const response = await userAgent.post("/sync/mutate").send({
       collection: "notifications",

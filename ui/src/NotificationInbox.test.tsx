@@ -62,6 +62,25 @@ describe("NotificationInbox", () => {
     assert.equal(markedRead?.id, "n1");
   });
 
+  it("fires mark-unread for a read item", () => {
+    let markedUnread: NotificationInboxItem | undefined;
+    const {getByTestId} = renderWithTheme(
+      <NotificationInbox
+        items={items}
+        onDismiss={() => {}}
+        onMarkRead={() => {}}
+        onMarkUnread={(item) => {
+          markedUnread = item;
+        }}
+        onOpen={() => {}}
+      />
+    );
+
+    fireEvent.press(getByTestId("notification-inbox-mark-unread-n2"));
+
+    assert.equal(markedUnread?.id, "n2");
+  });
+
   it("shows loading and empty states", () => {
     const loading = renderWithTheme(
       <NotificationInbox
