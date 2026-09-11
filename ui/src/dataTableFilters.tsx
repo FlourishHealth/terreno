@@ -111,6 +111,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
             {raw !== undefined ? (
               <Button
                 onClick={() => setField(field, undefined)}
+                testID={`data-table-filter-${field}-clear`}
                 text="Clear filter"
                 variant="ghost"
               />
@@ -285,9 +286,12 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
     setDraftValues(next);
   }, []);
 
-  // Reset draft values from applied state whenever the popover opens.
+  const wasOpenRef = useRef(false);
+  // Seed draft only on closed → open so parent rerenders do not wipe in-progress input.
   useEffect(() => {
-    if (!isOpen) {
+    const justOpened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (!justOpened) {
       return;
     }
     const next = pickFilterDraft(filter, appliedValues);
@@ -353,9 +357,12 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
     setDraftValues(next);
   }, []);
 
-  // Reset every toolbar-only filter from controlled values whenever its popover opens.
+  const wasOpenRef = useRef(false);
+  // Seed drafts only on closed → open. Recreated `filters` arrays must not reset typing.
   useEffect(() => {
-    if (!isOpen) {
+    const justOpened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (!justOpened) {
       return;
     }
     const next: Record<string, unknown> = {};

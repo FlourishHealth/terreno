@@ -599,6 +599,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     []
   );
 
+  const additionalFilters = useMemo((): DataTableColumnFilter[] => {
+    const adminFilters = modelConfig?.filters ?? [];
+    return adminFilters
+      .filter((filter) => !displayFields.includes(filter.field))
+      .map((filter) => toColumnFilter(filter, api, modelConfig?.fields ?? {}, modelConfigs))
+      .filter((filter): filter is DataTableColumnFilter => Boolean(filter));
+  }, [api, displayFields, modelConfig, modelConfigs]);
+
   if (isConfigLoading || !modelConfig) {
     return (
       <Page color="transparent" maxWidth="100%" padding={0}>
@@ -608,10 +616,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   }
 
   const adminFilters = modelConfig.filters ?? [];
-  const additionalFilters = adminFilters
-    .filter((filter) => !displayFields.includes(filter.field))
-    .map((filter) => toColumnFilter(filter, api, modelConfig.fields, modelConfigs))
-    .filter((filter): filter is DataTableColumnFilter => Boolean(filter));
   const dataColumns: DataTableColumn[] = displayFields.map((fieldKey) => {
     const fieldConfig = modelConfig.fields[fieldKey];
     const columnType = getColumnType(fieldKey, fieldConfig);
