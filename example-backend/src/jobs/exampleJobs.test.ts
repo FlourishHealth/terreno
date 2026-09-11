@@ -65,4 +65,39 @@ describe("example JobsApp integration", () => {
     assert.isDefined(jobsApp.getDefinition("example/dlq-demo"));
     assert.isDefined(jobsApp.getDefinition("example/heartbeat")?.schedule);
   });
+
+  it("runs demo handlers for log, heartbeat, and intentional DLQ failure", async (): Promise<void> => {
+    const jobsApp = createExampleJobsApp();
+    const logs: string[] = [];
+    const ctx = {
+      jobId: "job-demo",
+      log: {
+        info: (message: string) => {
+          logs.push(message);
+        },
+        warn: (message: string) => {
+          logs.push(message);
+        },
+      },
+      signal: new AbortController().signal,
+    };
+
+    await jobsApp.getDefinition("example/log-message")?.handler({message: "hi-demo"}, ctx as never);
+    await jobsApp.getDefinition("example/log-message")?.handler({}, ctx as never);
+    await jobsApp.getDefinition("example/heartbeat")?.handler({}, ctx as never);
+
+    let dlqError: unknown;
+    try {
+      await jobsApp.getDefinition("example/dlq-demo")?.handler({}, ctx as never);
+    } catch (error: unknown) {
+      dlqError = error;
+    }
+
+    assert.include(logs, "hi-demo");
+    assert.include(logs, "hello from example job");
+    assert.include(logs, "example heartbeat tick");
+    assert.include(logs, "intentional failure for dead-letter queue demonstration");
+    assert.instanceOf(dlqError, Error);
+    assert.equal((dlqError as {status?: number}).status, 500);
+  });
 });

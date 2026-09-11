@@ -239,6 +239,38 @@ describe("JobRunner custom runner seam", () => {
     assert.equal(await Job.countDocuments({name: "retry-dispatch"}), 1);
   });
 
+  it("reports compensation lost when dispatch fails after the row is claimed", async (): Promise<void> => {
+    const runner: JobRunner = {
+      enqueue: async (job: JobDocument): Promise<void> => {
+        await Job.updateOne(
+          {_id: job._id},
+          {$set: {lockedAt: new Date(), lockedBy: "other-worker"}}
+        );
+        throw new Error("cloud dispatch failed after claim");
+      },
+      id: "claim-then-fail",
+    };
+    const jobsApp = new JobsApp({runner});
+    jobsApp.define("claimed-dispatch", {
+      handler: async () => {},
+    });
+    registerJobsApp(jobsApp);
+
+    let caught: unknown;
+    try {
+      await getJobsService().enqueue({
+        name: "claimed-dispatch",
+        payload: {n: 1},
+      });
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    assert.instanceOf(caught, JobDispatchError);
+    assert.isFalse((caught as JobDispatchError).compensationSucceeded);
+    assert.equal(await Job.countDocuments({name: "claimed-dispatch"}), 1);
+  });
+
   it("compensates failed dispatch for non-keyed enqueue and leaves no orphan row", async (): Promise<void> => {
     const runner = new FailingThenSucceedingRunner();
     const jobsApp = new JobsApp({runner});

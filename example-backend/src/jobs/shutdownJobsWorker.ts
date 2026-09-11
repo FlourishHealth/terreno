@@ -3,6 +3,10 @@ import type {JobsApp} from "@terreno/jobs";
 
 let shutdownHooksRegistered = false;
 
+export const resetJobsWorkerShutdownHooks = (): void => {
+  shutdownHooksRegistered = false;
+};
+
 /** Stops the jobs poll loop on SIGTERM/SIGINT (idempotent hook registration). */
 export const registerJobsWorkerShutdown = (jobsApp: JobsApp): void => {
   if (shutdownHooksRegistered) {

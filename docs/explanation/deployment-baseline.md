@@ -73,6 +73,6 @@ Three details consumers get wrong:
 
 - **`PORT`** — Cloud Run and other platforms assign the listen port via `PORT`. Terreno reads `process.env.PORT` in `api/src/terrenoApp.ts` (default `9000` if unset).
 - **Non-root** — Do not run the container as root in production.
-- **Compile order** — Workspace packages (`@terreno/api`, `@terreno/test`, etc.) must compile before the example backend bundles.
+- **Compile order** — Workspace packages (`@terreno/api`, `@terreno/jobs`, `@terreno/test`, etc.) must compile before the example backend bundles. The image `exports` point at `dist/`, so skipping a workspace compile fails `bun build --compile` with an unresolved `@terreno/*` import.
 
 CI builds the image on every PR that touches backend paths (`.github/workflows/example-backend-docker.yml`).

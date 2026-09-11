@@ -4,10 +4,24 @@ import {logger} from "@terreno/api";
 
 import {bootstrapJobsWorker} from "./jobs/bootstrapJobsWorker";
 
-if (import.meta.main) {
-  void bootstrapJobsWorker().catch((error: unknown) => {
+export const runStandaloneJobsWorker = async ({
+  bootstrap = bootstrapJobsWorker,
+  exitProcess = (code: number): void => {
+    process.exit(code);
+  },
+}: {
+  bootstrap?: typeof bootstrapJobsWorker;
+  exitProcess?: (code: number) => void;
+} = {}): Promise<void> => {
+  try {
+    await bootstrap();
+  } catch (error: unknown) {
     const detail = error instanceof Error ? error.message : String(error);
     logger.error(`[jobs-worker] Failed to start: ${detail}`);
-    process.exit(1);
-  });
+    exitProcess(1);
+  }
+};
+
+if (import.meta.main) {
+  void runStandaloneJobsWorker();
 }

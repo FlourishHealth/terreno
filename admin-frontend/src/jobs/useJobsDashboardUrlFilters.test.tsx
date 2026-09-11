@@ -1,6 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderHook} from "@testing-library/react-native";
-import React from "react";
 import {useJobsDashboardUrlFilters} from "../jobs/useJobsDashboardUrlFilters";
 
 const replaceMock = mock((_href: unknown) => {});

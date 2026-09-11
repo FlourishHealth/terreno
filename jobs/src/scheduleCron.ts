@@ -1,11 +1,9 @@
 import {APIError} from "@terreno/api";
-import {CronJob, CronTime} from "cron";
+import {CronTime} from "cron";
 import {DateTime} from "luxon";
 
 const INVALID_CRON_TITLE = "Invalid cron expression";
 const INVALID_TIMEZONE_TITLE = "Invalid IANA timezone";
-
-const noop = (): void => {};
 
 export const resolveScheduleTimezone = ({
   defaultTimezone,
@@ -59,7 +57,7 @@ export const validateScheduleDefinition = ({
 };
 
 export const computeInitialNextRunAt = (cron: string, timezone: string): Date =>
-  new CronJob(cron, noop, null, false, timezone).nextDate().toJSDate();
+  computeNextRunAtAfter(cron, timezone, DateTime.utc().toJSDate());
 
 export const computeNextRunAtAfter = (cron: string, timezone: string, after: Date): Date =>
   new CronTime(cron, timezone).getNextDateFrom(after, timezone).toJSDate();

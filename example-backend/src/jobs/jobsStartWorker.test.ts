@@ -26,6 +26,11 @@ describe("jobsStartWorker env parsing", () => {
     );
   });
 
+  it("warns and defaults to true for unrecognized JOBS_START_WORKER values", () => {
+    assert.isTrue(parseJobsStartWorkerEnv("sometimes"));
+    assert.isTrue(shouldStartJobsWorkerInApiProcess({jobsStartWorkerEnv: "1", skipListen: false}));
+  });
+
   it("honors JOBS_START_WORKER=false when the server listens", () => {
     assert.isFalse(
       shouldStartJobsWorkerInApiProcess({jobsStartWorkerEnv: "false", skipListen: false})

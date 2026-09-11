@@ -91,6 +91,53 @@ describe("GcpCloudTasksRunner", () => {
     }
   });
 
+  it("throws when publicUrl uses a non-http protocol", (): void => {
+    assert.throws(
+      () =>
+        new GcpCloudTasksRunner(
+          baseConfig({
+            publicUrl: "ftp://api.example.com",
+          })
+        ),
+      /http or https/i
+    );
+  });
+
+  it("throws when basePath does not start with a slash", (): void => {
+    assert.throws(
+      () =>
+        new GcpCloudTasksRunner(
+          baseConfig({
+            basePath: "jobs",
+          })
+        ),
+      /basePath must start with "\/"/
+    );
+  });
+
+  it("normalizes a root basePath of slash-only to /", async (): Promise<void> => {
+    const fake = createFakeClient();
+    const runner = new GcpCloudTasksRunner(
+      baseConfig({
+        basePath: "/",
+        client: fake.client,
+      })
+    );
+    const job = buildJob();
+
+    await runner.enqueue(job);
+
+    assert.equal(fake.calls[0].request.task.httpRequest?.url, "https://api.example.com//execute");
+  });
+
+  it("throws when the Cloud Tasks client is not injected and the peer is missing", (): void => {
+    const {client: _client, ...configWithoutClient} = baseConfig();
+    assert.throws(
+      () => new GcpCloudTasksRunner(configWithoutClient),
+      /optional peer dependency @google-cloud\/tasks/
+    );
+  });
+
   it("throws when publicUrl is not an absolute http(s) URL", (): void => {
     assert.throws(
       () =>
