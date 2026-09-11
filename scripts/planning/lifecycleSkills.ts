@@ -1,8 +1,8 @@
 import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
-export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
-export const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
+const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
+const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
 
 interface StageDefinition {
   directory: string;
@@ -17,6 +17,7 @@ interface ValidateLifecyclePluginOptions {
 interface ValidateStageContentOptions {
   content: string;
   definition: StageDefinition;
+  grillingContent?: string;
 }
 
 interface TextFile {
@@ -84,6 +85,13 @@ const PLUGIN_APP_SKILL_DIRECTORIES = [
 ] as const;
 
 const PLUGIN_AGENT_NAMES = ["pre-commit", "ui-verifier"] as const;
+
+const GRILLING_BRIEF_HEADINGS = [
+  "## Background",
+  "## The idea",
+  "## The plan",
+  "## Decisions",
+] as const;
 
 const REMOVED_SKILL_DIRECTORIES = [
   "add-app-clip",
@@ -155,6 +163,7 @@ const readMarkdownFiles = (directory: string): TextFile[] => {
 export const validateStageContent = ({
   content,
   definition,
+  grillingContent,
 }: ValidateStageContentOptions): string[] => {
   const errors: string[] = [];
   const prefix = definition.directory;
@@ -199,6 +208,15 @@ export const validateStageContent = ({
     }
     if (!content.includes("Decisions table")) {
       errors.push(`${prefix}: Grow must list grilled decisions in a Decisions table`);
+    }
+    if (!content.includes("approval brief")) {
+      errors.push(`${prefix}: Grow must end with a standalone approval brief`);
+    }
+    if (!content.includes("question that prompted")) {
+      errors.push(`${prefix}: Grow decisions must carry the question that prompted them`);
+    }
+    if (grillingContent) {
+      errors.push(...validateGrillingProcedure(grillingContent));
     }
   }
 
@@ -314,21 +332,28 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before lint, typecheck, and push`);
+      errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(
-        `${prefix}: Taste must order before-push as pull, then lint and typecheck, then watch`
-      );
+      errors.push(`${prefix}: Taste must order before-push as pull, then local gate, then watch`);
     }
     if (!content.includes("fresh subagent")) {
-      errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
+      errors.push(`${prefix}: Taste must spawn a fresh subagent for the local pre-push gate`);
     }
     if (!content.includes("no parent conversation")) {
-      errors.push(`${prefix}: Taste's lint/test subagent must have no parent conversation`);
+      errors.push(`${prefix}: Taste's pre-push subagent must have no parent conversation`);
     }
-    if (!content.includes("bun lint")) {
-      errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    if (!content.includes("package.json") || !content.includes("prepush")) {
+      errors.push(`${prefix}: Taste must run the root prepush package script when present`);
+    }
+    if (!content.includes("repository's package manager")) {
+      errors.push(`${prefix}: Taste must invoke prepush with the repository package manager`);
+    }
+    if (!content.includes("If no root `prepush` script exists")) {
+      errors.push(`${prefix}: Taste must retain affected-package fallback checks`);
+    }
+    if (!content.includes("lint script")) {
+      errors.push(`${prefix}: Taste fallback must run lint in each affected package`);
     }
     if (!content.includes("typecheck script")) {
       errors.push(`${prefix}: Taste must run a typecheck in each affected package`);
@@ -350,6 +375,37 @@ export const validateStageContent = ({
         errors.push(`${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`);
       }
     }
+  }
+
+  return errors;
+};
+
+const validateGrillingProcedure = (content: string): string[] => {
+  const errors: string[] = [];
+
+  if (!content.includes("## Approval brief")) {
+    errors.push("grilling: Grow's approval output must be a standalone approval brief");
+    return errors;
+  }
+
+  for (const heading of GRILLING_BRIEF_HEADINGS) {
+    if (!content.includes(heading)) {
+      errors.push(`grilling: approval brief must include ${heading}`);
+    }
+  }
+
+  const planIndex = content.indexOf("## The plan");
+  const decisionsIndex = content.indexOf("## Decisions");
+  if (planIndex >= 0 && decisionsIndex >= 0 && planIndex > decisionsIndex) {
+    errors.push("grilling: the idea and the plan must come before the Decisions table");
+  }
+
+  if (!content.includes("| ID | Question asked | Answer |")) {
+    errors.push("grilling: the Decisions table must record the question that prompted each choice");
+  }
+
+  if (!content.includes("no row limit")) {
+    errors.push("grilling: the Decisions table must stay unbounded");
   }
 
   return errors;
@@ -773,10 +829,21 @@ export const validateLifecyclePlugin = ({
     errors.push(...validateOuterLoopContent({content, directory}));
   }
 
+  const grilling = readFileSync(
+    join(skillsDirectory, "terreno-1-grow/references/grilling.md"),
+    "utf8"
+  );
+
   for (const definition of STAGE_DEFINITIONS) {
     const skillPath = join(skillsDirectory, definition.directory, "SKILL.md");
     const content = readFileSync(skillPath, "utf8");
-    errors.push(...validateStageContent({content, definition}));
+    errors.push(
+      ...validateStageContent({
+        content,
+        definition,
+        grillingContent: definition.stage === "grow" ? grilling : undefined,
+      })
+    );
     if (content.includes("Cupping")) {
       errors.push(`${definition.directory}: Cupping terminology must be migrated to Roast`);
     }

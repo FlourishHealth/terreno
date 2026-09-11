@@ -228,7 +228,8 @@ yet, so bun would look up `@terreno/test@X.Y.Z` (and similar) on the registry
 and fail the whole job. Tests use `test:ci` when that script exists, not
 `test`. `@terreno/ui`'s `test` is `bun test --watch` and would hang the
 publish step after the suite finishes. `publish-release` uses a 20-minute
-no-output timeout as a backstop.
+no-output timeout as a backstop. If a package's tag version is already on npm,
+`publish-package.sh` skips it so a recut of the same tag can finish the rest.
 
 Only stable tags (`57.3.0`) run `deploy-demo` after publish. Use
 `{"run-demo-deploy":true}` on `master` if a prerelease must also refresh the
@@ -240,6 +241,12 @@ PR preview **cleanup** is manual because CircleCI does not receive GitHub
 preview **deploys** run on open PRs from this repository; fork PRs are skipped.
 If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
 up the open PR for `CIRCLE_BRANCH` via the GitHub API.
+
+`mcp-server-docker` is push-only, matching GitHub Actions. It uses
+`resolve-preview-pr.sh` for that lookup and skips when a PR exists. Its
+production `bun install` passes `--ignore-scripts`: root `prepare` runs
+`simple-git-hooks`, which is a devDependency and is missing from a production
+tree.
 
 ## Path-filter parity guard
 

@@ -67,4 +67,28 @@ describe("ModalSheet", () => {
     expect(openMock).toHaveBeenCalled();
     expect(closeMock).toHaveBeenCalled();
   });
+
+  it("useCombinedRefs forwards the node to callback refs, object refs, and skips undefined", () => {
+    const callbackRef = mock((_node: View | null) => {});
+    const objectRef: {current: View | null} = {current: null};
+    const TestComponent = () => {
+      const combinedRef = useCombinedRefs<View>(callbackRef, undefined, objectRef);
+      return <View ref={combinedRef} testID="combined-ref-view" />;
+    };
+
+    const {getByTestId} = renderWithTheme(<TestComponent />);
+    expect(getByTestId("combined-ref-view")).toBeTruthy();
+    expect(callbackRef).toHaveBeenCalledTimes(1);
+    expect(objectRef.current).toBe(callbackRef.mock.calls[0][0]);
+  });
+
+  it("SimpleContent forwards open and close through a callback ref", () => {
+    const forwarded = mock((_handle: {close: () => void; open: () => void} | null) => {});
+    renderWithTheme(
+      <SimpleContent ref={forwarded}>
+        <Text>Test Content</Text>
+      </SimpleContent>
+    );
+    expect(forwarded).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,5 +1,5 @@
-import {createRequire} from "node:module";
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
+import {createRequire} from "node:module";
 import {join, relative, resolve} from "node:path";
 
 export const REPO_ROOT = resolve(import.meta.dir, "../..");
@@ -40,18 +40,14 @@ const IGNORED_DIR_NAMES = new Set([
   ".git",
 ]);
 
-const BIOME_IGNORE_LINE_PATTERN =
-  /biome-ignore(?:-all)?\s+lint\/suspicious\/noExplicitAny/;
+const BIOME_IGNORE_LINE_PATTERN = /biome-ignore(?:-all)?\s+lint\/suspicious\/noExplicitAny/;
 const NO_EXPLICIT_ANY_PATTERN = /\/\/\s*noExplicitAny:/;
 
 const DEFAULT_EXCLUDED_FILE_NAMES = new Set(["commsOpenApiSdk.ts", "openApiSdk.ts"]);
 
-const DEFAULT_EXCLUDED_FILE_PATTERNS = [
-  /\.template\.tsx?$/,
-  /\/openApiSdk\.ts$/,
-];
+const DEFAULT_EXCLUDED_FILE_PATTERNS = [/\.template\.tsx?$/, /\/openApiSdk\.ts$/];
 
-export type AnyUsageKind = "annotation" | "cast" | "generic" | "index-signature";
+type AnyUsageKind = "annotation" | "cast" | "generic" | "index-signature";
 
 export type RemediationStatus =
   | "violation"
@@ -60,7 +56,7 @@ export type RemediationStatus =
   | "file-blanket"
   | "out-of-scope";
 
-export interface AnyUsage {
+interface AnyUsage {
   column: number;
   file: string;
   hasBiomeIgnore: boolean;
@@ -152,7 +148,9 @@ const loadBiomeExclusionPatterns = (repoRoot: string = REPO_ROOT): RegExp[] => {
   const biomeConfigs = [
     join(repoRoot, "biome.jsonc"),
     ...readdirSync(repoRoot, {withFileTypes: true})
-      .filter((entry) => entry.isDirectory() && existsSync(join(repoRoot, entry.name, "biome.jsonc")))
+      .filter(
+        (entry) => entry.isDirectory() && existsSync(join(repoRoot, entry.name, "biome.jsonc"))
+      )
       .map((entry) => join(repoRoot, entry.name, "biome.jsonc")),
   ];
 
@@ -342,8 +340,7 @@ const collectAnyUsagesInFile = (
       const hasLineBiomeIgnore = lineHasBiomeIgnore(suppression.lines, lineNumber);
       const hasLineNoExplicitAny = lineHasNoExplicitAnyComment(suppression.lines, lineNumber);
       const hasBiomeIgnore = suppression.fileLevelBiomeIgnore || hasLineBiomeIgnore;
-      const hasNoExplicitAnyComment =
-        suppression.fileLevelNoExplicitAny || hasLineNoExplicitAny;
+      const hasNoExplicitAnyComment = suppression.fileLevelNoExplicitAny || hasLineNoExplicitAny;
       const suppressionScope: AnyUsage["suppressionScope"] = suppression.fileLevelBiomeIgnore
         ? "file"
         : hasLineBiomeIgnore
@@ -409,8 +406,7 @@ export const collectAnyUsages = ({
     }
     if (undocumentedOnly) {
       return (
-        usage.remediationStatus === "suppressed-only" ||
-        usage.remediationStatus === "file-blanket"
+        usage.remediationStatus === "suppressed-only" || usage.remediationStatus === "file-blanket"
       );
     }
     return true;
@@ -418,8 +414,8 @@ export const collectAnyUsages = ({
 
   const byPackage: Record<string, number> = {};
   const byRemediationStatus: Record<RemediationStatus, number> = {
-    "fully-documented": 0,
     "file-blanket": 0,
+    "fully-documented": 0,
     "out-of-scope": 0,
     "suppressed-only": 0,
     violation: 0,
@@ -528,8 +524,8 @@ export const runCheckExplicitAny = ({
     summary.totalFiles = new Set(summary.usages.map((usage) => usage.file)).size;
     summary.byPackage = {};
     summary.byRemediationStatus = {
-      "fully-documented": 0,
       "file-blanket": 0,
+      "fully-documented": 0,
       "out-of-scope": 0,
       "suppressed-only": 0,
       violation: 0,
@@ -548,8 +544,7 @@ export const runCheckExplicitAny = ({
 
   const violations = summary.byRemediationStatus.violation;
   const undocumented =
-    summary.byRemediationStatus["suppressed-only"] +
-    summary.byRemediationStatus["file-blanket"];
+    summary.byRemediationStatus["suppressed-only"] + summary.byRemediationStatus["file-blanket"];
 
   let exitCode = 0;
   let text = "";
@@ -572,11 +567,8 @@ export const runCheckExplicitAny = ({
   }
 
   if (checkBaseline) {
-    const {
-      compareBaseline,
-      formatBaselineRegressionText,
-      loadBaseline,
-    } = require("./baseline") as typeof import("./baseline");
+    const {compareBaseline, formatBaselineRegressionText, loadBaseline} =
+      require("./baseline") as typeof import("./baseline");
     const baseline = loadBaseline(baselinePath);
     const comparison = compareBaseline(summary, baseline);
     if (!comparison.ok) {

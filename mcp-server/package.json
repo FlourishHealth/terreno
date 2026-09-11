@@ -1,6 +1,6 @@
 {
   "name": "@terreno/mcp",
-  "version": "57.2.0",
+  "version": "57.3.0",
   "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "type": "module",
   "main": "dist/index.js",

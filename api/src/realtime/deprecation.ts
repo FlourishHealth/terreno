@@ -4,6 +4,7 @@ import {logger} from "../logger";
  * One-line warning for modelRouter `realtime`. Keep in sync with the
  * `@terreno/rtk` helpers and `docs/implementationPlans/remove-legacy-realtime.md`.
  */
+/** @internal */
 export const REALTIME_DEPRECATION_MESSAGE =
   "modelRouter `realtime` is deprecated and will be removed in Terreno 58. Use `sync` with `@terreno/syncdb` instead. See docs/how-to/migrate-rtk-to-syncdb.md. RealtimeApp remains required for sync sockets.";
 

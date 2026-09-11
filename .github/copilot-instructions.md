@@ -40,8 +40,9 @@ The reusable planning plugin uses five bounded transitions:
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
-then spawns a no-context subagent to run lint, typecheck, and locally affected tests in
-affected packages, then pushes and watches CI. Brew also waits until
+then spawns a no-context subagent to run the root `prepush` package script when present
+(otherwise lint, typecheck, and locally affected tests in affected packages), then
+pushes and watches CI. Brew also waits until
 review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
 Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
@@ -106,9 +107,10 @@ bun run comms:test              # Test communications package
 
 Agent post-edit hooks run `bun run analyze:fast`; agent stop hooks run
 `bun run analyze:full`. `.rulesync/hooks.json` is the canonical hook configuration.
-Existing Knip and dependency-cruiser findings are ratcheted, so new findings fail while
-the existing inventory can only stay level or decrease. Run `bun run analyze:baseline`
-only after reviewing an intentional repository-wide change. See
+Knip has no baseline: every finding must be fixed or documented as a narrow exception in
+`knip.jsonc`, and `bun run check:knip` enforces zero findings in CI. dependency-cruiser
+keeps a ratcheted baseline; run `bun run analyze:dependency-baseline` only after reviewing
+an intentional repository-wide dependency-graph change. See
 `docs/explanation/static-analysis.md`.
 
 ## How the Packages Work Together

@@ -1,12 +1,3 @@
-export const BUILTIN_HOME_WIDGET_IDS = new Set([
-  "modelStats",
-  "modelsGrid",
-  "feature-flags-overrides",
-  "versionConfig",
-  "scriptRunner",
-  "recentActivity",
-]);
-
 export const normalizeWidgetIds = (ids: string[] | undefined): string[] => {
   if (!ids?.length) {
     return [];
