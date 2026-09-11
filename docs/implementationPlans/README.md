@@ -40,16 +40,19 @@ The [`terreno-planning` plugin](../../plugins/README.md) drives the pipeline.
 
 **Grow** interviews in grilling rounds (one frontier of decisions per message, recommended
 answers, then wait). It stays on a question until the answer is executable. After the user
-confirms shared understanding it writes the two files and ends with a **15-line verify
-index** (destination, in/out, tracer, task graph, test seam). When grilling produced
-human decisions, it lists **every** one in a Decisions table with no row cap. If there
-were none, that table is omitted.
+confirms shared understanding it writes the two files and ends with a **standalone
+approval brief**: an orientation paragraph on where the repository is and where the change
+takes it, optional background on current state, the idea, then the plan (tasks, tracer,
+verification, risks). When grilling produced human decisions, a Decisions table with no
+row cap follows the plan, pairing each settled choice with the question that prompted it.
+If there were none, that table is omitted. The brief must stand on its own — a reviewer
+should not need the IP, the ticket, or the interview history to approve it.
 
 For a small feature, the plugin's **feature profile** uses a compact approved task
 contract: invoke Pick once; it implements one frontier task, roasts it, then picks the
 next until the list is done, then Brew and bounded Taste iterations.
 
-1. **Grow** (`terreno-1-grow`) — grill until answers are executable, then write the IP + tracer-bullet task list; end with the 15-line verify index and a full Decisions table when any exist.
+1. **Grow** (`terreno-1-grow`) — grill until answers are executable, then write the IP + tracer-bullet task list; end with the standalone approval brief (summary, background, idea, plan) and a full Decisions table when any exist.
 2. **Pick** (`terreno-2-pick`) — implement one approved slice via TDD, then continue the pick-roast inner loop.
 3. **Roast** (`terreno-3-roast`) — independently verify the current task, then return (`next: pick` or `next: brew`).
 4. **Brew** (`terreno-4-brew`) — commit, push, open the PR after every in-scope task has Roast `PASS`.
