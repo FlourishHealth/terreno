@@ -1,10 +1,11 @@
-import {describe, it, mock} from "bun:test";
+import {beforeEach, describe, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React, {useState} from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 
 import {AdminConflictSheet} from "./AdminConflictSheet";
+import {resetAdminConflictSheetStackForTests} from "./adminConflictSheetStack";
 
 const createConflict = ({
   collection = "todos",
@@ -23,6 +24,32 @@ const createConflict = ({
 });
 
 describe("AdminConflictSheet", () => {
+  beforeEach(() => {
+    resetAdminConflictSheetStackForTests();
+  });
+
+  it("renders only the topmost sheet when a form stacks over its changelist", async () => {
+    const view = renderWithTheme(
+      <>
+        <AdminConflictSheet
+          collection="todos"
+          conflicts={[createConflict()]}
+          loadedIds={["todo-1"]}
+          resolve={() => {}}
+        />
+        <AdminConflictSheet
+          collection="todos"
+          conflicts={[createConflict()]}
+          loadedIds={["todo-1"]}
+          resolve={() => {}}
+        />
+      </>
+    );
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+    assert.lengthOf(view.queryAllByTestId("conflict-item-todo-1"), 1);
+  });
+
   it("shows only admin-loaded conflicts and forwards both resolution strategies", async () => {
     const resolve = mock((_args: {mutationId: string; strategy: "keepMine" | "useServer"}) => {});
     const view = renderWithTheme(

@@ -3,7 +3,14 @@ import {
   type SyncConflictItem,
   type SyncConflictResolutionStrategy,
 } from "@terreno/ui";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState, useSyncExternalStore} from "react";
+import {
+  isTopAdminConflictSheet,
+  nextAdminConflictSheetId,
+  popAdminConflictSheet,
+  pushAdminConflictSheet,
+  subscribeAdminConflictSheetStack,
+} from "./adminConflictSheetStack";
 
 export interface AdminConflictSheetProps {
   collection: string;
@@ -23,6 +30,21 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
   resolve,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [sheetId] = useState(nextAdminConflictSheetId);
+
+  // Register while mounted so a form stacked over its changelist owns the modal.
+  useEffect(() => {
+    pushAdminConflictSheet({collection, sheetId});
+    return (): void => {
+      popAdminConflictSheet({collection, sheetId});
+    };
+  }, [collection, sheetId]);
+
+  const isTopSheet = useSyncExternalStore(
+    subscribeAdminConflictSheetStack,
+    () => isTopAdminConflictSheet({collection, sheetId}),
+    () => false
+  );
 
   const loadedIdKey = useMemo((): string => [...loadedIds].sort().join("|"), [loadedIds]);
 
@@ -63,7 +85,7 @@ export const AdminConflictSheet: React.FC<AdminConflictSheetProps> = ({
     }
   }, [adminConflicts.length]);
 
-  if (adminConflicts.length === 0) {
+  if (adminConflicts.length === 0 || !isTopSheet) {
     return null;
   }
 
