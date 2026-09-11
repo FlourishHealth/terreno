@@ -120,4 +120,37 @@ describe("diffSchemaCatalog", () => {
     expect(diff.ops.some((op) => op.kind === "addRequiredField" && op.safe === false)).toBe(true);
     expect(diff.ops.some((op) => op.kind === "dropIndex" && op.safe === true)).toBe(true);
   });
+
+  it("classifies removed paths and same-path type changes as unsafe", () => {
+    const before = {
+      models: {
+        Todo: {
+          collection: "todos",
+          fields: [
+            {instance: "String", path: "notes", required: false, unique: false},
+            {instance: "String", path: "title", required: true, unique: false},
+          ],
+          indexes: [],
+          modelName: "Todo",
+        },
+      },
+    };
+    const after = {
+      models: {
+        Todo: {
+          collection: "todos",
+          fields: [{instance: "Number", path: "title", required: true, unique: false}],
+          indexes: [],
+          modelName: "Todo",
+        },
+      },
+    };
+    const diff = diffSchemaCatalog({after, before});
+    expect(diff.ops).toEqual(
+      expect.arrayContaining([
+        {kind: "removeField", modelName: "Todo", path: "notes", safe: false},
+        {kind: "changeFieldType", modelName: "Todo", path: "title", safe: false},
+      ])
+    );
+  });
 });

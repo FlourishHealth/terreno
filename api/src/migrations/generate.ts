@@ -54,7 +54,7 @@ const renderUnsafeUp = (ops: SchemaDiffOp[]): string => {
     .filter((op) => !op.safe)
     .map((op) => `${op.kind} ${op.modelName} ${op.path ?? op.toPath ?? JSON.stringify(op.keys)}`)
     .join("; ");
-  return `  throw new Error("Unsafe migration stub: ${detail}. Replace this stub with a backfill before applying.");`;
+  return `  throw new Error(${JSON.stringify(`Unsafe migration stub: ${detail}. Replace this stub with a backfill before applying.`)});`;
 };
 
 const mongoIndexName = (keys: Record<string, number | string>): string => {

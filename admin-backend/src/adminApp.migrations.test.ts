@@ -1,13 +1,18 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {mkdtemp, rm, writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {
+  type AnyTerrenoAccess,
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  createAccess,
   MIGRATION_LOCK_ID,
   MIGRATIONS_COLLECTION,
   setupAuth,
+  terrenoStatements,
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
@@ -19,11 +24,18 @@ import {AdminApp} from "./adminApp";
 
 const fixturesDir = join(import.meta.dir, "../../api/src/migrations/fixtures/valid");
 
-const buildApp = ({migrationsDir}: {migrationsDir?: string} = {}): express.Application => {
+const buildApp = ({
+  accessControl,
+  migrationsDir,
+}: {
+  accessControl?: AnyTerrenoAccess;
+  migrationsDir?: string;
+} = {}): express.Application => {
   const app = getBaseServer();
   setupAuth(app, UserModel as unknown as UserModelType);
   addAuthRoutes(app, UserModel as unknown as UserModelType);
   const admin = new AdminApp({
+    accessControl,
     basePath: "/admin",
     migrations: migrationsDir ? {dir: migrationsDir} : undefined,
     models: [],
@@ -69,6 +81,10 @@ describe("AdminApp migrations routes", () => {
       await adminAgent.get("/admin/migrations").expect(404);
     });
 
+    it("returns 404 for POST /admin/migrations/run", async () => {
+      await adminAgent.post("/admin/migrations/run").expect(404);
+    });
+
     it("omits enabled migrations from config", async () => {
       const res = await adminAgent.get("/admin/config").expect(200);
       expect(res.body.migrations?.enabled).toBe(false);
@@ -94,6 +110,39 @@ describe("AdminApp migrations routes", () => {
 
     it("forbids non-admins", async () => {
       await notAdminAgent.get("/admin/migrations").expect(403);
+      await notAdminAgent.post("/admin/migrations/run").expect(403);
+    });
+
+    it("requires admin:runScripts to start a run when accessControl is configured", async () => {
+      const accessControl = createAccess({
+        connection: mongoose.connection,
+        resolvePermissions: async () => ({admin: ["access"]}),
+        statements: terrenoStatements,
+      });
+      const rbacApp = buildApp({accessControl, migrationsDir: fixturesDir});
+      const accessOnly = await authAsUser(rbacApp, "admin");
+
+      await accessOnly.get("/admin/migrations").expect(200);
+      await accessOnly.post("/admin/migrations/run").expect(403);
+      await accessOnly.post("/admin/migrations/run?wetRun=true").expect(403);
+      expect(await appliedIds()).toEqual([]);
+    });
+
+    it("allows admin:runScripts to start a dry-run", async () => {
+      const accessControl = createAccess({
+        connection: mongoose.connection,
+        resolvePermissions: async () => ({
+          admin: ["access", "runScripts", "viewBackgroundTasks"],
+        }),
+        statements: terrenoStatements,
+      });
+      const rbacApp = buildApp({accessControl, migrationsDir: fixturesDir});
+      const runner = await authAsUser(rbacApp, "admin");
+
+      const res = await runner.post("/admin/migrations/run").expect(201);
+      expect(res.body.taskId).toBeDefined();
+      await waitForTask();
+      expect(await appliedIds()).toEqual([]);
     });
 
     it("sets migrations.enabled on config", async () => {
@@ -131,6 +180,38 @@ describe("AdminApp migrations routes", () => {
       } finally {
         process.env.NODE_ENV = previousNodeEnv;
       }
+    });
+  });
+
+  describe("when a migration up throws", () => {
+    let dir: string;
+
+    beforeEach(async () => {
+      await setupDb();
+      await mongoose.connection.collection(MIGRATIONS_COLLECTION).deleteMany({});
+      dir = await mkdtemp(join(tmpdir(), "admin-mig-fail-"));
+      await writeFile(
+        join(dir, "20260910120000-boom.ts"),
+        `export const id = "20260910120000-boom";
+export const up = async () => {
+  throw new Error("boom");
+};
+`
+      );
+      app = buildApp({migrationsDir: dir});
+      adminAgent = await authAsUser(app, "admin");
+    });
+
+    afterEach(async () => {
+      await rm(dir, {force: true, recursive: true});
+    });
+
+    it("marks the background task failed", async () => {
+      const res = await adminAgent.post("/admin/migrations/run").expect(201);
+      await waitForTask();
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.status).toBe("failed");
+      expect(task?.error).toContain("boom");
     });
   });
 });

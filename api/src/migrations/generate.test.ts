@@ -5,8 +5,12 @@ import {join} from "node:path";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
-import {generateMigration} from "./generate";
+import {generateMigration, lastSchemaAfter} from "./generate";
 import {checkMigrationFiles} from "./load";
+
+const fixtures = (...parts: string[]): string => {
+  return join(import.meta.dir, "fixtures", ...parts);
+};
 
 const register = (name: string, schema: mongoose.Schema): mongoose.Model<mongoose.Document> => {
   if (mongoose.models[name]) {
@@ -32,6 +36,15 @@ const makeModels = ({
   schema.index({title: 1});
   return [register("GenTodo", schema)];
 };
+
+describe("lastSchemaAfter", () => {
+  it("returns the last object snapshot and skips missing entries", () => {
+    expect(lastSchemaAfter([])).toBeUndefined();
+    expect(lastSchemaAfter([{schemaAfter: "nope"}, {schemaAfter: {models: {}}}])).toEqual({
+      models: {},
+    });
+  });
+});
 
 describe("generateMigration", () => {
   it("writes the first file from an empty snapshot", async () => {
@@ -179,6 +192,97 @@ describe("generateMigration", () => {
     } finally {
       await rm(dir, {force: true, recursive: true});
     }
+  });
+
+  it("emits dropIndex when a generated safe down reverses an index add", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
+    try {
+      const schema = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      schema.index({title: 1});
+      await generateMigration({
+        dir,
+        models: [register("GenTodo", schema)],
+        name: "with-index",
+        now: () => DateTime.fromISO("2026-09-10T12:00:00.000Z"),
+      });
+      const plain = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      const result = await generateMigration({
+        dir,
+        models: [register("GenTodo", plain)],
+        name: "drop-title-index",
+        now: () => DateTime.fromISO("2026-09-10T12:06:00.000Z"),
+      });
+      expect(result.noop).toBe(false);
+      const source = await readFile(result.path as string, "utf8");
+      expect(source).toContain("dropIndex");
+      expect(source).toContain("createIndex");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
+  it("emits a unique-index stub that is valid JavaScript", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
+    try {
+      const base = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      await generateMigration({
+        dir,
+        models: [register("GenTodo", base)],
+        name: "base",
+        now: () => DateTime.fromISO("2026-09-10T12:00:00.000Z"),
+      });
+      const unique = new mongoose.Schema(
+        {title: {description: "Title", type: String}},
+        {collection: "gen_todos"}
+      );
+      unique.index({title: 1}, {unique: true});
+      const result = await generateMigration({
+        dir,
+        models: [register("GenTodo", unique)],
+        name: "unique-title",
+        now: () => DateTime.fromISO("2026-09-10T12:05:00.000Z"),
+      });
+      expect(result.noop).toBe(false);
+      const source = await readFile(result.path as string, "utf8");
+      expect(source).toContain("throw new Error(");
+      expect(source).not.toMatch(/throw new Error\("[^"]*\{"/);
+      const loaded = await checkMigrationFiles({dir});
+      const stub = loaded[loaded.length - 1];
+      await expect(
+        stub.up({
+          dryRun: true,
+          logger: {
+            debug: () => undefined,
+            error: () => undefined,
+            info: () => undefined,
+            warn: () => undefined,
+          },
+          mongoose,
+        })
+      ).rejects.toThrow("Unsafe migration stub");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
+  it("rethrows migration load errors other than a missing directory", async () => {
+    await expect(
+      generateMigration({
+        dir: fixtures("bad-name"),
+        models: makeModels({notes: true}),
+        name: "oops",
+        now: () => DateTime.fromISO("2026-09-10T12:07:00.000Z"),
+      })
+    ).rejects.toThrow("Invalid migration filename");
   });
 
   it("fails closed when generate is called with no models", async () => {

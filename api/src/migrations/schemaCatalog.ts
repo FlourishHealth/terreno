@@ -29,6 +29,8 @@ export type SchemaDiffKind =
   | "addOptionalField"
   | "addRequiredField"
   | "addUniqueIndex"
+  | "changeFieldType"
+  | "removeField"
   | "renameField";
 
 export interface SchemaDiffOp {
@@ -180,9 +182,32 @@ export const diffSchemaCatalog = ({
       });
     }
 
+    for (const field of removed) {
+      if (usedRemoved.has(field.path)) {
+        continue;
+      }
+      ops.push({
+        kind: "removeField",
+        modelName,
+        path: field.path,
+        safe: false,
+      });
+    }
+
     for (const field of afterModel.fields) {
       const previous = beforeFields.get(field.path);
-      if (previous && !previous.required && field.required) {
+      if (!previous) {
+        continue;
+      }
+      if (previous.instance !== field.instance) {
+        ops.push({
+          kind: "changeFieldType",
+          modelName,
+          path: field.path,
+          safe: false,
+        });
+      }
+      if (!previous.required && field.required) {
         ops.push({
           kind: "addRequiredField",
           modelName,

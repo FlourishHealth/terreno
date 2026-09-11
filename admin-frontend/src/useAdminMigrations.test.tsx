@@ -62,4 +62,14 @@ describe("useAdminMigrations", () => {
     expect(result.current.useGetMigrationsQuery).toBeDefined();
     expect(result.current.useRunMigrationsMutation).toBeDefined();
   });
+
+  it("falls back when injectEndpoints is missing", async () => {
+    const {result} = renderHook(() => useAdminMigrations({} as AdminApi, "/admin"));
+    const query = result.current.useGetMigrationsQuery();
+    expect(query.data).toBeUndefined();
+    expect(query.isLoading).toBe(false);
+    const [run, state] = result.current.useRunMigrationsMutation();
+    expect(state.isLoading).toBe(false);
+    await expect(run({wetRun: false}).unwrap()).resolves.toEqual({taskId: ""});
+  });
 });

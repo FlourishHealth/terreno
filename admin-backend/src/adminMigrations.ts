@@ -18,11 +18,13 @@ import mongoose from "mongoose";
 export const mountAdminMigrationRoutes = ({
   app,
   basePath,
+  canRunMigrations,
   dir,
   isAdmin,
 }: {
   app: express.Application;
   basePath: string;
+  canRunMigrations: (user: User | undefined) => Promise<boolean>;
   dir: string | undefined;
   isAdmin: (user: User | undefined) => Promise<boolean>;
 }): void => {
@@ -55,7 +57,7 @@ export const mountAdminMigrationRoutes = ({
     authenticateMiddleware(),
     asyncHandler(async (req, res) => {
       const actor = req.user as (User & {_id: unknown; name?: string}) | undefined;
-      if (!actor || !(await isAdmin(actor))) {
+      if (!actor || !(await canRunMigrations(actor))) {
         throw new APIError({status: 403, title: "Admin access required"});
       }
       const migrationsDir = requireDir();

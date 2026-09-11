@@ -67,8 +67,10 @@ If generate prints `No schema changes`, there is nothing to apply. Replace any f
 | Add optional field | Yes | Snapshot only (Mongo is schemaless); comment, no write |
 | Add / drop non-unique index | Yes | `createIndex` / `dropIndex`, skipped when `dryRun` |
 | Add required field (no default) | No | Fail-closed stub that throws in dry-run and wet until you write a backfill |
-| Unique index | No | Fail-closed stub |
+| Unique index | No | Fail-closed stub (valid JavaScript `throw`) |
 | Rename (removed + added field, same type) | No | Fail-closed stub |
+| Remove field | No | Fail-closed stub |
+| Same-path type change | No | Fail-closed stub |
 
 Do not inspect the live database during generate. Baseline is the last `schemaAfter` snapshot in `migrations/`.
 
@@ -76,13 +78,14 @@ Do not inspect the live database during generate. Baseline is the last `schemaAf
 
 Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
 
-| Method | Path | Effect |
-|--------|------|--------|
-| GET | `/admin/migrations` | Applied, pending, lock |
-| POST | `/admin/migrations/run?wetRun=true\|false` | One BackgroundTask (`migrations:up`) |
-| GET/DELETE | `/admin/scripts/tasks/:id` | Poll or cancel that task |
+| Method | Path | Gate | Effect |
+|--------|------|------|--------|
+| GET | `/admin/migrations` | `admin:access` (or `IsAdmin`) | Applied, pending, lock |
+| POST | `/admin/migrations/run?wetRun=true\|false` | `admin:runScripts` (or `IsAdmin`) | One BackgroundTask (`migrations:up`) |
+| GET/DELETE | `/admin/scripts/tasks/:id` | `viewBackgroundTasks` / `runScripts` | Poll or cancel that task |
 
-Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The admin UI is
+Dry-run and Apply use the same `admin:runScripts` gate as Scripts. Status listing stays on
+`admin:access`. Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The admin UI is
 **Migrations** under Platform (`/admin/__migrations` or `/console/__migrations`):
 status list plus Dry run / Apply pending. Task logs poll `GET /admin/scripts/tasks/:id`.
 

@@ -88,15 +88,24 @@ describe("TerrenoApp start migrations", () => {
   });
 
   it("rejects whenReady in production without ALLOW_MIGRATIONS and does not listen", async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     Reflect.deleteProperty(process.env, "ALLOW_MIGRATIONS");
-    const app = new TerrenoApp({
-      migrations: {dir: fixtures("valid"), runOnStart: true},
-      skipListen: true,
-      userModel: typedUserModel,
-    });
-    app.start();
-    await expect(app.whenReady()).rejects.toThrow("Migrations not allowed");
-    expect(await appliedIds()).toEqual([]);
+    try {
+      const app = new TerrenoApp({
+        migrations: {dir: fixtures("valid"), runOnStart: true},
+        skipListen: true,
+        userModel: typedUserModel,
+      });
+      app.start();
+      await expect(app.whenReady()).rejects.toThrow("Migrations not allowed");
+      expect(await appliedIds()).toEqual([]);
+    } finally {
+      if (previousNodeEnv === undefined) {
+        Reflect.deleteProperty(process.env, "NODE_ENV");
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    }
   });
 });

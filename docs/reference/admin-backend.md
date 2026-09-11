@@ -35,7 +35,7 @@ admin.register(app);
 
 This creates:
 - `GET /admin/config` — Model metadata endpoint (`migrations.enabled` when `AdminApp` is given `migrations.dir`)
-- `GET /admin/migrations` and `POST /admin/migrations/run?wetRun=` when `migrations.dir` is set
+- `GET /admin/migrations` (`admin:access`) and `POST /admin/migrations/run?wetRun=` (`admin:runScripts`) when `migrations.dir` is set
 - Poll/cancel those tasks at `GET`/`DELETE /admin/scripts/tasks/:id`
 - Pass `migrations: {dir: "./migrations"}` on `AdminApp`
 - Standard CRUD routes for each model at `{basePath}{routePath}`
@@ -168,6 +168,7 @@ writable controls are disabled, and `platformTools` reports visibility for Scrip
 and Configuration. Built-in tools use the existing editable permissions:
 
 - Scripts: `admin:runScripts` or `admin:viewBackgroundTasks`
+- Migrations apply/dry-run: `admin:runScripts` (status listing uses `admin:access`)
 - Roles: `rbac:read`
 - Version and Configuration: `configuration:read`
 - Audit Log and Feature Flags: their model's admin `read` permission

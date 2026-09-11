@@ -50,6 +50,47 @@ describe("withMigrationLock", () => {
     const lock = await collection().findOne({_id: MIGRATION_LOCK_ID});
     expect(lock).toBeNull();
   });
+
+  it("heartbeats the lock while the critical section runs", async () => {
+    await withMigrationLock({
+      connection: mongoose.connection,
+      fn: async () => {
+        const first = await collection().findOne({_id: MIGRATION_LOCK_ID});
+        await Bun.sleep(400);
+        const second = await collection().findOne({_id: MIGRATION_LOCK_ID});
+        expect(second?.heartbeatAt).toBeDefined();
+        const firstBeat = DateTime.fromJSDate(first?.heartbeatAt as Date);
+        const secondBeat = DateTime.fromJSDate(second?.heartbeatAt as Date);
+        expect(secondBeat.toMillis()).toBeGreaterThan(firstBeat.toMillis());
+      },
+      holder: "heartbeat-holder",
+      pollMs: 10,
+      ttlMs: 150,
+    });
+    expect(await collection().findOne({_id: MIGRATION_LOCK_ID})).toBeNull();
+  });
+
+  it("rethrows non-duplicate insert errors while acquiring", async () => {
+    const col = collection();
+    const originalInsertOne = col.insertOne.bind(col);
+    Object.assign(col, {
+      insertOne: async () => {
+        throw Object.assign(new Error("write concern"), {code: 50});
+      },
+    });
+    try {
+      await expect(
+        withMigrationLock({
+          connection: mongoose.connection,
+          fn: async () => "ok",
+          pollMs: 10,
+          ttlMs: 60_000,
+        })
+      ).rejects.toThrow("write concern");
+    } finally {
+      Object.assign(col, {insertOne: originalInsertOne});
+    }
+  });
 });
 
 describe("runMigrations lock", () => {

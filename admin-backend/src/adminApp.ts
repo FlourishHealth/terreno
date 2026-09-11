@@ -1797,6 +1797,9 @@ export class AdminApp {
     mountAdminMigrationRoutes({
       app,
       basePath,
+      canRunMigrations: async (user) => {
+        return this.hasScriptPermission(user, "runScripts");
+      },
       dir: this.options.migrations?.dir,
       isAdmin: async (user) => {
         return checkPermissions("read", this.adminAccessPermissions(), user as User | undefined);

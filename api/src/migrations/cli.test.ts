@@ -1,4 +1,6 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {mkdtemp, rm, writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
 import {join} from "node:path";
 import mongoose from "mongoose";
 
@@ -49,6 +51,51 @@ describe("runMigrateCli", () => {
     await mongoose.connection.collection(MIGRATIONS_COLLECTION).deleteMany({});
   });
 
+  it("prints usage when no command is given", async () => {
+    const io = capture();
+    const code = await runMigrateCli({
+      argv: [],
+      stderr: {write: io.writeErr},
+      stdout: {write: io.writeOut},
+    });
+    expect(code).toBe(1);
+    expect(io.stderr).toContain("terreno-migrate");
+  });
+
+  it("rejects unknown flags from parseArgs", async () => {
+    const io = capture();
+    const code = await runMigrateCli({
+      argv: ["check", "--bogus"],
+      stderr: {write: io.writeErr},
+      stdout: {write: io.writeOut},
+    });
+    expect(code).toBe(1);
+    expect(io.stderr).toContain("terreno-migrate");
+  });
+
+  it("rejects unknown commands", async () => {
+    const io = capture();
+    const code = await runMigrateCli({
+      argv: ["explode"],
+      stderr: {write: io.writeErr},
+      stdout: {write: io.writeOut},
+    });
+    expect(code).toBe(1);
+    expect(io.stderr).toContain("Unknown command explode");
+  });
+
+  it("requires a Mongo URI when mongoose is not injected", async () => {
+    const io = capture();
+    const code = await runMigrateCli({
+      argv: ["status", "--dir", fixtures("valid")],
+      env: {},
+      stderr: {write: io.writeErr},
+      stdout: {write: io.writeOut},
+    });
+    expect(code).toBe(1);
+    expect(io.stderr).toContain("Missing Mongo URI");
+  });
+
   it("prints usage on --help and exits 0", async () => {
     const io = capture();
     const code = await runMigrateCli({
@@ -70,6 +117,59 @@ describe("runMigrateCli", () => {
     });
     expect(code).toBe(1);
     expect(io.stderr).toContain("Missing --models");
+  });
+
+  it("generate reports when the models module exports none", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-cli-gen-"));
+    const modelsDir = await mkdtemp(join(tmpdir(), "migrate-cli-models-"));
+    try {
+      const modelsPath = join(modelsDir, "scalar.ts");
+      await writeFile(modelsPath, "export default 1;\n");
+      const namedPath = join(modelsDir, "named.ts");
+      await writeFile(namedPath, "export const extra = {foo: 1};\n");
+      const arrayPath = join(modelsDir, "array.ts");
+      await writeFile(arrayPath, 'export default [{name: "not-a-model"}];\n');
+      const bagPath = join(modelsDir, "bag.ts");
+      await writeFile(bagPath, 'export default {models: [{name: "not-a-model"}]};\n');
+      const fakeModelPath = join(modelsDir, "fake-model.ts");
+      await writeFile(
+        fakeModelPath,
+        `export default [{
+  collection: {collectionName: "fake_cli"},
+  modelName: "FakeCliModel",
+  schema: {indexes: () => [], paths: {}},
+}];
+`
+      );
+
+      for (const path of [modelsPath, namedPath, arrayPath, bagPath]) {
+        const io = capture();
+        const code = await runMigrateCli({
+          argv: ["generate", "--dir", dir, "--models", path, "--name", "init"],
+          stderr: {write: io.writeErr},
+          stdout: {write: io.writeOut},
+        });
+        expect(code).toBe(1);
+        expect(io.stderr).toContain("No Mongoose models found");
+      }
+
+      const fakeIo = capture();
+      const fakeCode = await runMigrateCli({
+        argv: ["generate", "--dir", dir, "--models", fakeModelPath, "--name", "init"],
+        stderr: {write: fakeIo.writeErr},
+        stdout: {write: fakeIo.writeOut},
+      });
+      expect(fakeCode).toBe(0);
+      expect(fakeIo.stdout).toContain("No schema changes");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+      await rm(modelsDir, {force: true, recursive: true});
+    }
+  });
+
+  it("writes help to process stdout when io is omitted", async () => {
+    expect(await runMigrateCli({argv: ["--help"]})).toBe(0);
+    expect(await runMigrateCli({argv: ["nope"]})).toBe(1);
   });
 
   it("check validates files without Mongo", async () => {
