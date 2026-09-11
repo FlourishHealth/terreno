@@ -3,9 +3,9 @@ import type mongoose from "mongoose";
 
 // Project Model Types
 // biome-ignore lint/complexity/noBannedTypes: No methods.
-export type ProjectMethods = {};
+type ProjectMethods = {};
 
-export interface ProjectStatics
+interface ProjectStatics
   extends FindExactlyOnePlugin<ProjectDocument>,
     FindOneOrNonePlugin<ProjectDocument> {}
 

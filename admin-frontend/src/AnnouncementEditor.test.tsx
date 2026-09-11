@@ -194,9 +194,9 @@ describe("AnnouncementEditor", () => {
     await press(getByTestId("announcement-save-button"));
     expect(updateCalls.length).toBe(1);
     expect((updateCalls[0] as Record<string, unknown>).id).toBe("a1");
-    expect(
-      ((updateCalls[0] as Record<string, unknown>).body as Record<string, unknown>).status
-    ).toBe("draft");
+    const updateBody = (updateCalls[0] as Record<string, unknown>).body as Record<string, unknown>;
+    expect(updateBody.status).toBeUndefined();
+    expect(updateBody.title).toBe("Draft");
   });
 
   it("publishes a draft announcement", async () => {

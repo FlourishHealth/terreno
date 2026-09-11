@@ -1,16 +1,9 @@
 #!/usr/bin/env bun
 import {join} from "node:path";
-import {DateTime} from "luxon";
 
-import {
-  compareKnipBaseline,
-  fingerprintKnipReport,
-  type KnipBaseline,
-  type KnipReport,
-} from "./lib";
+import {fingerprintKnipReport, type KnipReport} from "./lib";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
-const KNIP_BASELINE_PATH = join(import.meta.dir, "knip-baseline.json");
 const DEPENDENCY_BASELINE_PATH = join(REPO_ROOT, ".dependency-cruiser-known-violations.json");
 const DEPENDENCY_INPUTS = [
   "admin-backend/src",
@@ -92,55 +85,49 @@ const runDependencyCruiser = ({writeBaseline}: {writeBaseline: boolean}): number
   return result.exitCode;
 };
 
-const writeBaselines = async (): Promise<void> => {
-  const issues = collectKnipIssues();
-  const baseline: KnipBaseline = {
-    generatedAt: DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-    issues,
-    version: 1,
-  };
-  await Bun.write(KNIP_BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`);
-
+const writeDependencyBaseline = (): void => {
   const dependencyExitCode = runDependencyCruiser({writeBaseline: true});
   if (dependencyExitCode !== 0) {
     process.exit(dependencyExitCode);
   }
-  console.info(`Static-analysis baselines written (${issues.length} Knip findings).`);
+  console.info("Dependency-cruiser baseline written.");
 };
 
-const checkBaselines = async (): Promise<void> => {
-  const baseline = (await Bun.file(KNIP_BASELINE_PATH).json()) as KnipBaseline;
-  if (baseline.version !== 1) {
-    throw new Error(`Unsupported Knip baseline version: ${String(baseline.version)}`);
-  }
-
-  const comparison = compareKnipBaseline({
-    baseline,
-    currentIssues: collectKnipIssues(),
-  });
-  if (comparison.ok) {
-    console.info(`Knip: no new findings (${comparison.currentCount} baseline findings remain).`);
+const checkKnip = (): boolean => {
+  const issues = collectKnipIssues();
+  if (issues.length === 0) {
+    console.info("Knip: no findings.");
   } else {
-    console.error(`Knip: ${comparison.newIssues.length} new finding(s):`);
-    for (const issue of comparison.newIssues.slice(0, 50)) {
+    console.error(`Knip: ${issues.length} finding(s):`);
+    for (const issue of issues.slice(0, 50)) {
       console.error(`  ${issue}`);
     }
   }
+  return issues.length === 0;
+};
 
+const checkAnalysis = (): void => {
+  const isKnipClean = checkKnip();
   const dependencyExitCode = runDependencyCruiser({writeBaseline: false});
-  if (!comparison.ok || dependencyExitCode !== 0) {
+  if (!isKnipClean || dependencyExitCode !== 0) {
     process.exit(1);
   }
 };
 
-const main = async (): Promise<void> => {
-  if (process.argv.includes("--write-baseline")) {
-    await writeBaselines();
+const main = (): void => {
+  if (process.argv.includes("--write-dependency-baseline")) {
+    writeDependencyBaseline();
     return;
   }
-  await checkBaselines();
+  if (process.argv.includes("--knip-only")) {
+    if (!checkKnip()) {
+      process.exit(1);
+    }
+    return;
+  }
+  checkAnalysis();
 };
 
 if (import.meta.main) {
-  await main();
+  main();
 }

@@ -19,6 +19,13 @@ if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
   exit 2
 fi
 
+package_name="$(node -e "process.stdout.write(require('./${package_directory}/package.json').name)")"
+# Retries of the same tag must not fail on packages that already landed.
+if npm view "${package_name}@${version}" version >/dev/null 2>&1; then
+  echo "Already on npm: ${package_name}@${version}; skipping"
+  exit 0
+fi
+
 bun run scripts/ci/prepare-package-publish.mjs "$package_directory" "$version" "$dependency_mode"
 # Pinning workspace:* to this version must not reinstall from the registry.
 # Sibling @terreno packages are unpublished at this tag, so a second install

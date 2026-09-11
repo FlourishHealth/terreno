@@ -20,7 +20,7 @@ import {
   clearSyncIndexCreationTasks,
 } from "./sync/registrationSideEffects";
 
-export interface CollectionSurfaces {
+interface CollectionSurfaces {
   mcp: boolean;
   realtime: boolean;
   sync: boolean;
@@ -103,6 +103,7 @@ export const replaceCollectionOptions = (
   existing.options = options;
 };
 
+/** @internal */
 export const getCollection = (routePath: string): CollectionRecord | undefined =>
   collectionRegistry.get(routePath);
 

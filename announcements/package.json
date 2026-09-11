@@ -22,8 +22,8 @@
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "announcements",
-    "changelog",
     "api",
+    "changelog",
     "express",
     "terreno"
   ],

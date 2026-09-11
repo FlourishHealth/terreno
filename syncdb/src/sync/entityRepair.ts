@@ -3,7 +3,7 @@ import type {SyncSnapshotEntity} from "../types";
 import type {HttpChannel} from "./httpChannel";
 
 /** Max ids per repair fetch (matches server cap). */
-export const MAX_REPAIR_FETCH_IDS = 100;
+const MAX_REPAIR_FETCH_IDS = 100;
 
 /**
  * Apply canonical server state after a pending mutation resolved without a
@@ -12,6 +12,7 @@ export const MAX_REPAIR_FETCH_IDS = 100;
  * needs-repair mark) when the entity is still pending or conflicted so a
  * reconcile-time repair pass cannot clobber optimistic local state.
  */
+/** @internal */
 export const applyRepairedEntity = ({
   store,
   collection,

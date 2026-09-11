@@ -30,4 +30,17 @@ describe("publish-package.sh", () => {
     );
     assert.match(script, /pkg\.scripts\?\.\['test:ci'\]/, "expected test:ci script detection");
   });
+
+  it("skips npm publish when the tag version is already on the registry", () => {
+    assert.match(
+      script,
+      /Already on npm: \$\{package_name\}@\$\{version\}; skipping/,
+      "retries of a partial tag publish must skip versions that already exist"
+    );
+    assert.match(
+      script,
+      /npm view "\$\{package_name\}@\$\{version\}" version/,
+      "expected npm view guard"
+    );
+  });
 });

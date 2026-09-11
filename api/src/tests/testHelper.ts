@@ -7,7 +7,7 @@ import type {TestData} from "./types";
 
 const defaultTestMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
 
-export const applyTestAuthEnv = (): void => {
+const applyTestAuthEnv = (): void => {
   process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
   process.env.TOKEN_SECRET = "secret";
   process.env.TOKEN_EXPIRES_IN = "30m";
@@ -47,9 +47,3 @@ export const setupTestData = async (): Promise<TestData> => {
 
   return createTestData();
 };
-
-/** Clears all API test collections without re-seeding. */
-export const resetTestCollections = clearTestCollections;
-
-export {createTestData} from "./createTestData";
-export {loadTestData} from "./mongoTestSetup";

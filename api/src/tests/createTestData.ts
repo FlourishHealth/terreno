@@ -40,7 +40,7 @@ export const createTestUsers = async (): Promise<TestUsers> => {
   return {admin, adminOther, notAdmin};
 };
 
-export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> => {
+const createStandardFoods = async (users: TestUsers): Promise<TestFoods> => {
   const {admin, adminOther, notAdmin} = users;
 
   const [spinach, apple, carrots, pizza] = await Promise.all([
@@ -106,7 +106,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
   return {apple, carrots, pizza, spinach};
 };
 
-export const createRequiredFixtures = async (): Promise<TestRequired> => {
+const createRequiredFixtures = async (): Promise<TestRequired> => {
   const [sample, withAbout] = await Promise.all([
     RequiredModel.create({name: "Sample Required"}),
     RequiredModel.create({about: "Optional about text", name: "Required With About"}),
