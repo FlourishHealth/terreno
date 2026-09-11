@@ -7,7 +7,7 @@ import type {RoleDefinition} from "@terreno/api";
 export const DEFAULT_USER_ROLE = "todoUser";
 
 /** Role used by the seed scripts and admin UI demo for elevated todo access. */
-export const MANAGER_ROLE = "manager";
+const MANAGER_ROLE = "manager";
 
 /** Role granting the admin shell and RBAC management screens. */
 export const SUPERADMIN_ROLE = "superadmin";

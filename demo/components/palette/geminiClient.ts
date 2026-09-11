@@ -10,7 +10,7 @@ import {ANCHOR_FAMILIES, type ChatMessage, FAMILY_LABELS} from "./paletteTypes";
  * anchors into the full 000-900 ramps, so the palette is always smooth and WCAG-checkable.
  */
 
-export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 /**
@@ -34,7 +34,7 @@ interface GeminiApiModel {
 }
 
 /** Strip the "models/" resource prefix from a Gemini model name. */
-export const normalizeGeminiModelId = (name: string): string => {
+const normalizeGeminiModelId = (name: string): string => {
   return name.trim().replace(/^models\//, "");
 };
 
@@ -104,7 +104,7 @@ export const listGeminiModels = async ({
 };
 
 /** System instruction: describes the assistant's role, the required output, and worked examples. */
-export const COLOR_SYSTEM_PROMPT = `You are an expert product designer and color systemist who builds accessible UI color palettes.
+const COLOR_SYSTEM_PROMPT = `You are an expert product designer and color systemist who builds accessible UI color palettes.
 
 You design palettes for a React Native design system with seven color families:
 - neutral: grays used for text, borders, and page backgrounds.

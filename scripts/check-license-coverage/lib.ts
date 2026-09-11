@@ -20,7 +20,7 @@ export const PUBLISHED_PACKAGES = [
 
 export type PublishedPackage = (typeof PUBLISHED_PACKAGES)[number];
 
-export interface PackageJson {
+interface PackageJson {
   files?: string[];
   license?: string;
 }
@@ -30,12 +30,12 @@ export interface LicenseCheckFailure {
   message: string;
 }
 
-export const readPackageJson = (repoRoot: string, packageDir: PublishedPackage): PackageJson => {
+const readPackageJson = (repoRoot: string, packageDir: PublishedPackage): PackageJson => {
   const packageJsonPath = join(repoRoot, packageDir, "package.json");
   return JSON.parse(readFileSync(packageJsonPath, "utf8")) as PackageJson;
 };
 
-export const readRootLicense = (repoRoot: string): string | undefined => {
+const readRootLicense = (repoRoot: string): string | undefined => {
   const rootPackageJsonPath = join(repoRoot, "package.json");
   if (!existsSync(rootPackageJsonPath)) {
     return undefined;

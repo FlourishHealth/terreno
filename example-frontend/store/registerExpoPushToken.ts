@@ -4,6 +4,7 @@ export interface RegisterExpoPushTokenInput {
   postToken: (body: {platform: "android" | "ios"; token: string}) => Promise<unknown>;
 }
 
+/** @internal */
 export const registerExpoPushToken = async ({
   getToken,
   platform,

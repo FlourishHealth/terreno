@@ -254,11 +254,3 @@ export const createMonitoredAggregate = (originalAggregate: ModelAggregateFn): M
       });
   };
 };
-
-export const setupMongooseMonitoring = (): void => {
-  // Dynamic require for untyped monkey-patching of Mongoose internals
-  const mongoose = require("mongoose");
-
-  mongoose.Query.prototype.exec = createMonitoredQueryExec(mongoose.Query.prototype.exec);
-  mongoose.Model.aggregate = createMonitoredAggregate(mongoose.Model.aggregate);
-};

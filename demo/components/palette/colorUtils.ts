@@ -6,6 +6,7 @@ import type {ThemePrimitiveColors} from "@terreno/ui";
  * Kept dependency-free so it can be unit tested with `bun test` and reused on web + native.
  */
 
+/** @internal */
 export interface Rgb {
   r: number;
   g: number;
@@ -39,7 +40,9 @@ export const SHADE_KEYS = [
 /** The 3 shade steps used by the status families (error/warning/success). */
 export const STATUS_SHADE_KEYS = ["000", "100", "200"] as const;
 
+/** @internal */
 export type ShadeKey = (typeof SHADE_KEYS)[number];
+/** @internal */
 export type StatusShadeKey = (typeof STATUS_SHADE_KEYS)[number];
 
 /** The four main tonal families the generator produces full 000-900 ramps for. */
@@ -124,6 +127,7 @@ export const normalizeHex = (input: string): string | undefined => {
 };
 
 /** Parse a hex string into an RGB triple, or `undefined` when invalid. */
+/** @internal */
 export const hexToRgb = (hex: string): Rgb | undefined => {
   const normalized = normalizeHex(hex);
   if (!normalized) {
@@ -138,12 +142,13 @@ export const hexToRgb = (hex: string): Rgb | undefined => {
 };
 
 /** Convert an RGB triple to a `#rrggbb` string. */
+/** @internal */
 export const rgbToHex = ({r, g, b}: Rgb): string => {
   return `#${toHexChannel(r)}${toHexChannel(g)}${toHexChannel(b)}`;
 };
 
 /** Convert an RGB triple (0-255) to HSL. */
-export const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
+const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -173,7 +178,7 @@ export const rgbToHsl = ({r, g, b}: Rgb): Hsl => {
 };
 
 /** Convert HSL to an RGB triple (0-255). */
-export const hslToRgb = ({h, s, l}: Hsl): Rgb => {
+const hslToRgb = ({h, s, l}: Hsl): Rgb => {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const hp = (((h % 360) + 360) % 360) / 60;
   const x = c * (1 - Math.abs((hp % 2) - 1));
@@ -219,6 +224,7 @@ export const hslToHex = (hsl: Hsl): string => {
  * while preserving the anchor hue. Saturation is eased toward the extremes so very light and very
  * dark steps do not look neon.
  */
+/** @internal */
 export const generateColorScale = (anchorHex: string): Record<ShadeKey, string> => {
   const anchorHsl = hexToHsl(anchorHex);
   const normalizedAnchor = normalizeHex(anchorHex);
@@ -238,6 +244,7 @@ export const generateColorScale = (anchorHex: string): Record<ShadeKey, string> 
 };
 
 /** Generate the compact 000/100/200 ramp for a status family from an anchor color. */
+/** @internal */
 export const generateStatusScale = (anchorHex: string): Record<StatusShadeKey, string> => {
   const anchorHsl = hexToHsl(anchorHex);
   const normalizedAnchor = normalizeHex(anchorHex);
@@ -293,7 +300,7 @@ export const generatePrimitivesFromAnchors = (
  * (center + max deviation, in degrees) plus optional saturation limits (0-1). Families without a
  * lock (primary/secondary/accent) are free brand colors.
  */
-export interface ToneLock {
+interface ToneLock {
   /** Center hue in degrees the family should stay near. */
   hueCenter?: number;
   /** Maximum allowed deviation from `hueCenter` in degrees (circular). */
@@ -309,7 +316,7 @@ export interface ToneLock {
  * warning orange/amber, success green, and neutral a low-saturation gray. Bands are intentionally
  * generous so users still have room to pick a specific shade within the correct tone.
  */
-export const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLock>> = {
+const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLock>> = {
   error: {hueCenter: 0, hueTolerance: 18},
   neutral: {maxSaturation: 0.12},
   success: {hueCenter: 130, hueTolerance: 45},
@@ -321,6 +328,7 @@ export const FAMILY_TONE_LOCKS: Partial<Record<MainFamily | StatusFamily, ToneLo
  * taking the shorter way around the color wheel so bands that straddle 0/360 (e.g. red) wrap
  * correctly. Returns a value in [0, 360).
  */
+/** @internal */
 export const clampHueToBand = (hue: number, center: number, tolerance: number): number => {
   const normalized = ((hue % 360) + 360) % 360;
   const signedDistance = ((normalized - center + 540) % 360) - 180;
@@ -381,6 +389,7 @@ export const constrainAnchorsToFamilyTones = (anchors: PaletteAnchors): PaletteA
  * Relative luminance of an sRGB color per the WCAG 2.1 definition. Used as the basis for contrast
  * ratio computation.
  */
+/** @internal */
 export const relativeLuminance = (hex: string): number => {
   const rgb = hexToRgb(hex);
   if (!rgb) {
@@ -394,6 +403,7 @@ export const relativeLuminance = (hex: string): number => {
 };
 
 /** WCAG contrast ratio between two colors, from 1 (identical) to 21 (black on white). */
+/** @internal */
 export const contrastRatio = (foreground: string, background: string): number => {
   const l1 = relativeLuminance(foreground);
   const l2 = relativeLuminance(background);

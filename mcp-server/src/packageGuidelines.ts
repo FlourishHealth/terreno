@@ -3,17 +3,11 @@ import {join} from "node:path";
 
 import {getDocsRoot} from "./docsRoot.js";
 
-export const GUIDELINE_PACKAGE_IDS = [
-  "api",
-  "ui",
-  "rtk",
-  "admin-backend",
-  "admin-frontend",
-] as const;
+const GUIDELINE_PACKAGE_IDS = ["api", "ui", "rtk", "admin-backend", "admin-frontend"] as const;
 
 export type GuidelinePackageId = (typeof GUIDELINE_PACKAGE_IDS)[number];
 
-export const normalizeGuidelinePackageId = (pkg: string): GuidelinePackageId | null => {
+const normalizeGuidelinePackageId = (pkg: string): GuidelinePackageId | null => {
   const n = pkg
     .trim()
     .replace(/^@terreno\//i, "")
