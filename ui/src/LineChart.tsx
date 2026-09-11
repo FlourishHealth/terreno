@@ -8,7 +8,7 @@ import {ChartFrame} from "./charts/ChartFrame";
 import {getLinePath} from "./charts/paths";
 import {createCartesianScales, getYTickValues} from "./charts/scales";
 import {getChartPaint} from "./charts/theme";
-import type {ChartPoint} from "./charts/types";
+import type {ChartPoint} from "./charts/types/chartTypes";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
@@ -178,4 +178,4 @@ export const LineChart: FC<LineChartProps> = ({
 };
 
 export type {LineChartProps} from "./Common";
-export type {ChartPoint} from "./charts/types";
+export type {ChartPoint} from "./charts/types/chartTypes";

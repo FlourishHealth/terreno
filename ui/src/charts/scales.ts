@@ -1,6 +1,6 @@
 import {scaleBand, scaleLinear} from "d3-scale";
 
-import type {ChartPlot, ChartPoint, ChartScales} from "./types";
+import type {ChartPlot, ChartPoint, ChartScales} from "./types/chartTypes";
 
 const EMPTY_Y_DOMAIN: [number, number] = [0, 1];
 

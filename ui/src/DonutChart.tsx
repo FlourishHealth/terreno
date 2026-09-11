@@ -7,7 +7,7 @@ import type {DonutChartProps, LayoutChangeEvent} from "./Common";
 import {ChartFrame} from "./charts/ChartFrame";
 import {getDonutSlicePath} from "./charts/paths";
 import {getChartPaint} from "./charts/theme";
-import type {ChartPoint} from "./charts/types";
+import type {ChartPoint} from "./charts/types/chartTypes";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
@@ -150,4 +150,4 @@ export const DonutChart: FC<DonutChartProps> = ({
 };
 
 export type {DonutChartProps} from "./Common";
-export type {ChartPoint} from "./charts/types";
+export type {ChartPoint} from "./charts/types/chartTypes";

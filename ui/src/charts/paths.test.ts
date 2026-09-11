@@ -2,7 +2,7 @@ import {describe, expect, it} from "bun:test";
 
 import {getAreaPath, getDonutSlicePath, getLinePath} from "./paths";
 import {createCartesianScales} from "./scales";
-import type {ChartPoint} from "./types";
+import type {ChartPoint} from "./types/chartTypes";
 
 const FIXTURE_POINTS: ChartPoint[] = [
   {label: "A", value: 0},

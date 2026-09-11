@@ -8,7 +8,7 @@ import {ChartFrame} from "./charts/ChartFrame";
 import {getAreaPath, getLinePath} from "./charts/paths";
 import {createCartesianScales, getYTickValues} from "./charts/scales";
 import {getChartPaint} from "./charts/theme";
-import type {ChartPoint} from "./charts/types";
+import type {ChartPoint} from "./charts/types/chartTypes";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
@@ -182,4 +182,4 @@ export const AreaChart: FC<AreaChartProps> = ({
 };
 
 export type {AreaChartProps} from "./Common";
-export type {ChartPoint} from "./charts/types";
+export type {ChartPoint} from "./charts/types/chartTypes";

@@ -1,6 +1,6 @@
 import {arc, area, line} from "d3-shape";
 
-import type {ChartPoint, ChartScales} from "./types";
+import type {ChartPoint, ChartScales} from "./types/chartTypes";
 
 export const getLinePath = ({
   points,

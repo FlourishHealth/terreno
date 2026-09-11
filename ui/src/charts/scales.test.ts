@@ -1,7 +1,7 @@
 import {describe, expect, it} from "bun:test";
 
 import {createCartesianScales, getYTickValues} from "./scales";
-import type {ChartPoint} from "./types";
+import type {ChartPoint} from "./types/chartTypes";
 
 const FIXTURE_POINTS: ChartPoint[] = [
   {label: "A", value: 0},
