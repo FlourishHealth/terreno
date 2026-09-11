@@ -160,7 +160,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
   - Acceptance: `bun run backend:dev` + `frontend:web`; Playwright from 1.7 still passes; new assertions for Refresh optional
   - Skills: `verify-ui-changes`, `generate-sdk` only if OpenAPI changed (should not)
 
-- [ ] **Task 5.2**: admin-spa `/console`
+- [x] **Task 5.2**: admin-spa `/console`
   - Delivers: same windowed Todos path with `credentials: "same-origin"`; SyncDbProvider in SPA; cookie session still logs in
   - Files: `admin-spa` app providers, e2e
   - Blocked by: 5.1
