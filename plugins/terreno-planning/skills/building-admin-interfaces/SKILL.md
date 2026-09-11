@@ -18,7 +18,7 @@ admin home widgets.
 and [Build admin screens](../../../../docs/how-to/build-admin-screens.md).
 
 **Related skills:** `building-terreno-apps` (Expo/`@terreno/ui` habits),
-`terreno-ui` (components), `terreno-data-fetching` (RTK, not syncdb),
+`terreno-ui` (components), `terreno-data-fetching` (windowed syncdb + RPC),
 `terreno-backend-api` (`modelRouter` + `admin:`), `verify-ui-changes`.
 
 ## Tracer bullet
@@ -36,8 +36,10 @@ and [Build admin screens](../../../../docs/how-to/build-admin-screens.md).
    on `AdminModelForm`. Add extra Expo files only for extra URL segments. Done when
    no per-model copy of the table exists.
 5. UI: `@terreno/ui` + `AdminScreenPage` for custom screens; `color="transparent"`
-   inside the shell. Fetch with `useAdminApi` / generated SDK. Done when there is
-   no `fetch`/`axios` and no syncdb collection for admin data.
+   inside the shell. String-`_id` models with `adminBroadcast` use windowed
+   syncdb; framework RPC uses host-bound `adminRequest`; ObjectId compatibility
+   CRUD keeps `useAdminApi` in Terreno 57. Done when there is no app-owned
+   `fetch`/`axios` or new admin `injectEndpoints`.
 6. Verify with `verify-ui-changes` on the example admin or admin-spa. Done when
    home, sidebar, and the new flow are exercised as an admin user.
 
@@ -54,7 +56,8 @@ references/
 
 - Do not hand-roll a DataTable per model. Use `AdminModelTable` / `AdminScreenRouter`.
 - Do not put a second sidebar inside a screen. `AdminShell` owns nav.
-- Do not use `@terreno/syncdb` for admin CRUD.
+- Do not add new admin `injectEndpoints`. Terreno 58 removes `useAdminApi` and
+  the required `api` prop; use windowed syncdb for eligible model CRUD.
 - Do not invent sidebar entries. Config (filtered by RBAC) is the nav source.
 - Do not use `router.back()` as the custom-screen back action; use `AdminScreenPage`.
 - Do not edit `openApiSdk.ts` by hand.

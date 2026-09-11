@@ -171,7 +171,7 @@ Phase 1 is a hard gate. Protocol and UI tasks stay blocked until every Phase 1 c
 
 ## Phase 6 — Docs, skills, deprecation
 
-- [ ] **Task 6.1**: Human + agent docs
+- [x] **Task 6.1**: Human + agent docs
   - Delivers: admin collection CRUD documented as windowed syncdb; RPC as fetch wrapper; `adminBroadcast` + window subscribe in syncdb reference; migrate-rtk guide no longer says admin collection CRUD stays RTK; `api`/`injectEndpoints` deprecated; next-major removal named; changelog
   - Files: `docs/reference/syncdb.md`, `docs/how-to/migrate-rtk-to-syncdb.md`, `docs/reference/admin.md` / `admin-frontend` pages if present, `.rulesync/skills/terreno-data-fetching`, `verify-ui-changes` if admin login steps change, changelog
   - Blocked by: 5.2

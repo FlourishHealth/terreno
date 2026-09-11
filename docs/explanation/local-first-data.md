@@ -27,7 +27,10 @@ Think **apply locally, then reconcile** instead of **request, wait, update cache
 3. **Refetch orchestration** — `invalidatesTags`, `refetch()`, and list/detail cache coordination after mutations.
 4. **Treating the network as the read path** — list screens blocked on `isLoading` for every navigation.
 
-RTK Query remains appropriate for **non-synced** endpoints: `/auth/me`, admin RPC, AI routes, and anything that should stay request/response.
+RTK Query remains appropriate for **non-synced generated** endpoints such as
+`/auth/me` and AI routes. Built-in admin RPC stays request/response through its
+host-bound fetch client; ObjectId/API-only admin CRUD keeps RTK compatibility in
+Terreno 57.
 
 ## What you start doing
 

@@ -157,6 +157,7 @@ export const syncDb = createSyncDb({
 |--------|------|---------|-------------|
 | `name` | `string` | — (required) | Persisted database name |
 | `collections` | `string[]` | — (required) | Collection names to sync (local tables + subscriptions) |
+| `windowCollections` | `string[]` | `[]` | Collections that join `{collection}\|admin`, skip snapshots/reconcile, and hydrate only known REST membership ids |
 | `authProvider` | `AuthProvider` | — (required) | `{getToken, getUserId, onAuthChange, refresh?}` |
 | `baseUrl` | `string` | — | Server origin; required unless both `transport` and `httpChannel` are injected |
 | `transport` | `SyncTransport` | socket transport from `baseUrl` | Override for tests or custom wiring |
@@ -493,4 +494,8 @@ Backend sync requires a MongoDB replica set (`MONGO_URI` with `replicaSet=`) for
 - **No `bulkWrite` / `updateMany` / `deleteMany`** on synced models — use per-document loops.
 - **Do not write reserved tables** (`_outbox`, `_cursors`, `_conflicts`) directly — use `client.mutate`, hooks, and `resolveConflict`.
 - **User switch wipes local data** — confirmed different-user login clears the previous user's store; bare logout/401 does not (INV-2).
-- **Keep `@terreno/rtk` for non-synced routes** — generated OpenAPI hooks remain the right tool for custom REST endpoints, admin, and auth configuration. See [How to migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).
+- **Keep `@terreno/rtk` for non-synced routes** — generated OpenAPI hooks remain
+  the right tool for custom REST endpoints, auth, feature flags, and ObjectId
+  admin compatibility CRUD. Eligible admin String-`_id` collection CRUD uses
+  windowed syncdb; framework admin RPC uses its host-bound fetch client. See
+  [How to migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).

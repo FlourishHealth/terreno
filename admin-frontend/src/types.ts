@@ -343,6 +343,10 @@ export interface AdminScreenProps {
   apiBase?: string;
   /** Base path used for in-app navigation. Falls back to `baseUrl`. */
   routeBase?: string;
+  /**
+   * @deprecated Terreno 57 compatibility for ObjectId/API-only CRUD. Do not add
+   * new admin `injectEndpoints`; Terreno 58 removes the required `api` prop.
+   */
   api: AdminApi;
   /**
    * Fetch credentials mode for {@link adminRequest}. SPA cookie sessions use

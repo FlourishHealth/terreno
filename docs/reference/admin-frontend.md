@@ -19,7 +19,12 @@ Pass fetch auth on `AdminProvider`:
 
 RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders, origin})` then `adminRequest`. Relative URLs such as `/admin/config` are prefixed with `origin` when it is set. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
 
-Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose config includes `adminBroadcast: true` and `syncCollection`. Hosts inject the same `createSyncDb()` client they use for the app. Do not add `@terreno/syncdb` as a hard dependency of admin-frontend.
+Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose
+config includes `adminBroadcast: true` and `syncCollection`. When product screens
+also sync the same collection, inject a dedicated admin client/store configured
+with `windowCollections`; one client cannot join owner/tenant and admin modes for
+the same collection. Do not add `@terreno/syncdb` as a hard dependency of
+admin-frontend.
 
 ``````typescript
 // app/admin/index.tsx
@@ -172,7 +177,12 @@ Returns model metadata from `{baseUrl}/config`.
 
 ### useAdminApi
 
-Generates RTK Query hooks for list/read/create/update/delete plus `POST {routePath}/bulk-patch`.
+> Deprecated in Terreno 57: do not add new admin `injectEndpoints`. Terreno 58
+> removes `useAdminApi` and the required `api` prop. During the compatibility
+> window, continue passing `api` for ObjectId model CRUD and API-only hosts.
+
+Generates compatibility RTK Query hooks for list/read/create/update/delete plus
+`POST {routePath}/bulk-patch`.
 Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
 
 Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Bind host auth with `bindAdminRequest`. Do not add axios.

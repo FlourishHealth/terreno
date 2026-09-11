@@ -47,6 +47,8 @@ type TagArg = unknown;
  *
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
+ * @deprecated Terreno 57 compatibility for ObjectId/API-only model CRUD.
+ * Terreno 58 removes this RTK `injectEndpoints` path and the required admin `api` prop.
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
