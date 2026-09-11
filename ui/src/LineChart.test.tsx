@@ -1,5 +1,6 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {Linking} from "react-native";
 
 import {LineChart} from "./LineChart";
 import {renderWithTheme} from "./test-utils";
@@ -86,5 +87,19 @@ describe("LineChart", () => {
     const {getByText} = renderWithTheme(<LineChart data={POINTS} legendLabel="Sales" />);
 
     expect(getByText("Sales")).toBeTruthy();
+  });
+
+  it("does not open URLs from x-axis labels", async () => {
+    const openURLSpy = spyOn(Linking, "openURL").mockImplementation(() => Promise.resolve(true));
+    const {getByText} = renderWithTheme(
+      <LineChart data={[{label: "https://evil.example", value: 10}]} />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("https://evil.example"));
+    });
+
+    expect(openURLSpy).not.toHaveBeenCalled();
+    openURLSpy.mockRestore();
   });
 });

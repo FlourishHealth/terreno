@@ -8,4 +8,6 @@ Terreno charts are drawn with `react-native-svg` and private `d3-scale` / `d3-sh
 
 `DonutChart` uses `d3-shape` `arc` angles (`0` is 12 o'clock, clockwise). Slice press/hover hits use the same paint transform so the tooltip lands on the visible slice.
 
+Axis ticks and donut legend labels use `Text` with `skipLinking`, matching `ChartFrame` tooltips, so a URL in `point.label` stays inert text instead of `Linking.openURL`.
+
 `DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.

@@ -98,7 +98,7 @@ export const LineChart: FC<LineChartProps> = ({
                 }}
                 key={`ytick-${tick}`}
               >
-                <Text align="right" color="secondaryDark" size="sm">
+                <Text align="right" color="secondaryDark" size="sm" skipLinking>
                   {formatValue(tick)}
                 </Text>
               </Box>
@@ -167,7 +167,7 @@ export const LineChart: FC<LineChartProps> = ({
           justifyContent="between"
         >
           {data.map((point) => (
-            <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm">
+            <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm" skipLinking>
               {point.label}
             </Text>
           ))}

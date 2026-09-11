@@ -99,7 +99,7 @@ export const BarChart: FC<BarChartProps> = ({
                 }}
                 key={`ytick-${tick}`}
               >
-                <Text align="right" color="secondaryDark" size="sm">
+                <Text align="right" color="secondaryDark" size="sm" skipLinking>
                   {formatValue(tick)}
                 </Text>
               </Box>
@@ -185,7 +185,7 @@ export const BarChart: FC<BarChartProps> = ({
           justifyContent="between"
         >
           {data.map((point) => (
-            <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm">
+            <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm" skipLinking>
               {point.label}
             </Text>
           ))}

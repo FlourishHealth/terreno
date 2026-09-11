@@ -137,7 +137,9 @@ export const DonutChart: FC<DonutChartProps> = ({
                 }}
                 testID={resolveTestID(testID, `swatch.${index}`)}
               />
-              <Text size="sm">{point.label}</Text>
+              <Text size="sm" skipLinking>
+                {point.label}
+              </Text>
             </Box>
           ))}
         </Box>
