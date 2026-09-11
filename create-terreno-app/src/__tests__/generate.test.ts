@@ -107,6 +107,21 @@ describe("generateAllFiles", () => {
     });
   });
 
+  test("pins Expo native modules to SDK 57 majors", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Expo App",
+      appName: "expo-app",
+    });
+    const frontendPackageJson = JSON.parse(
+      files.find((file) => file.path === "frontend/package.json")?.content ?? "{}"
+    ) as {dependencies: Record<string, string>};
+
+    assert.equal(frontendPackageJson.dependencies.expo, "~57.0.14");
+    assert.equal(frontendPackageJson.dependencies["expo-router"], "~57.0.14");
+    assert.equal(frontendPackageJson.dependencies["expo-constants"], "~57.0.12");
+    assert.equal(frontendPackageJson.dependencies["expo-sqlite"], "~57.0.1");
+  });
+
   test("generates the default MCP server configuration", () => {
     const files = generateAllFiles({
       appDisplayName: "Default MCP",

@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, readdirSync, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, readdirSync, statSync, writeFileSync} from "node:fs";
 import {dirname, relative, resolve} from "node:path";
 
 import {type BootstrapArgs, generateAllFiles} from "./generate.js";
@@ -45,6 +45,11 @@ export const isTargetEmptyEnough = (targetPath: string): boolean => {
     return true;
   }
 
+  const stats = statSync(targetPath);
+  if (!stats.isDirectory()) {
+    return false;
+  }
+
   const entries = readdirSync(targetPath);
   return entries.every((entry: string) => ALLOWED_EXISTING_ENTRIES.has(entry));
 };
@@ -89,8 +94,9 @@ export const formatNextSteps = (targetPath: string): string[] => {
     `cd ${quotedTargetPath}/backend && bun install`,
     `cd ${quotedTargetPath}/frontend && bun install`,
     "# Start MongoDB as a replica set (required for sync/realtime)",
-    `cd ${quotedTargetPath}/backend && bun run dev`,
     `cd ${quotedTargetPath}/backend && bun run seed`,
+    `cd ${quotedTargetPath}/backend && bun run dev`,
+    "# In another terminal, with the backend still running:",
     `cd ${quotedTargetPath}/frontend && bun run sdk`,
     `cd ${quotedTargetPath}/frontend && bun run web`,
     "# Open http://localhost:8082 and sign in as test@example.com / testpassword123",

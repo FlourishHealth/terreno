@@ -12,6 +12,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {assert} from "chai";
 
+import {runCli} from "../cli.js";
 import {
   deriveDisplayName,
   formatNextSteps,
@@ -149,6 +150,35 @@ describe("writeScaffold", () => {
     assert.include(joined, "bun run sdk");
     assert.include(joined, "bun run web");
   });
+
+  test("formatNextSteps seeds before starting the long-running backend", () => {
+    const steps = formatNextSteps("/tmp/my-app");
+    const seedIndex = steps.findIndex((step) => step.includes("bun run seed"));
+    const devIndex = steps.findIndex((step) => step.includes("bun run dev"));
+    const sdkIndex = steps.findIndex((step) => step.includes("bun run sdk"));
+    assert.isAtLeast(seedIndex, 0);
+    assert.isAtLeast(devIndex, 0);
+    assert.isBelow(seedIndex, devIndex);
+    assert.isBelow(devIndex, sdkIndex);
+    assert.include(steps.join("\n"), "In another terminal");
+  });
+
+  test("rejects an invalid appName without writing files", () => {
+    const parentDir = mkdtempSync(join(tmpdir(), "create-terreno-app-escape-"));
+    try {
+      const result = writeScaffold({
+        appDisplayName: "Escape",
+        appName: "../escape",
+        parentDir,
+      });
+      assert.isFalse(result.success);
+      assert.notEqual(result.exitCode, 0);
+      assert.include(result.error ?? "", "kebab-case");
+      assert.isEmpty(readdirSync(parentDir));
+    } finally {
+      rmSync(parentDir, {force: true, recursive: true});
+    }
+  });
 });
 
 describe("isTargetEmptyEnough", () => {
@@ -161,6 +191,17 @@ describe("isTargetEmptyEnough", () => {
     try {
       writeFileSync(join(dir, "notes.txt"), "nope", "utf8");
       assert.isFalse(isTargetEmptyEnough(dir));
+    } finally {
+      rmSync(dir, {force: true, recursive: true});
+    }
+  });
+
+  test("rejects a file path in place of a directory", () => {
+    const dir = mkdtempSync(join(tmpdir(), "create-terreno-app-file-"));
+    const filePath = join(dir, "not-a-dir");
+    try {
+      writeFileSync(filePath, "nope", "utf8");
+      assert.isFalse(isTargetEmptyEnough(filePath));
     } finally {
       rmSync(dir, {force: true, recursive: true});
     }
@@ -178,6 +219,51 @@ describe("quoteShellArgument", () => {
   test("single-quotes spaces and shell substitutions", () => {
     assert.equal(quoteShellArgument("/tmp/my app/$(touch nope)"), "'/tmp/my app/$(touch nope)'");
     assert.equal(quoteShellArgument("safe-app"), "safe-app");
+  });
+});
+
+describe("runCli", () => {
+  test("writes a scaffold and prints next steps", () => {
+    const parentDir = mkdtempSync(join(tmpdir(), "create-terreno-app-runcli-"));
+    try {
+      const result = runCli({
+        argv: ["runcli-app", "--yes"],
+        cwd: parentDir,
+      });
+      assert.isTrue(result.success);
+      assert.equal(result.exitCode, 0);
+      assert.isTrue(existsSync(join(parentDir, "runcli-app/backend/package.json")));
+    } finally {
+      rmSync(parentDir, {force: true, recursive: true});
+    }
+  });
+
+  test("returns errors for missing display name", () => {
+    const result = runCli({
+      argv: ["my-app"],
+    });
+    assert.isFalse(result.success);
+    assert.equal(result.exitCode, 1);
+    assert.include(result.error ?? "", "--display-name");
+  });
+
+  test("returns errors for a dirty target", () => {
+    const parentDir = mkdtempSync(join(tmpdir(), "create-terreno-app-runcli-dirty-"));
+    const targetPath = join(parentDir, "my-app");
+    try {
+      mkdirSync(targetPath, {recursive: true});
+      writeFileSync(join(targetPath, "blocker.txt"), "stay", "utf8");
+      const result = runCli({
+        argv: ["my-app", "--display-name", "My App"],
+        cwd: parentDir,
+      });
+      assert.isFalse(result.success);
+      assert.notEqual(result.exitCode, 0);
+      assert.include(result.error ?? "", "not empty");
+      assert.isFalse(existsSync(join(targetPath, "backend/package.json")));
+    } finally {
+      rmSync(parentDir, {force: true, recursive: true});
+    }
   });
 });
 

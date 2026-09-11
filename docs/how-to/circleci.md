@@ -147,6 +147,7 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Demo Lint and TypeScript Check | `ui-demo-ci` |
 | Lint, compile, and test communications | `comms-ci` |
 | Lint, Build, and Test (MCP) | `mcp-server-ci` |
+| Lint, compile, and test create-terreno-app | `create-terreno-app-ci` |
 | Build Docker Image (MCP) | `mcp-server-docker` |
 | Example Frontend Lint and Test | `example-frontend-ci` |
 | Example Backend Lint, Build, and Test | `example-backend-ci` |

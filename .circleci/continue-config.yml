@@ -30,6 +30,9 @@ parameters:
   run-mcp-server:
     type: boolean
     default: false
+  run-create-terreno-app:
+    type: boolean
+    default: false
   run-example-frontend:
     type: boolean
     default: false
@@ -630,6 +633,22 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+
+  create-terreno-app-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / test create-terreno-app
+          working_directory: ~/project/create-terreno-app
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test
 
   mcp-server-docker:
     executor: node22
@@ -1742,6 +1761,11 @@ workflows:
       - mcp-server-docker:
           requires:
             - mcp-server-ci
+
+  create-terreno-app:
+    when: << pipeline.parameters.run-create-terreno-app >>
+    jobs:
+      - create-terreno-app-ci
 
   example-frontend:
     when: << pipeline.parameters.run-example-frontend >>

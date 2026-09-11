@@ -7,8 +7,6 @@ import {parseCliArgs, writeScaffold} from "./writeScaffold.js";
 export interface RunCliOptions {
   argv?: string[];
   cwd?: string;
-  /** When true (default), exits the process with the result code. */
-  exit?: boolean;
   write?: (line: string) => void;
   writeError?: (line: string) => void;
 }
@@ -33,7 +31,6 @@ export const runCli = (options: RunCliOptions = {}): RunCliResult => {
     ((line: string): void => {
       process.stderr.write(`${line}\n`);
     });
-  const shouldExit = options.exit !== false;
   const cwd = options.cwd ?? process.cwd();
 
   const parsed = parseCliArgs(argv);
@@ -41,34 +38,17 @@ export const runCli = (options: RunCliOptions = {}): RunCliResult => {
     for (const error of parsed.errors) {
       writeError(error);
     }
-    const result: RunCliResult = {
+    return {
       error: parsed.errors.join("; "),
       exitCode: 1,
       nextSteps: [],
       success: false,
     };
-    if (shouldExit) {
-      process.exit(result.exitCode);
-    }
-    return result;
-  }
-
-  if (!parsed.appName || !parsed.displayName) {
-    const result: RunCliResult = {
-      error: "Missing appName or display name",
-      exitCode: 1,
-      nextSteps: [],
-      success: false,
-    };
-    if (shouldExit) {
-      process.exit(result.exitCode);
-    }
-    return result;
   }
 
   const scaffoldResult = writeScaffold({
-    appDisplayName: parsed.displayName,
-    appName: parsed.appName,
+    appDisplayName: parsed.displayName as string,
+    appName: parsed.appName as string,
     description: parsed.description,
     mcpServerUrl: parsed.mcpServerUrl,
     parentDir: cwd,
@@ -78,17 +58,13 @@ export const runCli = (options: RunCliOptions = {}): RunCliResult => {
     if (scaffoldResult.error) {
       writeError(scaffoldResult.error);
     }
-    const result: RunCliResult = {
+    return {
       error: scaffoldResult.error,
       exitCode: scaffoldResult.exitCode,
       nextSteps: [],
       success: false,
       targetPath: scaffoldResult.targetPath,
     };
-    if (shouldExit) {
-      process.exit(result.exitCode);
-    }
-    return result;
   }
 
   write(`Created ${scaffoldResult.targetPath}`);
@@ -98,21 +74,17 @@ export const runCli = (options: RunCliOptions = {}): RunCliResult => {
     write(step);
   }
 
-  const result: RunCliResult = {
+  return {
     exitCode: 0,
     nextSteps: scaffoldResult.nextSteps,
     success: true,
     targetPath: scaffoldResult.targetPath,
   };
-  if (shouldExit) {
-    process.exit(result.exitCode);
-  }
-  return result;
 };
 
 const isMainModule =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  runCli();
+  process.exit(runCli().exitCode);
 }
