@@ -30,8 +30,8 @@ that file (and its imports) to a working example. Gaps stay explicit.
 
 | Gap | Why it stays | Follow-up |
 | --- | --- | --- |
-| AI structured output | Chat streaming already demonstrates the AI pillar; structured `generateObject`-style routes are unused by current tutorials | Add a small typed-output route + screen when a tutorial needs it. No GitHub issue yet. |
-| Generic background jobs | Unshipped as a first-class example; do not invent a queue UI here | Track with the admin script runner / future jobs IP rather than a fake worker in the example app. |
+| AI structured output | Chat streaming already demonstrates the AI pillar; structured `generateObject`-style routes are unused by current tutorials | Track with [AI-first tutorials #1010](https://github.com/FlourishHealth/terreno/issues/1010) (`add-ai-features.md` requires one structured-output call). |
+| Generic background jobs | Unshipped as a first-class example; do not invent a queue UI here | Track with [Durable background jobs #1188](https://github.com/FlourishHealth/terreno/issues/1188). Admin script runner is a related surface — [admin-script-runner.md](../implementationPlans/admin-script-runner.md). |
 
 ## Keeping the matrix true
 
