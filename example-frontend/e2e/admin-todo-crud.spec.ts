@@ -69,9 +69,23 @@ test.describe("Admin Todo CRUD smoke", () => {
 
     await page.getByText(editedTitle).locator("visible=true").first().click();
     await page.getByTestId("admin-delete-button").waitFor({state: "visible", timeout: 15_000});
+
+    // A windowed delete leaves the cached REST membership page stale, so the changelist must
+    // refetch it on its own — the Refresh button is deliberately never pressed after this point.
+    let membershipRequestsAfterDelete = 0;
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === "/admin/todos" && request.method() === "GET") {
+        membershipRequestsAfterDelete += 1;
+      }
+    });
+
     await page.getByTestId("admin-delete-button").click();
     await page.getByRole("button", {name: "Confirm"}).click();
     await waitForAdminTable(page);
     await expect(page.getByText(editedTitle).locator("visible=true")).toHaveCount(0);
+    await expect
+      .poll(() => membershipRequestsAfterDelete, {timeout: 15_000})
+      .toBeGreaterThanOrEqual(1);
   });
 });
