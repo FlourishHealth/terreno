@@ -160,4 +160,4 @@ See [`docs/tasks/examples-demo-coverage.md`](../tasks/examples-demo-coverage.md)
 - [x] `README.md` shows a coverage badge that reflects reality.
 - [x] `docs/explanation/example-coverage.md` resolves every `?` in the capability matrix, and each real gap is either filled with an example or recorded as a known gap with an issue link.
 - [x] `CONTRIBUTING.md` states the 95% coverage expectation and how to run coverage locally per package.
-- [ ] `bun run lint`, `bun run compile`, and the full test suite pass.
+- [x] `bun run lint`, `bun run compile`, and the full test suite pass.
