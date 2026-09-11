@@ -1151,9 +1151,13 @@ new TerrenoApp({userModel: User}).register(
 `Notification` fields: `ownerId`, `title`, `body`, `href?`, `kind?`, `readAt?` (null = unread).
 Index: `{ownerId: 1, created: -1}`.
 
-`NotificationPreference` fields: `ownerId` (unique), `inapp`, `mail`, `push`, `sms` (default `true`).
-Missing preference row = all channels on. Preference updates accept only the four channel
-booleans; `ownerId` is immutable.
+`NotificationPreference` fields: `ownerId` (unique among non-deleted rows), `inapp`, `mail`,
+`push`, `sms` (default `true`). Missing preference row = all channels on. Preference updates
+accept only the four channel booleans; `ownerId` is immutable. Soft-deleting a preference
+row does not block a later create for the same owner.
+
+`notify()` comms fan-out isolates mail, SMS, and push: a rejection from one provider is
+logged and does not skip later channels.
 
 ### `notify(input)`
 

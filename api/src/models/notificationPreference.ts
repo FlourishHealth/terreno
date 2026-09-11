@@ -28,11 +28,9 @@ const notificationPreferenceSchema = new mongoose.Schema<
     },
     ownerId: {
       description: "The user these preferences belong to",
-      index: true,
       ref: "User",
       required: true,
       type: mongoose.Schema.Types.ObjectId,
-      unique: true,
     },
     push: {
       default: true,
@@ -53,6 +51,10 @@ notificationPreferenceSchema.plugin(isDeletedPlugin);
 notificationPreferenceSchema.plugin(findExactlyOne);
 notificationPreferenceSchema.plugin(findOneOrNone);
 notificationPreferenceSchema.plugin(syncPlugin);
+notificationPreferenceSchema.index(
+  {ownerId: 1},
+  {partialFilterExpression: {deleted: false}, unique: true}
+);
 
 export const NotificationPreference = mongoose.model<
   NotificationPreferenceDocument,

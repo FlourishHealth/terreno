@@ -68,7 +68,8 @@ await getNotificationService().notify({
 
 Fan-out order: inbox write (when `inapp` is on), then mail, SMS, and push when each
 preference is on and a destination exists. Missing email, phone, or push tokens skip that
-channel without failing `notify()`.
+channel without failing `notify()`. A provider rejection on one channel is logged and
+does not skip later channels.
 
 ## 4. Sync collections on the client
 

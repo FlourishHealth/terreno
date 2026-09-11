@@ -25,7 +25,9 @@ interface FakeComms {
   smsUserIds: Array<string | undefined>;
 }
 
-const buildFakeComms = (): {
+const buildFakeComms = (
+  fakeOptions: {mailError?: Error} = {}
+): {
   comms: FakeComms;
   getComms: () => FakeComms & {
     sendMail: (
@@ -51,6 +53,9 @@ const buildFakeComms = (): {
     getComms: () => ({
       ...comms,
       sendMail: async (message, options) => {
+        if (fakeOptions.mailError) {
+          throw fakeOptions.mailError;
+        }
         comms.mailCalls.push(message);
         comms.mailUserIds.push(options?.userId);
         return {accepted: true};
@@ -189,6 +194,19 @@ describe("NotificationsApp", () => {
     const preference = await NotificationPreference.findExactlyOne({ownerId: userId});
     assert.isFalse(preference.mail);
     assert.equal(String(preference.ownerId), userId);
+  });
+
+  it("allows creating preferences after the owner deletes the previous row", async () => {
+    const created = await userAgent.post("/notification-preferences").send({mail: false});
+    assert.include([200, 201], created.status);
+    const preferenceId = created.body.data._id as string;
+    await userAgent.delete(`/notification-preferences/${preferenceId}`).expect(204);
+
+    const recreated = await userAgent.post("/notification-preferences").send({sms: false});
+    assert.include([200, 201], recreated.status);
+    const preference = await NotificationPreference.findExactlyOne({ownerId: userId});
+    assert.isFalse(preference.sms);
+    assert.notEqual(preference._id, preferenceId);
   });
 
   it("does not allow preference PATCH to change the owner", async () => {
@@ -357,6 +375,30 @@ describe("NotificationsApp", () => {
       userId,
     });
     assert.equal(comms.mailCalls.length, 0);
+  });
+
+  it("fan-out continues SMS and push when sendMail rejects", async () => {
+    const {comms, getComms} = buildFakeComms({mailError: new Error("smtp down")});
+    const userModel = {
+      findById: () => ({
+        select: () => ({
+          lean: async () => ({
+            email: "notAdmin@example.com",
+            phone: "+15551234567",
+          }),
+        }),
+      }),
+    } as unknown as Model<{email?: string; phone?: string}>;
+    configureNotificationService({getComms, userModel});
+    const id = await getNotificationService().notify({
+      body: "Body",
+      title: "Keep going",
+      userId,
+    });
+    assert.isNotEmpty(id);
+    assert.equal(comms.mailCalls.length, 0);
+    assert.deepEqual(comms.smsCalls, [{body: "Keep going: Body", to: "+15551234567"}]);
+    assert.deepEqual(comms.pushCalls, [{body: "Body", title: "Keep going", userId}]);
   });
 
   it("notify resolves when getComms throws after inbox write", async () => {

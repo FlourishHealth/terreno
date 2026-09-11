@@ -153,25 +153,49 @@ export const createNotificationService = (
     try {
       const comms = getComms();
       if (preferences.mail && user?.email) {
-        await comms.sendMail(
-          {
-            html: `<p>${escapeHtml(body)}</p>`,
-            subject: title,
-            text: body,
-            to: user.email,
-          },
-          {userId: input.userId}
-        );
+        try {
+          await comms.sendMail(
+            {
+              html: `<p>${escapeHtml(body)}</p>`,
+              subject: title,
+              text: body,
+              to: user.email,
+            },
+            {userId: input.userId}
+          );
+        } catch (error) {
+          logger.error("[notifications] comms fan-out channel failed after inbox write", {
+            channel: "mail",
+            error,
+            userId: input.userId,
+          });
+        }
       }
       if (preferences.sms && user?.phone) {
-        await comms.sendSms({body: `${title}: ${body}`, to: user.phone}, {userId: input.userId});
+        try {
+          await comms.sendSms({body: `${title}: ${body}`, to: user.phone}, {userId: input.userId});
+        } catch (error) {
+          logger.error("[notifications] comms fan-out channel failed after inbox write", {
+            channel: "sms",
+            error,
+            userId: input.userId,
+          });
+        }
       }
       if (preferences.push) {
-        await comms.sendPushToUser({
-          body,
-          title,
-          userId: input.userId,
-        });
+        try {
+          await comms.sendPushToUser({
+            body,
+            title,
+            userId: input.userId,
+          });
+        } catch (error) {
+          logger.error("[notifications] comms fan-out channel failed after inbox write", {
+            channel: "push",
+            error,
+            userId: input.userId,
+          });
+        }
       }
     } catch (error) {
       logger.error("[notifications] comms fan-out failed after inbox write", {
