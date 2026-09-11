@@ -8,11 +8,13 @@ import {createdUpdatedPlugin, findOneOrNoneFor, isDeletedPlugin} from "../plugin
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
 import {
   auditActorIdFromRequest,
+  buildAdminWindowExecutorOptions,
   clearAdminWindowMutationScopes,
   emitAdminWindowMutationAudit,
   getAdminWindowMutationScope,
   prepareAdminWindowMutation,
   registerAdminWindowMutationScope,
+  withAdminWindowMutationRequestContext,
 } from "./adminWindowMutation";
 import {clearSyncRegistry, findSyncEntryByCollectionTag, registerSync} from "./registry";
 import {syncPlugin} from "./syncSeqPlugin";
@@ -381,5 +383,68 @@ describe("adminWindowMutation", () => {
     expect(auditActorIdFromRequest({user: {_id: "fallback", id: "preferred"}} as never)).toBe(
       "preferred"
     );
+  });
+
+  it("builds AdminApp executor hooks without losing non-hook product options", () => {
+    const productPreCreate = async (body: unknown): Promise<unknown> => body;
+    const adminPreCreate = async (body: unknown): Promise<unknown> => body;
+    const adminPostDelete = async (): Promise<void> => {};
+    const scope = getAdminWindowMutationScope("WindowTodo");
+    assert.isDefined(scope);
+    if (!scope) {
+      return;
+    }
+    const accessControl = {can: async () => ({allowed: true})} as never;
+    const options = buildAdminWindowExecutorOptions({
+      productOptions: {
+        maxLimit: 123,
+        preCreate: productPreCreate,
+        preUpdate: productPreCreate,
+      },
+      scope: {
+        ...scope,
+        accessControl,
+        postDelete: adminPostDelete,
+        preCreate: adminPreCreate,
+      },
+    });
+
+    assert.equal(options.maxLimit, 123);
+    assert.strictEqual(options.accessControl, accessControl);
+    assert.strictEqual(options.preCreate, adminPreCreate);
+    assert.isUndefined(options.preUpdate);
+    assert.strictEqual(options.postDelete, adminPostDelete);
+  });
+
+  it("adds the mutation id to request params only for instance operations", () => {
+    const request = {params: {existing: "value"}} as never;
+    const createRequest = withAdminWindowMutationRequestContext({
+      mutation: {
+        collection: "window-todos",
+        mutationId: "create-context",
+        operation: "create",
+      },
+      req: request,
+    });
+    assert.strictEqual(createRequest, request);
+
+    const updateRequest = withAdminWindowMutationRequestContext({
+      mutation: {
+        collection: "window-todos",
+        id: "todo-1",
+        mutationId: "update-context",
+        operation: "update",
+      },
+      req: request,
+    });
+    assert.strictEqual(updateRequest, request);
+    assert.deepEqual(updateRequest.params, {existing: "value", id: "todo-1"});
+  });
+
+  it("resolves audit actors from id, _id, or an absent user", () => {
+    assert.equal(auditActorIdFromRequest({user: {id: 42}} as never), "42");
+    assert.equal(auditActorIdFromRequest({user: {_id: 43}} as never), "43");
+    assert.isUndefined(auditActorIdFromRequest({} as never));
+    assert.isUndefined(auditActorIdFromRequest({user: {}} as never));
   });
 });
