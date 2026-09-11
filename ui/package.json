@@ -1,9 +1,4 @@
 {
-  "babel": {
-    "presets": [
-      "react-app"
-    ]
-  },
   "browserslist": {
     "development": [
       "last 1 chrome version",
@@ -82,8 +77,6 @@
   "description": "React Native UI component library for iOS, Android, and web — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@expo/config-plugins": "catalog:",
-    "@happy-dom/global-registrator": "catalog:",
     "@testing-library/react-native": "catalog:",
     "@types/bun": "catalog:",
     "@types/d3-scale": "^4.0.9",
@@ -91,17 +84,10 @@
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/mdurl": "^2.0.0",
-    "@types/minimatch": "^6.0.0",
     "@types/react": "catalog:",
-    "@types/react-datetime-picker": "^5.0.0",
-    "@types/react-time-picker": "^6.0.0",
-    "babel-preset-react-app": "^10.0.1",
     "expo-modules-core": "catalog:",
     "mdurl": "catalog:",
-    "prettier": "catalog:",
     "react": "catalog:",
-    "react-router": "catalog:",
-    "react-router-dom": "catalog:",
     "react-test-renderer": "catalog:",
     "tsc-watch": "^7.1.1",
     "typedoc": "catalog:",
@@ -135,9 +121,7 @@
   "peerDependencies": {
     "react": "catalog:",
     "react-dom": "^19.2.0",
-    "react-native": "~0.86.0",
-    "react-router": "catalog:",
-    "react-router-dom": "catalog:"
+    "react-native": "~0.86.0"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -177,7 +161,7 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "57.2.0",
+  "version": "57.3.0",
   "bugs": {
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },

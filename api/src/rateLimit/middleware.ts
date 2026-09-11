@@ -10,7 +10,7 @@ const secondsUntil = (resetAt: number, now: number): number => {
   return Math.max(1, Math.ceil((resetAt - now) / 1000));
 };
 
-export const setRateLimitExceededHeaders = ({
+const setRateLimitExceededHeaders = ({
   max,
   remaining,
   resetAt,

@@ -59,10 +59,7 @@ describe("chart paths", () => {
   });
 
   it("starts donut slices at d3-shape 0 (12 o'clock), not -π/2", () => {
-    const [first, second] = getDonutSliceAngles([
-      {value: 50},
-      {value: 50},
-    ]);
+    const [first, second] = getDonutSliceAngles([{value: 50}, {value: 50}]);
 
     expect(first?.start).toBe(0);
     expect(first?.end).toBe(Math.PI);

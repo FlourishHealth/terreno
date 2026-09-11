@@ -2,12 +2,12 @@ import {describe, test} from "bun:test";
 import {assert} from "chai";
 
 import {
-  compareKnipBaseline,
   fingerprintKnipReport,
   groupFilesByBiomeDirectory,
-  type KnipBaseline,
+  isIsolatedOrRepoScriptTestFile,
   parseChangedFileOutput,
   selectAnalyzableFiles,
+  unusedFilePathsFromKnipReport,
 } from "./lib";
 
 describe("static-analysis helpers", (): void => {
@@ -58,22 +58,28 @@ describe("static-analysis helpers", (): void => {
     assert.deepEqual(issues, ["default:exports:src/example.ts:unusedExport"]);
   });
 
-  test("ratchets only findings absent from the baseline", (): void => {
-    const baseline: KnipBaseline = {
-      generatedAt: "2026-09-08T00:00:00.000Z",
-      issues: ["default:exports:src/existing.ts:oldExport"],
-      version: 1,
-    };
-    const comparison = compareKnipBaseline({
-      baseline,
-      currentIssues: [
-        "default:exports:src/existing.ts:oldExport",
-        "production:files:src/new.ts:src/new.ts",
+  test("collects unused file paths from a Knip report", (): void => {
+    const paths = unusedFilePathsFromKnipReport({
+      issues: [
+        {
+          file: "scripts/static-analysis/lib.test.ts",
+          files: [{name: "scripts/static-analysis/lib.test.ts"}],
+        },
       ],
     });
+    assert.deepEqual(paths, ["scripts/static-analysis/lib.test.ts"]);
+  });
 
-    assert.isFalse(comparison.ok);
-    assert.equal(comparison.currentCount, 2);
-    assert.deepEqual(comparison.newIssues, ["production:files:src/new.ts:src/new.ts"]);
+  test("classifies isolated suites and repo script tests", (): void => {
+    assert.isTrue(isIsolatedOrRepoScriptTestFile("rtk/src/isolated/emptyApi.isolated.ts"));
+    assert.isTrue(isIsolatedOrRepoScriptTestFile("scripts/static-analysis/lib.test.ts"));
+    assert.isTrue(
+      isIsolatedOrRepoScriptTestFile(".github/scripts/architectural-pr-review.test.ts")
+    );
+    assert.isFalse(
+      isIsolatedOrRepoScriptTestFile("api/src/sync/scripts/compactTombstones.test.ts")
+    );
+    assert.isFalse(isIsolatedOrRepoScriptTestFile("scripts/static-analysis/full.ts"));
+    assert.isFalse(isIsolatedOrRepoScriptTestFile("example-frontend/e2e/login.spec.ts"));
   });
 });
