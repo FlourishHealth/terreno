@@ -119,7 +119,7 @@
     "@biomejs/biome": "catalog:",
     "@rtk-query/codegen-openapi": "catalog:",
     "@types/chai": "^5.2.3",
-    "bun-types": "^1.4.0",
+    "bun-types": "^1.4.2",
     "chai": "catalog:",
     "dependency-cruiser": "^18.2.0",
     "knip": "^6.34.0",
