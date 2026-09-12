@@ -53,7 +53,7 @@ describe("useAdminMigrations", () => {
     expect(addTagTypes[0]).toEqual(["admin_migrations"]);
     expect(endpoints.adminGetMigrations.query(undefined as never)).toEqual({
       method: "GET",
-      url: "/admin/migrations",
+      url: "/admin/migrations/status",
     });
     expect(endpoints.adminRunMigrations.query({wetRun: true} as never)).toEqual({
       method: "POST",

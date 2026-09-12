@@ -59,9 +59,9 @@ models (Mongoose)
     │     optional up on listen (same runner)
     │
     └─ Admin
-          GET  {base}/migrations          status (applied / pending)
+          GET  {base}/migrations/status   collection action (applied / pending)
           POST {base}/migrations/run?wetRun=
-                → BackgroundTask (batch pending up)
+                collection action → BackgroundTask (batch pending up)
           GET/DELETE …/scripts/tasks/:id  reuse existing poll/cancel
 ```
 

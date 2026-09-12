@@ -80,13 +80,14 @@ Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
 
 | Method | Path | Gate | Effect |
 |--------|------|------|--------|
-| GET | `/admin/migrations` | `admin:access` (or `IsAdmin`) | Applied, pending, lock |
-| POST | `/admin/migrations/run?wetRun=true\|false` | `admin:runScripts` (or `IsAdmin`) | One BackgroundTask (`migrations:up`) |
+| GET | `/admin/migrations/status` | `admin:access` (or `IsAdmin`) | Applied, pending, lock (`{data: ...}`) |
+| POST | `/admin/migrations/run?wetRun=true\|false` | `admin:runScripts` (or `IsAdmin`) | `{data: {taskId}}` — one BackgroundTask (`migrations:up`) |
 | GET/DELETE | `/admin/scripts/tasks/:id` | `viewBackgroundTasks` / `runScripts` | Poll or cancel that task |
 
 Dry-run and Apply use the same `admin:runScripts` gate as Scripts (`platformTools.runScripts`
 disables the buttons when the caller cannot run scripts). Status listing stays on
-`admin:access`. Admin wet in production still needs `ALLOW_MIGRATIONS=true`. The admin UI is
+`admin:access`. Collection-action permission denials are **405** (modelRouter). Admin wet
+in production still needs `ALLOW_MIGRATIONS=true` (**403**). The admin UI is
 **Migrations** under Platform (`/admin/__migrations` or `/console/__migrations`):
 status list plus Dry run / Apply pending. Task logs poll `GET /admin/scripts/tasks/:id`.
 

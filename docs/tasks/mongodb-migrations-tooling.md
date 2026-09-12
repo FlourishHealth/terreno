@@ -72,7 +72,7 @@ IP: [mongodb-migrations-tooling.md](../implementationPlans/mongodb-migrations-to
 ## Phase 5 — Admin HTTP
 
 - [x] **Task 5.1**: Admin migrations routes + config flag
-  - Delivers: `GET /admin/migrations` status; `POST /admin/migrations/run?wetRun=` creates BackgroundTask and runs batch pending; poll/cancel via existing script task routes; prod wet 403 without `ALLOW_MIGRATIONS`; `GET /admin/config` includes `migrations.enabled`
+  - Delivers: `GET /admin/migrations/status` and `POST /admin/migrations/run?wetRun=` as `modelRouter` collection actions; creates BackgroundTask and runs batch pending; poll/cancel via existing script task routes; prod wet 403 without `ALLOW_MIGRATIONS`; `GET /admin/config` includes `migrations.enabled`
   - Files: `admin-backend/src/adminApp.ts`, `admin-backend/src/adminApp.migrations.test.ts`, AdminApp options type
   - Blocked by: 1.2, 2.1
   - Skills: `terreno-backend-api`, `building-admin-interfaces`, `backend-test-env`

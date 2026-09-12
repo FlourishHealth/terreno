@@ -567,6 +567,13 @@ export class AdminApp {
     return [Permissions.IsAdmin];
   }
 
+  private adminRunScriptsPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["runScripts"]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
   private async hasScriptPermission(
     user: User | undefined,
     action: "runScripts" | "viewBackgroundTasks"
@@ -1797,13 +1804,10 @@ export class AdminApp {
     mountAdminMigrationRoutes({
       app,
       basePath,
-      canRunMigrations: async (user) => {
-        return this.hasScriptPermission(user, "runScripts");
-      },
       dir: this.options.migrations?.dir,
-      isAdmin: async (user) => {
-        return checkPermissions("read", this.adminAccessPermissions(), user as User | undefined);
-      },
+      ...(openApiMw ? {openApi: openApiMw} : {}),
+      runPermissions: this.adminRunScriptsPermissions(),
+      statusPermissions: this.adminAccessPermissions(),
     });
   }
 

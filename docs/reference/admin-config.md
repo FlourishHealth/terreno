@@ -44,10 +44,11 @@ Model contributions contain `model`, `routePath`, and `admin`. Duplicate `routeP
 throw for registered routers; the same Mongoose model at two paths gets unique config
 `name`s so the admin UI can route to each.
 
-`AdminApp({migrations: {dir}})` enables `GET /admin/migrations` (`admin:access`),
-`POST /admin/migrations/run?wetRun=` (`admin:runScripts`, same as Scripts),
-and `migrations.enabled` on `GET /admin/config`. Poll/cancel uses existing `/admin/scripts/tasks/:id`.
-Production wet apply requires `ALLOW_MIGRATIONS=true`. Unconfigured apps return 404 for those routes.
+`AdminApp({migrations: {dir}})` enables `GET /admin/migrations/status` (`admin:access`)
+and `POST /admin/migrations/run?wetRun=` (`admin:runScripts`, same as Scripts) as
+`modelRouter` collection actions, plus `migrations.enabled` on `GET /admin/config`.
+Poll/cancel uses existing `/admin/scripts/tasks/:id`. Production wet apply requires
+`ALLOW_MIGRATIONS=true`. Unconfigured apps return 404 for those action routes.
 
 
 ## Legacy migration

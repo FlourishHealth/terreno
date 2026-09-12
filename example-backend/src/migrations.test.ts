@@ -56,6 +56,6 @@ describe("example-backend migrations", () => {
 
   it("mounts admin migrations on the example server", async () => {
     const app = await start(true);
-    await supertest(app).get("/admin/migrations").expect(401);
+    await supertest(app).get("/admin/migrations/status").expect(401);
   });
 });

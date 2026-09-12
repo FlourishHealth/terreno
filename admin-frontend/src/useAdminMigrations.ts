@@ -43,7 +43,7 @@ export const useAdminMigrations = (api: AdminApi, apiBase: string) => {
           providesTags: ["admin_migrations"],
           query: () => ({
             method: "GET",
-            url: `${apiBase}/migrations`,
+            url: `${apiBase}/migrations/status`,
           }),
         }),
         adminRunMigrations: build.mutation({

@@ -77,8 +77,8 @@ describe("AdminApp migrations routes", () => {
       adminAgent = await authAsUser(app, "admin");
     });
 
-    it("returns 404 for GET /admin/migrations", async () => {
-      await adminAgent.get("/admin/migrations").expect(404);
+    it("returns 404 for GET /admin/migrations/status", async () => {
+      await adminAgent.get("/admin/migrations/status").expect(404);
     });
 
     it("returns 404 for POST /admin/migrations/run", async () => {
@@ -101,16 +101,20 @@ describe("AdminApp migrations routes", () => {
     });
 
     it("returns pending status for admins", async () => {
-      const res = await adminAgent.get("/admin/migrations").expect(200);
-      expect(res.body.pending.map((row: {id: string}) => row.id)).toEqual([
+      const res = await adminAgent.get("/admin/migrations/status").expect(200);
+      expect(res.body.data.pending.map((row: {id: string}) => row.id)).toEqual([
         "20260910120000-alpha",
         "20260910120001-beta",
       ]);
     });
 
+    it("disables CRUD on the migrations mount", async () => {
+      await adminAgent.get("/admin/migrations").expect(405);
+    });
+
     it("forbids non-admins", async () => {
-      await notAdminAgent.get("/admin/migrations").expect(403);
-      await notAdminAgent.post("/admin/migrations/run").expect(403);
+      await notAdminAgent.get("/admin/migrations/status").expect(405);
+      await notAdminAgent.post("/admin/migrations/run").expect(405);
     });
 
     it("requires admin:runScripts to start a run when accessControl is configured", async () => {
@@ -122,9 +126,9 @@ describe("AdminApp migrations routes", () => {
       const rbacApp = buildApp({accessControl, migrationsDir: fixturesDir});
       const accessOnly = await authAsUser(rbacApp, "admin");
 
-      await accessOnly.get("/admin/migrations").expect(200);
-      await accessOnly.post("/admin/migrations/run").expect(403);
-      await accessOnly.post("/admin/migrations/run?wetRun=true").expect(403);
+      await accessOnly.get("/admin/migrations/status").expect(200);
+      await accessOnly.post("/admin/migrations/run").expect(405);
+      await accessOnly.post("/admin/migrations/run?wetRun=true").expect(405);
       expect(await appliedIds()).toEqual([]);
     });
 
@@ -140,7 +144,7 @@ describe("AdminApp migrations routes", () => {
       const runner = await authAsUser(rbacApp, "admin");
 
       const res = await runner.post("/admin/migrations/run").expect(201);
-      expect(res.body.taskId).toBeDefined();
+      expect(res.body.data.taskId).toBeDefined();
       await waitForTask();
       expect(await appliedIds()).toEqual([]);
     });
@@ -152,13 +156,15 @@ describe("AdminApp migrations routes", () => {
 
     it("dry-run does not persist applied ids", async () => {
       const res = await adminAgent.post("/admin/migrations/run").expect(201);
-      expect(res.body.taskId).toBeDefined();
+      expect(res.body.data.taskId).toBeDefined();
       await waitForTask();
       expect(await appliedIds()).toEqual([]);
-      const task = await BackgroundTask.findById(res.body.taskId);
+      const task = await BackgroundTask.findById(res.body.data.taskId);
       expect(task?.isDryRun).toBe(true);
       expect(task?.taskType).toBe("migrations:up");
-      const polled = await adminAgent.get(`/admin/scripts/tasks/${res.body.taskId}`).expect(200);
+      const polled = await adminAgent
+        .get(`/admin/scripts/tasks/${res.body.data.taskId}`)
+        .expect(200);
       expect(polled.body.task.status).toBe("completed");
     });
 
@@ -166,7 +172,7 @@ describe("AdminApp migrations routes", () => {
       const res = await adminAgent.post("/admin/migrations/run?wetRun=true").expect(201);
       await waitForTask();
       expect(await appliedIds()).toEqual(["20260910120000-alpha", "20260910120001-beta"]);
-      const task = await BackgroundTask.findById(res.body.taskId);
+      const task = await BackgroundTask.findById(res.body.data.taskId);
       expect(task?.isDryRun).toBe(false);
     });
 
@@ -209,7 +215,7 @@ export const up = async () => {
     it("marks the background task failed", async () => {
       const res = await adminAgent.post("/admin/migrations/run").expect(201);
       await waitForTask();
-      const task = await BackgroundTask.findById(res.body.taskId);
+      const task = await BackgroundTask.findById(res.body.data.taskId);
       expect(task?.status).toBe("failed");
       expect(task?.error).toContain("boom");
     });
