@@ -110,7 +110,7 @@ const GcsSettingsScreen: React.FC = () => {
         body.serviceAccountKey = keyInput.trim();
       }
 
-      const response = await fetch(`${baseUrl}/settings/gcs`, {
+      const response = await fetch(`${baseUrl}/settings/configureGcs`, {
         body: JSON.stringify(body),
         headers: {
           Authorization: `Bearer ${token}`,
@@ -158,9 +158,9 @@ const GcsSettingsScreen: React.FC = () => {
 
     try {
       const token = await getSessionToken();
-      await fetch(`${baseUrl}/settings/gcs`, {
+      await fetch(`${baseUrl}/settings/clearGcs`, {
         headers: {Authorization: `Bearer ${token}`},
-        method: "DELETE",
+        method: "POST",
       });
 
       setBucketName("");
