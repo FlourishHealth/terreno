@@ -103,8 +103,8 @@ your codebase is the 20% that is unique to your product.
 
 The analogy earns two honest caveats. First, Terreno targets a document store
 (MongoDB via Mongoose), not a relational ORM, and it has no migrations framework.
-Second, it is younger — several Django/Rails staples (background jobs,
-server-side rendering, role-based access control) are not shipped yet. The
+Second, it is younger — several Django/Rails staples (server-side rendering,
+role-based access control) are not shipped yet. The
 comparison table below is deliberately straight about where the analogy holds and
 where it does not; being honest about the gaps is what makes the analogy credible
 rather than marketing.
@@ -125,7 +125,7 @@ shipped" row links the implementation plan or roadmap item that tracks it.
 | Auth + permissions | Better Auth (`api/src/betterAuthApp.ts`) + `Permissions` (`api/src/permissions.ts`) | Fine-grained RBAC is in progress ([`rbac-permissions`](../implementationPlans/rbac-permissions.md)) |
 | Templates / views | `@terreno/ui` components — one universal codebase for iOS, Android, and web | Server-side rendering for web is not shipped yet ([`web-ssr-and-admin-spa`](../implementationPlans/web-ssr-and-admin-spa.md)) |
 | `manage.py` / generators | MCP server tools — the *tool* layer (`mcp-server/src/tools.ts`) + the `/terreno-*` SDLC pipeline — the *process* layer (`plugins/terreno-planning/skills/`) | Agent-driven rather than CLI-driven; the pipeline is not yet packaged for consumer apps ([`agentic-sdlc-plugin`](../implementationPlans/agentic-sdlc-plugin.md) Task 2.5) |
-| Celery / ActiveJob (background jobs) | Not shipped | On the [roadmap](../../ROADMAP.md) |
+| Celery / ActiveJob (background jobs) | `@terreno/jobs` `JobsApp` (`jobs/`) | [How-to](../how-to/background-jobs.md), [reference](../reference/jobs.md); optional GCP Cloud Tasks and Vercel Queues runners |
 | Migrations | No migrations framework | Schema evolution is convention plus the published `mongoose-schema-safety` skill |
 
 ## Language rules

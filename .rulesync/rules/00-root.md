@@ -36,6 +36,7 @@ deploy.
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
 - **comms/** - Pluggable transactional communications (`@terreno/comms`)
+- **jobs/** - Durable background jobs plugin for `@terreno/api` (`@terreno/jobs`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -110,6 +111,9 @@ bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
 bun run comms:compile           # Compile communications package
 bun run comms:test              # Test communications package
+bun run jobs:compile            # Compile jobs package
+bun run jobs:test               # Test jobs package
+bun run jobs:worker             # Example-backend standalone jobs worker
 ```
 
 ### Static analysis

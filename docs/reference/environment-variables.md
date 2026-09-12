@@ -237,6 +237,24 @@ secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
 | `TERRENO_MCP_EVAL` | MCP eval | ❌ | — | No | tooling |
 | `TERRENO_PROJECT_ROOT` | MCP local | ❌ | — | No | tooling |
 
+## Background jobs
+
+| Variable | Read by | Required | Default | Secret | Scope |
+|----------|---------|----------|---------|--------|-------|
+| `JOBS_START_WORKER` | example-backend (`jobsStartWorker.ts`) | ❌ | `true` (unset) | No | server |
+
+`@terreno/jobs` itself does **not** read environment variables — pass `JobsApp` and runner
+options explicitly. `JOBS_START_WORKER` only gates whether the example API process calls
+`jobsApp.startWorker()` after listen. Set `false` when running the standalone
+`bun run jobs:worker` process against the same MongoDB.
+
+`JOB_TRACE_LOGS` is an optional app convention for verbose worker logging (see
+[API logging & tracing](api.md#logging--tracing)); not read by the jobs package.
+
+Legacy names `GCP_TASKS_NOTIFICATIONS_QUEUE` and `GCP_TASK_PROCESSOR_QUEUE` appear in
+example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
+`GcpCloudTasksRunner` constructor config instead. See [Jobs reference](jobs.md).
+
 ## Example backend (app-specific)
 
 | Variable | Read by | Required | Default | Secret | Scope |
@@ -278,3 +296,4 @@ secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
 - [Build for web](../how-to/build-for-web.md)
 - [Configure Better Auth](../how-to/configure-better-auth.md)
 - [Rate limiting](../how-to/rate-limiting.md)
+- [Durable background jobs](../how-to/background-jobs.md)

@@ -81,7 +81,7 @@ The Django/Rails claim invites the obvious question. `docs/explanation/positioni
 | Auth + permissions | Better Auth + `Permissions` / RBAC | RBAC shipped (`rbac-permissions.md`, Complete) |
 | Templates / views | `@terreno/ui` components, one codebase for iOS/Android/web | SSR is not shipped yet — see [`web-ssr-and-admin-spa`](web-ssr-and-admin-spa.md) |
 | `manage.py` / generators | MCP server tools (the *tool* layer) + the `/terreno-*` SDLC pipeline (the *process* layer) | Agent-driven rather than CLI-driven. Django gives you `manage.py startapp`; Terreno gives you a reviewed path from a request to a mergeable PR |
-| Celery / ActiveJob | Not shipped | On the roadmap |
+| Celery / ActiveJob | `@terreno/jobs` `JobsApp` (`jobs/`) — shipped [`job-queues`](job-queues.md) | [How-to](../how-to/background-jobs.md), [reference](../reference/jobs.md); optional GCP Cloud Tasks and Vercel Queues runners (was Not shipped when this IP was written) |
 | Migrations | No migrations framework | Schema evolution is convention + the `mongoose-schema-safety` skill |
 
 Being straight about the gaps is what makes the analogy credible rather than marketing.

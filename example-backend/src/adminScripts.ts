@@ -7,6 +7,7 @@ import {
   syncConsents,
 } from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
+import {getJobsService} from "@terreno/jobs";
 
 import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
@@ -205,5 +206,26 @@ export const adminScripts: AdminScriptConfig[] = [
       "Reset example application data and restore defaults. Preserves users, authentication, RBAC roles, and script history.",
     name: "resetDatabase",
     runner: resetExampleDatabase,
+  },
+  {
+    description:
+      "Enqueue the example/dlq-demo job so the admin Jobs screen can demonstrate retry and dead-letter flows.",
+    name: "enqueueDlqDemoJob",
+    runner: async (wetRun) => {
+      if (!wetRun) {
+        return {
+          results: ["Dry run: would enqueue example/dlq-demo"],
+          success: true,
+        };
+      }
+      const job = await getJobsService().enqueue({
+        name: "example/dlq-demo",
+        payload: {source: "enqueueDlqDemoJob"},
+      });
+      return {
+        results: [`Enqueued example/dlq-demo as job ${String(job._id)}`],
+        success: true,
+      };
+    },
   },
 ];

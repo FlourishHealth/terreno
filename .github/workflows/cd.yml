@@ -15,6 +15,7 @@ on:
       - "admin-backend/**"
       - "ai/**"
       - "comms/**"
+      - "jobs/**"
       - "mcp-server/**"
       - "ui/**"
       - ".github/workflows/cd.yml"
@@ -76,6 +77,7 @@ jobs:
               - 'admin-backend/**'
               - 'ai/**'
               - 'comms/**'
+              - 'jobs/**'
               - '.github/workflows/cd.yml'
             tasks:
               - 'example-backend/**'
@@ -84,6 +86,7 @@ jobs:
               - 'admin-backend/**'
               - 'ai/**'
               - 'comms/**'
+              - 'jobs/**'
               - '.github/workflows/cd.yml'
             mcp:
               - 'mcp-server/**'

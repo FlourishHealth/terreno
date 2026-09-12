@@ -53,6 +53,31 @@ export {
 } from "./comms/commsDashboardParams";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
 export {generateConsentHistoryPdf} from "./generateConsentHistoryPdf";
+export {JobsDashboardScreen, type JobsDashboardScreenProps} from "./jobs/JobsDashboardScreen";
+export {
+  JOBS_ADMIN_WIDGETS,
+  JobsDashboardScreenWidget,
+} from "./jobs/JobsDashboardScreenWidget";
+export {JOBS_HOME_WIDGETS, JobsHomeWidget} from "./jobs/JobsHomeWidget";
+export {JobsJobDetail, type JobsJobDetailProps} from "./jobs/JobsJobDetail";
+export {JobsStatusBadge} from "./jobs/JobsStatusBadge";
+export {
+  canCancelJob,
+  canRequeueJob,
+  canRetryJob,
+  formatJobTimestamp,
+  type JobAttemptRow,
+  type JobRow,
+  type JobScheduleRow,
+  type JobsStats,
+  jobRowId,
+  unwrapJobRow,
+} from "./jobs/jobPayload";
+export {
+  type JobsDashboardFilters,
+  parseJobsDashboardSearchParams,
+  serializeJobsDashboardSearchParams,
+} from "./jobs/jobsDashboardParams";
 export {LocaleContentEditor} from "./LocaleContentEditor";
 export type {
   AdminCapabilities,
