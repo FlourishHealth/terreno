@@ -736,6 +736,12 @@ export class ActionSheet extends Component<Props, State, unknown> {
       keyboardShouldPersistTaps,
       statusBarTranslucent,
     } = this.props;
+    const persistTaps =
+      keyboardShouldPersistTaps === true
+        ? "always"
+        : keyboardShouldPersistTaps === false
+          ? "never"
+          : keyboardShouldPersistTaps;
 
     return (
       <Modal
@@ -767,7 +773,7 @@ export class ActionSheet extends Component<Props, State, unknown> {
               width: this.state.deviceWidth,
             }}
             data={dummyData}
-            keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+            keyboardShouldPersistTaps={persistTaps}
             keyExtractor={this._keyExtractor}
             onMomentumScrollBegin={this._onScrollBegin}
             onMomentumScrollEnd={this._onScrollEnd}

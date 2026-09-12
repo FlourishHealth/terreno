@@ -3589,6 +3589,9 @@ export interface SidebarNavigationProps {
   onNavigate?: (route: string) => void;
   /**
    * The route to show when the navigator first renders.
+   *
+   * Expo Router 58 ignores this on `Navigator`. Set
+   * `unstable_settings.initialRouteName` on the layout file instead.
    */
   initialRouteName?: string;
   /**

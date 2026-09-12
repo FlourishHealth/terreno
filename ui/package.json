@@ -117,7 +117,7 @@
   "peerDependencies": {
     "react": "catalog:",
     "react-dom": "^19.2.0",
-    "react-native": "~0.86.0"
+    "react-native": "~0.87.0"
   },
   "peerDependenciesMeta": {
     "react-dom": {

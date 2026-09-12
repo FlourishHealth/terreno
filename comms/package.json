@@ -22,24 +22,24 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./adapters/expoPush": {
-      "types": "./dist/adapters/expoPush.d.ts",
-      "default": "./dist/adapters/expoPush.js"
+      "default": "./dist/adapters/expoPush.js",
+      "types": "./dist/adapters/expoPush.d.ts"
     },
     "./adapters/sendgrid": {
-      "types": "./dist/adapters/sendgrid.d.ts",
-      "default": "./dist/adapters/sendgrid.js"
+      "default": "./dist/adapters/sendgrid.js",
+      "types": "./dist/adapters/sendgrid.d.ts"
     },
     "./adapters/twilioSms": {
-      "types": "./dist/adapters/twilioSms.d.ts",
-      "default": "./dist/adapters/twilioSms.js"
+      "default": "./dist/adapters/twilioSms.js",
+      "types": "./dist/adapters/twilioSms.d.ts"
     },
     "./adapters/twilioVerify": {
-      "types": "./dist/adapters/twilioVerify.d.ts",
-      "default": "./dist/adapters/twilioVerify.js"
+      "default": "./dist/adapters/twilioVerify.js",
+      "types": "./dist/adapters/twilioVerify.d.ts"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
