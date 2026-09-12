@@ -262,25 +262,44 @@ const router = modelRouter(YourModel, {
 });
 ```
 
-#### Custom Routes
+#### Custom endpoints (modelRouter actions)
 
-For non-CRUD endpoints, use the OpenAPI builder:
+Do **not** use `app.get` / `app.post` / `router.get` / `router.post` for application
+APIs. Use `collectionActions` and `instanceActions` on `modelRouter`:
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {modelRouter, Permissions, z} from "@terreno/api";
 
-router.get("/yourRoute/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["yourTag"])
-    .withSummary("Brief summary")
-    .withPathParameter("id", {type: "string"})
-    .withResponse(200, {data: {type: "object"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => doc,
+    },
+  },
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+});
 ```
+
+See `docs/explanation/model-router-actions.md`. Exceptions: `WebhooksApp`, static SPA,
+auth/health/version plugins, SSE.
 
 #### API Conventions
 

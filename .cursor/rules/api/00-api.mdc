@@ -424,28 +424,25 @@ router.post("/search", [
 
 Validation errors throw `APIError` with field-level details.
 
-## Custom Routes with OpenAPI Builder
+## Custom endpoints — modelRouter actions
 
-For non-CRUD endpoints, use the fluent builder to generate OpenAPI documentation:
+Do **not** use `app.get` / `router.post` for application APIs. Use
+`collectionActions` / `instanceActions` (see `docs/explanation/model-router-actions.md`).
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
-
-router.get("/stats/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["stats"])
-    .withSummary("Get statistics")
-    .withPathParameter("id", {type: "string"})
-    .withQueryParameter("limit", {type: "number"}, {required: false})
-    .withResponse(200, {count: {type: "number"}, items: {type: "array", items: {type: "object"}}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
+collectionActions: {
+  bulkComplete: {
+    method: "POST",
+    permissions: [Permissions.IsAuthenticated],
+    handler: async ({body, user}) => ({matched: 0, modified: 0}),
+  },
+},
 ```
 
-Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
+`createOpenApiBuilder` is last-resort for paths that cannot be `/{action}` or
+`/:id/{action}` (not webhooks — those use `WebhooksApp`).
+
+Builder methods when you must use it: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
 
 ## Error Handling
 
