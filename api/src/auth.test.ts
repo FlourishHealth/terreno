@@ -1103,7 +1103,7 @@ describe("privileged user fields", () => {
     );
 
     expect((user as unknown as {admin?: boolean}).admin).toBe(false);
-    expect((user as unknown as {roles?: string[]}).roles).toBeUndefined();
+    expect((user as unknown as {roles?: string[]}).roles ?? []).toEqual([]);
   });
 
   it("does not let PATCH /auth/me escalate to admin or join organizations", async () => {

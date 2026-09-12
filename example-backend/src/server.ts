@@ -11,6 +11,7 @@ import {
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
+  Membership,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
@@ -45,7 +46,7 @@ import {addAiRoutes} from "./api/ai";
 import {addDevCommsRoutes} from "./api/commsDev";
 import {addLoadTestRoutes} from "./api/loadtest";
 import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
-import {projectRouter} from "./api/projects";
+import {projectOrgContextPlugin, projectRouter} from "./api/projects";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
@@ -176,6 +177,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         enabled: true,
         publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
+      organizations: true,
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
@@ -210,15 +212,17 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
       .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
       .register(todoRouter)
+      .register(projectOrgContextPlugin)
       .register(projectRouter)
       .register(usersRouter)
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
-      // resolve tenant streams (projects are scoped by the user's organizationIds).
+      // resolve tenant streams from active organization memberships.
       .register(
         new SyncApp({
-          getUserScopes: (user) => {
-            return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
+          getUserScopes: async (user) => {
+            const memberships = await Membership.findActiveForUser(user.id);
+            return memberships.map((membership) => String(membership.organizationId));
           },
         })
       )
@@ -252,9 +256,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           },
           debug: websocketsDebug,
           // Required by the tenant-scoped `projects` sync stream: socket authorization
-          // otherwise falls back to the synthetic JWT-claim user, which carries no
-          // `organizationIds`, so tenant streams resolve to nothing and `admin` is
-          // trusted from the token instead of the database (Task 9.21).
+          // must load the persisted user id before Membership-based tenant streams resolve.
           userModel: User as unknown as TerrenoAuthUserModel,
         })
       );
@@ -421,6 +423,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               verb: event.verb,
             });
           },
+          organizations: true,
           scripts: adminScripts,
         })
       )

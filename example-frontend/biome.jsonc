@@ -20,7 +20,9 @@
       "!!coverage",
       "!!**/generated",
       "!!generated",
-      "!!**/.git"
+      "!!**/.git",
+      "!!expo-env.d.ts",
+      "!!**/expo-env.d.ts"
     ]
   },
   "linter": {

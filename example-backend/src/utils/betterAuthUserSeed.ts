@@ -18,6 +18,29 @@ export interface BetterAuthSeedUser {
   password: string;
 }
 
+const waitMs = (ms: number): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
+const postBetterAuthEmailWithRetry = async (
+  agent: ReturnType<typeof supertest>,
+  path: "/api/auth/sign-up/email" | "/api/auth/sign-in/email",
+  body: {email: string; name?: string; password: string}
+): Promise<supertest.Response> => {
+  const maxAttempts = 5;
+  let delayMs = 250;
+  let response = await agent.post(path).send(body);
+  for (let attempt = 1; attempt < maxAttempts && response.status === 429; attempt += 1) {
+    logger.warn(`Better Auth ${path} rate-limited for ${body.email}; retrying`);
+    await waitMs(delayMs);
+    delayMs *= 2;
+    response = await agent.post(path).send(body);
+  }
+  return response;
+};
+
 /**
  * Seed a Better Auth user in-process (no running server required).
  * Creates the credential account and syncs the Mongoose User row.
@@ -36,13 +59,16 @@ export const seedBetterAuthUserInProcess = async (
   const app = express();
   app.use(express.json());
   const betterAuthApp = new BetterAuthApp({
-    config,
+    config: {
+      ...config,
+      disableRateLimit: true,
+    },
     userModel: User as unknown as TerrenoAuthUserModel,
   });
   betterAuthApp.register(app);
   const agent = supertest(app);
 
-  const signUpRes = await agent.post("/api/auth/sign-up/email").send({
+  const signUpRes = await postBetterAuthEmailWithRetry(agent, "/api/auth/sign-up/email", {
     email: user.email,
     name: user.name,
     password: user.password,
@@ -50,7 +76,7 @@ export const seedBetterAuthUserInProcess = async (
 
   let response = signUpRes;
   if (!signUpRes.ok) {
-    response = await agent.post("/api/auth/sign-in/email").send({
+    response = await postBetterAuthEmailWithRetry(agent, "/api/auth/sign-in/email", {
       email: user.email,
       password: user.password,
     });

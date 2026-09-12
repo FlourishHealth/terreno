@@ -9,6 +9,8 @@ import {configurationPlugin} from "./configurationPlugin";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
 import {createdUpdatedPlugin} from "./plugins";
+import {createAccess} from "./rbac/access";
+import {terrenoStatements} from "./rbac/statements";
 import {TerrenoApp} from "./terrenoApp";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import {authAsUser, FoodModel, setupDb, UserModel} from "./tests";
@@ -73,6 +75,45 @@ describe("TerrenoApp", () => {
       }).start();
 
       expect(app).toBeDefined();
+    });
+
+    it("does not mount /orgs when organizations is omitted", async () => {
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      }).start();
+
+      const res = await supertest(app).get("/orgs");
+      expect(res.status).toBe(404);
+    });
+
+    it("requires accessControl when organizations is true", () => {
+      expect(() =>
+        new TerrenoApp({
+          organizations: true,
+          skipListen: true,
+          userModel: typedUserModel,
+        }).start()
+      ).toThrow("organizations requires accessControl");
+    });
+
+    it("mounts /orgs when organizations is true", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        organizations: true,
+        statements: terrenoStatements,
+        userModel: typedUserModel,
+      });
+      const app = new TerrenoApp({
+        accessControl: access,
+        organizations: true,
+        skipListen: true,
+        userModel: typedUserModel,
+      }).start();
+
+      const res = await supertest(app).get("/orgs");
+      expect(res.status).not.toBe(404);
     });
   });
 

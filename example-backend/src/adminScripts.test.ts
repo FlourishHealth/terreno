@@ -1,5 +1,5 @@
 import {describe, it} from "bun:test";
-import {ConsentForm} from "@terreno/api";
+import {ConsentForm, Organization} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
 import {assert} from "chai";
 
@@ -41,15 +41,22 @@ describe("resetDatabase admin script", () => {
     if (!user) {
       assert.fail("Seeded test user is required");
     }
+    const organization = await Organization.findExactlyOne({name: "Alpha Workspace"});
     await Todo.create({ownerId: user._id, title: "Temporary reset record"});
-    await Project.create({organizationId: "org-example", title: "Temporary reset project"});
+    await Project.create({
+      organizationId: String(organization._id),
+      title: "Temporary reset project",
+    });
 
     const result = await resetExampleDatabase(true);
 
     assert.isTrue(result.success);
     assert.equal(await Todo.countDocuments({deleted: {$ne: true}, ownerId: user._id}), 2);
     assert.equal(
-      await Project.countDocuments({deleted: {$ne: true}, organizationId: "org-example"}),
+      await Project.countDocuments({
+        deleted: {$ne: true},
+        organizationId: String(organization._id),
+      }),
       2
     );
     assert.equal(await ConsentForm.countDocuments(), 3);

@@ -387,6 +387,25 @@ const generateBackendBiomeJsonc = (): string => {
 `;
 };
 
+const generateBackendAccess = (): string => {
+  return `import {
+  createAccess,
+  terrenoStatements,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
+import mongoose from "mongoose";
+
+import {User} from "./models/user";
+
+export const access = createAccess({
+  connection: mongoose.connection,
+  organizations: true,
+  statements: terrenoStatements,
+  userModel: User as unknown as TerrenoAuthUserModel,
+});
+`;
+};
+
 const generateBackendIndex = (): string => {
   return `import "./server";
 `;
@@ -407,6 +426,7 @@ import {
   type UserModel as TerrenoAuthUserModel,
 } from "@terreno/api";
 import type express from "express";
+import {access} from "./access";
 import {userRouter} from "./api/users";
 import {AppConfiguration} from "./models/appConfiguration";
 import {User} from "./models/user";
@@ -424,6 +444,8 @@ export async function start(skipListen = false): Promise<express.Application> {
     checkModelsStrict();
   }
 
+  await access.roles.seedDefaults();
+
   const betterAuthConfig = buildBetterAuthConfig();
   const betterAuthInstance = betterAuthConfig
     ? createBetterAuth({
@@ -436,12 +458,14 @@ export async function start(skipListen = false): Promise<express.Application> {
     : undefined;
 
   const app = new TerrenoApp({
+    accessControl: access,
     corsOrigin: getWebOrigins(),
     loggingOptions: {
       disableConsoleColors: isDeployed,
       level: "debug",
       logRequests: !isDeployed,
     },
+    organizations: true,
     skipListen,
     // noExplicitAny: User model type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
@@ -534,12 +558,15 @@ export const connectToMongoDB = async (): Promise<void> => {
 `;
 };
 
-const generateBackendSeed = (): string => {
+const generateBackendSeed = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
   return `import {
   APIError,
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
+  Membership,
+  Organization,
   runSeedCli,
   seedBetterAuthUser,
   type SeedStep,
@@ -547,6 +574,7 @@ const generateBackendSeed = (): string => {
 } from "@terreno/api";
 import mongoose from "mongoose";
 
+import {access} from "../access";
 import {User} from "../models/user";
 import {buildBetterAuthConfig} from "../utils/betterAuthConfig";
 import {connectToMongoDB} from "../utils/database";
@@ -607,7 +635,52 @@ const seedSteps: SeedStep[] = [
           save: () => Promise<unknown>;
         };
         appUser.admin = definition.admin;
+        const roles = (appUser as unknown as {roles?: string[]}).roles ?? [];
+        if (definition.admin && !roles.includes("operator")) {
+          (appUser as unknown as {roles: string[]}).roles = [...roles, "operator"];
+        }
         await appUser.save();
+      }
+    },
+  },
+  {
+    description: "Create the default organization and attach the admin as org-admin",
+    name: "organization",
+    run: async (context) => {
+      await access.roles.seedDefaults();
+      const existing = await Organization.findOneOrNone({name: "${appDisplayName}"});
+      if (context.dryRun) {
+        context.changes.push({
+          change: existing ? "updated" : "created",
+          count: 1,
+          key: JSON.stringify({name: "${appDisplayName}"}),
+          model: Organization.modelName,
+        });
+        return;
+      }
+      const admin = await User.findByEmail("admin@example.com");
+      if (!admin) {
+        throw new APIError({
+          status: 500,
+          title: "Default organization requires admin@example.com",
+        });
+      }
+      const organization =
+        existing ??
+        (await Organization.create({
+          name: "${appDisplayName}",
+          ownerId: admin._id,
+        }));
+      const membership = await Membership.findOneOrNone({
+        organizationId: organization._id,
+        userId: admin._id,
+      });
+      if (!membership) {
+        await Membership.create({
+          organizationId: organization._id,
+          roleName: "org-admin",
+          userId: admin._id,
+        });
       }
     },
   },
@@ -698,7 +771,8 @@ export function addDefaultPlugins(schema: mongoose.Schema<any, any, any, any>): 
 };
 
 const generateBackendUserModel = (): string => {
-  return `import mongoose from "mongoose";
+  return `import {rbacUserPlugin} from "@terreno/api";
+import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import type {UserDocument, UserModel} from "../types";
 import {addDefaultPlugins} from "./modelPlugins";
@@ -735,6 +809,7 @@ userSchema.plugin(passportLocalMongoose, {
 });
 
 addDefaultPlugins(userSchema);
+userSchema.plugin(rbacUserPlugin, {defaultRoles: ["member"]});
 
 userSchema.method("getDisplayName", function (this: UserDocument): string {
   return this.name;
@@ -897,6 +972,7 @@ export type UserDocument = DefaultDoc &
     betterAuthId?: string;
     email: string;
     name: string;
+    roles: string[];
   };
 `;
 };
@@ -2770,9 +2846,10 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendTsConfig(), path: `${backendDir}/tsconfig.json`},
     {content: generateBackendBiomeJsonc(), path: `${backendDir}/biome.jsonc`},
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
+    {content: generateBackendAccess(), path: `${backendDir}/src/access.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
-    {content: generateBackendSeed(), path: `${backendDir}/src/scripts/seed.ts`},
+    {content: generateBackendSeed(args), path: `${backendDir}/src/scripts/seed.ts`},
     {
       content: generateBackendBetterAuthConfig(args),
       path: `${backendDir}/src/utils/betterAuthConfig.ts`,

@@ -19,5 +19,7 @@ declare namespace Express {
       email?: string;
       [key: string]: unknown;
     };
+    organization?: unknown;
+    membership?: unknown;
   }
 }

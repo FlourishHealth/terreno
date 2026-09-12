@@ -22,6 +22,78 @@ export default function AdminScreen() {
 
 ## Components
 
+### OrgDirectoryScreen
+
+`OrgDirectoryScreen` is the operator-only organization directory. It renders
+loading, error, and empty states plus actions to create, disable, and open an
+organization.
+
+``````typescript
+<OrgDirectoryScreen
+  api={api}
+  isOperator={currentUser.roles?.includes("operator") ?? false}
+  onEnterOrganization={(organization) => {
+    router.push(`/admin/orgs/${organization._id}`);
+  }}
+  routeBase="/admin"
+/>
+``````
+
+Pass the same operator check to `AdminShellLayout` to expose the directory in
+navigation. Org-admins do not receive this link:
+
+``````typescript
+<AdminShellLayout
+  api={api}
+  apiBase="/admin"
+  isOrganizationOperator={isOperator}
+  organizationDirectoryPath="/orgs"
+  routeBase="/admin"
+>
+  {children}
+</AdminShellLayout>
+``````
+
+### OrgContextProvider and OrgSwitcher
+
+Wrap organization-aware admin routes with `OrgContextProvider` and render
+`OrgSwitcher` through the shell's `organizationSwitcher` slot. Selecting an
+organization navigates to `{routeBase}/orgs/:orgId` and adds
+`X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
+include the organization id, preventing rows cached for one org from appearing
+in another.
+
+``````typescript
+<OrgContextProvider>
+  <AdminShellLayout
+    api={api}
+    apiBase="/admin"
+    organizationSwitcher={<OrgSwitcher api={api} routeBase="/admin" />}
+    routeBase="/admin"
+  >
+    {children}
+  </AdminShellLayout>
+</OrgContextProvider>
+``````
+
+When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
+selects it automatically. With multiple organizations it renders a selector.
+
+### OrgSettingsScreen and OrgMembersScreen
+
+Use `OrgSettingsScreen` at `/admin/orgs/:orgId` and `OrgMembersScreen` at
+`/admin/orgs/:orgId/members`. Both send the selected organization header.
+
+`OrgSettingsScreen` edits the organization name and app-defined settings JSON.
+It includes a Billing card marked unavailable; billing is outside the
+organization-management feature.
+
+`OrgMembersScreen` lists current memberships, attaches an existing user by
+email, changes member roles, and removes members. Backend errors such as
+`Cannot remove the last org-admin` are shown inline. Invite is intentionally
+disabled because invitation tokens and email belong to the later invitations
+feature.
+
 ### AdminModelList
 
 Entry screen showing all available models as cards.

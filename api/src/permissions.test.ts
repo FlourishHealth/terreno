@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
+import mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -10,6 +11,8 @@ import {
   addAuthRoutes,
   setupAuth,
 } from "./auth";
+import {Membership, Organization} from "./orgs/organizationModel";
+import {runWithOrgContext} from "./orgs/orgContext";
 import {
   getUserOrganizationIds,
   OrganizationQueryFilter,
@@ -249,59 +252,81 @@ describe("permissions module", () => {
   });
 
   describe("OrganizationQueryFilter", () => {
-    it("returns an $in filter over the user's organizationIds", () => {
-      const user = testUser({id: "u1", organizationIds: ["org-1", "org-2"]});
-      expect(OrganizationQueryFilter(user)).toEqual({
-        organizationId: {$in: ["org-1", "org-2"]},
-      });
+    it("scopes to the request organization context", () => {
+      const orgId = new mongoose.Types.ObjectId();
+      const filter = runWithOrgContext({organization: {_id: orgId} as never}, () =>
+        OrganizationQueryFilter(testUser({id: "u1"}))
+      );
+      expect(filter).toEqual({organizationId: orgId});
     });
 
-    it("returns an empty $in filter when the user has no organizations", () => {
-      const user = testUser({id: "u1"});
-      expect(OrganizationQueryFilter(user)).toEqual({organizationId: {$in: []}});
-    });
-
-    it("returns null when user is undefined", () => {
-      expect(OrganizationQueryFilter(undefined)).toBeNull();
+    it("throws when organization context is missing", () => {
+      expect(() => OrganizationQueryFilter(testUser({id: "u1"}))).toThrow(
+        "Organization context required"
+      );
+      expect(() => OrganizationQueryFilter(undefined)).toThrow("Organization context required");
     });
   });
 
   describe("Permissions.IsOrganizationMember", () => {
-    it("returns true when no object is provided", () => {
-      const user = testUser({id: "u1", organizationIds: ["org-1"]});
-      expect(Permissions.IsOrganizationMember("list", user, undefined)).toBe(true);
+    beforeEach(async () => {
+      await Membership.deleteMany({});
+      await Organization.deleteMany({});
     });
-
-    it("returns false when there is no user", () => {
-      expect(Permissions.IsOrganizationMember("read", undefined, {organizationId: "org-1"})).toBe(
-        false
-      );
-    });
-
-    it("returns true for admins regardless of membership", () => {
-      const user = testUser({admin: true, id: "admin-1", organizationIds: []});
-      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(
+    it("returns true when no object is provided", async () => {
+      expect(await Permissions.IsOrganizationMember("list", testUser({id: "u1"}), undefined)).toBe(
         true
       );
     });
 
-    it("returns true when the user belongs to the document's organization", () => {
-      const user = testUser({id: "u1", organizationIds: ["org-1", "org-2"]});
-      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-2"})).toBe(
-        true
-      );
+    it("returns false when there is no user", async () => {
+      expect(
+        await Permissions.IsOrganizationMember("read", undefined, {organizationId: "org-1"})
+      ).toBe(false);
     });
 
-    it("returns false when the user does not belong to the document's organization", () => {
-      const user = testUser({id: "u1", organizationIds: ["org-1"]});
-      expect(Permissions.IsOrganizationMember("update", user, {organizationId: "org-9"})).toBe(
-        false
-      );
+    it("returns false for user.admin without platform org roles", async () => {
+      const user = testUser({
+        _id: new mongoose.Types.ObjectId(),
+        admin: true,
+        id: new mongoose.Types.ObjectId().toString(),
+      });
+      expect(
+        await Permissions.IsOrganizationMember("update", user, {
+          organizationId: new mongoose.Types.ObjectId(),
+        })
+      ).toBe(false);
     });
 
-    it("returns false when the document has no organizationId", () => {
-      const user = testUser({id: "u1", organizationIds: ["org-1"]});
-      expect(Permissions.IsOrganizationMember("read", user, {})).toBe(false);
+    it("returns true when the caller has an active membership", async () => {
+      const org = await Organization.create({
+        name: "Perm Org",
+        ownerId: new mongoose.Types.ObjectId(),
+      });
+      const userId = new mongoose.Types.ObjectId();
+      await Membership.create({
+        organizationId: org._id,
+        roleName: "member",
+        userId,
+      });
+      const user = testUser({_id: userId, id: userId.toString()});
+      expect(
+        await Permissions.IsOrganizationMember("update", user, {organizationId: org._id})
+      ).toBe(true);
+    });
+
+    it("returns false when the user does not belong to the document's organization", async () => {
+      const user = testUser({id: new mongoose.Types.ObjectId().toString()});
+      expect(
+        await Permissions.IsOrganizationMember("update", user, {
+          organizationId: new mongoose.Types.ObjectId(),
+        })
+      ).toBe(false);
+    });
+
+    it("returns false when the document has no organizationId", async () => {
+      const user = testUser({id: "u1"});
+      expect(await Permissions.IsOrganizationMember("read", user, {})).toBe(false);
     });
   });
 
