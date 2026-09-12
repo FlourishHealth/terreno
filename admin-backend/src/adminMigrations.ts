@@ -134,7 +134,7 @@ export const mountAdminMigrationRoutes = ({
           query: runQuerySchema,
           status: 201,
           summary: "Dry-run or apply pending MongoDB migrations",
-          tag: "Admin",
+          tag: "adminMigrations",
         },
         status: {
           handler: async () => {
@@ -148,7 +148,7 @@ export const mountAdminMigrationRoutes = ({
           method: "GET",
           permissions: statusPermissions,
           summary: "List applied and pending MongoDB migrations",
-          tag: "Admin",
+          tag: "adminMigrations",
         },
       },
       permissions: DISABLED_CRUD,

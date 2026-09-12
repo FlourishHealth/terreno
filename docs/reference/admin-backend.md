@@ -35,7 +35,7 @@ admin.register(app);
 
 This creates:
 - `GET /admin/config` — Model metadata endpoint (`migrations.enabled` when `AdminApp` is given `migrations.dir`)
-- `GET /admin/migrations/status` (`admin:access`) and `POST /admin/migrations/run?wetRun=` (`admin:runScripts`) as `modelRouter` collection actions when `migrations.dir` is set. CRUD on `/admin/migrations` is disabled (405). Action permission denials are 405. Responses use `{data: ...}`.
+- `GET /admin/migrations/status` (`admin:access`) and `POST /admin/migrations/run?wetRun=` (`admin:runScripts`) as `modelRouter` collection actions when `migrations.dir` is set. CRUD on `/admin/migrations` is disabled (405), action permission denials are 405, and responses use `{data: ...}`. Both operations are documented under the `adminMigrations` OpenAPI tag.
 - Poll/cancel those tasks at `GET`/`DELETE /admin/scripts/tasks/:id`
 - Pass `migrations: {dir: "./migrations"}` on `AdminApp`
 - Standard CRUD routes for each model at `{basePath}{routePath}`

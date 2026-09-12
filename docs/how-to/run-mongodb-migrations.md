@@ -76,7 +76,9 @@ Do not inspect the live database during generate. Baseline is the last `schemaAf
 
 ## Admin HTTP
 
-Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Then:
+Pass `migrations: {dir: "./migrations"}` into `AdminApp`. Both routes are
+`modelRouter` collection actions under the `adminMigrations` OpenAPI tag, so they appear in
+`/openapi.json` and in generated SDKs. Then:
 
 | Method | Path | Gate | Effect |
 |--------|------|------|--------|
