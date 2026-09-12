@@ -4,9 +4,9 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 ## Key exports
 
-- Layout: `Box`, `Page`, `SplitPage`, `Card`
+- Layout: `Box`, `Page`, `SplitPage`, `Card`, `DashboardGrid`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
@@ -31,8 +31,9 @@ supported and is convenient when startup cost is not material:
 import {Box, DataTable, Icon} from "@terreno/ui";
 ```
 
-Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, and related admin tools) are
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
 re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
+their implementation modules load on first render instead of during the initial root import. `DashboardGrid` stays eager.
 their implementation modules load on first render instead of during the initial root import. `MarkdownView` and
 `DataTable` header info defer `react-native-markdown-display`; `EmojiSelector` defers `emoji-datasource` until open.
 
@@ -57,6 +58,67 @@ const customStyle: StyleProp<ViewStyle> = {
 - Avoids version mismatches between your app's react-native and @terreno/ui's react-native
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
+
+### DashboardGrid
+
+Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s. Cell width is `(rowWidth - gap × (columns - 1)) / columns` so flex `gap` does not wrap extra columns.
+
+```tsx
+<DashboardGrid>
+  <Card>
+    <LineChart data={points} legendLabel="Signups" />
+  </Card>
+</DashboardGrid>
+```
+
+### LineChart
+
+Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`. Press or hover a point for `{label}: {value}`.
+
+```tsx
+<LineChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups"
+/>
+```
+
+Hit targets use `Box` `onClick`, so testIDs are `{testID}.point.{index}-clickable`.
+
+### BarChart
+
+Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, loading, legend, tooltip).
+
+```tsx
+<BarChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-bar"
+/>
+```
+
+### AreaChart
+
+Filled area plus line on the same owned-SVG contract as `LineChart`.
+
+```tsx
+<AreaChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-area"
+/>
+```
+
+### DonutChart
+
+One slice per `{label, value}` point. Per-slice `color` overrides the theme paint. Legend is one row per slice (`legendLabel` is ignored).
+
+```tsx
+<DonutChart
+  data={[{label: "Open", value: 3}, {color: "#112233", label: "Closed", value: 5}]}
+  testID="status-donut"
+/>
+```
 
 ## Component Behaviors
 

@@ -30,4 +30,4 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Consent admin migration](admin-consent-migration.md) — Which consent screens stay hand-written
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
-- [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs
+- [Why Terreno owns chart SVG](charts.md) — Owned `react-native-svg` vs victory-native

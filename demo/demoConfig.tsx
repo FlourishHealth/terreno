@@ -1,9 +1,11 @@
 import {AccordionConfiguration} from "@story-config/Accordion.config";
 import {AddressFieldConfiguration} from "@story-config/AddressField.config";
 import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
+import {AreaChartConfiguration} from "@story-config/AreaChart.config";
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
 import {BannerConfiguration} from "@story-config/Banner.config";
+import {BarChartConfiguration} from "@story-config/BarChart.config";
 import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
 import {BoxConfiguration} from "@story-config/Box.config";
 import {ButtonConfiguration} from "@story-config/Button.config";
@@ -11,8 +13,10 @@ import {CardConfiguration} from "@story-config/Card.config";
 import {CheckBoxConfiguration} from "@story-config/CheckBox.config";
 import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
+import {DashboardGridConfiguration} from "@story-config/DashboardGrid.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
+import {DonutChartConfiguration} from "@story-config/DonutChart.config";
 import {EditableCardConfiguration} from "@story-config/EditableCard.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
 import {EmojiSelectorConfiguration} from "@story-config/EmojiSelector.config";
@@ -22,6 +26,7 @@ import {HeadingConfiguration} from "@story-config/Heading.config";
 import {HeightFieldConfiguration} from "@story-config/HeightField.config";
 import {IconConfiguration} from "@story-config/Icon.config";
 import {IconButtonConfiguration} from "@story-config/IconButton.config";
+import {LineChartConfiguration} from "@story-config/LineChart.config";
 import {LinkConfiguration} from "@story-config/Link.config";
 import {LoginScreenConfiguration} from "@story-config/LoginScreen.config";
 import {MarkdownEditorFieldConfiguration} from "@story-config/MarkdownEditorField.config";
@@ -227,10 +232,12 @@ const OpenAPIContextConfiguration: DemoConfigurationBase = {
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,
   AiSuggestionBoxConfiguration,
+  AreaChartConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
+  BarChartConfiguration,
   BooleanFieldConfiguration,
   BoxConfiguration,
   FilterConfiguration,
@@ -240,8 +247,10 @@ const Config: DemoConfigurationBase[] = [
   CheckBoxConfiguration,
   ConsentFormScreenConfiguration,
   CustomSelectFieldConfiguration,
+  DashboardGridConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
+  DonutChartConfiguration,
   EditableCardConfiguration,
   EmailFieldConfiguration,
   EmojiSelectorConfiguration,
@@ -250,6 +259,7 @@ const Config: DemoConfigurationBase[] = [
   HeightFieldConfiguration,
   IconConfiguration,
   IconButtonConfiguration,
+  LineChartConfiguration,
   LinkConfiguration,
   LoginScreenConfiguration,
   MarkdownEditorFieldConfiguration,
