@@ -78,6 +78,22 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### SplitPage
+
+Master-detail layout. Pass `listViewData` plus `renderListViewItem` for the list, and
+`renderContent` for the detail pane. On large screens both panes stay visible. On small
+screens the detail replaces the list until the user goes back.
+
+```typescript
+import {SplitPage, Text} from "@terreno/ui";
+
+<SplitPage
+  listViewData={[{id: "1", name: "Inbox"}]}
+  renderListViewItem={({item}) => <Text>{item.name}</Text>}
+  renderContent={(index) => <Text>{index === undefined ? "Select an item" : "Detail"}</Text>}
+/>
+```
+
 ### Page Back Navigation
 
 Set `backButton` to render the standard header back arrow. By default it calls `router.back()`; provide `onBack` when the screen needs a deterministic destination instead of browser history.

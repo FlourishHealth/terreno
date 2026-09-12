@@ -40,6 +40,12 @@ jobs:
         run: bun run test:coverage
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: mcp-server
+          flag: mcp-server
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   docker:
     name: Build Docker Image

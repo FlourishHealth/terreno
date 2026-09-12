@@ -86,11 +86,18 @@ workflows:
             scripts/static-analysis/.* run-repo-policies true
             scripts/check-circleci-parity/.* run-repo-policies true
             api/.* run-api true
+            admin-backend/.* run-admin-backend true
+            admin-frontend/.* run-admin-frontend true
+            api-health/.* run-api-health true
+            feature-flags/.* run-feature-flags true
+            test/.* run-test-package true
             ai/.* run-ai true
             rtk/.* run-rtk true
             ui/.* run-ui true
             demo/.* run-ui true
             demo/.* run-ui-demo true
+            scripts/check-demo-coverage\.ts run-ui-demo true
+            scripts/check-demo-coverage\.test.ts run-ui-demo true
             comms/.* run-comms true
             comms/.* run-example-backend true
             comms/.* run-example-backend-script true
@@ -101,7 +108,22 @@ workflows:
             scripts/check-coverage\.ts run-rtk true
             scripts/check-coverage\.ts run-mcp-server true
             scripts/check-coverage\.ts run-syncdb true
+            scripts/check-coverage\.ts run-ui true
+            scripts/check-coverage\.ts run-ai true
+            scripts/check-coverage\.ts run-comms true
+            scripts/check-coverage\.ts run-admin-spa true
+            scripts/check-coverage\.ts run-admin-backend true
+            scripts/check-coverage\.ts run-admin-frontend true
+            scripts/check-coverage\.ts run-api-health true
+            scripts/check-coverage\.ts run-feature-flags true
+            scripts/check-coverage\.ts run-test-package true
             scripts/check-coverage\.ts run-new-file-coverage true
+            scripts/check-coverage\.test.ts run-new-file-coverage true
+            scripts/upload-codecov\.sh run-new-file-coverage true
+            scripts/upload-codecov\.test.ts run-new-file-coverage true
+            codecov\.yml run-new-file-coverage true
+            scripts/check-package-coverage-ci\.ts run-new-file-coverage true
+            scripts/check-package-coverage-ci\.test.ts run-new-file-coverage true
             example-frontend/.* run-example-frontend true
             admin-frontend/.* run-example-frontend true
             example-backend/.* run-example-backend true

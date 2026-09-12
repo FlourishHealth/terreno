@@ -30,4 +30,10 @@ jobs:
         working-directory: rtk
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: rtk
+          flag: rtk
+          token: ${{ secrets.CODECOV_TOKEN }}
 

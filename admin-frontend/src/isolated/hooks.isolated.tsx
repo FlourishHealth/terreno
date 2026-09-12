@@ -13,7 +13,9 @@ import {describe, expect, it, mock} from "bun:test";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 import {useAdminApi} from "../useAdminApi";
+import {useAdminBackgroundTaskMutation} from "../useAdminBackgroundTask";
 import {useAdminConfig} from "../useAdminConfig";
+import {useAdminRoles} from "../useAdminRoles";
 import {useAdminScripts} from "../useAdminScripts";
 import {useConfigurationApi} from "../useConfigurationApi";
 import {useDocumentStorageApi} from "../useDocumentStorageApi";
@@ -393,5 +395,60 @@ describe("useDocumentStorageApi", () => {
       expect(typeof result.useDeleteFolderMutation).toBe("function");
       expect(typeof result.useCreateFolderMutation).toBe("function");
     });
+  });
+});
+
+describe("useAdminBackgroundTaskMutation", () => {
+  it("posts to the background-tasks collection under the admin root", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminBackgroundTaskMutation(api as never, "/admin/"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+    expect(injected.adminPostBackgroundTask.query({ids: ["a"], kind: "reindex"})).toEqual({
+      body: {ids: ["a"], kind: "reindex"},
+      method: "POST",
+      url: "/admin/background-tasks",
+    });
+    expect(Array.isArray(result)).toBe(true);
+  });
+});
+
+describe("useAdminRoles", () => {
+  it("falls back to no-op hooks when injectEndpoints is missing", async () => {
+    const result = runHook(() => useAdminRoles({} as never, "/admin"));
+    await expect(
+      result.useCreateRoleMutation()[0]({displayName: "A", name: "a", permissions: {}}).unwrap()
+    ).rejects.toThrow(/unavailable/);
+    expect(result.useListRolesQuery()).toMatchObject({data: undefined, isLoading: false});
+    expect(result.useListStatementsQuery()).toMatchObject({data: undefined, isLoading: false});
+  });
+
+  it("injects rbac list and mutation endpoints at the API root", () => {
+    const api = makeMockApi();
+    const result = runHook(() => useAdminRoles(api as never, "/v1/admin"));
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
+    expect(injected.adminListRbacRoles.query()).toEqual({method: "GET", url: "/v1/rbac/roles"});
+    expect(injected.adminListRbacStatements.query()).toEqual({
+      method: "GET",
+      url: "/v1/rbac/statements",
+    });
+    expect(
+      injected.adminCreateRbacRole.query({displayName: "A", name: "a", permissions: {}})
+    ).toEqual({
+      body: {displayName: "A", name: "a", permissions: {}},
+      method: "POST",
+      url: "/v1/rbac/roles",
+    });
+    expect(
+      injected.adminUpdateRbacRole.query({
+        changes: {displayName: "B", permissions: {}},
+        roleName: "a b",
+      })
+    ).toEqual({
+      body: {displayName: "B", permissions: {}},
+      method: "PATCH",
+      url: "/v1/rbac/roles/a%20b",
+    });
+    expect(typeof result.useListRolesQuery).toBe("function");
+    expect(typeof result.useUpdateRoleMutation).toBe("function");
   });
 });

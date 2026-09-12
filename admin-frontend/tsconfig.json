@@ -30,6 +30,8 @@
     "node_modules",
     "src/**/*.test.tsx",
     "src/**/*.test.ts",
+    "src/**/*.isolated.tsx",
+    "src/**/*.isolated.ts",
     "src/isolated/**"
   ],
   "include": ["src"]

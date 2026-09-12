@@ -87,6 +87,33 @@ Run these from the repository root:
 | `bun run frontend:web` | Start example frontend (web) |
 | `bun run demo:start` | Start UI component demo |
 
+## Testing and coverage
+
+Published packages must stay at **95% function coverage and 95% line coverage**.
+Pull requests must not drop either metric. CI runs `scripts/check-coverage.ts`
+(`bun run test:coverage` in the package directory) as the live gate.
+
+Run coverage locally from a package directory:
+
+```bash
+cd ui && bun run test:coverage
+```
+
+Replace `ui` with any published package (`api`, `rtk`, `syncdb`, `ai`, `comms`,
+`mcp-server`, `admin-backend`, `admin-frontend`, `admin-spa`, `api-health`,
+`feature-flags`, `test`). The script writes `coverage/lcov.info` for Codecov.
+Isolated `*.isolated.ts(x)` suites are merged into that report.
+
+Codecov uploads per-package flags from CircleCI (and retained GitHub Actions
+twins). The README badge reflects the merged project. Maintainers set
+`CODECOV_TOKEN` in CircleCI project env and as a GitHub Actions secret. Public
+repos still need a token unless the Codecov org disables token authentication
+for public repositories.
+
+When you add a framework capability, exercise it in `example-backend` and/or
+`example-frontend` and update
+[docs/explanation/example-coverage.md](docs/explanation/example-coverage.md).
+
 Package-specific commands are listed in [AGENTS.md](AGENTS.md). You can also use Bun's filter syntax:
 
 ```bash
