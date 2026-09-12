@@ -105,9 +105,9 @@ All decisions resolved by the maintainer on 2026-08-09:
 | [billing-stripe](billing-stripe.md) | Draft | [tasks](../tasks/billing-stripe.md) |
 | [native-module-baseline](native-module-baseline.md) | Draft | [tasks](../tasks/native-module-baseline.md) |
 | [rbac-permissions](rbac-permissions.md) | Complete (PR #932) | — |
+| [notification-center](notification-center.md) | Approved | [tasks](../tasks/notification-center.md) |
 
-Remaining items (`inbound-webhooks`, `invitations-and-seats`,
-`notification-center`, `framework-audit-log`, `rate-limiting`, `job-queues`, …) get IPs as
+Remaining items (`invitations-and-seats`, `framework-audit-log`, `job-queues`, …) get IPs as
 they approach the top of the queue.
 
 ## Not Included

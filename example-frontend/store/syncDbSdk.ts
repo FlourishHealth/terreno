@@ -47,8 +47,82 @@ export interface UpdateTodoBody {
   _syncSeq?: number;
 }
 
+export interface Notification {
+  _id: string;
+  body: string;
+  href?: string;
+  kind?: string;
+  ownerId: string;
+  readAt?: string;
+  title: string;
+  updated: string;
+  created: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
+}
+
+export type CreateNotificationBody = {};
+
+export interface UpdateNotificationBody {
+  _id?: string;
+  body?: string;
+  href?: string;
+  kind?: string;
+  ownerId?: string;
+  readAt?: string;
+  title?: string;
+  updated?: string;
+  created?: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
+}
+
+export interface NotificationPreference {
+  _id: string;
+  inapp?: boolean;
+  mail?: boolean;
+  ownerId: string;
+  push?: boolean;
+  sms?: boolean;
+  updated: string;
+  created: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
+}
+
+export interface CreateNotificationPreferenceBody {
+  _id?: string;
+  inapp?: boolean;
+  mail?: boolean;
+  ownerId?: string;
+  push?: boolean;
+  sms?: boolean;
+  updated?: string;
+  created?: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
+}
+
+export interface UpdateNotificationPreferenceBody {
+  _id?: string;
+  inapp?: boolean;
+  mail?: boolean;
+  ownerId?: string;
+  push?: boolean;
+  sms?: boolean;
+  updated?: string;
+  created?: string;
+  deleted?: boolean;
+  _syncPrevStream?: string;
+  _syncSeq?: number;
+}
+
 /** Collections with sync enabled on the backend; pass to createSyncDb. */
-export const SYNC_COLLECTIONS = ["todos"] as const;
+export const SYNC_COLLECTIONS = ["todos", "notifications", "notification-preferences"] as const;
 
 export const {
   useListQuery: useTodos,
@@ -60,3 +134,25 @@ export const {
   collection: "todos",
   retries: false,
 });
+
+export const {
+  useListQuery: useNotifications,
+  useReadQuery: useNotification,
+  useCreateMutation: useCreateNotification,
+  useUpdateMutation: useUpdateNotification,
+  useDeleteMutation: useDeleteNotification,
+} = createCollectionHooks<Notification, CreateNotificationBody, UpdateNotificationBody>({
+  collection: "notifications",
+});
+
+export const {
+  useListQuery: useNotificationPreferences,
+  useReadQuery: useNotificationPreference,
+  useCreateMutation: useCreateNotificationPreference,
+  useUpdateMutation: useUpdateNotificationPreference,
+  useDeleteMutation: useDeleteNotificationPreference,
+} = createCollectionHooks<
+  NotificationPreference,
+  CreateNotificationPreferenceBody,
+  UpdateNotificationPreferenceBody
+>({collection: "notification-preferences"});

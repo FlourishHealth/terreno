@@ -33,6 +33,10 @@ const getModalSize = (size: "sm" | "md" | "lg"): DimensionValue => {
   return sizePx;
 };
 
+const stopWebClickPropagation = (event: {stopPropagation: () => void}): void => {
+  event.stopPropagation();
+};
+
 const ModalContent: FC<{
   children?: ModalProps["children"];
   title?: ModalProps["title"];
@@ -321,14 +325,13 @@ export const Modal: FC<ModalProps> = ({
             justifyContent: "center",
           }}
         >
-          <Pressable
-            onPress={(e) => {
-              persistOnBackgroundClick ? null : e.stopPropagation();
-            }}
+          <View
+            // Web: nested Pressables bubble DOM clicks to the backdrop dismiss handler.
+            {...(Platform.OS === "web" ? {onClick: stopWebClickPropagation} : {})}
             style={{cursor: "auto"}}
           >
             <ModalContent {...modalContentProps}>{children}</ModalContent>
-          </Pressable>
+          </View>
         </Pressable>
       </RNModal>
     );

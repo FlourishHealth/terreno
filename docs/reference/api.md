@@ -13,6 +13,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Middleware](#middleware)
 - [Logging & Tracing](#logging--tracing)
 - [Extensibility](#extensibility)
+- [In-app notifications](#in-app-notifications)
 - [Webhooks & Notifications](#webhooks--notifications)
 - [HTTP Client](#http-client)
 - [Utilities](#utilities)
@@ -1120,6 +1121,72 @@ setupServer({
 - Testable in isolation
 - Optional/configurable functionality
 - Clean separation of concerns
+
+## In-app notifications
+
+Owner-scoped inbox and channel preferences via `NotificationsApp` (`ConsentApp` pattern).
+This is separate from inbound webhooks and outbound Slack/Chat/Zoom notifiers below.
+
+### Register
+
+```typescript
+import {NotificationsApp, getNotificationService, notificationsBeforeSend} from "@terreno/api";
+
+new TerrenoApp({userModel: User}).register(
+  new NotificationsApp({
+    getComms: getCommsService, // optional; duck-typed, no @terreno/comms import in api
+    retainDays: 0,
+    userModel: User,
+  })
+);
+```
+
+### Collections
+
+| Model | Route | Sync | Client create |
+|---|---|---|---|
+| `Notification` | `/notifications` | owner | **No** (`create: []`) |
+| `NotificationPreference` | `/notification-preferences` | owner | Yes (lazy defaults) |
+
+`Notification` fields: `ownerId`, `title`, `body`, `href?`, `kind?`, `readAt?` (null = unread).
+Index: `{ownerId: 1, created: -1}`.
+
+`NotificationPreference` fields: `ownerId` (unique among non-deleted rows), `inapp`, `mail`,
+`push`, `sms` (default `true`). Missing preference row = all channels on. Preference updates
+accept only the four channel booleans; `ownerId` is immutable. Soft-deleting a preference
+row does not block a later create for the same owner.
+
+`notify()` comms fan-out isolates mail, SMS, and push: a rejection from one provider is
+logged and does not skip later channels.
+
+### `notify(input)`
+
+Server-only seam. Writes the inbox when `inapp` is on, then optionally calls
+`getComms().sendMail` / `sendSms` / `sendPushToUser` when that channel is on and a
+destination exists. Comms errors after the inbox write are logged and do not fail `notify()`.
+
+### HTTP
+
+| Method | Path | Notes |
+|---|---|---|
+| GET/PATCH/DELETE | `/notifications/:id` + list | Owner-scoped; **create disabled** |
+| POST | `/notifications/mark-all-read` | Sets `readAt` on caller's unread rows |
+| CRUD | `/notification-preferences` | Owner-scoped sync |
+
+PATCH on notifications: only `readAt` (ISO date or `null` to unread). Other keys are stripped.
+Dismiss uses DELETE (soft-delete via `isDeletedPlugin`).
+
+### `notificationsBeforeSend`
+
+Duck-typed hook for `CommsApp({beforeSend})`. Cancels when the user's preference for that
+channel is `false`. Never cancels `verification`.
+
+### Retention
+
+`retainDays` default `0` (no sweep). When `retainDays > 0`, `sweepExpired()` tombstones rows
+with `created` older than N days. No Mongo TTL index.
+
+How-to: [In-app notifications](../how-to/in-app-notifications.md).
 
 ## Webhooks & Notifications
 

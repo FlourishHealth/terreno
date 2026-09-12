@@ -1,32 +1,59 @@
-import {describe, expect, it} from "bun:test";
+import {describe, it} from "bun:test";
+import {assert} from "chai";
 
-import {assertTsIdentifier, emitTsPropertyKey, emitTsString} from "./safeIdentifiers";
+import {
+  assertSyncCollectionName,
+  assertTsIdentifier,
+  emitTsPropertyKey,
+  emitTsString,
+} from "./safeIdentifiers";
 
 describe("assertTsIdentifier", () => {
   it("accepts TypeScript identifiers", () => {
-    expect(assertTsIdentifier({label: "name", value: "Todo"})).toBe("Todo");
-    expect(assertTsIdentifier({label: "name", value: "_id"})).toBe("_id");
+    assert.equal(assertTsIdentifier({label: "name", value: "Todo"}), "Todo");
+    assert.equal(assertTsIdentifier({label: "name", value: "_id"}), "_id");
   });
 
   it("rejects quote and statement injection", () => {
-    expect(() =>
-      assertTsIdentifier({label: "collection", value: 'todos"; process.exit(1); //'})
-    ).toThrow(/not a TypeScript identifier/);
+    assert.throws(
+      () => assertTsIdentifier({label: "collection", value: 'todos"; process.exit(1); //'}),
+      /not a TypeScript identifier/
+    );
+  });
+});
+
+describe("assertSyncCollectionName", () => {
+  it("accepts hyphenated collection names", () => {
+    assert.equal(
+      assertSyncCollectionName({label: "collection", value: "notification-preferences"}),
+      "notification-preferences"
+    );
+  });
+
+  it("rejects unsafe collection names", () => {
+    assert.throws(
+      () =>
+        assertSyncCollectionName({
+          label: "collection",
+          value: 'notifications"; process.exit(1); //',
+        }),
+      /not a valid sync collection name/
+    );
   });
 });
 
 describe("emitTsString", () => {
   it("JSON-escapes quotes so they cannot close a generated string", () => {
-    expect(emitTsString('todos"; process.exit(1); //')).toBe('"todos\\"; process.exit(1); //"');
+    assert.equal(emitTsString('todos"; process.exit(1); //'), '"todos\\"; process.exit(1); //"');
   });
 });
 
 describe("emitTsPropertyKey", () => {
   it("emits bare identifiers", () => {
-    expect(emitTsPropertyKey("title")).toBe("title");
+    assert.equal(emitTsPropertyKey("title"), "title");
   });
 
   it("quotes keys that are not identifiers", () => {
-    expect(emitTsPropertyKey('foo"; bar')).toBe('"foo\\"; bar"');
+    assert.equal(emitTsPropertyKey('foo"; bar'), '"foo\\"; bar"');
   });
 });

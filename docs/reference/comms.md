@@ -70,6 +70,39 @@ A throwing `beforeSend` is logged and treated as no-op (send continues). Adapter
 call `recordDeliveryEvent()` / `recordOptOut()` to update the log and fire
 `onDeliveryEvent` / `onOptOut`.
 
+### Notification preferences hook
+
+When you register `NotificationsApp`, compose `notificationsBeforeSend` from `@terreno/api`
+into `CommsApp({beforeSend})` so outbound mail, SMS, and push respect per-user channel
+toggles. Missing `NotificationPreference` rows default to all channels on. The
+`verification` channel is never cancelled by this hook.
+
+```typescript
+import {notificationsBeforeSend} from "@terreno/api";
+
+new CommsApp({
+  beforeSend: async (context) => {
+    const pref = await notificationsBeforeSend({
+      channel: context.channel,
+      userId: context.userId,
+    });
+    if (pref?.cancel) {
+      return {cancel: true};
+    }
+    return existingBeforeSend?.(context);
+  },
+});
+```
+
+`getNotificationService().notify()` fans out to comms independently. Register this hook and
+pass `{userId}` as the second argument to direct `sendMail` / `sendSms` calls so they honor
+preferences; `sendPushToUser` already supplies its user id.
+
+```typescript
+await getCommsService().sendMail(message, {userId});
+await getCommsService().sendSms(message, {userId});
+```
+
 Each send stores one `CommsMessage` row with `attempts[]`. Rendered payloads are retained
 for `retainPayloadDays` (default 30, `0` disables) after `redactPayload`. Mail payloads
 keep `to`, `from`, `subject`, `text`, `html`, `replyTo`, `templateId`, and

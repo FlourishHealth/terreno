@@ -21,6 +21,13 @@ interface PressableTestInstance {
   };
 }
 
+interface ViewTestInstance {
+  props: {
+    style?: {cursor?: string} | {cursor?: string}[];
+    onClick?: (event: {stopPropagation: () => void}) => void;
+  };
+}
+
 /**
  * Finds the web-only translucent backdrop Pressable in a rendered Modal tree.
  *
@@ -490,35 +497,70 @@ describe("Modal web platform", () => {
     expect(handleDismiss).toHaveBeenCalled();
   });
 
-  it("stops propagation on the inner backdrop wrapper press", () => {
+  const findDialogShellView = (views: ViewTestInstance[]): ViewTestInstance | undefined => {
+    return views.find((node) => {
+      const style = node.props.style;
+      if (Array.isArray(style)) {
+        return style.some((entry) => entry?.cursor === "auto");
+      }
+      return style?.cursor === "auto";
+    });
+  };
+
+  it("stops propagation on the dialog shell click (web)", () => {
     const stopPropagation = mock(() => {});
     const {UNSAFE_getAllByType} = renderWithTheme(
       <Modal onDismiss={() => {}} title="Title" visible>
         <Text>Content</Text>
       </Modal>
     );
-    const {Pressable} = require("react-native");
-    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
-    // Inner wrapper is the pressable with style {cursor: "auto"}.
-    const inner = pressables.find((node) => node.props.style?.cursor === "auto");
-    expect(inner).toBeTruthy();
-    inner?.props.onPress?.({stopPropagation});
+    const {View} = require("react-native");
+    const views: ViewTestInstance[] = UNSAFE_getAllByType(View);
+    const shell = findDialogShellView(views);
+    expect(shell).toBeTruthy();
+    shell?.props.onClick?.({stopPropagation});
     expect(stopPropagation).toHaveBeenCalled();
   });
 
-  it("does not stop propagation on the inner wrapper when persistOnBackgroundClick is true", () => {
+  it("still stops dialog shell propagation when persistOnBackgroundClick is true", () => {
     const stopPropagation = mock(() => {});
+    const handleDismiss = mock(() => {});
     const {UNSAFE_getAllByType} = renderWithTheme(
-      <Modal onDismiss={() => {}} persistOnBackgroundClick title="Title" visible>
+      <Modal onDismiss={handleDismiss} persistOnBackgroundClick title="Title" visible>
         <Text>Content</Text>
       </Modal>
     );
+    const {Pressable, View} = require("react-native");
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+    const backdrop = findBackdropPressable(pressables);
+    expect(backdrop?.props.onPress).toBeUndefined();
+
+    const views: ViewTestInstance[] = UNSAFE_getAllByType(View);
+    const shell = findDialogShellView(views);
+    expect(shell).toBeTruthy();
+    shell?.props.onClick?.({stopPropagation});
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(handleDismiss).not.toHaveBeenCalled();
+  });
+
+  it("does not dismiss when a nested child action is pressed on web", () => {
+    const handleDismiss = mock(() => {});
+    const handleAction = mock(() => {});
+    const {UNSAFE_getAllByType, getByText} = renderWithTheme(
+      <Modal onDismiss={handleDismiss} title="Title" visible>
+        <Text onPress={handleAction}>Mark read</Text>
+      </Modal>
+    );
+    fireEvent.press(getByText("Mark read"));
+    expect(handleAction).toHaveBeenCalled();
+    expect(handleDismiss).not.toHaveBeenCalled();
+
     const {Pressable} = require("react-native");
     const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
-    const inner = pressables.find((node) => node.props.style?.cursor === "auto");
-    expect(inner).toBeTruthy();
-    inner?.props.onPress?.({stopPropagation});
-    expect(stopPropagation).not.toHaveBeenCalled();
+    const backdrop = findBackdropPressable(pressables);
+    expect(backdrop).toBeTruthy();
+    backdrop?.props.onPress?.();
+    expect(handleDismiss).toHaveBeenCalledTimes(1);
   });
 
   it("blurs the focused element when opened on web", () => {

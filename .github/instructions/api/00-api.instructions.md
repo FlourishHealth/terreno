@@ -285,6 +285,13 @@ Better Auth automatically:
 - Syncs Better Auth users to your Mongoose User model (requires `betterAuthId` field)
 - Supports email/password signup and login
 
+### In-app notifications (`NotificationsApp`)
+
+Register `NotificationsApp` for owner-scoped inbox + preference collections. Only
+`getNotificationService().notify()` inserts inbox rows (`create: []` on the notification router).
+Compose `notificationsBeforeSend` into `CommsApp({beforeSend})` for channel toggles.
+`@terreno/api` does not import `@terreno/comms` — pass `getComms` when fan-out is needed.
+
 User model fields for Better Auth:
 ```typescript
 {

@@ -196,6 +196,10 @@ const ProfileScreen: React.FC = () => {
     router.push("/settings/mcp");
   }, [router]);
 
+  const handleNavigateToNotificationSettings = useCallback((): void => {
+    router.push("/settings/notifications");
+  }, [router]);
+
   const handleSendTestPush = useCallback(async (): Promise<void> => {
     setTestPushError(null);
     setTestPushMessage(null);
@@ -490,6 +494,13 @@ const ProfileScreen: React.FC = () => {
               testID="profile-logout-button"
               text="Logout"
               variant="destructive"
+            />
+            <Button
+              iconName="bell"
+              onClick={handleNavigateToNotificationSettings}
+              testID="profile-notification-settings-button"
+              text="Notification preferences"
+              variant="secondary"
             />
             <Button
               iconName="plug"

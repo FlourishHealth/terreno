@@ -368,9 +368,11 @@ const RootLayoutNav = (): React.ReactElement => {
               />
             )}
           />
+          {stack}
         </SyncDbProvider>
-      ) : null}
-      {stack}
+      ) : (
+        stack
+      )}
     </SyncConflictsProvider>
   );
 
