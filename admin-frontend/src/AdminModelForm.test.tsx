@@ -6,6 +6,7 @@ import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerBack = mock(() => {});
@@ -41,19 +42,6 @@ const readState: {data: Record<string, unknown> | null; isLoading: boolean} = {
 const createFn = mock((_: unknown) => ({unwrap: async () => ({_id: "new"})}));
 const updateFn = mock((_: unknown) => ({unwrap: async () => ({_id: "u"})}));
 const deleteFn = mock((_: unknown) => ({unwrap: async () => ({})}));
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useCreateMutation: () => [createFn, {isLoading: false}],
-    useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false}),
-    useReadQuery: () => ({
-      data: readState.data,
-      error: null,
-      isLoading: readState.isLoading,
-    }),
-    useUpdateMutation: () => [updateFn, {isLoading: false}],
-  }),
-}));
 
 import {AdminModelForm} from "./AdminModelForm";
 
@@ -76,6 +64,18 @@ const config = {customScreens: [], models: [modelConfig], scripts: []};
 
 describe("AdminModelForm", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useCreateMutation: () => [createFn, {isLoading: false}],
+      useDeleteMutation: () => [deleteFn, {isLoading: false}],
+      useListQuery: () => ({data: {data: [], total: 0}, isLoading: false}),
+      useReadQuery: () => ({
+        data: readState.data,
+        error: null,
+        isLoading: readState.isLoading,
+      }),
+      useUpdateMutation: () => [updateFn, {isLoading: false}],
+    });
     routerBack.mockClear();
     setOptions.mockClear();
     createFn.mockClear();
@@ -307,8 +307,12 @@ describe("AdminModelForm", () => {
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
       fireEvent.press(header.getByTestId("admin-save-button"));
-      await new Promise((r) => setTimeout(r, 600));
     });
+    for (let attempt = 0; attempt < 30 && createFn.mock.calls.length === 0; attempt++) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
     expect(createFn).toHaveBeenCalled();
     expect(routerBack).toHaveBeenCalled();
   });

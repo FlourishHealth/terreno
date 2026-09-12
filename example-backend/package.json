@@ -16,6 +16,7 @@
     "@terreno/admin-backend": "workspace:*",
     "@terreno/admin-spa": "workspace:*",
     "@terreno/ai": "workspace:*",
+    "@terreno/announcements": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",
     "@terreno/comms": "workspace:*",

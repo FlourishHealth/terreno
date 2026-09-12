@@ -4,6 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 mock.module("expo-router", () => ({
@@ -20,17 +21,6 @@ mock.module("./useAdminConfig", () => ({
     config: configState.config,
     error: null,
     isLoading: configState.isLoading,
-  }),
-}));
-
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useListQuery: () => ({
-      data: {data: [], total: 0},
-      error: null,
-      isError: false,
-      isLoading: false,
-    }),
   }),
 }));
 
@@ -115,6 +105,15 @@ const countTestIdInSubtree = (root: ReactTestInstance, testId: string): number =
 
 describe("AdminHome", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useListQuery: () => ({
+        data: {data: [], total: 0},
+        error: null,
+        isError: false,
+        isLoading: false,
+      }),
+    });
     configState.config = null;
     configState.isLoading = false;
   });

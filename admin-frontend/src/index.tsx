@@ -29,6 +29,8 @@ export {AdminScriptRunModal} from "./AdminScriptRunModal";
 export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from "./AdminShell";
 export {AdminShellLayout, type AdminShellLayoutProps} from "./AdminShellLayout";
 export {AdminVersionConfig} from "./AdminVersionConfig";
+export {AnnouncementEditor} from "./AnnouncementEditor";
+export {AnnouncementList} from "./AnnouncementList";
 export {isAdminPageForbiddenError} from "./adminPageAccess";
 export {groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";

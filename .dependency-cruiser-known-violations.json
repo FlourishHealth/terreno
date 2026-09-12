@@ -539,6 +539,15 @@
   },
   {
     "type": "module",
+    "from": "announcements/src/types.ts",
+    "to": "announcements/src/types.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
     "from": "api/src/mcp/types.ts",
     "to": "api/src/mcp/types.ts",
     "rule": {

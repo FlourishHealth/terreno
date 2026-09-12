@@ -176,8 +176,9 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
     const itemSchemaPath = getNestedValueSchemaPath(schemaPath);
     if (itemSchemaPath) {
       const item = describeCaster(itemSchemaPath);
+      const {enum: _arrayEnum, ...arrayBase} = base;
       return {
-        ...base,
+        ...arrayBase,
         isArray: true,
         item,
         kind: item.kind,
@@ -362,9 +363,6 @@ export const fieldDescriptionToOpenApiProperty = (
       items,
       type: "array",
     };
-    if (field.enum) {
-      property.enum = field.enum;
-    }
     return property;
   }
 
@@ -377,7 +375,9 @@ export const fieldDescriptionToOpenApiProperty = (
     if (field.description) {
       property.description = field.description;
     }
-    property.required = nested.required.length ? nested.required : [];
+    if (nested.required.length > 0) {
+      property.required = nested.required;
+    }
     return property;
   }
 

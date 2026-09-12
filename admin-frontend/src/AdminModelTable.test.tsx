@@ -5,6 +5,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
@@ -37,24 +38,6 @@ const listState: {data: unknown; isLoading: boolean} = {
   isLoading: false,
 };
 const deleteFn = mock(() => ({unwrap: async () => ({})}));
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 0})})),
-      {isLoading: false},
-    ],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: () => ({
-      data: listState.data,
-      error: null,
-      isLoading: listState.isLoading,
-    }),
-    useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-  }),
-}));
-
 mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [
     mock(() => ({unwrap: async () => ({taskId: "t1"})})),
@@ -88,6 +71,22 @@ const fullConfig = {
 
 describe("AdminModelTable", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useBulkPatchMutation: () => [
+        mock(() => ({unwrap: async () => ({updated: 0})})),
+        {isLoading: false},
+      ],
+      useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useDeleteMutation: () => [deleteFn, {isLoading: false}],
+      useListQuery: () => ({
+        data: listState.data,
+        error: null,
+        isLoading: listState.isLoading,
+      }),
+      useReadQuery: () => ({data: null, error: null, isLoading: false}),
+      useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    });
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();
