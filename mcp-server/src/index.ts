@@ -9,7 +9,10 @@ import * as Sentry from "@sentry/bun";
 import {logger} from "@terreno/api";
 import {handlePromptRequest, prompts} from "./prompts.js";
 import {resources} from "./resources.js";
+import {disableScaffoldWrites} from "./scaffoldWriteMode.js";
 import {handleToolCall, tools} from "./tools.js";
+
+disableScaffoldWrites();
 
 const createServer = (): McpServer => {
   const server = Sentry.wrapMcpServerWithSentry(

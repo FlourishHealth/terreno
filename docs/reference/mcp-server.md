@@ -107,7 +107,7 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 
 ## Tools
 
-Code generation tools that return TypeScript/JavaScript code as text. **Tools do not write files** — the AI assistant receives the code and writes it to appropriate locations.
+Code generation tools that return TypeScript/JavaScript code as text. Most tools do not write files — the AI assistant receives the code and writes it to appropriate locations. **`terreno_bootstrap_app`** is the exception on **`terreno-mcp-local`**: when `targetDir` is set and `TERRENO_MCP_WRITE_SCAFFOLD=1` (set automatically by the local entry), it writes `<targetDir>/<appName>` via the shared `create-terreno-app` generator. The hosted HTTP server never sets that guard and always returns a CLI command plus the file dump.
 
 ### terreno_search_docs
 
@@ -343,7 +343,7 @@ Validate a Mongoose schema against Terreno conventions.
 
 ### terreno_bootstrap_app
 
-Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose backend, Cursor rules, MCP settings).
+Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose backend, Cursor rules, MCP settings). Uses the same generator as the **`create-terreno-app`** CLI (`bunx create-terreno-app`).
 
 **Parameters:**
 
@@ -352,11 +352,15 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
   appName: string;           // kebab-case (e.g., "my-app")
   appDisplayName: string;    // Human-readable name
   description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.app
+  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
+  targetDir?: string;        // Absolute parent directory for <appName>/ (local write only; see below)
 }
 ``````
 
-**Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
+**Returns:**
+
+- **Dump path (default, hosted MCP, or local without write):** Leads with `bunx create-terreno-app …`, then file list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
+- **Write path (`terreno-mcp-local` only):** When `targetDir` is an absolute path and `TERRENO_MCP_WRITE_SCAFFOLD=1`, writes `<targetDir>/<appName>` with the same files as the CLI and returns a short success message plus next-step shell commands (no full file dump). Invalid or relative `targetDir` returns an error without writing. Without the env guard, `targetDir` is ignored even if supplied — no disk writes.
 
 The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
 
@@ -556,6 +560,7 @@ Returns comprehensive code style guide from project documentation.
 | `PORT` | `8080` | HTTP server port |
 | `MCP_HOST` or `HOST` | `0.0.0.0` | Server host address |
 | `TERRENO_MCP_DOCS_DIR` | `../docs` | Path to documentation directory (relative to dist/) |
+| `TERRENO_MCP_WRITE_SCAFFOLD` | unset (hosted); `1` (local entry) | When `1`, `terreno_bootstrap_app` may write disk if `targetDir` is set. **`terreno-mcp-local` sets this at startup.** The HTTP `terreno-mcp` server never sets it — hosted agents always get the CLI command plus file dump. |
 
 **Example:**
 

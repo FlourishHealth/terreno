@@ -36,12 +36,12 @@ for (const dependencyType of ["dependencies", "devDependencies", "peerDependenci
       dependencies[name] = catalogVersion;
       continue;
     }
-    if (value !== "workspace:*" || !name.startsWith("@terreno/")) {
+    if (value !== "workspace:*") {
       continue;
     }
     if (dependencyMode === "manual" && name === "@terreno/api") {
       dependencies[name] = `^${latestApiVersion}`;
-    } else {
+    } else if (name.startsWith("@terreno/") || name === "create-terreno-app") {
       dependencies[name] = version;
     }
   }

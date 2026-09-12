@@ -289,6 +289,20 @@
         "twilio",
       ],
     },
+    "create-terreno-app": {
+      "name": "create-terreno-app",
+      "version": "57.2.0",
+      "bin": {
+        "create-terreno-app": "./dist/cli.js",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@types/bun": "catalog:",
+        "@types/node": "catalog:",
+        "chai": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "demo": {
       "name": "terreno-demo",
       "version": "1.0.0",
@@ -500,6 +514,7 @@
         "@modelcontextprotocol/server": "catalog:",
         "@sentry/bun": "catalog:",
         "@terreno/api": "workspace:*",
+        "create-terreno-app": "workspace:*",
         "express": "catalog:",
         "minisearch": "^7.2.0",
         "mongoose": "catalog:",
@@ -508,6 +523,7 @@
         "@biomejs/biome": "catalog:",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
+        "chai": "catalog:",
         "typescript": "catalog:",
       },
     },
@@ -2883,6 +2899,8 @@
     "create-hmac": ["create-hmac@1.1.7", "", { "dependencies": { "cipher-base": "^1.0.3", "create-hash": "^1.1.0", "inherits": "^2.0.1", "ripemd160": "^2.0.0", "safe-buffer": "^5.0.1", "sha.js": "^2.4.8" } }, "sha512-MJG9liiZ+ogc4TzUwuvbER1JRdgvUFSB5+VR/g5h82fGaIRWMWddtKBHi7/sVhfjQZ6SehlyhvQYrcYkaUIpLg=="],
 
     "create-require": ["create-require@1.1.1", "", {}, "sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ=="],
+
+    "create-terreno-app": ["create-terreno-app@workspace:create-terreno-app"],
 
     "cron": ["cron@4.4.0", "", { "dependencies": { "@types/luxon": "~3.7.0", "luxon": "~3.7.0" } }, "sha512-fkdfq+b+AHI4cKdhZlppHveI/mgz2qpiYxcm+t5E5TsxX7QrLS1VE0+7GENEk9z0EeGPcpSciGv6ez24duWhwQ=="],
 
