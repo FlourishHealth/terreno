@@ -27,6 +27,9 @@
     "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    "api/src/migrations/fixtures/**": ["files", "exports", "types"],
+    "example-backend/migrations/**": ["files", "exports", "types"],
+    "example-backend/src/migrationsDir.ts": ["files", "exports", "types"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
     // Generated communications SDK may include hooks before an example screen adopts them.
@@ -118,7 +121,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/tests/fixtures/compileAuthEntry.ts"
+        "src/tests/fixtures/compileAuthEntry.ts",
+        "src/migrations/cli.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

@@ -37,6 +37,7 @@ import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
 import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
+import {mountAdminMigrationRoutes} from "./adminMigrations";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -213,6 +214,11 @@ export interface AdminOptions {
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
    * resource/action permissions (for example `user:update`) from the same Access instance. */
   accessControl?: AnyTerrenoAccess;
+  /**
+   * When `dir` is set, admin exposes GET/POST `/migrations` and
+   * `GET /admin/config` includes `migrations.enabled: true`.
+   */
+  migrations?: {dir: string};
 }
 
 interface AdminFieldMeta {
@@ -286,6 +292,7 @@ interface AdminConfigResponse {
   schemaVersion: number;
   scripts: AdminScriptMeta[];
   widgetIds: string[];
+  migrations?: {enabled: boolean};
 }
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
@@ -556,6 +563,13 @@ export class AdminApp {
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
     if (this.options.accessControl) {
       return [this.options.accessControl.permission({admin: [ADMIN_PAGE_ACTION]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
+  private adminRunScriptsPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["runScripts"]})];
     }
     return [Permissions.IsAdmin];
   }
@@ -913,6 +927,7 @@ export class AdminApp {
       return {
         ...baseConfigResponse,
         customScreens: authorizedScreens.map(({adminAccess: _adminAccess, ...screen}) => screen),
+        migrations: {enabled: Boolean(this.options.migrations?.dir)},
         models: authorizedModels,
         platformTools: {
           configuration: canReadConfiguration,
@@ -1777,7 +1792,7 @@ export class AdminApp {
     }
 
     // Mount script routes
-    if (scriptConfigs.length > 0) {
+    if (scriptConfigs.length > 0 || this.options.migrations?.dir) {
       const scriptsRouter = express.Router();
       scriptsRouter.use(authenticateMiddleware());
 
@@ -1785,6 +1800,15 @@ export class AdminApp {
 
       app.use(`${basePath}/scripts`, scriptsRouter);
     }
+
+    mountAdminMigrationRoutes({
+      app,
+      basePath,
+      dir: this.options.migrations?.dir,
+      ...(openApiMw ? {openApi: openApiMw} : {}),
+      runPermissions: this.adminRunScriptsPermissions(),
+      statusPermissions: this.adminAccessPermissions(),
+    });
   }
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {

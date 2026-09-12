@@ -17,6 +17,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [HTTP Client](#http-client)
 - [Utilities](#utilities)
 - [Script Helpers](#script-helpers)
+- [Migrations](#migrations)
 
 ## Key exports
 
@@ -27,6 +28,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
 - Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
+- Migrations: `assertMigrationsAllowed`, `runMigrations`, `runDownMigrations`, `checkMigrationFiles`, `exerciseReversibleMigrations`, `MIGRATIONS_COLLECTION` (`terreno-migrate` bin)
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
@@ -78,6 +80,15 @@ const app = new TerrenoApp({userModel: User})
 - `addMiddleware(fn)` — Add Express middleware
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
+
+`migrations.runOnStart` defaults to **false**. When `true`, `start()` runs wet `up` after `ensureSyncIndexes` and before listen. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  migrations: {dir: "./migrations", runOnStart: true},
+});
+```
 
 ### HTTP rate limiting
 
@@ -1334,6 +1345,20 @@ for (let i = 0; i < 3; i++) {
 }
 ``````
 
+## Migrations
+
+`runMigrations({migrations, dryRun, connection, mongoose})` applies pending versioned `up` functions in array order. Dry-run calls `up({dryRun: true})` and does **not** write history. Wet runs insert `{id, checksum, appliedAt}` into Mongo collection `terreno_migrations`. Already-applied ids are skipped; a checksum change after apply throws `Migration checksum mismatch` (409). Apply is serialized with a lock document `_id: "_lock"` in the same collection: wait, heartbeat, steal after **10 minutes**.
+
+`runDownMigrations({migrations, dryRun, connection, mongoose, steps})` rolls back the last `steps` applied files (default 1 via the CLI). Dry-run calls `down({dryRun: true})` and leaves history in place. Wet deletes the history row after `down`. Missing `down` throws `Migration has no down` (400) and does not change history.
+
+Files are `migrations/<YYYYMMDDHHmmss>-<slug>.ts`. `checkMigrationFiles({dir})` (alias `loadMigrations`) loads them in filename order without connecting to Mongo; the exported `id` must match the filename stem. Optional `down` is allowed. Duplicate ids and invalid names fail with 400 `APIError`. `exerciseReversibleMigrations({dir, connect})` applies every file on a connected database, then rolls back in reverse until a file without `down` stops the chain (that id is recorded; earlier files stay applied).
+
+`assertMigrationsAllowed({isProduction, allowEnv, force, dryRun})` gates wet apply. Dry-run is always allowed. Production wet requires `ALLOW_MIGRATIONS=true` and `--force` (or a later boot/admin Apply equivalent).
+
+`buildSchemaCatalog({models})` snapshots Mongoose paths, required/unique flags, and indexes. `diffSchemaCatalog({before, after})` marks optional fields and non-unique index adds as safe, and required fields, unique indexes, same-type rename heuristics, removed paths, and same-path type changes as unsafe (fail-closed generate stubs).
+
+The `@terreno/api` bin `terreno-migrate` runs `check`, `generate`, `status`, `up`, and `down`. See [Run MongoDB migrations](../how-to/run-mongodb-migrations.md).
+
 ## Script Helpers
 
 ### runSeeds and runSeedCli
@@ -1459,6 +1484,7 @@ Complete reference of environment variables used by @terreno/api:
 | `PORT` | No | `3000` | HTTP server port |
 | `NODE_ENV` | No | `development` | Environment: `development`, `production`, `test` |
 | `MONGO_URI` or `MONGO_CONNECTION` | Yes | — | MongoDB connection string |
+| `ALLOW_MIGRATIONS` | No | unset | Set to `"true"` plus CLI `--force` for production wet `up`/`down` |
 | `ENABLE_SWAGGER` | No | — | Set to `"true"` to enable Swagger UI at `/docs` |
 | `WEBSOCKET_PORT` | No | `PORT + 1` | Socket.io server port (if using WebSockets) |
 

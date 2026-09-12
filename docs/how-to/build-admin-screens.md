@@ -53,9 +53,11 @@ app/admin/
   [model]/[id].tsx     # <AdminModelForm />
 ```
 
-`AdminScreenRouter` resolves the URL segment as: `__scripts` → script list, matching
-model name → table, matching custom-screen name → `widgets.screens[name]`, else
-not-found. Do not copy `AdminModelTable` into a new file per model.
+`AdminScreenRouter` resolves the URL segment as: `__scripts` → script list,
+`__migrations` → migrations status (when `GET /admin/config` has
+`migrations.enabled`), matching model name → table, matching custom-screen
+name → `widgets.screens[name]`, else not-found. Do not copy `AdminModelTable`
+into a new file per model.
 
 Create paths are `[model]/create`, not `new`.
 

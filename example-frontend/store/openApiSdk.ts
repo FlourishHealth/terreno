@@ -17,6 +17,7 @@ export const addTagTypes = [
   "adminauditlogs",
   "consentforms",
   "consentresponses",
+  "adminMigrations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -25,6 +26,20 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      adminMigrationsRun: build.mutation<AdminMigrationsRunRes, AdminMigrationsRunArgs>({
+        invalidatesTags: ["adminMigrations"],
+        query: (queryArg) => ({
+          method: "POST",
+          params: {
+            wetRun: queryArg,
+          },
+          url: `/admin/migrations/run`,
+        }),
+      }),
+      adminMigrationsStatus: build.query<AdminMigrationsStatusRes, AdminMigrationsStatusArgs>({
+        providesTags: ["adminMigrations"],
+        query: () => ({url: `/admin/migrations/status`}),
+      }),
       createMcpServiceToken: build.mutation<CreateMcpServiceTokenRes, CreateMcpServiceTokenArgs>({
         invalidatesTags: ["mcp"],
         query: (queryArg) => ({
@@ -3887,6 +3902,14 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -4035,6 +4058,8 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

@@ -7,8 +7,8 @@ import {Glob} from "bun";
 
 import {
   type CoverageSummary,
-  type FileCoverage,
   evaluateCoverage,
+  type FileCoverage,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";
@@ -16,7 +16,7 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
@@ -122,11 +122,10 @@ const getWorkspaceNames = (repoRoot: string): Set<string> => {
 };
 
 const getAddedSourceFiles = (repoRoot: string, base: string): string[] => {
-  const output = execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`],
-    {cwd: repoRoot, encoding: "utf8"}
-  );
+  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
   return output
     .split("\n")
     .map((path) => path.trim())

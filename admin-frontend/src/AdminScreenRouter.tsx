@@ -1,5 +1,6 @@
 import {Box, Spinner, Text} from "@terreno/ui";
 import React, {useMemo} from "react";
+import {AdminMigrations} from "./AdminMigrations";
 import {AdminModelTable} from "./AdminModelTable";
 import {useAdminWidgetRegistry} from "./AdminProvider";
 import {AdminScreenPage} from "./AdminScreenPage";
@@ -10,7 +11,7 @@ import {useAdminConfig} from "./useAdminConfig";
 import {MissingWidget} from "./widgets/MissingWidget";
 
 export interface AdminScreenRouterProps extends AdminScreenProps {
-  /** Route segment: model name, custom screen name, or `__scripts`. */
+  /** Route segment: model name, custom screen name, `__scripts`, or `__migrations`. */
   name: string;
 }
 
@@ -61,6 +62,10 @@ export const AdminScreenRouter: React.FC<AdminScreenRouterProps> = ({
 
   if (name === "__scripts") {
     return <AdminScriptList api={api} apiBase={resolvedApiBase} routeBase={resolvedRouteBase} />;
+  }
+
+  if (name === "__migrations") {
+    return <AdminMigrations api={api} apiBase={resolvedApiBase} routeBase={resolvedRouteBase} />;
   }
 
   if (model) {

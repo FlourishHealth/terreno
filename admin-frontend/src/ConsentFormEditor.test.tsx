@@ -34,6 +34,10 @@ let translateImpl: (body: unknown) => Promise<unknown> = async () => ({
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useBulkPatchMutation: () => [
+      mock(() => ({unwrap: async () => ({updated: 0})})),
+      {isLoading: false},
+    ],
     useCreateMutation: () => [
       (body: unknown) => ({
         unwrap: async () => {
@@ -43,6 +47,8 @@ mock.module("./useAdminApi", () => ({
       }),
       {isLoading: false},
     ],
+    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useListQuery: () => ({data: {data: [], total: 0}, error: null, isLoading: false}),
     useReadQuery: (_id: string, opts: {skip?: boolean}) => {
       if (opts?.skip) {
         return {data: undefined, isLoading: false};
