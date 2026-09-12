@@ -12,7 +12,7 @@ const stripQueryAndFragment = (url: string): string => {
 };
 
 /** Strip query, fragment, and a trailing slash so `/auth/login/` matches `/auth/login`. */
-export const normalizeRequestPath = (url: string): string => {
+const normalizeRequestPath = (url: string): string => {
   const withoutQuery = stripQueryAndFragment(url);
   const withoutSlash =
     withoutQuery.length > 1 && withoutQuery.endsWith("/")
@@ -22,7 +22,7 @@ export const normalizeRequestPath = (url: string): string => {
 };
 
 /** Prefer Express `req.path` (routing) over the raw request-target. */
-export const requestPath = (req: Request): string => {
+const requestPath = (req: Request): string => {
   const raw = req.path || req.url || req.originalUrl || "";
   return normalizeRequestPath(raw);
 };

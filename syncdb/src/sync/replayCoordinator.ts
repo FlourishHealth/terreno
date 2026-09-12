@@ -32,15 +32,18 @@ const debugBody = (mutation: OutboxMutation): Record<string, unknown> | string =
 };
 
 /** Error-nack retries beyond this attempt count become terminal failures. */
+/** @internal */
 export const MAX_ERROR_NACK_ATTEMPTS = 5;
 
 /** Base delay for the error-nack exponential backoff (doubles per attempt). */
+/** @internal */
 export const ERROR_NACK_BASE_BACKOFF_MS = 1_000;
 
 /** Base delay for transport-failure backoff (unlimited retries, same cap/jitter shape). */
-export const TRANSPORT_FAILURE_BASE_BACKOFF_MS = 1_000;
+const TRANSPORT_FAILURE_BASE_BACKOFF_MS = 1_000;
 
 /** Cap applied to every jittered backoff (error-nack and transport-failure alike). */
+/** @internal */
 export const MAX_BACKOFF_MS = 30_000;
 
 /**
@@ -51,7 +54,7 @@ export const MAX_BACKOFF_MS = 30_000;
  * produce one stray `unsupported`) must never permanently downgrade the
  * session to single-sends.
  */
-export const BATCH_UNSUPPORTED_LATCH_THRESHOLD = 2;
+const BATCH_UNSUPPORTED_LATCH_THRESHOLD = 2;
 
 /**
  * FIX 5: while latched `batchUnsupported`, re-probe batch support on this
@@ -59,9 +62,10 @@ export const BATCH_UNSUPPORTED_LATCH_THRESHOLD = 2;
  * sends to an upgraded instance, or the original instance could itself be
  * upgraded, without the connection ever dropping.
  */
+/** @internal */
 export const BATCH_UNSUPPORTED_REPROBE_INTERVAL_MS = 60_000;
 
-export interface ReplayResult {
+interface ReplayResult {
   /** Set when replay stopped early because the server rejected our auth. */
   paused?: "auth";
 }

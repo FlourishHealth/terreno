@@ -69,6 +69,7 @@ export const loadTypeDocJson = (): TypeDocRoot | null => {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 };
 
+/** @internal */
 export const extractTypeString = (typeObj: TypeDocType | null | undefined): string => {
   if (!typeObj) {
     return "unknown";
@@ -151,6 +152,7 @@ export const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[]
   });
 };
 
+/** @internal */
 export const componentToSlug = (name: string): string => {
   return name.toLowerCase().replace(/\s+/g, "-");
 };
@@ -181,6 +183,7 @@ export const formatComponentMarkdown = (component: ComponentDoc): string => {
   return lines.join("\n");
 };
 
+/** @internal */
 export const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
   const lines: string[] = [
     "# @terreno/ui Component Reference",

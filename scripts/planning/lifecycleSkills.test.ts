@@ -22,9 +22,40 @@ const readStage = (directory: string): string =>
     "utf8"
   );
 
+const readGrilling = (): string =>
+  readFileSync(
+    resolve(
+      ROOT_DIRECTORY,
+      "plugins/terreno-planning/skills/terreno-1-grow/references/grilling.md"
+    ),
+    "utf8"
+  );
+
+const validateGrilling = (grillingContent: string): string[] =>
+  validateStageContent({
+    content: readStage("terreno-1-grow"),
+    definition: {
+      directory: "terreno-1-grow",
+      nextMarkers: ["next: pick", "next: grow", "next: null"],
+      stage: "grow",
+    },
+    grillingContent,
+  });
+
 describe("lifecycle skill architecture", (): void => {
   it("validates the real plugin lifecycle", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
+  });
+
+  it("defines the Terreno prepush gate with lint, typecheck, and static analysis", (): void => {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(ROOT_DIRECTORY, "package.json"), "utf8")
+    ) as {scripts?: Record<string, string>};
+
+    assert.equal(
+      packageJson.scripts?.prepush,
+      "bun run lint && bun run compile && bun run analyze:full"
+    );
   });
 
   it("validates the Claude Code plugin host", (): void => {
@@ -146,11 +177,15 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
-  it("rejects Taste that skips the fresh lint/typecheck/test subagent or product-CI wait loop", (): void => {
+  it("rejects Taste that skips prepush, fallback checks, or the product-CI wait loop", (): void => {
     const content = readStage("terreno-5-taste")
       .replaceAll("fresh subagent", "same conversation")
       .replaceAll("no parent conversation", "full parent context")
-      .replaceAll("bun lint", "repo lint")
+      .replaceAll("package.json", "project manifest")
+      .replaceAll("If no root `prepush` script exists", "Skip when no local gate exists")
+      .replaceAll("prepush", "local gate")
+      .replaceAll("repository's package manager", "hard-coded command")
+      .replaceAll("lint script", "repo lint")
       .replaceAll("typecheck script", "build script")
       .replaceAll("locally affected tests", "the full suite")
       .replaceAll("latest `master`", "latest origin")
@@ -169,16 +204,17 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("fresh subagent")));
     assert.isTrue(errors.some((error) => error.includes("no parent conversation")));
-    assert.isTrue(errors.some((error) => error.includes("bun lint")));
+    assert.isTrue(errors.some((error) => error.includes("root prepush")));
+    assert.isTrue(errors.some((error) => error.includes("repository package manager")));
+    assert.isTrue(errors.some((error) => error.includes("fallback checks")));
+    assert.isTrue(errors.some((error) => error.includes("run lint")));
     assert.isTrue(errors.some((error) => error.includes("typecheck")));
     assert.isTrue(errors.some((error) => error.includes("locally affected tests")));
     assert.isTrue(errors.some((error) => error.includes("gh pr checks --watch")));
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("watch loop")));
     assert.isTrue(errors.some((error) => error.includes("latest master")));
-    assert.isTrue(
-      errors.some((error) => error.includes("pull, then lint and typecheck, then watch"))
-    );
+    assert.isTrue(errors.some((error) => error.includes("pull, then local gate, then watch")));
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {
@@ -431,6 +467,61 @@ describe("lifecycle skill architecture", (): void => {
 
     assert.isTrue(errors.some((error) => error.includes("grilling procedure")));
     assert.isTrue(errors.some((error) => error.includes("Decisions table")));
+  });
+
+  it("rejects Grow that drops the approval brief or the prompting questions", (): void => {
+    const content = readStage("terreno-1-grow")
+      .replaceAll("approval brief", "approval index")
+      .replaceAll("question that prompted", "chosen answer");
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-1-grow",
+        nextMarkers: ["next: pick", "next: grow", "next: null"],
+        stage: "grow",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("standalone approval brief")));
+    assert.isTrue(errors.some((error) => error.includes("question that prompted them")));
+  });
+
+  it("accepts the real grilling approval brief", (): void => {
+    assert.deepEqual(validateGrilling(readGrilling()), []);
+  });
+
+  it("rejects an approval brief that leads with decisions instead of the plan", (): void => {
+    const content = readGrilling()
+      .replace("## The plan", "## Deferred plan")
+      .replace("## Decisions", "## Decisions\n\n## The plan");
+
+    assert.isTrue(
+      validateGrilling(content).some((error) =>
+        error.includes("must come before the Decisions table")
+      )
+    );
+  });
+
+  it("rejects an approval brief that drops orientation, questions, or the row cap", (): void => {
+    const content = readGrilling()
+      .replace("## The idea", "## Implementation notes")
+      .replace("| ID | Question asked | Answer |", "| ID | Decision | Choice |")
+      .replace("no row limit", "at most five rows");
+    const errors = validateGrilling(content);
+
+    assert.isTrue(errors.some((error) => error.includes("## The idea")));
+    assert.isTrue(errors.some((error) => error.includes("question that prompted each choice")));
+    assert.isTrue(errors.some((error) => error.includes("stay unbounded")));
+  });
+
+  it("rejects a grilling procedure with no approval brief at all", (): void => {
+    const errors = validateGrilling(
+      readGrilling().replace("## Approval brief", "## Approval summary")
+    );
+
+    assert.deepEqual(errors, [
+      "grilling: Grow's approval output must be a standalone approval brief",
+    ]);
   });
 
   it("rejects a stage that still disables model invocation", (): void => {
