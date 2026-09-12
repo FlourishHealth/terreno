@@ -64,6 +64,9 @@ modelRouter("/todos", Todo, {
       handler: async ({doc}) => { /* ... */ },
     },
   },
+  collectionActions: { /* named GET/POST on /todos/{name} */ },
+  instanceActions: { /* named GET/POST on /todos/:id/{name} */ },
+  // Last resort only — prefer collectionActions / instanceActions.
   endpoints: (router) => {
     // Custom routes registered before CRUD
   },

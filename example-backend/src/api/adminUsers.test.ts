@@ -1,44 +1,12 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import {
-  generateTokens,
-  type ModelRouterOptions,
-  type ModelRouterRegistration,
-  TerrenoApp,
-} from "@terreno/api";
-import express from "express";
+import {generateTokens, TerrenoApp} from "@terreno/api";
 import mongoose from "mongoose";
 import supertest from "supertest";
 import {User as UserModel} from "../models/user";
 import type {UserDocument} from "../types/models/userTypes";
-import {addAdminUserRoutes} from "./adminUsers";
+import {usersRouter} from "./users";
 
-type RegisterRoutesWithOptions = (
-  router: express.Router,
-  options?: Partial<ModelRouterOptions<unknown>>
-) => void;
-
-const createOpenApiAwareRouteRegistration = (
-  registerRoutes: RegisterRoutesWithOptions
-): ModelRouterRegistration => {
-  const buildRouter = (openApi?: unknown): express.Router => {
-    const router = express.Router();
-    const routeOptions = openApi ? ({openApi} as Partial<ModelRouterOptions<unknown>>) : undefined;
-    registerRoutes(router, routeOptions);
-    return router;
-  };
-
-  const registration: ModelRouterRegistration = {
-    __type: "modelRouter",
-    _buildWithContext: ({openApi}) => buildRouter(openApi),
-    model: {} as ModelRouterRegistration["model"],
-    options: {} as ModelRouterRegistration["options"],
-    path: "/",
-    router: express.Router(),
-  };
-  return registration;
-};
-
-describe("admin user password route", () => {
+describe("admin user password action", () => {
   const buildApp = () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET || "test-secret";
     process.env.TOKEN_ISSUER = process.env.TOKEN_ISSUER || "example-backend-test";
@@ -51,9 +19,7 @@ describe("admin user password route", () => {
       skipListen: true,
       userModel: UserModel as never,
     })
-      .register(
-        createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
-      )
+      .register(usersRouter)
       .build();
   };
 
@@ -86,21 +52,21 @@ describe("admin user password route", () => {
     const app = buildApp();
     const target = await createUser("target@example.com", false);
     await supertest(app)
-      .post(`/admin/users/${target._id}/password`)
+      .post(`/users/${target._id}/password`)
       .send({password: "newpassword1"})
       .expect(401);
   });
 
-  it("returns 403 for a non-admin caller", async () => {
+  it("returns 405 for a non-admin caller", async () => {
     const app = buildApp();
     const caller = await createUser("user@example.com", false);
     const target = await createUser("target@example.com", false);
     const token = await tokenFor(caller);
     await supertest(app)
-      .post(`/admin/users/${target._id}/password`)
+      .post(`/users/${target._id}/password`)
       .set("Authorization", `Bearer ${token}`)
       .send({password: "newpassword1"})
-      .expect(403);
+      .expect(405);
   });
 
   it("returns 400 when the password is too short", async () => {
@@ -109,7 +75,7 @@ describe("admin user password route", () => {
     const target = await createUser("target@example.com", false);
     const token = await tokenFor(admin);
     await supertest(app)
-      .post(`/admin/users/${target._id}/password`)
+      .post(`/users/${target._id}/password`)
       .set("Authorization", `Bearer ${token}`)
       .send({password: "short"})
       .expect(400);
@@ -121,7 +87,7 @@ describe("admin user password route", () => {
     const token = await tokenFor(admin);
     const missingId = new mongoose.Types.ObjectId();
     await supertest(app)
-      .post(`/admin/users/${missingId}/password`)
+      .post(`/users/${missingId}/password`)
       .set("Authorization", `Bearer ${token}`)
       .send({password: "newpassword1"})
       .expect(404);
@@ -133,7 +99,7 @@ describe("admin user password route", () => {
     const target = await createUser("target@example.com", false);
     const token = await tokenFor(admin);
     const res = await supertest(app)
-      .post(`/admin/users/${target._id}/password`)
+      .post(`/users/${target._id}/password`)
       .set("Authorization", `Bearer ${token}`)
       .send({password: "newpassword1"})
       .expect(200);

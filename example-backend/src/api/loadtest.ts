@@ -1,23 +1,19 @@
 /**
- * Load-test routes for the SyncDB "load lab" admin screen.
+ * Load-test collectionActions for the SyncDB "load lab" admin screen.
  *
  * These endpoints drive server-side writes to the owner-scoped `todos` collection so
  * the running frontend's @terreno/syncdb client sees them arrive as inbound `sync:delta`
  * patches over the websocket — i.e. they simulate "other clients" mutating shared data.
  *
- * - generate: bulk-insert N random todos (one insertMany → N change-stream inserts → N deltas).
- * - churn:    perform a batch of random create/update/delete ops (the frontend calls this on
- *             an interval to produce a continuous stream of inbound patches).
- * - clear:    soft-delete every todo for the user (emits tombstone deltas so clients drop them).
+ * - loadtestGenerate: bulk-insert N random todos
+ * - loadtestChurn:    a batch of random create/update/delete ops
+ * - loadtestClear:    soft-delete every todo for the user
  *
- * Admin-guarded because the screen lives in the admin panel. All writes target the current
- * user's owner stream, so the caller's own syncdb client receives the deltas. Writes go
- * through the model (insertMany / save) so the syncPlugin stamps `_syncSeq` and the change
- * stream fires — hard/bulk deletes are intentionally avoided (unsupported on synced models).
+ * Admin-guarded because the screen lives in the admin panel. Writes go through the
+ * model (insertMany / save) so the syncPlugin stamps `_syncSeq`.
  */
-import type {ModelRouterOptions} from "@terreno/api";
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
-import type express from "express";
+import type {CollectionActionConfig} from "@terreno/api";
+import {APIError, Permissions, z} from "@terreno/api";
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
 import type {UserDocument} from "../types/models/userTypes";
@@ -79,24 +75,12 @@ const buildTodoSeed = (ownerId: unknown): Record<string, unknown> => ({
   title: randomTitle(),
 });
 
-const requireOwnerId = (req: express.Request): UserDocument["_id"] => {
-  const ownerId = (req.user as unknown as UserDocument)?._id;
+const requireOwnerId = (user: unknown): UserDocument["_id"] => {
+  const ownerId = (user as unknown as UserDocument)?._id;
   if (!ownerId) {
     throw new APIError({status: 401, title: "Authentication required"});
   }
   return ownerId;
-};
-
-const adminGuard = (
-  req: express.Request,
-  _res: express.Response,
-  next: express.NextFunction
-): void => {
-  const user = req.user as unknown as UserDocument | undefined;
-  if (!user?.admin) {
-    throw new APIError({status: 403, title: "Admin access required"});
-  }
-  next();
 };
 
 /** Run `task` over `items` with bounded concurrency so batches don't open 1000 sockets at once. */
@@ -131,120 +115,113 @@ const clampCount = (value: unknown, max: number): number => {
   return Math.min(Math.floor(num), max);
 };
 
-export const addLoadTestRoutes = (
-  // noExplicitAny: Router type flexibility (matches addSettingsRoutes)
-  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility (matches addSettingsRoutes)
-  router: any,
-  // noExplicitAny: Router type flexibility
-  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-  options?: Partial<ModelRouterOptions<any>>
-): void => {
-  router.post(
-    "/loadtest/todos/generate",
-    [
-      authenticateMiddleware(),
-      adminGuard,
-      createOpenApiBuilder(options ?? {})
-        .withTags(["loadtest"])
-        .withSummary("Bulk-generate random todos for the current user (load testing)")
-        .withRequestBody({count: {type: "number"}})
-        .withResponse(200, {data: {properties: {created: {type: "number"}}, type: "object"}})
-        .build(),
-    ],
-    asyncHandler(async (req: express.Request, res: express.Response) => {
-      const ownerId = requireOwnerId(req);
-      const count = clampCount((req.body as {count?: number})?.count ?? 1_000, MAX_GENERATE);
-      if (count === 0) {
-        return res.json({data: {created: 0}});
-      }
-      const seeds = Array.from({length: count}, () => buildTodoSeed(ownerId));
-      // insertMany stamps a batched _syncSeq range per stream and fires one change-stream
-      // insert per document → one sync:delta per todo over the websocket.
-      await Todo.insertMany(seeds);
-      return res.json({data: {created: count}});
-    })
-  );
+/** Coerce JSON numbers; non-numeric values become 0 so clampCount can no-op. */
+const optionalClampedCount = z.preprocess((value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}, z.number().optional());
 
-  router.post(
-    "/loadtest/todos/churn",
-    [
-      authenticateMiddleware(),
-      adminGuard,
-      createOpenApiBuilder(options ?? {})
-        .withTags(["loadtest"])
-        .withSummary("Apply a batch of random create/update/delete todo ops (load testing)")
-        .withRequestBody({
-          creates: {type: "number"},
-          deletes: {type: "number"},
-          updates: {type: "number"},
-        })
-        .withResponse(200, {
-          data: {
-            properties: {
-              created: {type: "number"},
-              deleted: {type: "number"},
-              updated: {type: "number"},
-            },
-            type: "object",
-          },
-        })
-        .build(),
-    ],
-    asyncHandler(async (req: express.Request, res: express.Response) => {
-      const ownerId = requireOwnerId(req);
-      const body = (req.body ?? {}) as {creates?: number; updates?: number; deletes?: number};
-      const creates = clampCount(body.creates ?? 0, MAX_CHURN_OPS);
-      const updates = clampCount(body.updates ?? 0, MAX_CHURN_OPS);
-      const deletes = clampCount(body.deletes ?? 0, MAX_CHURN_OPS);
+const generateBodySchema = z.object({count: optionalClampedCount}).strict();
+const churnBodySchema = z
+  .object({
+    creates: optionalClampedCount,
+    deletes: optionalClampedCount,
+    updates: optionalClampedCount,
+  })
+  .strict();
+const generateResponseSchema = z.object({created: z.number()}).strict();
+const churnResponseSchema = z
+  .object({
+    created: z.number(),
+    deleted: z.number(),
+    updated: z.number(),
+  })
+  .strict();
+const clearResponseSchema = z.object({deleted: z.number()}).strict();
+
+const adminUpdateAccess = {action: "update" as const, resource: "todo"};
+
+export const todoLoadTestCollectionActions: Record<
+  string,
+  CollectionActionConfig<unknown, unknown, unknown>
+> = {
+  loadtestChurn: {
+    access: adminUpdateAccess,
+    body: churnBodySchema,
+    handler: async ({body, user}) => {
+      const ownerId = requireOwnerId(user);
+      const payload = body as z.infer<typeof churnBodySchema>;
+      const creates = clampCount(payload.creates ?? 0, MAX_CHURN_OPS);
+      const updates = clampCount(payload.updates ?? 0, MAX_CHURN_OPS);
+      const deletes = clampCount(payload.deletes ?? 0, MAX_CHURN_OPS);
 
       if (creates > 0) {
         await Todo.insertMany(Array.from({length: creates}, () => buildTodoSeed(ownerId)));
       }
 
-      // Sample once for the combined update+delete demand, then split the pool so the same
-      // document is never both updated and deleted in one tick.
       const pool = await sampleTodos(ownerId, updates + deletes);
       const toUpdate = pool.slice(0, updates);
       const toDelete = pool.slice(updates, updates + deletes);
 
       await runChunked(toUpdate, async (todo) => {
-        // Toggle completed and bump a field so every update is a real content change.
         todo.completed = !todo.completed;
         todo.priority = PRIORITIES[randomInt(PRIORITIES.length)];
         await todo.save();
       });
 
       await runChunked(toDelete, async (todo) => {
-        // Soft delete: an update setting deleted=true → tombstone sync:delta.
         todo.deleted = true;
         await todo.save();
       });
 
-      return res.json({
-        data: {created: creates, deleted: toDelete.length, updated: toUpdate.length},
-      });
-    })
-  );
-
-  router.post(
-    "/loadtest/todos/clear",
-    [
-      authenticateMiddleware(),
-      adminGuard,
-      createOpenApiBuilder(options ?? {})
-        .withTags(["loadtest"])
-        .withSummary("Soft-delete every todo for the current user (load testing reset)")
-        .withResponse(200, {data: {properties: {deleted: {type: "number"}}, type: "object"}})
-        .build(),
-    ],
-    asyncHandler(async (req: express.Request, res: express.Response) => {
-      const ownerId = requireOwnerId(req);
+      return {created: creates, deleted: toDelete.length, updated: toUpdate.length};
+    },
+    method: "POST",
+    permissions: [Permissions.IsAdmin],
+    response: churnResponseSchema,
+    summary: "Apply a batch of random create/update/delete todo ops (load testing)",
+    tag: "loadtest",
+  },
+  loadtestClear: {
+    access: adminUpdateAccess,
+    handler: async ({user}) => {
+      const ownerId = requireOwnerId(user);
       const todos = await Todo.find({deleted: {$ne: true}, ownerId});
       await runChunked(todos, async (todo) => {
         todo.deleted = true;
         await todo.save();
       });
-      return res.json({data: {deleted: todos.length}});
-    })
-  );
+      return {deleted: todos.length};
+    },
+    method: "POST",
+    permissions: [Permissions.IsAdmin],
+    response: clearResponseSchema,
+    summary: "Soft-delete every todo for the current user (load testing reset)",
+    tag: "loadtest",
+  },
+  loadtestGenerate: {
+    access: adminUpdateAccess,
+    body: generateBodySchema,
+    handler: async ({body, user}) => {
+      const ownerId = requireOwnerId(user);
+      const count = clampCount(
+        (body as z.infer<typeof generateBodySchema>).count ?? 1_000,
+        MAX_GENERATE
+      );
+      if (count === 0) {
+        return {created: 0};
+      }
+      const seeds = Array.from({length: count}, () => buildTodoSeed(ownerId));
+      await Todo.insertMany(seeds);
+      return {created: count};
+    },
+    method: "POST",
+    permissions: [Permissions.IsAdmin],
+    response: generateResponseSchema,
+    summary: "Bulk-generate random todos for the current user (load testing)",
+    tag: "loadtest",
+  },
 };

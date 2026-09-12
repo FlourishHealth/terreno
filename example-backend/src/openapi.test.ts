@@ -98,6 +98,10 @@ describe("OpenAPI spec generation", () => {
     const res = await server.get("/openapi.json").expect(200);
 
     expect(res.body.paths["/settings/gcs"]).toBeDefined();
+    expect(res.body.paths["/settings/configureGcs"]).toBeDefined();
+    expect(res.body.paths["/settings/clearGcs"]).toBeDefined();
+    expect(res.body.paths["/todos/loadtestGenerate"]).toBeDefined();
+    expect(res.body.paths["/users/{id}/password"]).toBeDefined();
   });
 
   it("has list/create/read/patch operations on admin todo routes", async () => {

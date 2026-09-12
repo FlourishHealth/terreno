@@ -1,6 +1,6 @@
 /**
  * SyncDB Load Lab (Phase F4): client-side load e2e. Drives the admin-guarded
- * `/loadtest/todos/*` routes (example-backend/src/api/loadtest.ts) directly via REST
+ * `/todos/loadtestGenerate` (and sibling collectionActions on todoRouter) directly via REST
  * — bypassing the SyncLabScreen UI entirely, since these are plain server-side writes
  * against the owner-scoped todos collection and the generated SDK has no hooks for
  * them (SyncLabScreen calls them with `fetch` too) — while a real browser session
@@ -43,7 +43,7 @@ interface LoadTestResult {
   deleted?: number;
 }
 
-/** Thin REST client for the admin-guarded /loadtest/todos/* routes, bearer-authed as USER. */
+/** Thin REST client for the admin-guarded /todos/loadtest* actions, bearer-authed as USER. */
 class LoadTestClient {
   constructor(
     private readonly request: import("@playwright/test").APIRequestContext,
@@ -57,28 +57,28 @@ class LoadTestClient {
     return new LoadTestClient(request, token);
   }
 
-  private async post(path: string, data?: Record<string, unknown>): Promise<LoadTestResult> {
-    const res = await this.request.post(`${API_URL}/loadtest/todos/${path}`, {
+  private async post(action: string, data?: Record<string, unknown>): Promise<LoadTestResult> {
+    const res = await this.request.post(`${API_URL}/todos/${action}`, {
       data: data ?? {},
       headers: {authorization: `Bearer ${this.token}`},
     });
     if (!res.ok()) {
-      throw new Error(`loadtest ${path} failed with status ${res.status()}`);
+      throw new Error(`loadtest ${action} failed with status ${res.status()}`);
     }
     const json = (await res.json()) as {data?: LoadTestResult};
     return json.data ?? {};
   }
 
   clear(): Promise<LoadTestResult> {
-    return this.post("clear");
+    return this.post("loadtestClear");
   }
 
   generate(count: number): Promise<LoadTestResult> {
-    return this.post("generate", {count});
+    return this.post("loadtestGenerate", {count});
   }
 
   churn(body: {creates: number; updates: number; deletes: number}): Promise<LoadTestResult> {
-    return this.post("churn", body);
+    return this.post("loadtestChurn", body);
   }
 
   /** Cheap total-count cross-check: modelRouter's list envelope includes `total`. */

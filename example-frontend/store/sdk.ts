@@ -286,7 +286,7 @@ export const terrenoApi = openapi
         query: ({id, password}) => ({
           body: {password},
           method: "POST",
-          url: `/admin/users/${id}/password`,
+          url: `/users/${id}/password`,
         }),
       }),
     }),

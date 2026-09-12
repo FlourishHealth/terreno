@@ -63,7 +63,7 @@ const callLoadTest = async (
   body?: Record<string, unknown>
 ): Promise<Record<string, number>> => {
   const token = await getSessionToken();
-  const response = await fetch(`${baseUrl}/loadtest/${path}`, {
+  const response = await fetch(`${baseUrl}/todos/${path}`, {
     body: JSON.stringify(body ?? {}),
     headers: {
       "Content-Type": "application/json",
@@ -152,7 +152,7 @@ const syncEnginesToRates = (): void => {
       }
       runtime.remoteAccum -= ops;
       inFlight = true;
-      callLoadTest("todos/churn", {
+      callLoadTest("loadtestChurn", {
         creates: Math.ceil(ops * 0.5),
         deletes: Math.floor(ops * 0.1),
         updates: Math.ceil(ops * 0.4),

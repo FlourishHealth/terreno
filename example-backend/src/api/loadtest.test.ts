@@ -1,56 +1,17 @@
 // noExplicitAny: test server/model bridging mirrors projects.test.ts and server.ts
 // biome-ignore-all lint/suspicious/noExplicitAny: test server/model bridging mirrors projects.test.ts and server.ts
 import {beforeEach, describe, expect, it} from "bun:test";
-import {
-  generateTokens,
-  type ModelRouterOptions,
-  type ModelRouterRegistration,
-  TerrenoApp,
-} from "@terreno/api";
-import express from "express";
+import {generateTokens, TerrenoApp} from "@terreno/api";
 import supertest from "supertest";
 import {Todo} from "../models/todo";
 import {User as UserModel} from "../models/user";
 import type {UserDocument} from "../types/models/userTypes";
-import {addLoadTestRoutes} from "./loadtest";
+import {todoRouter} from "./todos";
 
 /**
- * Route tests for the SyncDB "load lab" admin routes (generate/churn/clear). Mirrors the
- * server-bootstrapping pattern established in `src/api/projects.test.ts`: a standalone
- * `TerrenoApp` built directly around the route under test (not the full `server.ts`
- * wiring), real Mongo via the package's bun preload (`src/tests/setup.ts`), real
- * passport-local-mongoose users, and supertest over HTTP.
- *
- * `addLoadTestRoutes` takes a raw `(router, options)` function rather than a
- * `ModelRouterRegistration`, so it needs the same `createOpenApiAwareRouteRegistration`
- * adapter `server.ts` uses to mount it on a `TerrenoApp`.
+ * Route tests for the SyncDB "load lab" collectionActions (generate/churn/clear).
+ * A standalone TerrenoApp mounts `todoRouter` (not the full `server.ts` wiring).
  */
-type RegisterRoutesWithOptions = (
-  router: express.Router,
-  options?: Partial<ModelRouterOptions<unknown>>
-) => void;
-
-const createOpenApiAwareRouteRegistration = (
-  registerRoutes: RegisterRoutesWithOptions
-): ModelRouterRegistration => {
-  const buildRouter = (openApi?: unknown): express.Router => {
-    const router = express.Router();
-    const routeOptions = openApi ? ({openApi} as Partial<ModelRouterOptions<unknown>>) : undefined;
-    registerRoutes(router, routeOptions);
-    return router;
-  };
-
-  const registration: ModelRouterRegistration = {
-    __type: "modelRouter",
-    _buildWithContext: ({openApi}) => buildRouter(openApi),
-    model: {} as ModelRouterRegistration["model"],
-    options: {} as ModelRouterRegistration["options"],
-    path: "/",
-    router: express.Router(),
-  };
-  return registration;
-};
-
 describe("loadtest routes", () => {
   const buildApp = () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET || "test-secret";
@@ -64,7 +25,7 @@ describe("loadtest routes", () => {
       skipListen: true,
       userModel: UserModel as any,
     })
-      .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
+      .register(todoRouter)
       .build();
   };
 
@@ -105,47 +66,47 @@ describe("loadtest routes", () => {
   describe("admin guard", () => {
     it("rejects an unauthenticated request with 401", async () => {
       const app = buildApp();
-      const res = await supertest(app).post("/loadtest/todos/generate").send({count: 1});
+      const res = await supertest(app).post("/todos/loadtestGenerate").send({count: 1});
       expect(res.status).toBe(401);
     });
 
-    it("rejects a non-admin authenticated user with 403 on generate", async () => {
+    it("rejects a non-admin authenticated user with 405 on generate", async () => {
       const app = buildApp();
       const user = await createUser("nonadmin-generate@example.com", false);
       const token = await tokenFor(user);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${token}`)
         .send({count: 1});
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(405);
       expect(await rawTodoCount({})).toBe(0);
     });
 
-    it("rejects a non-admin authenticated user with 403 on churn", async () => {
+    it("rejects a non-admin authenticated user with 405 on churn", async () => {
       const app = buildApp();
       const user = await createUser("nonadmin-churn@example.com", false);
       const token = await tokenFor(user);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/churn")
+        .post("/todos/loadtestChurn")
         .set("Authorization", `Bearer ${token}`)
         .send({creates: 1});
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(405);
     });
 
-    it("rejects a non-admin authenticated user with 403 on clear", async () => {
+    it("rejects a non-admin authenticated user with 405 on clear", async () => {
       const app = buildApp();
       const user = await createUser("nonadmin-clear@example.com", false);
       const token = await tokenFor(user);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/clear")
+        .post("/todos/loadtestClear")
         .set("Authorization", `Bearer ${token}`);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(405);
     });
 
     it("allows an admin user through the guard", async () => {
@@ -154,7 +115,7 @@ describe("loadtest routes", () => {
       const token = await tokenFor(admin);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${token}`)
         .send({count: 3});
 
@@ -170,7 +131,7 @@ describe("loadtest routes", () => {
       const token = await tokenFor(admin);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${token}`)
         .send({count: 5_001});
 
@@ -185,7 +146,7 @@ describe("loadtest routes", () => {
       const token = await tokenFor(admin);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${token}`)
         .send({});
 
@@ -208,7 +169,7 @@ describe("loadtest routes", () => {
       );
 
       const res = await supertest(app)
-        .post("/loadtest/todos/churn")
+        .post("/todos/loadtestChurn")
         .set("Authorization", `Bearer ${token}`)
         .send({creates: 501, deletes: 501, updates: 501});
 
@@ -225,7 +186,7 @@ describe("loadtest routes", () => {
 
       for (const invalidCount of [0, -5, "not-a-number"]) {
         const res = await supertest(app)
-          .post("/loadtest/todos/generate")
+          .post("/todos/loadtestGenerate")
           .set("Authorization", `Bearer ${token}`)
           .send({count: invalidCount});
 
@@ -251,7 +212,7 @@ describe("loadtest routes", () => {
       );
 
       const res = await supertest(app)
-        .post("/loadtest/todos/clear")
+        .post("/todos/loadtestClear")
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -281,7 +242,7 @@ describe("loadtest routes", () => {
       );
 
       const res = await supertest(app)
-        .post("/loadtest/todos/churn")
+        .post("/todos/loadtestChurn")
         .set("Authorization", `Bearer ${token}`)
         .send({deletes: 5});
 
@@ -302,7 +263,7 @@ describe("loadtest routes", () => {
       const token = await tokenFor(admin);
 
       const res = await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${token}`)
         .send({count: 5});
 
@@ -332,7 +293,7 @@ describe("loadtest routes", () => {
       );
 
       const res = await supertest(app)
-        .post("/loadtest/todos/churn")
+        .post("/todos/loadtestChurn")
         .set("Authorization", `Bearer ${token}`)
         .send({creates: 2, deletes: 2, updates: 2});
 
@@ -357,14 +318,14 @@ describe("loadtest routes", () => {
 
       // A generates, churns, and clears — none of it should touch B's todos.
       await supertest(app)
-        .post("/loadtest/todos/generate")
+        .post("/todos/loadtestGenerate")
         .set("Authorization", `Bearer ${tokenA}`)
         .send({count: 3});
       await supertest(app)
-        .post("/loadtest/todos/churn")
+        .post("/todos/loadtestChurn")
         .set("Authorization", `Bearer ${tokenA}`)
         .send({creates: 1});
-      await supertest(app).post("/loadtest/todos/clear").set("Authorization", `Bearer ${tokenA}`);
+      await supertest(app).post("/todos/loadtestClear").set("Authorization", `Bearer ${tokenA}`);
 
       // B's todos are untouched and still live (not soft-deleted).
       expect(await Todo.find({ownerId: adminB._id})).toHaveLength(4);
