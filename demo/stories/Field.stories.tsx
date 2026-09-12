@@ -2,7 +2,6 @@ import {type AddressInterface, Box, Field, Heading, TapToEdit, Text} from "@terr
 import {printDateAndTime} from "@terreno/ui/dist/DateUtilities";
 import {DateTime} from "luxon";
 import {useState} from "react";
-import {Image} from "react-native";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -389,35 +388,6 @@ export const CustomSelectFieldStory = () => {
           value={value2}
         />
       </Box>
-    </StorybookContainer>
-  );
-};
-
-interface SignatureFieldProps {
-  setScrollEnabled: (scrollEnabled: boolean) => void;
-}
-
-export const SignatureFieldStory = ({setScrollEnabled}: SignatureFieldProps) => {
-  const [signature, setValue] = useState("");
-  return (
-    <StorybookContainer>
-      <Field
-        onChange={setValue}
-        onEnd={() => setScrollEnabled(true)}
-        onStart={() => setScrollEnabled(false)}
-        title="Signature Field"
-        type="signature"
-      />
-      <Image
-        resizeMode="contain"
-        source={{uri: signature}}
-        style={{
-          borderColor: "black",
-          borderWidth: 1,
-          height: 80,
-          width: 300,
-        }}
-      />
     </StorybookContainer>
   );
 };

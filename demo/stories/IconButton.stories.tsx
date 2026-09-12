@@ -146,20 +146,6 @@ export const NavigationIconButton = (props: Partial<IconButtonProps>) => {
   );
 };
 
-export const DisabledIconButton = (props: Partial<IconButtonProps>) => {
-  return (
-    <Box padding={4}>
-      <IconButton
-        accessibilityLabel="add item"
-        disabled
-        iconName="plus"
-        onClick={() => {}}
-        {...props}
-      />
-    </Box>
-  );
-};
-
 export const IconButtonSizes = (props: Partial<IconButtonProps>) => {
   return (
     <Box direction="row" gap={4} wrap>

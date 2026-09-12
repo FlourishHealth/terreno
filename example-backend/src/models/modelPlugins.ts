@@ -1,16 +1,11 @@
 import {
   createdUpdatedPlugin,
-  excludeArchivedPlugin,
   findExactlyOne,
   findOneOrNone,
   isDeletedPlugin,
   upsertPlugin,
 } from "@terreno/api";
 import type mongoose from "mongoose";
-
-// Re-export the promoted plugins so existing imports from this module keep working. These now live
-// in @terreno/api; import them from there directly in new code.
-export {excludeArchivedPlugin, upsertPlugin};
 
 // noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas

@@ -6,9 +6,9 @@ import {findExactlyOne, findOneOrNone} from "../../plugins";
 export const WEBHOOK_RECEIPTS_COLLECTION = "webhookReceipts";
 export const DEFAULT_WEBHOOK_RECEIPT_TTL_DAYS = 7;
 
-export type WebhookReceiptMethods = Record<string, never>;
+type WebhookReceiptMethods = Record<string, never>;
 
-export interface WebhookReceiptStatics
+interface WebhookReceiptStatics
   extends FindExactlyOnePlugin<WebhookReceiptDocument>,
     FindOneOrNonePlugin<WebhookReceiptDocument> {}
 
@@ -16,7 +16,7 @@ export interface WebhookReceiptModel
   extends mongoose.Model<WebhookReceiptDocument, object, WebhookReceiptMethods>,
     WebhookReceiptStatics {}
 
-export interface WebhookReceiptDocument extends mongoose.Document {
+interface WebhookReceiptDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;
   created: Date;
   eventId: string;
@@ -25,10 +25,7 @@ export interface WebhookReceiptDocument extends mongoose.Document {
 
 const secondsPerDay = 86_400;
 
-export const webhookReceiptSchema = new mongoose.Schema<
-  WebhookReceiptDocument,
-  WebhookReceiptModel
->(
+const webhookReceiptSchema = new mongoose.Schema<WebhookReceiptDocument, WebhookReceiptModel>(
   {
     created: {
       default: () => DateTime.utc().toJSDate(),

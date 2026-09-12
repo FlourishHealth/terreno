@@ -45,6 +45,7 @@ interface StatementsQueryResult {
  */
 export type RolesQueryData = RbacRoleRow[] | {data?: RbacRoleRow[]} | undefined;
 
+/** @internal */
 export interface RolesQueryResult {
   data: RolesQueryData;
   isLoading: boolean;

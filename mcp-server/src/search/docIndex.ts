@@ -17,7 +17,7 @@ import {
 } from "./docVersion.js";
 import {inferPackageTags, normalizePackageFilter} from "./inferPackages.js";
 
-export interface SearchableChunk extends MarkdownChunk {
+interface SearchableChunk extends MarkdownChunk {
   combined: string;
   docVersion?: string;
 }
@@ -159,6 +159,7 @@ const buildMiniSearch = (chunks: SearchableChunk[]): MiniSearch<IndexedDoc> => {
   return search;
 };
 
+/** @internal */
 export const resetDocSearchIndexForTests = (): void => {
   cachedIndex = null;
   cachedChunks = null;

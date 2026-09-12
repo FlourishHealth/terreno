@@ -7,6 +7,7 @@ import type {
   RateLimitStore,
 } from "./types";
 
+/** @internal */
 export const redisUrlFromEnv = (): string | undefined => {
   return process.env.VALKEY_URL || process.env.REDIS_URL;
 };

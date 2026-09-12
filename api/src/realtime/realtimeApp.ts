@@ -43,6 +43,7 @@ export const MAX_QUERY_SUBSCRIPTIONS = 100;
  *
  * Exported for testing.
  */
+/** @internal */
 export const redactCredentials = (url: string): string => {
   try {
     const parsed = new URL(url);
