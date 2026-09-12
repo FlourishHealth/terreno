@@ -27,6 +27,7 @@ const PANEL_GAP = 4;
 export const Filter: FC<FilterProps> = ({
   children,
   label = "Filter",
+  triggerAccessibilityLabel,
   iconName = "bars-filter",
   isOpen,
   defaultOpen = false,
@@ -253,6 +254,7 @@ export const Filter: FC<FilterProps> = ({
     <View style={{position: "relative"}} testID={testID}>
       <View ref={triggerRef}>
         <Button
+          accessibilityLabel={triggerAccessibilityLabel}
           iconName={iconName}
           onClick={() => setOpen(!open)}
           testID={testID ? resolveTestID(testID, "trigger") : undefined}

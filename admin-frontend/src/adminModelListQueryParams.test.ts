@@ -96,11 +96,37 @@ describe("buildAdminListQueryParams", () => {
     assert.equal(params.sort, "-created");
     assert.equal(params.created_gte, "2026-01-01");
     assert.equal(params.created_lte, "2026-01-31");
-    assert.equal(params.status, "open");
-    assert.equal(params.title, "hello");
+    assert.deepEqual(params.status, {$in: ["open"]});
+    assert.deepEqual(params.title, {$options: "i", $regex: "hello"});
     assert.equal(params.ownerId, "abc");
     assert.equal(params.q, "q");
     assert.isUndefined(params.completed);
+  });
+
+  it("forwards choice multi-select as $in and omits $or", () => {
+    const modelConfig = {
+      filters: [
+        {
+          choices: [
+            {label: "Open", value: "open"},
+            {label: "Closed", value: "closed"},
+          ],
+          field: "status",
+          kind: "choice",
+        },
+      ],
+      searchFields: ["title"],
+    } as AdminModelConfig;
+    const params = buildAdminListQueryParams({
+      filterState: {status: ["open", "closed"]},
+      limit: 10,
+      modelConfig,
+      page: 1,
+      searchDebounced: "find me",
+    });
+    assert.deepEqual(params.status, {$in: ["open", "closed"]});
+    assert.equal(params.q, "find me");
+    assert.isUndefined(params.$or);
   });
 
   it("coerces boolean filters and skips blank date bounds", () => {

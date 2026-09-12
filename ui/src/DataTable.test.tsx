@@ -1,5 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act} from "@testing-library/react-native";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {type FC, useState} from "react";
+import {Platform} from "react-native";
 
 import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
 import {DataTable} from "./DataTable";
@@ -500,6 +502,153 @@ describe("DataTable", () => {
         moreButton.props.onPress();
       });
     }
+  });
+
+  it("does not render filter or search controls without filter/search props", () => {
+    const {queryByTestId} = renderWithTheme(
+      <DataTable columns={sampleColumns} data={sampleData} />
+    );
+    expect(queryByTestId("data-table-search")).toBeNull();
+    expect(queryByTestId("data-table-filters-trigger")).toBeNull();
+  });
+
+  it("fires onQueryChange for debounced search", async () => {
+    const onQueryChange = mock(() => {});
+    const Harness: FC = () => {
+      const [search, setSearch] = useState("");
+      return (
+        <DataTable
+          columns={sampleColumns}
+          data={sampleData}
+          onQueryChange={onQueryChange}
+          onSearchChange={setSearch}
+          search={search}
+          searchFields={["name"]}
+        />
+      );
+    };
+    const {getByTestId} = renderWithTheme(<Harness />);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    onQueryChange.mockClear();
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-search"), "Ali.*");
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    expect(onQueryChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    expect(onQueryChange).toHaveBeenCalledWith({
+      $or: [{name: {$options: "i", $regex: "Ali\\.\\*"}}],
+    });
+  });
+
+  it("does not re-emit an unchanged query when controlled arrays are recreated", async () => {
+    const onQueryChange = mock(() => {});
+    const {rerender} = renderWithTheme(
+      <DataTable
+        columns={[...sampleColumns]}
+        data={sampleData}
+        onQueryChange={onQueryChange}
+        search=""
+        searchFields={["Name"]}
+      />
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <DataTable
+        columns={[...sampleColumns]}
+        data={sampleData}
+        onQueryChange={onQueryChange}
+        search=""
+        searchFields={["Name"]}
+      />
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders web column filter triggers for filterable columns", () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+    const filterColumns = [
+      {
+        columnType: "text",
+        filter: {field: "name", kind: "text" as const},
+        title: "Name",
+        width: 150,
+      },
+    ];
+    const {getByTestId} = renderWithTheme(
+      <DataTable
+        columns={filterColumns}
+        data={[[{value: "Alice"}]]}
+        filterValues={{}}
+        onFilterValuesChange={() => {}}
+      />
+    );
+    expect(getByTestId("data-table-filter-name.trigger").props.accessibilityLabel).toBe(
+      "Filter Name"
+    );
+    Platform.OS = originalOS;
+  });
+
+  it("applies native sheet filters through the shared query contract", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "ios";
+    const onQueryChange = mock(() => {});
+    const filterColumns = [
+      {
+        columnType: "boolean",
+        filter: {field: "active", kind: "boolean" as const},
+        title: "Active",
+        width: 100,
+      },
+    ];
+    const Harness: FC = () => {
+      const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
+      return (
+        <DataTable
+          columns={filterColumns}
+          data={[[{value: true}]]}
+          filterValues={filterValues}
+          onFilterValuesChange={setFilterValues}
+          onQueryChange={onQueryChange}
+        />
+      );
+    };
+    const {getByTestId, queryByTestId} = renderWithTheme(<Harness />);
+    expect(queryByTestId("data-table-filter-active.trigger")).toBeNull();
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-trigger"));
+    });
+    await waitFor(() => {
+      expect(getByTestId("data-table-filter-active.switch")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filter-active.switch"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-sheet.primary"));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onQueryChange).toHaveBeenLastCalledWith({active: true});
+    Platform.OS = originalOS;
   });
 
   it("handleSort with no setSortColumn is a no-op", () => {

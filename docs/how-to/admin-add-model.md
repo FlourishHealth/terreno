@@ -38,7 +38,10 @@ Common fields:
 - `searchFields`: string fields matched by the list search box (`q`) as a
   case-insensitive partial (`$regex`) query.
 - `sortableFields`: the only columns with sorting enabled.
-- `filters`: typed filter drawer controls.
+- `filters`: typed list filters rendered on `DataTable` column headers (web) or the
+  mobile **Filters** sheet. `text` filters are case-insensitive contains (`$regex`);
+  `choice` filters support multi-select (`$in`); `ref` stays a single ObjectId. The
+  backend accepts only escaped literal regex patterns and rejects extra nested operators.
 - `fieldsets`: grouped form sections.
 - `readonlyFields` / `hiddenFields`: display-only or omitted form fields.
 - `adminPermissions`: optional admin-specific permission methods.

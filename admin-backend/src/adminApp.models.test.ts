@@ -801,6 +801,40 @@ describe("AdminApp model CRUD routes", () => {
     }
   });
 
+  it("applies declared multi-choice filters through the admin list route", async () => {
+    app = buildApp([
+      {
+        ...foodModelConfig,
+        filters: [
+          {
+            choices: [
+              {label: "Apple", value: "Apple"},
+              {label: "Banana", value: "Banana"},
+              {label: "Carrot", value: "Carrot"},
+            ],
+            field: "name",
+            kind: "choice",
+          },
+        ],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    await FoodModel.create({calories: 120, name: "Apple"});
+    await FoodModel.create({calories: 95, name: "Banana"});
+    await FoodModel.create({calories: 40, name: "Carrot"});
+
+    const query = new URLSearchParams([
+      ["name[$in][0]", "Apple"],
+      ["name[$in][1]", "Banana"],
+    ]).toString();
+    const res = await agent.get(`/admin/foods?${query}`).expect(200);
+
+    expect(res.body.data.map((item: {name: string}) => item.name).sort()).toEqual([
+      "Apple",
+      "Banana",
+    ]);
+  });
+
   it("reads a document via GET /:id", async () => {
     const food = await FoodModel.create({calories: 120, name: "Apple"});
     const res = await adminAgent.get(`/admin/foods/${food._id}`).expect(200);
