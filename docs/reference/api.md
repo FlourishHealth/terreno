@@ -21,6 +21,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- `AuditApp`, `createAuditEventModel`, `persistRbacAuditToAuditEvent`
 - `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
@@ -115,6 +116,41 @@ new TerrenoApp({
 ```
 
 `mcpServiceTokens: true` is `{enabled: true}`. When enabled, TerrenoApp mounts the self-serve routes (passing its OpenAPI bundle) and sets `mcpServiceTokens` on MCP auth. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
+### Audit log (`AuditApp`)
+
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+
+```typescript
+import {
+  AuditApp,
+  persistRbacAuditToAuditEvent,
+  TerrenoApp,
+  modelRouter,
+} from "@terreno/api";
+
+new TerrenoApp({userModel: User})
+  .register(new AuditApp()) // optional {retentionDays: 90}
+  .register(
+    modelRouter("/todos", Todo, {
+      audit: true, // or {redact: ["ssn"]}
+      permissions: {/* ... */},
+    })
+  )
+  .start();
+```
+
+| Surface | How it writes |
+| --- | --- |
+| `modelRouter` | `audit: true` or `{redact?: string[]}` after successful HTTP create/update/delete and array push/update/remove |
+| `AdminApp` | Auto when `AuditApp` is registered (`source: "admin"`). `onAdminAudit` is extra |
+| RBAC | `createAccess({auditSink: persistRbacAuditToAuditEvent})` (`source: "rbac"`) |
+
+HTTP is list+read only: `GET /audit-events` with `Permissions.IsAdmin`. Empty create/update/delete permission arrays mean POST/PATCH/DELETE return **405**, including `/admin/audit-events` (`admin.adminPermissions`). Non-admin list is also **405** (`permissionMiddleware`). There is no `isDeletedPlugin`; rows are not soft-deleted.
+
+`createAuditEventModel(connection, {retentionDays?})` is the factory for tests and scripts. Never audit `AuditEvent` itself. Recorder failures (including serialization) log and leave the mutation 2xx. Secret field names are stripped at every object and array depth.
+
+Default retention is forever (no TTL index). `new AuditApp({retentionDays: n})` for `n > 0` replaces the plugin `{created: 1}` index with `{created: 1, expireAfterSeconds: n * 86400}`. Drop that index yourself if you later remove TTL. Operator steps: [Enable the framework audit log](../how-to/audit-log.md).
 
 ### setupServer (Legacy)
 
@@ -1519,6 +1555,7 @@ SENTRY_DSN=https://...@sentry.io/...
 
 ## Learn more
 
+- [Enable the framework audit log](../how-to/audit-log.md)
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)

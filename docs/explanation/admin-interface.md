@@ -46,7 +46,9 @@ Order in the rail:
 4. **Platform** — Scripts (`/__scripts`), Roles, Version, Audit Log, Feature Flags, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
-operators do not hunt for them among business collections.
+operators do not hunt for them among business collections. The Platform Audit Log
+row is `AuditEvent` when `AuditApp` is registered. `isAuditLogModel` also matches
+legacy `AdminAuditLog`, `audit-log`, and `audit-events` names.
 
 Below 768px the rail becomes a hamburger drawer. The main column is a body-style
 canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and

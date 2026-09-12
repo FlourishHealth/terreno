@@ -32,6 +32,7 @@ src/
   expressServer.ts       # setupServer and middleware stack
   terrenoApp.ts          # TerrenoApp class with register pattern
   rateLimit/             # Opt-in HTTP rate limiting (memory / redis / mongo)
+  audit/                 # Opt-in AuditApp, AuditEvent factory, recorder (no barrel)
   terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
@@ -79,6 +80,16 @@ Verify `req.rawBody` with `hmacSignature` / `stripeSignature` / `twilioSignature
 `sendgridEventSignature`. Do not `JSON.stringify(req.body)`. Do not put webhook POSTs in
 OpenAPI or behind JWT. Do not skip rate-limit paths. Operator guide:
 `docs/how-to/inbound-webhooks.md`.
+
+`AuditApp` is **opt-in**. Register `new AuditApp()` (optional `{retentionDays: n}` for
+`n > 0` TTL on `created`). Importing `@terreno/api` does **not** register `AuditEvent`
+on the default connection — use `createAuditEventModel(connection)` or the plugin.
+Set `audit: true` or `audit: {redact: ["ssn"]}` on `modelRouter` after successful HTTP
+CRUD and array mutations. AdminApp auto-writes when the plugin is registered.
+RBAC uses `persistRbacAuditToAuditEvent` as `createAccess({auditSink})`. HTTP is
+admin list/read at `GET /audit-events`; empty CUD perms are **405**. Never audit
+`AuditEvent`. Writes are best-effort. Default retain forever. Operator guide:
+`docs/how-to/audit-log.md`.
 
 ### setupServer (Legacy)
 
@@ -160,6 +171,9 @@ modelRouter(Model, {
 
   // Response Handling
   responseHandler: (value, method, req, options) => serializedValue,
+
+  // Audit log (requires AuditApp; omit to skip)
+  audit: true, // or {redact: ["ssn"]}
 
   // Custom Routes (registered before CRUD)
   endpoints: (router) => { router.get("/custom", handler); },

@@ -1,8 +1,9 @@
 import * as Sentry from "@sentry/bun";
-import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
 import {
+  AuditApp,
   BetterAuthApp,
   backfillAdmins,
   ConsentApp,
@@ -52,7 +53,6 @@ import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
-import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
@@ -370,6 +370,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
+      .register(new AuditApp())
       .register(new AIAdminApp())
       .register(
         new AdminApp({
@@ -391,36 +392,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             },
             title: "Example administration",
           },
-          models: [
-            mcpServiceTokenAdminModel,
-            {
-              adminAccess: {},
-              displayName: "Audit log",
-              group: "Platform",
-              listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
-              model: AdminAuditLog,
-              pageSize: 50,
-              permissions: {create: false, delete: false, update: false},
-              routePath: "/audit-logs",
-              searchFields: ["modelName", "recordLabel"],
-              sortableFields: ["verb", "modelName", "createdAt"],
-            },
-          ],
-          onAdminAudit: async (event: AdminAuditEvent) => {
-            await AdminAuditLog.create({
-              actorId:
-                event.actorId && mongoose.isValidObjectId(event.actorId)
-                  ? new mongoose.Types.ObjectId(event.actorId)
-                  : undefined,
-              modelName: event.modelName,
-              recordId:
-                event.recordId && mongoose.isValidObjectId(event.recordId)
-                  ? new mongoose.Types.ObjectId(event.recordId)
-                  : undefined,
-              recordLabel: event.recordLabel,
-              verb: event.verb,
-            });
-          },
+          models: [mcpServiceTokenAdminModel],
           scripts: adminScripts,
         })
       )

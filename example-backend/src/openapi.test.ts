@@ -33,6 +33,17 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/admin/todos/{id}"].delete).toBeUndefined();
   });
 
+  it("omits admin AuditEvent create, update, and delete", async () => {
+    const server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+
+    expect(res.body.paths["/admin/audit-events/"].get).toBeDefined();
+    expect(res.body.paths["/admin/audit-events/"].post).toBeUndefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].get).toBeDefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].patch).toBeUndefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].delete).toBeUndefined();
+  });
+
   it("includes admin user routes", async () => {
     const server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);

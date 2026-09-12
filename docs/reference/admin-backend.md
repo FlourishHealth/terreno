@@ -174,6 +174,11 @@ Read and list responses include `_adminCapabilities.update` and
 read-only for records the current user does not own. Script metadata separately exposes run and
 history permissions so a history-only role never receives an enabled Run control.
 
+When `AuditApp` is registered, successful admin POST/PATCH/DELETE persist append-only
+`AuditEvent` rows with `source: "admin"`. `onAdminAudit` is an extra best-effort sink; it is
+not required for the framework log. Failures in either sink do not change the mutation HTTP
+status. `AuditEvent` itself is never audited.
+
 **Important:** Only expose models that should be editable via admin panel. Avoid sensitive internal models.
 
 ## Best Practices
