@@ -113,18 +113,18 @@
     "typedoc": "^0.28.17",
     "typescript": "~6.0.3",
     "winston": "^3.18.3",
-    "zod": "^4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@rtk-query/codegen-openapi": "catalog:",
     "@types/chai": "^5.2.3",
-    "bun-types": "^1.4.0",
+    "bun-types": "^1.4.2",
     "chai": "catalog:",
     "dependency-cruiser": "^18.2.0",
     "knip": "^6.34.0",
     "luxon": "catalog:",
-    "rulesync": "^9.6.3",
+    "rulesync": "^9.8.0",
     "simple-git-hooks": "^2.14.0",
     "ts-node": "^10.9.2",
     "zod": "catalog:"
