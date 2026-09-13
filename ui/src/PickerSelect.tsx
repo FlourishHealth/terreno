@@ -45,6 +45,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
   type TextInputProps,
   TouchableOpacity,
   View,
@@ -171,7 +172,7 @@ export const RNPickerSelect = ({
   const searchable = !disableSearch;
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [webSearchQuery, setWebSearchQuery] = useState("");
-  const webSearchInputRef = useRef<TextInput>(null);
+  const webSearchInputRef = useRef<TextInputInstance>(null);
   const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
