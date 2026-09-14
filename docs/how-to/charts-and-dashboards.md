@@ -32,4 +32,4 @@ export const OpsDashboard: FC = () => {
 
 `DonutChart` ignores `legendLabel` and draws one legend row per slice. Override a slice with `color` on that point.
 
-Charts have no width prop: each one fills the container you put it in and redraws when that width changes, so size the `Card` or `Box` around it. `height` sets the plot height only; a donut draws at `min(containerWidth, height)`. Long x labels truncate inside their band rather than widening the chart.
+Charts have no width prop: each one fills the container you put it in and redraws when that width changes, so size the `Card` or `Box` around it. `height` is the chart's whole height, tick row and tooltip row included, so `height={140}` fits a 140px slot; the tooltip row is always reserved so hovering never reflows the page. Long x labels truncate inside their band rather than widening the chart.

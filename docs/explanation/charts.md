@@ -16,4 +16,8 @@ chart may set its own min-content width, or the container would size to the char
 would size to the container. That is why x tick labels are absolutely positioned on their band
 centers instead of laid out in a row, and why the plot column sets `minWidth: 0`.
 
+Height works the same way: `height` is the whole chart, and the tick row, tooltip row, and legend
+row come out of that budget. A chart therefore fits a fixed-height slot, and reserving the tooltip
+row even when no tooltip is showing keeps hovering from reflowing the page.
+
 `DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.
