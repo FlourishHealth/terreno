@@ -52,7 +52,7 @@ test.describe("notifications", () => {
     await page.getByTestId("notification-view-all-button").click();
 
     await expect(page).toHaveURL(/\/notifications$/);
-    await expect(page.getByText("All notifications")).toBeVisible();
+    await expect(page.getByText("All notifications", {exact: true})).toBeVisible();
     await expect(page.getByTestId("all-notifications-active-list")).toBeVisible();
     await expect(page.getByTestId("all-notifications-archived-list")).toBeVisible();
     await expect(page.getByText("Archived example")).toBeVisible();
