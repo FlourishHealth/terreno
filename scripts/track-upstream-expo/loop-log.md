@@ -11,18 +11,30 @@ Template: `.rulesync/skills/track-upstream-expo/references/loop-log.md`.
 - expoVersion: 58.0.0-preview.0
 - releaseBranch: release-58.0.0
 - loopStatus: open
-- updatedAt: 2026-09-13T12:18:46.000Z
+- updatedAt: 2026-09-14T12:09:18.000Z
 
 ## Next
 
-When TinyBase peers `expo-sqlite ^58`, drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
+When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still peer `^57`), drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
 
 ## Open
 
-- [ ] TinyBase still peers `expo-sqlite ^57` (latest 9.7.1 unchanged); `defaultPersisterFactory.native.ts` casts through `unknown`
+- [ ] TinyBase still peers `expo-sqlite ^57` (latest 9.7.1 and `10.0.0-beta.1` both `expo-sqlite ^57`); `defaultPersisterFactory.native.ts` casts through `unknown`
 - [ ] `mcp-server/src/bootstrap.ts` still scaffolds Expo `~57.0.14` (published `@terreno/*` is still 57.x)
 
 ## Tried (newest first)
+
+### 2026-09-14T12:09:18.000Z — 58.0.0-preview.0
+- Action: After master merge + `bun install`, confirm catalog Expo `58.0.0-preview.0`. `cd example-frontend && bunx expo install --check`. `npm view tinybase@9.7.1` and `tinybase@10.0.0-beta.1` peerDependencies.
+- Result: skipped dropping the TinyBase `unknown` cast (peers still `expo-sqlite ^57`). Native catalog matches Expo 58 `bundledNativeModules.json`.
+- Evidence: `expo install --check` "Dependencies are up to date". TinyBase 9.7.1 peers `expo-sqlite ^57.0.2`; TinyBase `10.0.0-beta.1` peers `expo-sqlite ^57.0.3` / `expo ^57.0.22`. `bun run compile` exit 0; `bun run lint` exit 0; `bun run frontend:lint` exit 0; `bun run ui:test` 2245 pass / 0 fail; `cd example-frontend && bunx expo-doctor` 20/20; `cd demo && bunx expo-doctor` 20/20.
+- Follow-up: see Open
+
+### 2026-09-14T12:02:36.000Z — probe
+- Action: `bun run expo:track-probe` from `origin/master`
+- Result: worked
+- Evidence: exit 0, `action: resume-loop`, `expoVersion: 58.0.0-preview.0`, `releaseBranch: release-58.0.0`, `loopStatus: open`. Merged `origin/master` into `release-58.0.0` (ROADMAP.md).
+- Follow-up: see Open
 
 ### 2026-09-13T12:18:46.000Z — 58.0.0-preview.0
 - Action: Drop `customConditions: ["react-native-legacy-deep-imports"]` from `ui/tsconfig.json` and `admin-frontend/tsconfig.json`. Adopt RN 0.87 generated types (`ViewInstance` / `ScrollViewInstance` / `TextInputInstance`, `DimensionValue` from `react-native`, Readonly `TextStyle`, `ImageErrorEvent`, `TextInput.State.currentlyFocusedInput` with `currentlyFocusedField` fallback). Set `unstable_settings.initialRouteName` on `demo/app/demo/sidebar-navigation/_layout.tsx`.
@@ -94,6 +106,7 @@ When TinyBase peers `expo-sqlite ^58`, drop the `unknown` cast in `syncdb/src/pe
 
 - Bun 1.3.11 nested override object (`"tinybase": { "expo": "58.0.0-preview.0" }`): `warn: Bun currently does not support nested "overrides"`. Wait for Bun 1.4 or a new Expo preview. Global `overrides.expo` / `overrides.expo-sqlite` already pin the tree.
 - pnpm-style `"tinybase>expo"` override keys: `npm explain` fails with `EINVALIDTAGNAME: Invalid tag name "tinybase>expo"`, which made expo-doctor's npm-explain checks error. Removed 2026-09-12.
+- TinyBase `10.0.0-beta.1` still peers `expo-sqlite ^57.0.3` / `expo ^57.0.22`. Do not bump TinyBase to 10 on this train to drop the `unknown` cast. Wait for a 9.x or 10.x that peers `expo-sqlite ^58`.
 
 ## Worked
 
@@ -147,5 +160,5 @@ When TinyBase peers `expo-sqlite ^58`, drop the `unknown` cast in `syncdb/src/pe
 
 - Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0` (`npmTag: next`). Do not merge to master until the loop is `ready`.
 - `mcp-server` app bootstrap still emits Expo 57 until Terreno 58 is cut.
-- TinyBase still declares `expo-sqlite ^57`.
+- TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.1`).
 - example-frontend / demo `expo.doctor.reactNativeDirectoryCheck.exclude`: `@react-native-community/blur`.
