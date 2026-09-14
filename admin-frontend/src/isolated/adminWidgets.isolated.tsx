@@ -94,7 +94,7 @@ describe("admin home and screen widgets", () => {
     const {getByText} = renderWithTheme(
       <RecentActivityWidget api={makeExplorerApi()} models={[]} routeBase="/admin" />
     );
-    expect(getByText(/Register an AdminAuditLog/)).toBeDefined();
+    expect(getByText(/Register AuditApp \(or an AdminAuditLog model\)/)).toBeDefined();
   });
 
   it("renders audit rows when an audit model is present", () => {
