@@ -364,7 +364,7 @@ before creating one review-queue item per trace. When local trace storage is on,
 opens the resulting detail: two schema-validated LLM stages, one deterministic tool span, and a
 final schema-validated combining LLM stage under one CHAIN root. LLM span input includes
 `outputSchema`. Rows show a status dot (primary for successful runs, accent for failed runs),
-`sensitive` badge, error line, `N prompts`, span count, tokens, cost, latency, score count, and
+`sensitive` badge, error line, numeric prompt count, span count, tokens, cost, latency, score count, and
 **Open**. Pagination uses `page` / `limit` / `more` / `total`.
 `ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),
 right span detail with **collapsed** sensitive I/O, and scores (value + source).

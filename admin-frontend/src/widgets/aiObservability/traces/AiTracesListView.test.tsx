@@ -158,7 +158,7 @@ describe("AiTracesListView", () => {
       />
     );
     expect(getByText("model timeout")).toBeTruthy();
-    expect(getByText("2 prompts")).toBeTruthy();
+    expect(getByText("2")).toBeTruthy();
     expect(getByText("failed-call")).toBeTruthy();
   });
 
