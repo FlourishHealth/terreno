@@ -61,8 +61,9 @@ test.describe("notifications", () => {
     await expect(page).toHaveURL(/\/notifications$/);
     await expect(page.getByText("All notifications", {exact: true})).toBeVisible();
     await expect(page.getByTestId("all-notifications-active-list")).toBeVisible();
-    await expect(page.getByTestId("all-notifications-archived-list")).toBeVisible();
-    await expect(page.getByText("Terreno test notification")).toBeVisible();
-    await expect(page.getByText("Archived", {exact: true})).toBeVisible();
+    const archivedList = page.getByTestId("all-notifications-archived-list");
+    await expect(archivedList).toBeVisible();
+    await expect(archivedList.getByText("Terreno test notification").first()).toBeVisible();
+    await expect(archivedList.getByText("Archived", {exact: true}).first()).toBeVisible();
   });
 });
