@@ -593,6 +593,24 @@
   },
   {
     "type": "module",
+    "from": "api/src/types/notification.ts",
+    "to": "api/src/types/notification.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
+    "from": "api/src/types/notificationPreference.ts",
+    "to": "api/src/types/notificationPreference.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
     "from": "comms/src/modelTypes.ts",
     "to": "comms/src/modelTypes.ts",
     "rule": {

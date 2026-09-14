@@ -53,7 +53,27 @@ export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
 export * from "./models/mcpServiceToken";
+export * from "./models/notification";
+export * from "./models/notificationPreference";
 export * from "./models/versionConfig";
+export {
+  configureNotificationService,
+  createNotificationService,
+  getNotificationService,
+  type NotificationService,
+  type NotificationServiceOptions,
+  type NotificationsCommsService,
+} from "./notifications/notificationService";
+export {
+  NotificationsApp,
+  type NotificationsAppOptions,
+} from "./notifications/notificationsApp";
+export {
+  type NotificationsBeforeSendChannel,
+  type NotificationsBeforeSendContext,
+  type NotificationsBeforeSendResult,
+  notificationsBeforeSend,
+} from "./notifications/notificationsBeforeSend";
 export * from "./notifiers/googleChatNotifier";
 export * from "./notifiers/slackNotifier";
 export * from "./notifiers/zoomNotifier";

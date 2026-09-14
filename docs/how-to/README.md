@@ -33,6 +33,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Upgrade Terreno](upgrade-terreno.md) — Lockstep `@terreno/*` bumps, note range, order, rollback
 - [Track upstream Expo](track-upstream-expo.md) — Morning probe for SDK betas; `release-X.Y.Z` loop log + native fingerprint deps
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
+- [In-app notifications](in-app-notifications.md) — Register `NotificationsApp`, syncdb inbox, and UI bell
 
 ## Admin
 

@@ -20,6 +20,7 @@
       "!!coverage",
       "!!**/generated",
       "!!generated",
+      "!!expo-env.d.ts",
       "!!**/.git"
     ]
   },
@@ -33,7 +34,7 @@
   },
   "overrides": [
     {
-      "includes": ["store/openApiSdk.ts", "store/commsOpenApiSdk.ts"],
+      "includes": ["store/openApiSdk.ts", "store/commsOpenApiSdk.ts", "store/syncDbSdk.ts"],
       "linter": {
         "rules": {
           "complexity": {

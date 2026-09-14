@@ -712,6 +712,66 @@ describe("CommsService", () => {
     assert.equal(result.loggedMessageId, String(row._id));
   });
 
+  it("passes the send option userId to mail and SMS beforeSend hooks", async (): Promise<void> => {
+    const seenUserIds: Array<string | undefined> = [];
+    const mailUserId = new mongoose.Types.ObjectId();
+    const smsUserId = new mongoose.Types.ObjectId();
+    const service = new CommsService({
+      beforeSend: async (context): Promise<undefined> => {
+        seenUserIds.push(context.userId);
+        return undefined;
+      },
+      mail: {
+        id: "user-aware-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      sms: {
+        id: "user-aware-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"}, {userId: mailUserId});
+    await service.sendSms({body: "Hello", to: "+15555550100"}, {userId: smsUserId});
+
+    assert.deepEqual(seenUserIds, [String(mailUserId), String(smsUserId)]);
+    const mailLog = await CommsMessage.findExactlyOne({channel: "mail"});
+    const smsLog = await CommsMessage.findExactlyOne({channel: "sms"});
+    assert.equal(String(mailLog.userId), String(mailUserId));
+    assert.equal(String(smsLog.userId), String(smsUserId));
+  });
+
+  it("preserves the original userId when retrying mail", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    const seenUserIds: Array<string | undefined> = [];
+    const service = new CommsService({
+      beforeSend: async (context): Promise<undefined> => {
+        seenUserIds.push(context.userId);
+        return undefined;
+      },
+      mail: {
+        id: "retry-user-aware-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+    const original = await CommsMessage.create({
+      channel: "mail",
+      payload: {subject: "Retry me", to: "person@example.com"},
+      payloadExpiresAt: DateTime.utc().plus({days: 1}).toJSDate(),
+      provider: "retry-user-aware-mail",
+      status: "failed",
+      subject: "Retry me",
+      to: "person@example.com",
+      userId,
+    });
+
+    await service.retryMessage({messageId: String(original._id)});
+
+    assert.deepEqual(seenUserIds, [String(userId)]);
+    const retried = await CommsMessage.findExactlyOne({retriedFromId: original._id});
+    assert.equal(String(retried.userId), String(userId));
+  });
+
   it("attaches loggedMessageId when beforeSend cancels a push send", async (): Promise<void> => {
     const userId = new mongoose.Types.ObjectId();
     await PushToken.upsert(

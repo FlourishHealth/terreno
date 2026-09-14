@@ -16,6 +16,7 @@ import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {NotificationCenter} from "@/components/NotificationCenter";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -389,11 +390,16 @@ const SyncTodosScreen: React.FC = () => {
     (): React.ReactElement => (
       <Box>
         <SyncDevPanel />
+        <Box alignItems="center" direction="row" justifyContent="between" marginBottom={6}>
+          <Box flex="grow">
+            <Heading size="xl">My Todos</Heading>
+            <Text color="secondaryLight" size="sm">
+              Local-first via @terreno/syncdb
+            </Text>
+          </Box>
+          <NotificationCenter />
+        </Box>
         <Box marginBottom={6}>
-          <Heading size="xl">My Todos</Heading>
-          <Text color="secondaryLight" size="sm">
-            Local-first via @terreno/syncdb
-          </Text>
           <Text color="secondaryLight" size="sm" testID="todos-count">
             {totalCount}
           </Text>

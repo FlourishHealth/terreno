@@ -28,6 +28,7 @@ import {MarkdownEditorFieldConfiguration} from "@story-config/MarkdownEditorFiel
 import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
 import {ModalConfiguration} from "@story-config/Modal.config";
 import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
+import {NotificationCenterConfiguration} from "@story-config/NotificationCenter.config";
 import {NumberFieldConfiguration} from "@story-config/NumberField.config";
 import {PageConfiguration} from "@story-config/Page.config";
 import {PaginationConfiguration} from "@story-config/Pagination.config";
@@ -257,6 +258,7 @@ const Config: DemoConfigurationBase[] = [
   // FilteredItemConfiguration,
   // MessageConfiguration,
   ModalConfiguration,
+  NotificationCenterConfiguration,
   MultiselectFieldConfiguration,
   NumberFieldConfiguration,
   OpenAPIContextConfiguration,

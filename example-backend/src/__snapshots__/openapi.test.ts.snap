@@ -12046,6 +12046,1589 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/notification-preferences/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user these preferences belong to",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "description": "The document id (string so offline sync clients can mint ids)",
+                            "type": "string",
+                          },
+                          "_syncPrevStream": {
+                            "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                            "type": "string",
+                          },
+                          "_syncSeq": {
+                            "description": "Monotonic per-stream sequence stamped on every synced write",
+                            "type": "number",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "inapp": {
+                            "description": "Whether in-app inbox rows are created for this user",
+                            "type": "boolean",
+                          },
+                          "mail": {
+                            "description": "Whether outbound email is sent for notifications",
+                            "type": "boolean",
+                          },
+                          "ownerId": {
+                            "description": "The user these preferences belong to",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "push": {
+                            "description": "Whether push notifications are sent for this user",
+                            "type": "boolean",
+                          },
+                          "sms": {
+                            "description": "Whether SMS messages are sent for this user",
+                            "type": "boolean",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "ownerId",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notificationpreferences",
+        ],
+        "x-terreno-sync": {
+          "collection": "notification-preferences",
+          "scope": "owner",
+        },
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "description": "The document id (string so offline sync clients can mint ids)",
+                    "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "inapp": {
+                    "description": "Whether in-app inbox rows are created for this user",
+                    "type": "boolean",
+                  },
+                  "mail": {
+                    "description": "Whether outbound email is sent for notifications",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user these preferences belong to",
+                    "format": "objectid",
+                    "type": "string",
+                  },
+                  "push": {
+                    "description": "Whether push notifications are sent for this user",
+                    "type": "boolean",
+                  },
+                  "sms": {
+                    "description": "Whether SMS messages are sent for this user",
+                    "type": "boolean",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (string so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "inapp": {
+                      "description": "Whether in-app inbox rows are created for this user",
+                      "type": "boolean",
+                    },
+                    "mail": {
+                      "description": "Whether outbound email is sent for notifications",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user these preferences belong to",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "push": {
+                      "description": "Whether push notifications are sent for this user",
+                      "type": "boolean",
+                    },
+                    "sms": {
+                      "description": "Whether SMS messages are sent for this user",
+                      "type": "boolean",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notificationpreferences",
+        ],
+      },
+    },
+    "/notification-preferences/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notificationpreferences",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (string so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "inapp": {
+                      "description": "Whether in-app inbox rows are created for this user",
+                      "type": "boolean",
+                    },
+                    "mail": {
+                      "description": "Whether outbound email is sent for notifications",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user these preferences belong to",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "push": {
+                      "description": "Whether push notifications are sent for this user",
+                      "type": "boolean",
+                    },
+                    "sms": {
+                      "description": "Whether SMS messages are sent for this user",
+                      "type": "boolean",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notificationpreferences",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "description": "The document id (string so offline sync clients can mint ids)",
+                    "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "inapp": {
+                    "description": "Whether in-app inbox rows are created for this user",
+                    "type": "boolean",
+                  },
+                  "mail": {
+                    "description": "Whether outbound email is sent for notifications",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user these preferences belong to",
+                    "format": "objectid",
+                    "type": "string",
+                  },
+                  "push": {
+                    "description": "Whether push notifications are sent for this user",
+                    "type": "boolean",
+                  },
+                  "sms": {
+                    "description": "Whether SMS messages are sent for this user",
+                    "type": "boolean",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (string so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "inapp": {
+                      "description": "Whether in-app inbox rows are created for this user",
+                      "type": "boolean",
+                    },
+                    "mail": {
+                      "description": "Whether outbound email is sent for notifications",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user these preferences belong to",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "push": {
+                      "description": "Whether push notifications are sent for this user",
+                      "type": "boolean",
+                    },
+                    "sms": {
+                      "description": "Whether SMS messages are sent for this user",
+                      "type": "boolean",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notificationpreferences",
+        ],
+      },
+    },
+    "/notifications/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who owns this inbox row",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "readAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the owner marked this notification as read; null means unread",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Optional category string used for icons or grouping in the UI",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "description": "The document id (string so offline sync clients can mint ids)",
+                            "type": "string",
+                          },
+                          "_syncPrevStream": {
+                            "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                            "type": "string",
+                          },
+                          "_syncSeq": {
+                            "description": "Monotonic per-stream sequence stamped on every synced write",
+                            "type": "number",
+                          },
+                          "body": {
+                            "description": "Main notification message text shown in the inbox",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "href": {
+                            "description": "Optional deep link or in-app route opened when the user taps the notification",
+                            "type": "string",
+                          },
+                          "kind": {
+                            "description": "Optional category string used for icons or grouping in the UI",
+                            "type": "string",
+                          },
+                          "ownerId": {
+                            "description": "The user who owns this inbox row",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "readAt": {
+                            "description": "When the owner marked this notification as read; null means unread",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "title": {
+                            "description": "Short headline shown in the inbox list",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "body",
+                          "ownerId",
+                          "title",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notifications",
+        ],
+        "x-terreno-sync": {
+          "collection": "notifications",
+          "scope": "owner",
+        },
+      },
+    },
+    "/notifications/dev/notify": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "body": {
+                    "type": "string",
+                  },
+                  "href": {
+                    "type": "string",
+                  },
+                  "kind": {
+                    "type": "string",
+                  },
+                  "title": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "notificationId": {
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Send a development test notification to the current user",
+        "tags": [
+          "notifications",
+        ],
+      },
+    },
+    "/notifications/mark-all-read": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "modified": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Mark all of the caller's unread notifications as read",
+        "tags": [
+          "notifications",
+        ],
+      },
+    },
+    "/notifications/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notifications",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (string so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "body": {
+                      "description": "Main notification message text shown in the inbox",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "href": {
+                      "description": "Optional deep link or in-app route opened when the user taps the notification",
+                      "type": "string",
+                    },
+                    "kind": {
+                      "description": "Optional category string used for icons or grouping in the UI",
+                      "type": "string",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this inbox row",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "readAt": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Short headline shown in the inbox list",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "ownerId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notifications",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "description": "The document id (string so offline sync clients can mint ids)",
+                    "type": "string",
+                  },
+                  "_syncPrevStream": {
+                    "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                    "type": "string",
+                  },
+                  "_syncSeq": {
+                    "description": "Monotonic per-stream sequence stamped on every synced write",
+                    "type": "number",
+                  },
+                  "body": {
+                    "description": "Main notification message text shown in the inbox",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "href": {
+                    "description": "Optional deep link or in-app route opened when the user taps the notification",
+                    "type": "string",
+                  },
+                  "kind": {
+                    "description": "Optional category string used for icons or grouping in the UI",
+                    "type": "string",
+                  },
+                  "ownerId": {
+                    "description": "The user who owns this inbox row",
+                    "format": "objectid",
+                    "type": "string",
+                  },
+                  "readAt": {
+                    "description": "When the owner marked this notification as read; null means unread",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "Short headline shown in the inbox list",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "description": "The document id (string so offline sync clients can mint ids)",
+                      "type": "string",
+                    },
+                    "_syncPrevStream": {
+                      "description": "The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it",
+                      "type": "string",
+                    },
+                    "_syncSeq": {
+                      "description": "Monotonic per-stream sequence stamped on every synced write",
+                      "type": "number",
+                    },
+                    "body": {
+                      "description": "Main notification message text shown in the inbox",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "href": {
+                      "description": "Optional deep link or in-app route opened when the user taps the notification",
+                      "type": "string",
+                    },
+                    "kind": {
+                      "description": "Optional category string used for icons or grouping in the UI",
+                      "type": "string",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this inbox row",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "readAt": {
+                      "description": "When the owner marked this notification as read; null means unread",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Short headline shown in the inbox list",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "ownerId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "notifications",
+        ],
+      },
+    },
     "/projects/": {
       "get": {
         "parameters": [
