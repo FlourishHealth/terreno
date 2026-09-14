@@ -49,7 +49,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
   }, []);
 
   return (
-    <Box direction="row" gap={gap} onLayout={handleLayout} testID={testID} wrap>
+    <Box direction="row" gap={gap} onLayout={handleLayout} testID={testID} width="100%" wrap>
       {Children.map(children, (child: ReactNode, index: number) => (
         <Box
           dangerouslySetInlineStyle={{

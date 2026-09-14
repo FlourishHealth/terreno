@@ -15,19 +15,29 @@ describe("getDashboardCellWidth", () => {
       getDashboardCellWidth({
         columnCount: 3,
         gapPx: 16,
-        rowWidth: 332,
+        rowWidth: 333,
       })
     ).toBe(100);
+  });
+
+  it("leaves a pixel of slack when the columns would exactly consume the measured row", () => {
+    const columnCount = 3;
+    const gapPx = 16;
+    const rowWidth = 332;
+    const width = getDashboardCellWidth({columnCount, gapPx, rowWidth});
+
+    expect(width).toBe(99);
+    expect(width * columnCount + gapPx * (columnCount - 1)).toBeLessThan(rowWidth);
   });
 
   it("floors fractional widths so the row still fits every column", () => {
     const columnCount = 3;
     const gapPx = 16;
-    const rowWidth = 333;
+    const rowWidth = 334;
     const width = getDashboardCellWidth({columnCount, gapPx, rowWidth});
 
     expect(width).toBe(100);
-    expect(width * columnCount + gapPx * (columnCount - 1)).toBeLessThanOrEqual(rowWidth);
+    expect(width * columnCount + gapPx * (columnCount - 1)).toBeLessThan(rowWidth);
   });
 
   it("uses the full row width for a single column", () => {

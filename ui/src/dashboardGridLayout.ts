@@ -25,9 +25,12 @@ export const getDashboardCellWidth = ({
   }
 
   // Floor to whole pixels so columnCount cells plus their gaps can never exceed rowWidth once
-  // the browser or Yoga snaps subpixel values, which would wrap the last tile.
+  // the browser or Yoga snaps subpixel values, which would wrap the last tile. An exact fit is
+  // still unsafe: onLayout rounds a fractional row up, so give the row a pixel of slack.
   const gapTotal = gapPx * (columnCount - 1);
-  return Math.max(Math.floor((rowWidth - gapTotal) / columnCount), 0);
+  const width = Math.floor((rowWidth - gapTotal) / columnCount);
+  const fitsWithSlack = width * columnCount + gapTotal < rowWidth;
+  return Math.max(fitsWithSlack ? width : width - 1, 0);
 };
 
 /**
