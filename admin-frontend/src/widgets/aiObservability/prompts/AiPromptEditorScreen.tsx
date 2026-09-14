@@ -3,7 +3,9 @@ import {useLocalSearchParams} from "expo-router";
 import React, {useCallback, useMemo, useState} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
+import {unwrapObservabilityStatus} from "../shell/aiObservabilityNav";
 import {AiPromptEditorView} from "./AiPromptEditorView";
+import {resolvePlaygroundBlockedMessage, resolvePlaygroundRunError} from "./playgroundAccess";
 import {
   latestVersionFromDetail,
   type PlaygroundRunResult,
@@ -14,24 +16,27 @@ import {useAiObservabilityPromptsApi} from "./useAiObservabilityPromptsApi";
 
 export interface AiPromptEditorScreenWidgetProps extends AdminScreenWidgetProps {
   apiKey?: string;
+  /** When true, the host is still reading a saved API key (for example from AsyncStorage). */
+  apiKeyLoading?: boolean;
+  /** Shown when the backend expects `x-ai-api-key` and no key is available yet. */
+  playgroundApiKeyHint?: string;
 }
 
-const apiErrorTitle = (error: unknown): string | undefined => {
-  if (!error || typeof error !== "object" || !("data" in error)) {
-    return undefined;
-  }
-  return (error as {data?: {title?: string}}).data?.title;
-};
-
 export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProps> = (props) => {
-  const {apiKey} = props;
+  const {apiKey, apiKeyLoading = false, playgroundApiKeyHint} = props;
   const {api, routeBase} = props;
   const params = useLocalSearchParams<{name?: string | string[]}>();
   const nameParam = params.name;
   const name = Array.isArray(nameParam) ? nameParam[0] : nameParam;
-  const {useCreateVersionMutation, useDetailQuery, usePlaygroundMutation, useSetLabelMutation} =
-    useAiObservabilityPromptsApi(api);
+  const {
+    useCreateVersionMutation,
+    useDetailQuery,
+    usePlaygroundMutation,
+    useSetLabelMutation,
+    useStatusQuery,
+  } = useAiObservabilityPromptsApi(api);
   const {data, isError, isLoading, refetch} = useDetailQuery(name ?? "", {skip: !name});
+  const statusQuery = useStatusQuery();
   const [createVersion, createState] = useCreateVersionMutation();
   const [setLabel, labelState] = useSetLabelMutation();
   const [runPlayground, playgroundState] = usePlaygroundMutation();
@@ -69,17 +74,42 @@ export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProp
     [name, setLabel]
   );
 
+  const observabilityStatus = useMemo(
+    () => unwrapObservabilityStatus(statusQuery.data),
+    [statusQuery.data]
+  );
+  const playgroundAiSource = observabilityStatus?.playgroundAi?.source;
+  const isPlaygroundAccessLoading = apiKeyLoading || statusQuery.isLoading;
+  const playgroundBlockedMessage = useMemo(
+    () =>
+      resolvePlaygroundBlockedMessage({
+        apiKey,
+        apiKeyHint: playgroundApiKeyHint,
+        apiKeyLoading: isPlaygroundAccessLoading,
+        playgroundAiSource,
+      }),
+    [apiKey, isPlaygroundAccessLoading, playgroundAiSource, playgroundApiKeyHint]
+  );
+
   const handleRunPlayground = useCallback(
     async (variables: Record<string, string>): Promise<void> => {
-      if (!name) {
+      if (!name || playgroundBlockedMessage) {
         return;
       }
       await runPlayground({apiKey, name, variables, version}).unwrap();
     },
-    [apiKey, name, runPlayground, version]
+    [apiKey, name, playgroundBlockedMessage, runPlayground, version]
   );
 
   const playgroundResult = unwrapPromptPayload<PlaygroundRunResult>(playgroundState.data);
+  const playgroundError = playgroundState.isError
+    ? resolvePlaygroundRunError({
+        apiKey,
+        apiKeyHint: playgroundApiKeyHint,
+        error: playgroundState.error,
+        playgroundAiSource,
+      })
+    : undefined;
 
   if (!name) {
     return (
@@ -116,6 +146,7 @@ export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProp
     <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-prompt-editor">
       <AiPromptEditorView
         detail={detail}
+        isApiKeyLoading={isPlaygroundAccessLoading}
         isRunningPlayground={playgroundState.isLoading}
         isSaving={createState.isLoading}
         isSettingProduction={labelState.isLoading}
@@ -123,12 +154,8 @@ export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProp
         onSaveVersion={handleSaveVersion}
         onSelectVersion={setSelectedVersion}
         onSetProduction={handleSetProduction}
-        playgroundError={
-          playgroundState.isError
-            ? (apiErrorTitle(playgroundState.error) ??
-              "Playground run failed. Configure an AI service or API key.")
-            : undefined
-        }
+        playgroundBlockedMessage={playgroundBlockedMessage}
+        playgroundError={playgroundError}
         playgroundResult={playgroundResult}
         productionError={labelState.isError ? "Could not set production." : undefined}
         saveError={createState.isError ? "Could not save a new version." : undefined}

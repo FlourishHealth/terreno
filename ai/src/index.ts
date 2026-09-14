@@ -57,8 +57,14 @@ export {
 export type {
   ObservabilityPluginStatus,
   ObservabilityStatus,
+  PlaygroundAiSource,
+  PlaygroundAiStatus,
 } from "./observability/status";
-export {buildObservabilityStatus, isLocalObservabilityPluginOn} from "./observability/status";
+export {
+  buildObservabilityStatus,
+  buildPlaygroundAiStatus,
+  isLocalObservabilityPluginOn,
+} from "./observability/status";
 export type {
   ControlPrimary,
   ObservabilityAiServiceFactory,

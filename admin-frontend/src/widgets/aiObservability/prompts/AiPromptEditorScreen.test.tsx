@@ -17,6 +17,7 @@ import {AiPromptEditorScreenWidget} from "./AiPromptEditorScreen";
 
 const statusData = {
   localOn: true,
+  playgroundAi: {source: "request-key" as const},
   plugins: [],
   primaries: {
     datasets: "local",
@@ -143,6 +144,41 @@ describe("AiPromptEditorScreenWidget", () => {
     expect(loaded.getByTestId("ai-prompt-playground")).toBeTruthy();
   });
 
+  it("blocks playground runs until a request key is available", () => {
+    runPlayground.mockClear();
+    playgroundMutationState.data = undefined;
+    detailState.data = detail;
+    const view = renderWithTheme(
+      <AiPromptEditorScreenWidget
+        {...widgetProps}
+        playgroundApiKeyHint="Save a Gemini API key on Profile."
+      />
+    );
+    fireEvent.press(view.getByText("Playground"));
+    expect(view.getByTestId("ai-prompt-playground-blocked")).toHaveTextContent(
+      "Save a Gemini API key on Profile."
+    );
+    fireEvent.press(view.getByTestId("ai-prompt-run-once"));
+    assert.equal(runPlayground.mock.calls.length, 0);
+  });
+
+  it("waits for async key loading before blocking or running", () => {
+    runPlayground.mockClear();
+    detailState.data = detail;
+    const loading = renderWithTheme(
+      <AiPromptEditorScreenWidget {...widgetProps} apiKeyLoading={true} />
+    );
+    fireEvent.press(loading.getByText("Playground"));
+    expect(loading.getByTestId("ai-prompt-run-once")).toHaveTextContent("Loading API key…");
+    loading.unmount();
+
+    const ready = renderWithTheme(
+      <AiPromptEditorScreenWidget {...widgetProps} apiKey="saved-key" />
+    );
+    fireEvent.press(ready.getByText("Playground"));
+    expect(ready.queryByTestId("ai-prompt-playground-blocked")).toBeNull();
+  });
+
   it("runs playground once with template variables", async () => {
     runPlayground.mockClear();
     playgroundMutationState.data = undefined;
@@ -219,13 +255,40 @@ describe("AiPromptEditorScreenWidget", () => {
     playgroundMutationState.isError = true;
     detailState.data = detail;
     detailState.isError = false;
-    const view = renderWithTheme(<AiPromptEditorScreenWidget {...widgetProps} />);
+    const view = renderWithTheme(
+      <AiPromptEditorScreenWidget {...widgetProps} apiKey="saved-key" />
+    );
     expect(view.getByText("Could not save a new version.")).toBeTruthy();
     expect(view.getByText("Could not set production.")).toBeTruthy();
     fireEvent.press(view.getByText("Playground"));
     expect(view.getByText("Provide an AI API key.")).toBeTruthy();
     createVersionShouldFail = false;
     labelShouldFail = false;
+    playgroundMutationState.error = undefined;
+    playgroundMutationState.isError = false;
+  });
+
+  it("prefers the host hint over a stale missing-key 503 when status is request-key", () => {
+    playgroundMutationState.data = undefined;
+    playgroundMutationState.error = {
+      data: {
+        title:
+          "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.",
+      },
+    };
+    playgroundMutationState.isError = true;
+    detailState.data = detail;
+    const view = renderWithTheme(
+      <AiPromptEditorScreenWidget
+        {...widgetProps}
+        playgroundApiKeyHint="Save a Gemini API key on Profile."
+      />
+    );
+    fireEvent.press(view.getByText("Playground"));
+    expect(view.getByTestId("ai-prompt-playground-blocked")).toHaveTextContent(
+      "Save a Gemini API key on Profile."
+    );
+    expect(view.queryByTestId("ai-prompt-run-error")).toBeNull();
     playgroundMutationState.error = undefined;
     playgroundMutationState.isError = false;
   });

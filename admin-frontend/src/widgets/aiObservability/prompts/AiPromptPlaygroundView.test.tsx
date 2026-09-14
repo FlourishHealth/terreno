@@ -61,6 +61,49 @@ describe("AiPromptPlaygroundView", () => {
     expect(view.getByText("compiled")).toBeTruthy();
   });
 
+  it("shows blocked guidance and disables run while loading or blocked", async () => {
+    const onRun = mock(async () => undefined);
+    const blocked = renderWithTheme(
+      <AiPromptPlaygroundView
+        blockedMessage="Save a Gemini API key on Profile."
+        detail={detail}
+        isRunning={false}
+        onRun={onRun}
+        result={undefined}
+        runError={undefined}
+        selectedVersion={detail.versions[0]!}
+      />
+    );
+    expect(blocked.getByTestId("ai-prompt-playground-blocked")).toHaveTextContent(
+      "Save a Gemini API key on Profile."
+    );
+    await act(async () => {
+      fireEvent.press(blocked.getByTestId("ai-prompt-run-once"));
+      await Promise.resolve();
+    });
+    assert.equal(onRun.mock.calls.length, 0);
+    blocked.unmount();
+
+    onRun.mockClear();
+    const loading = renderWithTheme(
+      <AiPromptPlaygroundView
+        detail={detail}
+        isApiKeyLoading={true}
+        isRunning={false}
+        onRun={onRun}
+        result={undefined}
+        runError={undefined}
+        selectedVersion={detail.versions[0]!}
+      />
+    );
+    expect(loading.getByTestId("ai-prompt-run-once")).toHaveTextContent("Loading API key…");
+    await act(async () => {
+      fireEvent.press(loading.getByTestId("ai-prompt-run-once"));
+      await Promise.resolve();
+    });
+    assert.equal(onRun.mock.calls.length, 0);
+  });
+
   it("shows run errors and empty-variable guidance", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiPromptPlaygroundView

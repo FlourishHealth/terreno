@@ -9,6 +9,7 @@ const CREATE_KEY = "createAiObservabilityPrompt";
 const VERSION_KEY = "createAiObservabilityPromptVersion";
 const LABEL_KEY = "moveAiObservabilityPromptLabel";
 const PLAYGROUND_KEY = "runAiObservabilityPlayground";
+const STATUS_KEY = "aiObservabilityStatus";
 
 export interface CreatePromptBody {
   config?: Record<string, unknown>;
@@ -115,6 +116,12 @@ const createPromptsApi = (api: AdminApi) => {
           url: `/ai/observability/prompts/${encodeURIComponent(name)}/playground`,
         }),
       }),
+      [STATUS_KEY]: build.query({
+        query: () => ({
+          method: "GET",
+          url: "/ai/observability/status",
+        }),
+      }),
     }),
     overrideExisting: true,
   });
@@ -166,5 +173,10 @@ export const useAiObservabilityPromptsApi = (api: AdminApi) => {
       (body: SetLabelBody) => {unwrap: () => Promise<MoveLabelResult>},
       {error?: unknown; isError: boolean; isLoading: boolean},
     ],
+    useStatusQuery: hooks.useAiObservabilityStatusQuery as () => {
+      data?: unknown;
+      isError: boolean;
+      isLoading: boolean;
+    },
   };
 };

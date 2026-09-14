@@ -162,6 +162,30 @@ describe("AiTracesListView", () => {
     expect(getByText("failed-call")).toBeTruthy();
   });
 
+  it("uses distinct primary and accent colors for prompt-run status dots", () => {
+    const {getByLabelText, getByTestId} = renderWithTheme(
+      <AiTracesListView
+        {...datasetDefaults}
+        evaluatorId=""
+        evaluators={[]}
+        filters={emptyTraceFilters()}
+        page={1}
+        selectedIds={[]}
+        total={2}
+        traces={[okTrace, errorTrace]}
+        {...idleHandlers}
+      />
+    );
+    const primaryDotColor = getByTestId("ai-traces-status-ok").props.style.backgroundColor;
+    const accentDotColor = getByTestId("ai-traces-status-error").props.style.backgroundColor;
+
+    assert.isString(primaryDotColor);
+    assert.isString(accentDotColor);
+    assert.notEqual(primaryDotColor, accentDotColor);
+    expect(getByLabelText("Trace status: ok")).toBeTruthy();
+    expect(getByLabelText("Trace status: error")).toBeTruthy();
+  });
+
   it("renders a sensitive badge on sensitive traces", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AiTracesListView

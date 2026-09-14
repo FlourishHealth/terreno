@@ -13,6 +13,7 @@ import {
   Spinner,
   Text,
   TextField,
+  useTheme,
 } from "@terreno/ui";
 import React, {useCallback, useMemo} from "react";
 import {
@@ -72,6 +73,7 @@ export interface AiTracesListViewProps {
   isEnqueueing?: boolean;
   isLoading?: boolean;
   isRunningMultiStage?: boolean;
+  loadError?: string;
   more?: boolean;
   multiStageError?: string;
   onAddToDataset: () => void;
@@ -99,15 +101,22 @@ export interface AiTracesListViewProps {
   traces: TraceListItem[];
 }
 
-const StatusDot: React.FC<{cellData: DataTableCellData}> = ({cellData}) => (
-  <Box alignItems="center" justifyContent="center">
-    <Badge
-      status={cellData.value === "error" ? "error" : "success"}
-      testID={`ai-traces-status-${String(cellData.value)}`}
-      variant="status"
-    />
-  </Box>
-);
+const StatusDot: React.FC<{cellData: DataTableCellData}> = ({cellData}) => {
+  const {theme} = useTheme();
+  const status = String(cellData.value);
+  const dotColor = status === "error" ? theme.text.accent : theme.surface.primary;
+
+  return (
+    <Box accessibilityLabel={`Trace status: ${status}`} alignItems="center" justifyContent="center">
+      <Badge
+        customBackgroundColor={dotColor}
+        status="custom"
+        testID={`ai-traces-status-${status}`}
+        variant="status"
+      />
+    </Box>
+  );
+};
 
 export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   addToDatasetError,
@@ -122,6 +131,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   isEnqueueing,
   isLoading,
   isRunningMultiStage,
+  loadError,
   more,
   multiStageError,
   onAddToDataset,
@@ -385,7 +395,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
           />
         </Box>
       ) : undefined}
-      {enqueueError ? <Text color="error">{enqueueError}</Text> : undefined}
+      {loadError ? <Text color="error">{loadError}</Text> : undefined}
       {addToDatasetError ? (
         <Text color="error" testID="ai-traces-add-dataset-error">
           {addToDatasetError}
@@ -401,6 +411,11 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
             A human evaluator defines the score fields and reviewer instructions. Each selected
             trace becomes one queue item; submitted scores are written back to that trace.
           </Text>
+          {enqueueError ? (
+            <Text color="error" testID="ai-traces-review-error">
+              {enqueueError}
+            </Text>
+          ) : undefined}
           {evaluators.length > 0 ? (
             <SelectField
               helperText="Choose the scorecard reviewers will complete for every selected trace."

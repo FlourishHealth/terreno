@@ -2,6 +2,9 @@ import type {AdminBreadcrumbSegment} from "../../../AdminBreadcrumbs";
 
 export interface ObservabilityStatusPayload {
   localOn: boolean;
+  playgroundAi?: {
+    source: "request-key" | "server" | "unavailable";
+  };
   plugins: {capabilities: string[]; id: string}[];
   primaries: {
     datasets: string;

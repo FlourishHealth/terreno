@@ -13,9 +13,19 @@ import {ADMIN_ROUTE} from "@/constants/adminConstants";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import SyncLabScreen from "./SyncLabScreen";
 
+const PLAYGROUND_GEMINI_KEY_HINT =
+  "Save a Gemini API key on the Profile tab, then return here to run the playground.";
+
 const ExamplePromptEditorScreen: React.FC<AdminScreenWidgetProps> = (props) => {
-  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
-  return <AiPromptEditorScreenWidget {...props} apiKey={geminiApiKey || undefined} />;
+  const [geminiApiKey, , isGeminiApiKeyLoading] = useStoredState<string>("geminiApiKey", "");
+  return (
+    <AiPromptEditorScreenWidget
+      {...props}
+      apiKey={geminiApiKey || undefined}
+      apiKeyLoading={isGeminiApiKeyLoading}
+      playgroundApiKeyHint={PLAYGROUND_GEMINI_KEY_HINT}
+    />
+  );
 };
 
 /**

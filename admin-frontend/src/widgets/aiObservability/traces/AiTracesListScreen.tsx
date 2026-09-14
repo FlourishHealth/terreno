@@ -170,7 +170,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         datasetId={datasetId}
         datasetModalOpen={datasetModalOpen}
         datasetOptions={datasets.map((entry) => ({id: entry.id, name: entry.name}))}
-        enqueueError={enqueueError || (isError ? "Failed to load traces." : undefined)}
+        enqueueError={enqueueError}
         evaluatorId={evaluatorId}
         evaluators={evaluators}
         filters={filters}
@@ -178,6 +178,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         isEnqueueing={enqueueState.isLoading}
         isLoading={isLoading}
         isRunningMultiStage={testMultiStageState.isLoading}
+        loadError={isError ? "Failed to load traces." : undefined}
         more={listed.more}
         multiStageError={multiStageError}
         onAddToDataset={handleAddToDataset}

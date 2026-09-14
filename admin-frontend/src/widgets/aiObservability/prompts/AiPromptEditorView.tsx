@@ -26,6 +26,7 @@ import {
 
 export interface AiPromptEditorViewProps {
   detail: PromptDetail;
+  isApiKeyLoading?: boolean;
   isRunningPlayground: boolean;
   isSaving: boolean;
   isSettingProduction: boolean;
@@ -39,6 +40,7 @@ export interface AiPromptEditorViewProps {
   }) => Promise<void>;
   onSelectVersion: (version: number) => void;
   onSetProduction: (version: number) => Promise<void>;
+  playgroundBlockedMessage?: string;
   playgroundError?: string;
   playgroundResult?: PlaygroundRunResult;
   productionError?: string;
@@ -206,6 +208,7 @@ const AiPromptEditorForm: React.FC<{
 
 export const AiPromptEditorView: React.FC<AiPromptEditorViewProps> = ({
   detail,
+  isApiKeyLoading = false,
   isRunningPlayground,
   isSaving,
   isSettingProduction,
@@ -213,6 +216,7 @@ export const AiPromptEditorView: React.FC<AiPromptEditorViewProps> = ({
   onSaveVersion,
   onSelectVersion,
   onSetProduction,
+  playgroundBlockedMessage,
   playgroundError,
   playgroundResult,
   productionError,
@@ -313,11 +317,13 @@ export const AiPromptEditorView: React.FC<AiPromptEditorViewProps> = ({
         />
         {tabIndex === 1 ? (
           <AiPromptPlaygroundView
+            blockedMessage={playgroundBlockedMessage}
             detail={detail}
+            isApiKeyLoading={isApiKeyLoading}
             isRunning={isRunningPlayground}
             onRun={onRunPlayground}
             result={playgroundResult}
-            runError={playgroundError}
+            runError={playgroundBlockedMessage ? undefined : playgroundError}
             selectedVersion={current}
           />
         ) : (

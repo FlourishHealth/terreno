@@ -282,8 +282,16 @@ time on one line. The selected row is highlighted. The editor keeps Editor / Pla
 **Save as vN+1**, and **Set vN as production…** (modal names the outgoing version). Playground
 **Run once** does not create a version; hosts may pass `apiKey` to
 `AiPromptEditorScreenWidget`, which forwards it as `x-ai-api-key` without putting the key in the
-request body. The example admin supplies the Gemini key saved from Profile. **Save this run to
-dataset** stays disabled until phase 2.
+request body. Pass `apiKeyLoading` while the host reads a saved key (for example from
+`useStoredState`) so the playground waits instead of showing a missing-key message. Pass
+`playgroundApiKeyHint` when `GET /ai/observability/status` reports
+`playgroundAi.source: "request-key"`; the editor blocks **Run once** and shows that hint until a
+trimmed key is available. When `playgroundAi.source` is `server`, no key is required. When it is
+`unavailable`, the editor explains that the backend must configure `aiService` or
+`requestAiServiceFactory`. A stale playground **503** with the missing-key title is remapped to the
+same hint for `request-key` hosts so operators are not told to fix server configuration. The
+example admin supplies the Gemini key saved from Profile. **Save this run to dataset** stays
+disabled until phase 2.
 
 `ai-traces` lists traces with a filter bar: from/to date fields; dropdowns for prompt, status,
 score presence (**All traces / Has a score / No scores**), and data sensitivity
@@ -296,7 +304,7 @@ before creating one review-queue item per trace. When local trace storage is on,
 **Run multi-stage trace test** calls the admin-only smoke endpoint and
 opens the resulting detail: two schema-validated LLM stages, one deterministic tool span, and a
 final schema-validated combining LLM stage under one CHAIN root. LLM span input includes
-`outputSchema`. Rows show a status dot,
+`outputSchema`. Rows show a status dot (primary for successful runs, accent for failed runs),
 `sensitive` badge, error line, `N prompts`, span count, tokens, cost, latency, score count, and
 **Open**. Pagination uses `page` / `limit` / `more` / `total`.
 `ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),

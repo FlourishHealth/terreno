@@ -9,7 +9,9 @@ import {
 } from "./promptTypes";
 
 export interface AiPromptPlaygroundViewProps {
+  blockedMessage?: string;
   detail: PromptDetail;
+  isApiKeyLoading?: boolean;
   isRunning: boolean;
   onRun: (variables: Record<string, string>) => Promise<void>;
   result: PlaygroundRunResult | undefined;
@@ -18,7 +20,9 @@ export interface AiPromptPlaygroundViewProps {
 }
 
 export const AiPromptPlaygroundView: React.FC<AiPromptPlaygroundViewProps> = ({
+  blockedMessage,
   detail,
+  isApiKeyLoading = false,
   isRunning,
   onRun,
   result,
@@ -33,18 +37,29 @@ export const AiPromptPlaygroundView: React.FC<AiPromptPlaygroundViewProps> = ({
   }, []);
 
   const handleRun = useCallback(async (): Promise<void> => {
+    if (blockedMessage || isApiKeyLoading) {
+      return;
+    }
     const payload: Record<string, string> = {};
     for (const name of names) {
       payload[name] = values[name] ?? "";
     }
     await onRun(payload);
-  }, [names, onRun, values]);
+  }, [blockedMessage, isApiKeyLoading, names, onRun, values]);
+
+  const runDisabled = isRunning || isApiKeyLoading || Boolean(blockedMessage);
+  const runLabel = isApiKeyLoading ? "Loading API key…" : isRunning ? "Running…" : "Run once";
 
   return (
     <Box gap={3} testID="ai-prompt-playground">
       <Text color="secondaryDark">
         {`Runs ${detail.name} version ${selectedVersion.version}. Playground does not create a version.`}
       </Text>
+      {blockedMessage ? (
+        <Text color="secondaryDark" testID="ai-prompt-playground-blocked">
+          {blockedMessage}
+        </Text>
+      ) : undefined}
       {names.length === 0 ? (
         <Text color="secondaryDark">This version has no template variables.</Text>
       ) : (
@@ -61,11 +76,11 @@ export const AiPromptPlaygroundView: React.FC<AiPromptPlaygroundViewProps> = ({
         ))
       )}
       <Button
-        disabled={isRunning}
+        disabled={runDisabled}
         iconName="play"
         onClick={handleRun}
         testID="ai-prompt-run-once"
-        text={isRunning ? "Running…" : "Run once"}
+        text={runLabel}
       />
       {runError ? (
         <Text color="error" testID="ai-prompt-run-error">

@@ -37,6 +37,7 @@ const createApiDouble = () => {
       return {
         useAiObservabilityPromptQuery: mock(() => ({isLoading: false})),
         useAiObservabilityPromptsQuery: mock(() => ({isLoading: false})),
+        useAiObservabilityStatusQuery: mock(() => ({isLoading: false})),
         useCreateAiObservabilityPromptMutation: mock(() => [mock(() => ({})), {}]),
         useCreateAiObservabilityPromptVersionMutation: mock(() => [mock(() => ({})), {}]),
         useMoveAiObservabilityPromptLabelMutation: mock(() => [mock(() => ({})), {}]),
@@ -102,6 +103,10 @@ describe("useAiObservabilityPromptsApi", () => {
       method: "POST",
       url: "/ai/observability/prompts/summarize/playground",
     });
+    expect(endpoints.aiObservabilityStatus.query(undefined as never)).toEqual({
+      method: "GET",
+      url: "/ai/observability/status",
+    });
   });
 
   it("exposes prompt hooks for screens", () => {
@@ -113,5 +118,6 @@ describe("useAiObservabilityPromptsApi", () => {
     expect(typeof result.current.useCreateVersionMutation).toBe("function");
     expect(typeof result.current.useSetLabelMutation).toBe("function");
     expect(typeof result.current.usePlaygroundMutation).toBe("function");
+    expect(typeof result.current.useStatusQuery).toBe("function");
   });
 });

@@ -24,7 +24,9 @@ server.register(new ObservabilityApp({
 For an admin playground that accepts a user-supplied provider key, add
 `requestAiServiceFactory: ({apiKey, modelId}) => ...`. The playground route passes
 `x-ai-api-key` to that factory only when the server-wide `aiService` is absent. Never persist or
-log the key.
+log the key. `GET /ai/observability/status` exposes `playgroundAi.source` so admin UIs can block
+**Run once** with a host-specific hint (`request-key`) instead of surfacing the backend **503**
+missing-key title as a server misconfiguration.
 
 Validate the parsed object before registration: each model needs non-negative numeric
 `inputPerMTok` and `outputPerMTok`. The example implementation is
@@ -147,6 +149,11 @@ curl -X POST "$API/ai/observability/prompts/example-summarize/labels" \
 ```
 
 `GET /ai/observability/prompts?folder=examples&search=sum&include=usage7d` lists folder matches with 7-day call/cost rollups. A prompt with no `production` label returns `production: "—"`. Playground `POST /ai/observability/prompts/:name/playground` compiles `{{var}}`, runs one `AIService` call, and does not create a version.
+
+The example backend registers `requestAiServiceFactory` but no server `aiService`, so status reports
+`playgroundAi.source: "request-key"`. In **AI Observability → Prompts → Playground**, save a Gemini
+API key on **Profile** first; the admin UI blocks **Run once** with that hint until the key loads
+from storage and is sent as `x-ai-api-key`.
 
 ## Review a trace
 
