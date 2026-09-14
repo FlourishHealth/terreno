@@ -19,7 +19,9 @@ name: EAS PR
 # dispatch — not from every PR.
 
 # Disabled during the CircleCI cutover; manual EAS dispatch remains available.
-on: []
+on:
+  push:
+    branches-ignore: ["**"]
 
 permissions:
   contents: read
