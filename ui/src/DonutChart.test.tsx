@@ -47,17 +47,29 @@ describe("DonutChart", () => {
     expect(queryByText("Should hide")).toBeNull();
   });
 
-  it("places the first equal slice hit on the right of center (painted 12–6 o'clock)", () => {
-    const {getByTestId} = renderWithTheme(<DonutChart data={POINTS} height={220} testID="chart" />);
-    const markStyle = getByTestId("chart.point.0-clickable").props.style;
-    const styles = Array.isArray(markStyle) ? markStyle : [markStyle];
-    const positioned = styles.find(
-      (entry: {left?: number; top?: number} | undefined) =>
-        typeof entry?.left === "number" && typeof entry?.top === "number"
-    ) as {left: number; top: number};
+  it("puts each quarter slice hit in the quadrant that slice paints", () => {
+    const quarters = [
+      {label: "A", value: 25},
+      {label: "B", value: 25},
+      {label: "C", value: 25},
+      {label: "D", value: 25},
+    ];
+    const {getByTestId} = renderWithTheme(
+      <DonutChart data={quarters} height={220} testID="chart" />
+    );
+    const positionOf = (index: number): {left: number; top: number} => {
+      const markStyle = getByTestId(`chart.point.${index}-clickable`).props.style;
+      const styles = Array.isArray(markStyle) ? markStyle : [markStyle];
+      return styles.find(
+        (entry: {left?: number; top?: number} | undefined) =>
+          typeof entry?.left === "number" && typeof entry?.top === "number"
+      ) as {left: number; top: number};
+    };
 
-    expect(positioned.left).toBeGreaterThan(110);
-    expect(positioned.top).toBeCloseTo(98, 0);
+    // The first quarter paints 12–3 o'clock, so its hit sits up and to the right of the third
+    // quarter, which paints 6–9 o'clock.
+    expect(positionOf(0).left).toBeGreaterThan(positionOf(2).left);
+    expect(positionOf(0).top).toBeLessThan(positionOf(2).top);
   });
 
   it("shows tooltip copy after pressing a slice mark", async () => {

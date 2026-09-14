@@ -4,11 +4,33 @@ import {
   CHART_Y_AXIS_MAX_WIDTH,
   getChartAxisWidth,
   getChartPlot,
+  getDonutSize,
+  getPlotHeight,
   getXTickStyle,
   getYTickStyle,
 } from "./layout";
 
 describe("chart layout", () => {
+  it("takes the tick and tooltip rows out of the requested height", () => {
+    expect(getPlotHeight({hasLegend: false, height: 200})).toBe(164);
+  });
+
+  it("also reserves the legend row when the chart has one", () => {
+    expect(getPlotHeight({hasLegend: true, height: 200})).toBe(146);
+  });
+
+  it("keeps a drawable plot when the requested height is smaller than the rows", () => {
+    expect(getPlotHeight({hasLegend: true, height: 20})).toBe(40);
+  });
+
+  it("fits a donut inside the height left by its tooltip and legend rows", () => {
+    expect(getDonutSize({chartWidth: 400, height: 220, legendRowCount: 3})).toBe(148);
+  });
+
+  it("keeps a donut square when the container is narrower than the height", () => {
+    expect(getDonutSize({chartWidth: 90, height: 220, legendRowCount: 1})).toBe(90);
+  });
+
   it("caps the value axis gutter on a wide chart", () => {
     expect(getChartAxisWidth(300)).toBe(CHART_Y_AXIS_MAX_WIDTH);
   });

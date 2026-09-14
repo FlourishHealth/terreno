@@ -5,6 +5,7 @@ import {Path, Svg} from "react-native-svg";
 import {Box} from "./Box";
 import type {DonutChartProps, LayoutChangeEvent} from "./Common";
 import {ChartFrame} from "./charts/ChartFrame";
+import {getDonutSize} from "./charts/layout";
 import {getDonutSliceAngles, getDonutSliceHitCenter, getDonutSlicePath} from "./charts/paths";
 import {getChartPaint} from "./charts/theme";
 import type {ChartPoint} from "./charts/types/chartTypes";
@@ -60,7 +61,7 @@ export const DonutChart: FC<DonutChartProps> = ({
     setActivePoint(point);
   }, []);
 
-  const size = Math.min(chartWidth, height);
+  const size = getDonutSize({chartWidth, height, legendRowCount: data.length});
   const center = size / 2;
   const outerRadius = Math.max(size / 2 - 8, 1);
   const innerRadius = outerRadius * 0.55;

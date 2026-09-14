@@ -9,6 +9,7 @@ import {
   CHART_X_AXIS_HEIGHT,
   getChartAxisWidth,
   getChartPlot,
+  getPlotHeight,
   getXTickStyle,
   getYTickStyle,
 } from "./charts/layout";
@@ -61,7 +62,8 @@ export const LineChart: FC<LineChartProps> = ({
   }, []);
 
   const axisWidth = getChartAxisWidth(chartWidth);
-  const plot = getChartPlot({chartWidth, height});
+  const plotHeight = getPlotHeight({hasLegend: Boolean(legendLabel), height});
+  const plot = getChartPlot({chartWidth, height: plotHeight});
   const plotWidth = chartWidth - axisWidth;
   const scales = createCartesianScales({plot, points: data});
   const linePath = getLinePath({points: data, scales});
@@ -83,8 +85,8 @@ export const LineChart: FC<LineChartProps> = ({
       tooltipText={tooltipText}
     >
       <Box minWidth={0} onLayout={handleLayout} testID={resolveTestID(testID, "plot")} width="100%">
-        <Box direction="row" height={height}>
-          <Box height={height} position="relative" width={axisWidth}>
+        <Box direction="row" height={plotHeight}>
+          <Box height={plotHeight} position="relative" width={axisWidth}>
             {yTicks.map((tick) => (
               <Box
                 dangerouslySetInlineStyle={{__style: getYTickStyle({axisWidth, y: scales.y(tick)})}}
@@ -96,8 +98,8 @@ export const LineChart: FC<LineChartProps> = ({
               </Box>
             ))}
           </Box>
-          <Box flex="grow" height={height} minWidth={0} overflow="hidden" position="relative">
-            <Svg height={height} width={plotWidth}>
+          <Box flex="grow" height={plotHeight} minWidth={0} overflow="hidden" position="relative">
+            <Svg height={plotHeight} width={plotWidth}>
               {yTicks.map((tick) => {
                 const y = scales.y(tick);
                 return (
