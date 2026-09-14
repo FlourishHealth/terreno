@@ -71,6 +71,6 @@ describe("lockstep publish package lists", () => {
     assert.match(changelogFragment, /^---\ncategory: Added\n---/);
     assert.match(changelogFragment, /create-terreno-app/);
     assert.match(dogfoodSkill, /### Phase 2 — Scaffold[\s\S]*bunx create-terreno-app/);
-    assert.match(dogfoodSkill, /file dump as fallback/);
+    assert.notMatch(dogfoodSkill, /file dump as fallback/);
   });
 });

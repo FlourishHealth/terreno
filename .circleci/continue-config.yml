@@ -676,7 +676,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh create-terreno-app
 
   mcp-server-docker:
     executor: node22
