@@ -1176,6 +1176,10 @@ destination exists. Comms errors after the inbox write are logged and do not fai
 PATCH on notifications: only `readAt` (ISO date or `null` to unread). Other keys are stripped.
 Dismiss uses DELETE (soft-delete via `isDeletedPlugin`).
 
+The example backend uses todo router lifecycle hooks to call `notify()`: create emits
+`Todo added`, the first incomplete-to-complete update emits `Todo completed`, and delete
+emits `Todo deleted`.
+
 ### `notificationsBeforeSend`
 
 Duck-typed hook for `CommsApp({beforeSend})`. Cancels when the user's preference for that
