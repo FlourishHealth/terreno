@@ -69,7 +69,12 @@ Presentational only — no syncdb import. Wire data from your app's sync layer.
 |---|---|---|
 | `unreadCount` | `number` | Badge hidden when `0` |
 | `onPress` | `() => void` | Opens the inbox (host owns visibility) |
+| `renderBadge` | `({unreadCount, testID}) => ReactNode` | Replaces the default unread-count badge |
+| `renderIcon` | `({testID}) => ReactNode` | Replaces the default bell icon |
 | `testID` | `string` | Default `notification-bell` |
+
+Custom renderers keep the built-in 40×40 tap target, positioning, toggle callback, and
+accessible unread-count label. `renderBadge` runs only when `unreadCount > 0`.
 
 ### `NotificationInbox`
 

@@ -1,11 +1,22 @@
-import type {FC} from "react";
+import type {FC, ReactNode} from "react";
 import {Pressable, View} from "react-native";
 
 import {Badge} from "./Badge";
 import {Icon} from "./Icon";
 
+export interface NotificationBellBadgeRenderProps {
+  testID: string;
+  unreadCount: number;
+}
+
+export interface NotificationBellIconRenderProps {
+  testID: string;
+}
+
 export interface NotificationBellProps {
   onPress: () => void;
+  renderBadge?: (props: NotificationBellBadgeRenderProps) => ReactNode;
+  renderIcon?: (props: NotificationBellIconRenderProps) => ReactNode;
   testID?: string;
   unreadCount: number;
 }
@@ -18,6 +29,8 @@ const BELL_SIZE = 40;
 
 export const NotificationBell: FC<NotificationBellProps> = ({
   onPress,
+  renderBadge,
+  renderIcon,
   testID = "notification-bell",
   unreadCount,
 }) => {
@@ -35,7 +48,11 @@ export const NotificationBell: FC<NotificationBellProps> = ({
         style={{alignItems: "center", flex: 1, justifyContent: "center"}}
         testID={`${testID}-button`}
       >
-        <Icon iconName="bell" size="md" testID={`${testID}-icon`} />
+        {renderIcon ? (
+          renderIcon({testID: `${testID}-icon`})
+        ) : (
+          <Icon iconName="bell" size="md" testID={`${testID}-icon`} />
+        )}
       </Pressable>
       {showBadge ? (
         <View
@@ -43,13 +60,17 @@ export const NotificationBell: FC<NotificationBellProps> = ({
           style={{position: "absolute", right: 0, top: 0}}
           testID={`${testID}-badge-container`}
         >
-          <Badge
-            maxValue={99}
-            status="error"
-            testID={`${testID}-badge`}
-            value={unreadCount}
-            variant="numberOnly"
-          />
+          {renderBadge ? (
+            renderBadge({testID: `${testID}-badge`, unreadCount})
+          ) : (
+            <Badge
+              maxValue={99}
+              status="error"
+              testID={`${testID}-badge`}
+              value={unreadCount}
+              variant="numberOnly"
+            />
+          )}
         </View>
       ) : null}
     </View>

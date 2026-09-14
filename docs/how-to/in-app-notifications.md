@@ -110,6 +110,19 @@ import {NotificationBell, NotificationInbox, SideDrawer} from "@terreno/ui";
 </SideDrawer>
 ```
 
+Customize the bell without reimplementing its tap target or unread accessibility label:
+
+```typescript
+<NotificationBell
+  unreadCount={unreadCount}
+  onPress={() => setOpen((value) => !value)}
+  renderIcon={({testID}) => <BrandBell testID={testID} />}
+  renderBadge={({testID, unreadCount}) => (
+    <BrandBubble count={unreadCount} testID={testID} />
+  )}
+/>
+```
+
 Treat dismissed rows as archived sync tombstones in the active inbox. Sync bootstrap
 delivers tombstones without payload data, so a full history screen should load archived
 rows from `GET /notifications/archived` via the generated RTK Query hook (owner-scoped,

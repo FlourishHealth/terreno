@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
-import {StyleSheet} from "react-native";
+import {StyleSheet, Text} from "react-native";
 
 import {NotificationBell} from "./NotificationBell";
 import {renderWithTheme} from "./test-utils";
@@ -66,5 +66,23 @@ describe("NotificationBell", () => {
     );
     fireEvent.press(getByTestId("bell-button"));
     assert.isTrue(pressed);
+  });
+
+  it("passes stable props to custom icon and badge renderers", () => {
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <NotificationBell
+        onPress={() => {}}
+        renderBadge={({testID, unreadCount}) => <Text testID={testID}>{unreadCount} custom</Text>}
+        renderIcon={({testID}) => <Text testID={testID}>Custom icon</Text>}
+        testID="bell"
+        unreadCount={7}
+      />
+    );
+
+    assert.isOk(getByTestId("bell-icon"));
+    assert.isOk(getByTestId("bell-badge"));
+    assert.isOk(getByText("Custom icon"));
+    assert.isOk(getByText("7 custom"));
+    assert.isNull(queryByTestId("badge-text"));
   });
 });

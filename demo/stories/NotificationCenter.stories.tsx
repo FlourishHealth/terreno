@@ -2,13 +2,17 @@ import {
   Box,
   Modal,
   NotificationBell,
+  type NotificationBellBadgeRenderProps,
+  type NotificationBellIconRenderProps,
   NotificationInbox,
   type NotificationInboxItem,
   NotificationPreferences,
   type NotificationPreferencesState,
+  Text,
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import type React from "react";
+import type {ReactElement} from "react";
 import {useCallback, useMemo, useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -39,6 +43,23 @@ const DEFAULT_PREFS: NotificationPreferencesState = {
   push: false,
   sms: true,
 };
+
+const renderCustomBadge = ({
+  testID,
+  unreadCount,
+}: NotificationBellBadgeRenderProps): ReactElement => (
+  <Box color="primary" paddingX={1} rounding="full" testID={testID}>
+    <Text bold color="inverted" size="sm">
+      {unreadCount}
+    </Text>
+  </Box>
+);
+
+const renderCustomIcon = ({testID}: NotificationBellIconRenderProps): ReactElement => (
+  <Text bold color="primary" testID={testID}>
+    ★
+  </Text>
+);
 
 export const NotificationCenterDemo: React.FC = () => {
   const [inboxOpen, setInboxOpen] = useState<boolean>(true);
@@ -87,6 +108,13 @@ export const NotificationCenterDemo: React.FC = () => {
       <Box gap={6} padding={4}>
         <Box alignItems="center" direction="row" gap={3}>
           <NotificationBell onPress={handleOpenInbox} unreadCount={unreadCount} />
+          <NotificationBell
+            onPress={handleOpenInbox}
+            renderBadge={renderCustomBadge}
+            renderIcon={renderCustomIcon}
+            testID="custom-notification-bell"
+            unreadCount={unreadCount}
+          />
           <NotificationPreferences onChange={handleChangePreference} preferences={preferences} />
         </Box>
         <Modal
