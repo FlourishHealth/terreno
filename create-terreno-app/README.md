@@ -34,5 +34,5 @@ contains anything other than `.git` or `.gitignore`. It does not run
 
 ## Library exports
 
-- `generateAllFiles` — returns the scaffold file list (used by MCP)
-- `writeScaffold` — writes the scaffold to disk
+- `generateAllFiles` — returns the scaffold file list
+- `writeScaffold` — writes the scaffold to disk (used by the CLI)

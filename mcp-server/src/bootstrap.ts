@@ -1,8 +1,4 @@
-import {isAbsolute} from "node:path";
-
 import type {Tool} from "@modelcontextprotocol/server";
-import {type BootstrapArgs, generateAllFiles, getFenceLanguage} from "create-terreno-app";
-import {isValidAppName, writeScaffold} from "create-terreno-app/writeScaffold";
 
 import {
   composePackageGuidelinesForRules,
@@ -11,90 +7,14 @@ import {
   loadPackageGuidelineMarkdown,
   resolveBootstrapGuidelinePackages,
 } from "./packageGuidelines.js";
-import {isScaffoldWriteEnabled} from "./scaffoldWriteMode.js";
 
-interface BootstrapToolArgs extends BootstrapArgs {
-  /** Absolute parent directory that will contain `<appName>/`. Local MCP only when write guard is set. */
-  targetDir?: string;
+interface BootstrapArgs {
+  appName: string;
+  appDisplayName: string;
+  description?: string;
 }
 
-const shellQuote = (value: string): string => {
-  if (/^[A-Za-z0-9_./:@-]+$/.test(value)) {
-    return value;
-  }
-  return `'${value.replace(/'/g, "'\\''")}'`;
-};
-
-const formatBootstrapCliCommand = (args: BootstrapArgs): string => {
-  const parts = [
-    "bunx create-terreno-app",
-    shellQuote(args.appName),
-    "--display-name",
-    shellQuote(args.appDisplayName),
-  ];
-
-  if (args.description) {
-    parts.push("--description", shellQuote(args.description));
-  }
-
-  if (args.mcpServerUrl) {
-    parts.push("--mcp-server-url", shellQuote(args.mcpServerUrl));
-  }
-
-  return parts.join(" ");
-};
-
-const validateBootstrapTargetDir = (targetDir: unknown): string | undefined => {
-  if (targetDir === undefined || targetDir === null) {
-    return undefined;
-  }
-
-  if (typeof targetDir !== "string" || targetDir.trim() === "") {
-    return "targetDir must be a non-empty absolute path";
-  }
-
-  if (!isAbsolute(targetDir)) {
-    return "targetDir must be an absolute path";
-  }
-
-  return undefined;
-};
-
 export const bootstrapTools: Tool[] = [
-  {
-    description:
-      "Bootstrap a new Terreno full-stack application with frontend (Expo/React Native) and backend (Express/Mongoose) directories, including Cursor rules and MCP settings",
-    inputSchema: {
-      properties: {
-        appDisplayName: {
-          description: "Human-readable display name (e.g., 'My Todo App', 'Task Manager')",
-          type: "string",
-        },
-        appName: {
-          description:
-            "The application name in kebab-case (e.g., 'my-app', 'todo-app'). Used for directory names and package names.",
-          type: "string",
-        },
-        description: {
-          description: "A brief description of the app (optional)",
-          type: "string",
-        },
-        mcpServerUrl: {
-          default: "https://mcp.terreno.flourish.health",
-          description: "URL of the Terreno MCP server for AI assistance",
-          type: "string",
-        },
-        targetDir: {
-          description:
-            "Optional absolute parent directory for `<appName>/`. Writes only when TERRENO_MCP_WRITE_SCAFFOLD=1 (terreno-mcp-local). Hosted MCP ignores this and returns the CLI command plus file dump.",
-          type: "string",
-        },
-      },
-      required: ["appName", "appDisplayName"],
-      type: "object",
-    },
-    name: "terreno_bootstrap_app",
-  },
   {
     description:
       "Bootstrap AI coding assistant rules for a Terreno project. Creates configuration files for Cursor, Windsurf, Claude Code, and GitHub Copilot with Terreno-specific guidelines adapted for the project.",
@@ -589,187 +509,8 @@ export const handleBootstrapToolCall = (
     return handleBootstrapAiRulesToolCall(args);
   }
 
-  if (name !== "terreno_bootstrap_app") {
-    return {
-      content: [{text: `Unknown bootstrap tool: ${name}`, type: "text"}],
-    };
-  }
-
-  const bootstrapArgs = args as unknown as BootstrapToolArgs;
-
-  if (!bootstrapArgs.appName || !bootstrapArgs.appDisplayName) {
-    return {
-      content: [
-        {
-          text: "Error: appName and appDisplayName are required parameters",
-          type: "text",
-        },
-      ],
-    };
-  }
-
-  if (!isValidAppName(bootstrapArgs.appName)) {
-    return {
-      content: [
-        {
-          text: "Error: appName must be kebab-case (lowercase letters, numbers, and hyphens)",
-          type: "text",
-        },
-      ],
-    };
-  }
-
-  const cliCommand = formatBootstrapCliCommand(bootstrapArgs);
-  const targetDir =
-    typeof bootstrapArgs.targetDir === "string" ? bootstrapArgs.targetDir : undefined;
-
-  if (targetDir && isScaffoldWriteEnabled()) {
-    const targetDirError = validateBootstrapTargetDir(targetDir);
-    if (targetDirError) {
-      return {
-        content: [{text: `Error: ${targetDirError}`, type: "text"}],
-      };
-    }
-
-    const writeResult = writeScaffold({
-      appDisplayName: bootstrapArgs.appDisplayName,
-      appName: bootstrapArgs.appName,
-      description: bootstrapArgs.description,
-      mcpServerUrl: bootstrapArgs.mcpServerUrl,
-      parentDir: targetDir,
-    });
-
-    if (!writeResult.success) {
-      return {
-        content: [
-          {text: `Error: ${writeResult.error ?? "Failed to write scaffold"}`, type: "text"},
-        ],
-      };
-    }
-
-    const nextSteps = writeResult.nextSteps.map((step) => `- \`${step}\``).join("\n");
-
-    return {
-      content: [
-        {
-          text: `# Scaffold written: ${writeResult.targetPath}
-
-Wrote the same files as \`create-terreno-app\` to disk.
-
-## CLI (equivalent)
-
-\`\`\`bash
-${cliCommand}
-\`\`\`
-
-## Next steps
-
-${nextSteps}
-`,
-          type: "text",
-        },
-      ],
-    };
-  }
-
-  const files = generateAllFiles(bootstrapArgs);
-
-  const fileList = files.map((f) => `- \`${f.path}\``).join("\n");
-
-  const instructions = `# Bootstrap ${bootstrapArgs.appDisplayName}
-
-## Recommended: use the CLI
-
-\`\`\`bash
-${cliCommand}
-\`\`\`
-
-Or create files manually from the dump below.
-
-## Files to Create
-
-The following files need to be created for your new Terreno application:
-
-${fileList}
-
-## Instructions
-
-1. **Create the project directory** (if not using the CLI above):
-   \`\`\`bash
-   mkdir ${bootstrapArgs.appName}
-   cd ${bootstrapArgs.appName}
-   \`\`\`
-
-2. **Create all the files listed above.** Each file's content is provided below.
-
-   No \`assets/\` directory is needed: \`@terreno/ui\` ships the Nunito and Titillium Web
-   fonts it renders with, and \`app.json\` leaves \`icon\`/\`splash\`/\`favicon\` unset so Expo
-   uses its built-in defaults. Add your own branding assets whenever you're ready and
-   point \`app.json\` at them then.
-
-3. **Install dependencies:**
-   \`\`\`bash
-   cd backend && bun install
-   cd ../frontend && bun install
-   \`\`\`
-
-4. **Start MongoDB as a replica set** (required for realtime/sync):
-   \`\`\`bash
-   # Using Docker (single-node replica set):
-   docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0
-   docker exec mongo mongosh --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
-   \`\`\`
-
-5. **Start the backend:**
-   \`\`\`bash
-   cd backend && bun run dev
-   \`\`\`
-
-7. **In a new terminal, seed login-ready development users:**
-   \`\`\`bash
-   cd backend && bun run seed
-   # Re-run safely after seed definitions change, or use --reset to reset managed data.
-   \`\`\`
-
-8. **In a new terminal, regenerate and start the frontend:**
-   \`\`\`bash
-   cd frontend
-   bun run sdk  # Generate SDK from backend
-   bun run web  # Start web frontend
-   \`\`\`
-
-9. **Open http://localhost:8082** and sign in as \`test@example.com\` / \`testpassword123\`
-
-## MCP Integration
-
-The project is configured to use the Terreno MCP server at:
-\`${bootstrapArgs.mcpServerUrl || "https://mcp.terreno.flourish.health"}\`
-
-This provides AI assistance with:
-- Generating models and routes
-- Creating screens and forms
-- Following Terreno patterns
-
----
-
-## File Contents
-
-`;
-
-  const fileContents = files
-    .map((f) => {
-      const lang = getFenceLanguage(f.path);
-      return `### \`${f.path}\`
-
-\`\`\`${lang}
-${f.content}
-\`\`\`
-`;
-    })
-    .join("\n");
-
   return {
-    content: [{text: instructions + fileContents, type: "text"}],
+    content: [{text: `Unknown bootstrap tool: ${name}`, type: "text"}],
   };
 };
 
@@ -799,7 +540,7 @@ export const bootstrapPrompts: BootstrapPrompt[] = [
       },
     ],
     description:
-      "Bootstrap a new Terreno full-stack application with frontend, backend, Cursor rules, and MCP integration",
+      "Bootstrap a new Terreno app: instruct the assistant to run bunx create-terreno-app, then terreno_bootstrap_ai_rules",
     name: "terreno_bootstrap",
   },
 ];
@@ -829,15 +570,13 @@ export const handleBootstrapPromptRequest = (
 - **App Name** (kebab-case): ${appName}
 - **Display Name**: ${appDisplayName}
 
-Use the \`terreno_bootstrap_app\` tool to generate all the necessary files for the application.
+Scaffold the app with the published CLI (not an MCP tool):
 
-After generating the files:
-1. Create all directories and files as specified (no \`assets/\` directory is required)
-2. Install dependencies with \`bun install\`
-3. Start MongoDB
-4. Start the backend with \`bun run dev\`
-5. Generate the SDK with \`bun run sdk\` in the frontend
-6. Start the frontend with \`bun run web\`
+\`\`\`bash
+bunx create-terreno-app ${appName} --display-name "${appDisplayName}"
+\`\`\`
+
+Then follow the CLI next-step commands: install, seed, start MongoDB as a replica set, start the backend, and in another terminal run frontend \`bun run sdk\` then \`bun run web\`.
 
 The application should include:
 - Better Auth login (email/password via \`@terreno/ui\` LoginScreen)
@@ -848,7 +587,7 @@ The application should include:
 - Cursor rules for AI assistance
 - MCP integration for development assistance
 
-**IMPORTANT: After completing the terreno_bootstrap_app steps, also run the \`terreno_bootstrap_ai_rules\` tool** with the same appName and appDisplayName to set up AI coding assistant rules for Cursor, Windsurf, Claude Code, and GitHub Copilot. This will create:
+**IMPORTANT: After the CLI writes the app, also run the \`terreno_bootstrap_ai_rules\` tool** with the same appName and appDisplayName to set up AI coding assistant rules for Cursor, Windsurf, Claude Code, and GitHub Copilot. This will create:
 - AGENTS.md files for each directory
 - .cursorrules and .windsurfrules files
 - GitHub Copilot instructions

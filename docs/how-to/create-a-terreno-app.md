@@ -149,18 +149,6 @@ Cloud Run concepts and commands: [Deploy backend to Cloud Run](deploy-backend-to
 
 **Frontend:** [Build for web](build-for-web.md) — set `EXPO_PUBLIC_API_URL` at export time.
 
-## MCP alternative (`terreno_bootstrap_app`)
-
-[`terreno_bootstrap_app`](../reference/mcp-server.md#terreno_bootstrap_app) uses the same generator as this CLI.
-
-| Environment | Behavior |
-| --- | --- |
-| Hosted `terreno-mcp` | Returns `bunx create-terreno-app …` plus a file dump. Never writes disk. |
-| `terreno-mcp-local` with `targetDir` | Writes `<targetDir>/<appName>/` when `TERRENO_MCP_WRITE_SCAFFOLD=1` (set automatically by the local entry). Same files and next-step commands as the CLI. |
-| Local without write guard | `targetDir` is ignored; dump only (same as hosted). |
-
-`targetDir` must be an absolute path. The write path applies the same non-empty rule as the CLI.
-
 ## Monorepo examples (secondary)
 
 To explore Terreno itself without scaffolding a new app, clone the [Terreno monorepo](https://github.com/FlourishHealth/terreno) and use `example-backend` / `example-frontend`. See [Getting started](../tutorials/getting-started.md#explore-the-terreno-monorepo-examples).

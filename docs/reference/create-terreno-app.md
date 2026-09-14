@@ -37,6 +37,8 @@ Writes `<cwd>/<appName>/`. Refuses a non-empty target except `.git` / `.gitignor
 
 Printed next steps install, seed, then start the backend. SDK and web run in a second terminal while the backend is up.
 
+The generated Profile tab uses `@terreno/ui` `TapToEdit` with `PATCH /auth/me`. Fonts come from `@terreno/ui`. `app.json` leaves icon/splash/favicon unset. `metro.config.js` pins `jspdf` so Metro can bundle admin PDF export. `tsconfig.json` has no `baseUrl` (TypeScript 6). Auth routes use `<Stack.Protected>`.
+
 ## Library
 
-MCP `terreno_bootstrap_app` imports `generateAllFiles` and `writeScaffold` from this package. Hosted MCP never writes disk. Local MCP writes only when `targetDir` is an absolute path and `TERRENO_MCP_WRITE_SCAFFOLD=1`. See [MCP server](mcp-server.md).
+`generateAllFiles` returns the file list; `writeScaffold` writes it to disk. The CLI is the only supported way to scaffold an app. MCP `terreno_bootstrap_ai_rules` can add editor rules after the CLI runs.

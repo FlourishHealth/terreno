@@ -104,10 +104,9 @@ Do not skip this phase because you think you know Terreno. Following the newcome
 ### Phase 2 — Scaffold
 
 1. Scaffold with `bunx create-terreno-app <appName> --display-name "<App Name>"` (or `npm create terreno-app`). Follow the CLI's next-step hints; the CLI does not run install or seed — those are your steps below.
-2. If the CLI is unavailable or unsuitable, call `terreno_bootstrap_app` on the hosted or local MCP server. Prefer the `bunx create-terreno-app …` command in the response; treat the file dump as fallback only when the CLI cannot run.
-3. Get it running: backend, web, and one native target (simulator or device).
-4. Log in with the seeded credentials.
-5. Log what the scaffold got right and what it left for you.
+2. Get it running: backend, web, and one native target (simulator or device).
+3. Log in with the seeded credentials.
+4. Log what the scaffold got right and what it left for you.
 
 If the scaffold does not run, that is a **blocking** gap. Record it, then fall back to cloning the public example apps as a starting point and continue.
 
