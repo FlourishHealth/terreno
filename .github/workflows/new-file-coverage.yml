@@ -39,7 +39,7 @@ jobs:
           mongodb-image: mirror.gcr.io/library/mongo
 
       - name: Test coverage gate
-        run: bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+        run: bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
 
       - name: Check new source file coverage
         env:

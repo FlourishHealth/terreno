@@ -59,11 +59,14 @@
     "@babel/core": "^7.29.0",
     "@biomejs/biome": "catalog:",
     "@expo/metro-runtime": "catalog:",
+    "@testing-library/react-native": "catalog:",
+    "@types/bun": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/node": "^22.19.19",
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
+    "react-test-renderer": "catalog:",
     "typescript": "catalog:"
   },
   "engine": {
@@ -109,8 +112,9 @@
     "prestart": "test -f ui-types-documentation.json || bun run generate-types",
     "preweb": "test -f ui-types-documentation.json || bun run generate-types",
     "start": "RCT_METRO_PORT=8085 NODE_OPTIONS=--openssl-legacy-provider expo start --port 8085",
-    "test:agent": "AGENT=1 echo 'No tests'",
-    "test:ci": "echo 'No tests'",
+    "test": "bun test",
+    "test:agent": "AGENT=1 bun test",
+    "test:ci": "bun test",
     "web": "NODE_OPTIONS=--openssl-legacy-provider expo start --web --port 8085"
   },
   "version": "1.0.0"

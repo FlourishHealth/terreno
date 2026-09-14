@@ -80,6 +80,7 @@
       // Isolated files are `bun test $file`, not `*.test.ts`, so the Bun plugin skips them.
       // react-native-webview is supplied by consuming apps through this package's
       // optional peer contract, which Knip reports as an unused optional peer.
+      "ignoreBinaries": ["continue"],
       "ignoreDependencies": ["react-native-webview"],
       // Public interfaces used inside this module remain valid package API; interfaces
       // that become unused both internally and externally are still reported.
@@ -87,6 +88,7 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/*.isolated.{ts,tsx}",
         "src/isolated/**/*.isolated.{ts,tsx}"
       ]
     },
@@ -155,7 +157,7 @@
       // The test logger discovers @terreno/api through a runtime require. Declaring it
       // here would cycle with API's own @terreno/test dependency and break the
       // topological order that .github/scripts/compile-workspace-deps.js relies on.
-      "ignoreDependencies": ["@terreno/api"],
+      "ignoreDependencies": ["@sentry/bun", "@terreno/api"],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "!src/preload/**!"
@@ -228,6 +230,7 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "**/*.test.ts",
+        "collectRegisteredStoryRenders.ts",
         "jspdf-native-stub.js",
         "fingerprint.config.js"
       ]
@@ -353,6 +356,8 @@
         "react-native-permissions",
         "react-native-picker-select",
         "react-native-webview",
+        // mdurl ships its own types; the extra @types package is a catalog pin.
+        "@types/mdurl",
         "react-time-picker",
         // Tests mock expo-modules-core subpaths by string; TypeDoc is invoked by
         // the package's `types` script.
