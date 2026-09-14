@@ -10,7 +10,6 @@ import {AiObservabilityStatusChip} from "./AiObservabilityStatusChip";
 import {
   buildAiObservabilityBreadcrumbs,
   formatObservabilityStatusChip,
-  getAiObservabilityNavItems,
   type ObservabilityStatusPayload,
   unwrapObservabilityStatus,
 } from "./aiObservabilityNav";
@@ -57,24 +56,6 @@ describe("AI observability chrome", () => {
   it("unwraps both envelope and already-unwrapped status payloads", () => {
     expect(unwrapObservabilityStatus({data: localOnStatus})).toEqual(localOnStatus);
     expect(unwrapObservabilityStatus(localOnStatus)).toEqual(localOnStatus);
-  });
-
-  it("hides the review queue nav entry when the local plugin is off", () => {
-    expect(getAiObservabilityNavItems(true).map((item) => item.name)).toEqual([
-      "ai-prompts",
-      "ai-traces",
-      "ai-evaluators",
-      "ai-datasets",
-      "ai-experiments",
-      "ai-review",
-    ]);
-    expect(getAiObservabilityNavItems(false).map((item) => item.name)).toEqual([
-      "ai-prompts",
-      "ai-traces",
-      "ai-evaluators",
-      "ai-datasets",
-      "ai-experiments",
-    ]);
   });
 
   it("builds Admin / AI Observability / Section / leaf breadcrumbs", () => {

@@ -2,7 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {renderHook} from "@testing-library/react-native";
 import {assert} from "chai";
 import type {AdminApi, EndpointBuilder} from "../../../types";
-import {createDatasetsApi, useAiObservabilityDatasetsApi} from "./useAiObservabilityDatasetsApi";
+import {useAiObservabilityDatasetsApi} from "./useAiObservabilityDatasetsApi";
 
 interface CapturedEndpoint {
   invalidatesTags?: unknown;
@@ -49,7 +49,7 @@ const createApiDouble = (): {
 describe("createDatasetsApi", () => {
   it("registers dataset cache tag types and observability routes", () => {
     const {addTagTypes, api, endpoints} = createApiDouble();
-    createDatasetsApi(api);
+    renderHook(() => useAiObservabilityDatasetsApi(api));
 
     assert.sameMembers(addTagTypes[0] ?? [], [
       "aiObservabilityDatasets",
@@ -106,7 +106,7 @@ describe("createDatasetsApi", () => {
 
   it("tags list, detail, item queries, and mutations by dataset id", () => {
     const {api, endpoints} = createApiDouble();
-    createDatasetsApi(api);
+    renderHook(() => useAiObservabilityDatasetsApi(api));
 
     const listTags = endpoints.aiObservabilityDatasets.providesTags;
     assert.deepEqual(typeof listTags === "function" ? listTags() : listTags, [
@@ -183,7 +183,7 @@ describe("createDatasetsApi", () => {
         return {};
       },
     } as unknown as AdminApi;
-    createDatasetsApi(api);
+    renderHook(() => useAiObservabilityDatasetsApi(api));
     expect(endpoints.aiObservabilityDatasets).toBeTruthy();
   });
 });

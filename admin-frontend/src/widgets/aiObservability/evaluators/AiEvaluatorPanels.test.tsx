@@ -7,8 +7,6 @@ import {
   AiEvaluatorDetailView,
   AiEvaluatorNewView,
   defaultEvaluatorRunModes,
-  EVALUATOR_TARGET_HELP,
-  EVALUATOR_TYPE_HELP,
   initialNewEvaluatorDimensions,
 } from "./AiEvaluatorPanels";
 import {judgeSchemaMissingDimensions} from "./evaluatorTypes";
@@ -81,10 +79,8 @@ describe("AiEvaluatorNewView helper text", () => {
       />
     );
     expect(getByTestId("ai-evaluator-help-intro")).toHaveTextContent(/An evaluator scores traces/);
-    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(EVALUATOR_TYPE_HELP.human);
-    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(
-      EVALUATOR_TARGET_HELP["full trace"]
-    );
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/person scores items/);
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/Score the whole trace/);
     expect(getByText(/Stable id used in lists/)).toBeTruthy();
     expect(getByText(/Each dimension is one score/)).toBeTruthy();
     expect(getByText(/Shown at the top of the review item/)).toBeTruthy();
@@ -116,12 +112,8 @@ describe("AiEvaluatorNewView helper text", () => {
         type="json-assert"
       />
     );
-    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(
-      EVALUATOR_TYPE_HELP["json-assert"]
-    );
-    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(
-      EVALUATOR_TARGET_HELP["generation span"]
-    );
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/checks a JSON path/);
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/one generation span/);
     expect(getByText(/Dot path into the target JSON/)).toBeTruthy();
     expect(getByText(/How to check the path/)).toBeTruthy();
   });

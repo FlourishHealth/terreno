@@ -33,7 +33,7 @@ interface QueryOptions {
   skip?: boolean;
 }
 
-export const createDatasetsApi = (api: AdminApi) => {
+const createDatasetsApi = (api: AdminApi) => {
   const tagged =
     typeof api.enhanceEndpoints === "function"
       ? api.enhanceEndpoints({

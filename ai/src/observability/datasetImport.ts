@@ -1,9 +1,9 @@
 import {APIError} from "@terreno/api";
 import {parse} from "csv-parse/sync";
 
-import {getValueAtPath, setValueAtPath} from "./jsonPath";
+import {setValueAtPath} from "./jsonPath";
 
-export interface StructuredDatasetImportRow {
+interface StructuredDatasetImportRow {
   expectedOutput?: unknown;
   input?: unknown;
   metadata?: Record<string, unknown>;
@@ -217,8 +217,4 @@ export const flattenValidationPath = (path: string): string => {
     return "/";
   }
   return path.startsWith("/") ? path : `/${path}`;
-};
-
-export const readNestedField = (value: unknown, dottedPath: string): unknown => {
-  return getValueAtPath(value, dottedPath);
 };

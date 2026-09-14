@@ -58,7 +58,7 @@ export const emptyDimension = (): EvaluatorDimension => {
   };
 };
 
-export const unwrapObservabilityPayload = <T>(raw: unknown): T | undefined => {
+const unwrapObservabilityPayload = <T>(raw: unknown): T | undefined => {
   if (raw == null) {
     return undefined;
   }

@@ -1,15 +1,10 @@
 import {describe, expect, it} from "bun:test";
 import {assert} from "chai";
-import {
-  buildCsvImportPayload,
-  buildJsonImportPayload,
-  detectImportFormat,
-  parseImportText,
-} from "./datasetImport";
+import {buildCsvImportPayload, detectImportFormat, parseImportText} from "./datasetImport";
 
 describe("datasetImport helpers", () => {
   it("builds JSON import payload from an array", () => {
-    const payload = buildJsonImportPayload([{expectedOutput: {a: "ok"}, input: {q: "hi"}}]);
+    const payload = parseImportText('[{"expectedOutput":{"a":"ok"},"input":{"q":"hi"}}]', "json");
     assert.deepEqual(payload, {
       body: {rows: [{expectedOutput: {a: "ok"}, input: {q: "hi"}}]},
       formatLabel: "json",
@@ -30,7 +25,7 @@ describe("datasetImport helpers", () => {
   });
 
   it("wraps a single json object as one row", () => {
-    const payload = buildJsonImportPayload({input: {q: "hi"}});
+    const payload = parseImportText('{"input":{"q":"hi"}}', "json");
     assert.deepEqual(payload.body, {rows: [{input: {q: "hi"}}]});
   });
 

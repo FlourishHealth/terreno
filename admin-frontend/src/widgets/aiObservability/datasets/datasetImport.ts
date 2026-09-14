@@ -3,7 +3,7 @@ export interface ImportPayload {
   formatLabel: "csv" | "json";
 }
 
-export const buildJsonImportPayload = (parsed: unknown): ImportPayload => {
+const buildJsonImportPayload = (parsed: unknown): ImportPayload => {
   const rows = Array.isArray(parsed) ? parsed : [parsed];
   return {
     body: {rows},

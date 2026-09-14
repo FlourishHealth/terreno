@@ -20,8 +20,3 @@ export const getAiSessionId = (): string => {
   }
   return sessionId;
 };
-
-/** Test seam: drop the cached id so a fresh session id is minted. */
-export const resetAiSessionId = (): void => {
-  sessionId = undefined;
-};

@@ -1,7 +1,9 @@
 import {describe, expect, it} from "bun:test";
 import {assert} from "chai";
 
-import {buildTodoSummaryInput, MAX_SUMMARY_TODOS} from "./todoSummaryInput";
+import {buildTodoSummaryInput} from "./todoSummaryInput";
+
+const MAX_SUMMARY_TODOS = 25;
 
 describe("buildTodoSummaryInput", () => {
   it("labels open and done todos", () => {

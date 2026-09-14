@@ -26,7 +26,7 @@ export interface LocalObservabilityPluginBundle {
   traceStore: LocalTraceStore;
 }
 
-export const registerLocalObservabilityModels = (): void => {
+const registerLocalObservabilityModels = (): void => {
   registerObsPrompt();
   registerObsPromptVersion();
   registerObsPromptLabel();

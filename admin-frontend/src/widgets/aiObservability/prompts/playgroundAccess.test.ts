@@ -1,11 +1,11 @@
 import {describe, expect, it} from "bun:test";
-import {
-  DEFAULT_PLAYGROUND_API_KEY_HINT,
-  PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE,
-  PLAYGROUND_MISSING_API_KEY_ERROR_TITLE,
-  resolvePlaygroundBlockedMessage,
-  resolvePlaygroundRunError,
-} from "./playgroundAccess";
+import {resolvePlaygroundBlockedMessage, resolvePlaygroundRunError} from "./playgroundAccess";
+
+const DEFAULT_PLAYGROUND_API_KEY_HINT = "Add an AI API key in your app settings, then try again.";
+const PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE =
+  "Playground is unavailable. Configure ObservabilityApp.aiService or requestAiServiceFactory on the backend.";
+const PLAYGROUND_MISSING_API_KEY_ERROR_TITLE =
+  "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.";
 
 describe("resolvePlaygroundBlockedMessage", () => {
   it("returns undefined while the host is still loading a saved key", () => {

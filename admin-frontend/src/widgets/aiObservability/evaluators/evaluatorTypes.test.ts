@@ -9,7 +9,6 @@ import {
   parseApiErrorTitle,
   unwrapEvaluatorList,
   unwrapEvaluatorRecord,
-  unwrapObservabilityPayload,
 } from "./evaluatorTypes";
 
 const evaluator: EvaluatorRecord = {
@@ -23,11 +22,6 @@ const evaluator: EvaluatorRecord = {
 };
 
 describe("evaluatorTypes helpers", () => {
-  it("unwraps observability payloads", () => {
-    assert.deepEqual(unwrapObservabilityPayload({data: evaluator}), evaluator);
-    assert.isUndefined(unwrapObservabilityPayload(undefined));
-  });
-
   it("unwraps evaluator lists and records", () => {
     assert.deepEqual(unwrapEvaluatorList([evaluator]), [evaluator]);
     assert.deepEqual(unwrapEvaluatorList({data: [evaluator]}), [evaluator]);

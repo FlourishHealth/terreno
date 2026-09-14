@@ -1,12 +1,11 @@
 export type PlaygroundAiSource = "request-key" | "server" | "unavailable";
 
-export const PLAYGROUND_MISSING_API_KEY_ERROR_TITLE =
+const PLAYGROUND_MISSING_API_KEY_ERROR_TITLE =
   "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.";
 
-export const DEFAULT_PLAYGROUND_API_KEY_HINT =
-  "Add an AI API key in your app settings, then try again.";
+const DEFAULT_PLAYGROUND_API_KEY_HINT = "Add an AI API key in your app settings, then try again.";
 
-export const PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE =
+const PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE =
   "Playground is unavailable. Configure ObservabilityApp.aiService or requestAiServiceFactory on the backend.";
 
 export interface ResolvePlaygroundBlockedMessageOptions {

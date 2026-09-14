@@ -184,13 +184,6 @@ export const templateVariableKeys = (template: string): string[] => {
   return keys;
 };
 
-export const parseVariableKeys = (text: string): string[] => {
-  return text
-    .split(",")
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-};
-
 export const variablesFromKeys = (keys: string[]): PromptVariable[] => {
   return keys.map((key) => ({key, required: true}));
 };

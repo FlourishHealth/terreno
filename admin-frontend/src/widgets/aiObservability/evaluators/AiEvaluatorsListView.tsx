@@ -43,14 +43,18 @@ const typeBadgeStatus = (type: EvaluatorRecord["type"]): "info" | "neutral" | "w
   return "warning";
 };
 
-const TypeBadgeCell: React.FC<{cellData: DataTableCellData}> = ({cellData}) => (
-  <Box justifyContent="center">
-    <Badge
-      status={typeBadgeStatus(String(cellData.value) as EvaluatorRecord["type"])}
-      value={String(cellData.value ?? "")}
-    />
-  </Box>
-);
+const TypeBadgeCell: React.FC<{cellData: DataTableCellData}> = ({cellData}) => {
+  const type = String(cellData.value) as EvaluatorRecord["type"];
+  return (
+    <Box justifyContent="center">
+      <Badge
+        status={typeBadgeStatus(type)}
+        testID={`ai-evaluator-type-${type}`}
+        value={EVALUATOR_TYPE_LABELS[type]}
+      />
+    </Box>
+  );
+};
 
 export const AiEvaluatorsListView: React.FC<AiEvaluatorsListViewProps> = ({
   evaluators,
@@ -85,7 +89,7 @@ export const AiEvaluatorsListView: React.FC<AiEvaluatorsListViewProps> = ({
       const chips = formatRunModeChips(evaluator.runModes);
       return [
         {value: evaluator.name},
-        {value: EVALUATOR_TYPE_LABELS[evaluator.type]},
+        {value: evaluator.type},
         {value: formatDimensionSummary(evaluator.dimensions)},
         {value: evaluator.target},
         {value: chips.length > 0 ? chips.join(" · ") : "—"},

@@ -5,7 +5,6 @@ import {
   flattenValidationPath,
   parseDatasetCsvImport,
   parseDatasetJsonImport,
-  readNestedField,
 } from "./datasetImport";
 
 describe("datasetImport", () => {
@@ -89,9 +88,8 @@ describe("datasetImport", () => {
     assert.deepEqual(rows[0]?.expectedOutput, {summary: "short"});
   });
 
-  it("normalizes validation paths and reads nested fields", () => {
+  it("normalizes validation paths", () => {
     assert.equal(flattenValidationPath(""), "/");
     assert.equal(flattenValidationPath("text"), "/text");
-    assert.equal(readNestedField({text: "ok"}, "text"), "ok");
   });
 });

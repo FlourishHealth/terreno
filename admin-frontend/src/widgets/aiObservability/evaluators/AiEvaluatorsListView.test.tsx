@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {AiEvaluatorsListView} from "./AiEvaluatorsListView";
@@ -60,5 +61,29 @@ describe("AiEvaluatorsListView", () => {
     );
     expect(getByTestId("ai-evaluators-table")).toBeTruthy();
     expect(getByTestId("ai-evaluator-open-eval-1")).toBeTruthy();
+  });
+
+  it("uses a distinct badge status for each evaluator type", () => {
+    const baseEvaluator = evaluators[0];
+    assert.exists(baseEvaluator);
+    const allTypes: EvaluatorRecord[] = [
+      baseEvaluator,
+      {...baseEvaluator, id: "eval-2", name: "human", type: "human"},
+      {...baseEvaluator, id: "eval-3", name: "assert", type: "json-assert"},
+    ];
+    const {getByTestId} = renderWithTheme(
+      <AiEvaluatorsListView
+        evaluators={allTypes}
+        isLoading={false}
+        onCreate={() => undefined}
+        onOpen={() => undefined}
+        onRetry={() => undefined}
+      />
+    );
+    const colors = allTypes.map((evaluator) => {
+      return getByTestId(`ai-evaluator-type-${evaluator.type}`).props.style[0].backgroundColor;
+    });
+
+    assert.equal(new Set(colors).size, 3);
   });
 });

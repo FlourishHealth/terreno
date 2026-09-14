@@ -20,7 +20,7 @@ export interface AiObservabilityScreenMeta {
   title: string;
 }
 
-export const AI_OBSERVABILITY_GROUP = "AI Observability";
+const AI_OBSERVABILITY_GROUP = "AI Observability";
 
 export const AI_OBSERVABILITY_SCREENS: Record<string, AiObservabilityScreenMeta> = {
   "ai-dataset-detail": {leaf: "Detail", section: "Datasets", title: "Dataset"},
@@ -37,30 +37,6 @@ export const AI_OBSERVABILITY_SCREENS: Record<string, AiObservabilityScreenMeta>
   "ai-review-item": {leaf: "Item", section: "Review", title: "Review item"},
   "ai-trace-detail": {leaf: "Detail", section: "Traces", title: "Trace"},
   "ai-traces": {leaf: "List", section: "Traces", title: "Traces"},
-};
-
-export interface AiObservabilityNavItem {
-  displayName: string;
-  name: string;
-  requiresLocal: boolean;
-}
-
-export const AI_OBSERVABILITY_NAV_ITEMS: AiObservabilityNavItem[] = [
-  {displayName: "Prompts", name: "ai-prompts", requiresLocal: false},
-  {displayName: "Traces", name: "ai-traces", requiresLocal: false},
-  {displayName: "Evaluators", name: "ai-evaluators", requiresLocal: false},
-  {displayName: "Datasets", name: "ai-datasets", requiresLocal: false},
-  {displayName: "Experiments", name: "ai-experiments", requiresLocal: false},
-  {displayName: "Review queue", name: "ai-review", requiresLocal: true},
-];
-
-export const getAiObservabilityNavItems = (localOn: boolean): AiObservabilityNavItem[] => {
-  return AI_OBSERVABILITY_NAV_ITEMS.filter((item) => {
-    if (!item.requiresLocal) {
-      return true;
-    }
-    return localOn;
-  });
 };
 
 export const unwrapObservabilityStatus = (raw: unknown): ObservabilityStatusPayload | undefined => {

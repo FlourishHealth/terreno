@@ -17,10 +17,10 @@ import {
   judgeSchemaMissingDimensions,
 } from "./evaluatorTypes";
 
-export const EVALUATOR_NEW_INTRO =
+const EVALUATOR_NEW_INTRO =
   "An evaluator scores traces and experiment outputs. Each score is a named dimension (boolean, numeric, or categorical). Attach the same evaluator to experiments, live sampling, or the human review queue.";
 
-export const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
+const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
   human:
     "A person scores items in Human review. Scores wait in the queue until a reviewer submits them. Live sampling is not allowed.",
   "json-assert":
@@ -29,7 +29,7 @@ export const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
     "Terreno calls a registered prompt whose outputSchema must include every required dimension key. Each run is a billed model call.",
 };
 
-export const EVALUATOR_TARGET_HELP: Record<EvaluatorRecord["target"], string> = {
+const EVALUATOR_TARGET_HELP: Record<EvaluatorRecord["target"], string> = {
   "dataset item":
     "Score one dataset row during an experiment (input, expected output, and model output).",
   "full trace": "Score the whole trace: nested spans, the compiled prompt, and the final output.",

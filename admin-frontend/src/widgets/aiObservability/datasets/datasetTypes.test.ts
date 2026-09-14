@@ -8,7 +8,6 @@ import {
   unwrapDatasetItems,
   unwrapDatasetList,
   unwrapDatasetRecord,
-  unwrapObservabilityPayload,
 } from "./datasetTypes";
 
 const dataset: DatasetRecord = {
@@ -33,12 +32,6 @@ const item = (partial: Partial<DatasetItemRecord> & {id: string}): DatasetItemRe
 });
 
 describe("datasetTypes helpers", () => {
-  it("unwraps observability payloads with or without a data envelope", () => {
-    assert.deepEqual(unwrapObservabilityPayload({data: dataset}), dataset);
-    assert.deepEqual(unwrapObservabilityPayload(dataset), dataset);
-    assert.isUndefined(unwrapObservabilityPayload(null));
-  });
-
   it("unwraps dataset lists and filters invalid rows", () => {
     assert.deepEqual(unwrapDatasetList([dataset]), [dataset]);
     assert.deepEqual(unwrapDatasetList({data: [dataset]}), [dataset]);

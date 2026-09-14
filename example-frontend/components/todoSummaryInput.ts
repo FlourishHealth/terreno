@@ -4,7 +4,7 @@ export interface TodoSummaryEntry {
 }
 
 /** Cap the prompt input so a long list never blows past the model's context window. */
-export const MAX_SUMMARY_TODOS = 25;
+const MAX_SUMMARY_TODOS = 25;
 
 /**
  * Builds the user text sent to the seeded `example-summarize` production prompt.

@@ -40,7 +40,7 @@ export interface DatasetImportResult {
 
 export type DatasetItemTab = "all" | "auto" | "human" | "needsReview";
 
-export const unwrapObservabilityPayload = <T>(raw: unknown): T | undefined => {
+const unwrapObservabilityPayload = <T>(raw: unknown): T | undefined => {
   if (raw == null) {
     return undefined;
   }
