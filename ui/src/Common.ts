@@ -497,6 +497,13 @@ export interface FilterProps extends WithTestID {
   triggerAccessibilityLabel?: string;
   /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
   iconName?: IconName;
+  /**
+   * Render the trigger as a compact `IconButton` instead of a labeled button.
+   * Use for dense chrome such as table column headers. `label` is ignored.
+   */
+  iconOnly?: boolean;
+  /** Trigger size when `iconOnly` is set. Defaults to `sm`. */
+  triggerSize?: "sm" | "default";
   /** Controlled open state. Omit to use `defaultOpen`. */
   isOpen?: boolean;
   /** Initial open state when uncontrolled. */

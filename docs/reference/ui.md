@@ -612,6 +612,10 @@ columns; web shows one **More filters** popover and native includes them in the 
 | Web | Toolbar search + per-column `Filter` popovers (`column.filter`) |
 | Native | Toolbar search + one **Filters** sheet (`Modal`) with the same fields |
 
+Column headers use `Filter` with `iconOnly`, which renders a compact icon trigger
+(24px at the default `triggerSize="sm"`, 32px with `triggerSize="default"`) instead
+of a labeled button. Give it an accessible name with `triggerAccessibilityLabel`.
+
 Omit `column.filter`, `searchFields`, and the related callbacks to keep today's
 sort/page-only table.
 

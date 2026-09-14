@@ -9,3 +9,5 @@ category: Added
   list search still uses `q`; choice filters support multi-value `$in`.
 - **@terreno/admin-backend**: `parseAdminListFilters` accepts choice `{$in: string[]}`
   and escaped-literal text `{$regex, $options: "i"}` while rejecting extra operators.
+- **@terreno/ui `Filter`**: new `iconOnly` and `triggerSize` props render a compact
+  icon trigger for dense chrome; DataTable column headers use it.

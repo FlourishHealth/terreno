@@ -316,6 +316,7 @@ export const DataTableColumnFilterWeb: FC<DataTableColumnFilterWebProps> = ({
   return (
     <Filter
       iconName="filter"
+      iconOnly
       isOpen={isOpen}
       label=""
       onApply={handleApply}
