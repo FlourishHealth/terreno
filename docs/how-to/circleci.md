@@ -50,6 +50,8 @@ list pipelines on the slug above.
 
 Smoke job `config-ok` and fork-only `dco` always run on continuation.
 `rulesync-check` runs only when generated-rule sources change (`run-rulesync`).
+`admin-backend/**` starts `admin-backend-ci`; `admin-frontend/**` starts
+`admin-frontend-ci`. Both jobs lint, compile, and run `test:coverage`.
 
 `.circleci/**` sets `run-circleci-config`. On **config-only** PRs that workflow
 runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
@@ -154,6 +156,8 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Verify rules are in sync | `rulesync-check` |
 | `dco` | `dco` |
 | Run all tests (API CI) | `api-ci` |
+| _(new)_ Admin backend lint, compile, coverage | `admin-backend-ci` |
+| _(new)_ Admin frontend lint, compile, coverage | `admin-frontend-ci` |
 | Run all tests (AI CI) | `ai-ci` |
 | RTK Lint and Build | `rtk-ci` |
 | Syncdb Lint, Build, and Tests | `syncdb-ci` |
@@ -170,7 +174,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
 | Lint, compile, and coverage (matrix package) | `packages-ci` (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) |
-| E2E · `<spec>` | `e2e` (matrix `spec`) |
+| E2E · `<spec>` | `e2e` (matrix `spec`, including `admin` plus `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, `admin-comms-back`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
 | _(new)_ CircleCI path-filter parity | `circleci-parity` |

@@ -1,6 +1,6 @@
 import {describe, it} from "bun:test";
-import {assert} from "chai";
 import {join, resolve} from "node:path";
+import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
@@ -172,10 +172,10 @@ describe("coverageRunArgs", () => {
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
       ["src"]
     );
-    assert.deepEqual(
-      coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
-      ["./**/*.test.ts", "./**/*.test.tsx"]
-    );
+    assert.deepEqual(coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}), [
+      "./**/*.test.ts",
+      "./**/*.test.tsx",
+    ]);
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1", "src"]

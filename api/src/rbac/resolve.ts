@@ -26,6 +26,20 @@ const getUserRoles = (user: User): string[] => {
   return withRoles.roles ?? [];
 };
 
+/** Include roles so a Mongo promotion (e.g. e2e `setUserAdmin`) is not stuck behind a 30s TTL. */
+const permissionCacheKey = (user: User): string => {
+  const roles = [...getUserRoles(user)].sort().join(",");
+  return `${user.id}:${roles}`;
+};
+
+const deletePermissionCacheForUser = (cache: Map<string, CacheEntry>, userId: string): void => {
+  for (const key of [...cache.keys()]) {
+    if (key === userId || key.startsWith(`${userId}:`)) {
+      cache.delete(key);
+    }
+  }
+};
+
 export const createPermissionResolver = <S extends Statements>(args: {
   statements: S;
   rbacRoleModel: RbacRoleModel;
@@ -71,15 +85,15 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
   };
 
-  const rememberPermissions = (userId: string, entry: CacheEntry): void => {
-    permissionCache.delete(userId);
-    permissionCache.set(userId, entry);
+  const rememberPermissions = (cacheKey: string, entry: CacheEntry): void => {
+    permissionCache.delete(cacheKey);
+    permissionCache.set(cacheKey, entry);
     enforceCacheBound();
   };
 
   const invalidateCache = (invalidateArgs?: {userId?: string}): void => {
     if (invalidateArgs?.userId) {
-      permissionCache.delete(invalidateArgs.userId);
+      deletePermissionCacheForUser(permissionCache, invalidateArgs.userId);
       sourceCache.delete(invalidateArgs.userId);
       return;
     }
@@ -205,10 +219,11 @@ export const createPermissionResolver = <S extends Statements>(args: {
     user: User,
     shouldCache: boolean
   ): Promise<PermissionSet> => {
+    const cacheKey = permissionCacheKey(user);
     if (shouldCache) {
-      const cached = permissionCache.get(user.id);
+      const cached = permissionCache.get(cacheKey);
       if (cached && cached.expiresAt > DateTime.now().toMillis()) {
-        rememberPermissions(user.id, cached);
+        rememberPermissions(cacheKey, cached);
         return cached.permissions;
       }
     }
@@ -251,7 +266,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
 
     if (shouldCache) {
-      rememberPermissions(user.id, {
+      rememberPermissions(cacheKey, {
         expiresAt: DateTime.now().plus({milliseconds: cacheTtlMs}).toMillis(),
         permissions,
       });
