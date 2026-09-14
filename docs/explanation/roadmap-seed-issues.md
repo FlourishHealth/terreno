@@ -605,7 +605,7 @@ same binary. Manifest finalized 2026-08-09 (decisions D1/D3/D7); TenTap excluded
 **Title:** `create-terreno-app scaffolding CLI`
 
 **Labels:** `area:dx`, `type:feature`
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`create-terreno-app`, Status=`Planned`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`create-terreno-app`, Status=`In progress`
 
 Today the MCP bootstrap tool returns markdown instructions and writes no files. This ships
 a real `create-terreno-app` CLI (or template repo) that produces a running, deployable app
