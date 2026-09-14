@@ -224,6 +224,8 @@ always hides payload regardless of the hook.
 | `JobsDashboardFilters`, `parseJobsDashboardSearchParams`, `serializeJobsDashboardSearchParams` | URL filter helpers |
 
 Widgets are registered in the built-in registry — enable via `JobsApp.adminContribution()` only.
+The admin shell lists Jobs under **Platform** (not Screens). Hosts still contribute
+`name: "jobs"`; do not add a second sidebar link.
 Custom screens should pass the app's generated RTK `api` into `AdminProvider`; jobs screens wire
 admin HTTP internally (not via a public `useJobsDashboardApi` export).
 
