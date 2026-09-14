@@ -10,4 +10,10 @@ Terreno charts are drawn with `react-native-svg` and private `d3-scale` / `d3-sh
 
 Axis ticks and donut legend labels use `Text` with `skipLinking`, matching `ChartFrame` tooltips, so a URL in `point.label` stays inert text instead of `Linking.openURL`.
 
+Sizing flows one way: the frame stretches to the container (`alignSelf: stretch`), the plot
+measures itself with `onLayout`, and the drawing is clipped to that measurement. Nothing inside a
+chart may set its own min-content width, or the container would size to the chart and the chart
+would size to the container. That is why x tick labels are absolutely positioned on their band
+centers instead of laid out in a row, and why the plot column sets `minWidth: 0`.
+
 `DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.

@@ -31,3 +31,5 @@ export const OpsDashboard: FC = () => {
 4. Keep `DashboardGrid` eager; import charts from `@terreno/ui/LineChart` when cold start matters. `gap` is subtracted from cell width so the breakpoint column count still fits.
 
 `DonutChart` ignores `legendLabel` and draws one legend row per slice. Override a slice with `color` on that point.
+
+Charts have no width prop: each one fills the container you put it in and redraws when that width changes, so size the `Card` or `Box` around it. `height` sets the plot height only; a donut draws at `min(containerWidth, height)`. Long x labels truncate inside their band rather than widening the chart.
