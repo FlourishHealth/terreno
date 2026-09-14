@@ -139,7 +139,8 @@ describe("AdminProvider widget registry", () => {
     );
     console.warn = originalWarn;
 
-    expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
+    // One warning per unique missing widget plus one for the deprecated prop.
+    expect(warn.mock.calls.length).toBe(4);
     expect(toJSON()).toBeNull();
   });
 

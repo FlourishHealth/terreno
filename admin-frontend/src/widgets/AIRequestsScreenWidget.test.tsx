@@ -90,7 +90,7 @@ describe("AIRequestsScreenWidget", () => {
         url: "/aiRequestsExplorer",
       },
     ]);
-    expect(getByText("AI Request Explorer")).toBeDefined();
+    expect(getByText("21 total requests")).toBeDefined();
   });
 
   beforeEach(() => {

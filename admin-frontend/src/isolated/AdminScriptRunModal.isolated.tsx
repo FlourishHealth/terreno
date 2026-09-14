@@ -38,7 +38,7 @@ mock.module("@terreno/ui", () => {
     ReactMod.createElement(RN.TextInput, {
       onChangeText: onChange,
       placeholder: placeholder as string,
-      testID,
+      testID: testID ?? (placeholder === "Search output" ? "mock-output-search" : undefined),
       value: (value as string) || "",
     });
   return {Badge, Banner, Box, Button, Heading, Icon, Modal, Spinner, Text, TextField};

@@ -23,8 +23,7 @@ mock.module("react-native", () => ({
 }));
 
 mock.module("../AdminRefField", () => ({
-  AdminRefField: (props: Record<string, unknown>) =>
-    React.createElement("RefField", {...props, testID: `${String(props.testID)}-mock`}),
+  AdminRefField: (props: Record<string, unknown>) => React.createElement("RefField", props),
 }));
 
 import {AdminFilterDrawer} from "../AdminFilterDrawer";
@@ -146,7 +145,7 @@ describe("AdminFilterDrawer", () => {
     expect(getByTestId("admin-filter-created-gte")).toBeDefined();
     expect(getByTestId("admin-filter-created-lte")).toBeDefined();
     expect(getByTestId("admin-filter-query")).toBeDefined();
-    expect(getByTestId("admin-filter-assignee-mock").props.routePath).toBe("/admin/users");
+    expect(getByTestId("admin-filter-assignee").props.routePath).toBe("/admin/users");
 
     const fieldByTitle = (title: string): ReactTestInstance =>
       UNSAFE_root.findAll(
