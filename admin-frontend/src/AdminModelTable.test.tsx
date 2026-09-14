@@ -1,10 +1,12 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
@@ -37,12 +39,13 @@ const listState: {data: unknown; isLoading: boolean} = {
   isLoading: false,
 };
 const deleteFn = mock(() => ({unwrap: async () => ({})}));
+const patchFn = mock(() => ({unwrap: async () => ({})}));
+const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 0})}));
+const enqueueBackgroundFn = mock(() => ({unwrap: async () => ({taskId: "t1"})}));
+
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 0})})),
-      {isLoading: false},
-    ],
+    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
     useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useDeleteMutation: () => [deleteFn, {isLoading: false}],
     useListQuery: () => ({
@@ -51,17 +54,15 @@ mock.module("./useAdminApi", () => ({
       isLoading: listState.isLoading,
     }),
     useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useUpdateMutation: () => [patchFn, {isLoading: false}],
   }),
 }));
 
 mock.module("./useAdminBackgroundTask", () => ({
-  useAdminBackgroundTaskMutation: () => [
-    mock(() => ({unwrap: async () => ({taskId: "t1"})})),
-    {isLoading: false},
-  ],
+  useAdminBackgroundTaskMutation: () => [enqueueBackgroundFn, {isLoading: false}],
 }));
 
+import {AdminFilterDrawer} from "./AdminFilterDrawer";
 import {AdminModelTable} from "./AdminModelTable";
 
 const fullConfig = {
@@ -86,16 +87,83 @@ const fullConfig = {
   scripts: [],
 };
 
+const interactiveListRows = [
+  {_id: "u1", active: false, age: 1, created: null, email: "a@b.com", tags: []},
+  {_id: "u2", active: true, age: 2, created: null, email: "c@d.com", tags: []},
+];
+
+const interactiveConfig: AdminConfigResponse = {
+  customScreens: [],
+  models: [
+    {
+      ...fullConfig.models[0],
+      actions: [
+        {id: "activate", label: "Activate", patchKeys: ["active"]},
+        {background: true, id: "reindex", label: "Reindex"},
+        {id: "noop", label: "No handler"},
+      ],
+      filters: [{field: "active", kind: "boolean", label: "Active"}],
+      listDisplayLinks: ["email"],
+      searchFields: ["email"],
+    },
+  ],
+  scripts: [],
+};
+
+const findDataTable = (root: ReactTestInstance): ReactTestInstance => {
+  const tables = root.findAll(
+    (n: ReactTestInstance) => typeof n.props?.setPage === "function" && Array.isArray(n.props?.data)
+  );
+  assert.isAtLeast(tables.length, 1);
+  return tables[0] as ReactTestInstance;
+};
+
+const expectSelectionCount = (
+  getByTestId: (id: string) => ReactTestInstance,
+  count: number
+): void => {
+  const node = getByTestId("admin-table-selection-count");
+  const renderedCount = Array.isArray(node.props.children)
+    ? node.props.children[0]
+    : node.props.children;
+  assert.equal(renderedCount, count);
+};
+
 describe("AdminModelTable", () => {
+  let consoleInfoSpy: ReturnType<typeof mock>;
+  let consoleWarnSpy: ReturnType<typeof mock>;
+  let consoleErrorSpy: ReturnType<typeof mock>;
+  const originalConsoleInfo = console.info;
+  const originalConsoleWarn = console.warn;
+  const originalConsoleError = console.error;
+
   beforeEach(() => {
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();
+    patchFn.mockClear();
+    bulkPatchFn.mockClear();
+    enqueueBackgroundFn.mockClear();
     configApiBaseCalls.length = 0;
     configState.config = null;
     configState.isLoading = false;
     listState.data = {data: [], total: 0};
     listState.isLoading = false;
+    patchFn.mockImplementation(() => ({unwrap: async () => ({})}));
+    bulkPatchFn.mockImplementation(() => ({unwrap: async () => ({updated: 0})}));
+    enqueueBackgroundFn.mockImplementation(() => ({unwrap: async () => ({taskId: "t1"})}));
+    consoleInfoSpy = mock(() => {});
+    consoleWarnSpy = mock(() => {});
+    consoleErrorSpy = mock(() => {});
+    console.info = consoleInfoSpy as typeof console.info;
+    console.warn = consoleWarnSpy as typeof console.warn;
+    console.error = consoleErrorSpy as typeof console.error;
+  });
+
+  afterEach(() => {
+    console.info = originalConsoleInfo;
+    console.warn = originalConsoleWarn;
+    console.error = originalConsoleError;
   });
 
   it("renders loading page while config is loading", () => {
@@ -492,5 +560,300 @@ describe("AdminModelTable", () => {
       (n: ReactTestInstance) => typeof n.props?.totalPages === "number"
     );
     expect((tables[0] as ReactTestInstance).props.totalPages).toBe(2);
+  });
+
+  it("toggles row selection and select-all for bulk actions", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+    expectSelectionCount(getByTestId, 1);
+
+    const tableAfterSelect = findDataTable(UNSAFE_root);
+    const rowOneSelectCell = (
+      tableAfterSelect.props.data as {value: {selected?: boolean}}[][]
+    )[0][0];
+    assert.isTrue(rowOneSelectCell.value.selected);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    expectSelectionCount(getByTestId, 2);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-select-all"));
+    });
+    expectSelectionCount(getByTestId, 0);
+  });
+
+  it("runs a background bulk action and clears selection on success", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u2"));
+    });
+
+    const menus = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-action-menu"
+    );
+    await act(async () => {
+      (menus[0] as ReactTestInstance).props.onChange("reindex");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    assert.equal(enqueueBackgroundFn.mock.calls.length, 1);
+    assert.deepEqual(enqueueBackgroundFn.mock.calls[0]?.[0], {
+      ids: ["u1", "u2"],
+      kind: "reindex",
+      metadata: {actionId: "reindex"},
+      resourceRoute: "/admin/users",
+    });
+    assert.isTrue(consoleInfoSpy.mock.calls.some((call) => call[0] === "Background task queued"));
+    expectSelectionCount(getByTestId, 0);
+  });
+
+  it("runs a patch bulk action and toasts success when all rows update", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    bulkPatchFn.mockImplementationOnce(() => ({
+      unwrap: async () => ({updated: 2}),
+    }));
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+
+    const menus = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-action-menu"
+    );
+    await act(async () => {
+      (menus[0] as ReactTestInstance).props.onChange("activate");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    assert.equal(bulkPatchFn.mock.calls.length, 1);
+    assert.deepEqual(bulkPatchFn.mock.calls[0]?.[0], {
+      ids: ["u1"],
+      patch: {active: true},
+    });
+    assert.isTrue(consoleInfoSpy.mock.calls.some((call) => call[0] === "Bulk update applied"));
+    expectSelectionCount(getByTestId, 0);
+  });
+
+  it("toasts partial failure when bulk patch returns failures", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    bulkPatchFn.mockImplementationOnce(() => ({
+      unwrap: async () => ({
+        failures: [{id: "u2", title: "Denied"}],
+        updated: 1,
+      }),
+    }));
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u2"));
+    });
+
+    const menus = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-action-menu"
+    );
+    await act(async () => {
+      (menus[0] as ReactTestInstance).props.onChange("activate");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    assert.isTrue(
+      consoleErrorSpy.mock.calls.some((call) => String(call[0]).includes("Updated 1; 1 failed"))
+    );
+    expectSelectionCount(getByTestId, 2);
+  });
+
+  it("warns when a bulk action has no handler configured", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+
+    const menus = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-action-menu"
+    );
+    await act(async () => {
+      (menus[0] as ReactTestInstance).props.onChange("noop");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    assert.isTrue(
+      consoleWarnSpy.mock.calls.some((call) =>
+        String(call[0]).includes("This action has no bulk handler configured.")
+      )
+    );
+    expectSelectionCount(getByTestId, 0);
+  });
+
+  it("patches inline boolean fields on toggle and surfaces update failures", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    const inlineBoolCells = UNSAFE_root.findAll((n: ReactTestInstance) => {
+      const value = n.props?.cellData?.value as
+        | {disabled?: boolean; onToggle?: () => void; value?: boolean}
+        | undefined;
+      return (
+        value &&
+        typeof value.onToggle === "function" &&
+        typeof value.value === "boolean" &&
+        typeof value.disabled === "boolean"
+      );
+    });
+    assert.isAtLeast(inlineBoolCells.length, 1);
+
+    await act(async () => {
+      (inlineBoolCells[0] as ReactTestInstance).props.cellData.value.onToggle();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    assert.equal(patchFn.mock.calls.length, 1);
+    assert.deepEqual(patchFn.mock.calls[0]?.[0], {body: {active: true}, id: "u1"});
+
+    patchFn.mockImplementationOnce(() => ({
+      unwrap: async () => {
+        throw new Error("patch failed");
+      },
+    }));
+    await act(async () => {
+      (inlineBoolCells[0] as ReactTestInstance).props.cellData.value.onToggle();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    assert.isTrue(
+      consoleErrorSpy.mock.calls.some((call) => String(call[0]).includes("Update failed"))
+    );
+  });
+
+  it("navigates from link and row action cells", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    const linkCells = UNSAFE_root.findAll((n: ReactTestInstance) => {
+      const value = n.props?.cellData?.value as {href?: string; text?: string} | undefined;
+      return value && typeof value.href === "string" && typeof value.text === "string";
+    });
+    assert.isAtLeast(linkCells.length, 1);
+    const linkCell = linkCells[0] as ReactTestInstance;
+    const linkButtons = linkCell.findAll(
+      (n: ReactTestInstance) => typeof n.props?.onClick === "function"
+    );
+    await act(async () => {
+      linkButtons[0]?.props.onClick();
+    });
+    assert.equal(routerPush.mock.calls[0]?.[0], "/admin/User/u1");
+
+    const viewButtons = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.accessibilityLabel === "View"
+    );
+    assert.isAtLeast(viewButtons.length, 1);
+    await act(async () => {
+      viewButtons[0]?.props.onClick();
+    });
+    assert.equal(routerPush.mock.calls[1]?.[0], "/admin/User/u1");
+
+    const editButtons = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.accessibilityLabel === "Edit"
+    );
+    await act(async () => {
+      editButtons[0]?.props.onClick();
+    });
+    assert.equal(routerPush.mock.calls[2]?.[0], "/admin/User/u1");
+  });
+
+  it("debounces search, resets page, and clears selection when search changes", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 40};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      findDataTable(UNSAFE_root).props.setPage(2);
+    });
+    assert.equal(findDataTable(UNSAFE_root).props.page, 2);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+    expectSelectionCount(getByTestId, 1);
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-table-search"), "query");
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, ADMIN_SEARCH_DEBOUNCE_MS + 50));
+    });
+
+    assert.equal(findDataTable(UNSAFE_root).props.page, 1);
+    expectSelectionCount(getByTestId, 0);
+  });
+
+  it("applies filters through the drawer and resets pagination", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 40};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      findDataTable(UNSAFE_root).props.setPage(2);
+    });
+    assert.equal(findDataTable(UNSAFE_root).props.page, 2);
+
+    await act(async () => {
+      UNSAFE_root.findByType(AdminFilterDrawer).props.onApply({active: true});
+    });
+
+    assert.equal(findDataTable(UNSAFE_root).props.page, 1);
+  });
+
+  it("clears bulk selection when sort changes", async () => {
+    configState.config = interactiveConfig;
+    listState.data = {data: interactiveListRows, total: 2};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-table-row-checkbox-u1"));
+    });
+    expectSelectionCount(getByTestId, 1);
+
+    await act(async () => {
+      findDataTable(UNSAFE_root).props.setSortColumn({column: 1, direction: "asc"});
+    });
+    expectSelectionCount(getByTestId, 0);
   });
 });

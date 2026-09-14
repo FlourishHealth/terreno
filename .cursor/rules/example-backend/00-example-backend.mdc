@@ -217,20 +217,13 @@ export const addUserRoutes = (router, options?) => {
 };
 ```
 
-### Custom Endpoints (Health)
+### Custom endpoints (modelRouter actions)
 
-```typescript
-router.get("/health", [
-  createOpenApiBuilder(options)
-    .withTags(["health"])
-    .withSummary("Health check")
-    .withResponse(200, {status: {type: "string"}, timestamp: {type: "string"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  const userCount = await User.countDocuments();
-  return res.json({status: "ok", timestamp: new Date().toISOString(), userCount});
-}));
-```
+Named GET/POST that is not CRUD belongs on the model's `collectionActions` /
+`instanceActions`. Example: `bulkComplete` on `todoRouter`. Do not add
+`router.get("/health", ...)` — `HealthApp` covers health. Do not add
+`app.post("/admin/users/:id/password")` — that is `instanceActions.password` on
+`usersRouter`.
 
 ## Configuration Model
 

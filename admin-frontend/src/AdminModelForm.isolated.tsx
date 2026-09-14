@@ -1,3 +1,8 @@
+/**
+ * Isolated: `mock.module("expo-router")` and `./useAdminApi` leak across the
+ * main suite and flake header-action tests. Keep this file next to
+ * `AdminModelForm.tsx` so those specifiers match the component imports.
+ */
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
@@ -85,6 +90,11 @@ describe("AdminModelForm", () => {
     configState.isLoading = false;
     readState.data = null;
     readState.isLoading = false;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        (opts.headerRight as () => unknown)();
+      }
+    });
   });
 
   it("renders loading state while config loads", () => {
@@ -307,11 +317,16 @@ describe("AdminModelForm", () => {
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
       fireEvent.press(header.getByTestId("admin-save-button"));
-      await new Promise((r) => setTimeout(r, 600));
     });
+    const started = Date.now();
+    while (createFn.mock.calls.length === 0 && Date.now() - started < 8000) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
     expect(createFn).toHaveBeenCalled();
     expect(routerBack).toHaveBeenCalled();
-  });
+  }, 15000);
 
   it("blocks save and surfaces validation errors when required fields are missing", async () => {
     configState.config = {

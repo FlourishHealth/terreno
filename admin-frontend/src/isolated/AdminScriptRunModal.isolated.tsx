@@ -34,8 +34,13 @@ mock.module("@terreno/ui", () => {
     ReactMod.createElement(RN.Text, {}, value as string);
   const Banner = ({text}: Record<string, unknown>) =>
     ReactMod.createElement(RN.Text, {}, text as string);
-  const TextField = ({value, placeholder}: Record<string, unknown>) =>
-    ReactMod.createElement(RN.Text, {}, (value as string) || (placeholder as string) || "");
+  const TextField = ({value, placeholder, onChange, testID}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.TextInput, {
+      onChangeText: onChange,
+      placeholder: placeholder as string,
+      testID,
+      value: (value as string) || "",
+    });
   return {Badge, Banner, Box, Button, Heading, Icon, Modal, Spinner, Text, TextField};
 });
 
@@ -643,6 +648,197 @@ describe("AdminScriptRunModal", () => {
     });
     // No cancel mutation should have been called since taskId was null
     expect(cancelCalls.length).toBe(0);
+  });
+
+  it("opens read-only history mode with prior task output and duration", async () => {
+    state.task = {
+      data: {
+        task: {
+          completedAt: "2024-06-01T12:00:05Z",
+          created: "2024-06-01T12:00:00Z",
+          isDryRun: false,
+          result: ["ok line", "ERROR: bad row", "another ok"],
+          startedAt: "2024-06-01T12:00:00Z",
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    const {getByText} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        historyTaskId="hist-99"
+        onDismiss={() => {}}
+        scriptName="history-script"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    expect(getByText("history-script")).toBeTruthy();
+    expect(getByText(/Completed with 1 error/)).toBeTruthy();
+  });
+
+  it("filters output to errors and searches result lines", async () => {
+    state.task = {data: undefined, error: null, isLoading: false};
+    const {getByPlaceholderText, getByTestId, getByText, queryByText, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="filter-script"
+        visible={true}
+      />
+    );
+    await pressDryRun(getByTestId);
+    state.task = {
+      data: {
+        task: {
+          isDryRun: true,
+          result: ["success row", "failed: bad thing", "success two"],
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="filter-script"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    await act(async () => {
+      fireEvent.press(getByText("Errors (1)"));
+    });
+    expect(getByText("failed: bad thing")).toBeTruthy();
+    expect(queryByText("success row")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByText("All (3)"));
+      fireEvent.changeText(getByPlaceholderText("Search output"), "success two");
+    });
+    expect(getByText("success two")).toBeTruthy();
+    expect(queryByText("failed: bad thing")).toBeNull();
+  });
+
+  it("exports CSV and JSON when browser download APIs exist", async () => {
+    state.task = {data: undefined, error: null, isLoading: false};
+    const click = mock(() => undefined);
+    const anchor = {click, download: "", href: ""};
+    const createElement = mock((tag: string) => {
+      if (tag === "a") {
+        return anchor;
+      }
+      return {};
+    });
+    const originalDocument = globalThis.document;
+    const originalUrl = globalThis.URL;
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {createElement},
+    });
+    Object.defineProperty(globalThis, "URL", {
+      configurable: true,
+      value: {
+        createObjectURL: () => "blob:test",
+        revokeObjectURL: () => undefined,
+      },
+    });
+
+    const {getByTestId, getByText, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="export-script"
+        visible={true}
+      />
+    );
+    await pressDryRun(getByTestId);
+    state.task = {
+      data: {
+        task: {
+          isDryRun: true,
+          result: ["line one", "line two"],
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="export-script"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    await act(async () => {
+      fireEvent.press(getByText("Export CSV"));
+      fireEvent.press(getByText("Export JSON"));
+    });
+
+    expect(createElement).toHaveBeenCalledWith("a");
+    expect(click.mock.calls.length).toBeGreaterThan(0);
+
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: originalDocument,
+    });
+    Object.defineProperty(globalThis, "URL", {
+      configurable: true,
+      value: originalUrl,
+    });
+  });
+
+  it("re-runs dry from the done view after a completed dry run", async () => {
+    state.task = {data: undefined, error: null, isLoading: false};
+    const {getByTestId, getByText, rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+
+    await pressDryRun(getByTestId);
+
+    state.task = {
+      data: {task: {isDryRun: true, result: ["all good"], status: "completed"}},
+      error: null,
+      isLoading: false,
+    };
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="migrate"
+        visible={true}
+      />
+    );
+    await waitTicks();
+
+    runCalls.length = 0;
+    await act(async () => {
+      fireEvent.press(getByText("Re-run dry"));
+    });
+    await waitTicks();
+
+    expect(runCalls.some((call) => (call as {wetRun?: boolean}).wetRun === false)).toBe(true);
   });
 
   it("renders without error when visible flips from true→false (reset cycle)", async () => {

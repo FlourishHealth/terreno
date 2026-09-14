@@ -3,6 +3,7 @@ import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
 import type {UserDocument} from "../types/models/userTypes";
+import {todoLoadTestCollectionActions} from "./loadtest";
 
 const bulkCompleteBodySchema = z
   .object({
@@ -56,6 +57,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
     sortableFields: ["title", "completed", "created", "priority"],
   },
   collectionActions: {
+    ...todoLoadTestCollectionActions,
     bulkComplete: {
       access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
