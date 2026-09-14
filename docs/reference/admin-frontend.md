@@ -78,6 +78,13 @@ in another.
 
 When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
 selects it automatically. With multiple organizations it renders a selector.
+When `/orgs/mine` returns **403** (callers without org-admin memberships, per API
+docs), the switcher renders nothing instead of an error banner. Other failures
+still show "Organizations unavailable".
+
+`OrgDirectoryScreen` (operators only) lists every organization, including
+disabled ones. Each row offers **Disable** or **Re-enable**; re-enabling sends
+`PATCH /orgs/:id` with `{disabled: false}`.
 
 ### OrgSettingsScreen and OrgMembersScreen
 

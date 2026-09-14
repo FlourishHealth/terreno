@@ -26,12 +26,15 @@ export const isOrgMemberPermission: PermissionMethod<unknown> = async (_method, 
   if (!organizationId) {
     return false;
   }
+  const context = getOrgContext();
+  if (!context?.organization) {
+    return false;
+  }
+  if (String(context.organization._id) !== String(organizationId)) {
+    return false;
+  }
   if (isPlatformOrgActor(user)) {
-    const context = getOrgContext();
-    if (!context?.organization) {
-      return false;
-    }
-    return String(context.organization._id) === String(organizationId);
+    return true;
   }
   return Membership.isMember(user.id, String(organizationId));
 };

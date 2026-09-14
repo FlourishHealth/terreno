@@ -46,6 +46,27 @@ describe("isOrgMemberPermission", () => {
 
     assert.isFalse(allowed);
   });
+
+  it("returns false when ALS org context does not match for a non-platform member", async () => {
+    const contextOrganizationId = new mongoose.Types.ObjectId();
+    const documentOrganizationId = new mongoose.Types.ObjectId();
+    const user = memberUser();
+
+    const allowed = await runWithOrgContext(
+      {organization: {_id: contextOrganizationId} as never},
+      () => isOrgMemberPermission("read", user, {organizationId: documentOrganizationId})
+    );
+
+    assert.isFalse(await allowed);
+  });
+
+  it("returns false when ALS org context is missing for a non-platform member", async () => {
+    const allowed = await isOrgMemberPermission("read", memberUser(), {
+      organizationId: new mongoose.Types.ObjectId(),
+    });
+
+    assert.isFalse(allowed);
+  });
 });
 
 describe("isOrgMemberPermission platform actors", () => {

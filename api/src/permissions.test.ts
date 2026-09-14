@@ -298,7 +298,7 @@ describe("permissions module", () => {
       ).toBe(false);
     });
 
-    it("returns true when the caller has an active membership", async () => {
+    it("returns true when the caller has an active membership in the active org context", async () => {
       const org = await Organization.create({
         name: "Perm Org",
         ownerId: new mongoose.Types.ObjectId(),
@@ -310,9 +310,10 @@ describe("permissions module", () => {
         userId,
       });
       const user = testUser({_id: userId, id: userId.toString()});
-      expect(
-        await Permissions.IsOrganizationMember("update", user, {organizationId: org._id})
-      ).toBe(true);
+      const allowed = await runWithOrgContext({organization: org}, () =>
+        Permissions.IsOrganizationMember("update", user, {organizationId: org._id})
+      );
+      expect(await allowed).toBe(true);
     });
 
     it("returns false when the user does not belong to the document's organization", async () => {

@@ -700,11 +700,17 @@ and `$or` cannot list another org.
 `superadmin`.
 
 Use `Permissions.IsOrganizationMember` on read, update, and delete methods for
-tenant models. It checks the object's `organizationId` against the active
-request context for platform actors and against active Membership rows for
-members. `getOrgContext()` exposes the resolved organization to create hooks so
-they can overwrite client-provided organization ids. See
-[Add organizations](../how-to/add-organizations.md) for complete route wiring.
+tenant models. It requires the object's `organizationId` to match the active
+request organization context (AsyncLocalStorage from `orgContextMiddleware`) for
+every caller. Platform actors (`operator` / `superadmin`) then pass; members
+must also hold an active Membership in that organization. Direct `GET` / `PATCH`
+by document id does not apply `OrgQueryFilter`, so this object-level check is
+what blocks cross-tenant reads and writes. `getOrgContext()` exposes the
+resolved organization to create hooks so they can overwrite client-provided
+organization ids. Duplicate organization names that generate the same slug
+return **409** `Organization name already in use` on `POST /orgs` and on rename
+via `PATCH /orgs/:id`. See [Add organizations](../how-to/add-organizations.md)
+for complete route wiring.
 
 ### Organization RBAC
 

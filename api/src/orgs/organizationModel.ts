@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-import {APIError} from "../errors";
+import {APIError, ConflictError} from "../errors";
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 import type {MembershipDocument, MembershipModel} from "../types/membership";
 import type {OrganizationDocument, OrganizationModel} from "../types/organization";
@@ -30,6 +30,20 @@ const toObjectId = (value: mongoose.Types.ObjectId | string): mongoose.Types.Obj
     return value;
   }
   return new mongoose.Types.ObjectId(value);
+};
+
+export const assertOrganizationSlugAvailable = async (
+  slug: string,
+  excludeOrganizationId?: mongoose.Types.ObjectId
+): Promise<void> => {
+  const query: {_id?: {$ne: mongoose.Types.ObjectId}; slug: string} = {slug};
+  if (excludeOrganizationId) {
+    query._id = {$ne: excludeOrganizationId};
+  }
+  const existing = await Organization.findOneOrNone(query);
+  if (existing) {
+    throw new ConflictError("Organization name already in use");
+  }
 };
 
 export const organizationSlugFromName = (name: string): string => {

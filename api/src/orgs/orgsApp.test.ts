@@ -281,6 +281,33 @@ describe("OrgsApp", () => {
     assert.equal(stillAdmin?.roleName, "org-admin");
   });
 
+  it("returns 409 when POST /orgs collides on slug", async () => {
+    const operator = await createUser({email: "op@example.com", roles: ["operator"]});
+    await Organization.create({name: "Acme Corp", ownerId: operator._id});
+
+    const operatorAgent = await loginWithPassword(app, {
+      email: "op@example.com",
+      password: PASSWORD,
+    });
+    const created = await operatorAgent.post("/orgs").send({name: "Acme Corp"});
+    assert.equal(created.status, 409);
+    assert.equal(created.body.title, "Organization name already in use");
+  });
+
+  it("returns 409 when PATCH /orgs/:id rename collides on slug", async () => {
+    const operator = await createUser({email: "op2@example.com", roles: ["operator"]});
+    await Organization.create({name: "Acme Corp", ownerId: operator._id});
+    const other = await Organization.create({name: "Other Co", ownerId: operator._id});
+
+    const operatorAgent = await loginWithPassword(app, {
+      email: "op2@example.com",
+      password: PASSWORD,
+    });
+    const patched = await operatorAgent.patch(`/orgs/${other._id}`).send({name: "Acme Corp"});
+    assert.equal(patched.status, 409);
+    assert.equal(patched.body.title, "Organization name already in use");
+  });
+
   it("lets an org-admin attach another existing user", async () => {
     const owner = await createUser({email: "owner@example.com", roles: ["operator"]});
     const orgAdmin = await createUser({email: "orgadmin@example.com"});

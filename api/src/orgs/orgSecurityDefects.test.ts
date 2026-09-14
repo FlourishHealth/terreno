@@ -303,6 +303,71 @@ describe("org security regressions", () => {
     });
   });
 
+  describe("cross-tenant object access", () => {
+    it("rejects GET for an org-B project when scoped to org A", async () => {
+      const user = await createUser({email: "dualmember@example.com"});
+      const orgA = await Organization.create({name: "Org A", ownerId: user._id});
+      const orgB = await Organization.create({name: "Org B", ownerId: user._id});
+      await Membership.create({organizationId: orgA._id, roleName: "member", userId: user._id});
+      await Membership.create({organizationId: orgB._id, roleName: "member", userId: user._id});
+      const projectB = await OrgProjectModel.create({
+        organizationId: orgB._id,
+        title: "Secret in B",
+      });
+
+      const agent = await loginWithPassword(app, {
+        email: "dualmember@example.com",
+        password: PASSWORD,
+      });
+      const read = await agent
+        .get(`/projects/${projectB._id}`)
+        .set("X-Organization-Id", String(orgA._id));
+
+      assert.equal(read.status, 403);
+    });
+
+    it("rejects PATCH for an org-B project when scoped to org A", async () => {
+      const user = await createUser({email: "dualpatch@example.com"});
+      const orgA = await Organization.create({name: "Org Alpha P", ownerId: user._id});
+      const orgB = await Organization.create({name: "Org Beta P", ownerId: user._id});
+      await Membership.create({organizationId: orgA._id, roleName: "member", userId: user._id});
+      await Membership.create({organizationId: orgB._id, roleName: "member", userId: user._id});
+      const projectB = await OrgProjectModel.create({organizationId: orgB._id, title: "Before"});
+
+      const agent = await loginWithPassword(app, {
+        email: "dualpatch@example.com",
+        password: PASSWORD,
+      });
+      const patched = await agent
+        .patch(`/projects/${projectB._id}`)
+        .set("X-Organization-Id", String(orgA._id))
+        .send({title: "After"});
+
+      assert.equal(patched.status, 403);
+
+      const reloaded = await OrgProjectModel.findById(projectB._id);
+      assert.equal(reloaded?.title, "Before");
+    });
+
+    it("allows GET for a same-org project when scoped to that org", async () => {
+      const user = await createUser({email: "samemember@example.com"});
+      const orgA = await Organization.create({name: "Org Same", ownerId: user._id});
+      await Membership.create({organizationId: orgA._id, roleName: "member", userId: user._id});
+      const project = await OrgProjectModel.create({organizationId: orgA._id, title: "Visible"});
+
+      const agent = await loginWithPassword(app, {
+        email: "samemember@example.com",
+        password: PASSWORD,
+      });
+      const read = await agent
+        .get(`/projects/${project._id}`)
+        .set("X-Organization-Id", String(orgA._id));
+
+      assert.equal(read.status, 200);
+      assert.equal(read.body.data.title, "Visible");
+    });
+  });
+
   describe("organizationId immutability", () => {
     it("rejects REST PATCH attempts to retarget organizationId", async () => {
       const user = await createUser({email: "dualmember@example.com"});

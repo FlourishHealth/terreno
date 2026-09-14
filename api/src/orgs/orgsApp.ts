@@ -11,7 +11,12 @@ import type {AnyTerrenoAccess} from "../rbac/types";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {MembershipDocument} from "../types/membership";
 import type {OrganizationDocument} from "../types/organization";
-import {Membership, Organization, organizationSlugFromName} from "./organizationModel";
+import {
+  assertOrganizationSlugAvailable,
+  Membership,
+  Organization,
+  organizationSlugFromName,
+} from "./organizationModel";
 import {assertOrganizationEnabled, isPlatformOrgActor, runWithOrgContext} from "./orgContext";
 
 const escapeRegularExpression = (value: string): string => {
@@ -202,6 +207,7 @@ export class OrgsApp implements TerrenoPlugin {
         if (!name) {
           throw new APIError({status: 400, title: "name is required"});
         }
+        await assertOrganizationSlugAvailable(organizationSlugFromName(name));
         const organization = await Organization.create({
           name,
           ownerId: userIdOf(user),
@@ -311,8 +317,11 @@ export class OrgsApp implements TerrenoPlugin {
         });
 
         if (typeof body.name === "string" && body.name.trim()) {
-          organization.name = body.name.trim();
-          organization.slug = organizationSlugFromName(organization.name);
+          const trimmedName = body.name.trim();
+          const slug = organizationSlugFromName(trimmedName);
+          await assertOrganizationSlugAvailable(slug, organization._id);
+          organization.name = trimmedName;
+          organization.slug = slug;
         }
         if ("settings" in body) {
           organization.settings = body.settings;

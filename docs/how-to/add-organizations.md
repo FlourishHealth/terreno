@@ -109,8 +109,13 @@ Frontend admin hosts use `OrgContextProvider` + `OrgSwitcher`.
 `useAdminApi` adds the selected organization header automatically.
 
 Disabled organizations are excluded from `/orgs/mine` and cannot be selected as
-tenant context. Operators re-enable them with `PATCH /orgs/:id` and
-`disabled: false` (see [How organization tenancy works](../explanation/organizations.md#disabled-organizations)).
+tenant context. Operators re-enable them from the organization directory UI or
+with `PATCH /orgs/:id` and `disabled: false` (see
+[How organization tenancy works](../explanation/organizations.md#disabled-organizations)).
+
+Creating or renaming an organization to a name that generates an existing slug
+returns **409** `Organization name already in use`. `OrgSwitcher` hides itself
+when `/orgs/mine` returns **403** for callers without org-admin memberships.
 
 ## Example app accounts
 
