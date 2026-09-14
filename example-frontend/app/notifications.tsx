@@ -37,7 +37,11 @@ const AllNotificationsScreen: React.FC = () => {
     [notifications]
   );
   const archivedItems = useMemo((): NotificationInboxItem[] => {
-    const rows = archivedResponse?.data ?? [];
+    // @terreno/rtk unwraps non-list `{data}` envelopes at runtime, while OpenAPI
+    // describes the HTTP envelope. Support both so generated types and runtime agree.
+    const rows = Array.isArray(archivedResponse)
+      ? archivedResponse
+      : (archivedResponse?.data ?? []);
     return [...rows]
       .sort((left, right) =>
         sortNotificationsByCreatedDesc(left as Notification, right as Notification)

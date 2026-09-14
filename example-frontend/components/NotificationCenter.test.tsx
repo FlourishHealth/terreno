@@ -99,7 +99,7 @@ mock.module("@/hooks/useSyncDbReady", () => ({
 
 mock.module("@/store/sdk", () => ({
   useGetNotificationsArchivedQuery: () => ({
-    data: {data: archivedNotificationRows},
+    data: archivedNotificationRows,
     isFetching: false,
     refetch: refetchArchived,
   }),
