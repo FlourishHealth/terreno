@@ -3,13 +3,23 @@ import {
   type MutableRefObject,
   type ReactNode,
   type Ref,
+  useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
+  useState,
 } from "react";
-import {Animated} from "react-native";
+import {Animated, Platform} from "react-native";
 import {Modalize} from "react-native-modalize";
 
+import {Box} from "./Box";
+import {Modal} from "./Modal";
 import {Portal} from "./PortalHost";
+
+export interface SimpleContentHandle {
+  close: () => void;
+  open: () => void;
+}
 
 export const useCombinedRefs = <T,>(
   ...refs: Array<Ref<T> | undefined>
@@ -38,24 +48,47 @@ interface Props {
   children: ReactNode;
 }
 
-export const SimpleContent = forwardRef((props: Props, ref) => {
-  const modalizeRef = useRef(null);
-  const combinedRef = useCombinedRefs(ref, modalizeRef);
+export const SimpleContent = forwardRef<SimpleContentHandle, Props>((props, ref) => {
+  const modalizeRef = useRef<SimpleContentHandle | null>(null);
   const animated = useRef(new Animated.Value(0)).current;
+  const [webVisible, setWebVisible] = useState(false);
+  const isWeb = Platform.OS === "web";
 
-  // const renderHeader = () => (
-  //   <Box paddingY={4} marginTop={4} marginBottom={4}>
-  //     <Text>50 users online</Text>
-  //   </Box>
-  // );
+  const openSheet = useCallback((): void => {
+    if (isWeb) {
+      setWebVisible(true);
+      return;
+    }
+    modalizeRef.current?.open();
+  }, [isWeb]);
+
+  const closeSheet = useCallback((): void => {
+    if (isWeb) {
+      setWebVisible(false);
+      return;
+    }
+    modalizeRef.current?.close();
+  }, [isWeb]);
+
+  useImperativeHandle(ref, () => ({
+    close: closeSheet,
+    open: openSheet,
+  }));
+
+  if (isWeb) {
+    return (
+      <Modal onDismiss={closeSheet} size="md" visible={webVisible}>
+        <Box>{props.children}</Box>
+      </Modal>
+    );
+  }
 
   return (
     <Portal>
       <Modalize
-        // HeaderComponent={renderHeader}
         adjustToContentHeight
         panGestureAnimatedValue={animated}
-        ref={combinedRef}
+        ref={modalizeRef}
         scrollViewProps={{
           showsVerticalScrollIndicator: false,
           stickyHeaderIndices: [0],
@@ -66,3 +99,5 @@ export const SimpleContent = forwardRef((props: Props, ref) => {
     </Portal>
   );
 });
+
+SimpleContent.displayName = "SimpleContent";

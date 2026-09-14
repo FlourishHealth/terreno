@@ -1,18 +1,26 @@
 import {describe, expect, it, mock} from "bun:test";
-import {forwardRef, useRef} from "react";
+import {createRef, forwardRef, useImperativeHandle, useRef} from "react";
 import {Text, View} from "react-native";
 
 import {SimpleContent, useCombinedRefs} from "./ModalSheet";
 import {renderWithTheme} from "./test-utils";
 
-// Mock react-native-modalize
+const openMock = mock(() => {});
+const closeMock = mock(() => {});
+
 mock.module("react-native-modalize", () => ({
   Modalize: forwardRef<React.ElementRef<typeof View>, {children: React.ReactNode}>(
-    ({children}, ref) => (
-      <View ref={ref} testID="modalize">
-        {children}
-      </View>
-    )
+    ({children}, ref) => {
+      useImperativeHandle(ref, () => ({
+        close: closeMock,
+        open: openMock,
+      }));
+      return (
+        <View ref={ref} testID="modalize">
+          {children}
+        </View>
+      );
+    }
   ),
 }));
 
@@ -47,6 +55,19 @@ describe("ModalSheet", () => {
     expect(getByTestId("combined-ref-view")).toBeTruthy();
   });
 
+  it("exposes open and close on the forwarded ref", () => {
+    const sheetRef = createRef<{close: () => void; open: () => void}>();
+    renderWithTheme(
+      <SimpleContent ref={sheetRef}>
+        <Text>Sheet body</Text>
+      </SimpleContent>
+    );
+    sheetRef.current?.open();
+    sheetRef.current?.close();
+    expect(openMock).toHaveBeenCalled();
+    expect(closeMock).toHaveBeenCalled();
+  });
+
   it("useCombinedRefs forwards the node to callback refs, object refs, and skips undefined", () => {
     const callbackRef = mock((_node: View | null) => {});
     const objectRef: {current: View | null} = {current: null};
@@ -61,8 +82,8 @@ describe("ModalSheet", () => {
     expect(objectRef.current).toBe(callbackRef.mock.calls[0][0]);
   });
 
-  it("SimpleContent forwards its ref to the Modalize instance", () => {
-    const forwarded = mock((_node: View | null) => {});
+  it("SimpleContent forwards open and close through a callback ref", () => {
+    const forwarded = mock((_handle: {close: () => void; open: () => void} | null) => {});
     renderWithTheme(
       <SimpleContent ref={forwarded}>
         <Text>Test Content</Text>
