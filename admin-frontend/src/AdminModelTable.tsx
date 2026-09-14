@@ -592,8 +592,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const settleMembership = async (): Promise<void> => {
       for (let attempt = 0; attempt < MEMBERSHIP_SETTLE_ATTEMPTS; attempt += 1) {
         const ids = await handleRefreshRef.current();
-        // `undefined` means the refresh was abandoned — unmounted, re-paged, or failed.
-        if (!ids || !awaitId || ids.includes(awaitId)) {
+        if (!awaitId || ids?.includes(awaitId)) {
+          return;
+        }
+        // A transient list failure also returns undefined. Keep retrying while mounted;
+        // an unmount is the only safe signal that this table no longer owns settlement.
+        if (!isMountedRef.current) {
           return;
         }
         await new Promise((resolve) => setTimeout(resolve, MEMBERSHIP_SETTLE_RETRY_MS));

@@ -358,6 +358,41 @@ describe("AdminModelTable windowed path", () => {
     assert.equal(refetchCount, 2);
   });
 
+  it("retries a transient refresh failure while settling a queued create", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    let refetchCount = 0;
+    listRefetch.mockImplementation(async () => {
+      refetchCount += 1;
+      if (refetchCount === 1) {
+        throw new Error("temporary network failure");
+      }
+      listState.data = {
+        data: [
+          {_id: "todo-1", title: "Alpha"},
+          {_id: "todo-2", title: "Accepted after retry"},
+        ],
+        total: 2,
+      };
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      markAdminWindowMembershipStale({awaitId: "todo-2", collection: "todos"});
+      await new Promise((resolve) => setTimeout(resolve, 1_600));
+    });
+
+    assert.equal(refetchCount, 2);
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Accepted after retry"]);
+  });
+
   it("gives up retrying after the attempt budget and leaves Refresh available", async () => {
     const {syncDb} = createFakeSyncDb();
     listState.data = {

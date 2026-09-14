@@ -223,6 +223,108 @@ describe("AdminModelForm", () => {
     assert.deepEqual(getAdminWindowMembershipStale("todos"), {});
   });
 
+  it("ignores duplicate windowed save presses while the first save is pending", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    let releaseSave: (() => void) | undefined;
+    const onSaveSuccess = mock(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSave = resolve;
+        })
+    );
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="Todo"
+        onSaveSuccess={onSaveSuccess}
+      />
+    );
+    const saveButton = form.UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.testID === "admin-save-button" && typeof node.props.onClick === "function"
+    )[0];
+
+    await act(async () => {
+      void saveButton?.props.onClick();
+      void saveButton?.props.onClick();
+      await Promise.resolve();
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 1);
+    assert.equal(onSaveSuccess.mock.calls.length, 1);
+
+    await act(async () => {
+      releaseSave?.();
+      await Promise.resolve();
+    });
+  });
+
+  it("ignores duplicate windowed delete presses while hydration is pending", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    readState.data = {email: "todo@example.com"};
+    let releaseHydrate: (() => void) | undefined;
+    hydrateWindowFn.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseHydrate = (): void => resolve({hydratedIds: ["todo-1"]});
+        })
+    );
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />
+    );
+    const deleteButton = form.UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.testID === "admin-delete-button" && typeof node.props.onClick === "function"
+    )[0];
+
+    await act(async () => {
+      void deleteButton?.props.onClick();
+      void deleteButton?.props.onClick();
+      await Promise.resolve();
+    });
+
+    assert.equal(hydrateWindowFn.mock.calls.length, 1);
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+
+    await act(async () => {
+      releaseHydrate?.();
+      await Promise.resolve();
+    });
+    assert.equal(syncMutateFn.mock.calls.length, 1);
+  });
+
   it("shows an edit conflict for the loaded form id", async () => {
     configState.config = {
       ...config,

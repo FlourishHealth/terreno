@@ -305,6 +305,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isWindowMutationPending, setIsWindowMutationPending] = useState(false);
+  const windowMutationPendingRef = useRef(false);
   const navigation = useNavigation();
   const navigationRef = useRef(navigation);
   navigationRef.current = navigation;
@@ -432,8 +434,15 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (!modelConfig) {
       return;
     }
+    if (windowMutationPendingRef.current) {
+      return;
+    }
     if (!validate()) {
       return;
+    }
+    if (isWindowed) {
+      windowMutationPendingRef.current = true;
+      setIsWindowMutationPending(true);
     }
     try {
       const sanitizedPayload = omitBlankOptionalEnums(
@@ -486,6 +495,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to ${mode === "create" ? "create" : "update"} ${modelName}`);
+    } finally {
+      windowMutationPendingRef.current = false;
+      setIsWindowMutationPending(false);
     }
   }, [
     mode,
@@ -507,6 +519,13 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const handleDelete = useCallback(async () => {
     if (!itemId) {
       return;
+    }
+    if (windowMutationPendingRef.current) {
+      return;
+    }
+    if (isWindowed) {
+      windowMutationPendingRef.current = true;
+      setIsWindowMutationPending(true);
     }
     try {
       if (isWindowed && modelConfig?.syncCollection && adminContext?.syncDb) {
@@ -530,6 +549,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to delete ${modelName}`);
+    } finally {
+      windowMutationPendingRef.current = false;
+      setIsWindowMutationPending(false);
     }
   }, [
     adminContext?.syncDb,
@@ -542,7 +564,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     toast,
   ]);
 
-  const isSaving = isCreating || isUpdating;
+  const isSaving = isCreating || isUpdating || isWindowMutationPending;
+  const isDeletePending = isDeleting || isWindowMutationPending;
   const recordCapabilities = (
     itemData as {_adminCapabilities?: AdminRecordCapabilities} | undefined
   )?._adminCapabilities;
@@ -760,7 +783,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
               />
             ) : null}
             {mode === "edit" && canDeleteRecord ? (
-              <DeleteButton loading={isDeleting} onDelete={handleDelete} />
+              <DeleteButton loading={isDeletePending} onDelete={handleDelete} />
             ) : null}
           </Box>
         ) : null}
