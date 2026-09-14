@@ -85,26 +85,57 @@ generated hooks) for list, mark-read (`readAt`), and dismiss (delete).
 
 ## 5. Presentational UI
 
-Import bell, inbox, and preferences from `@terreno/ui`. The components take data and
-callbacks only — wire them to syncdb in your screen:
+Import the bell, inbox, and right-side drawer from `@terreno/ui`. The components take
+data and callbacks only — wire them to syncdb in your screen:
 
 ```typescript
-import {NotificationBell, NotificationInbox, Modal} from "@terreno/ui";
+import {NotificationBell, NotificationInbox, SideDrawer} from "@terreno/ui";
 
-<NotificationBell unreadCount={unreadCount} onPress={() => setOpen(true)} />
-<Modal visible={open} onDismiss={() => setOpen(false)} title="Notifications">
-  <NotificationInbox
-    items={items}
-    onMarkRead={(item) => patch({id: item.id, data: {readAt: DateTime.now().toISO()}})}
-    onMarkUnread={(item) => patch({id: item.id, data: {readAt: null}})}
-    onDismiss={(item) => remove({id: item.id})}
-    onOpen={(item) => item.href?.startsWith("/") && router.push(item.href)}
-  />
-</Modal>
+<NotificationBell unreadCount={unreadCount} onPress={() => setOpen((value) => !value)} />
+<SideDrawer
+  isOpen={open}
+  onClose={() => setOpen(false)}
+  position="right"
+  renderContent={() => (
+    <NotificationInbox
+      items={items}
+      onMarkRead={(item) => patch({id: item.id, data: {readAt: DateTime.now().toISO()}})}
+      onMarkUnread={(item) => patch({id: item.id, data: {readAt: null}})}
+      onDismiss={(item) => remove({id: item.id})}
+      onOpen={(item) => item.href?.startsWith("/") && router.push(item.href)}
+    />
+  )}
+>
+  {screen}
+</SideDrawer>
 ```
 
+Customize the bell without reimplementing its tap target or unread accessibility label:
+
+```typescript
+<NotificationBell
+  unreadCount={unreadCount}
+  onPress={() => setOpen((value) => !value)}
+  renderIcon={({testID}) => <BrandBell testID={testID} />}
+  renderBadge={({testID, unreadCount}) => (
+    <BrandBubble count={unreadCount} testID={testID} />
+  )}
+/>
+```
+
+Treat dismissed rows as archived sync tombstones in the active inbox. Sync bootstrap
+delivers tombstones without payload data, so a full history screen should load archived
+rows from `GET /notifications/archived` via the generated RTK Query hook (owner-scoped,
+authenticated). Map each row with `deleted: true` to `NotificationInboxItem.archived`.
+Archived rows remain readable but `NotificationInbox` hides their dismiss and read-state
+actions.
+
 See `example-frontend/components/NotificationCenter.tsx` and
-`example-frontend/app/settings/notifications.tsx` for a full wiring example.
+`example-frontend/app/notifications.tsx` for the drawer and complete history page.
+
+The example todo router also demonstrates lifecycle-generated activity notifications:
+`postCreate` reports added todos, `postUpdate` reports a false-to-true `completed`
+transition, and `postDelete` reports deletion.
 
 ## Reference
 

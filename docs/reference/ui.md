@@ -69,11 +69,16 @@ Presentational only — no syncdb import. Wire data from your app's sync layer.
 |---|---|---|
 | `unreadCount` | `number` | Badge hidden when `0` |
 | `onPress` | `() => void` | Opens the inbox (host owns visibility) |
+| `renderBadge` | `({unreadCount, testID}) => ReactNode` | Replaces the default unread-count badge |
+| `renderIcon` | `({testID}) => ReactNode` | Replaces the default bell icon |
 | `testID` | `string` | Default `notification-bell` |
+
+Custom renderers keep the built-in 40×40 tap target, positioning, toggle callback, and
+accessible unread-count label. `renderBadge` runs only when `unreadCount > 0`.
 
 ### `NotificationInbox`
 
-List-only; wrap in `Modal` or a sheet in the host screen.
+List-only; wrap in `SideDrawer`, `Modal`, or a sheet in the host screen.
 
 | Prop | Type | Description |
 |---|---|---|
@@ -82,6 +87,9 @@ List-only; wrap in `Modal` or a sheet in the host screen.
 | `onMarkRead` / `onMarkUnread` | `(item) => void` | Toggle `readAt` via syncdb |
 | `onDismiss` | `(item) => void` | Soft-delete row |
 | `onOpen` | `(item) => void` | Tap handler (e.g. Expo Router for `href`) |
+
+`NotificationInboxItem.archived` is optional. Archived rows receive an `Archived` label
+and do not expose dismiss or read-state actions.
 
 ### `NotificationPreferences`
 

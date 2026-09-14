@@ -1,5 +1,5 @@
 import {describe, it} from "bun:test";
-import {ConsentForm, runSeeds} from "@terreno/api";
+import {ConsentForm, Notification, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
 import {DateTime} from "luxon";
@@ -34,6 +34,11 @@ describe("seedDefaultData", () => {
     );
     assert.equal(await Project.countDocuments({organizationId: "org-example"}), 2);
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
+    assert.equal(await Notification.countDocuments({kind: "seed", ownerId: user._id}), 3);
+    assert.equal(
+      await Notification.countDocuments({deleted: true, kind: "seed", ownerId: user._id}),
+      1
+    );
     assert.equal(await ConsentForm.countDocuments({}), 3);
     assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
     assert.equal(

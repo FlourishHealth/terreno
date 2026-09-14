@@ -91,6 +91,47 @@ export class NotificationsApp implements TerrenoPlugin {
     const notificationsRouter = modelRouter<NotificationDocument>("/notifications", Notification, {
       ...sharedRouterOptions,
       endpoints: (router) => {
+        router.get(
+          "/archived",
+          [
+            authenticateMiddleware(),
+            createOpenApiBuilder(sharedRouterOptions as Partial<ModelRouterOptions<unknown>>)
+              .withTags(["notifications"])
+              .withSummary("List archived notifications for the authenticated owner")
+              .withResponse(200, {
+                data: {
+                  items: {
+                    properties: {
+                      _id: {type: "string"},
+                      body: {type: "string"},
+                      created: {format: "date-time", type: "string"},
+                      deleted: {type: "boolean"},
+                      href: {type: "string"},
+                      kind: {type: "string"},
+                      ownerId: {type: "string"},
+                      readAt: {format: "date-time", type: "string"},
+                      title: {type: "string"},
+                      updated: {format: "date-time", type: "string"},
+                    },
+                    type: "object",
+                  },
+                  type: "array",
+                },
+              })
+              .build(),
+          ],
+          asyncHandler(async (req, res) => {
+            const user = req.user as User | undefined;
+            if (!user?.id) {
+              throw new APIError({status: 401, title: "Authentication required"});
+            }
+
+            const rows = await Notification.find({deleted: true, ownerId: user.id}).sort({
+              created: -1,
+            });
+            return res.json({data: rows.map((row) => row.toJSON())});
+          })
+        );
         router.post(
           "/mark-all-read",
           [

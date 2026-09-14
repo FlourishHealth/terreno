@@ -1170,11 +1170,16 @@ destination exists. Comms errors after the inbox write are logged and do not fai
 | Method | Path | Notes |
 |---|---|---|
 | GET/PATCH/DELETE | `/notifications/:id` + list | Owner-scoped; **create disabled** |
+| GET | `/notifications/archived` | Owner-scoped archived rows (`deleted: true`) with full fields |
 | POST | `/notifications/mark-all-read` | Sets `readAt` on caller's unread rows |
 | CRUD | `/notification-preferences` | Owner-scoped sync |
 
 PATCH on notifications: only `readAt` (ISO date or `null` to unread). Other keys are stripped.
 Dismiss uses DELETE (soft-delete via `isDeletedPlugin`).
+
+The example backend uses todo router lifecycle hooks to call `notify()`: create emits
+`Todo added`, the first incomplete-to-complete update emits `Todo completed`, and delete
+emits `Todo deleted`.
 
 ### `notificationsBeforeSend`
 

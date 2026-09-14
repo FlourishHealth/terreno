@@ -29,6 +29,7 @@ export const NotificationCenterConfiguration: DemoConfiguration = {
     do: [
       "Pass fixture or syncdb-backed items into NotificationInbox from the app layer.",
       "Wrap the inbox in Modal or a sheet in the host screen.",
+      "Use renderBadge and renderIcon when the product has custom notification visuals.",
     ],
     doNot: ["Import @terreno/syncdb from @terreno/ui components."],
   },

@@ -8,6 +8,7 @@ import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 
 export interface NotificationInboxItem {
+  archived?: boolean;
   body: string;
   created?: string;
   href?: string;
@@ -69,6 +70,7 @@ export const NotificationInbox: FC<NotificationInboxProps> = ({
     <Box gap={3} testID={`${testID}-list`}>
       {items.map((item) => {
         const unread = isUnread(item);
+        const isArchived = item.archived === true;
         return (
           <Box
             border="default"
@@ -81,22 +83,27 @@ export const NotificationInbox: FC<NotificationInboxProps> = ({
           >
             <Box alignItems="start" direction="row" justifyContent="between">
               <Box flex="grow" gap={1}>
-                <Heading size="sm">{item.title}</Heading>
+                <Box alignItems="center" direction="row" gap={2}>
+                  <Heading size="sm">{item.title}</Heading>
+                  {isArchived ? <Text color="secondaryLight">Archived</Text> : null}
+                </Box>
                 {item.created ? (
                   <Text color="secondaryLight" size="sm">
                     {formatTimestamp(item.created)}
                   </Text>
                 ) : null}
               </Box>
-              <Pressable
-                accessibilityLabel="Dismiss notification"
-                onPress={() => {
-                  onDismiss(item);
-                }}
-                testID={`${testID}-dismiss-${item.id}`}
-              >
-                <Text color="secondaryLight">Dismiss</Text>
-              </Pressable>
+              {!isArchived ? (
+                <Pressable
+                  accessibilityLabel="Dismiss notification"
+                  onPress={() => {
+                    onDismiss(item);
+                  }}
+                  testID={`${testID}-dismiss-${item.id}`}
+                >
+                  <Text color="secondaryLight">Dismiss</Text>
+                </Pressable>
+              ) : null}
             </Box>
             <Pressable
               onPress={() => {
@@ -106,27 +113,29 @@ export const NotificationInbox: FC<NotificationInboxProps> = ({
             >
               <Text>{item.body}</Text>
             </Pressable>
-            <Box direction="row" gap={2} wrap>
-              {unread ? (
-                <Pressable
-                  onPress={() => {
-                    onMarkRead(item);
-                  }}
-                  testID={`${testID}-mark-read-${item.id}`}
-                >
-                  <Text color="link">Mark read</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => {
-                    onMarkUnread(item);
-                  }}
-                  testID={`${testID}-mark-unread-${item.id}`}
-                >
-                  <Text color="link">Mark unread</Text>
-                </Pressable>
-              )}
-            </Box>
+            {!isArchived ? (
+              <Box direction="row" gap={2} wrap>
+                {unread ? (
+                  <Pressable
+                    onPress={() => {
+                      onMarkRead(item);
+                    }}
+                    testID={`${testID}-mark-read-${item.id}`}
+                  >
+                    <Text color="link">Mark read</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      onMarkUnread(item);
+                    }}
+                    testID={`${testID}-mark-unread-${item.id}`}
+                  >
+                    <Text color="link">Mark unread</Text>
+                  </Pressable>
+                )}
+              </Box>
+            ) : null}
           </Box>
         );
       })}

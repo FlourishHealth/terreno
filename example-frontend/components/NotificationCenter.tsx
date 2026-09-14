@@ -2,27 +2,35 @@ import {useQuery} from "@terreno/syncdb/react";
 import {
   Box,
   Button,
-  Modal,
+  Heading,
   NotificationBell,
   NotificationInbox,
   type NotificationInboxItem,
+  SideDrawer,
 } from "@terreno/ui";
 import {type Href, useRouter} from "expo-router";
 import {DateTime} from "luxon";
-import type React from "react";
-import {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useContext, useMemo, useState} from "react";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {usePostNotificationsDevNotifyMutation} from "@/store/sdk";
 import {type Notification, useDeleteNotification} from "@/store/syncDbSdk";
 import {syncDb} from "@/store/syncdb";
 
-const sortByCreatedDesc = (left: Notification, right: Notification): number => {
+interface NotificationCenterContextValue {
+  toggleDrawer: () => void;
+  unreadCount: number;
+}
+
+const NotificationCenterContext = React.createContext<NotificationCenterContextValue | null>(null);
+
+export const sortNotificationsByCreatedDesc = (left: Notification, right: Notification): number => {
   const leftMillis = left.created ? DateTime.fromISO(left.created).toMillis() : 0;
   const rightMillis = right.created ? DateTime.fromISO(right.created).toMillis() : 0;
   return rightMillis - leftMillis;
 };
 
-const toInboxItem = (notification: Notification): NotificationInboxItem => ({
+export const toInboxItem = (notification: Notification): NotificationInboxItem => ({
+  archived: notification.deleted === true,
   body: notification.body,
   created: notification.created,
   href: notification.href,
@@ -32,7 +40,20 @@ const toInboxItem = (notification: Notification): NotificationInboxItem => ({
   title: notification.title,
 });
 
-export const NotificationCenter: React.FC = () => {
+export const NotificationCenterBell: React.FC = () => {
+  const notificationCenter = useContext(NotificationCenterContext);
+  if (!notificationCenter) {
+    throw new Error("NotificationCenterBell must be rendered inside NotificationCenter");
+  }
+  return (
+    <NotificationBell
+      onPress={notificationCenter.toggleDrawer}
+      unreadCount={notificationCenter.unreadCount}
+    />
+  );
+};
+
+export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}) => {
   const router = useRouter();
   const isSyncDbReady = useSyncDbReady();
   const [inboxVisible, setInboxVisible] = useState<boolean>(false);
@@ -42,7 +63,7 @@ export const NotificationCenter: React.FC = () => {
 
   const notifications = useQuery<Notification>("notifications", {
     filter: (row) => !row.deleted,
-    sort: sortByCreatedDesc,
+    sort: sortNotificationsByCreatedDesc,
   });
 
   const inboxItems = useMemo(
@@ -55,8 +76,8 @@ export const NotificationCenter: React.FC = () => {
     [inboxItems]
   );
 
-  const handleOpenBell = useCallback((): void => {
-    setInboxVisible(true);
+  const handleToggleDrawer = useCallback((): void => {
+    setInboxVisible((isVisible) => !isVisible);
   }, []);
 
   const handleDismissInbox = useCallback((): void => {
@@ -117,6 +138,11 @@ export const NotificationCenter: React.FC = () => {
     [router]
   );
 
+  const handleViewAll = useCallback((): void => {
+    setInboxVisible(false);
+    router.push("/notifications");
+  }, [router]);
+
   const handleSendTest = useCallback(async (): Promise<void> => {
     try {
       await sendTestNotification({
@@ -136,29 +162,26 @@ export const NotificationCenter: React.FC = () => {
     }
   }, [isSyncDbReady, sendTestNotification]);
 
-  return (
-    <>
-      <Box alignItems="center" direction="row" gap={2}>
-        <NotificationBell onPress={handleOpenBell} unreadCount={unreadCount} />
-        {__DEV__ && (
-          <Button
-            loading={isSendingTest}
-            onClick={handleSendTest}
-            testID="notification-send-test-button"
-            text="Test"
-            variant="ghost"
+  const contextValue = useMemo(
+    (): NotificationCenterContextValue => ({
+      toggleDrawer: handleToggleDrawer,
+      unreadCount,
+    }),
+    [handleToggleDrawer, unreadCount]
+  );
+
+  const renderDrawerContent = useCallback(
+    (): React.ReactElement => (
+      <Box gap={4} padding={4} testID="notification-drawer">
+        <Box alignItems="center" direction="row" justifyContent="between">
+          <Heading size="lg">Notifications</Heading>
+          <NotificationBell
+            onPress={handleToggleDrawer}
+            testID="notification-drawer-bell"
+            unreadCount={unreadCount}
           />
-        )}
-      </Box>
-      <Modal
-        onDismiss={handleDismissInbox}
-        secondaryButtonOnClick={handleDismissInbox}
-        secondaryButtonText="Close"
-        testID="notification-inbox-modal"
-        title="Notifications"
-        visible={inboxVisible}
-      >
-        <Box maxHeight={420} scroll testID="notification-inbox-scroll">
+        </Box>
+        <Box maxHeight={520} scroll testID="notification-inbox-scroll">
           <NotificationInbox
             isLoading={!isSyncDbReady}
             items={inboxItems}
@@ -168,7 +191,50 @@ export const NotificationCenter: React.FC = () => {
             onOpen={handleOpen}
           />
         </Box>
-      </Modal>
-    </>
+        <Button
+          fullWidth
+          onClick={handleViewAll}
+          testID="notification-view-all-button"
+          text="View all notifications"
+          variant="outline"
+        />
+        {__DEV__ ? (
+          <Button
+            fullWidth
+            loading={isSendingTest}
+            onClick={handleSendTest}
+            testID="notification-send-test-button"
+            text="Send test notification"
+            variant="ghost"
+          />
+        ) : null}
+      </Box>
+    ),
+    [
+      handleDismiss,
+      handleMarkRead,
+      handleMarkUnread,
+      handleOpen,
+      handleSendTest,
+      handleToggleDrawer,
+      handleViewAll,
+      inboxItems,
+      isSendingTest,
+      isSyncDbReady,
+      unreadCount,
+    ]
+  );
+
+  return (
+    <NotificationCenterContext.Provider value={contextValue}>
+      <SideDrawer
+        isOpen={inboxVisible}
+        onClose={handleDismissInbox}
+        position="right"
+        renderContent={renderDrawerContent}
+      >
+        {children as React.ReactElement}
+      </SideDrawer>
+    </NotificationCenterContext.Provider>
   );
 };

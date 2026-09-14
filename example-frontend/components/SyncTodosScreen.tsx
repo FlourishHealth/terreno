@@ -16,7 +16,7 @@ import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {NotificationCenter} from "@/components/NotificationCenter";
+import {NotificationCenterBell} from "@/components/NotificationCenter";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -386,6 +386,12 @@ const SyncTodosScreen: React.FC = () => {
     [handleDeleteTodo, handleRenameTodo, handleToggleTodo]
   );
 
+  // Reads alongside the `todos-count` number, which stays bare so load tests can parse it.
+  const countSummary = useMemo((): string => {
+    const noun = totalCount === 1 ? "todo" : "todos";
+    return `${noun} · ${incompleteIds.length} remaining · ${completedIds.length} completed`;
+  }, [completedIds.length, incompleteIds.length, totalCount]);
+
   const listHeader = useMemo(
     (): React.ReactElement => (
       <Box>
@@ -397,17 +403,20 @@ const SyncTodosScreen: React.FC = () => {
               Local-first via @terreno/syncdb
             </Text>
           </Box>
-          <NotificationCenter />
+          <NotificationCenterBell />
         </Box>
-        <Box marginBottom={6}>
+        <Box alignItems="center" direction="row" gap={1} marginBottom={6} wrap>
           <Text color="secondaryLight" size="sm" testID="todos-count">
             {totalCount}
+          </Text>
+          <Text color="secondaryLight" size="sm" testID="todos-count-summary">
+            {countSummary}
           </Text>
         </Box>
         <NewTodoForm disabled={!isSyncDbReady} onCreate={handleCreate} />
       </Box>
     ),
-    [handleCreate, isSyncDbReady, totalCount]
+    [countSummary, handleCreate, isSyncDbReady, totalCount]
   );
 
   const listEmpty = useMemo(

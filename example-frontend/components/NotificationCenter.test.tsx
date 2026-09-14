@@ -1,4 +1,5 @@
 import {beforeEach, describe, it, mock} from "bun:test";
+import type {NotificationInboxItem} from "@terreno/ui";
 import {assert} from "chai";
 import React, {type ReactNode} from "react";
 import {act, create, type ReactTestInstance, type ReactTestRenderer} from "react-test-renderer";
@@ -30,12 +31,14 @@ const createHostComponent = (name: string): React.FC<Record<string, unknown>> =>
 };
 
 const notificationRows: MockNotification[] = [];
+const archivedNotificationRows: MockNotification[] = [];
 const preferenceRows: MockPreference[] = [];
 let isSyncDbReady = true;
 
 const createPreference = mock((): void => {});
 const deleteNotification = mock((): void => {});
 const reconcile = mock(async (): Promise<void> => {});
+const refetchArchived = mock(async (): Promise<void> => {});
 const routerBack = mock((): void => {});
 const routerPush = mock((): void => {});
 const sendTestNotification = mock(() => ({unwrap: async (): Promise<void> => {}}));
@@ -71,11 +74,18 @@ mock.module("@terreno/ui", () => ({
   Box: createHostComponent("Box"),
   Button: createHostComponent("Button"),
   Card: createHostComponent("Card"),
-  Modal: createHostComponent("Modal"),
+  Heading: createHostComponent("Heading"),
   NotificationBell: createHostComponent("NotificationBell"),
   NotificationInbox: createHostComponent("NotificationInbox"),
   NotificationPreferences: createHostComponent("NotificationPreferences"),
   Page: createHostComponent("Page"),
+  SideDrawer: ({children, renderContent, ...props}: Record<string, unknown>) =>
+    React.createElement(
+      "SideDrawer",
+      props,
+      children as ReactNode,
+      (renderContent as () => ReactNode)()
+    ),
   Text: createHostComponent("Text"),
 }));
 
@@ -88,6 +98,11 @@ mock.module("@/hooks/useSyncDbReady", () => ({
 }));
 
 mock.module("@/store/sdk", () => ({
+  useGetNotificationsArchivedQuery: () => ({
+    data: archivedNotificationRows,
+    isFetching: false,
+    refetch: refetchArchived,
+  }),
   usePostNotificationsDevNotifyMutation: () => [sendTestNotification, {isLoading: false}],
 }));
 
@@ -101,8 +116,9 @@ mock.module("@/store/syncDbSdk", () => ({
   useUpdateNotificationPreference: () => [updatePreference],
 }));
 
-const {NotificationCenter} = await import("./NotificationCenter");
+const {NotificationCenter, NotificationCenterBell} = await import("./NotificationCenter");
 const {default: NotificationSettingsScreen} = await import("../app/settings/notifications");
+const {default: AllNotificationsScreen} = await import("../app/notifications");
 
 const findHost = (renderer: ReactTestRenderer, type: string): ReactTestInstance =>
   renderer.root.findByType(type);
@@ -139,15 +155,27 @@ describe("NotificationCenter", () => {
   it("opens the inbox and applies notification actions", async (): Promise<void> => {
     let renderer: ReactTestRenderer;
     await act(async () => {
-      renderer = create(<NotificationCenter />);
+      renderer = create(
+        <NotificationCenter>
+          <NotificationCenterBell />
+        </NotificationCenter>
+      );
     });
 
     act(() => {
-      findHost(renderer, "NotificationBell").props.onPress();
+      renderer.root.findAllByType("NotificationBell")[0]?.props.onPress();
     });
-    const modal = findHost(renderer, "Modal");
-    assert.isTrue(modal.props.visible);
+    const drawer = findHost(renderer, "SideDrawer");
+    assert.isTrue(drawer.props.isOpen);
 
+    act(() => {
+      renderer.root.findAllByType("NotificationBell")[1]?.props.onPress();
+    });
+    assert.isFalse(findHost(renderer, "SideDrawer").props.isOpen);
+
+    act(() => {
+      renderer.root.findAllByType("NotificationBell")[0]?.props.onPress();
+    });
     const inbox = findHost(renderer, "NotificationInbox");
     const item = inbox.props.items[0];
     act(() => {
@@ -167,24 +195,83 @@ describe("NotificationCenter", () => {
     assert.equal(deleteNotification.mock.calls[0]?.[0].id, "notification-1");
     assert.equal(routerPush.mock.calls[0]?.[0], "/profile");
 
-    act(() => {
-      modal.props.onDismiss();
-    });
-    assert.isFalse(findHost(renderer, "Modal").props.visible);
+    assert.isFalse(findHost(renderer, "SideDrawer").props.isOpen);
   });
 
   it("sends a test notification and reconciles", async (): Promise<void> => {
     let renderer: ReactTestRenderer;
     await act(async () => {
-      renderer = create(<NotificationCenter />);
+      renderer = create(
+        <NotificationCenter>
+          <NotificationCenterBell />
+        </NotificationCenter>
+      );
     });
 
     await act(async () => {
-      await findHost(renderer, "Button").props.onClick();
+      const sendButton = renderer.root
+        .findAllByType("Button")
+        .find((button) => button.props.testID === "notification-send-test-button");
+      await sendButton?.props.onClick();
     });
 
     assert.equal(sendTestNotification.mock.calls.length, 1);
     assert.equal(reconcile.mock.calls.length, 1);
+  });
+
+  it("opens the full notification history from the drawer", async (): Promise<void> => {
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(
+        <NotificationCenter>
+          <NotificationCenterBell />
+        </NotificationCenter>
+      );
+    });
+
+    act(() => {
+      const viewAllButton = renderer.root
+        .findAllByType("Button")
+        .find((button) => button.props.testID === "notification-view-all-button");
+      viewAllButton?.props.onClick();
+    });
+
+    assert.equal(routerPush.mock.calls[0]?.[0], "/notifications");
+    assert.isFalse(findHost(renderer, "SideDrawer").props.isOpen);
+  });
+});
+
+describe("AllNotificationsScreen", () => {
+  beforeEach(() => {
+    isSyncDbReady = true;
+    notificationRows.splice(0, notificationRows.length, {
+      _id: "active-notification",
+      body: "Active body",
+      created: "2026-09-11T12:00:00.000Z",
+      title: "Active",
+    });
+    archivedNotificationRows.splice(0, archivedNotificationRows.length, {
+      _id: "archived-notification",
+      body: "Archived body",
+      created: "2026-09-10T12:00:00.000Z",
+      deleted: true,
+      readAt: "2026-09-10T13:00:00.000Z",
+      title: "Archived",
+    });
+  });
+
+  it("shows active and archived notifications separately", async (): Promise<void> => {
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<AllNotificationsScreen />);
+    });
+
+    const inboxes = renderer.root.findAllByType("NotificationInbox");
+    assert.deepEqual(
+      inboxes.map((inbox) => inbox.props.items.map((item: NotificationInboxItem) => item.id)),
+      [["active-notification"], ["archived-notification"]]
+    );
+    assert.isTrue(inboxes[1]?.props.items[0].archived);
   });
 });
 
