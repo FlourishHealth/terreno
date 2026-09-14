@@ -31,12 +31,14 @@ const createHostComponent = (name: string): React.FC<Record<string, unknown>> =>
 };
 
 const notificationRows: MockNotification[] = [];
+const archivedNotificationRows: MockNotification[] = [];
 const preferenceRows: MockPreference[] = [];
 let isSyncDbReady = true;
 
 const createPreference = mock((): void => {});
 const deleteNotification = mock((): void => {});
 const reconcile = mock(async (): Promise<void> => {});
+const refetchArchived = mock(async (): Promise<void> => {});
 const routerBack = mock((): void => {});
 const routerPush = mock((): void => {});
 const sendTestNotification = mock(() => ({unwrap: async (): Promise<void> => {}}));
@@ -96,6 +98,11 @@ mock.module("@/hooks/useSyncDbReady", () => ({
 }));
 
 mock.module("@/store/sdk", () => ({
+  useGetNotificationsArchivedQuery: () => ({
+    data: {data: archivedNotificationRows},
+    isFetching: false,
+    refetch: refetchArchived,
+  }),
   usePostNotificationsDevNotifyMutation: () => [sendTestNotification, {isLoading: false}],
 }));
 
@@ -237,24 +244,20 @@ describe("NotificationCenter", () => {
 describe("AllNotificationsScreen", () => {
   beforeEach(() => {
     isSyncDbReady = true;
-    notificationRows.splice(
-      0,
-      notificationRows.length,
-      {
-        _id: "active-notification",
-        body: "Active body",
-        created: "2026-09-11T12:00:00.000Z",
-        title: "Active",
-      },
-      {
-        _id: "archived-notification",
-        body: "Archived body",
-        created: "2026-09-10T12:00:00.000Z",
-        deleted: true,
-        readAt: "2026-09-10T13:00:00.000Z",
-        title: "Archived",
-      }
-    );
+    notificationRows.splice(0, notificationRows.length, {
+      _id: "active-notification",
+      body: "Active body",
+      created: "2026-09-11T12:00:00.000Z",
+      title: "Active",
+    });
+    archivedNotificationRows.splice(0, archivedNotificationRows.length, {
+      _id: "archived-notification",
+      body: "Archived body",
+      created: "2026-09-10T12:00:00.000Z",
+      deleted: true,
+      readAt: "2026-09-10T13:00:00.000Z",
+      title: "Archived",
+    });
   });
 
   it("shows active and archived notifications separately", async (): Promise<void> => {

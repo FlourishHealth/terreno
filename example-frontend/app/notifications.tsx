@@ -14,6 +14,7 @@ import type React from "react";
 import {useCallback, useMemo} from "react";
 import {sortNotificationsByCreatedDesc, toInboxItem} from "@/components/NotificationCenter";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
+import {useGetNotificationsArchivedQuery} from "@/store/sdk";
 import {type Notification, useDeleteNotification} from "@/store/syncDbSdk";
 import {syncDb} from "@/store/syncdb";
 
@@ -22,19 +23,35 @@ const AllNotificationsScreen: React.FC = () => {
   const isSyncDbReady = useSyncDbReady();
   const [deleteNotification] = useDeleteNotification();
   const notifications = useQuery<Notification>("notifications", {
+    filter: (notification) => !notification.deleted,
     sort: sortNotificationsByCreatedDesc,
   });
+  const {
+    data: archivedResponse,
+    isFetching: isArchivedLoading,
+    refetch: refetchArchived,
+  } = useGetNotificationsArchivedQuery();
 
   const activeItems = useMemo(
-    (): NotificationInboxItem[] =>
-      notifications.filter((notification) => !notification.deleted).map(toInboxItem),
+    (): NotificationInboxItem[] => notifications.map(toInboxItem),
     [notifications]
   );
-  const archivedItems = useMemo(
-    (): NotificationInboxItem[] =>
-      notifications.filter((notification) => notification.deleted).map(toInboxItem),
-    [notifications]
-  );
+  const archivedItems = useMemo((): NotificationInboxItem[] => {
+    const rows = archivedResponse?.data ?? [];
+    return [...rows]
+      .sort((left, right) =>
+        sortNotificationsByCreatedDesc(left as Notification, right as Notification)
+      )
+      .map((row) =>
+        toInboxItem({
+          ...row,
+          _id: row._id ?? "",
+          body: row.body ?? "",
+          deleted: true,
+          title: row.title ?? "",
+        } as Notification)
+      );
+  }, [archivedResponse]);
 
   const handleBack = useCallback((): void => {
     router.back();
@@ -76,8 +93,16 @@ const AllNotificationsScreen: React.FC = () => {
         return;
       }
       deleteNotification({id: item.id});
+      void syncDb
+        .reconcile()
+        .then(async (): Promise<void> => {
+          await refetchArchived();
+        })
+        .catch((error: unknown): void => {
+          console.error("Failed to refresh archived notifications", error);
+        });
     },
-    [deleteNotification, isSyncDbReady]
+    [deleteNotification, isSyncDbReady, refetchArchived]
   );
 
   const handleOpen = useCallback(
@@ -117,9 +142,9 @@ const AllNotificationsScreen: React.FC = () => {
         </Box>
         <Box gap={3}>
           <Heading size="lg">Archived</Heading>
-          {archivedItems.length > 0 ? (
+          {isArchivedLoading || archivedItems.length > 0 ? (
             <NotificationInbox
-              isLoading={!isSyncDbReady}
+              isLoading={isArchivedLoading}
               items={archivedItems}
               onDismiss={handleDismiss}
               onMarkRead={handleMarkRead}

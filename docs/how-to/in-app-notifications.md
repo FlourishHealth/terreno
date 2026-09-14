@@ -110,10 +110,12 @@ import {NotificationBell, NotificationInbox, SideDrawer} from "@terreno/ui";
 </SideDrawer>
 ```
 
-Treat dismissed rows as archived sync tombstones. A full history screen can query
-`notifications` without filtering `deleted`, map `deleted: true` to
-`NotificationInboxItem.archived`, and render active and archived sections. Archived rows
-remain readable but `NotificationInbox` hides their dismiss and read-state actions.
+Treat dismissed rows as archived sync tombstones in the active inbox. Sync bootstrap
+delivers tombstones without payload data, so a full history screen should load archived
+rows from `GET /notifications/archived` via the generated RTK Query hook (owner-scoped,
+authenticated). Map each row with `deleted: true` to `NotificationInboxItem.archived`.
+Archived rows remain readable but `NotificationInbox` hides their dismiss and read-state
+actions.
 
 See `example-frontend/components/NotificationCenter.tsx` and
 `example-frontend/app/notifications.tsx` for the drawer and complete history page.

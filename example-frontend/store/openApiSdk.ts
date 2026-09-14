@@ -8,6 +8,7 @@ export const addTagTypes = [
   "settings",
   "loadtest",
   "comms",
+  "notifications",
   "todos",
   "exampleprojects",
   "users",
@@ -17,6 +18,7 @@ export const addTagTypes = [
   "adminauditlogs",
   "consentforms",
   "consentresponses",
+  "notificationpreferences",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -99,6 +101,26 @@ const injectedRtkApi = api
           }),
         }
       ),
+      deleteNotificationPreferencesById: build.mutation<
+        DeleteNotificationPreferencesByIdRes,
+        DeleteNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notification-preferences/${queryArg}`,
+        }),
+      }),
+      deleteNotificationsById: build.mutation<
+        DeleteNotificationsByIdRes,
+        DeleteNotificationsByIdArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notifications/${queryArg}`,
+        }),
+      }),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -411,6 +433,55 @@ const injectedRtkApi = api
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
       }),
+      getNotificationPreferences: build.query<
+        GetNotificationPreferencesRes,
+        GetNotificationPreferencesArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            sort: queryArg.sort,
+          },
+          url: `/notification-preferences/`,
+        }),
+      }),
+      getNotificationPreferencesById: build.query<
+        GetNotificationPreferencesByIdRes,
+        GetNotificationPreferencesByIdArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({url: `/notification-preferences/${queryArg}`}),
+      }),
+      getNotifications: build.query<GetNotificationsRes, GetNotificationsArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            kind: queryArg.kind,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            readAt: queryArg.readAt,
+            sort: queryArg.sort,
+          },
+          url: `/notifications/`,
+        }),
+      }),
+      getNotificationsArchived: build.query<
+        GetNotificationsArchivedRes,
+        GetNotificationsArchivedArgs
+      >({
+        providesTags: ["notifications"],
+        query: () => ({url: `/notifications/archived`}),
+      }),
+      getNotificationsById: build.query<GetNotificationsByIdRes, GetNotificationsByIdArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({url: `/notifications/${queryArg}`}),
+      }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -547,6 +618,27 @@ const injectedRtkApi = api
           url: `/gpt/histories/${queryArg.id}/rating`,
         }),
       }),
+      patchNotificationPreferencesById: build.mutation<
+        PatchNotificationPreferencesByIdRes,
+        PatchNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/notification-preferences/${queryArg.id}`,
+        }),
+      }),
+      patchNotificationsById: build.mutation<PatchNotificationsByIdRes, PatchNotificationsByIdArgs>(
+        {
+          invalidatesTags: ["notifications"],
+          query: (queryArg) => ({
+            body: queryArg.body,
+            method: "PATCH",
+            url: `/notifications/${queryArg.id}`,
+          }),
+        }
+      ),
       patchProjectsById: build.mutation<PatchProjectsByIdRes, PatchProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -797,6 +889,35 @@ const injectedRtkApi = api
           method: "POST",
           url: `/loadtest/todos/generate`,
         }),
+      }),
+      postNotificationPreferences: build.mutation<
+        PostNotificationPreferencesRes,
+        PostNotificationPreferencesArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/notification-preferences/`,
+        }),
+      }),
+      postNotificationsDevNotify: build.mutation<
+        PostNotificationsDevNotifyRes,
+        PostNotificationsDevNotifyArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/notifications/dev/notify`,
+        }),
+      }),
+      postNotificationsMarkAllRead: build.mutation<
+        PostNotificationsMarkAllReadRes,
+        PostNotificationsMarkAllReadArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: () => ({method: "POST", url: `/notifications/mark-all-read`}),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
         invalidatesTags: ["exampleprojects"],
@@ -1297,6 +1418,17 @@ export type PostCommsDevTestPushRes = /** status 200 Success */ {
 };
 export type PostCommsDevTestPushArgs = {
   body?: string;
+  title?: string;
+};
+export type PostNotificationsDevNotifyRes = /** status 200 Success */ {
+  data?: {
+    notificationId?: string;
+  };
+};
+export type PostNotificationsDevNotifyArgs = {
+  body?: string;
+  href?: string;
+  kind?: string;
   title?: string;
 };
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
@@ -3887,6 +4019,342 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type GetNotificationsArchivedRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    body?: string;
+    created?: string;
+    deleted?: boolean;
+    href?: string;
+    kind?: string;
+    ownerId?: string;
+    readAt?: string;
+    title?: string;
+    updated?: string;
+  }[];
+};
+export type GetNotificationsArchivedArgs = undefined;
+export type PostNotificationsMarkAllReadRes = /** status 200 Success */ {
+  data?: {
+    modified?: number;
+  };
+};
+export type PostNotificationsMarkAllReadArgs = undefined;
+export type GetNotificationsRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** Main notification message text shown in the inbox */
+    body: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  readAt?:
+    | string
+    | {
+        /** When the owner marked this notification as read; null means unread */
+        $gt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $gte?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lte?: string;
+      };
+  kind?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationsByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationsByIdArgs = string;
+export type PatchNotificationsByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationsByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** Main notification message text shown in the inbox */
+    body?: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId?: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationsByIdRes = unknown;
+export type DeleteNotificationsByIdArgs = string;
+export type PostNotificationPreferencesRes = /** status 201 Successful create */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PostNotificationPreferencesArgs = {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id?: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId?: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationPreferencesArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationPreferencesByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesByIdArgs = string;
+export type PatchNotificationPreferencesByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationPreferencesByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId?: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationPreferencesByIdRes = unknown;
+export type DeleteNotificationPreferencesByIdArgs = string;
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -3969,6 +4437,7 @@ export const {
   usePostLoadtestTodosChurnMutation,
   usePostLoadtestTodosClearMutation,
   usePostCommsDevTestPushMutation,
+  usePostNotificationsDevNotifyMutation,
   useTodosMarkCompleteMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
@@ -4035,6 +4504,17 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useGetNotificationsArchivedQuery,
+  usePostNotificationsMarkAllReadMutation,
+  useGetNotificationsQuery,
+  useGetNotificationsByIdQuery,
+  usePatchNotificationsByIdMutation,
+  useDeleteNotificationsByIdMutation,
+  usePostNotificationPreferencesMutation,
+  useGetNotificationPreferencesQuery,
+  useGetNotificationPreferencesByIdQuery,
+  usePatchNotificationPreferencesByIdMutation,
+  useDeleteNotificationPreferencesByIdMutation,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,
