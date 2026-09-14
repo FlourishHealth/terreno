@@ -1,14 +1,23 @@
+import {
+  buildDataTableListQuery,
+  type DataTableColumn,
+  type DataTableColumnFilter,
+} from "@terreno/ui";
+
 import type {AdminModelConfig} from "./types";
 
 export const ADMIN_LIST_MAX_SELECTION = 1000;
 
-export type AdminListFilterState = Record<string, string | boolean | undefined>;
+export type AdminListFilterState = Record<string, string | boolean | string[] | undefined>;
 
-const isEmptyFilterValue = (value: string | boolean | undefined): boolean => {
+const isEmptyFilterValue = (value: string | boolean | string[] | undefined): boolean => {
   if (value === undefined || value === "") {
     return true;
   }
   if (value === "all") {
+    return true;
+  }
+  if (Array.isArray(value) && value.length === 0) {
     return true;
   }
   return false;
@@ -18,8 +27,8 @@ const isEmptyFilterValue = (value: string | boolean | undefined): boolean => {
 /** @internal */
 export const compactAdminFilterState = (
   state: AdminListFilterState
-): Record<string, string | boolean> => {
-  const compacted: Record<string, string | boolean> = {};
+): Record<string, string | boolean | string[]> => {
+  const compacted: Record<string, string | boolean | string[]> = {};
   const keys = Object.keys(state).sort();
   for (const key of keys) {
     const value = state[key];
@@ -27,6 +36,10 @@ export const compactAdminFilterState = (
       continue;
     }
     if (typeof value === "boolean") {
+      compacted[key] = value;
+      continue;
+    }
+    if (Array.isArray(value)) {
       compacted[key] = value;
       continue;
     }
@@ -51,6 +64,40 @@ export const adminFilterStateHasValues = (state: AdminListFilterState): boolean 
   return Object.keys(compactAdminFilterState(state)).length > 0;
 };
 
+const toDataTableFilter = (
+  filter: NonNullable<AdminModelConfig["filters"]>[number]
+): DataTableColumnFilter | undefined => {
+  if (filter.kind === "text") {
+    return {field: filter.field, kind: "text"};
+  }
+  if (filter.kind === "boolean") {
+    return {field: filter.field, kind: "boolean"};
+  }
+  if (filter.kind === "dateRange") {
+    return {field: filter.field, kind: "dateRange"};
+  }
+  if (filter.kind === "choice") {
+    return {
+      field: filter.field,
+      kind: "choice",
+      options: filter.choices ?? [],
+    };
+  }
+  return undefined;
+};
+
+const toDataTableColumns = (modelConfig: AdminModelConfig): DataTableColumn[] => {
+  const filters = modelConfig.filters ?? [];
+  return filters
+    .filter((filter) => filter.kind !== "ref")
+    .map((filter) => ({
+      columnType: "text",
+      filter: toDataTableFilter(filter),
+      title: filter.field,
+      width: 1,
+    }));
+};
+
 /**
  * Builds query params for `GET` admin modelRouter list routes from UI state.
  */
@@ -69,40 +116,50 @@ export const buildAdminListQueryParams = (input: {
   if (input.sort) {
     out.sort = input.sort;
   }
-  const {filterState, modelConfig, searchDebounced} = input;
-  const filters = modelConfig.filters ?? [];
-  for (const f of filters) {
-    if (f.kind === "dateRange") {
-      const gteKey = `${f.field}_gte`;
-      const lteKey = `${f.field}_lte`;
-      const gteVal = filterState[gteKey];
-      const lteVal = filterState[lteKey];
-      if (gteVal !== undefined && String(gteVal).trim() !== "") {
-        out[gteKey] = String(gteVal).trim();
-      }
-      if (lteVal !== undefined && String(lteVal).trim() !== "") {
-        out[lteKey] = String(lteVal).trim();
-      }
+
+  const normalizedFilterValues: Record<string, unknown> = {...input.filterState};
+  for (const filter of input.modelConfig.filters ?? []) {
+    if (filter.kind !== "boolean") {
       continue;
     }
-    const raw = filterState[f.field];
+    const raw = normalizedFilterValues[filter.field];
+    if (raw === "true" || raw === true) {
+      normalizedFilterValues[filter.field] = true;
+      continue;
+    }
+    if (raw === "false" || raw === false) {
+      normalizedFilterValues[filter.field] = false;
+    }
+  }
+
+  const tableQuery = buildDataTableListQuery({
+    columns: toDataTableColumns(input.modelConfig),
+    filterValues: normalizedFilterValues,
+    search: "",
+    searchFields: [],
+  });
+  for (const [key, value] of Object.entries(tableQuery)) {
+    if (key === "$or") {
+      continue;
+    }
+    out[key] = value;
+  }
+
+  for (const filter of input.modelConfig.filters ?? []) {
+    if (filter.kind !== "ref") {
+      continue;
+    }
+    const raw = input.filterState[filter.field];
     if (raw === undefined || raw === "") {
       continue;
     }
-    if (f.kind === "boolean") {
-      if (raw === "all") {
-        continue;
-      }
-      out[f.field] = raw === true || raw === "true";
-      continue;
-    }
-    if (f.kind === "choice" || f.kind === "text" || f.kind === "ref") {
-      out[f.field] = String(raw);
-    }
+    out[filter.field] = String(raw);
   }
-  const searchFields = modelConfig.searchFields ?? [];
-  if (searchFields.length > 0 && searchDebounced.trim() !== "") {
-    out.q = searchDebounced.trim();
+
+  const searchFields = input.modelConfig.searchFields ?? [];
+  if (searchFields.length > 0 && input.searchDebounced.trim() !== "") {
+    out.q = input.searchDebounced.trim();
   }
+
   return out;
 };

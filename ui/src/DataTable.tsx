@@ -1,15 +1,26 @@
 import {FontAwesome6} from "@expo/vector-icons";
 import type React from "react";
-import {type FC, memo, useCallback, useLayoutEffect, useMemo, useRef, useState} from "react";
+import {
+  type FC,
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   type FlatList as RNFlatList,
   ScrollView,
   View,
 } from "react-native";
 import {Box} from "./Box";
+import {Button} from "./Button";
 import type {
   ColumnSortInterface,
   DataTableCellData,
@@ -20,12 +31,19 @@ import type {
   SurfaceColor,
 } from "./Common";
 import {DataTableHeaderInfoMarkdown} from "./DataTableHeaderInfoMarkdown";
+import {
+  DataTableAdditionalFiltersWeb,
+  DataTableColumnFilterWeb,
+  DataTableFilterFields,
+} from "./dataTableFilters";
+import {buildDataTableListQuery, DATA_TABLE_SEARCH_DEBOUNCE_MS} from "./dataTableListQuery";
 import {FlatList} from "./FlatList";
 import {Icon} from "./Icon";
 import {InfoModalIcon} from "./InfoModalIcon";
 import {Modal} from "./Modal";
 import {Pagination} from "./Pagination";
 import {Text} from "./Text";
+import {TextField} from "./TextField";
 import {useTheme} from "./Theme";
 import {TableTitle} from "./table/TableTitle";
 import {
@@ -267,12 +285,16 @@ interface DataTableHeaderCellProps {
   onSort: (index: number) => void;
   rowHeight: number;
   headerHeight?: number;
+  filterValues?: Record<string, unknown>;
+  onFilterValuesChange?: (next: Record<string, unknown>) => void;
 }
 
 const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
   column,
+  filterValues,
   index,
   isPinnedHorizontal,
+  onFilterValuesChange,
   pinnedLeft,
   sortColumn,
   onSort,
@@ -306,6 +328,15 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
           <TableTitle align="left" key="data-table-header-title" title={column.title!} />
         ) : null,
         <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
+          {column.filter && onFilterValuesChange && Platform.OS === "web" ? (
+            <DataTableColumnFilterWeb
+              appliedValues={filterValues ?? {}}
+              columnTitle={column.title}
+              filter={column.filter}
+              onApply={onFilterValuesChange}
+              testID={`data-table-filter-${column.filter.field}`}
+            />
+          ) : null}
           {column.infoModalText && (
             <InfoModalIcon
               infoModalChildren={
@@ -357,11 +388,15 @@ interface DataTableHeaderProps {
   rowHeight: number;
   headerHeight?: number;
   testID?: string;
+  filterValues?: Record<string, unknown>;
+  onFilterValuesChange?: (next: Record<string, unknown>) => void;
 }
 
 const DataTableHeader: FC<DataTableHeaderProps> = ({
   columns,
+  filterValues,
   hasMoreContent,
+  onFilterValuesChange,
   pinnedColumns,
   pinnedLeftOffsets,
   pinnedWidth,
@@ -405,10 +440,12 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
           {columns.slice(0, pinnedColumns).map((column, index) => (
             <DataTableHeaderCell
               column={column}
+              filterValues={filterValues}
               headerHeight={headerHeight}
               index={index}
               isPinnedHorizontal
               key={`pinned-header-${index}`}
+              onFilterValuesChange={onFilterValuesChange}
               onSort={onSort}
               pinnedLeft={pinnedLeftOffsets[index] ?? 0}
               rowHeight={rowHeight}
@@ -433,10 +470,12 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
         {columns.slice(pinnedColumns).map((column, index) => (
           <DataTableHeaderCell
             column={column}
+            filterValues={filterValues}
             headerHeight={headerHeight}
             index={index + pinnedColumns}
             isPinnedHorizontal={false}
             key={`scrollable-header-${index + pinnedColumns}`}
+            onFilterValuesChange={onFilterValuesChange}
             onSort={onSort}
             pinnedLeft={0}
             rowHeight={rowHeight}
@@ -853,11 +892,94 @@ const DataTableComponent: FC<DataTableProps> = ({
   testID,
   testIDs,
   getRowTestID,
+  emptyContent,
+  additionalFilters = [],
+  search = "",
+  searchFields,
+  onSearchChange,
+  filterValues,
+  onFilterValuesChange,
+  onQueryChange,
 }) => {
   const {theme} = useTheme();
   const tableTestIDs = resolveDataTableTestIDsFromProps({testID, testIDs});
   const headerScrollRef = useRef<ScrollView>(null);
   const bodyScrollRef = useRef<ScrollView>(null);
+  const lastEmittedQueryRef = useRef<string | undefined>(undefined);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [isNativeFiltersOpen, setIsNativeFiltersOpen] = useState(false);
+  const [nativeDraftValues, setNativeDraftValues] = useState<Record<string, unknown>>({});
+  const [nativeSearchDraft, setNativeSearchDraft] = useState(search);
+
+  const columnFilters = useMemo(() => {
+    const visibleColumnFilters = columns
+      .map((column) => column.filter)
+      .filter((filter): filter is NonNullable<typeof filter> => Boolean(filter));
+    return [...visibleColumnFilters, ...additionalFilters];
+  }, [additionalFilters, columns]);
+  const showSearch = Boolean(searchFields && searchFields.length > 0 && onSearchChange);
+  const showAdditionalFilters =
+    Platform.OS === "web" && additionalFilters.length > 0 && Boolean(onFilterValuesChange);
+  const showNativeFilters =
+    Platform.OS !== "web" &&
+    (columnFilters.length > 0 || showSearch) &&
+    Boolean(onFilterValuesChange || onSearchChange);
+
+  // Debounce toolbar search before emitting server query params.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, DATA_TABLE_SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [search]);
+
+  // Emit modelRouter-shaped query params when debounced search or filters change.
+  useEffect(() => {
+    if (!onQueryChange) {
+      return;
+    }
+    const query = buildDataTableListQuery({
+      columns,
+      filters: additionalFilters,
+      filterValues,
+      search: debouncedSearch,
+      searchFields,
+    });
+    const signature = JSON.stringify(query);
+    if (signature === lastEmittedQueryRef.current) {
+      return;
+    }
+    lastEmittedQueryRef.current = signature;
+    onQueryChange(query);
+  }, [additionalFilters, columns, debouncedSearch, filterValues, onQueryChange, searchFields]);
+
+  const handleOpenNativeFilters = useCallback((): void => {
+    setNativeDraftValues(filterValues ?? {});
+    setNativeSearchDraft(search);
+    setIsNativeFiltersOpen(true);
+  }, [filterValues, search]);
+
+  const handleApplyNativeFilters = useCallback((): void => {
+    onFilterValuesChange?.(nativeDraftValues);
+    onSearchChange?.(nativeSearchDraft);
+    setIsNativeFiltersOpen(false);
+  }, [nativeDraftValues, nativeSearchDraft, onFilterValuesChange, onSearchChange]);
+
+  const handleClearNativeFilters = useCallback((): void => {
+    const cleared: Record<string, unknown> = {};
+    for (const filter of columnFilters) {
+      if (filter.kind === "dateRange") {
+        cleared[`${filter.field}_gte`] = undefined;
+        cleared[`${filter.field}_lte`] = undefined;
+      } else {
+        cleared[filter.field] = undefined;
+      }
+    }
+    setNativeDraftValues(cleared);
+    setNativeSearchDraft("");
+  }, [columnFilters]);
 
   const columnWidths = useMemo(() => columns.map((col) => col.width), [columns]);
   const pinnedLeftOffsets = useMemo(() => {
@@ -915,6 +1037,45 @@ const DataTableComponent: FC<DataTableProps> = ({
       style={{display: "flex", flexDirection: "column", height: "100%"}}
       testID={tableTestIDs.root}
     >
+      {showSearch || showNativeFilters || showAdditionalFilters ? (
+        <Box
+          alignItems="center"
+          direction="row"
+          gap={2}
+          marginBottom={2}
+          paddingX={2}
+          paddingY={2}
+          wrap
+        >
+          {showSearch ? (
+            <Box flex="grow" minWidth={200}>
+              <TextField
+                onChange={onSearchChange!}
+                testID="data-table-search"
+                title="Search"
+                type="search"
+                value={search}
+              />
+            </Box>
+          ) : null}
+          {showNativeFilters ? (
+            <Button
+              iconName="filter"
+              onClick={handleOpenNativeFilters}
+              testID="data-table-filters-trigger"
+              text="Filters"
+              variant="outline"
+            />
+          ) : null}
+          {showAdditionalFilters && onFilterValuesChange ? (
+            <DataTableAdditionalFiltersWeb
+              appliedValues={filterValues ?? {}}
+              filters={additionalFilters}
+              onApply={onFilterValuesChange}
+            />
+          ) : null}
+        </Box>
+      ) : null}
       <View
         style={{
           borderColor: theme.border.default,
@@ -927,9 +1088,11 @@ const DataTableComponent: FC<DataTableProps> = ({
       >
         <DataTableHeader
           columns={columns}
+          filterValues={filterValues}
           hasMoreContent={Boolean(moreContentComponent)}
           headerHeight={headerHeight}
           headerScrollRef={headerScrollRef}
+          onFilterValuesChange={onFilterValuesChange}
           onScroll={handleScroll}
           onSort={handleSort}
           pinnedColumns={pinnedColumns}
@@ -941,23 +1104,27 @@ const DataTableComponent: FC<DataTableProps> = ({
         />
 
         <View style={{flex: 1, minHeight: 0}}>
-          <DataTableContent
-            alternateRowBackground={alternateRowBackground}
-            bodyScrollRef={bodyScrollRef}
-            columns={columns}
-            customColumnComponentMap={customColumnComponentMap}
-            data={data}
-            defaultTextSize={defaultTextSize}
-            getRowTestID={getRowTestID}
-            moreContentComponent={moreContentComponent}
-            moreContentExtraData={moreContentExtraData}
-            onScroll={handleScroll}
-            pinnedColumns={pinnedColumns}
-            pinnedLeftOffsets={pinnedLeftOffsets}
-            pinnedWidth={pinnedWidth}
-            rowHeight={rowHeight}
-            rowTestIdBase={tableTestIDs.row}
-          />
+          {data.length === 0 && emptyContent ? (
+            emptyContent
+          ) : (
+            <DataTableContent
+              alternateRowBackground={alternateRowBackground}
+              bodyScrollRef={bodyScrollRef}
+              columns={columns}
+              customColumnComponentMap={customColumnComponentMap}
+              data={data}
+              defaultTextSize={defaultTextSize}
+              getRowTestID={getRowTestID}
+              moreContentComponent={moreContentComponent}
+              moreContentExtraData={moreContentExtraData}
+              onScroll={handleScroll}
+              pinnedColumns={pinnedColumns}
+              pinnedLeftOffsets={pinnedLeftOffsets}
+              pinnedWidth={pinnedWidth}
+              rowHeight={rowHeight}
+              rowTestIdBase={tableTestIDs.row}
+            />
+          )}
         </View>
       </View>
 
@@ -977,6 +1144,30 @@ const DataTableComponent: FC<DataTableProps> = ({
           />
         </View>
       )}
+      {showNativeFilters ? (
+        <Modal
+          onDismiss={() => setIsNativeFiltersOpen(false)}
+          primaryButtonOnClick={handleApplyNativeFilters}
+          primaryButtonText="Apply"
+          secondaryButtonOnClick={() => setIsNativeFiltersOpen(false)}
+          secondaryButtonText="Cancel"
+          testID="data-table-filters-sheet"
+          title="Filters"
+          visible={isNativeFiltersOpen}
+        >
+          <Box direction="column" gap={3}>
+            <DataTableFilterFields
+              draftValues={nativeDraftValues}
+              filters={columnFilters}
+              onDraftChange={setNativeDraftValues}
+              onSearchDraftChange={setNativeSearchDraft}
+              search={nativeSearchDraft}
+              showSearch={showSearch}
+            />
+            <Button onClick={handleClearNativeFilters} text="Clear all" variant="ghost" />
+          </Box>
+        </Modal>
+      ) : null}
     </View>
   );
 };

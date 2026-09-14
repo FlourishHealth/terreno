@@ -80,6 +80,7 @@ const useMountedRef = (): React.RefObject<boolean> => {
 };
 
 const ButtonVisual: React.FC<ButtonVisualProps> = ({
+  accessibilityLabel,
   children,
   disabled = false,
   fullWidth = false,
@@ -148,7 +149,7 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
       accessibilityHint={
         withConfirmation ? "Opens a confirmation dialog" : "Press to perform action"
       }
-      accessibilityLabel={text}
+      accessibilityLabel={accessibilityLabel ?? text}
       accessibilityRole="button"
       accessibilityState={{disabled: isPressDisabled}}
       {...pressableInteractionProps}

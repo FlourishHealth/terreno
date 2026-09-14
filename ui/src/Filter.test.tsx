@@ -28,6 +28,30 @@ describe("Filter", () => {
     expect(getByText("Filters")).toBeTruthy();
   });
 
+  it("renders a compact icon-only trigger without the label", () => {
+    const {getByTestId, queryByText} = renderWithTheme(
+      <Filter iconOnly label="Filters" testID="f" triggerAccessibilityLabel="Filter Name">
+        <Text>Body</Text>
+      </Filter>
+    );
+    const trigger = getByTestId("f.trigger");
+    expect(queryByText("Filters")).toBeNull();
+    expect(trigger.props.accessibilityLabel).toBe("Filter Name");
+    expect(trigger.props.style.height).toBe(24);
+    expect(trigger.props.style.width).toBe(24);
+  });
+
+  it("opens the panel from the icon-only trigger", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <Filter iconOnly testID="f">
+        <Text>Body</Text>
+      </Filter>
+    );
+    expect(queryByTestId("f.panel")).toBeNull();
+    fireEvent.press(getByTestId("f.trigger"));
+    expect(getByTestId("f.panel")).toBeTruthy();
+  });
+
   it("keeps the panel closed by default and open with defaultOpen", () => {
     const closed = renderWithTheme(
       <Filter testID="f">

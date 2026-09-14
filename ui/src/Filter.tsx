@@ -4,6 +4,7 @@ import {Platform, Pressable, View, type ViewStyle} from "react-native";
 import {Button} from "./Button";
 import type {FilterProps} from "./Common";
 import {createWebPortal} from "./createWebPortal";
+import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveTestID} from "./testing/resolveTestId";
@@ -13,6 +14,7 @@ import {useWebDropdownAnchor} from "./WebDropdownMenu";
 const DEFAULT_WIDTH = 320;
 const TRIGGER_OFFSET = 44;
 const PANEL_GAP = 4;
+const ICON_TRIGGER_SIZE = {default: 32, sm: 24} as const;
 
 /**
  * Compositional filter dropdown. Renders a trigger button that opens a panel
@@ -27,7 +29,10 @@ const PANEL_GAP = 4;
 export const Filter: FC<FilterProps> = ({
   children,
   label = "Filter",
+  triggerAccessibilityLabel,
   iconName = "bars-filter",
+  iconOnly = false,
+  triggerSize = "sm",
   isOpen,
   defaultOpen = false,
   onOpenChange,
@@ -252,13 +257,39 @@ export const Filter: FC<FilterProps> = ({
   return (
     <View style={{position: "relative"}} testID={testID}>
       <View ref={triggerRef}>
-        <Button
-          iconName={iconName}
-          onClick={() => setOpen(!open)}
-          testID={testID ? resolveTestID(testID, "trigger") : undefined}
-          text={label}
-          variant={variant}
-        />
+        {iconOnly ? (
+          <Pressable
+            accessibilityLabel={triggerAccessibilityLabel ?? label ?? "Filter"}
+            aria-label={triggerAccessibilityLabel ?? label ?? "Filter"}
+            aria-role="button"
+            hitSlop={8}
+            onPress={() => setOpen(!open)}
+            style={{
+              alignItems: "center",
+              backgroundColor: open ? theme.surface.neutralLight : theme.surface.base,
+              borderRadius: theme.radius.rounded,
+              height: ICON_TRIGGER_SIZE[triggerSize],
+              justifyContent: "center",
+              width: ICON_TRIGGER_SIZE[triggerSize],
+            }}
+            testID={testID ? resolveTestID(testID, "trigger") : undefined}
+          >
+            <Icon
+              color="secondaryLight"
+              iconName={iconName}
+              size={triggerSize === "sm" ? "sm" : "md"}
+            />
+          </Pressable>
+        ) : (
+          <Button
+            accessibilityLabel={triggerAccessibilityLabel}
+            iconName={iconName}
+            onClick={() => setOpen(!open)}
+            testID={testID ? resolveTestID(testID, "trigger") : undefined}
+            text={label}
+            variant={variant}
+          />
+        )}
       </View>
       {Boolean(open) && renderOverlay()}
     </View>

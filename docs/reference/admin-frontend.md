@@ -49,6 +49,9 @@ Table view for a specific model with pagination, sorting, and actions.
 
 Features:
 - DataTable with columns from backend `listFields`
+- Toolbar search maps to list `q` (backend partial match + ObjectId lookup)
+- Declared `filters` map to DataTable column filters (`text` contains, `choice`
+  multi `$in`, `boolean`, `dateRange`, `ref` via `AdminRefField` in `renderFilter`)
 - Click row to edit
 - "Create New" button
 - Pagination controls
