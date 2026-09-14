@@ -5,6 +5,33 @@ import {buildTodoSummaryInput} from "@/components/todoSummaryInput";
 import {useSummarizeExampleTextMutation} from "@/store/sdk";
 import {type Todo, useTodos} from "@/store/syncDbSdk";
 
+interface TodoSummaryDependencies {
+  useApiKey: () => string | undefined;
+  useSummarize: () => [
+    (body: {apiKey?: string; text: string}) => {
+      unwrap: () => Promise<{output: string}>;
+    },
+    {isLoading: boolean},
+  ];
+  useTodoList: () => {data: Todo[] | undefined};
+}
+
+interface TodoSummaryCardProps {
+  /** @internal Test seam for hook-backed dependencies. */
+  dependencies?: TodoSummaryDependencies;
+}
+
+const useSavedGeminiApiKey = (): string | undefined => {
+  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
+  return geminiApiKey;
+};
+
+const defaultDependencies: TodoSummaryDependencies = {
+  useApiKey: useSavedGeminiApiKey,
+  useSummarize: useSummarizeExampleTextMutation,
+  useTodoList: useTodos,
+};
+
 const errorTitle = (error: unknown): string | undefined => {
   if (!error || typeof error !== "object" || !("data" in error)) {
     return undefined;
@@ -17,10 +44,12 @@ const errorTitle = (error: unknown): string | undefined => {
  * example app's traced AI feature: the backend resolves the prompt by name and label, so every
  * run shows up in AI Observability with a prompt reference, user, and session.
  */
-export const TodoSummaryCard: React.FC = () => {
-  const {data: todos} = useTodos();
-  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
-  const [summarize, {isLoading}] = useSummarizeExampleTextMutation();
+export const TodoSummaryCard: React.FC<TodoSummaryCardProps> = ({
+  dependencies = defaultDependencies,
+}) => {
+  const {data: todos} = dependencies.useTodoList();
+  const geminiApiKey = dependencies.useApiKey();
+  const [summarize, {isLoading}] = dependencies.useSummarize();
   const [summary, setSummary] = useState<string>("");
   const [summaryError, setSummaryError] = useState<string>("");
 

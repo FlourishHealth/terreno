@@ -1,48 +1,86 @@
-import {describe, it} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
+import {describe, it, mock} from "bun:test";
 import {assert} from "chai";
 import React from "react";
-import {renderWithTheme} from "../../ui/src/test-utils";
-import {summarizeExampleTextMock, todoSummaryTestState} from "../tests/todoSummaryTestState";
-
+import TestRenderer, {act, type ReactTestInstance} from "react-test-renderer";
 import {TodoSummaryCard} from "./TodoSummaryCard";
 
-describe("TodoSummaryCard", () => {
-  it("disables summarize when there are no todos", () => {
-    todoSummaryTestState.todos = [];
-    todoSummaryTestState.error = undefined;
-    const view = renderWithTheme(<TodoSummaryCard />);
+let todos: Array<{completed: boolean; id: string; text: string}> = [];
+let summarizeError: unknown;
 
-    assert.exists(view.getByTestId("todos-summary-empty"));
-    const button = view.getByTestId("todos-summarize-button");
+const summarizeExampleTextMock = mock((_body: {apiKey?: string; text: string}) => ({
+  unwrap: async (): Promise<{output: string}> => {
+    if (summarizeError) {
+      throw summarizeError;
+    }
+    return {output: "Two todos remain."};
+  },
+}));
+
+const dependencies = {
+  useApiKey: (): string => "",
+  useSummarize: () =>
+    [summarizeExampleTextMock, {isLoading: false}] as [
+      typeof summarizeExampleTextMock,
+      {isLoading: boolean},
+    ],
+  useTodoList: () => ({data: todos}),
+};
+
+const hasText = (root: ReactTestInstance, text: string): boolean => {
+  return root.findAll((node) => node.children.includes(text)).length > 0;
+};
+
+describe("TodoSummaryCard", () => {
+  it("disables summarize when there are no todos", async () => {
+    todos = [];
+    summarizeError = undefined;
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<TodoSummaryCard dependencies={dependencies} />);
+    });
+    assert.isDefined(renderer);
+    const root = renderer.root;
+
+    assert.isTrue(hasText(root, "Add a todo to summarize."));
+    const button = root.findByProps({testID: "todos-summarize-button"});
     assert.isTrue(button.props.accessibilityState?.disabled ?? button.props.disabled);
   });
 
   it("renders the unwrapped summary response", async () => {
-    todoSummaryTestState.todos = [{completed: false, id: "todo-1", text: "Ship observability"}];
-    todoSummaryTestState.error = undefined;
+    todos = [{completed: false, id: "todo-1", text: "Ship observability"}];
+    summarizeError = undefined;
     summarizeExampleTextMock.mockClear();
-    const view = renderWithTheme(<TodoSummaryCard />);
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<TodoSummaryCard dependencies={dependencies} />);
+    });
+    assert.isDefined(renderer);
+    const root = renderer.root;
 
     await act(async () => {
-      fireEvent.press(view.getByTestId("todos-summarize-button"));
+      await root.findByProps({testID: "todos-summarize-button"}).props.onClick();
       await Promise.resolve();
     });
 
     assert.equal(summarizeExampleTextMock.mock.calls.length, 1);
-    assert.exists(view.getByText("Two todos remain."));
+    assert.isTrue(hasText(root, "Two todos remain."));
   });
 
   it("shows the API error title", async () => {
-    todoSummaryTestState.todos = [{completed: false, id: "todo-1", text: "Ship observability"}];
-    todoSummaryTestState.error = {data: {title: "Provide an AI API key."}};
-    const view = renderWithTheme(<TodoSummaryCard />);
+    todos = [{completed: false, id: "todo-1", text: "Ship observability"}];
+    summarizeError = {data: {title: "Provide an AI API key."}};
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<TodoSummaryCard dependencies={dependencies} />);
+    });
+    assert.isDefined(renderer);
+    const root = renderer.root;
 
     await act(async () => {
-      fireEvent.press(view.getByTestId("todos-summarize-button"));
+      await root.findByProps({testID: "todos-summarize-button"}).props.onClick();
       await Promise.resolve();
     });
 
-    assert.exists(view.getByText("Provide an AI API key."));
+    assert.isTrue(hasText(root, "Provide an AI API key."));
   });
 });

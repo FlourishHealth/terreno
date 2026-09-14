@@ -1,40 +1,53 @@
 import "../../ui/src/bunSetup";
 import {mock} from "bun:test";
-import {summarizeExampleTextMock, todoSummaryTestState} from "./todoSummaryTestState";
+import React from "react";
 
-const expoGlobal = globalThis.expo as typeof globalThis.expo & {
-  modules?: Record<string, unknown>;
-};
-expoGlobal.modules = {
-  ...expoGlobal.modules,
-  ExpoSecureStore: {
-    deleteValueWithKeyAsync: async (): Promise<void> => undefined,
-    getValueWithKeyAsync: async (): Promise<null> => null,
-    setValueWithKeyAsync: async (): Promise<void> => undefined,
-  },
+(
+  globalThis as typeof globalThis & {
+    IS_REACT_ACT_ENVIRONMENT?: boolean;
+  }
+).IS_REACT_ACT_ENVIRONMENT = true;
+
+interface MockUiProps {
+  children?: React.ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
+  testID?: string;
+  text?: string;
+}
+
+const createUiElement = (name: string): React.FC<MockUiProps> => {
+  return ({children, ...props}): React.ReactElement => {
+    return React.createElement(name, props, children);
+  };
 };
 
-const uiModule = await import("@terreno/ui");
 mock.module("@terreno/ui", () => ({
-  ...uiModule,
-  useStoredState: () =>
-    ["", async (): Promise<void> => undefined, false] as [
-      string,
-      (value: string | undefined) => Promise<void>,
-      boolean,
-    ],
+  Box: createUiElement("Box"),
+  Button: ({disabled, onClick, testID, text}: MockUiProps): React.ReactElement =>
+    React.createElement(
+      "Button",
+      {
+        accessibilityState: {disabled: Boolean(disabled)},
+        disabled,
+        onPress: disabled ? undefined : onClick,
+        testID,
+      },
+      text
+    ),
+  Card: createUiElement("Card"),
+  Heading: createUiElement("Heading"),
+  Text: createUiElement("Text"),
+  useStoredState: () => ["", async (): Promise<void> => undefined, false],
 }));
 
-const sdkMock = {
-  useSummarizeExampleTextMutation: () => [summarizeExampleTextMock, {isLoading: false}],
-};
-const syncDbSdkMock = {
-  useTodos: () => ({data: todoSummaryTestState.todos}),
-};
+mock.module("@/store/sdk", () => ({
+  useSummarizeExampleTextMutation: () => [
+    () => ({unwrap: async (): Promise<{output: string}> => ({output: ""})}),
+    {isLoading: false},
+  ],
+}));
 
-mock.module("@/store/sdk", () => sdkMock);
-mock.module("../store/sdk", () => sdkMock);
-mock.module(`${process.cwd()}/store/sdk.ts`, () => sdkMock);
-mock.module("@/store/syncDbSdk", () => syncDbSdkMock);
-mock.module("../store/syncDbSdk", () => syncDbSdkMock);
-mock.module(`${process.cwd()}/store/syncDbSdk.ts`, () => syncDbSdkMock);
+mock.module("@/store/syncDbSdk", () => ({
+  useTodos: () => ({data: []}),
+}));
