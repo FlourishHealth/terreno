@@ -605,15 +605,15 @@ same binary. Manifest finalized 2026-08-09 (decisions D1/D3/D7); TenTap excluded
 **Title:** `create-terreno-app scaffolding CLI`
 
 **Labels:** `area:dx`, `type:feature`
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`create-terreno-app`, Status=`Planned`
 
 Today the MCP bootstrap tool returns markdown instructions and writes no files. This ships
 a real `create-terreno-app` CLI (or template repo) that produces a running, deployable app
 — backend, Expo app, env files, seeded auth — in one command, with the MCP bootstrap
 delegating to it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/create-terreno-app.md)
+- **Tasks:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/create-terreno-app.md)
 - **RTK flag:** Partial — scaffold output follows the syncdb + Better Auth direction
 - **Depends on:** deployment-foundation
 

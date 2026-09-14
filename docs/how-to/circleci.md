@@ -162,6 +162,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Demo Lint and TypeScript Check | `ui-demo-ci` |
 | Lint, compile, and test communications | `comms-ci` |
 | Lint, Build, and Test (MCP) | `mcp-server-ci` |
+| Lint, compile, and coverage (create-terreno-app) | `create-terreno-app-ci` |
 | Build Docker Image (MCP) | `mcp-server-docker` |
 | Example Frontend Lint and Test | `example-frontend-ci` |
 | Example Backend Lint, Build, and Test | `example-backend-ci` |

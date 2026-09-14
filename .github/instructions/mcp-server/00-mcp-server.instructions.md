@@ -31,7 +31,6 @@ src/
 
 | Tool | Description |
 |------|-------------|
-| `terreno_bootstrap_app` | Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP) |
 | `terreno_bootstrap_ai_rules` | Scaffold AI assistant rules for Cursor, Claude Code, Copilot, etc. |
 | `terreno_generate_model` | Creates Mongoose schemas with Terreno conventions (plugins, types, methods/statics) |
 | `terreno_generate_route` | Creates modelRouter configurations with permission setup |
