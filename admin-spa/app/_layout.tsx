@@ -1,4 +1,4 @@
-import {AdminProvider} from "@terreno/admin-frontend";
+import {AdminProvider, OrgContextProvider} from "@terreno/admin-frontend";
 import {TerrenoProvider} from "@terreno/ui";
 import {Stack} from "expo-router";
 import React from "react";
@@ -12,7 +12,7 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   return (
     <AdminProvider api={terrenoApi} apiBase={apiBase} routeBase="">
-      {children}
+      <OrgContextProvider>{children}</OrgContextProvider>
     </AdminProvider>
   );
 };

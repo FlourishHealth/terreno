@@ -106,6 +106,7 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/tsconfig.json");
       expect(text).toContain("backend/biome.jsonc");
       expect(text).toContain("backend/src/index.ts");
+      expect(text).toContain("backend/src/access.ts");
       expect(text).toContain("backend/src/server.ts");
       expect(text).toContain("backend/src/scripts/seed.ts");
       expect(text).toContain("backend/src/utils/betterAuthConfig.ts");
@@ -199,6 +200,22 @@ describe("bootstrap", () => {
       expect(text).toContain("AdminApp");
       expect(text).toContain("connectToMongoDB");
       expect(text).toContain("userRouter");
+    });
+
+    test("enables organizations by default in generated backends", () => {
+      const text = bootstrapApp();
+      const server = getGeneratedFile(text, "backend/src/server.ts");
+      const access = getGeneratedFile(text, "backend/src/access.ts");
+      const userModel = getGeneratedFile(text, "backend/src/models/user.ts");
+      const seed = getGeneratedFile(text, "backend/src/scripts/seed.ts");
+
+      expect(access).toContain("organizations: true");
+      expect(access).toContain("createAccess");
+      expect(server).toContain("organizations: true");
+      expect(server).toContain("accessControl: access");
+      expect(userModel).toContain("rbacUserPlugin");
+      expect(seed).toContain("Organization.create");
+      expect(seed).toContain('roleName: "org-admin"');
     });
 
     test("should include generated frontend code", () => {

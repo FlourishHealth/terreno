@@ -10,6 +10,8 @@ import {
   type ConsentFormType,
   ConsentResponse,
   logger,
+  Membership,
+  Organization,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -44,8 +46,8 @@ interface SeedUser {
   admin?: boolean;
   email: string;
   name: string;
-  organizationIds: string[];
   password: string;
+  roles?: string[];
 }
 
 interface SeedConsentForm {
@@ -76,35 +78,46 @@ interface SeedCommsMessage {
   to: string;
 }
 
-// Shared organization so both seeded users demonstrate tenant-scoped project sync.
-const EXAMPLE_ORGANIZATION_ID = "org-example";
-
 const TEST_USERS: SeedUser[] = [
   {
     email: "test@example.com",
     name: "Test User",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "admin@example.com",
     name: "Admin User",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "superadmin@example.com",
     name: "Super Admin",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
+    password: "testpassword123",
+  },
+  {
+    email: "operator@example.com",
+    name: "Platform Operator",
+    password: "testpassword123",
+    roles: ["operator"],
+  },
+  {
+    email: "orgadmin-alpha@example.com",
+    name: "Alpha Org Admin",
+    password: "testpassword123",
+  },
+  {
+    email: "orgadmin-beta@example.com",
+    name: "Beta Org Admin",
     password: "testpassword123",
   },
 ];
 
-const SEED_PROJECTS = [
-  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Example Project"},
-  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Sync Rollout"},
+const SEED_PROJECT_TITLES = ["Example Project", "Sync Rollout"];
+const SEED_ORGANIZATIONS = [
+  {adminEmail: "orgadmin-alpha@example.com", name: "Alpha Workspace"},
+  {adminEmail: "orgadmin-beta@example.com", name: "Beta Workspace"},
 ];
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
@@ -314,6 +327,9 @@ This consent is optional. You can decline without affecting your use of the appl
 ];
 
 const seedRolesForUser = (testUser: SeedUser): string[] => {
+  if (testUser.roles) {
+    return testUser.roles;
+  }
   return testUser.admin ? [SUPERADMIN_ROLE] : [DEFAULT_USER_ROLE];
 };
 
@@ -332,7 +348,7 @@ const applySeedRoles = (
   return {changed: true, user};
 };
 
-/** Ensure the Mongoose user doc reflects the seed's admin flag, roles, and organizations. */
+/** Ensure the Mongoose user doc reflects the seed's admin flag and roles. */
 const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const user = await User.findByEmail(testUser.email);
   if (!user) {
@@ -344,10 +360,6 @@ const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> 
   let changed = false;
   if (testUser.admin && !user.admin) {
     user.admin = true;
-    changed = true;
-  }
-  if ((user.organizationIds ?? []).length === 0) {
-    user.organizationIds = testUser.organizationIds;
     changed = true;
   }
   const withRoles = applySeedRoles(user, testUser);
@@ -389,7 +401,6 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
       admin: testUser.admin ?? false,
       email: testUser.email,
       name: testUser.name,
-      organizationIds: testUser.organizationIds,
       roles: seedRolesForUser(testUser),
     },
     testUser.password
@@ -399,8 +410,51 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   return user as UserDocument;
 };
 
+const seedOrganizations = async (context: SeedContext): Promise<void> => {
+  const owner = seededUsers.find((user) => user.email === "operator@example.com");
+  if (!owner) {
+    throw new APIError({status: 500, title: "Seed operator not found"});
+  }
+  for (const definition of SEED_ORGANIZATIONS) {
+    await context.upsert(
+      Organization,
+      {name: definition.name},
+      {name: definition.name, ownerId: owner._id}
+    );
+    if (context.dryRun) {
+      continue;
+    }
+    const organization = await Organization.findExactlyOne({name: definition.name});
+    const orgAdmin = seededUsers.find((user) => user.email === definition.adminEmail);
+    if (!orgAdmin) {
+      throw new APIError({status: 500, title: `Seed user ${definition.adminEmail} not found`});
+    }
+    await context.upsert(
+      Membership,
+      {organizationId: organization._id, userId: orgAdmin._id},
+      {organizationId: organization._id, roleName: "org-admin", userId: orgAdmin._id}
+    );
+    const testUser = seededUsers.find((user) => user.email === "test@example.com");
+    if (definition.name === "Alpha Workspace" && testUser) {
+      await context.upsert(
+        Membership,
+        {organizationId: organization._id, userId: testUser._id},
+        {organizationId: organization._id, roleName: "member", userId: testUser._id}
+      );
+    }
+  }
+};
+
 const seedProjects = async (context: SeedContext): Promise<void> => {
-  for (const project of SEED_PROJECTS) {
+  const organization = await Organization.findOneOrNone({slug: "alpha-workspace"});
+  if (!organization) {
+    if (context.dryRun) {
+      return;
+    }
+    throw new APIError({status: 500, title: "Seed organization Alpha Workspace not found"});
+  }
+  for (const title of SEED_PROJECT_TITLES) {
+    const project = {organizationId: String(organization._id), title};
     await context.upsert(
       Project,
       {organizationId: project.organizationId, title: project.title},
@@ -549,6 +603,15 @@ export const seedSteps: SeedStep[] = [
   },
   {
     dependsOn: ["users"],
+    name: "organizations",
+    reset: async (context) => {
+      await context.deleteMany(Membership);
+      await context.deleteMany(Organization);
+    },
+    run: seedOrganizations,
+  },
+  {
+    dependsOn: ["organizations"],
     name: "projects",
     reset: async (context) => {
       await softDeleteAll(context, await Project.find({}), Project.modelName);

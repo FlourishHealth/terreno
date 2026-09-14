@@ -228,6 +228,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     // token as a bearer header) — without it, a raw session token cannot be validated and
     // socket auth silently fails (the sync client shows perpetually "offline").
     plugins: [bearer()],
+    rateLimit: config.disableRateLimit ? {enabled: false} : undefined,
     secret,
     session: {
       cookieCache: {

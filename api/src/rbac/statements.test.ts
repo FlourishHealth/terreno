@@ -17,6 +17,15 @@ describe("rbac statements", () => {
     expect(terrenoStatements.user).toContain("read");
     expect(terrenoStatements.configuration).toContain("update");
     expect(terrenoStatements.featureFlag).toEqual(["create", "list", "read", "update", "delete"]);
+    expect(terrenoStatements.organization).toEqual([
+      "create",
+      "list",
+      "read",
+      "update",
+      "delete",
+      "manageMembers",
+      "disable",
+    ]);
     expect(terrenoStatements.consentForm).toEqual(["create", "list", "read", "update", "delete"]);
     expect(terrenoStatements.consentResponse).toEqual(["list", "read"]);
   });
@@ -56,6 +65,7 @@ describe("rbac statements", () => {
     expect(expanded.featureFlag).toEqual(["list", "read"]);
     expect(expanded.consentForm).toEqual(["list", "read"]);
     expect(expanded.consentResponse).toEqual(["list", "read"]);
+    expect(expanded.organization).toEqual(["list", "read"]);
   });
 
   it("returns concrete permission sets unchanged", () => {

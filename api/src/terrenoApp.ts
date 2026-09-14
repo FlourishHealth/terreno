@@ -18,6 +18,7 @@ import {
   type ConfigurationModelLike,
 } from "./configurationApp";
 import {
+  APIError,
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
   apiUnauthorizedMiddleware,
@@ -34,6 +35,7 @@ import {
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {OrgsApp, type OrgsAppOptions} from "./orgs/orgsApp";
 import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
 import {createRateLimitStore} from "./rateLimit/createStore";
 import {createRateLimitMiddleware} from "./rateLimit/middleware";
@@ -104,6 +106,12 @@ export interface TerrenoAppOptions {
    * RBAC access controller injected into model routers and `/auth/me` enrichment.
    */
   accessControl?: import("./rbac/types").AnyTerrenoAccess;
+  /**
+   * Multi-tenant organizations. Default off so existing single-tenant apps stay unchanged.
+   * New apps from `terreno_bootstrap_app` pass `true`. Requires `accessControl` from
+   * `createAccess({ organizations: true })`.
+   */
+  organizations?: boolean | Omit<OrgsAppOptions, "access" | "userModel">;
   /**
    * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
    * Use to attach early middleware via `app.use(...)` before JSON parsing.
@@ -546,6 +554,31 @@ export class TerrenoApp {
    * ```
    */
   start(): express.Application {
+    if (this.options.organizations) {
+      if (!this.options.accessControl) {
+        throw new APIError({
+          status: 500,
+          title:
+            "TerrenoApp organizations requires accessControl from createAccess({ organizations: true })",
+        });
+      }
+      const hasOrgsPlugin = this.registrations.some(
+        (registration) =>
+          !this.isModelRouterRegistration(registration) && registration instanceof OrgsApp
+      );
+      if (!hasOrgsPlugin) {
+        const orgConfig =
+          typeof this.options.organizations === "object" ? this.options.organizations : {};
+        this.register(
+          new OrgsApp({
+            ...orgConfig,
+            access: this.options.accessControl,
+            userModel: this.options.userModel,
+          })
+        );
+      }
+    }
+
     // If realtime option is set, auto-register the RealtimeApp plugin
     if (this.options.realtime) {
       const hasRealtimePlugin = this.registrations.some(

@@ -1,6 +1,7 @@
-import {AdminScreenRouter, AdminShellLayout, useAdminConfig} from "@terreno/admin-frontend";
+import {AdminScreenRouter, useAdminConfig} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React, {useMemo} from "react";
+import {AdminSpaShell} from "../../components/AdminSpaShell";
 import {useAppConfig} from "../../components/AppConfigGate";
 import {terrenoApi} from "../../store/sdk";
 
@@ -26,16 +27,9 @@ const ModelTableScreen: React.FC = () => {
   }, [config?.models, model]);
 
   return (
-    <AdminShellLayout
-      api={terrenoApi}
-      apiBase={apiBase}
-      breadcrumbs={breadcrumbs}
-      configurationPath="/configuration"
-      rolesPath="/roles"
-      routeBase=""
-    >
+    <AdminSpaShell breadcrumbs={breadcrumbs}>
       <AdminScreenRouter api={terrenoApi} apiBase={apiBase} name={model} routeBase="" />
-    </AdminShellLayout>
+    </AdminSpaShell>
   );
 };
 

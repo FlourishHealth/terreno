@@ -8,6 +8,16 @@ export const ADMIN_PAGE_PERMISSION = {
   [ADMIN_PAGE_RESOURCE]: [ADMIN_PAGE_ACTION],
 } as const;
 
+export const ORGANIZATION_ACTIONS = [
+  "create",
+  "list",
+  "read",
+  "update",
+  "delete",
+  "manageMembers",
+  "disable",
+] as const;
+
 export const terrenoStatements = {
   admin: [ADMIN_PAGE_ACTION, "runScripts", "viewBackgroundTasks"],
   adminConsentForm: ADMIN_MODEL_ACCESS,
@@ -17,6 +27,7 @@ export const terrenoStatements = {
   consentForm: MODEL_CRUD,
   consentResponse: ["list", "read"],
   featureFlag: MODEL_CRUD,
+  organization: ORGANIZATION_ACTIONS,
   rbac: ["read", "manageRoles", "assignRoles"],
   user: ["create", "list", "read", "update", "delete", "impersonate", "setPassword"],
 } as const;
