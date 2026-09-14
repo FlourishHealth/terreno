@@ -2,7 +2,11 @@ import {describe, expect, it} from "bun:test";
 
 import {
   evaluateCoverage,
+  formatLcov,
+  mergeIsolatedLcov,
   mergeLcov,
+  normalizeLcovPath,
+  onlyHitFiles,
   parseAllFilesRow,
   parseArgs,
   parseLcov,
@@ -11,6 +15,13 @@ import {
 } from "./check-coverage";
 
 const ESC = String.fromCharCode(27);
+
+describe("normalizeLcovPath", () => {
+  it("makes absolute paths relative to cwd so isolated and main reports merge", () => {
+    expect(normalizeLcovPath("/repo/syncdb/src/client.ts", "/repo/syncdb")).toBe("src/client.ts");
+    expect(normalizeLcovPath("src/client.ts", "/repo/syncdb")).toBe("src/client.ts");
+  });
+});
 
 describe("parseArgs", () => {
   it("defaults to 95 when no flags are passed", () => {
@@ -85,20 +96,20 @@ describe("evaluateCoverage", () => {
 
   it("flags function coverage that is below the threshold", () => {
     expect(evaluateCoverage({functions: 90, lines: 96}, 95)).toEqual([
-      {metric: "functions", actual: 90, threshold: 95},
+      {actual: 90, metric: "functions", threshold: 95},
     ]);
   });
 
   it("flags line coverage that is below the threshold", () => {
     expect(evaluateCoverage({functions: 96, lines: 90}, 95)).toEqual([
-      {metric: "lines", actual: 90, threshold: 95},
+      {actual: 90, metric: "lines", threshold: 95},
     ]);
   });
 
   it("flags both metrics when both are below the threshold", () => {
     expect(evaluateCoverage({functions: 80, lines: 85}, 95)).toEqual([
-      {metric: "functions", actual: 80, threshold: 95},
-      {metric: "lines", actual: 85, threshold: 95},
+      {actual: 80, metric: "functions", threshold: 95},
+      {actual: 85, metric: "lines", threshold: 95},
     ]);
   });
 });
@@ -133,15 +144,15 @@ const lcovRecord = ({
 describe("parseLcov", () => {
   it("records function names with per-function hit counts", () => {
     const text = lcovRecord({
-      path: "src/foo.ts",
       functions: [
-        {line: 1, name: "a", hits: 1},
-        {line: 5, name: "b", hits: 0},
+        {hits: 1, line: 1, name: "a"},
+        {hits: 0, line: 5, name: "b"},
       ],
       lines: [
-        {line: 1, hits: 3},
-        {line: 2, hits: 0},
+        {hits: 3, line: 1},
+        {hits: 0, line: 2},
       ],
+      path: "src/foo.ts",
     });
     const result = parseLcov(text);
     const entry = result.get("src/foo.ts");
@@ -176,28 +187,49 @@ describe("parseLcov", () => {
   });
 });
 
+describe("onlyHitFiles", () => {
+  it("drops LCOV records that have no executed lines or functions", () => {
+    const coverage = parseLcov(
+      [
+        lcovRecord({
+          functions: [{hits: 0, line: 1, name: "dead"}],
+          lines: [{hits: 0, line: 1}],
+          path: "src/untouched.ts",
+        }),
+        lcovRecord({
+          functions: [{hits: 1, line: 1, name: "live"}],
+          lines: [{hits: 3, line: 1}],
+          path: "src/hit.ts",
+        }),
+      ].join("\n")
+    );
+    const pruned = onlyHitFiles(coverage);
+    expect([...pruned.keys()]).toEqual(["src/hit.ts"]);
+  });
+});
+
 describe("mergeLcov", () => {
   it("unions per-function hit counts across runs", () => {
     const a = parseLcov(
       lcovRecord({
-        path: "src/foo.ts",
         functions: [
-          {line: 1, name: "one", hits: 1},
-          {line: 5, name: "two", hits: 1},
-          {line: 9, name: "three", hits: 0},
+          {hits: 1, line: 1, name: "one"},
+          {hits: 1, line: 5, name: "two"},
+          {hits: 0, line: 9, name: "three"},
         ],
-        lines: [{line: 1, hits: 2}],
+        lines: [{hits: 2, line: 1}],
+        path: "src/foo.ts",
       })
     );
     const b = parseLcov(
       lcovRecord({
-        path: "src/foo.ts",
         functions: [
-          {line: 1, name: "one", hits: 0},
-          {line: 5, name: "two", hits: 0},
-          {line: 9, name: "three", hits: 4},
+          {hits: 0, line: 1, name: "one"},
+          {hits: 0, line: 5, name: "two"},
+          {hits: 4, line: 9, name: "three"},
         ],
-        lines: [{line: 1, hits: 5}],
+        lines: [{hits: 5, line: 1}],
+        path: "src/foo.ts",
       })
     );
     const merged = mergeLcov(new Map(), a);
@@ -210,19 +242,74 @@ describe("mergeLcov", () => {
     expect(entry?.lines.get(1)).toBe(5);
   });
 
+  it("prefers the isolated snapshot when it executed more lines", () => {
+    const main = parseLcov(
+      lcovRecord({
+        functions: [{hits: 1, line: 1, name: "start"}],
+        lines: [
+          {hits: 1, line: 1},
+          {hits: 0, line: 2},
+          {hits: 0, line: 3},
+        ],
+        path: "src/mongo.ts",
+      })
+    );
+    const isolated = parseLcov(
+      lcovRecord({
+        functions: [{hits: 1, line: 1, name: "start"}],
+        lines: [
+          {hits: 1, line: 10},
+          {hits: 1, line: 11},
+        ],
+        path: "src/mongo.ts",
+      })
+    );
+    mergeIsolatedLcov(main, isolated);
+    expect(summarizeLcov(main)).toEqual({functions: 100, lines: 100});
+  });
+
+  it("does not keep the main suite's unhit functions when adopting an isolated snapshot", () => {
+    const main = parseLcov(
+      lcovRecord({
+        functions: [
+          {hits: 0, line: 1, name: "web"},
+          {hits: 0, line: 40, name: "native"},
+        ],
+        lines: [
+          {hits: 0, line: 1},
+          {hits: 0, line: 2},
+          {hits: 0, line: 3},
+        ],
+        path: "src/pdf.ts",
+      })
+    );
+    const isolated = parseLcov(
+      lcovRecord({
+        functions: [{hits: 1, line: 10, name: "web"}],
+        lines: [
+          {hits: 1, line: 10},
+          {hits: 1, line: 11},
+        ],
+        path: "src/pdf.ts",
+      })
+    );
+    mergeIsolatedLcov(main, isolated);
+    expect(summarizeLcov(main)).toEqual({functions: 100, lines: 100});
+  });
+
   it("copies files from source when target is missing them", () => {
     const a = parseLcov(
       lcovRecord({
+        functions: [{hits: 1, line: 1, name: "fn"}],
+        lines: [{hits: 1, line: 1}],
         path: "src/a.ts",
-        functions: [{line: 1, name: "fn", hits: 1}],
-        lines: [{line: 1, hits: 1}],
       })
     );
     const b = parseLcov(
       lcovRecord({
+        functions: [{hits: 1, line: 1, name: "fn"}],
+        lines: [{hits: 1, line: 1}],
         path: "src/b.ts",
-        functions: [{line: 1, name: "fn", hits: 1}],
-        lines: [{line: 1, hits: 1}],
       })
     );
     const merged = mergeLcov(new Map(), a);
@@ -236,15 +323,15 @@ describe("summarizeLcov", () => {
   it("counts a function as hit once it has non-zero hits in any run", () => {
     const coverage = parseLcov(
       lcovRecord({
-        path: "src/foo.ts",
         functions: [
-          {line: 1, name: "one", hits: 1},
-          {line: 5, name: "two", hits: 0},
+          {hits: 1, line: 1, name: "one"},
+          {hits: 0, line: 5, name: "two"},
         ],
         lines: [
-          {line: 1, hits: 1},
-          {line: 2, hits: 0},
+          {hits: 1, line: 1},
+          {hits: 0, line: 2},
         ],
+        path: "src/foo.ts",
       })
     );
     expect(summarizeLcov(coverage)).toEqual({functions: 50, lines: 50});
@@ -260,24 +347,24 @@ describe("summarizeLcov", () => {
     // max(FNH) approximation.
     const runA = parseLcov(
       lcovRecord({
-        path: "src/file.ts",
         functions: Array.from({length: 10}, (_, idx) => ({
+          hits: idx + 1 <= 8 ? 1 : 0,
           line: idx + 1,
           name: `fn${idx + 1}`,
-          hits: idx + 1 <= 8 ? 1 : 0,
         })),
-        lines: [{line: 1, hits: 1}],
+        lines: [{hits: 1, line: 1}],
+        path: "src/file.ts",
       })
     );
     const runB = parseLcov(
       lcovRecord({
-        path: "src/file.ts",
         functions: Array.from({length: 10}, (_, idx) => ({
+          hits: idx + 1 >= 6 ? 1 : 0,
           line: idx + 1,
           name: `fn${idx + 1}`,
-          hits: idx + 1 >= 6 ? 1 : 0,
         })),
-        lines: [{line: 1, hits: 1}],
+        lines: [{hits: 1, line: 1}],
+        path: "src/file.ts",
       })
     );
     const merged = mergeLcov(new Map(), runA);
@@ -288,14 +375,9 @@ describe("summarizeLcov", () => {
   it("falls back to FNF/FNH aggregates when the LCOV producer omits FN records", () => {
     // Bun 1.3.x emits FNF/FNH but not FN/FNDA. We must still report coverage
     // in that case, even though we can't compute a true cross-run union.
-    const text = [
-      "SF:src/foo.ts",
-      "FNF:10",
-      "FNH:7",
-      "DA:1,1",
-      "DA:2,0",
-      "end_of_record",
-    ].join("\n");
+    const text = ["SF:src/foo.ts", "FNF:10", "FNH:7", "DA:1,1", "DA:2,0", "end_of_record"].join(
+      "\n"
+    );
     const parsed = parseLcov(text);
     expect(parsed.get("src/foo.ts")?.hasFnRecords).toBe(false);
     expect(summarizeLcov(parsed)).toEqual({functions: 70, lines: 50});
@@ -306,12 +388,12 @@ describe("summarizeLcov", () => {
     // the per-function path so it reflects the full union.
     const withFn = parseLcov(
       lcovRecord({
-        path: "src/foo.ts",
         functions: [
-          {line: 1, name: "one", hits: 1},
-          {line: 5, name: "two", hits: 1},
+          {hits: 1, line: 1, name: "one"},
+          {hits: 1, line: 5, name: "two"},
         ],
-        lines: [{line: 1, hits: 1}],
+        lines: [{hits: 1, line: 1}],
+        path: "src/foo.ts",
       })
     );
     const aggregateOnly = parseLcov(
@@ -321,5 +403,38 @@ describe("summarizeLcov", () => {
     mergeLcov(merged, withFn);
     expect(merged.get("src/foo.ts")?.hasFnRecords).toBe(true);
     expect(summarizeLcov(merged)).toEqual({functions: 100, lines: 100});
+  });
+});
+
+describe("formatLcov", () => {
+  it("round-trips line hits so Codecov can read the merged report", () => {
+    const original = parseLcov(
+      lcovRecord({
+        functions: [
+          {hits: 3, line: 4, name: "alpha"},
+          {hits: 0, line: 8, name: "beta"},
+        ],
+        lines: [
+          {hits: 2, line: 4},
+          {hits: 0, line: 8},
+        ],
+        path: "src/mod.ts",
+      })
+    );
+    const rendered = formatLcov(original);
+    const parsed = parseLcov(rendered);
+    expect(summarizeLcov(parsed)).toEqual(summarizeLcov(original));
+    expect(parsed.get("src/mod.ts")?.lines.get(4)).toBe(2);
+    expect(parsed.get("src/mod.ts")?.lines.get(8)).toBe(0);
+  });
+
+  it("emits FNF/FNH when FN records are absent", () => {
+    const parsed = parseLcov(
+      ["SF:src/foo.ts", "FNF:10", "FNH:7", "DA:1,1", "DA:2,0", "end_of_record"].join("\n")
+    );
+    const rendered = formatLcov(parsed);
+    expect(rendered).toContain("FNF:10");
+    expect(rendered).toContain("FNH:7");
+    expect(rendered).toContain("DA:1,1");
   });
 });

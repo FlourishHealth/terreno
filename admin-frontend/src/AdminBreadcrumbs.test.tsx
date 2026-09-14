@@ -1,9 +1,12 @@
 import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 
+const routerPush = mock(() => undefined);
 mock.module("expo-router", () => ({
-  router: {push: () => {}},
+  router: {push: routerPush},
 }));
 
 import {AdminBreadcrumbs} from "./AdminBreadcrumbs";
@@ -23,5 +26,22 @@ describe("AdminBreadcrumbs", () => {
       <AdminBreadcrumbs segments={[{href: "/", label: "Admin"}, {label: "Todos"}]} />
     );
     expect(getByHintText("Navigate to Admin")).toBeTruthy();
+  });
+
+  it("returns null when there are no segments", () => {
+    const {toJSON} = renderWithTheme(<AdminBreadcrumbs segments={[]} />);
+    assert.isNull(toJSON());
+  });
+
+  it("navigates when a linked segment is pressed", async () => {
+    routerPush.mockClear();
+    const {getByTestId} = renderWithTheme(
+      <AdminBreadcrumbs segments={[{href: "/admin", label: "Admin"}, {label: "Todos"}]} />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-breadcrumb-link-0-clickable"));
+    });
+    assert.equal(routerPush.mock.calls.length, 1);
+    assert.equal(routerPush.mock.calls[0]?.[0], "/admin");
   });
 });

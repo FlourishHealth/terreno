@@ -60,6 +60,21 @@ parameters:
   run-syncdb:
     type: boolean
     default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
+  run-api-health:
+    type: boolean
+    default: false
+  run-feature-flags:
+    type: boolean
+    default: false
+  run-test-package:
+    type: boolean
+    default: false
   run-new-file-coverage:
     type: boolean
     default: false
@@ -201,7 +216,7 @@ commands:
             done
 
   demo_lint_and_typecheck:
-    description: Compile ui, then lint and typecheck demo
+    description: Compile ui, then lint, typecheck, and smoke-test demo, then check story coverage
     steps:
       - compile_packages:
           packages: ui
@@ -211,6 +226,13 @@ commands:
             set -euo pipefail
             (cd demo && bun run lint)
             (cd demo && bun run compile)
+            (cd demo && bun run test:ci)
+      - run:
+          name: Check demo story coverage
+          command: |
+            set -euo pipefail
+            bun test scripts/check-demo-coverage.test.ts
+            bun run check:demo-coverage
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -478,6 +500,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh api
 
   ai-ci:
     executor: node22_mongo
@@ -496,7 +519,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ai
 
   rtk-ci:
     executor: node22
@@ -515,6 +539,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh rtk
 
   ui-ci:
     executor: node22
@@ -531,7 +556,8 @@ jobs:
             bun run lint
             bun run compile
             bun run types
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ui
 
   syncdb-ci:
     executor: node22
@@ -546,8 +572,8 @@ jobs:
           command: |
             bun run lint
             bun run compile
-            bun run test
-            bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh syncdb
 
   new-file-coverage:
     executor: node22_mongo
@@ -570,7 +596,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
@@ -605,7 +631,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh comms
 
   mcp-server-ci:
     executor: node22
@@ -630,6 +657,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh mcp-server
 
   mcp-server-docker:
     executor: node22
@@ -794,7 +822,8 @@ jobs:
             bun run lint
             bun run compile
             bunx tsc --noEmit -p tsconfig.json
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
       - run:
@@ -814,6 +843,44 @@ jobs:
       - store_artifacts:
           path: admin-spa/test-results
           destination: admin-spa-playwright-results
+
+  packages-ci:
+    parameters:
+      package:
+        type: string
+      compile-deps:
+        type: string
+        default: ""
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile workspace dependencies
+          command: |
+            set -euo pipefail
+            deps="<< parameters.compile-deps >>"
+            if [ -z "$deps" ]; then
+              echo "no compile deps"
+              exit 0
+            fi
+            for pkg in $deps; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+      - run:
+          name: Lint / compile / coverage (<< parameters.package >>)
+          working_directory: ~/project/<< parameters.package >>
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh "<< parameters.package >>"
 
   no-barrel-imports:
     executor: node22
@@ -1769,6 +1836,40 @@ workflows:
     when: << pipeline.parameters.run-admin-spa >>
     jobs:
       - admin-spa-ci
+
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - packages-ci:
+          package: admin-backend
+          compile-deps: api
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - packages-ci:
+          package: admin-frontend
+          compile-deps: ui
+
+  api-health:
+    when: << pipeline.parameters.run-api-health >>
+    jobs:
+      - packages-ci:
+          package: api-health
+          compile-deps: api
+
+  feature-flags:
+    when: << pipeline.parameters.run-feature-flags >>
+    jobs:
+      - packages-ci:
+          package: feature-flags
+          compile-deps: api
+
+  test-package:
+    when: << pipeline.parameters.run-test-package >>
+    jobs:
+      - packages-ci:
+          package: test
 
   repo-policies:
     when: << pipeline.parameters.run-repo-policies >>

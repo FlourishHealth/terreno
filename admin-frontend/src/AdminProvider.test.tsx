@@ -1,6 +1,15 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import {resetAdminWidgetWarningsForTests} from "./AdminProvider";
-import type {HomeWidgetComponent} from "./types";
+import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
+import {
+  AdminProvider,
+  resetAdminWidgetWarningsForTests,
+  useDeprecatedCustomScreensProp,
+  useFieldWidget,
+  useHomeWidget,
+  useScreenWidget,
+} from "./AdminProvider";
+import type {AdminApi, HomeWidgetComponent} from "./types";
 import {BUILT_IN_HOME_WIDGETS, mergeWidgetRegistry} from "./widgets/builtInWidgets";
 
 describe("AdminProvider widget registry", () => {
@@ -21,5 +30,23 @@ describe("AdminProvider widget registry", () => {
     expect(BUILT_IN_HOME_WIDGETS.modelsGrid).toBeDefined();
     expect(BUILT_IN_HOME_WIDGETS.scriptRunner).toBeDefined();
     expect(BUILT_IN_HOME_WIDGETS.recentActivity).toBeDefined();
+  });
+
+  it("warns once per missing widget and for the deprecated customScreens prop", () => {
+    const Probe: React.FC = () => {
+      useHomeWidget("missing-home");
+      useHomeWidget("missing-home");
+      useScreenWidget("missing-screen");
+      useFieldWidget(undefined);
+      useFieldWidget("missing-field");
+      useDeprecatedCustomScreensProp([{name: "legacy"}]);
+      return null;
+    };
+    const {toJSON} = renderWithTheme(
+      <AdminProvider api={{} as unknown as AdminApi} baseUrl="/admin">
+        <Probe />
+      </AdminProvider>
+    );
+    expect(toJSON()).toBeNull();
   });
 });

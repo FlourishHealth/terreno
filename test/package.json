@@ -60,7 +60,8 @@
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
     "test:agent": "AGENT=1 bun test --only-failures",
-    "test:ci": "bun test"
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
   "version": "57.3.0"
