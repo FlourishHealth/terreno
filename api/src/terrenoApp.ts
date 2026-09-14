@@ -33,7 +33,7 @@ import {
   resolveMcpServiceTokensOption,
 } from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
-import {runStartupMigrations} from "./migrations/startup";
+import {runStartupMigrations, type StartupMigrationsOption} from "./migrations/runner";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
@@ -131,7 +131,7 @@ export interface TerrenoAppOptions {
    * Versioned MongoDB migrations. `runOnStart` defaults to false. When true, wet `up`
    * runs after indexes and before listen. Production still requires `ALLOW_MIGRATIONS=true`.
    */
-  migrations?: import("./migrations/startup").StartupMigrationsOption;
+  migrations?: StartupMigrationsOption;
 }
 
 /**

@@ -1,3 +1,6 @@
+/**
+ * Tests for the migrate lock: wait, heartbeat, and steal after TTL.
+ */
 import {beforeEach, describe, expect, it} from "bun:test";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";

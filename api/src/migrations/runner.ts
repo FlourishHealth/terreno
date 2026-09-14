@@ -1,8 +1,14 @@
+/**
+ * Apply, roll back, and inspect MongoDB migration history. This module also
+ * owns the production wet-apply gate, the TerrenoApp `runOnStart` hook, and the
+ * CI helper that applies then reverses reversible files.
+ */
 import {DateTime} from "luxon";
-import type mongoose from "mongoose";
+import mongoose from "mongoose";
 
 import {APIError} from "../errors";
 import {logger as defaultLogger} from "../logger";
+import {checkMigrationFiles} from "./load";
 import {withMigrationLock} from "./lock";
 import {
   type AppliedMigrationRecord,
@@ -228,4 +234,125 @@ export const runDownMigrations = async ({
     pollMs: lockPollMs,
     ttlMs: lockTtlMs,
   });
+};
+
+export interface AssertMigrationsAllowedOptions {
+  allowEnv: boolean;
+  dryRun: boolean;
+  force: boolean;
+  isProduction: boolean;
+}
+
+/** Fail closed for production wet apply unless ALLOW_MIGRATIONS and force (CLI `--force` or boot/admin Apply). */
+export const assertMigrationsAllowed = ({
+  allowEnv,
+  dryRun,
+  force,
+  isProduction,
+}: AssertMigrationsAllowedOptions): void => {
+  if (dryRun) {
+    return;
+  }
+  if (!isProduction) {
+    return;
+  }
+  if (allowEnv && force) {
+    return;
+  }
+
+  const detail = allowEnv
+    ? "Production wet migrations also require --force (or an equivalent boot/admin Apply)."
+    : "Set ALLOW_MIGRATIONS=true for production wet migrations.";
+  throw new APIError({
+    detail,
+    status: 403,
+    title: "Migrations not allowed",
+  });
+};
+
+export interface StartupMigrationsOption {
+  dir: string;
+  runOnStart?: boolean;
+}
+
+export const runStartupMigrations = async ({
+  env = process.env,
+  migrations,
+  mongoose: mongooseNs,
+}: {
+  env?: NodeJS.ProcessEnv;
+  migrations?: StartupMigrationsOption;
+  mongoose: typeof mongoose;
+}): Promise<{applied: string[]; ran: boolean}> => {
+  if (!migrations?.runOnStart) {
+    return {applied: [], ran: false};
+  }
+
+  assertMigrationsAllowed({
+    allowEnv: env.ALLOW_MIGRATIONS === "true",
+    dryRun: false,
+    force: true,
+    isProduction: env.NODE_ENV === "production",
+  });
+
+  const loaded = await checkMigrationFiles({dir: migrations.dir});
+  const result = await runMigrations({
+    connection: mongooseNs.connection,
+    dryRun: false,
+    migrations: loaded,
+    mongoose: mongooseNs,
+  });
+  return {applied: result.applied, ran: true};
+};
+
+export interface ExerciseReversibleMigrationsOptions {
+  dir: string;
+  connect: () => Promise<mongoose.Connection>;
+}
+
+export interface ExerciseReversibleMigrationsResult {
+  applied: string[];
+  reversed: string[];
+  skippedIrreversible: string | null;
+}
+
+/**
+ * CI helper: apply every file, then roll back in reverse until a file without
+ * `down` stops the chain. The irreversible id is recorded; earlier files stay applied.
+ */
+export const exerciseReversibleMigrations = async ({
+  connect,
+  dir,
+}: ExerciseReversibleMigrationsOptions): Promise<ExerciseReversibleMigrationsResult> => {
+  const connection = await connect();
+  const migrations = await checkMigrationFiles({dir});
+  const upResult = await runMigrations({
+    connection,
+    dryRun: false,
+    migrations,
+    mongoose,
+  });
+
+  const reversed: string[] = [];
+  let skippedIrreversible: string | null = null;
+  for (const migration of [...migrations].reverse()) {
+    if (typeof migration.down !== "function") {
+      skippedIrreversible = migration.id;
+      break;
+    }
+    const downResult = await runDownMigrations({
+      connection,
+      dryRun: false,
+      migrations,
+      mongoose,
+      steps: 1,
+    });
+    reversed.push(...downResult.reversed);
+  }
+
+  return {
+    applied: [...upResult.applied, ...upResult.skipped],
+    reversed,
+    skippedIrreversible,
+  };
 };

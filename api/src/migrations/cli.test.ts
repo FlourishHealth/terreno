@@ -1,3 +1,6 @@
+/**
+ * Tests for `terreno-migrate` argv parsing and command behavior.
+ */
 import {beforeEach, describe, expect, it} from "bun:test";
 import {mkdtemp, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";

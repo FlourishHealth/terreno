@@ -1,8 +1,11 @@
+/**
+ * Tests for TerrenoApp `migrations.runOnStart` (wet up after connect, before listen).
+ */
 import {beforeEach, describe, expect, it} from "bun:test";
 import {join} from "node:path";
 import mongoose from "mongoose";
 import type {UserModel as UserModelType} from "./auth";
-import {runStartupMigrations} from "./migrations/startup";
+import {runStartupMigrations} from "./migrations/runner";
 import {MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./migrations/types";
 import {TerrenoApp} from "./terrenoApp";
 import {setupDb, UserModel} from "./tests";

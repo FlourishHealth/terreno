@@ -1,3 +1,6 @@
+/**
+ * Tests for loading timestamped migration files (order, id match, required `up`).
+ */
 import {describe, expect, it} from "bun:test";
 import {join} from "node:path";
 

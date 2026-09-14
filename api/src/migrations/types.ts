@@ -1,3 +1,7 @@
+/**
+ * Shared types and constants for Terreno MongoDB migrations. History and the
+ * migrate lock both live in the native `terreno_migrations` collection.
+ */
 import type mongoose from "mongoose";
 
 /** Mongo collection that stores applied migration rows and the lock document. */

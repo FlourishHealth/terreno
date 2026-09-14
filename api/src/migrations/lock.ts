@@ -1,3 +1,7 @@
+/**
+ * Exclusive lock for wet migrate so concurrent CLI, boot, and admin runs cannot
+ * double-apply. Holders heartbeat; a stale lock may be stolen after the TTL.
+ */
 import {randomUUID} from "node:crypto";
 
 import {DateTime} from "luxon";

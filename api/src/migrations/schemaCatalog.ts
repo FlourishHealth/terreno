@@ -1,3 +1,7 @@
+/**
+ * Snapshot Mongoose models into a catalog and diff against the last generated
+ * `schemaAfter`. Drives `terreno-migrate generate` (safe ops vs fail-closed stubs).
+ */
 import type {Model, Document as MongooseDocument, SchemaType} from "mongoose";
 
 export interface SchemaFieldCatalog {

@@ -1,3 +1,7 @@
+/**
+ * Write a timestamped migration file from the current Mongoose models vs the last
+ * committed `schemaAfter` snapshot in `migrations/`.
+ */
 import {mkdir, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 

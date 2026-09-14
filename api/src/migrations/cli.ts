@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
-
+/**
+ * `terreno-migrate` CLI: check, generate, status, up, and down. Production wet
+ * up/down requires ALLOW_MIGRATIONS=true and `--force`.
+ */
 import {isAbsolute, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {parseArgs} from "node:util";
@@ -8,10 +11,14 @@ import mongoose from "mongoose";
 
 import {APIError} from "../errors";
 import {logger} from "../logger";
-import {assertMigrationsAllowed} from "./gate";
 import {generateMigration} from "./generate";
 import {checkMigrationFiles} from "./load";
-import {getMigrationStatus, runDownMigrations, runMigrations} from "./runner";
+import {
+  assertMigrationsAllowed,
+  getMigrationStatus,
+  runDownMigrations,
+  runMigrations,
+} from "./runner";
 
 const USAGE = `Usage: terreno-migrate <command> [options]
 

@@ -1,9 +1,19 @@
+/**
+ * Tests for applying, rolling back, and inspecting migration history, plus the
+ * production wet-apply gate and the CI reverse-exercise helper.
+ */
 import {beforeEach, describe, expect, it} from "bun:test";
+import {join} from "node:path";
 import mongoose from "mongoose";
 
 import {APIError} from "../errors";
 import {setupDb} from "../tests";
-import {runDownMigrations, runMigrations} from "./runner";
+import {
+  assertMigrationsAllowed,
+  exerciseReversibleMigrations,
+  runDownMigrations,
+  runMigrations,
+} from "./runner";
 import {type LoadedMigration, MIGRATION_LOCK_ID, MIGRATIONS_COLLECTION} from "./types";
 
 const collection = (): mongoose.Collection => {
@@ -272,5 +282,118 @@ describe("runDownMigrations", () => {
     ).rejects.toThrow("cancelled");
     expect(ran).toBe(false);
     expect(await appliedIds()).toEqual([]);
+  });
+});
+
+describe("assertMigrationsAllowed", () => {
+  it("allows dry-run in production without ALLOW_MIGRATIONS or force", () => {
+    expect(() => {
+      assertMigrationsAllowed({
+        allowEnv: false,
+        dryRun: true,
+        force: false,
+        isProduction: true,
+      });
+    }).not.toThrow();
+  });
+
+  it("allows wet runs outside production without force", () => {
+    expect(() => {
+      assertMigrationsAllowed({
+        allowEnv: false,
+        dryRun: false,
+        force: false,
+        isProduction: false,
+      });
+    }).not.toThrow();
+  });
+
+  it("denies wet production when ALLOW_MIGRATIONS is unset", () => {
+    expect(() => {
+      assertMigrationsAllowed({
+        allowEnv: false,
+        dryRun: false,
+        force: true,
+        isProduction: true,
+      });
+    }).toThrow(APIError);
+    try {
+      assertMigrationsAllowed({
+        allowEnv: false,
+        dryRun: false,
+        force: true,
+        isProduction: true,
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      expect((error as APIError).status).toBe(403);
+      expect((error as APIError).title).toBe("Migrations not allowed");
+    }
+  });
+
+  it("denies wet production when ALLOW_MIGRATIONS is set but force is missing", () => {
+    expect(() => {
+      assertMigrationsAllowed({
+        allowEnv: true,
+        dryRun: false,
+        force: false,
+        isProduction: true,
+      });
+    }).toThrow("Migrations not allowed");
+  });
+
+  it("allows wet production when ALLOW_MIGRATIONS and force are both set", () => {
+    expect(() => {
+      assertMigrationsAllowed({
+        allowEnv: true,
+        dryRun: false,
+        force: true,
+        isProduction: true,
+      });
+    }).not.toThrow();
+  });
+});
+
+describe("exerciseReversibleMigrations", () => {
+  const fixtures = (...parts: string[]): string => {
+    return join(import.meta.dir, "fixtures", ...parts);
+  };
+
+  const sortedAppliedIds = async (): Promise<string[]> => {
+    const docs = await mongoose.connection
+      .collection(MIGRATIONS_COLLECTION)
+      .find({_id: {$ne: MIGRATION_LOCK_ID}})
+      .project({id: 1})
+      .toArray();
+    return docs.map((doc) => String(doc.id)).sort();
+  };
+
+  beforeEach(async () => {
+    await setupDb();
+    await mongoose.connection.collection(MIGRATIONS_COLLECTION).deleteMany({});
+  });
+
+  it("applies all files then rolls back until an irreversible file stops the chain", async () => {
+    const result = await exerciseReversibleMigrations({
+      connect: async () => mongoose.connection,
+      dir: fixtures("valid"),
+    });
+
+    expect(result.applied).toEqual(["20260910120000-alpha", "20260910120001-beta"]);
+    expect(result.reversed).toEqual(["20260910120001-beta"]);
+    expect(result.skippedIrreversible).toBe("20260910120000-alpha");
+    expect(await sortedAppliedIds()).toEqual(["20260910120000-alpha"]);
+  });
+
+  it("reverses every file when all have down", async () => {
+    const result = await exerciseReversibleMigrations({
+      connect: async () => mongoose.connection,
+      dir: fixtures("all-down"),
+    });
+
+    expect(result.applied).toEqual(["20260910120000-one", "20260910120001-two"]);
+    expect(result.reversed).toEqual(["20260910120001-two", "20260910120000-one"]);
+    expect(result.skippedIrreversible).toBeNull();
+    expect(await sortedAppliedIds()).toEqual([]);
   });
 });

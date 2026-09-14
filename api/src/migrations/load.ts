@@ -1,3 +1,7 @@
+/**
+ * Load and validate timestamped `migrations/<YYYYMMDDHHmmss>-<slug>.ts` files
+ * without connecting to Mongo. Used by `terreno-migrate check` and as input to the runner.
+ */
 import {createHash} from "node:crypto";
 import {readdir, readFile} from "node:fs/promises";
 import {join} from "node:path";

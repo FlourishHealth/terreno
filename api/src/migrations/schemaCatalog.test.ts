@@ -1,3 +1,6 @@
+/**
+ * Tests for cataloging Mongoose schemas and classifying generate-time diffs.
+ */
 import {describe, expect, it} from "bun:test";
 import mongoose from "mongoose";
 
