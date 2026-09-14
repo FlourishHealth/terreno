@@ -72,7 +72,7 @@ export const serializeCommsDashboardSearchParams = (
 
 const DEFAULT_STATS_DAYS = 7;
 
-export const defaultCommsDashboardDateRange = (): {endDate: string; startDate: string} => {
+const defaultCommsDashboardDateRange = (): {endDate: string; startDate: string} => {
   const endDate = DateTime.utc();
   const startDate = endDate.minus({days: DEFAULT_STATS_DAYS});
   return {

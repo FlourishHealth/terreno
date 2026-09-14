@@ -6,6 +6,7 @@ import winston from "winston";
 
 import {winstonLogger} from "../logger";
 import {Permissions} from "../permissions";
+import {getCurrentRequestContext, runWithRequestContext} from "../requestContext";
 import {generateAllTools, generateToolsForEntry} from "./toolGenerator";
 import type {MCPRegistryEntry} from "./types";
 
@@ -247,6 +248,86 @@ describe("tool-call observability", () => {
     expect(logs.some((line) => line.message.includes("MCP tool call failed"))).toBe(true);
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException.mock.calls[0][0]).toBeInstanceOf(Error);
+  });
+
+  it("attaches the calling user's id to the request context", async () => {
+    const entry = createEntry({
+      config: {methods: ["list"]},
+      options: {
+        permissions: {
+          create: [],
+          delete: [],
+          list: [Permissions.IsAuthenticated],
+          read: [],
+          update: [],
+        },
+      },
+    });
+    const [tool] = generateToolsForEntry(entry);
+    const user = {_id: new mongoose.Types.ObjectId(), admin: false, id: "user-123"};
+
+    await runWithRequestContext({}, async () => {
+      const result = await tool.handler({}, user);
+      expect(result.isError).not.toBe(true);
+      expect(getCurrentRequestContext()?.userId).toBe("user-123");
+    });
+  });
+
+  it("falls back to _id when the user has no id", async () => {
+    const [tool] = generateToolsForEntry(createEntry({config: {methods: ["list"]}}));
+    const objectId = new mongoose.Types.ObjectId();
+    const user = {_id: objectId, admin: false} as unknown as Parameters<typeof tool.handler>[1];
+
+    await runWithRequestContext({}, async () => {
+      await tool.handler({}, user);
+      expect(getCurrentRequestContext()?.userId).toBe(String(objectId));
+    });
+  });
+
+  it("logs and rethrows when a handler crashes", async () => {
+    process.env.USE_SENTRY_LOGGING = "true";
+    const crash = new Error("permission check exploded");
+    const entry = createEntry({
+      config: {methods: ["list"]},
+      options: {
+        allowAnonymous: true,
+        permissions: {
+          create: [],
+          delete: [],
+          list: [
+            async () => {
+              throw crash;
+            },
+          ],
+          read: [],
+          update: [],
+        },
+      },
+    });
+    const [tool] = generateToolsForEntry(entry);
+
+    const logs = await captureLogs(async () => {
+      let thrown: unknown;
+      try {
+        await tool.handler({});
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBe(crash);
+    });
+
+    const crashed = logs.find((line) => line.message.includes("MCP tool call crashed"));
+    expect(crashed?.level).toBe("error");
+    expect(crashed?.terrenoLabels).toEqual({
+      mcpMethod: "list",
+      mcpModel: "MCPToolGenTest",
+      mcpTool: "mcptoolgentests_list",
+    });
+    expect(logs.some((line) => line.level === "error" && line.message.includes("Caught:"))).toBe(
+      true
+    );
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][0]).toBe(crash);
   });
 });
 

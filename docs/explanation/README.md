@@ -29,5 +29,6 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Admin plugin frontend widgets](admin-plugin-frontend.md) — Widget IDs from backend plugins
 - [Consent admin migration](admin-consent-migration.md) — Which consent screens stay hand-written
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
+- [Example app coverage](example-coverage.md) — Which framework capabilities the example apps exercise
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
 - [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs

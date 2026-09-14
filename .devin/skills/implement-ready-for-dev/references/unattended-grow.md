@@ -41,7 +41,9 @@ Non-scope, that is a genuine human gate.
 4. Repeat until the frontier is only genuine human gates or empty.
 5. If any genuine human gate remains, post and stop. Do not write IP/tasks as approved.
 6. If the frontier is empty, skip Grow's confirm-and-write wait. Write the IP and task
-   list. Show the 15-line approval index in the run report, not as a chat blocker.
+   list. Put Grow's standalone approval brief in the run report, not as a chat blocker.
+   Assumptions you took in place of grilled answers belong in its Decisions table, with
+   the question each one answers and `assumed` as the source.
 
 Cap recorded assumptions at the decisions that affect Pick. Do not log lookup facts
 as assumptions.

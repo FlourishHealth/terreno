@@ -5,6 +5,7 @@
 ## What changed
 
 - <!-- Outcome or behavior; maximum 5 bullets. -->
+- <!-- If this adds a framework capability: update `docs/explanation/example-coverage.md` and the example app that exercises it. -->
 
 ## Verification
 

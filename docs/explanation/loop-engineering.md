@@ -49,8 +49,9 @@ the inner loop until the approved task list is done. Roast never invokes Pick. B
 Taste additionally wait while async review bots are running, preferring provider CLI
 watch hooks or harness event subscriptions over timer polling. Taste also waits in a
 loop for product CI with `gh` or `circleci` until jobs are terminal or the wait times
-out. Before any push it always pulls latest `master`, then lints in a no-context
-subagent, then pushes and watches CI.
+out. Before any push it always pulls latest `master`, then runs the repository's root
+`prepush` package script in a no-context subagent when present (falling back to affected
+package lint, typecheck, and tests), then pushes and watches CI.
 
 Invocable outer loops in the plugin:
 
@@ -81,9 +82,9 @@ daemon. It waits until async review bots (Bugbot, CodeQL, and similar) on the cu
 head have reported, then waits in a loop for product CI using GitHub CLI
 (`gh pr checks --watch`, `gh run watch`) or CircleCI CLI (`circleci run watch`) until
 jobs are terminal or the wait times out. Before any push it always pulls latest
-`master`, then proves lint, typecheck, and affected tests in a fresh subagent with no
-parent conversation, then pushes and watches CI. It emits `PASS`, `FAIL`, `BLOCKED`, or
-`PENDING`, and exits.
+`master`, then runs root `prepush` when present in a fresh subagent with no parent
+conversation. If absent, it proves affected-package lint, typecheck, and tests instead.
+It then pushes and watches CI, emits `PASS`, `FAIL`, `BLOCKED`, or `PENDING`, and exits.
 
 Brew review-bot waits use only hooks targeted to the matched bot so ordinary CI cannot
 extend Brew. Taste's product-CI wait uses unfiltered GitHub/CircleCI watches on purpose.

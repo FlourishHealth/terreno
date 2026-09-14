@@ -322,6 +322,3 @@ export const addCommsDashboardRoutes = (
     })
   );
 };
-
-/** @deprecated Use {@link addCommsDashboardRoutes}. */
-export const addCommsExplorerRoute = addCommsDashboardRoutes;

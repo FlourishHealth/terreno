@@ -8,12 +8,14 @@ This script is designed to process county data obtained from the Census Bureau a
 
 Open your terminal or command prompt and navigate to the directory containing the script.
 
-    # Run the command:
-    node censusDataProcessor.js [path/to/countyData.csv]
+```bash
+bun processCounties.js [path/to/countyData.csv]
+```
 
 - It will generate a file named `CountyAndEquivalentEntities.js` in the current directory. This file will contain a single JavaScript object named `COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES`
 
-- Copy and replace the existing `COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES` object in the project's Constants.tsx file located at `~/ui/src/Constants.tsx`
+- Copy and replace the existing `COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES` object in
+  `ui/src/Constants.ts`.
 
 Update `countyData.csv` by selecting **United States** in [Census Bureau's Link](https://www.census.gov/library/reference/code-lists/ansi.html#cou) and importing file to this directory as CSV.
 

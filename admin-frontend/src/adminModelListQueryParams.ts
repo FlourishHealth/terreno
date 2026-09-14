@@ -24,6 +24,7 @@ const isEmptyFilterValue = (value: string | boolean | string[] | undefined): boo
 };
 
 /** Drops unset / "all" keys so draft vs applied comparison is stable. */
+/** @internal */
 export const compactAdminFilterState = (
   state: AdminListFilterState
 ): Record<string, string | boolean | string[]> => {

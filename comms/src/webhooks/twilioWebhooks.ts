@@ -41,7 +41,7 @@ const mapStatus = (
   return undefined;
 };
 
-export const registerTwilioCommsWebhooks = ({
+const registerTwilioCommsWebhooks = ({
   authToken,
   basePath,
   publicUrl,

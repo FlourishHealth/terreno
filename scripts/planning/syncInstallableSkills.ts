@@ -43,6 +43,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
     description: "Backend, UI, data, and schema conventions for Terreno apps.",
     skills: [
       "terreno-backend-api",
+      "model-router-actions",
       "terreno-ui",
       "terreno-data-fetching",
       "mongoose-schema-safety",

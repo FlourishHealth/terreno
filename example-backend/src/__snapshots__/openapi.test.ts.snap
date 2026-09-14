@@ -7310,35 +7310,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/admin/users/{id}/password": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "password": {
-                    "description": "New password for the user",
-                    "type": "string",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
+    "/ai/models": {
+      "get": {
+        "operationId": "ai_models",
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -7346,14 +7321,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
-                      "properties": {
-                        "_id": {
-                          "type": "string",
-                        },
-                        "message": {
-                          "type": "string",
-                        },
-                      },
                       "type": "object",
                     },
                   },
@@ -7361,86 +7328,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
             },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "Set a user's password as an admin",
-        "tags": [
-          "admin-users",
-        ],
-      },
-    },
-    "/ai/models": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "models": {
-                      "items": {
-                        "properties": {
-                          "label": {
-                            "type": "string",
-                          },
-                          "value": {
-                            "type": "string",
-                          },
-                        },
-                        "type": "object",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
+            "description": "Successful response",
           },
           "400": {
             "content": {
@@ -7494,10 +7382,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
     },
     "/comms/dev/testPush": {
       "post": {
+        "operationId": "comms_testPush",
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "body": {
                     "type": "string",
@@ -7519,20 +7410,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
-                      "properties": {
-                        "accepted": {
-                          "type": "number",
-                        },
-                        "results": {
-                          "items": {
-                            "type": "object",
-                          },
-                          "type": "array",
-                        },
-                        "tokenCount": {
-                          "type": "number",
-                        },
-                      },
                       "type": "object",
                     },
                   },
@@ -7540,7 +7417,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
             },
-            "description": "Success",
+            "description": "Successful response",
           },
           "400": {
             "content": {
@@ -11482,267 +11359,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/loadtest/todos/churn": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "creates": {
-                    "type": "number",
-                  },
-                  "deletes": {
-                    "type": "number",
-                  },
-                  "updates": {
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "properties": {
-                        "created": {
-                          "type": "number",
-                        },
-                        "deleted": {
-                          "type": "number",
-                        },
-                        "updated": {
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "Apply a batch of random create/update/delete todo ops (load testing)",
-        "tags": [
-          "loadtest",
-        ],
-      },
-    },
-    "/loadtest/todos/clear": {
-      "post": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "properties": {
-                        "deleted": {
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "Soft-delete every todo for the current user (load testing reset)",
-        "tags": [
-          "loadtest",
-        ],
-      },
-    },
-    "/loadtest/todos/generate": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "count": {
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "properties": {
-                        "created": {
-                          "type": "number",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "Bulk-generate random todos for the current user (load testing)",
-        "tags": [
-          "loadtest",
-        ],
-      },
-    },
     "/mcp/service-tokens": {
       "get": {
         "description": "Lists MCP service tokens owned by the signed-in user. Never includes plaintext or tokenHash.",
@@ -12745,8 +12361,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/settings/gcs": {
-      "delete": {
+    "/settings/clearGcs": {
+      "post": {
+        "operationId": "settings_clearGcs",
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -12754,6 +12372,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
+                      "additionalProperties": false,
                       "properties": {
                         "configured": {
                           "type": "boolean",
@@ -12762,14 +12381,21 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [
+                        "configured",
+                        "message",
+                      ],
                       "type": "object",
                     },
                   },
+                  "required": [
+                    "data",
+                  ],
                   "type": "object",
                 },
               },
             },
-            "description": "Success",
+            "description": "Successful response",
           },
           "400": {
             "content": {
@@ -12820,91 +12446,16 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "settings",
         ],
       },
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "properties": {
-                        "bucketName": {
-                          "type": "string",
-                        },
-                        "configured": {
-                          "type": "boolean",
-                        },
-                        "hasCredentials": {
-                          "type": "boolean",
-                        },
-                        "projectId": {
-                          "type": "string",
-                        },
-                      },
-                      "type": "object",
-                    },
-                  },
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Success",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "summary": "Get GCS configuration status",
-        "tags": [
-          "settings",
-        ],
-      },
+    },
+    "/settings/configureGcs": {
       "post": {
+        "operationId": "settings_configureGcs",
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "bucketName": {
                     "type": "string",
@@ -12916,6 +12467,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                 },
+                "required": [
+                  "bucketName",
+                ],
                 "type": "object",
               },
             },
@@ -12929,6 +12483,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 "schema": {
                   "properties": {
                     "data": {
+                      "additionalProperties": false,
                       "properties": {
                         "configured": {
                           "type": "boolean",
@@ -12937,14 +12492,21 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
+                      "required": [
+                        "configured",
+                        "message",
+                      ],
                       "type": "object",
                     },
                   },
+                  "required": [
+                    "data",
+                  ],
                   "type": "object",
                 },
               },
             },
-            "description": "Success",
+            "description": "Successful response",
           },
           "400": {
             "content": {
@@ -12991,6 +12553,102 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "summary": "Configure GCS settings",
+        "tags": [
+          "settings",
+        ],
+      },
+    },
+    "/settings/gcs": {
+      "get": {
+        "operationId": "settings_gcs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bucketName": {
+                          "nullable": true,
+                          "type": "string",
+                        },
+                        "configured": {
+                          "type": "boolean",
+                        },
+                        "hasCredentials": {
+                          "type": "boolean",
+                        },
+                        "projectId": {
+                          "nullable": true,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "bucketName",
+                        "configured",
+                        "hasCredentials",
+                        "projectId",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Get GCS configuration status",
         "tags": [
           "settings",
         ],
@@ -13528,6 +13186,302 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "Mark multiple todos complete for the current user",
         "tags": [
           "todos",
+        ],
+      },
+    },
+    "/todos/loadtestChurn": {
+      "post": {
+        "operationId": "loadtest_loadtestChurn",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "creates": {
+                    "nullable": true,
+                    "type": "number",
+                  },
+                  "deletes": {
+                    "nullable": true,
+                    "type": "number",
+                  },
+                  "updates": {
+                    "nullable": true,
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "created": {
+                          "type": "number",
+                        },
+                        "deleted": {
+                          "type": "number",
+                        },
+                        "updated": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "created",
+                        "deleted",
+                        "updated",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Apply a batch of random create/update/delete todo ops (load testing)",
+        "tags": [
+          "loadtest",
+        ],
+      },
+    },
+    "/todos/loadtestClear": {
+      "post": {
+        "operationId": "loadtest_loadtestClear",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "deleted": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "deleted",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Soft-delete every todo for the current user (load testing reset)",
+        "tags": [
+          "loadtest",
+        ],
+      },
+    },
+    "/todos/loadtestGenerate": {
+      "post": {
+        "operationId": "loadtest_loadtestGenerate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "nullable": true,
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "created": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "created",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk-generate random todos for the current user (load testing)",
+        "tags": [
+          "loadtest",
         ],
       },
     },
@@ -14924,6 +14878,121 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         },
         "tags": [
           "users",
+        ],
+      },
+    },
+    "/users/{id}/password": {
+      "post": {
+        "operationId": "admin-users_password",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "password": {
+                    "minLength": 8,
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "password",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "_id": {
+                          "type": "string",
+                        },
+                        "message": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "_id",
+                        "message",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Set a user's password as an admin",
+        "tags": [
+          "admin-users",
         ],
       },
     },

@@ -28,7 +28,7 @@ import {
  * just slow) and the client waits the full {@link batchTimeoutMs} instead of
  * falling back (FIX 5).
  */
-export const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
+const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
 
 /**
  * Compute the batch send timeout once a `sync:batchReceived` receipt has
@@ -37,7 +37,7 @@ export const BATCH_UNSUPPORTED_GRACE_MS = 2_000;
  * timed out prematurely just because it's slower than a single mutation
  * (FIX 5).
  */
-export const batchTimeoutMs = (mutationCount: number, perMutationTimeoutMs: number): number =>
+const batchTimeoutMs = (mutationCount: number, perMutationTimeoutMs: number): number =>
   Math.max(perMutationTimeoutMs, mutationCount * 1_000);
 
 export interface SocketTransportConfig {
