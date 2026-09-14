@@ -527,6 +527,69 @@ describe("AdminModelTable windowed path", () => {
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Created in form"]);
   });
 
+  it("retries a transient refresh failure when settling a delete with no awaitId", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [
+        {_id: "todo-1", title: "Alpha"},
+        {_id: "todo-2", title: "Gone after retry"},
+      ],
+      total: 2,
+    };
+    let refetchCount = 0;
+    listRefetch.mockImplementation(async () => {
+      refetchCount += 1;
+      if (refetchCount === 1) {
+        throw new Error("temporary network failure");
+      }
+      listState.data = {
+        data: [{_id: "todo-1", title: "Alpha"}],
+        total: 1,
+      };
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Gone after retry"]);
+
+    const logged = await withConsoleErrorCapture(async () => {
+      await act(async () => {
+        markAdminWindowMembershipStale({collection: "todos"});
+        await new Promise((resolve) => setTimeout(resolve, 1_600));
+      });
+    });
+
+    assert.equal(refetchCount, 2);
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha"]);
+    assert.isFalse(collectRefreshFailedLogs(logged).includes(true));
+  });
+
+  it("toasts Refresh failed once when a delete settle exhausts on list errors", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    listRefetch.mockImplementation(async () => {
+      throw new Error("network down");
+    });
+    renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const logged = await withConsoleErrorCapture(async () => {
+      await act(async () => {
+        markAdminWindowMembershipStale({collection: "todos"});
+        await new Promise((resolve) => setTimeout(resolve, 2_600));
+      });
+    });
+
+    assert.equal(collectRefreshFailedLogs(logged).filter(Boolean).length, 1);
+  });
+
   it("refetches membership when the table remounts while the collection is stale", async () => {
     const {syncDb} = createFakeSyncDb();
     listState.data = {

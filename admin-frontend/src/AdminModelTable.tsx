@@ -617,11 +617,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       for (let attempt = 0; attempt < MEMBERSHIP_SETTLE_ATTEMPTS; attempt += 1) {
         const isLastAttempt = attempt === MEMBERSHIP_SETTLE_ATTEMPTS - 1;
         const ids = await handleRefreshRef.current({reportError: isLastAttempt});
-        if (!awaitId || ids?.includes(awaitId)) {
+        if (ids !== undefined && (!awaitId || ids.includes(awaitId))) {
           return;
         }
-        // A transient list failure also returns undefined. Keep retrying while mounted;
-        // an unmount is the only safe signal that this table no longer owns settlement.
+        // Failed refreshes and creates that have not appeared yet keep retrying
+        // while mounted. An unmount is the only safe signal that this table no
+        // longer owns settlement.
         if (!isMountedRef.current) {
           return;
         }
