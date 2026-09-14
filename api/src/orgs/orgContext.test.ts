@@ -17,7 +17,7 @@ import {Permissions} from "../permissions";
 import {getBaseServer} from "../tests";
 import {type User, UserModel} from "../tests/models";
 import {Membership, Organization} from "./organizationModel";
-import {orgContextMiddleware} from "./orgContext";
+import {isPlatformOrgActor, orgContextMiddleware, resolveOrgContext} from "./orgContext";
 import {OrgQueryFilter} from "./orgPermissions";
 import {orgScopedPlugin} from "./orgPlugin";
 
@@ -202,5 +202,58 @@ describe("org context middleware and OrgQueryFilter", () => {
     });
     const res = await agent.get("/projects");
     assert.equal(res.status, 400);
+  });
+});
+
+describe("orgContext helpers", () => {
+  beforeEach(async () => {
+    await Promise.all([
+      Membership.deleteMany({}),
+      Organization.deleteMany({}),
+      UserModel.deleteMany({}),
+    ]);
+  });
+
+  it("isPlatformOrgActor returns false for undefined", () => {
+    assert.isFalse(isPlatformOrgActor(undefined));
+  });
+
+  it("resolveOrgContext throws 401 when user is missing and required is true", async () => {
+    let error: unknown;
+    try {
+      await resolveOrgContext({required: true});
+    } catch (caught) {
+      error = caught;
+    }
+
+    assert.isDefined(error);
+    assert.equal((error as {status?: number}).status, 401);
+    assert.equal((error as {title?: string}).title, "Unauthorized");
+  });
+
+  it("resolveOrgContext returns empty context when user is missing and required is false", async () => {
+    const context = await resolveOrgContext({required: false});
+
+    assert.deepEqual(context, {});
+  });
+
+  it("resolveOrgContext returns empty context when user has no id and required is false", async () => {
+    const context = await resolveOrgContext({
+      required: false,
+      user: {} as import("../auth").User,
+    });
+
+    assert.deepEqual(context, {});
+  });
+
+  it("resolveOrgContext returns empty context for authenticated user when org is not required", async () => {
+    const user = await createUser({email: "optional-context@example.com"});
+
+    const context = await resolveOrgContext({
+      required: false,
+      user: user as unknown as import("../auth").User,
+    });
+
+    assert.deepEqual(context, {});
   });
 });

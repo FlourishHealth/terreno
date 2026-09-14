@@ -6,18 +6,36 @@ import {renderWithTheme} from "../../../ui/src/test-utils";
 const mineState: {data?: unknown; error?: unknown; isLoading: boolean} = {isLoading: false};
 const routerPush = mock(() => {});
 
-mock.module("./useOrganizationsApi", () => ({
-  useOrganizationsApi: () => ({
-    useMineQuery: () => mineState,
-  }),
-}));
 mock.module("expo-router", () => ({router: {push: routerPush}}));
 
 import type {AdminApi} from "../types";
 import {OrgSwitcher} from "./OrgSwitcher";
 import {OrgContextProvider} from "./useOrgContext";
 
-const api = {} as unknown as AdminApi;
+/**
+ * Stands in for the host RTK Query API so the real `useOrganizationsApi` runs.
+ * Mocking that module instead would leak process-wide and make the suite order-dependent.
+ */
+const createOrganizationsApi = (): AdminApi => {
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => ({
+      useOrgCreateMutation: () => [mock(() => ({})), {isLoading: false}],
+      useOrgDeleteMutation: () => [mock(() => ({})), {isLoading: false}],
+      useOrgListQuery: () => ({isLoading: false}),
+      useOrgMemberAttachMutation: () => [mock(() => ({})), {isLoading: false}],
+      useOrgMemberRemoveMutation: () => [mock(() => ({})), {isLoading: false}],
+      useOrgMembersQuery: () => ({isLoading: false}),
+      useOrgMemberUpdateMutation: () => [mock(() => ({})), {isLoading: false}],
+      useOrgMineQuery: () => mineState,
+      useOrgReadQuery: () => ({isLoading: false}),
+      useOrgUpdateMutation: () => [mock(() => ({})), {isLoading: false}],
+    }),
+  };
+  return api as unknown as AdminApi;
+};
+
+const api = createOrganizationsApi();
 
 describe("OrgSwitcher", () => {
   beforeEach(() => {
