@@ -49,12 +49,20 @@ test.describe("notifications", () => {
 
   test("view all includes archived notifications", async ({page}) => {
     await page.getByTestId("notification-bell-button").click();
+    const drawer = page.getByTestId("notification-drawer");
+    await drawer.getByTestId("notification-send-test-button").click();
+    await expect(drawer.getByText("Terreno test notification").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await drawer.getByText("Dismiss").first().click();
+    await page.waitForTimeout(1000);
     await page.getByTestId("notification-view-all-button").click();
 
     await expect(page).toHaveURL(/\/notifications$/);
     await expect(page.getByText("All notifications", {exact: true})).toBeVisible();
     await expect(page.getByTestId("all-notifications-active-list")).toBeVisible();
     await expect(page.getByTestId("all-notifications-archived-list")).toBeVisible();
-    await expect(page.getByText("Archived example")).toBeVisible();
+    await expect(page.getByText("Terreno test notification")).toBeVisible();
+    await expect(page.getByText("Archived", {exact: true})).toBeVisible();
   });
 });
