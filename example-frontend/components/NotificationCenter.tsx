@@ -175,7 +175,11 @@ export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}
       <Box gap={4} padding={4} testID="notification-drawer">
         <Box alignItems="center" direction="row" justifyContent="between">
           <Heading size="lg">Notifications</Heading>
-          <NotificationBell onPress={handleToggleDrawer} unreadCount={unreadCount} />
+          <NotificationBell
+            onPress={handleToggleDrawer}
+            testID="notification-drawer-bell"
+            unreadCount={unreadCount}
+          />
         </Box>
         <Box maxHeight={520} scroll testID="notification-inbox-scroll">
           <NotificationInbox

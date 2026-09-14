@@ -24,7 +24,7 @@ test.describe("notifications", () => {
     await expect(drawer).toBeVisible();
     await expect(page.getByTestId("notification-inbox-list")).toBeVisible();
 
-    await drawer.getByTestId("notification-bell-button").click();
+    await drawer.getByTestId("notification-drawer-bell-button").click();
     await expect(drawer).not.toBeVisible();
   });
 
