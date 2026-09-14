@@ -1,5 +1,3 @@
-// noExplicitAny: test mocks use dynamic shapes for sockets, io, and documents
-// biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for sockets, io, and documents
 /**
  * Tests for the sync socket layer (Tasks 2.3–2.5):
  *   - socketHandlers.ts (sync:subscribe / sync:unsubscribe / sync:mutate, caps, rate limit)
@@ -11,7 +9,8 @@
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import mongoose, {model, Schema} from "mongoose";
+import mongoose, {type Model, model, Schema} from "mongoose";
+import type {Server} from "socket.io";
 
 import type {ModelRouterOptions} from "../api";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
@@ -108,7 +107,7 @@ const permissiveOptions = {
     read: [() => true],
     update: [() => true],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 const adminOnlyOptions = {
   permissions: {
@@ -118,7 +117,7 @@ const adminOnlyOptions = {
     read: [(_m: string, user?: {admin?: boolean}) => user?.admin === true],
     update: [(_m: string, user?: {admin?: boolean}) => user?.admin === true],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 const ownerReadOptions = {
   permissions: {
@@ -131,31 +130,32 @@ const ownerReadOptions = {
     ],
     update: [() => true],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 /**
  * A minimal fake Mongoose model satisfying registerSync's schema/collection checks, for
  * tests that need many registrations (each real registration requires a distinct
  * compiled model).
  */
-const makeFakeSyncModel = (name: string): any => ({
-  collection: {
-    collectionName: name.toLowerCase(),
-    createIndex: async () => {},
-  },
-  modelName: name,
-  schema: {
-    path: (p: string) => {
-      if (p === "deleted") {
-        return {instance: "Boolean"};
-      }
-      if (p === "_syncSeq") {
-        return {instance: "Number"};
-      }
-      return undefined;
+const makeFakeSyncModel = (name: string): Model<unknown> =>
+  ({
+    collection: {
+      collectionName: name.toLowerCase(),
+      createIndex: async () => {},
     },
-  },
-});
+    modelName: name,
+    schema: {
+      path: (p: string) => {
+        if (p === "deleted") {
+          return {instance: "Boolean"};
+        }
+        if (p === "_syncSeq") {
+          return {instance: "Number"};
+        }
+        return undefined;
+      },
+    },
+  }) as unknown as Model<unknown>;
 
 // The shared test database can be dropped by another test file mid-suite
 // (configurationPlugin.test.ts drops it in an afterAll); rebuild the unique indexes the
@@ -168,19 +168,19 @@ const registerAll = (): void => {
   clearSyncRegistry();
   registerSync({
     config: {scope: {type: "owner"}},
-    model: SockStuffModel as any,
+    model: SockStuffModel as unknown as Model<unknown>,
     options: permissiveOptions,
     routePath: "/sockStuff",
   });
   registerSync({
     config: {scope: {field: "orgId", type: "tenant"}},
-    model: SockProjectModel as any,
+    model: SockProjectModel as unknown as Model<unknown>,
     options: permissiveOptions,
     routePath: "/sockProjects",
   });
   registerSync({
     config: {scope: {type: "broadcast"}},
-    model: SockNewsModel as any,
+    model: SockNewsModel as unknown as Model<unknown>,
     options: permissiveOptions,
     routePath: "/sockNews",
   });
@@ -190,17 +190,19 @@ const registerAll = (): void => {
 // Mock socket (realtime.test.ts conventions)
 // ─────────────────────────────────────────────────────────────────────────────
 
+type SyncSocketListener = (...args: never[]) => void | Promise<void>;
+
 interface MockSocket extends SyncSocketLike {
   rooms: Set<string>;
   emitted: {event: string; payload: unknown}[];
-  listeners: Map<string, (...args: any[]) => any>;
-  trigger: (event: string, ...args: any[]) => Promise<void>;
+  listeners: Map<string, SyncSocketListener>;
+  trigger: (event: string, ...args: unknown[]) => Promise<void>;
 }
 
 const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSocket => {
   const rooms = new Set<string>();
   const emitted: {event: string; payload: unknown}[] = [];
-  const listeners = new Map<string, (...args: any[]) => any>();
+  const listeners = new Map<string, SyncSocketListener>();
 
   const socket: MockSocket = {
     decodedToken,
@@ -223,7 +225,7 @@ const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSo
     trigger: async (event, ...args) => {
       const handler = listeners.get(event);
       if (handler) {
-        await handler(...args);
+        await (handler as (...handlerArgs: unknown[]) => void | Promise<void>)(...args);
       }
     },
   };
@@ -232,7 +234,9 @@ const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSo
 };
 
 const syncErrors = (socket: MockSocket): Array<{collection: string; message: string}> =>
-  socket.emitted.filter((e) => e.event === "sync:error").map((e) => e.payload as any);
+  socket.emitted
+    .filter((e) => e.event === "sync:error")
+    .map((e) => e.payload as {collection: string; message: string});
 
 const install = (socket: MockSocket, options: SyncAppOptions = {}): void => {
   installSyncSocketHandlers(null, socket, options);
@@ -271,7 +275,7 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     const socket = createMockSocket({id: "user1"});
     install(socket);
     // The payload has no place for a user id — assert the room is keyed by the token id.
-    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], userId: "victim"} as any);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], userId: "victim"});
     expect(socket.rooms.has("sync:sockStuff|owner:user1")).toBe(true);
     expect(Array.from(socket.rooms).some((r) => r.includes("victim"))).toBe(false);
   });
@@ -375,7 +379,7 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: SockStuffModel as any,
+      model: SockStuffModel as unknown as Model<unknown>,
       options: adminOnlyOptions,
       routePath: "/sockStuff",
     });
@@ -390,7 +394,7 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: SockStuffModel as any,
+      model: SockStuffModel as unknown as Model<unknown>,
       options: adminOnlyOptions,
       routePath: "/sockStuff",
     });
@@ -481,7 +485,9 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
     // Re-subscribing after unsubscribe emits a fresh sync:subscribed.
     await socket.trigger("sync:subscribe", {collections: ["sockProjects"]});
     const subscribedEvents = socket.emitted.filter(
-      (e) => e.event === "sync:subscribed" && (e.payload as any).collection === "sockProjects"
+      (e) =>
+        e.event === "sync:subscribed" &&
+        (e.payload as {collection?: string}).collection === "sockProjects"
     );
     expect(subscribedEvents).toHaveLength(2);
   });
@@ -593,7 +599,7 @@ describe("installSyncSocketHandlers — sync:mutate", () => {
     const nack = lastNack(socket);
     expect(nack?.code).toBe("conflict");
     expect(nack?.serverSeq).toBe(2);
-    expect((nack?.serverDoc as any)?.name).toBe("v2");
+    expect((nack?.serverDoc as {name?: string} | undefined)?.name).toBe("v2");
   });
 
   it("duplicate mutationId over the socket returns the recorded outcome without re-applying", async () => {
@@ -701,10 +707,13 @@ describe("installSyncSocketHandlers — sync:mutateBatch", () => {
     socket: MockSocket,
     mutations: unknown[]
   ): Promise<{results: Array<{type: string; ack?: SyncAck; nack?: SyncNack}>}> => {
-    let response: any;
+    let response: {results: Array<{type: string; ack?: SyncAck; nack?: SyncNack}>} | undefined;
     await socket.trigger("sync:mutateBatch", {mutations}, (res: unknown) => {
-      response = res;
+      response = res as {results: Array<{type: string; ack?: SyncAck; nack?: SyncNack}>};
     });
+    if (!response) {
+      throw new Error("sync:mutateBatch did not invoke the ack callback");
+    }
     return response;
   };
 
@@ -896,10 +905,29 @@ describe("SyncAppOptions context", () => {
 // sync:delta emission — mock io helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const makeTrackedIo = (): any => {
-  const emissions: Array<{event: string; payload: any; room: string; socketId: string}> = [];
+interface TrackedEmission {
+  event: string;
+  payload: unknown;
+  room: string;
+  socketId: string;
+}
+
+interface TrackedSocket {
+  decodedToken?: {id?: string; admin?: boolean};
+  emit: (event: string, payload: unknown) => void;
+  id: string;
+}
+
+/** A Socket.io server stand-in that records every emission it receives. */
+type TrackedIo = Server & {
+  addSocketToRoom: (room: string, decodedToken?: {id?: string; admin?: boolean}) => void;
+  emissions: TrackedEmission[];
+};
+
+const makeTrackedIo = (): TrackedIo => {
+  const emissions: TrackedEmission[] = [];
   const rooms = new Map<string, Set<string>>();
-  const sockets = new Map<string, any>();
+  const sockets = new Map<string, TrackedSocket>();
 
   const addSocketToRoom = (
     room: string,
@@ -931,15 +959,18 @@ const makeTrackedIo = (): any => {
         emissions.push({event, payload, room, socketId: "broadcast"});
       },
     }),
-  };
+  } as unknown as TrackedIo;
 };
 
-const makeChange = (overrides: Record<string, unknown>): any => ({
-  documentKey: {_id: "doc-1"},
-  ns: {coll: "sockstuffs"},
-  operationType: "insert",
-  ...overrides,
-});
+type WatchedChange = Parameters<typeof emitSyncDeltaForChange>[0]["change"];
+
+const makeChange = (overrides: Record<string, unknown>): WatchedChange =>
+  ({
+    documentKey: {_id: "doc-1"},
+    ns: {coll: "sockstuffs"},
+    operationType: "insert",
+    ...overrides,
+  }) as unknown as WatchedChange;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // emitSyncDeltaForChange — unit tests with synthetic changes
@@ -962,7 +993,7 @@ describe("emitSyncDeltaForChange", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: SockStuffModel as any,
+      model: SockStuffModel as unknown as Model<unknown>,
       options: ownerReadOptions,
       routePath: "/sockStuff",
     });
@@ -985,15 +1016,15 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     const delta = deltas[0].payload as SyncDelta;
     expect(delta.method).toBe("create");
     expect(delta.seq).toBe(7);
     expect(delta.stream).toBe("sockStuff|owner:user1");
     expect(delta.collection).toBe("sockStuff");
-    expect((delta.data as any).name).toBe("hello");
-    expect((delta.data as any).id).toBe("doc-1");
+    expect((delta.data as Record<string, unknown>).name).toBe("hello");
+    expect((delta.data as Record<string, unknown>).id).toBe("doc-1");
   });
 
   it("emits a delta when the REST responseHandler serializes a BSON post-image", async () => {
@@ -1040,7 +1071,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     const receiver = io.sockets.sockets.get(deltas[0].socketId);
     expect(receiver.decodedToken.id).toBe("user1");
@@ -1063,7 +1094,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     const delta = deltas[0].payload as SyncDelta;
     expect(delta.method).toBe("delete");
@@ -1107,20 +1138,20 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(2);
 
-    const tombstone = deltas.find((e: any) => e.room === oldRoom)?.payload as SyncDelta;
+    const tombstone = deltas.find((e) => e.room === oldRoom)?.payload as SyncDelta;
     expect(tombstone.method).toBe("delete");
     expect(tombstone.deleted).toBe(true);
     expect(tombstone.stream).toBe("sockStuff|owner:user1");
     expect(tombstone.seq).toBe(9);
     expect(tombstone.data).toBeUndefined();
 
-    const create = deltas.find((e: any) => e.room === newRoom)?.payload as SyncDelta;
+    const create = deltas.find((e) => e.room === newRoom)?.payload as SyncDelta;
     expect(create.method).toBe("create");
     expect(create.stream).toBe("sockStuff|owner:user2");
-    expect((create.data as any).name).toBe("moved");
+    expect((create.data as Record<string, unknown>).name).toBe("moved");
     await SyncScopeMove.deleteMany({});
   });
 
@@ -1161,8 +1192,8 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
-    const tombstone = deltas.find((e: any) => e.room === oldRoom)?.payload as SyncDelta;
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
+    const tombstone = deltas.find((e) => e.room === oldRoom)?.payload as SyncDelta;
     expect(tombstone).toBeDefined();
     expect(tombstone.method).toBe("delete");
     expect(tombstone.stream).toBe("sockStuff|owner:user1");
@@ -1193,7 +1224,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
     expect((deltas[0].payload as SyncDelta).method).toBe("update");
   });
@@ -1211,7 +1242,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    expect(io.emissions.filter((e: any) => e.event === "sync:delta")).toHaveLength(0);
+    expect(io.emissions.filter((e) => e.event === "sync:delta")).toHaveLength(0);
   });
 
   it("applies the sync responseHandler to delta data", async () => {
@@ -1221,7 +1252,7 @@ describe("emitSyncDeltaForChange", () => {
         responseHandler: (doc: Record<string, unknown>) => ({onlyName: doc.name}),
         scope: {type: "owner"},
       },
-      model: SockStuffModel as any,
+      model: SockStuffModel as unknown as Model<unknown>,
       options: permissiveOptions,
       routePath: "/sockStuff",
     });
@@ -1239,7 +1270,7 @@ describe("emitSyncDeltaForChange", () => {
       logDebug: () => {},
     });
 
-    const delta = io.emissions.find((e: any) => e.event === "sync:delta")?.payload as SyncDelta;
+    const delta = io.emissions.find((e) => e.event === "sync:delta")?.payload as SyncDelta;
     expect(delta.data).toEqual({onlyName: "shaped"});
   });
 });
@@ -1263,20 +1294,20 @@ const hasReplicaSet = async (): Promise<boolean> => {
  * Start the watcher and give the change-stream cursor a moment to open so writes made
  * immediately afterwards are not missed (change streams only deliver post-open events).
  */
-const startWatcherAndSettle = async (io: any): Promise<void> => {
+const startWatcherAndSettle = async (io: TrackedIo): Promise<void> => {
   startChangeStreamWatcher(io, {}, true);
   await new Promise((resolve) => setTimeout(resolve, 300));
 };
 
 const waitForDelta = async (
-  io: any,
-  predicate: (delta: SyncDelta, emission: any) => boolean,
+  io: TrackedIo,
+  predicate: (delta: SyncDelta, emission: TrackedEmission) => boolean,
   timeoutMs = 5000
 ): Promise<void> => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const match = io.emissions.some(
-      (e: any) => e.event === "sync:delta" && predicate(e.payload as SyncDelta, e)
+      (e) => e.event === "sync:delta" && predicate(e.payload as SyncDelta, e)
     );
     if (match) {
       return;
@@ -1330,8 +1361,8 @@ describe("sync:delta — change stream integration", () => {
     await waitForDelta(io, (d) => d.id === docId && d.method === "delete");
 
     const deltas = io.emissions
-      .filter((e: any) => e.event === "sync:delta")
-      .map((e: any) => e.payload as SyncDelta);
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => e.payload as SyncDelta);
 
     const creates = deltas.filter((d) => d.method === "create");
     const updates = deltas.filter((d) => d.method === "update");
@@ -1348,7 +1379,7 @@ describe("sync:delta — change stream integration", () => {
       expect(delta.collection).toBe("sockStuff");
     }
     expect(deletes[0].deleted).toBe(true);
-    expect((deletes[0].data as any).name).toBe("cs-updated");
+    expect((deletes[0].data as Record<string, unknown>).name).toBe("cs-updated");
   });
 
   it("a socket subscribed to tenant org1 never receives org2's delta", async () => {
@@ -1366,8 +1397,8 @@ describe("sync:delta — change stream integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const deltas = io.emissions
-      .filter((e: any) => e.event === "sync:delta")
-      .map((e: any) => e.payload as SyncDelta);
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => e.payload as SyncDelta);
     expect(deltas.some((d) => d.id === String(org1Doc._id))).toBe(true);
     expect(deltas.some((d) => d.id === String(org2Doc._id))).toBe(false);
     expect(deltas.every((d) => d.stream === "sockProjects|tenant:org1")).toBe(true);
@@ -1393,10 +1424,10 @@ describe("sync:delta — change stream integration", () => {
     await waitForDelta(io, (d, e) => d.id === docId && e.room === oldRoom);
 
     const deltas = io.emissions.filter(
-      (e: any) => e.event === "sync:delta" && (e.payload as SyncDelta).id === docId
+      (e) => e.event === "sync:delta" && (e.payload as SyncDelta).id === docId
     );
-    const tombstones = deltas.filter((e: any) => e.room === oldRoom);
-    const creates = deltas.filter((e: any) => e.room === newRoom);
+    const tombstones = deltas.filter((e) => e.room === oldRoom);
+    const creates = deltas.filter((e) => e.room === newRoom);
     expect(tombstones).toHaveLength(1);
     expect(creates).toHaveLength(1);
 
@@ -1409,7 +1440,7 @@ describe("sync:delta — change stream integration", () => {
     const create = creates[0].payload as SyncDelta;
     expect(create.method).toBe("create");
     expect(create.stream).toBe("sockProjects|tenant:org2");
-    expect((create.data as any).orgId).toBe("org2");
+    expect((create.data as Record<string, unknown>).orgId).toBe("org2");
   });
 
   it("a model with both realtime and sync configs emits both event types", async () => {
@@ -1437,10 +1468,10 @@ describe("sync:delta — change stream integration", () => {
     await waitForDelta(io, (d) => d.id === docId);
 
     const legacy = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.id === docId && e.payload?.method === "create"
+      (e) => e.event === "sync" && e.payload?.id === docId && e.payload?.method === "create"
     );
     const deltas = io.emissions.filter(
-      (e: any) => e.event === "sync:delta" && (e.payload as SyncDelta).id === docId
+      (e) => e.event === "sync:delta" && (e.payload as SyncDelta).id === docId
     );
     expect(legacy.length).toBeGreaterThanOrEqual(1);
     expect(deltas).toHaveLength(1);
@@ -1461,8 +1492,8 @@ describe("sync:delta — change stream integration", () => {
     const doc = await SockStuffModel.create({name: "sync only", ownerId: "only-user"});
     await waitForDelta(io, (d) => d.id === String(doc._id));
 
-    const deltas = io.emissions.filter((e: any) => e.event === "sync:delta");
+    const deltas = io.emissions.filter((e) => e.event === "sync:delta");
     expect(deltas).toHaveLength(1);
-    expect(io.emissions.filter((e: any) => e.event === "sync")).toHaveLength(0);
+    expect(io.emissions.filter((e) => e.event === "sync")).toHaveLength(0);
   });
 });

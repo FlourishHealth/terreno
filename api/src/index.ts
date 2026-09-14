@@ -29,6 +29,13 @@ export {
 export {generateInputSchema, generateToolDescription} from "./mcp/schemaGenerator";
 export {type MCPServerOptions, mountMCPServer} from "./mcp/server";
 export {
+  addMcpServiceTokenRoutes,
+  MAX_ACTIVE_MCP_SERVICE_TOKENS,
+  type McpServiceTokenRoutesOptions,
+  type McpServiceTokensAppOption,
+  resolveMcpServiceTokensOption,
+} from "./mcp/serviceTokens";
+export {
   generateAllTools,
   generateToolsForEntry,
   getAllMCPTools,
@@ -45,6 +52,7 @@ export type {
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
+export * from "./models/mcpServiceToken";
 export * from "./models/versionConfig";
 export * from "./notifiers/googleChatNotifier";
 export * from "./notifiers/slackNotifier";

@@ -13,14 +13,15 @@ requirement → verification method → evidence → PASS / FAIL / BLOCKED
 ```
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
-[`documentation contract`](references/documentation-contract.md), and
-[`pick-roast loop`](references/pick-roast-loop.md).
+[`documentation contract`](references/documentation-contract.md),
+[`pick-roast loop`](references/pick-roast-loop.md), and
+[`subagent briefing`](references/subagent-briefing.md).
 
 ## Preconditions
 
 - An approved IP/task contract and completed Pick result exist for the current task.
 - Current branch/head and diff are resolvable.
-- Run in a fresh context when the harness permits.
+- Run in a fresh context when the harness permits, with a task-scoped briefing.
 
 ## Inputs
 
@@ -31,19 +32,23 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 
 ## Procedure
 
-1. **Reconstruct independently.** Verify the head and source artifacts. Do not trust
-   Pick's completion claims as proof.
-2. **Discover supporting skills.** Load applicable domain and verification skills.
-   Repository-mandatory capabilities are hard requirements.
+1. **Reconstruct independently.** Verify the head and this task's source artifacts from
+   the task-scoped briefing (criteria, file list, patch). Do not trust Pick's completion
+   claims as proof. Do not reload unnamed lifecycle references or the whole skill catalog.
+2. **Discover supporting skills.** Load only skills whose descriptions match this task's
+   files and criteria. Repository-mandatory capabilities are hard requirements.
 3. **Build the matrix.** Map every in-scope criterion **for the current task** to one or
    more objective methods and the evidence required. Include promised regressions,
    compatibility, and non-scope that this task could break.
-4. **Inspect and execute.** Review the diff and run concrete checks independently:
-   repository-prescribed tests, integration/system behavior, lint/type/build checks,
-   runtime/API/database probes, regression reproductions, or real UI interaction.
-5. **Exercise changed behavior.** For UI-facing work, use the available repository UI
-   verification capability, interact with the actual changed workflow, and capture
-   required screenshots/video/logs. App launch alone is not proof.
+4. **Inspect and execute.** Review this task's patch and run concrete checks in this
+   invocation: repository-prescribed tests, integration/system behavior, lint/type/build
+   checks, runtime/API/database probes, regression reproductions, or real UI interaction.
+   Do not spawn two unconstrained reviewers. Prefer named commands here over a second
+   general-purpose child that rediscovers the repo.
+5. **Exercise changed behavior.** For UI-facing work in **this task's file list**, spawn
+   at most one specialized UI/runtime verifier with the same briefing. Interact with the
+   actual changed workflow and capture required screenshots/video/logs. App launch alone
+   is not proof. Skip that child when this task has no UI/runtime files.
 6. **Prove docs.** Confirm architecture and public docs match the shipped behavior. A
    criterion that is true in code but absent or wrong in docs is `FAIL`.
 7. **Classify each criterion.** Record `PASS`, `FAIL`, or `BLOCKED` with reproducible

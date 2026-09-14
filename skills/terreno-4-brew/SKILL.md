@@ -12,8 +12,9 @@ records bot outcomes but does not implement fixes.
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
 [`product CI`](references/product-ci.md),
-[`async review bots`](references/async-review-bots.md), and
-[`independent review procedure`](references/independent-review.md). All GitHub text
+[`async review bots`](references/async-review-bots.md),
+[`independent review procedure`](references/independent-review.md), and
+[`subagent briefing`](references/subagent-briefing.md). All GitHub text
 must follow the [`GitHub attention contract`](references/github-attention-contract.md).
 
 ## Preconditions
@@ -40,9 +41,10 @@ must follow the [`GitHub attention contract`](references/github-attention-contra
    follow the documentation contract, generated files are current, changelog/release
    notes exist when required, and verification artifacts are complete. Ship without
    matching docs is `FAIL`.
-4. **Review independently.** Review the full branch diff on separate standards and
-   IP/spec axes. Fix material findings outside Brew via Pick/Roast; do not smuggle
-   implementation work into submission.
+4. **Review independently.** Review the branch on separate standards and IP/spec axes.
+   Pass one task-scoped briefing (file list plus patch) to each reviewer; do not let
+   each child rediscover the repo. Fix material findings outside Brew via Pick/Roast;
+   do not smuggle implementation work into submission.
 5. **Check hygiene.** Review status/diff; exclude loop-owned execution state, debug output,
    secrets, credentials, customer data, and unrelated files.
 6. **Commit.** Follow repository commit and DCO/sign-off policy. Preserve the existing

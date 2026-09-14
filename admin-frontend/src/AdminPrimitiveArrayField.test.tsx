@@ -3,6 +3,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
+import {Pressable} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
@@ -172,6 +173,103 @@ describe("AdminPrimitiveArrayField", () => {
     );
     // SelectField has no testID prop here, so just sanity-check the tree renders
     expect(toJSON()).toBeDefined();
+  });
+
+  it("toggles boolean items via BooleanField", async () => {
+    const onChange = mock((_: unknown) => undefined);
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        baseUrl="/admin"
+        itemType="boolean"
+        onChange={onChange}
+        title="Flags"
+        value={[false]}
+      />
+    );
+    const pressables = UNSAFE_getAllByType(Pressable);
+    await act(async () => {
+      fireEvent.press(pressables[0]);
+    });
+    expect(onChange).toHaveBeenCalled();
+    const next = (onChange.mock.calls[0] as unknown[])[0];
+    expect(next).toEqual([true]);
+  });
+
+  it("updates enum items when SelectField changes", async () => {
+    const onChange = mock((_: unknown) => undefined);
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        baseUrl="/admin"
+        itemEnum={["low", "medium", "high"]}
+        itemType="string"
+        onChange={onChange}
+        title="Levels"
+        value={["low"]}
+      />
+    );
+    const inputs = UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        typeof node.props.testID === "string" && node.props.testID.includes("input")
+    );
+    expect(inputs.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent(inputs[0], "valueChange", "high");
+    });
+    expect(onChange).toHaveBeenCalled();
+    const next = (onChange.mock.calls[0] as unknown[])[0];
+    expect(next).toEqual(["high"]);
+  });
+
+  it("renders custom ref renderers for objectId items", async () => {
+    const onChange = mock((_: unknown) => undefined);
+    const CustomRef: React.FC<{onChange: (value: string) => void; value: string}> = ({
+      onChange: onRefChange,
+      value,
+    }) => (
+      <Pressable onPress={() => onRefChange("user-2")} testID="custom-ref-field">
+        <React.Fragment>{value}</React.Fragment>
+      </Pressable>
+    );
+    const {getByTestId} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        baseUrl="/admin"
+        itemRef="User"
+        itemType="objectid"
+        onChange={onChange}
+        refRenderers={{User: CustomRef as never}}
+        title="Members"
+        value={["user-1"]}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("custom-ref-field"));
+    });
+    expect(onChange).toHaveBeenCalled();
+    const next = (onChange.mock.calls[0] as unknown[])[0];
+    expect(next).toEqual(["user-2"]);
+  });
+
+  it("shows helper and error text and hides add controls in read-only mode", () => {
+    const {getByText, queryByTestId} = renderWithTheme(
+      <AdminPrimitiveArrayField
+        api={mockApi}
+        baseUrl="/admin"
+        errorText="Invalid tags"
+        helperText="Comma-separated labels"
+        itemType="string"
+        onChange={() => {}}
+        readOnly
+        title="Tags"
+        value={[]}
+      />
+    );
+    expect(getByText("Comma-separated labels")).toBeDefined();
+    expect(getByText("Invalid tags")).toBeDefined();
+    expect(queryByTestId("admin-array-add-Tags")).toBeNull();
+    expect(getByText("No items.")).toBeDefined();
   });
 
   it("handles non-array values gracefully", () => {

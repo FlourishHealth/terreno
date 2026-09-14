@@ -9,6 +9,7 @@ describe("example-backend access statements", () => {
     assert.includeMembers([...appStatements.consentForm], ["list", "read"]);
     assert.includeMembers([...appStatements.consentResponse], ["list", "read"]);
     assert.deepEqual([...appStatements.adminAuditLog], ["list", "read"]);
+    assert.deepEqual([...appStatements.adminMcpServiceToken], ["read", "write", "writeOwned"]);
     assert.includeMembers([...appStatements.todo], ["list", "read"]);
     assert.deepEqual([...appStatements.adminTodo], ["read", "write", "writeOwned"]);
     assert.deepEqual([...appStatements.adminUser], ["read", "write", "writeOwned"]);

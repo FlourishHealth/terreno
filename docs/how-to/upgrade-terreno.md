@@ -34,6 +34,7 @@ Or browse [`mcp-server/src/docs/upgrades/`](../../mcp-server/src/docs/upgrades/)
 | Run the app | UI verification. |
 
 Use the `upgrading-expo` skill at the Expo step. Do not copy Expo’s checklist into a Terreno-only bump.
+Maintainers watching the next SDK beta use `track-upstream-expo` / [`track-upstream-expo.md`](track-upstream-expo.md) instead of mixing native bumps onto master.
 
 ### Backend vs frontend packages
 

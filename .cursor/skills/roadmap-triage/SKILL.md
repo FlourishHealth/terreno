@@ -22,7 +22,8 @@ Process background: [`docs/explanation/roadmap-process.md`](https://github.com/F
 - Board-wide hygiene passes — use `roadmap-review`
 - Writing the implementation plan itself — use `ip`
 - Filing a pick-ready implementation issue — use `create-github-issue`
-- Selecting recent issues to Pick/Roast — use `work-github-issues`
+- Selecting recent issues to Pick/Roast in chat — use `work-github-issues`
+- Unattended implementation of a roastable issue — apply `status:ready-for-dev` (maintainer only), then `implement-ready-for-dev`
 
 ## Hard rules
 
@@ -49,7 +50,7 @@ Decide four things, and be able to point at the text that justifies each:
 |---|---|
 | `area:*` (exactly one) | The affected package. The dropdown-to-area table lives in [`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts) |
 | `type:*` (exactly one) | bug / feature / docs / chore / rfc |
-| `status:*` (optional) | `status:needs-info` when unanswerable as written, `status:blocked` when gated on another issue or PR |
+| `status:*` (optional) | `status:needs-info` when unanswerable as written, `status:blocked` when gated on another issue or PR, `status:ready-for-dev` only when Acceptance is roastable and a maintainer wants unattended pickup |
 | Board or not | Roadmap items are work worth showing publicly. A one-line typo fix is a PR, not a roadmap entry |
 
 Also consider `good first issue`, `help wanted`, `breaking`, and `deprecation` where they genuinely apply.

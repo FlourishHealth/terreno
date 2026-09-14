@@ -1,8 +1,11 @@
-import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {afterEach, describe, expect, it, mock} from "bun:test";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
+import {assert} from "chai";
+import {Platform} from "react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
 import {SignatureField} from "./SignatureField";
+import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -449,5 +452,82 @@ describe("ConsentFormScreen", () => {
       sig.props.onEnd();
     });
     expect(sig).toBeTruthy();
+  });
+});
+
+describe("ConsentFormScreen web scroll measurement", () => {
+  const originalOS = Platform.OS;
+  const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+  let frames: FrameRequestCallback[] = [];
+
+  const renderOnWeb = (scrollNode: {clientHeight?: number; scrollHeight?: number} | null) => {
+    Platform.OS = "web";
+    frames = [];
+    globalThis.requestAnimationFrame = ((callback: FrameRequestCallback): number => {
+      frames.push(callback);
+      return frames.length;
+    }) as typeof globalThis.requestAnimationFrame;
+
+    return render(
+      <ConsentFormScreen
+        form={{...baseForm, requireScrollToBottom: true}}
+        locale="en"
+        onAgree={() => {}}
+      />,
+      {
+        createNodeMock: () => ({getScrollableNode: () => scrollNode}),
+        wrapper: ThemeProvider,
+      }
+    );
+  };
+
+  const flushFrames = (): void => {
+    act(() => {
+      for (const frame of frames.splice(0)) {
+        frame(0);
+      }
+    });
+  };
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+    globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  it("unlocks the gate when the loaded content fits the viewport", async () => {
+    const {getByText, queryByTestId} = renderOnWeb({clientHeight: 500, scrollHeight: 200});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNull(queryByTestId("consent-form-scroll-hint"));
+    assert.isNull(queryByTestId("consent-footer-scroll-hint"));
+  });
+
+  it("keeps the gate when the loaded content overflows the viewport", async () => {
+    const {getByTestId, getByText} = renderOnWeb({clientHeight: 200, scrollHeight: 900});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
+  });
+
+  it("keeps the gate when the scroll node has no measurements", async () => {
+    const {getByTestId, getByText} = renderOnWeb({});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
+  });
+
+  it("keeps the gate when the scroll view has no node", async () => {
+    const {getByTestId, getByText} = renderOnWeb(null);
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
   });
 });

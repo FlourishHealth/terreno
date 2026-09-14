@@ -22,6 +22,7 @@ Operator overview: [`docs/how-to/github-issue-lifecycle.md`](../../docs/how-to/g
 ## When not to use
 
 - Filing a new issue — use `create-github-issue`
+- Unattended pickup of `status:ready-for-dev` — use `implement-ready-for-dev`
 - Roadmap board fields / approved-IP tracking — use `roadmap-triage` / `roadmap-item`
 - Shaping a destination too large for one comment plan — use `terreno-1-grow`
 - Opening or updating the PR — that is Brew (`terreno-4-brew`) after inner-loop PASS

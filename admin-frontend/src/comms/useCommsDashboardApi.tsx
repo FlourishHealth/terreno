@@ -4,9 +4,7 @@ import type {AdminApi, EndpointBuilder} from "../types";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
 import type {CommsMessageRow} from "./commsMessagePayload";
 
-export type {CommsMessageAttempt, CommsMessageRow} from "./commsMessagePayload";
-
-export interface CommsListResponse {
+interface CommsListResponse {
   data: CommsMessageRow[];
   limit: number;
   more: boolean;
@@ -36,7 +34,7 @@ export interface CommsStatsResponse {
   };
 }
 
-export interface CommsRetryManyResponse {
+interface CommsRetryManyResponse {
   retried: CommsMessageRow[];
   skipped: Array<{id: string; reason: string}>;
 }

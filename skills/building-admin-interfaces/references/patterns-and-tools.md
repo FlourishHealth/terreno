@@ -17,7 +17,7 @@ on `AdminProvider`; do not pass the deprecated `customScreens` prop on
 Plugin backend IDs arrive via `adminContribution()`. First-party React lives in
 `@terreno/admin-frontend`. Third-party plugins ship their own frontend package;
 the host spreads it into `widgets`. See
-[Admin plugin frontend widgets](../../../../docs/explanation/admin-plugin-frontend.md).
+[Admin plugin frontend widgets](../../../docs/explanation/admin-plugin-frontend.md).
 
 ## Model admin metadata that affects UI
 
@@ -28,7 +28,7 @@ Set these on `modelRouter({admin: ...})` rather than cloning tables:
 - `group`, `recordTitleField`, `pageSize`
 - `actions` / `bulkPatchAllowlist` for changelist bulk work
 
-Reference: [admin-config](../../../../docs/reference/admin-config.md).
+Reference: [admin-config](../../../docs/reference/admin-config.md).
 
 ## Platform tools
 

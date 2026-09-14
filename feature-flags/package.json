@@ -17,7 +17,6 @@
     "@types/express": "catalog:",
     "@types/lodash": "catalog:",
     "@types/supertest": "catalog:",
-    "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:"
   },
@@ -30,11 +29,11 @@
     "terreno"
   ],
   "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/feature-flags",
   "peerDependencies": {
     "mongoose": "^8.0.0 || ^9.0.0"
   },
-  "main": "dist/index.js",
-  "name": "@terreno/feature-flags",
   "publishConfig": {
     "access": "public"
   },
@@ -54,5 +53,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.3.0"
 }

@@ -93,7 +93,7 @@ const applySendGridEvent = async ({
   }
 };
 
-export const registerSendGridCommsWebhooks = ({
+const registerSendGridCommsWebhooks = ({
   basePath,
   publicKey,
   service,

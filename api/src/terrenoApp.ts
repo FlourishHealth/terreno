@@ -26,6 +26,11 @@ import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {mountMCPServer} from "./mcp/server";
+import {
+  addMcpServiceTokenRoutes,
+  type McpServiceTokensAppOption,
+  resolveMcpServiceTokensOption,
+} from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -115,6 +120,11 @@ export interface TerrenoAppOptions {
    * to enable. See [Rate limiting](../how-to/rate-limiting.md).
    */
   rateLimit?: RateLimitOptions;
+  /**
+   * Opt-in personal MCP service tokens. `true` is `{enabled: true}`. When enabled,
+   * mounts `/mcp/service-tokens` and accepts `Authorization: Bearer mcp_…` on `/mcp`.
+   */
+  mcpServiceTokens?: McpServiceTokensAppOption;
 }
 
 /**
@@ -483,8 +493,16 @@ export class TerrenoApp {
         await applyJwtPasswordResetToBetterAuth(betterAuth, user, password);
       };
     }
+    const mcpServiceTokens = resolveMcpServiceTokensOption(options.mcpServiceTokens);
+    if (mcpServiceTokens.enabled) {
+      addMcpServiceTokenRoutes(app, {
+        openApi: oapi,
+        publicMcpUrl: mcpServiceTokens.publicMcpUrl,
+      });
+    }
     mountMCPServer(app, {
       betterAuth,
+      mcpServiceTokens: mcpServiceTokens.enabled,
       userModel: options.userModel,
     });
 

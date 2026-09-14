@@ -1,5 +1,3 @@
-// noExplicitAny: test mocks use dynamic shapes for registry entries and documents
-// biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for registry entries and documents
 /**
  * Tests for the realtime module's pure functions and classes:
  *   - queryMatcher.ts (matchesQuery)
@@ -12,9 +10,10 @@
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
-import mongoose from "mongoose";
+import mongoose, {type Model} from "mongoose";
+import type {Server} from "socket.io";
 
-import type {ModelRouterOptions} from "../api";
+import type {JSONValue, ModelRouterOptions} from "../api";
 
 import {
   emitToAuthorizedRoom,
@@ -52,7 +51,35 @@ import {
   registerRealtime,
   updateRealtimeRegistryOptions,
 } from "./registry";
-import type {RealtimeEvent} from "./types";
+import type {DecodedRealtimeToken} from "./socketUser";
+import type {RealtimeConfig, RealtimeEvent} from "./types";
+
+type ChangeStreamDoc = Parameters<typeof mapOperationType>[1];
+
+const asChange = (change: Record<string, unknown>): ChangeStreamDoc =>
+  change as unknown as ChangeStreamDoc;
+
+type ResponseHandler = NonNullable<ModelRouterOptions<unknown>["responseHandler"]>;
+
+interface MockRoomSocket {
+  decodedToken?: DecodedRealtimeToken;
+  emit: (event: string, payload: unknown) => void;
+  id: string;
+}
+
+const permissiveOptions: ModelRouterOptions<unknown> = {
+  permissions: {
+    create: [() => true],
+    delete: [() => true],
+    list: [() => true],
+    read: [() => true],
+    update: [() => true],
+  },
+};
+
+const setConnectionDb = (db: unknown): void => {
+  (mongoose.connection as unknown as {db: unknown}).db = db;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // queryMatcher tests
@@ -489,14 +516,14 @@ describe("queryStore", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("realtimeRegistry", () => {
-  const makeEntry = (overrides: Partial<Parameters<typeof registerRealtime>[0]> = {}) => ({
+  const makeEntry = (overrides: Partial<RealtimeRegistryEntry> = {}): RealtimeRegistryEntry => ({
     collectionName: "todos",
     config: {
       methods: ["create" as const, "update" as const, "delete" as const],
       roomStrategy: "owner" as const,
     },
     modelName: "Todo",
-    options: {} as any,
+    options: permissiveOptions,
     routePath: "/todos",
     ...overrides,
   });
@@ -663,14 +690,14 @@ describe("RealtimeApp", () => {
 interface MockSocket extends RealtimeSocketLike {
   rooms: Set<string>;
   emitted: {event: string; payload: unknown}[];
-  listeners: Map<string, (...args: any[]) => any>;
-  trigger: (event: string, ...args: any[]) => Promise<void>;
+  listeners: Map<string, (...args: never[]) => void | Promise<void>>;
+  trigger: (event: string, ...args: unknown[]) => Promise<void>;
 }
 
-const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSocket => {
+const createMockSocket = (decodedToken?: DecodedRealtimeToken): MockSocket => {
   const rooms = new Set<string>();
   const emitted: {event: string; payload: unknown}[] = [];
-  const listeners = new Map<string, (...args: any[]) => any>();
+  const listeners = new Map<string, (...args: never[]) => void | Promise<void>>();
 
   const socket: MockSocket = {
     decodedToken,
@@ -691,7 +718,7 @@ const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSo
     },
     rooms,
     trigger: async (event, ...args) => {
-      const handler = listeners.get(event);
+      const handler = listeners.get(event) as ((...a: unknown[]) => unknown) | undefined;
       if (handler) {
         await handler(...args);
       }
@@ -725,7 +752,7 @@ describe("installRealtimeSocketHandlers", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/todos",
     });
   };
@@ -743,7 +770,7 @@ describe("installRealtimeSocketHandlers", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/broadcasts",
     });
   };
@@ -761,7 +788,7 @@ describe("installRealtimeSocketHandlers", () => {
           read: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
           update: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
         },
-      } as any,
+      },
       routePath: "/secrets",
     });
   };
@@ -847,8 +874,8 @@ describe("installRealtimeSocketHandlers", () => {
       const socket = createMockSocket({id: "user1"});
       installRealtimeSocketHandlers(socket);
       await socket.trigger("subscribe:model", "");
-      await socket.trigger("subscribe:model", 123 as any);
-      await socket.trigger("subscribe:model", null as any);
+      await socket.trigger("subscribe:model", 123);
+      await socket.trigger("subscribe:model", null);
       const modelRooms = Array.from(socket.rooms).filter((r) => r.startsWith("model:"));
       expect(modelRooms).toHaveLength(0);
     });
@@ -868,7 +895,7 @@ describe("installRealtimeSocketHandlers", () => {
               read: [() => true],
               update: [() => true],
             },
-          } as any,
+          },
           routePath: `/coll${i}`,
         });
       }
@@ -931,7 +958,7 @@ describe("installRealtimeSocketHandlers", () => {
       await socket.trigger("subscribe:document", {});
       await socket.trigger("subscribe:document", {collection: "broadcasts"});
       await socket.trigger("subscribe:document", {id: "doc1"});
-      await socket.trigger("subscribe:document", {collection: 123 as any, id: "doc1"});
+      await socket.trigger("subscribe:document", {collection: 123, id: "doc1"});
       const docRooms = Array.from(socket.rooms).filter((r) => r.startsWith("document:"));
       expect(docRooms).toHaveLength(0);
     });
@@ -961,7 +988,7 @@ describe("installRealtimeSocketHandlers", () => {
       if (!subscribed) {
         throw new Error("Expected a query subscription event");
       }
-      expect((subscribed.payload as any).queryId).toContain("user1");
+      expect((subscribed.payload as {queryId: string}).queryId).toContain("user1");
     });
 
     it("does NOT inject ownerId for admins (admins see all)", async () => {
@@ -977,7 +1004,7 @@ describe("installRealtimeSocketHandlers", () => {
       if (!subscribed) {
         throw new Error("Expected a query subscription event");
       }
-      expect((subscribed.payload as any).queryId).not.toContain("admin1");
+      expect((subscribed.payload as {queryId: string}).queryId).not.toContain("admin1");
     });
 
     it("ignores subscriptions when user has no id (anonymous) for owner strategy", async () => {
@@ -1035,7 +1062,7 @@ describe("installRealtimeSocketHandlers", () => {
             update: [() => true],
           },
           queryFilter: () => ({tenantId: "tenant-1"}),
-        } as any,
+        },
         routePath: "/filtered",
       });
       const socket = createMockSocket({id: "user1"});
@@ -1065,7 +1092,7 @@ describe("installRealtimeSocketHandlers", () => {
           queryFilter: () => {
             throw new Error("tenant lookup failed");
           },
-        } as any,
+        },
         routePath: "/filtered",
       });
       const socket = createMockSocket({id: "user1"});
@@ -1122,7 +1149,7 @@ describe("installRealtimeSocketHandlers", () => {
             read: [() => true],
             update: [() => true],
           },
-        } as any,
+        },
         routePath: "/other",
       });
       const socket = createMockSocket({id: "user1"});
@@ -1204,11 +1231,11 @@ describe("installRealtimeSocketHandlers", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("serializeDoc (change stream serializer)", () => {
-  const makeEntry = (overrides: any = {}) => ({
+  const makeEntry = (overrides: Partial<RealtimeRegistryEntry> = {}): RealtimeRegistryEntry => ({
     collectionName: "users",
-    config: {methods: ["create", "update", "delete"] as const, roomStrategy: "model" as const},
+    config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
     modelName: "User",
-    options: {} as any,
+    options: permissiveOptions,
     routePath: "/users",
     ...overrides,
   });
@@ -1217,23 +1244,26 @@ describe("serializeDoc (change stream serializer)", () => {
     const entry = makeEntry({
       config: {
         methods: ["update"],
-        realtimeResponseHandler: (doc: any) => ({customized: doc.name}),
+        realtimeResponseHandler: (doc) => ({customized: doc.name}),
         roomStrategy: "model",
       },
     });
-    const result = await serializeDoc(entry as any, {name: "Alice", secret: "x"}, "update");
+    const result = await serializeDoc(entry, {name: "Alice", secret: "x"}, "update");
     expect(result).toEqual({customized: "Alice"});
   });
 
   it("falls back to modelRouter responseHandler when no realtime handler is set", async () => {
     // Mimics a stripping responseHandler like the example-backend users router.
-    const responseHandler = mock(async (doc: any) => {
-      const {hash, salt, ...rest} = doc;
-      return rest;
-    });
-    const entry = makeEntry({options: {responseHandler}});
+    const handler: ResponseHandler = async (doc) => {
+      const record = {...(doc as unknown as Record<string, unknown>)};
+      delete record.hash;
+      delete record.salt;
+      return record as unknown as JSONValue;
+    };
+    const responseHandler = mock(handler);
+    const entry = makeEntry({options: {...permissiveOptions, responseHandler}});
     const result = await serializeDoc(
-      entry as any,
+      entry,
       {email: "a@b.com", hash: "h", name: "Alice", salt: "s"},
       "update"
     );
@@ -1243,24 +1273,24 @@ describe("serializeDoc (change stream serializer)", () => {
 
   it("maps 'delete' method to 'read' when invoking the REST responseHandler", async () => {
     let observedMethod: string | undefined;
-    const responseHandler = async (doc: any, method: string) => {
+    const responseHandler: ResponseHandler = async (doc, method) => {
       observedMethod = method;
-      return doc;
+      return doc as unknown as JSONValue;
     };
-    const entry = makeEntry({options: {responseHandler}});
-    await serializeDoc(entry as any, {name: "Alice"}, "delete");
+    const entry = makeEntry({options: {...permissiveOptions, responseHandler}});
+    await serializeDoc(entry, {name: "Alice"}, "delete");
     expect(observedMethod).toBe("read");
   });
 
   it("re-throws when modelRouter responseHandler throws (event dropped, no leak)", async () => {
     // Critical: do NOT fall back to toJSON, which would skip the handler's sanitization
     // (e.g. stripping hash/salt) and leak the raw document.
-    const responseHandler = async (): Promise<any> => {
+    const responseHandler: ResponseHandler = async () => {
       throw new Error("boom");
     };
-    const entry = makeEntry({options: {responseHandler}});
+    const entry = makeEntry({options: {...permissiveOptions, responseHandler}});
     const doc = {hash: "h", name: "Alice", salt: "s", toJSON: () => ({hash: "h", name: "Alice"})};
-    await expect(serializeDoc(entry as any, doc, "update")).rejects.toThrow("boom");
+    await expect(serializeDoc(entry, doc, "update")).rejects.toThrow("boom");
   });
 
   it("re-throws when realtimeResponseHandler throws (event dropped, no leak)", async () => {
@@ -1274,26 +1304,26 @@ describe("serializeDoc (change stream serializer)", () => {
       },
     });
     const doc = {name: "Alice", toJSON: () => ({name: "Alice-json"})};
-    await expect(serializeDoc(entry as any, doc, "update")).rejects.toThrow("boom");
+    await expect(serializeDoc(entry, doc, "update")).rejects.toThrow("boom");
   });
 
   it("returns toJSON output when no handlers are configured", async () => {
     const entry = makeEntry();
     const doc = {name: "Alice", toJSON: () => ({id: "1", name: "Alice"})};
-    const result = await serializeDoc(entry as any, doc, "create");
+    const result = await serializeDoc(entry, doc, "create");
     expect(result).toEqual({id: "1", name: "Alice"});
   });
 
   it("returns raw doc when toJSON is missing and no handlers configured", async () => {
     const entry = makeEntry();
-    const result = await serializeDoc(entry as any, {name: "Alice"}, "create");
+    const result = await serializeDoc(entry, {name: "Alice"}, "create");
     expect(result).toEqual({name: "Alice"});
   });
 
   it("adds id from _id when handlers omit it (change stream raw document shape)", async () => {
     const entry = makeEntry();
     const result = await serializeDoc(
-      entry as any,
+      entry,
       {_id: "507f1f77bcf86cd799439011", name: "Alice"},
       "create"
     );
@@ -1311,24 +1341,22 @@ describe("serializeDoc (change stream serializer)", () => {
 
 describe("mapOperationType", () => {
   it("maps insert to create", () => {
-    expect(mapOperationType("insert", {} as any)).toBe("create");
+    expect(mapOperationType("insert", asChange({}))).toBe("create");
   });
 
   it("maps update to update by default", () => {
     expect(
-      mapOperationType("update", {
-        updateDescription: {updatedFields: {title: "x"}},
-      } as any)
+      mapOperationType("update", asChange({updateDescription: {updatedFields: {title: "x"}}}))
     ).toBe("update");
   });
 
   it("maps replace to update", () => {
-    expect(mapOperationType("replace", {} as any)).toBe("update");
+    expect(mapOperationType("replace", asChange({}))).toBe("update");
   });
 
   it("maps update with deleted=true to delete (soft delete) when delete is enabled", () => {
     expect(
-      mapOperationType("update", {updateDescription: {updatedFields: {deleted: true}}} as any, [
+      mapOperationType("update", asChange({updateDescription: {updatedFields: {deleted: true}}}), [
         "create",
         "update",
         "delete",
@@ -1340,7 +1368,7 @@ describe("mapOperationType", () => {
     // A model configured with methods: ["create", "update"] must still see
     // soft-delete events as updates — otherwise they'd be silently dropped.
     expect(
-      mapOperationType("update", {updateDescription: {updatedFields: {deleted: true}}} as any, [
+      mapOperationType("update", asChange({updateDescription: {updatedFields: {deleted: true}}}), [
         "create",
         "update",
       ])
@@ -1348,21 +1376,21 @@ describe("mapOperationType", () => {
   });
 
   it("maps delete to delete", () => {
-    expect(mapOperationType("delete", {} as any)).toBe("delete");
+    expect(mapOperationType("delete", asChange({}))).toBe("delete");
   });
 
   it("returns null for unknown operation types", () => {
-    expect(mapOperationType("invalidate", {} as any)).toBeNull();
-    expect(mapOperationType("drop", {} as any)).toBeNull();
+    expect(mapOperationType("invalidate", asChange({}))).toBeNull();
+    expect(mapOperationType("drop", asChange({}))).toBeNull();
   });
 });
 
 describe("resolveRooms", () => {
-  const baseEntry: any = {
+  const baseEntry: RealtimeRegistryEntry = {
     collectionName: "todos",
-    config: {methods: ["create", "update", "delete"]},
+    config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
     modelName: "Todo",
-    options: {},
+    options: permissiveOptions,
     routePath: "/todos",
   };
 
@@ -1398,17 +1426,23 @@ describe("resolveRooms", () => {
   });
 
   it("defaults to model room for unknown strategy", () => {
-    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "unknown" as any}};
+    const entry = {
+      ...baseEntry,
+      config: {
+        ...baseEntry.config,
+        roomStrategy: "unknown" as unknown as RealtimeConfig["roomStrategy"],
+      },
+    };
     const rooms = resolveRooms(entry, {}, "create");
     expect(rooms).toEqual(["model:todos"]);
   });
 
   it("invokes custom function room resolver", () => {
-    const entry = {
+    const entry: RealtimeRegistryEntry = {
       ...baseEntry,
       config: {
         ...baseEntry.config,
-        roomStrategy: (doc: any, method: string): string[] => [`custom:${method}:${doc.id}`],
+        roomStrategy: (doc, method): string[] => [`custom:${method}:${String(doc.id)}`],
       },
     };
     const rooms = resolveRooms(entry, {id: "42"}, "update");
@@ -1417,28 +1451,18 @@ describe("resolveRooms", () => {
 });
 
 describe("emitToDocumentAndQueryRooms", () => {
-  const permissiveOptions = {
-    permissions: {
-      create: [() => true],
-      delete: [() => true],
-      list: [() => true],
-      read: [() => true],
-      update: [() => true],
-    },
-  };
-
   const makeIo = (): {
-    addSocketToRoom: (room: string, decodedToken?: {id?: string; admin?: boolean}) => void;
+    addSocketToRoom: (room: string, decodedToken?: DecodedRealtimeToken) => void;
     emissions: Array<{room: string; event: string; payload: unknown}>;
-    io: any;
+    io: Server;
   } => {
     const emissions: Array<{room: string; event: string; payload: unknown}> = [];
     const roomSockets = new Map<string, Set<string>>();
-    const sockets = new Map<string, any>();
+    const sockets = new Map<string, MockRoomSocket>();
     let nextSocketId = 1;
     const addSocketToRoom = (
       room: string,
-      decodedToken: {id?: string; admin?: boolean} = {admin: true, id: "admin"}
+      decodedToken: DecodedRealtimeToken = {admin: true, id: "admin"}
     ): void => {
       const socketId = `socket-${nextSocketId}`;
       nextSocketId += 1;
@@ -1464,7 +1488,7 @@ describe("emitToDocumentAndQueryRooms", () => {
           emissions.push({event, payload, room});
         },
       }),
-    };
+    } as unknown as Server;
     return {addSocketToRoom, emissions, io};
   };
 
@@ -1478,7 +1502,7 @@ describe("emitToDocumentAndQueryRooms", () => {
 
   it("emits to the document room", async () => {
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "update",
@@ -1494,14 +1518,14 @@ describe("emitToDocumentAndQueryRooms", () => {
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom(`query:${queryId}`);
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "delete",
       model: "Todo",
       timestamp: 1,
     };
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "model"},
       modelName: "Todo",
@@ -1518,14 +1542,14 @@ describe("emitToDocumentAndQueryRooms", () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom("document:todos:doc-1");
     addSocketToRoom(`query:${queryId}`);
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "delete",
       model: "Todo",
       timestamp: 1,
     };
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "owner"},
       modelName: "Todo",
@@ -1547,7 +1571,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom(`query:${matchingQueryId}`);
     addSocketToRoom(`query:${nonMatchingQueryId}`);
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       data: {deleted: true, priority: 1},
       id: "doc-1",
@@ -1555,7 +1579,7 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "owner"},
       modelName: "Todo",
@@ -1578,7 +1602,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "create",
@@ -1593,7 +1617,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "create",
@@ -1610,7 +1634,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "create",
@@ -1625,7 +1649,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "update",
@@ -1642,7 +1666,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "todos",
       id: "doc-1",
       method: "update",
@@ -1659,7 +1683,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom("model:todos", {id: "owner-1"});
     addSocketToRoom("model:todos", {id: "other-user"});
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["update"], roomStrategy: "model"},
       modelName: "Todo",
@@ -1669,16 +1693,19 @@ describe("emitToDocumentAndQueryRooms", () => {
           delete: [() => true],
           list: [() => true],
           read: [
-            (_method: string, user?: {admin?: boolean; id?: string}, obj?: {ownerId?: string}) =>
-              user?.admin === true || user?.id === obj?.ownerId,
+            (_method: string, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
+              user?.admin === true || user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
           ],
           update: [() => true],
         },
-        responseHandler: (doc: any, _method: string, req: any) => ({
-          id: doc._id,
-          title: doc.title,
-          visibleTo: req.user?.id,
-        }),
+        responseHandler: async (doc, _method, req) => {
+          const record = doc as unknown as {_id?: unknown; title?: unknown};
+          return {
+            id: record._id,
+            title: record.title,
+            visibleTo: req.user?.id,
+          } as unknown as JSONValue;
+        },
       },
       routePath: "/todos",
     };
@@ -1708,7 +1735,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom("model:todos", {id: "bad-user"});
     addSocketToRoom("model:todos", {id: "good-user"});
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["update"], roomStrategy: "model"},
       modelName: "Todo",
@@ -1720,12 +1747,15 @@ describe("emitToDocumentAndQueryRooms", () => {
           read: [() => true],
           update: [() => true],
         },
-        responseHandler: (doc: any, _method: string, req: any) => {
+        responseHandler: async (doc, _method, req) => {
           if (req.user?.id === "bad-user") {
             throw new Error("cannot serialize for bad user");
           }
 
-          return {...doc, visibleTo: req.user?.id};
+          return {
+            ...(doc as Record<string, unknown>),
+            visibleTo: req.user?.id,
+          } as unknown as JSONValue;
         },
       },
       routePath: "/todos",
@@ -1755,7 +1785,7 @@ describe("emitToDocumentAndQueryRooms", () => {
   it("does not emit hard delete metadata when read permission requires an object owner", async () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom("model:todos", {id: "other-user"});
-    const entry: any = {
+    const entry: RealtimeRegistryEntry = {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "model"},
       modelName: "Todo",
@@ -1765,8 +1795,8 @@ describe("emitToDocumentAndQueryRooms", () => {
           delete: [() => true],
           list: [() => true],
           read: [
-            (_method: string, user?: {admin?: boolean; id?: string}, obj?: {ownerId?: string}) =>
-              user?.admin === true || user?.id === obj?.ownerId,
+            (_method: string, user?: {admin?: boolean; id?: string}, obj?: unknown) =>
+              user?.admin === true || user?.id === (obj as {ownerId?: string} | undefined)?.ownerId,
           ],
           update: [() => true],
         },
@@ -1930,7 +1960,7 @@ describe("startChangeStreamWatcher", () => {
   });
 
   afterEach(async () => {
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
     clearRealtimeRegistry();
     // Ensure the watcher is stopped between tests
     const {stopChangeStreamWatcher: stop} = await import("./changeStreamWatcher");
@@ -1938,15 +1968,15 @@ describe("startChangeStreamWatcher", () => {
   });
 
   const createMockChangeStream = () => {
-    const listeners = new Map<string, (...args: any[]) => void>();
+    const listeners = new Map<string, (...args: unknown[]) => void>();
     return {
       close: mock(async () => {}),
       listeners,
-      on(event: string, handler: (...args: any[]) => void) {
+      on(event: string, handler: (...args: unknown[]) => void) {
         listeners.set(event, handler);
         return this;
       },
-      trigger(event: string, ...args: any[]) {
+      trigger(event: string, ...args: unknown[]) {
         const handler = listeners.get(event);
         if (handler) {
           handler(...args);
@@ -1968,14 +1998,14 @@ describe("startChangeStreamWatcher", () => {
 
   const createMockIo = () => {
     const rooms = new Map<string, Set<string>>();
-    const sockets = new Map<string, any>();
+    const sockets = new Map<string, MockRoomSocket>();
     return {
       sockets: {
         adapter: {rooms},
         sockets,
       },
       to: (_room: string) => ({
-        emit: (_event: string, _data: any) => {},
+        emit: (_event: string, _data: unknown) => {},
       }),
     } as unknown as import("socket.io").Server;
   };
@@ -1985,7 +2015,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2000,7 +2030,7 @@ describe("startChangeStreamWatcher", () => {
   });
 
   it("throws when mongoose connection db is unavailable", async () => {
-    (mongoose.connection as any).db = undefined;
+    setConnectionDb(undefined);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2014,7 +2044,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => null),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2027,7 +2057,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2067,7 +2097,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2088,7 +2118,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2129,7 +2159,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2168,7 +2198,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "broadcasts",
@@ -2238,7 +2268,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as unknown as {db: unknown}).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2279,7 +2309,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as unknown as {db: unknown}).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2327,7 +2357,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2367,7 +2397,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2375,7 +2405,9 @@ describe("startChangeStreamWatcher", () => {
     startChangeStreamWatcher(io, {ignoredCollections: ["audit_logs"]}, true);
 
     // Verify the pipeline passed to watch includes the ignored collections
-    const pipeline = (mockDb.watch.mock.calls[0] as any[])[0];
+    const pipeline = (mockDb.watch.mock.calls[0] as unknown[])[0] as {
+      $match: {"ns.coll": {$nin: string[]}};
+    }[];
     const matchStage = pipeline[0].$match;
     expect(matchStage["ns.coll"].$nin).toContain("audit_logs");
     expect(matchStage["ns.coll"].$nin).toContain("socketio");
@@ -2387,7 +2419,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     registerRealtime({
       collectionName: "todos",
@@ -2427,7 +2459,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2453,7 +2485,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2471,7 +2503,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
@@ -2530,7 +2562,7 @@ describe("startChangeStreamWatcher", () => {
       const serverEmissions: {event: string; payload: unknown}[] = [];
       const rooms = new Map<string, Set<string>>();
       rooms.set("model:todos", new Set(["sock-1"]));
-      const sockets = new Map<string, any>();
+      const sockets = new Map<string, MockRoomSocket>();
       sockets.set("sock-1", {
         decodedToken: {id: "user-1"},
         emit: (event: string, payload: unknown) => {
@@ -2556,7 +2588,7 @@ describe("startChangeStreamWatcher", () => {
       const secondStream = createMockChangeStream();
       const streams = [firstStream, secondStream];
       const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
-      (mongoose.connection as any).db = mockDb;
+      setConnectionDb(mockDb);
       registerTodos();
 
       const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
@@ -2576,7 +2608,9 @@ describe("startChangeStreamWatcher", () => {
       firstStream.trigger("error", new Error("replica set election"));
       await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
 
-      const reopenOptions = (mockDb.watch.mock.calls[1] as any[])[1];
+      const reopenOptions = (mockDb.watch.mock.calls[1] as unknown[])[1] as {
+        resumeAfter?: unknown;
+      };
       expect(reopenOptions.resumeAfter).toEqual({_data: "token-1"});
 
       // The reopened stream is fully wired: later writes still fan out.
@@ -2595,7 +2629,7 @@ describe("startChangeStreamWatcher", () => {
       const secondStream = createMockChangeStream();
       const streams = [firstStream, secondStream];
       const mockDb = {watch: mock(() => streams.shift() ?? secondStream)};
-      (mongoose.connection as any).db = mockDb;
+      setConnectionDb(mockDb);
 
       const {SYNC_RESYNC_EVENT, startChangeStreamWatcher} = await import("./changeStreamWatcher");
       const {io, serverEmissions} = createRecordingIo();
@@ -2620,13 +2654,15 @@ describe("startChangeStreamWatcher", () => {
 
       await waitFor(() => mockDb.watch.mock.calls.length >= 2, "the stream to reopen");
       // An unusable token must not be replayed — the reopen starts from now.
-      expect((mockDb.watch.mock.calls[1] as any[])[1].resumeAfter).toBeUndefined();
+      expect(
+        ((mockDb.watch.mock.calls[1] as unknown[])[1] as {resumeAfter?: unknown}).resumeAfter
+      ).toBeUndefined();
     });
 
     it("does not reopen after the watcher is stopped", async () => {
       const mockStream = createMockChangeStream();
       const mockDb = {watch: mock(() => mockStream)};
-      (mongoose.connection as any).db = mockDb;
+      setConnectionDb(mockDb);
 
       const {startChangeStreamWatcher, stopChangeStreamWatcher: stop} = await import(
         "./changeStreamWatcher"
@@ -2646,14 +2682,17 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
     const io = createMockIo();
 
     startChangeStreamWatcher(io, {batchSize: 100, fullDocument: "whenAvailable"}, true);
 
-    const options = (mockDb.watch.mock.calls[0] as any[])[1];
+    const options = (mockDb.watch.mock.calls[0] as unknown[])[1] as {
+      batchSize?: number;
+      fullDocument?: string;
+    };
     expect(options.batchSize).toBe(100);
     expect(options.fullDocument).toBe("whenAvailable");
   });
@@ -2663,7 +2702,7 @@ describe("startChangeStreamWatcher", () => {
     const mockDb = {
       watch: mock(() => mockStream),
     };
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     // Register with a model that will throw during permission check
     registerRealtime({
@@ -2692,17 +2731,17 @@ describe("startChangeStreamWatcher", () => {
     const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
 
     // Create an IO with a socket in the target room
-    const emissions: any[] = [];
-    const mockSocket = {
+    const emissions: Array<{_data: unknown; _event: string}> = [];
+    const mockSocket: MockRoomSocket = {
       decodedToken: {id: "user-1"},
-      emit: (_event: string, _data: any) => {
+      emit: (_event: string, _data: unknown) => {
         emissions.push({_data, _event});
       },
       id: "sock-1",
     };
     const rooms = new Map<string, Set<string>>();
     rooms.set("model:todos", new Set(["sock-1"]));
-    const sockets = new Map<string, any>();
+    const sockets = new Map<string, MockRoomSocket>();
     sockets.set("sock-1", mockSocket);
     const io = {
       sockets: {
@@ -2734,7 +2773,7 @@ describe("stopChangeStreamWatcher", () => {
       watch: mock(() => mockStream),
     };
     const originalDb = mongoose.connection.db;
-    (mongoose.connection as any).db = mockDb;
+    setConnectionDb(mockDb);
 
     const {startChangeStreamWatcher, stopChangeStreamWatcher} = await import(
       "./changeStreamWatcher"
@@ -2754,7 +2793,7 @@ describe("stopChangeStreamWatcher", () => {
     // Calling again should be a no-op
     await stopChangeStreamWatcher();
 
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
   });
 });
 
@@ -2803,13 +2842,13 @@ describe("RealtimeApp.onServerCreated", () => {
     // Mock mongoose.connection.db for changeStreamWatcher
     const originalDb = mongoose.connection.db;
     const mockStream = {close: async () => {}, on: () => mockStream};
-    (mongoose.connection as any).db = {watch: () => mockStream};
+    setConnectionDb({watch: () => mockStream});
 
     app.onServerCreated(server);
     expect(app.getIo()).toBeDefined();
 
     await app.close();
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
   });
 });
 
@@ -2838,7 +2877,7 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
     process.env.REDIS_URL = "";
 
     const mockStream = {close: async () => {}, on: () => mockStream};
-    (mongoose.connection as any).db = {watch: () => mockStream};
+    setConnectionDb({watch: () => mockStream});
 
     const app = new RealtimeApp({
       adapter: "redis",
@@ -2851,7 +2890,7 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
 
     process.env.VALKEY_URL = originalValkey;
     process.env.REDIS_URL = originalRedis;
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
   });
 
   it("logs info when redis adapter has a URL", async () => {
@@ -2860,7 +2899,7 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
     process.env.VALKEY_URL = "redis://user:pass@localhost:6379/0";
 
     const mockStream = {close: async () => {}, on: () => mockStream};
-    (mongoose.connection as any).db = {watch: () => mockStream};
+    setConnectionDb({watch: () => mockStream});
 
     const app = new RealtimeApp({
       adapter: "redis",
@@ -2873,13 +2912,13 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
     await app.close();
 
     process.env.VALKEY_URL = originalValkey;
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
   });
 
   it("no-op adapter mode 'none'", async () => {
     const originalDb = mongoose.connection.db;
     const mockStream = {close: async () => {}, on: () => mockStream};
-    (mongoose.connection as any).db = {watch: () => mockStream};
+    setConnectionDb({watch: () => mockStream});
 
     const app = new RealtimeApp({
       adapter: "none",
@@ -2891,7 +2930,7 @@ describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () =>
     expect(app.getIo()).toBeDefined();
 
     await app.close();
-    (mongoose.connection as any).db = originalDb;
+    setConnectionDb(originalDb);
   });
 });
 
@@ -2936,10 +2975,10 @@ describe("ensureApiId", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("startChangeStreamWatcher & stopChangeStreamWatcher", () => {
-  const makeMockIo = (): any => {
-    const emissions: any[] = [];
+  const makeMockIo = (): Server & {emissions: unknown[]} => {
+    const emissions: unknown[] = [];
     const rooms = new Map<string, Set<string>>();
-    const sockets = new Map<string, any>();
+    const sockets = new Map<string, MockRoomSocket>();
     return {
       emissions,
       sockets: {
@@ -2949,7 +2988,7 @@ describe("startChangeStreamWatcher & stopChangeStreamWatcher", () => {
       to: (_room: string) => ({
         emit: (): void => {},
       }),
-    };
+    } as unknown as Server & {emissions: unknown[]};
   };
 
   afterEach(async () => {
@@ -3024,21 +3063,37 @@ describe("startChangeStreamWatcher — change event integration", () => {
     {collection: "realtimetests", strict: "throw"}
   );
 
-  let RealtimeTestModel: any;
+  interface RealtimeTestDoc {
+    deleted?: boolean;
+    name?: string;
+    ownerId?: string;
+  }
+
+  let RealtimeTestModel: Model<RealtimeTestDoc>;
   try {
     RealtimeTestModel = mongoose.model("RealtimeTest");
   } catch {
     RealtimeTestModel = mongoose.model("RealtimeTest", realtimeTestSchema);
   }
 
-  const makeTrackedIo = (): any => {
-    const emissions: any[] = [];
+  interface TrackedEmission {
+    event: string;
+    payload: RealtimeEvent;
+    room?: string;
+    socketId?: string;
+  }
+
+  const makeTrackedIo = (): Server & {
+    addSocketToRoom: (room: string, decodedToken?: DecodedRealtimeToken) => void;
+    emissions: TrackedEmission[];
+  } => {
+    const emissions: TrackedEmission[] = [];
     const rooms = new Map<string, Set<string>>();
-    const sockets = new Map<string, any>();
+    const sockets = new Map<string, MockRoomSocket>();
 
     const addSocketToRoom = (
       room: string,
-      decodedToken: {id?: string; admin?: boolean} = {admin: true, id: "admin"}
+      decodedToken: DecodedRealtimeToken = {admin: true, id: "admin"}
     ): void => {
       const socketId = `socket-${Math.random().toString(36).slice(2, 9)}`;
       if (!rooms.has(room)) {
@@ -3048,7 +3103,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
       sockets.set(socketId, {
         decodedToken,
         emit: (event: string, payload: unknown): void => {
-          emissions.push({event, payload, room, socketId});
+          emissions.push({event, payload: payload as RealtimeEvent, room, socketId});
         },
         id: socketId,
       });
@@ -3063,9 +3118,12 @@ describe("startChangeStreamWatcher — change event integration", () => {
       },
       to: (room: string) => ({
         emit: (event: string, payload: unknown): void => {
-          emissions.push({event, payload, room});
+          emissions.push({event, payload: payload as RealtimeEvent, room});
         },
       }),
+    } as unknown as Server & {
+      addSocketToRoom: (room: string, decodedToken?: DecodedRealtimeToken) => void;
+      emissions: TrackedEmission[];
     };
   };
 
@@ -3102,7 +3160,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/realtimetests",
     });
 
@@ -3116,7 +3174,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const createEmissions = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.method === "create"
+      (e) => e.event === "sync" && e.payload.method === "create"
     );
     expect(createEmissions.length).toBeGreaterThanOrEqual(1);
     await stopChangeStreamWatcher();
@@ -3138,7 +3196,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/realtimetests",
     });
 
@@ -3153,7 +3211,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const updateEmissions = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.method === "update"
+      (e) => e.event === "sync" && e.payload?.method === "update"
     );
     expect(updateEmissions.length).toBeGreaterThanOrEqual(1);
     await stopChangeStreamWatcher();
@@ -3175,7 +3233,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/realtimetests",
     });
 
@@ -3190,7 +3248,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const deleteEmissions = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.method === "delete"
+      (e) => e.event === "sync" && e.payload?.method === "delete"
     );
     expect(deleteEmissions.length).toBeGreaterThanOrEqual(1);
     await stopChangeStreamWatcher();
@@ -3212,7 +3270,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/realtimetests",
     });
 
@@ -3227,7 +3285,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const deleteEmissions = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.method === "delete"
+      (e) => e.event === "sync" && e.payload?.method === "delete"
     );
     expect(deleteEmissions.length).toBeGreaterThanOrEqual(1);
     await stopChangeStreamWatcher();
@@ -3249,7 +3307,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
           read: [() => true],
           update: [() => true],
         },
-      } as any,
+      },
       routePath: "/realtimetests",
     });
 
@@ -3266,7 +3324,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const updateEmissions = io.emissions.filter(
-      (e: any) => e.event === "sync" && e.payload?.method === "update"
+      (e) => e.event === "sync" && e.payload?.method === "update"
     );
     expect(updateEmissions.length).toBeGreaterThanOrEqual(1);
     if (updateEmissions.length > 0) {
@@ -3282,19 +3340,23 @@ describe("startChangeStreamWatcher — change event integration", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("emitToDocumentAndQueryRooms — no registry entry", () => {
-  const makeIoSimple = (): any => {
+  const makeIoSimple = (): Server & {
+    emissions: Array<{room: string; event: string; payload: unknown}>;
+  } => {
     const emissions: Array<{room: string; event: string; payload: unknown}> = [];
     return {
       emissions,
       sockets: {
-        adapter: {rooms: new Map()},
-        sockets: new Map(),
+        adapter: {rooms: new Map<string, Set<string>>()},
+        sockets: new Map<string, MockRoomSocket>(),
       },
       to: (room: string) => ({
         emit: (event: string, payload: unknown): void => {
           emissions.push({event, payload, room});
         },
       }),
+    } as unknown as Server & {
+      emissions: Array<{room: string; event: string; payload: unknown}>;
     };
   };
 
@@ -3308,7 +3370,7 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
 
   it("emits to document room via io.to when no entry is provided", async () => {
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "update",
@@ -3316,14 +3378,14 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, {}, () => {});
-    expect(io.emissions.some((e: any) => e.room === "document:items:doc-1")).toBe(true);
+    expect(io.emissions.some((e) => e.room === "document:items:doc-1")).toBe(true);
   });
 
   it("emits hard deletes to query rooms via io.to when no entry", async () => {
     const queryId = computeQueryId("items", {status: "active"});
     addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "delete",
@@ -3331,14 +3393,14 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, undefined, () => {});
-    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+    expect(io.emissions.some((e) => e.room === `query:${queryId}`)).toBe(true);
   });
 
   it("emits soft delete to query rooms via io.to when no entry and doc matches", async () => {
     const queryId = computeQueryId("items", {status: "active"});
     addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "delete",
@@ -3346,14 +3408,14 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
-    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+    expect(io.emissions.some((e) => e.room === `query:${queryId}`)).toBe(true);
   });
 
   it("emits create events to query rooms via io.to when no entry and doc matches", async () => {
     const queryId = computeQueryId("items", {status: "active"});
     addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "create",
@@ -3361,14 +3423,14 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
-    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+    expect(io.emissions.some((e) => e.room === `query:${queryId}`)).toBe(true);
   });
 
   it("emits update events to query rooms via io.to when no entry and doc matches", async () => {
     const queryId = computeQueryId("items", {status: "active"});
     addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "update",
@@ -3376,14 +3438,14 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
-    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+    expect(io.emissions.some((e) => e.room === `query:${queryId}`)).toBe(true);
   });
 
   it("emits delete to query rooms via io.to when update no longer matches and no entry", async () => {
     const queryId = computeQueryId("items", {status: "active"});
     addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
     const io = makeIoSimple();
-    const event: any = {
+    const event: RealtimeEvent = {
       collection: "items",
       id: "doc-1",
       method: "update",
@@ -3391,7 +3453,7 @@ describe("emitToDocumentAndQueryRooms — no registry entry", () => {
       timestamp: 1,
     };
     await emitToDocumentAndQueryRooms(io, "items", event, {status: "inactive"}, () => {});
-    const queryEmissions = io.emissions.filter((e: any) => e.room === `query:${queryId}`);
+    const queryEmissions = io.emissions.filter((e) => e.room === `query:${queryId}`);
     expect(queryEmissions.length).toBe(1);
     expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
   });

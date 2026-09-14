@@ -1,15 +1,22 @@
-import {afterAll, describe, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {afterAll, afterEach, describe, it, mock} from "bun:test";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
-import {Pressable, ScrollView} from "react-native";
+import {Platform, Pressable, ScrollView} from "react-native";
 
-import type {GPTChatHistory, GPTChatMessage, GPTChatProps} from "./GPTChat";
+import type {SelectedFile} from "./FilePickerButton";
+import type {GPTChatHistory, GPTChatMessage, GPTChatProps, MessageContentPart} from "./GPTChat";
 import {GPTChat} from "./GPTChat";
+import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 
 const setStringAsync = mock(async (_text: string) => {});
 mock.module("expo-clipboard", () => ({setStringAsync}));
+
+const pickedDocument = {mimeType: "text/plain", name: "notes.txt", uri: "file:///notes.txt"};
+mock.module("expo-document-picker", () => ({
+  getDocumentAsync: mock(async () => ({assets: [pickedDocument], canceled: false})),
+}));
 
 // bunSetup.ts mocks IconButton to render null; GPTChat's controls are icon buttons, so replace it
 // with a pressable stub that keeps the accessibility label and testID.
@@ -526,6 +533,45 @@ describe("GPTChat", () => {
     assert.isNull(queryByTestId("attachment-preview"));
   });
 
+  it("renders nothing for unknown content part types", () => {
+    const parts = [
+      {type: "audio", url: "https://example.com/a.mp3"},
+    ] as unknown as MessageContentPart[];
+    const {getByText, queryByText} = renderChat({
+      currentMessages: [{content: "Listen", contentParts: parts, role: "user"}],
+    });
+
+    assert.isOk(getByText("Listen"));
+    assert.isNull(queryByText("File"));
+  });
+
+  it("forwards picked files to onAttachFiles", async () => {
+    const onAttachFiles = mock((_files: SelectedFile[]) => {});
+    const {getByTestId, getByText} = renderChat({onAttachFiles});
+
+    await press(getByTestId("gpt-attach-button"));
+    await press(getByText("Document"));
+
+    await waitFor(() => {
+      assert.deepEqual(onAttachFiles.mock.calls, [[[pickedDocument]]]);
+    });
+  });
+
+  it("saves a rename only once when blur and enter both fire", async () => {
+    const onUpdateTitle = mock((_id: string, _title: string) => {});
+    const {getByTestId} = renderChat({onUpdateTitle});
+
+    await press(getByTestId("gpt-rename-history-h1"));
+    fireEvent.changeText(getByTestId("gpt-rename-input-h1"), "Renamed");
+    const input = getByTestId("gpt-rename-input-h1");
+    await act(async () => {
+      input.props.onSubmitEditing();
+      input.props.onBlur();
+    });
+
+    assert.deepEqual(onUpdateTitle.mock.calls, [["h1", "Renamed"]]);
+  });
+
   it("scrolls to the bottom when new messages arrive", () => {
     const {getByText, rerender} = renderChat({
       currentMessages: [{content: "First", role: "assistant"}],
@@ -547,5 +593,104 @@ describe("GPTChat", () => {
     );
 
     assert.isOk(getByText("Second"));
+  });
+});
+
+describe("GPTChat web keyboard submit", () => {
+  const originalOS = Platform.OS;
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  const renderOnWeb = (): {
+    handlers: Map<string, (event: Event) => void>;
+    onSubmit: ReturnType<typeof mock<(prompt: string) => void>>;
+    result: ReturnType<typeof render>;
+    removed: string[];
+  } => {
+    Platform.OS = "web";
+    const handlers = new Map<string, (event: Event) => void>();
+    const removed: string[] = [];
+    const onSubmit = mock((_prompt: string) => {});
+    const node = {
+      addEventListener: (type: string, handler: (event: Event) => void): void => {
+        handlers.set(type, handler);
+      },
+      removeEventListener: (type: string): void => {
+        removed.push(type);
+      },
+      scrollToEnd: () => {},
+    };
+    const result = render(
+      <GPTChat
+        currentMessages={[]}
+        histories={histories}
+        onCreateHistory={() => {}}
+        onDeleteHistory={() => {}}
+        onSelectHistory={() => {}}
+        onSubmit={onSubmit}
+        testID="gpt-chat"
+      />,
+      {
+        createNodeMock: () => node,
+        wrapper: ThemeProvider,
+      }
+    );
+    return {handlers, onSubmit, removed, result};
+  };
+
+  const keyEvent = (init: {
+    key: string;
+    metaKey?: boolean;
+    shiftKey?: boolean;
+  }): {
+    event: Event;
+    prevented: () => boolean;
+  } => {
+    let prevented = false;
+    const event = {
+      key: init.key,
+      metaKey: init.metaKey ?? false,
+      preventDefault: (): void => {
+        prevented = true;
+      },
+      shiftKey: init.shiftKey ?? false,
+    } as unknown as Event;
+    return {event, prevented: (): boolean => prevented};
+  };
+
+  it("submits on Enter but not on other keys or modified Enter", async () => {
+    const {handlers, onSubmit, result} = renderOnWeb();
+    const keydown = handlers.get("keydown");
+    assert.isFunction(keydown);
+
+    fireEvent.changeText(result.getByTestId("gpt-input"), "Hello there");
+
+    const other = keyEvent({key: "a"});
+    const shifted = keyEvent({key: "Enter", shiftKey: true});
+    const meta = keyEvent({key: "Enter", metaKey: true});
+    await act(async () => {
+      keydown?.(other.event);
+      keydown?.(shifted.event);
+      keydown?.(meta.event);
+    });
+    assert.isFalse(other.prevented());
+    assert.isFalse(shifted.prevented());
+    assert.isFalse(meta.prevented());
+    assert.equal(onSubmit.mock.calls.length, 0);
+
+    const enter = keyEvent({key: "Enter"});
+    await act(async () => {
+      keydown?.(enter.event);
+    });
+    assert.isTrue(enter.prevented());
+    assert.deepEqual(onSubmit.mock.calls, [["Hello there"]]);
+  });
+
+  it("removes the keydown listener on unmount", () => {
+    const {removed, result} = renderOnWeb();
+    result.unmount();
+    assert.include(removed, "keydown");
   });
 });

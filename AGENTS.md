@@ -43,8 +43,8 @@ The reusable planning plugin uses five bounded transitions:
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
-then spawns a no-context subagent to run `bun lint` in affected packages and locally
-affected tests, then pushes and watches CI. Brew also waits until
+then spawns a no-context subagent to run lint, typecheck, and locally affected tests in
+affected packages, then pushes and watches CI. Brew also waits until
 review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
 Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
@@ -242,25 +242,44 @@ const router = modelRouter(YourModel, {
 });
 ```
 
-#### Custom Routes
+#### Custom endpoints (modelRouter actions)
 
-For non-CRUD endpoints, use the OpenAPI builder:
+Do **not** use `app.get` / `app.post` / `router.get` / `router.post` for application
+APIs. Use `collectionActions` and `instanceActions` on `modelRouter`:
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {modelRouter, Permissions, z} from "@terreno/api";
 
-router.get("/yourRoute/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["yourTag"])
-    .withSummary("Brief summary")
-    .withPathParameter("id", {type: "string"})
-    .withResponse(200, {data: {type: "object"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => doc,
+    },
+  },
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+});
 ```
+
+See `docs/explanation/model-router-actions.md`. Exceptions: `WebhooksApp`, static SPA,
+auth/health/version plugins, SSE.
 
 #### API Conventions
 

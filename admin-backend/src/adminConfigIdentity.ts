@@ -12,6 +12,7 @@ const SOURCE_RANK: Record<AdminModelSource, number> = {
   registered: 2,
 };
 
+/** @internal */
 export const slugFromAdminRoutePath = (routePath: string): string => {
   const trimmed = routePath.replace(/^\/+|\/+$/g, "").replace(/\//g, "-");
   if (!trimmed) {

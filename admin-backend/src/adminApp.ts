@@ -469,6 +469,7 @@ interface ArraySchemaTypeCompatibility {
   getEmbeddedSchemaType?: () => mongoose.SchemaType | undefined;
 }
 
+/** @internal */
 export const getArrayEmbeddedSchemaType = (
   schemaPath: mongoose.SchemaType
 ): mongoose.SchemaType | undefined => {

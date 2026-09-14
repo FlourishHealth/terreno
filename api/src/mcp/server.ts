@@ -12,6 +12,7 @@ import {getAllMCPTools, type MCPToolDefinition} from "./toolGenerator";
 export interface MCPServerOptions {
   userModel: UserModel;
   betterAuth?: BetterAuthInstance;
+  mcpServiceTokens?: boolean;
 }
 
 export const mountMCPServer = (app: Application, options: MCPServerOptions): void => {
@@ -21,6 +22,7 @@ export const mountMCPServer = (app: Application, options: MCPServerOptions): voi
   }
   const authContext: MCPAuthContext = {
     betterAuth: options.betterAuth,
+    mcpServiceTokens: options.mcpServiceTokens,
     userModel: options.userModel,
   };
 

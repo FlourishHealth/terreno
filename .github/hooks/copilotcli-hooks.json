@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": ".rulesync/hooks/quality-check.sh copilotcli",
+        "timeoutSec": 300
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "bun run analyze:fast",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
-import {assert} from "chai";
 import {describe, it} from "bun:test";
+import {assert} from "chai";
 import {AREA_ORDER, TARGET_ORDER} from "../generate-roadmap/lib.ts";
 import {
   deriveAreas,
@@ -67,6 +67,13 @@ describe("validateRoadmapItem", () => {
         requireRoadmapLabel: true,
       })
     );
+  });
+
+  it("includes ready-for-dev workflow labels in the taxonomy", async () => {
+    const {knownLabels} = await loadRealTaxonomy();
+
+    assert.include(knownLabels, "status:ready-for-dev");
+    assert.include(knownLabels, "status:in-progress");
   });
 
   it("rejects a label that does not exist in the taxonomy", async () => {

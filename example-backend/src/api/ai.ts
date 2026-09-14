@@ -6,6 +6,7 @@ import {
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  GptHistory,
   getMCPTools,
   listEnabledVertexModels,
   listGeminiApiModels,
@@ -23,6 +24,8 @@ import {
   authenticateMiddleware,
   createOpenApiBuilder,
   logger,
+  modelRouter,
+  Permissions,
 } from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
@@ -231,6 +234,34 @@ const listAvailableModels = async (): Promise<SelectableModel[]> => {
   );
   return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
+
+const disabledCrud = {
+  create: [],
+  delete: [],
+  list: [],
+  read: [],
+  update: [],
+};
+
+/**
+ * Named collection action so GET `/ai/models` is registered through modelRouter,
+ * not `router.get`.
+ */
+export const aiModelsRouter = modelRouter("/ai", GptHistory, {
+  collectionActions: {
+    models: {
+      handler: async () => {
+        const models = await listAvailableModels();
+        return {models};
+      },
+      method: "GET",
+      permissions: [Permissions.IsAuthenticated],
+      summary: "List selectable AI chat models",
+      tag: "ai",
+    },
+  },
+  permissions: disabledCrud,
+});
 
 export const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
@@ -703,30 +734,6 @@ export const addAiRoutes = (
   if (vertexProvider) {
     void verifyAllowedVertexModels(vertexProvider);
   }
-
-  router.get("/ai/models", [
-    authenticateMiddleware(),
-    createOpenApiBuilder(options ?? {})
-      .withTags(["ai"])
-      .withSummary("List selectable AI chat models")
-      .withResponse(200, {
-        models: {
-          items: {
-            properties: {
-              label: {type: "string"},
-              value: {type: "string"},
-            },
-            type: "object",
-          },
-          type: "array",
-        },
-      })
-      .build(),
-    asyncHandler(async (_req, res) => {
-      const models = await listAvailableModels();
-      return res.json({models});
-    }),
-  ]);
 
   router.post("/ai/example-summarize", [
     authenticateMiddleware(),

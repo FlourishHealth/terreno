@@ -1,13 +1,16 @@
 import jwt from "jsonwebtoken";
+import {DateTime} from "luxon";
 
 import type {User, UserModel} from "../auth";
 import type {BetterAuthInstance} from "../betterAuthSetup";
 import {logger} from "../logger";
+import {McpServiceToken} from "../models/mcpServiceToken";
 import {findOneOrNoneFor} from "../plugins";
 
 export interface MCPAuthContext {
   userModel: UserModel;
   betterAuth?: BetterAuthInstance;
+  mcpServiceTokens?: boolean;
 }
 
 /**
@@ -34,9 +37,36 @@ export const extractUserFromHeaders = async (
   headers: Record<string, string | string[] | undefined>,
   context: MCPAuthContext
 ): Promise<User | undefined> => {
-  const {userModel, betterAuth} = context;
+  const {userModel, betterAuth, mcpServiceTokens} = context;
+  const authorization =
+    typeof headers.authorization === "string"
+      ? headers.authorization
+      : Array.isArray(headers.authorization)
+        ? headers.authorization[0]
+        : undefined;
+  const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : authorization;
 
-  // Try Better Auth first if configured
+  // Resolve MCP service tokens before session/JWT auth because mcp_ is a distinct credential type.
+  if (mcpServiceTokens && token?.startsWith("mcp_")) {
+    const serviceToken = await McpServiceToken.verify(token);
+    if (!serviceToken) {
+      return undefined;
+    }
+    const user = await userModel.findById(serviceToken.userId);
+    const activeUser = rejectIfDisabled(user as unknown as User | undefined, "MCP service token");
+    if (!activeUser) {
+      return undefined;
+    }
+    void McpServiceToken.updateOne(
+      {_id: serviceToken._id},
+      {$set: {lastUsedAt: DateTime.now().toJSDate()}}
+    ).catch((error) => {
+      logger.debug(`MCP service token last-used update failed: ${error}`);
+    });
+    return activeUser;
+  }
+
+  // Try Better Auth first if configured.
   if (betterAuth) {
     try {
       const session = await betterAuth.api.getSession({
@@ -58,18 +88,9 @@ export const extractUserFromHeaders = async (
   }
 
   // Try JWT auth
-  const authorization =
-    typeof headers.authorization === "string"
-      ? headers.authorization
-      : Array.isArray(headers.authorization)
-        ? headers.authorization[0]
-        : undefined;
-
   if (!authorization) {
     return undefined;
   }
-
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : authorization;
 
   if (!token) {
     return undefined;

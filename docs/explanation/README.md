@@ -16,9 +16,9 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Install agent skills](../how-to/install-agent-skills.md) — `npx skills add FlourishHealth/terreno`
 - [AI observability](ai-observability.md) — Two planes (telemetry vs control), plugins vs LangfuseApp, SOP loop
 - [AI-powered workflows](ai-workflows.md) — Autonomous documentation, testing, and maintenance workflows
-- [Authentication architecture](authentication.md) — How JWT, OAuth, and token refresh work
+- [Authentication architecture](authentication.md) — Better Auth, JWT, and optional MCP service tokens
 - [Configuration system](configuration-system.md) — Runtime configuration with database persistence
-- [Dependency management](dependency-management.md) — Dependabot, auto-merge, and security practices
+- [Dependency management](dependency-management.md) — Catalog pins, exercise tests, fingerprint freeze
 - [Modular API design](modular-api-design.md) — 🚧 Why TerrenoApp replaces setupServer
 - [modelRouter actions](model-router-actions.md) — Named collection and instance operations on modelRouter
 - [Explicit `any` policy](explicit-any-policy.md) — Require rationale markers and ratchet usage per file
@@ -30,5 +30,6 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Admin plugin frontend widgets](admin-plugin-frontend.md) — Widget IDs from backend plugins
 - [Consent admin migration](admin-consent-migration.md) — Which consent screens stay hand-written
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
+- [Example app coverage](example-coverage.md) — Which framework capabilities the example apps exercise
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
 - [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs

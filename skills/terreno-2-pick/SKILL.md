@@ -12,8 +12,9 @@ replace Roast's independent proof. Pick never skips Roast.
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
 [`pick-roast loop`](references/pick-roast-loop.md),
-[`testing guidance`](references/testing.md), and
-[`mocking guidance`](references/mocking.md).
+[`testing guidance`](references/testing.md),
+[`mocking guidance`](references/mocking.md), and
+[`subagent briefing`](references/subagent-briefing.md).
 
 ## Preconditions
 
@@ -38,8 +39,9 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 2. **Read architecture docs.** Load the current architecture and domain docs for the
    files/seams in this slice. Implement against that design; if the slice changes it,
    update those docs in the same slice.
-3. **Discover supporting skills.** Inspect available project skills for affected domains;
-   load applicable implementation, testing, documentation, safety, and runtime guidance.
+3. **Discover supporting skills.** Inspect available project skills for this slice's
+   files; load applicable implementation, testing, documentation, safety, and runtime
+   guidance. Do not load the whole catalog.
 4. **Focus retries.** Convert prior failure evidence into a hypothesis and the smallest
    safe change. Record attempted approaches; do not repeat one without new evidence.
 5. **Specify.** State one caller-visible behavior and the highest public seam that proves
@@ -50,11 +52,13 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
    narrow injected fakes at true external boundaries.
 8. **Clean the Kitchen.** Once the vertical slice is green, refactor names/structure,
    remove debug/dead code, and rerun the affected repository-prescribed checks.
-9. **Review independently.** In fresh contexts, run:
+9. **Review independently.** Build one task-scoped briefing (criteria, file list, this
+   slice's patch). In fresh contexts, give **that briefing** to:
    - implementation/spec review
    - test-quality review (public behavior, independent expected values, realistic
      boundaries, no leaky/global test doubles)
-   Fix material findings and rerun affected checks.
+   Do not let each reviewer rediscover skills or diff the whole branch. Fix material
+   findings and rerun affected checks.
 10. **Check drift, docs, and runtime.** Compare the diff to the current task/IP. Update
     architecture and public docs in this slice using the documentation contract. Run any
     mandatory runtime/UI/safety verification declared by repository instructions or
@@ -62,8 +66,10 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
     Missing docs for a user-visible or architectural change is `FAIL`.
 11. **Record.** Mark only the completed task/slice, update execution state with commands,
     evidence, artifacts, docs files, and attempts.
-12. **Prove this task.** Invoke Roast to prove this task only. Prefer a fresh context.
-    Roast must return after classifying this task. Roast never invokes Pick. Do not start the next task until Roast PASS.
+12. **Prove this task.** Invoke Roast to prove this task only. Prefer a fresh context
+    and pass the same task-scoped briefing. Roast must not spawn two unconstrained
+    reviewers. Roast must return after classifying this task. Roast never invokes Pick.
+    Do not start the next task until Roast PASS.
     Exactly one driver continues — that driver is this Pick.
 13. **Continue or stop.** After Roast `PASS`, if unblocked incomplete tasks remain,
     reconstruct the next frontier task and repeat from Reconstruct so architecture docs

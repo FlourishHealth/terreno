@@ -12,6 +12,8 @@ Set `AUTH_PROVIDER=better-auth` and register `BetterAuthApp` on the server. On t
 
 Both systems can run in parallel during migration (`AUTH_PROVIDER` selects the primary path; legacy JWT routes stay available).
 
+**MCP service tokens** are a third, opt-in credential. They authenticate the consumer app's `POST /mcp` only. They are not Better Auth sessions, not JWTs, and not a REST personal-access-token. Enable them with `mcpServiceTokens` on `TerrenoApp`. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
 ## When to choose which
 
 | Choose Better Auth | Stay on JWT (legacy) |
@@ -91,6 +93,16 @@ OAuth 2.0 authentication with GitHub.
 - Users must have a password set before unlinking GitHub
 
 **Learn more:** [How to add GitHub OAuth](../how-to/add-github-oauth.md)
+
+### MCP service tokens (opt-in, `/mcp` only)
+
+Personal `mcp_` keys for remote MCP clients (Perplexity, Cursor JSON config) that cannot hold a session cookie. `TerrenoApp` must set `mcpServiceTokens`. Users mint keys from `POST /mcp/service-tokens` or **Profile → MCP connections**. The plaintext secret is returned **once**; the database stores SHA-256 `tokenHash`.
+
+`extractUserFromHeaders` on `/mcp` tries a `mcp_` Bearer first, then Better Auth, then JWT. A match loads the owning `User` and updates `lastUsedAt`. Revoked, expired, or disabled-user keys resolve to no user. The same Bearer is ignored on REST, sync, admin, and on the mint/list/revoke routes (a key cannot mint another key).
+
+This is not OAuth 2.1. Interactive MCP clients that cannot send a static key wait for the app MCP OAuth work ([app MCP server](../implementationPlans/app-mcp-server.md)). It is also not the hosted `@terreno/mcp` codegen server ([MCP server reference](../reference/mcp-server.md)).
+
+**Learn more:** [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md)
 
 ### Anonymous Strategy (JWT — legacy)
 
@@ -284,7 +296,7 @@ modelRouter(Model, {
 ❌ **Don't:**
 - Store tokens in localStorage on web (use httpOnly cookies in production)
 - Log tokens to console
-- Send tokens in URL query parameters
+- Send tokens in URL query parameters (MCP service tokens included)
 - Ignore token refresh failures
 
 ## Environment Variables

@@ -160,6 +160,90 @@ describe("twilioSignature", () => {
 
     assert.equal(res.status, 401);
   });
+
+  it("resolves the callback url from a function", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/twilio/status",
+      source: "twilio",
+      verify: twilioSignature({
+        authToken: TWILIO_TOKEN,
+        url: (req) => `https://api.example.com${req.originalUrl}`,
+      }),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/twilio/status")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set(
+        "X-Twilio-Signature",
+        twilioHeader({
+          body: TWILIO_BODY,
+          url: "https://api.example.com/comms/webhooks/twilio/status",
+        })
+      )
+      .send(TWILIO_BODY);
+
+    assert.equal(res.status, 200);
+  });
+
+  it("rejects when no callback url is configured", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/twilio/status",
+      source: "twilio",
+      verify: twilioSignature({authToken: TWILIO_TOKEN}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/twilio/status")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("X-Twilio-Signature", twilioHeader({body: TWILIO_BODY, url: TWILIO_URL}))
+      .send(TWILIO_BODY);
+
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects when an empty url is configured", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/twilio/status",
+      source: "twilio",
+      verify: twilioSignature({authToken: TWILIO_TOKEN, url: ""}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/twilio/status")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("X-Twilio-Signature", twilioHeader({body: TWILIO_BODY, url: TWILIO_URL}))
+      .send(TWILIO_BODY);
+
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects a missing signature header", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/twilio/status",
+      source: "twilio",
+      verify: twilioSignature({authToken: TWILIO_TOKEN, url: TWILIO_URL}),
+    });
+    const res = await supertest(app)
+      .post("/comms/webhooks/twilio/status")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .send(TWILIO_BODY);
+
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects repeated form fields that do not decode to strings", async () => {
+    const app = buildApp({
+      path: "/comms/webhooks/twilio/status",
+      source: "twilio",
+      verify: twilioSignature({authToken: TWILIO_TOKEN, url: TWILIO_URL}),
+    });
+    const body = "MessageSid=SM123&MessageSid=SM456";
+    const res = await supertest(app)
+      .post("/comms/webhooks/twilio/status")
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .set("X-Twilio-Signature", twilioHeader({body, url: TWILIO_URL}))
+      .send(body);
+
+    assert.equal(res.status, 401);
+  });
 });
 
 describe("sendgridEventSignature", () => {
