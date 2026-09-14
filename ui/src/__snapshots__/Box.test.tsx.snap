@@ -49,10 +49,7 @@ exports[`Box snapshots should match snapshot with clickable props 1`] = `
     "onPointerEnter": [Function: AsyncFunction],
     "onPointerLeave": [Function: AsyncFunction],
     "onPress": [Function: AsyncFunction],
-    "style": {
-      "accessibilityHint": "Tap to trigger action",
-      "accessibilityLabel": "Click me",
-    },
+    "style": {},
     "testID": undefined,
   },
   "type": "Pressable",
@@ -69,9 +66,7 @@ exports[`Box snapshots should match snapshot with scroll enabled 1`] = `
       "props": {
         "onPointerEnter": [Function: AsyncFunction],
         "onPointerLeave": [Function: AsyncFunction],
-        "style": {
-          "scroll": true,
-        },
+        "style": {},
         "testID": undefined,
       },
       "type": "View",
@@ -91,9 +86,7 @@ exports[`Box snapshots should match snapshot with scroll enabled 1`] = `
       "current": null,
     },
     "scrollEventThrottle": 50,
-    "style": {
-      "scroll": true,
-    },
+    "style": {},
   },
   "type": "ScrollView",
 }
@@ -112,9 +105,7 @@ exports[`Box snapshots should match snapshot with keyboard avoidance 1`] = `
           "props": {
             "onPointerEnter": [Function: AsyncFunction],
             "onPointerLeave": [Function: AsyncFunction],
-            "style": {
-              "avoidKeyboard": true,
-            },
+            "style": {},
             "testID": undefined,
           },
           "type": "View",

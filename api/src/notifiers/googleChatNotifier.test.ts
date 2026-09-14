@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/bun";
 import type {AxiosResponse} from "axios";
 import axios from "axios";
 
-import type {APIError} from "../errors";
+import {type APIError, isAPIError} from "../errors";
 import {sendToGoogleChat} from "./googleChatNotifier";
 
 describe("sendToGoogleChat", () => {
@@ -98,7 +98,7 @@ describe("sendToGoogleChat", () => {
       await sendToGoogleChat("err", {shouldThrow: true});
       throw new Error("Expected sendToGoogleChat to throw APIError");
     } catch (error) {
-      expect((error as APIError).name).toBe("APIError");
+      expect(isAPIError(error)).toBe(true);
       expect((error as APIError).title).toMatch(/Error posting to Google Chat/i);
     }
     expect(mockAxiosPost.mock.calls.length).toBe(1);

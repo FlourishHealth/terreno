@@ -95,6 +95,7 @@ describe("BetterAuthApp", () => {
     });
 
     expect(() => plugin.register(app)).not.toThrow();
+    expect(plugin.getBetterAuthBasePath()).toBe("/custom/auth");
   });
 
   it("registers with social providers", async () => {

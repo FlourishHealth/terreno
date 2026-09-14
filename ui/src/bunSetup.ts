@@ -20,6 +20,19 @@ type EasingFn = (t: number) => number;
 type MockColor = string | number | null | undefined;
 type MockAssetSource = {height?: number; uri?: string; width?: number} | null | undefined;
 
+// Expo SDK 56 vendors react-navigation's elements into expo-router, and those modules import
+// PNG icon assets directly. Metro resolves images to asset descriptors, but the bun test runner
+// tries to parse them as source, so serve a Metro-shaped descriptor instead.
+Bun.plugin({
+  name: "image-asset-stub",
+  setup(build) {
+    build.onLoad({filter: /\.(png|jpe?g|gif|webp|svg|ttf|otf)$/}, () => ({
+      exports: {default: {height: 1, uri: "test-asset", width: 1}},
+      loader: "object",
+    }));
+  },
+});
+
 // Set environment variables
 process.env.TZ = "America/New_York";
 process.env.EXPO_OS = "ios";
@@ -31,6 +44,178 @@ const rnGlobals = globalThis as typeof globalThis & {
 };
 rnGlobals.__DEV__ = true;
 rnGlobals.__BUNDLE_START_TIME__ = Date.now();
+
+type MockFlatListRenderItemInfo = {
+  item: unknown;
+  index: number;
+  separators: {highlight: () => void; unhighlight: () => void};
+};
+
+type MockFlatListProps = MockComponentProps & {
+  data?: unknown[];
+  renderItem?: (info: MockFlatListRenderItemInfo) => React.ReactNode;
+  keyExtractor?: (item: unknown, index: number) => string;
+  getItemLayout?: (
+    data: unknown[] | null | undefined,
+    index: number
+  ) => {length: number; offset: number; index: number};
+  initialNumToRender?: number;
+  maxToRenderPerBatch?: number;
+  windowSize?: number;
+  onScroll?: (event: {nativeEvent: {contentOffset: {x: number; y: number}}}) => void;
+};
+
+const DEFAULT_FLAT_LIST_VIEWPORT_HEIGHT = 400;
+
+const getMockFlatListRenderedRange = ({
+  dataLength,
+  itemHeight,
+  initialNumToRender,
+  scrollOffsetY,
+  viewportHeight,
+  windowSize,
+}: {
+  dataLength: number;
+  itemHeight: number;
+  initialNumToRender: number;
+  scrollOffsetY: number;
+  viewportHeight: number;
+  windowSize: number;
+}): {end: number; start: number} => {
+  if (dataLength === 0) {
+    return {end: 0, start: 0};
+  }
+
+  const visibleRowCount = Math.max(1, Math.ceil(viewportHeight / itemHeight));
+  const overscanRows = Math.max(1, Math.floor(windowSize * visibleRowCount));
+
+  if (scrollOffsetY <= 0) {
+    return {
+      end: Math.min(dataLength, initialNumToRender),
+      start: 0,
+    };
+  }
+
+  const firstVisibleRow = Math.floor(scrollOffsetY / itemHeight);
+  const start = Math.max(0, firstVisibleRow - overscanRows);
+  const end = Math.min(dataLength, firstVisibleRow + visibleRowCount + overscanRows);
+  return {end: Math.max(end, start), start};
+};
+
+const createMockFlatListScrollRef = (
+  onScroll?: MockFlatListProps["onScroll"],
+  setScrollOffsetY?: (offsetY: number) => void,
+  getItemLayout?: MockFlatListProps["getItemLayout"],
+  data?: unknown[]
+) => {
+  const scrollTo = ({x = 0, y = 0}: {animated?: boolean; x?: number; y?: number}) => {
+    setScrollOffsetY?.(y);
+    onScroll?.({
+      nativeEvent: {
+        contentOffset: {x, y},
+      },
+    });
+  };
+  const scrollToOffset = ({offset, animated: _animated}: {offset: number; animated?: boolean}) => {
+    scrollTo({y: offset});
+  };
+  const scrollToIndex = ({index, animated: _animated}: {index: number; animated?: boolean}) => {
+    const layout = getItemLayout?.(data, index);
+    const itemHeight = layout?.length ?? 54;
+    scrollToOffset({offset: layout?.offset ?? index * itemHeight});
+  };
+  return {
+    scrollTo,
+    scrollToIndex,
+    scrollToOffset,
+  };
+};
+
+const createSimpleFlatList = () => {
+  return React.forwardRef(function SimpleFlatList(props: MockFlatListProps, ref) {
+    const {data, renderItem, keyExtractor, onScroll, ...restProps} = props;
+    const scrollRef = createMockFlatListScrollRef(onScroll);
+    React.useImperativeHandle(ref, () => ({
+      ...scrollRef,
+      _listRef: {_scrollRef: scrollRef},
+      _scrollRef: scrollRef,
+    }));
+
+    const separators = {highlight: () => {}, unhighlight: () => {}};
+    return React.createElement(
+      "FlatList",
+      restProps,
+      data?.map((item: unknown, index: number) => {
+        const element = renderItem?.({index, item, separators});
+        const key = keyExtractor?.(item, index) ?? String(index);
+        return React.createElement(React.Fragment, {key}, element);
+      })
+    );
+  });
+};
+
+const createVirtualizedFlatList = (): React.ForwardRefExoticComponent<
+  MockFlatListProps & React.RefAttributes<unknown>
+> =>
+  React.forwardRef(function VirtualizedFlatList(props, ref) {
+    const {
+      data,
+      renderItem,
+      keyExtractor,
+      getItemLayout,
+      initialNumToRender = 10,
+      windowSize = 21,
+      onScroll,
+      ...restProps
+    } = props;
+    const [scrollOffsetY, setScrollOffsetY] = React.useState(0);
+    const dataLength = data?.length ?? 0;
+    const itemHeight = getItemLayout?.(data, 0)?.length ?? 54;
+    const shouldVirtualize = Boolean(getItemLayout && dataLength > 100);
+    const {end, start} = shouldVirtualize
+      ? getMockFlatListRenderedRange({
+          dataLength,
+          initialNumToRender,
+          itemHeight,
+          scrollOffsetY,
+          viewportHeight: DEFAULT_FLAT_LIST_VIEWPORT_HEIGHT,
+          windowSize,
+        })
+      : {end: dataLength, start: 0};
+
+    const scrollRef = createMockFlatListScrollRef(onScroll, setScrollOffsetY, getItemLayout, data);
+
+    React.useImperativeHandle(ref, () => ({
+      ...scrollRef,
+      _listRef: {_scrollRef: scrollRef},
+      _scrollRef: scrollRef,
+    }));
+
+    const separators = {highlight: () => {}, unhighlight: () => {}};
+    const children = data?.slice(start, end).map((item: unknown, relativeIndex: number) => {
+      const index = start + relativeIndex;
+      const element = renderItem?.({index, item, separators});
+      const key = keyExtractor?.(item, index) ?? String(index);
+      return React.createElement(React.Fragment, {key}, element);
+    });
+
+    return React.createElement("FlatList", restProps, children);
+  });
+
+const VirtualizedFlatList = createVirtualizedFlatList();
+const SimpleFlatList = createSimpleFlatList();
+
+const shouldUseVirtualizedFlatList = (props: MockFlatListProps): boolean => {
+  const dataLength = props.data?.length ?? 0;
+  return Boolean(props.getItemLayout && dataLength > 100);
+};
+
+const FlatListRouter = React.forwardRef(function FlatListRouter(props, ref) {
+  if (shouldUseVirtualizedFlatList(props)) {
+    return React.createElement(VirtualizedFlatList, {...props, ref});
+  }
+  return React.createElement(SimpleFlatList, {...props, ref});
+});
 
 // Mock react-native to avoid Flow type errors
 mock.module("react-native", () => {
@@ -50,23 +235,7 @@ mock.module("react-native", () => {
     React.createElement("ImageBackground", props, children);
   const ActivityIndicator = (props: MockComponentProps) =>
     React.createElement("ActivityIndicator", props);
-  const FlatList = ({
-    data,
-    renderItem,
-    keyExtractor,
-    ...props
-  }: MockComponentProps & {
-    data?: unknown[];
-    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
-    keyExtractor?: (item: unknown, index: number) => string;
-  }) =>
-    React.createElement(
-      "FlatList",
-      props,
-      data?.map((item: unknown, index: number) =>
-        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
-      )
-    );
+  const FlatList = FlatListRouter;
   const SectionList = (props: MockComponentProps) => React.createElement("SectionList", props);
   const KeyboardAvoidingView = ({children, ...props}: MockComponentProps) =>
     React.createElement("KeyboardAvoidingView", props, children);
@@ -227,6 +396,10 @@ mock.module("react-native", () => {
     addChangeListener: mock(() => ({remove: mock(() => {})})),
     getColorScheme: mock(() => "light"),
   };
+  const AppState = {
+    addEventListener: mock(() => ({remove: mock(() => {})})),
+    currentState: "active",
+  };
   const Vibration = {
     cancel: mock(() => {}),
     vibrate: mock(() => {}),
@@ -303,9 +476,12 @@ mock.module("react-native", () => {
   };
   const UIManager = {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   };
-  const findNodeHandle = mock(() => null);
+  // Node handles are opaque numbers in React Native; pass them through so code that
+  // measures the currently focused field can be exercised in tests.
+  const findNodeHandle = mock((node: unknown) => (typeof node === "number" ? node : null));
   const requireNativeComponent = mock((name: string) => name);
   const TurboModuleRegistry = {
     get: mock(() => null),
@@ -359,6 +535,7 @@ mock.module("react-native", () => {
     Alert,
     Animated,
     Appearance,
+    AppState,
     BackHandler,
     Dimensions,
     default: {
@@ -367,6 +544,7 @@ mock.module("react-native", () => {
       Alert,
       Animated,
       Appearance,
+      AppState,
       BackHandler,
       Dimensions,
       Easing,
@@ -548,12 +726,12 @@ mock.module("@react-native-async-storage/async-storage", () => ({
   setItem: mock(() => Promise.resolve()),
 }));
 
-// Mock react-native-portalize. The real `Host` wraps children in an extra View
+// Mock the portal host. The real `Host` wraps children in an extra View
 // whose presence makes snapshots brittle, and individual tests already mock
 // this to render inline; hoisting the mock to setup keeps test ordering from
 // leaking different shapes into other test files. Shape matches the per-file
 // mock used by Tooltip.test.tsx so the two don't disagree.
-mock.module("react-native-portalize", () => ({
+mock.module("./PortalHost", () => ({
   Host: ({children}: MockComponentProps) =>
     React.createElement("View", {testID: "portal-host"}, children),
   Portal: ({children}: MockComponentProps) =>
@@ -609,9 +787,61 @@ mock.module("@expo-google-fonts/titillium-web", () => ({
   useFonts: mock(() => [true, null]),
 }));
 
+// Mock the signature font packages used by TypedSignatureField. The real packages import .ttf
+// assets, which the bun test runner cannot parse, so stub each exported font module as a string.
+mock.module("@expo-google-fonts/dancing-script", () => ({
+  DancingScript_400Regular: "DancingScript_400Regular",
+  DancingScript_500Medium: "DancingScript_500Medium",
+  DancingScript_600SemiBold: "DancingScript_600SemiBold",
+  DancingScript_700Bold: "DancingScript_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/great-vibes", () => ({
+  GreatVibes_400Regular: "GreatVibes_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/sacramento", () => ({
+  Sacramento_400Regular: "Sacramento_400Regular",
+  useFonts: mock(() => [true, null]),
+}));
+
+mock.module("@expo-google-fonts/caveat", () => ({
+  Caveat_400Regular: "Caveat_400Regular",
+  Caveat_500Medium: "Caveat_500Medium",
+  Caveat_600SemiBold: "Caveat_600SemiBold",
+  Caveat_700Bold: "Caveat_700Bold",
+  useFonts: mock(() => [true, null]),
+}));
+
 // Mock DateTimeActionSheet
 mock.module("./DateTimeActionSheet", () => ({
   DateTimeActionSheet: mock(() => null),
+}));
+
+// Mock react-native-actions-sheet so the native Modal branch is testable. The real component
+// defers rendering until opened via native animation (which react-test-renderer never triggers),
+// so the mock tracks the imperative visibility state instead: it renders its children
+// synchronously when opened via the ref (setModalVisible/show) and renders nothing when closed.
+// This keeps opened content assertable while still letting tests verify the closed/hidden state.
+mock.module("react-native-actions-sheet", () => ({
+  __esModule: true,
+  default: React.forwardRef(function ActionSheetMock(
+    {children}: {children?: React.ReactNode},
+    ref: React.Ref<unknown>
+  ) {
+    const [isVisible, setIsVisible] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({
+      hide: () => setIsVisible(false),
+      setModalVisible: (visible?: boolean) => setIsVisible(Boolean(visible)),
+      show: () => setIsVisible(true),
+    }));
+    if (!isVisible) {
+      return null;
+    }
+    return React.createElement("ActionSheetMock", {}, children);
+  }),
 }));
 
 // Mock MediaQuery
@@ -701,6 +931,11 @@ mock.module("@expo/vector-icons", () => ({
 
 // Mock @expo/vector-icons/FontAwesome6
 mock.module("@expo/vector-icons/FontAwesome6", () => ({
+  default: mock(() => null),
+}));
+
+// Mock @expo/vector-icons/MaterialIcons
+mock.module("@expo/vector-icons/MaterialIcons", () => ({
   default: mock(() => null),
 }));
 
@@ -975,21 +1210,7 @@ mock.module("react-native/Libraries/Components/Switch/Switch", () => ({
 }));
 
 mock.module("react-native/Libraries/Lists/FlatList", () => ({
-  default: ({
-    data,
-    renderItem,
-    ...props
-  }: MockComponentProps & {
-    data?: unknown[];
-    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
-  }) =>
-    React.createElement(
-      "FlatList",
-      props,
-      data?.map((item: unknown, index: number) =>
-        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
-      )
-    ),
+  default: FlatListRouter,
 }));
 
 mock.module("react-native/Libraries/Lists/SectionList", () => ({
@@ -1060,12 +1281,13 @@ mock.module("react-native/Libraries/LayoutAnimation/LayoutAnimation", () => ({
 mock.module("react-native/Libraries/ReactNative/UIManager", () => ({
   default: {
     getViewManagerConfig: mock(() => ({})),
+    measure: mock(() => {}),
     setLayoutAnimationEnabledExperimental: mock(() => {}),
   },
 }));
 
 mock.module("react-native/Libraries/Renderer/shims/ReactNative", () => ({
-  findNodeHandle: mock(() => null),
+  findNodeHandle: mock((node: unknown) => (typeof node === "number" ? node : null)),
 }));
 
 mock.module("react-native/Libraries/Components/StatusBar/StatusBar", () => ({

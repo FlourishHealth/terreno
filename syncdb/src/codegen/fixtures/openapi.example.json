@@ -1,0 +1,94 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Example", "version": "1.0.0"},
+  "paths": {
+    "/todos": {
+      "get": {
+        "x-terreno-sync": {"collection": "todos", "scope": "owner"},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Todo"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CreateTodoBody"}
+            }
+          }
+        }
+      }
+    },
+    "/todos/{id}": {
+      "get": {},
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/UpdateTodoBody"}
+            }
+          }
+        }
+      },
+      "delete": {}
+    },
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Todo": {
+        "type": "object",
+        "required": ["_id", "title", "completed", "ownerId", "created", "updated"],
+        "properties": {
+          "_id": {"type": "string"},
+          "title": {"type": "string"},
+          "completed": {"type": "boolean"},
+          "ownerId": {"type": "string"},
+          "created": {"type": "string"},
+          "updated": {"type": "string"}
+        }
+      },
+      "CreateTodoBody": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string"},
+          "completed": {"type": "boolean"}
+        }
+      },
+      "UpdateTodoBody": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "completed": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

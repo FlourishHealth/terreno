@@ -1,6 +1,9 @@
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {withQueryString} from "./adminRpc";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcQuery} from "./useAdminRpc";
 
 /** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
 interface PickerItem {
@@ -23,6 +26,9 @@ interface AdminObjectPickerProps {
   errorText?: string;
   helperText?: string;
   readOnly?: boolean;
+  /** When true, search as the user types; otherwise prefetch the first page on open. */
+  autocomplete?: boolean;
+  testID?: string;
 }
 
 const DISPLAY_FIELDS = ["name", "title", "email", "label", "displayName"] as const;
@@ -67,6 +73,8 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   errorText,
   helperText,
   readOnly,
+  autocomplete = false,
+  testID,
 }) => {
   const [searchText, setSearchText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +94,24 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 
   const searchEndpointKey = `adminSearch_${refModelName}`;
   const readEndpointKey = `adminSearchRead_${refModelName}`;
+  const listEndpointKey = `adminPickerList_${refModelName}`;
+
+  const rpc = useAdminRpc();
+  const searchFetch = useAdminRpcQuery<{data?: PickerItem[]} | PickerItem[]>({
+    rpc,
+    skip: !rpc || !autocomplete || !debouncedQuery,
+    url: withQueryString({params: {q: debouncedQuery}, url: `${routePath}/search`}),
+  });
+  const listFetch = useAdminRpcQuery<{data?: PickerItem[]} | PickerItem[]>({
+    rpc,
+    skip: !rpc || autocomplete || !isOpen,
+    url: withQueryString({params: {limit: 100, page: 1}, url: routePath}),
+  });
+  const readFetch = useAdminRpcQuery<PickerItem>({
+    rpc,
+    skip: !rpc || !value,
+    url: `${routePath}/${value}`,
+  });
 
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
@@ -103,26 +129,43 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
             url: `${routePath}/${id}`,
           }),
         }),
+        [listEndpointKey]: build.query({
+          query: () => ({
+            method: "GET",
+            params: {limit: 100, page: 1},
+            url: routePath,
+          }),
+        }),
       }),
       overrideExisting: true,
     });
-  }, [api, routePath, searchEndpointKey, readEndpointKey]);
+  }, [api, routePath, searchEndpointKey, readEndpointKey, listEndpointKey]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   const useSearchQuery = enhanced[`use${capitalize(searchEndpointKey)}Query`];
   const useReadQuery = enhanced[`use${capitalize(readEndpointKey)}Query`];
+  const useListQuery = enhanced[`use${capitalize(listEndpointKey)}Query`];
 
-  const {data: searchData, isFetching: isSearching} = useSearchQuery(debouncedQuery, {
-    skip: !debouncedQuery,
+  const {data: searchDataRtk, isFetching: isSearchingRtk} = useSearchQuery(debouncedQuery, {
+    skip: Boolean(rpc) || !autocomplete || !debouncedQuery,
+  });
+
+  const {data: listDataRtk, isFetching: isListLoadingRtk} = useListQuery(undefined, {
+    skip: Boolean(rpc) || autocomplete || !isOpen,
   });
 
   // Fetch the currently selected item to display its name
-  const {data: selectedItem, isLoading: isSelectedLoading} = useReadQuery(value, {
-    skip: !value,
+  const {data: selectedItemRtk, isLoading: isSelectedLoadingRtk} = useReadQuery(value, {
+    skip: Boolean(rpc) || !value,
   });
+
+  const searchData = rpc ? searchFetch.data : searchDataRtk;
+  const isSearching = rpc ? searchFetch.isFetching : isSearchingRtk;
+  const listData = rpc ? listFetch.data : listDataRtk;
+  const isListLoading = rpc ? listFetch.isFetching : isListLoadingRtk;
+  const selectedItem = rpc ? readFetch.data : selectedItemRtk;
+  const isSelectedLoading = rpc ? readFetch.isLoading : isSelectedLoadingRtk;
 
   // Update display when selected item loads
   useEffect(() => {
@@ -173,9 +216,23 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 
   // emptyApi unwraps `{data: T}` unless the body has `more` (paginated list). Search returns only
   // `{data: [...]}`, so `searchData` is already the result array.
-  const results = Array.isArray(searchData)
+  const searchResults = Array.isArray(searchData)
     ? searchData
     : ((searchData as {data?: unknown[]} | undefined)?.data ?? []);
+
+  const listPayload = listData as {data?: PickerItem[]} | undefined;
+  const listItems: PickerItem[] = listPayload?.data ?? [];
+
+  const normalizedQuery = searchText.trim().toLowerCase();
+  const prefetchResults =
+    normalizedQuery.length === 0
+      ? listItems
+      : listItems.filter((item: PickerItem) =>
+          getDisplayValue(item).toLowerCase().includes(normalizedQuery)
+        );
+
+  const results = autocomplete ? searchResults : prefetchResults;
+  const isResultsLoading = autocomplete ? isSearching : isListLoading;
 
   if (readOnly) {
     const roValue =
@@ -225,10 +282,10 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
       ) : (
         <TextField
           errorText={errorText}
-          helperText={isOpen ? "Type to search" : helperText}
+          helperText={isOpen ? (autocomplete ? "Type to search" : "Pick from list") : helperText}
           onChange={handleSearchChange}
           onFocus={() => setIsOpen(true)}
-          testID={`admin-picker-${refModelName}-search`}
+          testID={testID ?? `admin-picker-${refModelName}-search`}
           title={title}
           value={searchText}
         />
@@ -236,13 +293,13 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 
       {isOpen && (
         <Box border="default" maxHeight={250} overflow="scrollY" rounding="md">
-          {isSearching && (
+          {isResultsLoading && (
             <Box alignItems="center" padding={3}>
               <Spinner />
             </Box>
           )}
 
-          {!isSearching && debouncedQuery && results.length === 0 && (
+          {!isResultsLoading && autocomplete && debouncedQuery && results.length === 0 && (
             <Box padding={3}>
               <Text color="secondaryDark" size="sm">
                 No results found
@@ -250,7 +307,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
             </Box>
           )}
 
-          {!isSearching &&
+          {!isResultsLoading &&
             (results as PickerItem[]).map((item) => {
               const primaryField = getPrimaryField(item);
               const secondary = getSecondaryText(item, primaryField);
@@ -276,10 +333,18 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
               );
             })}
 
-          {!isSearching && !debouncedQuery && (
+          {!isResultsLoading && autocomplete && !debouncedQuery && (
             <Box padding={3}>
               <Text color="secondaryDark" size="sm">
                 Start typing to search
+              </Text>
+            </Box>
+          )}
+
+          {!isResultsLoading && !autocomplete && results.length === 0 && (
+            <Box padding={3}>
+              <Text color="secondaryDark" size="sm">
+                No items available
               </Text>
             </Box>
           )}

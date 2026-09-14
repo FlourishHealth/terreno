@@ -16,7 +16,7 @@ import {
   TextAreaFieldStory,
   TextFieldStory,
   URLFieldStory,
-} from "@stories";
+} from "@stories/Field.stories";
 import {Field} from "@terreno/ui";
 
 export const FieldConfiguration: DemoConfiguration = {

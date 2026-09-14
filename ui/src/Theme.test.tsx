@@ -1,5 +1,6 @@
 import {describe, expect, it} from "bun:test";
 import {act, render} from "@testing-library/react-native";
+import {assert} from "chai";
 import {Text, View} from "react-native";
 
 import {ThemeProvider, useTheme} from "./Theme";
@@ -38,6 +39,32 @@ describe("Theme", () => {
       expect(getByTestId("surface-base").children[0]).toBe("#FFFFFF");
       // Default text.primary is neutral900 which maps to #1C1C1C
       expect(getByTestId("text-primary").children[0]).toBe("#1C1C1C");
+    });
+
+    it("keeps context actions stable across parent rerenders", () => {
+      const capturedValues: ThemeContextValue[] = [];
+      const Capture = (): null => {
+        capturedValues.push(useTheme());
+        return null;
+      };
+      const result = render(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      const initialValue = capturedValues.at(-1);
+
+      result.rerender(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      const rerenderedValue = capturedValues.at(-1);
+
+      assert.strictEqual(rerenderedValue?.resetTheme, initialValue?.resetTheme);
+      assert.strictEqual(rerenderedValue?.setPrimitives, initialValue?.setPrimitives);
+      assert.strictEqual(rerenderedValue?.setTheme, initialValue?.setTheme);
+      assert.strictEqual(rerenderedValue?.theme, initialValue?.theme);
     });
   });
 

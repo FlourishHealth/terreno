@@ -2,7 +2,6 @@
 // we can add extra tags to endpoints.
 
 import {generateTags, realtimeDocument, realtimeList} from "@terreno/rtk";
-import startCase from "lodash/startCase";
 
 import {addTagTypes, openapi} from "./openApiSdk";
 
@@ -41,10 +40,13 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  emailVerified?: boolean;
+  permissions?: Record<string, readonly string[]>;
+  roles?: string[];
 }
 
 // AI Request Explorer types
-export interface AIRequestExplorerItem {
+interface AIRequestExplorerItem {
   _id: string;
   aiModel: string;
   created: string;
@@ -75,7 +77,7 @@ export interface AIRequestExplorerParams {
 }
 
 // Selectable AI chat model option returned by GET /ai/models
-export interface AiModelOption {
+interface AiModelOption {
   label: string;
   value: string;
 }
@@ -96,9 +98,76 @@ export interface SetAdminUserPasswordRequest {
   password: string;
 }
 
+// GptHistory endpoints are hand-maintained: nested modelRouter mounts under /gpt/histories
+// are not always present in the generated OpenAPI SDK after regen.
+interface GptHistoryPrompt {
+  args?: Record<string, unknown>;
+  content?: Array<{
+    filename?: string;
+    mimeType?: string;
+    text?: string;
+    type: string;
+    url?: string;
+  }>;
+  model?: string;
+  result?: unknown;
+  text: string;
+  toolCallId?: string;
+  toolName?: string;
+  type: "assistant" | "system" | "tool-call" | "tool-result" | "user";
+}
+
+export interface GptHistory {
+  _id: string;
+  created: string;
+  id: string;
+  prompts: GptHistoryPrompt[];
+  title?: string;
+  updated: string;
+  userId: string;
+}
+
+export interface GptHistoriesListResponse {
+  data: GptHistory[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+}
+
+export interface GptHistoryResponse {
+  data: GptHistory;
+}
+
+export interface CreateGptHistoryBody {
+  prompts?: GptHistoryPrompt[];
+  title?: string;
+}
+
+export interface UpdateGptHistoryBody {
+  prompts?: GptHistoryPrompt[];
+  title?: string;
+}
+
+export interface GetGptHistoriesArgs {
+  limit?: number;
+  page?: number;
+  sort?: string;
+}
+
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
+      deleteGptHistoriesById: builder.mutation<void, {id: string}>({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: ({id}) => ({
+          method: "DELETE",
+          url: `/gpt/histories/${id}`,
+        }),
+      }),
       // Selectable AI chat models (derived from backend config + Vertex enabled-model check)
       getAiModels: builder.query<AiModelsResponse, void>({
         query: () => ({
@@ -117,12 +186,47 @@ export const terrenoApi = openapi
           url: "/aiRequestsExplorer",
         }),
       }),
+      getGptHistories: builder.query<GptHistoriesListResponse, GetGptHistoriesArgs | undefined>({
+        providesTags: (result) =>
+          result?.data
+            ? [
+                ...result.data.map(({id}) => ({id, type: "gptHistories" as const})),
+                {id: "LIST", type: "gptHistories" as const},
+              ]
+            : [{id: "LIST", type: "gptHistories" as const}],
+        query: (args) => ({
+          params: {
+            limit: args?.limit,
+            page: args?.page,
+            sort: args?.sort,
+          },
+          url: "/gpt/histories",
+        }),
+      }),
+      getGptHistoriesById: builder.query<GptHistoryResponse, {id: string}>({
+        providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
+        query: ({id}) => ({url: `/gpt/histories/${id}`}),
+      }),
       // Get current user profile
       getMe: builder.query<ProfileResponse, void>({
         providesTags: ["profile"],
         query: () => ({
           method: "GET",
           url: "/auth/me",
+        }),
+      }),
+      patchGptHistoriesById: builder.mutation<
+        GptHistoryResponse,
+        {body: UpdateGptHistoryBody; id: string}
+      >({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: ({body, id}) => ({
+          body,
+          method: "PATCH",
+          url: `/gpt/histories/${id}`,
         }),
       }),
       // Update current user profile
@@ -134,6 +238,46 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      postAuthForgotPassword: builder.mutation<{ok: boolean}, {email: string}>({
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/forgotPassword",
+        }),
+      }),
+      postAuthSendVerification: builder.mutation<{ok: boolean}, void>({
+        invalidatesTags: ["profile"],
+        query: () => ({
+          method: "POST",
+          url: "/auth/sendVerification",
+        }),
+      }),
+      postAuthVerifyEmail: builder.mutation<{ok: boolean}, {token: string}>({
+        invalidatesTags: ["profile"],
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/verifyEmail",
+        }),
+      }),
+      postCommsDevTestPush: builder.mutation<
+        {accepted: number; results: unknown[]; tokenCount: number},
+        {body?: string; title?: string} | undefined
+      >({
+        query: (body) => ({
+          body: body ?? {},
+          method: "POST",
+          url: "/comms/dev/testPush",
+        }),
+      }),
+      postGptHistories: builder.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
+        invalidatesTags: [{id: "LIST", type: "gptHistories"}],
+        query: ({body}) => ({
+          body,
+          method: "POST",
+          url: "/gpt/histories",
+        }),
+      }),
       setAdminUserPassword: builder.mutation<
         {data: {_id: string; message: string}},
         SetAdminUserPasswordRequest
@@ -142,7 +286,7 @@ export const terrenoApi = openapi
         query: ({id, password}) => ({
           body: {password},
           method: "POST",
-          url: `/admin/users/${id}/password`,
+          url: `/users/${id}/password`,
         }),
       }),
     }),
@@ -151,7 +295,15 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "feature-flags", "gptHistories", "profile", "PendingConsents"],
+    addTagTypes: [
+      "admin_scriptRuns",
+      "admin_scriptTask",
+      "consentForms",
+      "feature-flags",
+      "gptHistories",
+      "profile",
+      "PendingConsents",
+    ],
     endpoints: {
       ...generateTags(openapi, [...CACHE_TAG_TYPES, "consentForms", "PendingConsents"]),
       ...TODO_REALTIME_ENDPOINTS,
@@ -159,43 +311,17 @@ export const terrenoApi = openapi
   });
 
 export const {
-  useEmailLoginMutation,
-  useGoogleLoginMutation,
-  useCreateEmailUserMutation,
-  useEmailSignUpMutation,
+  useDeleteGptHistoriesByIdMutation,
+  useGetGptHistoriesQuery,
   useResetPasswordMutation,
   useGetMeQuery,
+  usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
-  useGetAiRequestsExplorerQuery,
+  usePostAuthForgotPasswordMutation,
+  usePostAuthSendVerificationMutation,
+  usePostAuthVerifyEmailMutation,
+  usePostCommsDevTestPushMutation,
   useGetAiModelsQuery,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
-
-// Endpoint type from the OpenAPI generated SDK - uses Record for dynamic structure
-type OpenApiEndpoints = Record<string, unknown>;
-
-// Get hooks from the @terreno/rtk generated SDK for CRUD/list operations.
-// Returns the appropriate RTK Query hook based on model name and operation type
-// Return type is Record<string, unknown> as it varies based on operation and model
-export const getSdkHook = (
-  modelName: string,
-  type: "list" | "read" | "create" | "update" | "remove"
-): Record<string, unknown> => {
-  const modelPath = startCase(modelName).replace(/\s/g, "");
-  const endpoints = openapi.endpoints as OpenApiEndpoints;
-  switch (type) {
-    case "list":
-      return endpoints[`get${modelPath}`] as Record<string, unknown>;
-    case "read":
-      return endpoints[`get${modelPath}ById`] as Record<string, unknown>;
-    case "create":
-      return endpoints[`post${modelPath}`] as Record<string, unknown>;
-    case "update":
-      return endpoints[`patch${modelPath}ById`] as Record<string, unknown>;
-    case "remove":
-      return endpoints[`delete${modelPath}ById`] as Record<string, unknown>;
-    default:
-      throw new Error(`Invalid SDK hook: ${modelName}/${type}`);
-  }
-};

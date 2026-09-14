@@ -1,6 +1,6 @@
 ### @terreno/ui
 
-React Native component library with 88+ components:
+React Native UI component library (a large component library):
 
 - **Layout**: Box, Page, SplitPage, Card
 - **Forms**: TextField, SelectField, DateTimeField, CheckBox
@@ -65,3 +65,4 @@ Forms:
 - Don't forget loading and error states
 - Don't use `style` prop when equivalent props exist (`padding`, `margin`)
 - Never modify `openApiSdk.ts` manually
+- **No barrel imports** inside `@terreno/ui` — import from concrete files (e.g. `./fieldElements/FieldTitle`), not `./fieldElements` or the package `index`. See `docs/explanation/no-barrel-imports.md`.

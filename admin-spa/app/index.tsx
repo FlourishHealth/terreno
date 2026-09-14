@@ -15,6 +15,7 @@ const AdminIndexScreen: React.FC = () => {
       apiBase={apiBase}
       breadcrumbs={[{label: "Admin"}]}
       configurationPath="/configuration"
+      rolesPath="/roles"
       routeBase=""
     >
       <AdminHome api={terrenoApi} apiBase={apiBase} routeBase="" />

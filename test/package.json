@@ -5,15 +5,16 @@
   },
   "dependencies": {
     "express": "catalog:",
-    "lodash": "catalog:",
+    "luxon": "catalog:",
     "qs": "catalog:",
     "winston": "catalog:"
   },
-  "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures for Terreno packages",
+  "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
     "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongodb-memory-server-core": "^11.0.1",
@@ -21,6 +22,13 @@
     "mongoose": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./preload/memoryMongo": "./src/preload/memoryMongo.ts"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
@@ -30,18 +38,11 @@
     "terreno",
     "testing"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./preload/memoryMongo": "./src/preload/memoryMongo.ts"
-  },
   "name": "@terreno/test",
   "peerDependencies": {
-    "mongoose": ">=8.0.0"
+    "mongoose": "^8.0.0 || ^9.0.0"
   },
   "publishConfig": {
     "access": "public"
@@ -58,8 +59,10 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
-    "test:ci": "bun test"
+    "test:agent": "AGENT=1 bun test --only-failures",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.25.0"
+  "version": "57.3.0"
 }

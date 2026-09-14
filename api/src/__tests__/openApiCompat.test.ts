@@ -118,6 +118,26 @@ describe("openApiCompat", () => {
       }
     });
 
+    it("annotates nested router.use mounts with the mount path", () => {
+      const app = express();
+      patchAppUse(app);
+
+      const outer = express.Router();
+      const inner = express.Router();
+      inner.get("/", (_req, res) => {
+        res.json({ok: true});
+      });
+      outer.use("/gpt/histories", inner);
+      app.use("/", outer);
+
+      const stack = getRouterStack(app);
+      const nestedMount = findLayer(
+        stack,
+        (layer) => layer.__openApiMountPath === "/gpt/histories"
+      );
+      expect(nestedMount).toBeDefined();
+    });
+
     it("returns the underlying use() return value", () => {
       const app = express();
       patchAppUse(app);
@@ -203,7 +223,10 @@ describe("openApiCompat", () => {
       const routeLayer = findLayer(stack, (layer) => layer.route?.path === "/items/:itemId");
       expect(routeLayer).toBeDefined();
       expect(routeLayer?.regexp).toBeInstanceOf(RegExp);
-      expect((routeLayer?.regexp as RegExp).test("/items/123")).toBe(true);
+      if (!(routeLayer?.regexp instanceof RegExp)) {
+        throw new Error("Expected the item route layer to have a regexp");
+      }
+      expect(routeLayer.regexp.test("/items/123")).toBe(true);
       expect(routeLayer?.keys).toEqual([{name: "itemId", optional: false}]);
 
       const res = await supertest(app).get("/items/123").expect(200);
@@ -275,7 +298,10 @@ describe("openApiCompat", () => {
       const widgetLayer = findLayer(stack, (layer) => layer.route?.path === "/widgets/:widgetId");
       expect(widgetLayer).toBeDefined();
       expect(widgetLayer?.regexp).toBeInstanceOf(RegExp);
-      expect((widgetLayer?.regexp as RegExp).test("/widgets/42")).toBe(true);
+      if (!(widgetLayer?.regexp instanceof RegExp)) {
+        throw new Error("Expected the widget route layer to have a regexp");
+      }
+      expect(widgetLayer.regexp.test("/widgets/42")).toBe(true);
       expect(widgetLayer?.keys).toEqual([{name: "widgetId", optional: false}]);
     });
 

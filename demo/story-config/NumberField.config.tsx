@@ -5,7 +5,7 @@ import {
   NumberFieldDisabledDemo,
   NumberFieldWithErrorMsgDemo,
   NumberFieldWithLabelDemo,
-} from "@stories";
+} from "@stories/NumberField.stories";
 import {NumberField} from "@terreno/ui";
 
 export const NumberFieldConfiguration: DemoConfiguration = {

@@ -2,7 +2,11 @@ import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
 import * as Sentry from "@sentry/bun";
 import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
-import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types";
+import type {
+  ConfigurationDocument,
+  ConfigurationModel,
+  ConfigValueType,
+} from "../types/models/configurationTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 /**
@@ -604,14 +608,6 @@ export const initConfiguration = async (): Promise<void> => {
   }
 };
 
-/**
- * Get all configuration as a debug string
- */
-export const getConfiguration = async (): Promise<string> => {
-  const allConfig = Configuration.getAll();
-  return JSON.stringify(allConfig, null, 2);
-};
-
 const configurationSchema = new mongoose.Schema<ConfigurationDocument, ConfigurationModel>(
   {
     description: {
@@ -659,16 +655,15 @@ export const ConfigurationDB = mongoose.model<ConfigurationDocument, Configurati
 );
 
 // Define custom statics after model creation
-ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDocument | null> {
-  return this.findOneOrNone({key});
+ConfigurationDB.getByKey = async (key: string): Promise<ConfigurationDocument | null> => {
+  return ConfigurationDB.findOneOrNone({key});
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Setting a static method on the model.
-(ConfigurationDB as any).setValue = async function (
+ConfigurationDB.setValue = async (
   key: string,
   value: ConfigValueType
-): Promise<ConfigurationDocument> {
-  const existing = await this.findOneOrNone({key});
+): Promise<ConfigurationDocument> => {
+  const existing = await ConfigurationDB.findOneOrNone({key});
 
   if (existing) {
     existing.value = value;
@@ -683,7 +678,7 @@ ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDo
     type = "boolean";
   }
 
-  return this.create({
+  return ConfigurationDB.create({
     key,
     type,
     value,

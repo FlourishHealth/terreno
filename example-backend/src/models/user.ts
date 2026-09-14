@@ -1,14 +1,15 @@
+import {emailVerificationPlugin, rbacUserPlugin} from "@terreno/api";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
-import type {UserDocument, UserModel} from "../types";
+import {DEFAULT_USER_ROLE} from "../rbacRoles";
+import type {UserDocument, UserModel} from "../types/models/userTypes";
 import {addDefaultPlugins} from "./modelPlugins";
 
 // Handle bundling interop - bun build --compile wraps the export incorrectly
 const passportLocalMongoose =
   typeof _passportLocalMongoose === "function"
     ? _passportLocalMongoose
-    : // biome-ignore lint/suspicious/noExplicitAny: Passport Local Mongoose is a function, not an object.
-      (_passportLocalMongoose as any).default;
+    : (_passportLocalMongoose as {default: typeof _passportLocalMongoose}).default;
 
 const userSchema = new mongoose.Schema<UserDocument, UserModel>(
   {
@@ -42,6 +43,16 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       enum: ["google", "github", "apple", null],
       type: String,
     },
+    organizationIds: {
+      default: [],
+      description: "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
+      type: [String],
+    },
+    tokenEpoch: {
+      default: 0,
+      description: "Incremented on password reset to invalidate outstanding refresh tokens",
+      type: Number,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
@@ -50,6 +61,8 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
 userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
 });
+userSchema.plugin(rbacUserPlugin, {defaultRoles: [DEFAULT_USER_ROLE]});
+userSchema.plugin(emailVerificationPlugin);
 
 addDefaultPlugins(userSchema);
 
@@ -61,6 +74,6 @@ userSchema.method("getDisplayName", function (this: UserDocument): string {
 export const User = mongoose.model<UserDocument, UserModel>("User", userSchema);
 
 // Define custom statics after model creation
-User.findByEmail = async function (email: string): Promise<UserDocument | null> {
-  return this.findOneOrNone({email: email.toLowerCase()});
+User.findByEmail = async (email: string): Promise<UserDocument | null> => {
+  return User.findOneOrNone({email: email.toLowerCase()});
 };

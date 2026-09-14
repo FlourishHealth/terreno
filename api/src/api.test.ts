@@ -1,15 +1,15 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import {DateTime} from "luxon";
 import type mongoose from "mongoose";
+import type {Model} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {addPopulateToQuery, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
+import {clearMCPRegistry, getMCPRegistry} from "./mcp/registry";
 import {Permissions} from "./permissions";
 import {
   authAsUser,
@@ -23,13 +23,20 @@ import {
 } from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 
+interface SoftDeleteDoc {
+  deleted: boolean;
+  name: string;
+}
+
+type TestUser = Awaited<ReturnType<typeof setupDb>>[number];
+
 describe("@terreno/api", () => {
   let server: TestAgent;
   let app: express.Application;
 
   describe("populate", () => {
-    let admin: any;
-    let notAdmin: any;
+    let admin: TestUser;
+    let notAdmin: TestUser;
     let agent: TestAgent;
     let spinach: Food;
 
@@ -59,8 +66,8 @@ describe("@terreno/api", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/food",
         modelRouter(FoodModel, {
@@ -127,7 +134,7 @@ describe("@terreno/api", () => {
   });
 
   describe("responseHandler", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
     let spinach: Food;
 
@@ -154,8 +161,8 @@ describe("@terreno/api", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/food",
         modelRouter(FoodModel, {
@@ -167,16 +174,16 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (data, method) => {
-            if (method === "list") {
-              return (data as any).map((d: any) => ({
+          responseHandler: async (data, method) => {
+            if (method === "list" && Array.isArray(data)) {
+              return data.map((d) => ({
                 foo: "bar",
-                id: (d as any)._id,
+                id: String(d._id),
               }));
             }
             return {
               foo: "bar",
-              id: (data as any)._id,
+              id: String((data as Food)._id),
             };
           },
         })
@@ -210,8 +217,8 @@ describe("@terreno/api", () => {
     beforeEach(async () => {
       await setupDb();
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
       app.use(
         "/users",
         modelRouter(UserModel, {
@@ -239,7 +246,7 @@ describe("@terreno/api", () => {
   });
 
   describe("error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -257,8 +264,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("PUT returns 500 not supported", async () => {
@@ -293,11 +300,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "read") {
               throw new Error("responseHandler read failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -319,11 +326,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "create") {
               throw new Error("responseHandler create failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -345,11 +352,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "update") {
               throw new Error("responseHandler update failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -371,11 +378,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "list") {
               throw new Error("responseHandler list failed");
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -397,11 +404,11 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          responseHandler: (_data, method) => {
+          responseHandler: async (_data, method) => {
             if (method === "list") {
-              return {custom: "response"} as any;
+              return {custom: "response"};
             }
-            return {} as any;
+            return {};
           },
         })
       );
@@ -475,8 +482,8 @@ describe("@terreno/api", () => {
         "/food",
         modelRouter(FoodModel, {
           allowAnonymous: true,
-          endpoints: (router: any) => {
-            router.get("/custom", (_req: any, res: any) => {
+          endpoints: (router) => {
+            router.get("/custom", (_req, res) => {
               res.json({custom: true});
             });
           },
@@ -513,7 +520,8 @@ describe("@terreno/api", () => {
       server = supertest(app);
 
       const res = await server.get("/food?calories=100").expect(400);
-      expect(res.body.title).toContain("calories is not allowed as a query param");
+      expect(res.body.title).toBe("Query parameter not allowed");
+      expect(res.body.detail).toContain("calories is not allowed as a query param");
     });
 
     it("queryFilter returning null returns empty array", async () => {
@@ -539,7 +547,7 @@ describe("@terreno/api", () => {
   });
 
   describe("transformer errors", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
     let agent: TestAgent;
 
@@ -558,8 +566,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("transform error in create is handled", async () => {
@@ -625,7 +633,9 @@ describe("@terreno/api", () => {
       server = supertest(app);
 
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toContain("Required");
+      expect(res.body.title).toBe("Validation failed");
+      expect(res.body.detail).toContain("Required");
+      expect(res.body.meta.fields.name).toContain("required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
@@ -654,6 +664,7 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
@@ -685,15 +696,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with isDeleted plugin", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes user with deleted field", async () => {
@@ -722,7 +733,7 @@ describe("@terreno/api", () => {
   });
 
   describe("populate in create", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -736,8 +747,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles populate with valid path in create", async () => {
@@ -767,7 +778,7 @@ describe("@terreno/api", () => {
   });
 
   describe("save error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -785,8 +796,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles patch save error with validation failure", async () => {
@@ -818,8 +829,8 @@ describe("@terreno/api", () => {
       await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles undefined body after transform when no preCreate", async () => {
@@ -848,15 +859,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let _admin: any;
+    let _admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [_admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
@@ -871,12 +882,9 @@ describe("@terreno/api", () => {
         name: {description: "The name of the item", type: String},
       });
 
-      let SoftDeleteModel;
-      try {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest");
-      } catch {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest", softDeleteSchema);
-      }
+      const SoftDeleteModel =
+        (mongoose.models.SoftDeleteTest as Model<SoftDeleteDoc> | undefined) ??
+        mongoose.model<SoftDeleteDoc>("SoftDeleteTest", softDeleteSchema);
 
       await SoftDeleteModel.deleteMany({});
 
@@ -942,7 +950,7 @@ describe("@terreno/api", () => {
   });
 
   describe("special query params", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -956,8 +964,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("period query param is stripped from query", async () => {
@@ -1018,7 +1026,7 @@ describe("@terreno/api", () => {
 
       // Query for non-hidden foods using ?hidden=false
       const res = await server.get("/food?hidden=false").expect(200);
-      expect(res.body.data.every((f: any) => f.hidden === false)).toBe(true);
+      expect(res.body.data.every((f: {hidden: boolean}) => f.hidden === false)).toBe(true);
     });
 
     it("$search query triggers special handling code path", async () => {
@@ -1072,7 +1080,7 @@ describe("@terreno/api", () => {
   });
 
   describe("array operation with undefined preUpdate return", () => {
-    let admin: any;
+    let admin: TestUser;
     let apple: Food;
     let agent: TestAgent;
 
@@ -1093,8 +1101,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("array operation preUpdate returning undefined for array POST throws error", async () => {
@@ -1109,7 +1117,7 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAdmin],
             update: [Permissions.IsAdmin],
           },
-          preUpdate: () => undefined as any,
+          preUpdate: () => undefined as unknown as Food,
         })
       );
       server = supertest(app);
@@ -1211,7 +1219,8 @@ describe("@terreno/api", () => {
       agent = await authAsUser(app, "notAdmin");
 
       const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(405);
-      expect(res.body.title).toContain("Access to PATCH");
+      expect(res.body.title).toBe("Access denied");
+      expect(res.body.detail).toContain("Access to PATCH");
     });
 
     it("array operation on non-existent document returns 404", async () => {
@@ -1233,7 +1242,8 @@ describe("@terreno/api", () => {
 
       const fakeId = "000000000000000000000000";
       const res = await agent.post(`/food/${fakeId}/tags`).send({tags: "organic"}).expect(404);
-      expect(res.body.title).toContain("Could not find document to PATCH");
+      expect(res.body.title).toBe("Document not found");
+      expect(res.body.detail).toContain("Could not find document to PATCH");
     });
 
     it("array operation denied when user cannot update specific doc", async () => {
@@ -1256,7 +1266,8 @@ describe("@terreno/api", () => {
       agent = await authAsUser(app, "notAdmin");
 
       const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
-      expect(res.body.title).toContain("Patch not allowed");
+      expect(res.body.title).toBe("Update not allowed");
+      expect(res.body.detail).toContain("Patch not allowed");
     });
 
     it("array operation transform error is handled", async () => {
@@ -1286,7 +1297,7 @@ describe("@terreno/api", () => {
   });
 
   describe("transformer errors", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
     let agent: TestAgent;
 
@@ -1305,8 +1316,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("transform error in create is handled", async () => {
@@ -1378,7 +1389,9 @@ describe("@terreno/api", () => {
 
       // Send without required 'name' field
       const res = await server.post("/required").send({about: "test"}).expect(400);
-      expect(res.body.title).toContain("Required");
+      expect(res.body.title).toBe("Validation failed");
+      expect(res.body.detail).toContain("Required");
+      expect(res.body.meta.fields.name).toContain("required");
     });
 
     it("preDelete hook throwing APIError is re-thrown", async () => {
@@ -1407,12 +1420,13 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(400);
       expect(res.body.title).toBe("Custom preDelete APIError");
+      // Serialized when true so the frontend can suppress duplicate Sentry reporting.
       expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
 
   describe("special query params", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -1426,8 +1440,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("period query param is stripped from query", async () => {
@@ -1488,7 +1502,7 @@ describe("@terreno/api", () => {
 
       // Query for non-hidden foods using ?hidden=false
       const res = await server.get("/food?hidden=false").expect(200);
-      expect(res.body.data.every((f: any) => f.hidden === false)).toBe(true);
+      expect(res.body.data.every((f: {hidden: boolean}) => f.hidden === false)).toBe(true);
     });
 
     it("$search query triggers special handling code path", async () => {
@@ -1569,15 +1583,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with isDeleted plugin", () => {
-    let admin: any;
+    let admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes user with deleted field", async () => {
@@ -1611,7 +1625,7 @@ describe("@terreno/api", () => {
   });
 
   describe("populate in create", () => {
-    let admin: any;
+    let admin: TestUser;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -1625,8 +1639,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles populate with valid path in create", async () => {
@@ -1658,7 +1672,7 @@ describe("@terreno/api", () => {
   });
 
   describe("save error handling", () => {
-    let admin: any;
+    let admin: TestUser;
     let spinach: Food;
 
     beforeEach(async () => {
@@ -1676,8 +1690,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles patch save error with validation failure", async () => {
@@ -1711,8 +1725,8 @@ describe("@terreno/api", () => {
       await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("handles undefined body after transform when no preCreate", async () => {
@@ -1742,15 +1756,15 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let _admin: any;
+    let _admin: TestUser;
     let agent: TestAgent;
 
     beforeEach(async () => {
       [_admin] = await setupDb();
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
@@ -1766,12 +1780,9 @@ describe("@terreno/api", () => {
       // The schema already has the deleted field, so it should use soft delete
 
       // Check if the model already exists to avoid OverwriteModelError
-      let SoftDeleteModel;
-      try {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest");
-      } catch {
-        SoftDeleteModel = mongoose.model("SoftDeleteTest", softDeleteSchema);
-      }
+      const SoftDeleteModel =
+        (mongoose.models.SoftDeleteTest as Model<SoftDeleteDoc> | undefined) ??
+        mongoose.model<SoftDeleteDoc>("SoftDeleteTest", softDeleteSchema);
 
       // Clean up any existing documents
       await SoftDeleteModel.deleteMany({});
@@ -1809,7 +1820,7 @@ describe("@terreno/api", () => {
   });
 
   describe("array operation with undefined preUpdate return", () => {
-    let admin: any;
+    let admin: TestUser;
     let apple: Food;
     let agent: TestAgent;
 
@@ -1830,8 +1841,8 @@ describe("@terreno/api", () => {
       });
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     });
 
     it("array operation preUpdate returning undefined for array POST throws error", async () => {
@@ -1846,7 +1857,7 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAdmin],
             update: [Permissions.IsAdmin],
           },
-          preUpdate: () => undefined as any,
+          preUpdate: () => undefined as unknown as Food,
         })
       );
       server = supertest(app);
@@ -1949,6 +1960,9 @@ describe("@terreno/api", () => {
 
     it("returns 409 when If-Unmodified-Since is older than doc.updated", async () => {
       const staleTimestamp = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+      if (staleTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1965,6 +1979,9 @@ describe("@terreno/api", () => {
 
     it("succeeds when If-Unmodified-Since matches or is newer than doc.updated", async () => {
       const freshTimestamp = DateTime.fromISO("2025-06-15T13:00:00.000Z").toHTTP();
+      if (freshTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1986,6 +2003,9 @@ describe("@terreno/api", () => {
 
     it("succeeds when If-Unmodified-Since exactly matches doc.updated", async () => {
       const exactTimestamp = DateTime.fromISO("2025-06-15T12:00:00.000Z").toHTTP();
+      if (exactTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1998,6 +2018,9 @@ describe("@terreno/api", () => {
 
     it("prefers precise conflict timestamp header when present", async () => {
       const roundedStaleTimestamp = DateTime.fromISO("2025-06-15T11:59:59.000Z").toHTTP();
+      if (roundedStaleTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -2108,7 +2131,71 @@ describe("@terreno/api", () => {
       expect(registration).toHaveProperty("__type", "modelRouter");
       expect(registration).toHaveProperty("path", "/food");
       expect(registration).toHaveProperty("router");
-      expect(registration).toHaveProperty("_buildWithOpenApi");
+      expect(registration).toHaveProperty("_buildWithContext");
+      expect(registration).toHaveProperty("model");
+      expect(registration).toHaveProperty("options");
+    });
+
+    it("refreshes MCP registry options when rebuilt with accessControl", () => {
+      clearMCPRegistry();
+      const registration = modelRouter("/food", FoodModel, {
+        access: {resource: "food"},
+        mcp: {methods: ["list"]},
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+      const before = getMCPRegistry()[0]?.options.permissions.list;
+      expect(before).toEqual([Permissions.IsAny]);
+
+      const accessControl = {
+        can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+        fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+          omit: [],
+          read: "*",
+          write: "*",
+        }),
+        queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+        statements: {food: ["list", "read", "create", "update", "delete"]},
+      };
+      registration._buildWithContext({accessControl: accessControl as never});
+
+      const after = getMCPRegistry()[0];
+      expect(after?.options.accessControl).toBe(accessControl);
+      expect(after?.options.permissions.list).not.toBe(before);
+    });
+
+    it("resolves MCP permissions when accessControl is passed to modelRouter", () => {
+      clearMCPRegistry();
+      const accessControl = {
+        can: async (): Promise<{allowed: boolean}> => ({allowed: true}),
+        fieldMask: async (): Promise<{omit: string[]; read: "*"; write: "*"}> => ({
+          omit: [],
+          read: "*",
+          write: "*",
+        }),
+        queryFilter: async (): Promise<Record<string, unknown>> => ({}),
+        statements: {food: ["list", "read", "create", "update", "delete"]},
+      };
+      modelRouter(FoodModel, {
+        access: {resource: "food"},
+        accessControl: accessControl as never,
+        mcp: {methods: ["list"]},
+        permissions: {
+          create: [Permissions.IsAny],
+          delete: [Permissions.IsAny],
+          list: [Permissions.IsAny],
+          read: [Permissions.IsAny],
+          update: [Permissions.IsAny],
+        },
+      });
+      const registered = getMCPRegistry()[0];
+      expect(registered?.options.accessControl).toBe(accessControl);
+      expect(registered?.options.permissions.list).not.toEqual([Permissions.IsAny]);
     });
 
     it("logs a warning when realtime config is used without the path form", () => {
@@ -2165,7 +2252,8 @@ describe("@terreno/api", () => {
         .send({calories: 10, name: "New Food", ownerId: admin._id})
         .expect(400);
 
-      expect(res.body.title).toContain("generic transform error");
+      expect(res.body.title).toBe("Transform error");
+      expect(res.body.detail).toContain("generic transform error");
     });
   });
 
@@ -2211,7 +2299,8 @@ describe("@terreno/api", () => {
     it("wraps non-APIError transform errors in a 403 APIError on update", async () => {
       const res = await agent.patch(`/food/${spinach._id}`).send({name: "Updated"}).expect(403);
 
-      expect(res.body.title).toContain("update transform error");
+      expect(res.body.title).toBe("PATCH failed");
+      expect(res.body.detail).toContain("update transform error");
     });
   });
 });

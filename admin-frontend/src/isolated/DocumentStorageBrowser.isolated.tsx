@@ -1,11 +1,11 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {Platform} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
+import {renderWithTheme} from "../../../ui/src/test-utils";
 import type {AdminApi} from "../types";
 
 mock.module("react-native-webview", () => ({
@@ -218,6 +218,7 @@ mock.module("../useDocumentStorageApi", () => ({
 }));
 
 import {DocumentStorageBrowser} from "../DocumentStorageBrowser";
+import {DocumentsScreenWidget} from "../widgets/DocumentsScreenWidget";
 
 const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
@@ -244,6 +245,18 @@ describe("DocumentStorageBrowser (isolated)", () => {
     createFolderImpl = async () => ({});
     downloadImpl = async () => new Blob(["hi"]);
     Object.defineProperty(Platform, "OS", {configurable: true, value: "web"});
+  });
+
+  it("renders the built-in documents screen widget", () => {
+    const rendered = renderWithTheme(
+      <DocumentsScreenWidget
+        api={{} as AdminApi}
+        config={{models: [], scripts: []}}
+        routeBase="/console"
+        screenName="documents"
+      />
+    );
+    expect(rendered.toJSON()).toBeDefined();
   });
 
   it("creates a folder via primary button", async () => {

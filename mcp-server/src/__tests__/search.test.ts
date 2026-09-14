@@ -177,9 +177,139 @@ describe("docIndex", () => {
       join(vDir, "guide.md"),
       ["# Guide", "", "versionedUniqueToken7654321"].join("\n")
     );
-    const out = searchDocs({queries: ["versionedUniqueToken7654321"]});
+    const out = searchDocs({queries: ["versionedUniqueToken7654321"], version: "0.19.0"});
     expect(out).toContain("versionedUniqueToken7654321");
     expect(out).toContain("nested/guide.md");
+    expect(out).toContain("Docs version: 0.19.0");
+  });
+
+  test("omitted version searches next docs only", () => {
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    mkdirSync(join(tmp, "versioned", "next"), {recursive: true});
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "old.md"),
+      ["# Old", "", "historicalOnlyToken111"].join("\n")
+    );
+    writeFileSync(
+      join(tmp, "versioned", "next", "current.md"),
+      ["# Current", "", "nextOnlyToken222"].join("\n")
+    );
+    const current = searchDocs({queries: ["historicalOnlyToken111"]});
+    expect(current).toContain("No matching chunks found");
+    expect(current).not.toContain("old.md");
+    const nextHit = searchDocs({queries: ["nextOnlyToken222"]});
+    expect(nextHit).toContain("nextOnlyToken222");
+    expect(nextHit).toContain("Docs version: next");
+  });
+
+  test("unmatched patch version falls back to nearest retained snapshot", () => {
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "guide.md"),
+      ["# Guide", "", "fallbackToken333"].join("\n")
+    );
+    const out = searchDocs({queries: ["fallbackToken333"], version: "0.19.1"});
+    expect(out).toContain("fallbackToken333");
+    expect(out).toContain("Docs version: 0.19.0");
+    expect(out).toContain("0.19.1");
+  });
+
+  test("indexes versioned mdx files", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "button.mdx"),
+      [
+        "import ComponentDemo from '@site/src/components/ComponentDemo';",
+        "",
+        "# Button",
+        "",
+        "mdxOnlyToken444",
+        "",
+        '<ComponentDemo name="Button" />',
+      ].join("\n")
+    );
+    const out = searchDocs({queries: ["mdxOnlyToken444"], version: "0.19.0"});
+    expect(out).toContain("mdxOnlyToken444");
+  });
+
+  test("getComponentDocsMarkdown reads a versioned snapshot page", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "button.mdx"),
+      [
+        "import ComponentDemo from '@site/src/components/ComponentDemo';",
+        "",
+        "# Button",
+        "",
+        "snapshotButtonPropsToken",
+        "",
+        '<ComponentDemo name="Button" />',
+      ].join("\n")
+    );
+    const out = getComponentDocsMarkdown("Button", "0.19.0");
+    expect(out).toContain("Docs version: 0.19.0");
+    expect(out).toContain("snapshotButtonPropsToken");
+    expect(out).not.toContain("import ComponentDemo");
+    expect(out).not.toContain("<ComponentDemo");
+  });
+
+  test("getComponentDocsMarkdown matches PascalCase names to kebab snapshot files", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "text-field.mdx"),
+      ["# Text field", "", "snapshotTextFieldToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("TextField", "0.19.0");
+    expect(out).toContain("snapshotTextFieldToken");
+    expect(out).not.toContain("No snapshot page");
+  });
+
+  test("getComponentDocsMarkdown matches concatenated generator slugs", () => {
+    const dir = join(tmp, "versioned", "0.19.0", "reference", "components");
+    mkdirSync(dir, {recursive: true});
+    writeFileSync(
+      join(dir, "userinactivity.mdx"),
+      ["# UserInactivity", "", "snapshotUserInactivityToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("UserInactivity", "0.19.0");
+    expect(out).toContain("snapshotUserInactivityToken");
+    expect(out).not.toContain("No snapshot page");
+  });
+
+  test("related excerpts keep the requested version when older copies score higher", () => {
+    const typeDoc = {
+      children: [
+        {
+          children: [
+            {
+              children: [{flags: {}, name: "label", type: {name: "string", type: "intrinsic"}}],
+              kind: 256,
+              name: "ButtonProps",
+            },
+          ],
+          name: "Common",
+        },
+      ],
+    };
+    writeFileSync(join(tmp, "ui-types-documentation.json"), JSON.stringify(typeDoc));
+    mkdirSync(join(tmp, "versioned", "0.18.0"), {recursive: true});
+    mkdirSync(join(tmp, "versioned", "0.19.0"), {recursive: true});
+    for (const index of [1, 2, 3, 4]) {
+      writeFileSync(
+        join(tmp, "versioned", "0.18.0", `old-${index}.md`),
+        ["# Old Button", "", `Button props historicalOnlyExcerptToken ${index}`].join("\n")
+      );
+    }
+    writeFileSync(
+      join(tmp, "versioned", "0.19.0", "current.md"),
+      ["# Current Button", "", "Button props currentOnlyExcerptToken"].join("\n")
+    );
+    const out = getComponentDocsMarkdown("Button", "0.19.0");
+    expect(out).toContain("currentOnlyExcerptToken");
+    expect(out).not.toContain("historicalOnlyExcerptToken");
   });
 
   test("getComponentDocsMarkdown resolves component case-insensitively and adds related excerpts", () => {

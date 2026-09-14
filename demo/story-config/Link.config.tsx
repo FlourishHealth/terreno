@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {LinkDemo} from "@stories";
+import {LinkDemo} from "@stories/Link.stories";
 import {Text} from "@terreno/ui";
 
 export const LinkConfiguration: DemoConfiguration = {

@@ -29,6 +29,24 @@ variable "github_repos" {
   type        = set(string)
 }
 
+variable "circleci_org_id" {
+  description = "CircleCI organization UUID. Leave empty until the CircleCI project is linked."
+  type        = string
+  default     = ""
+}
+
+variable "circleci_project_id" {
+  description = "CircleCI project UUID allowed to run Terreno CD."
+  type        = string
+  default     = ""
+}
+
+variable "circleci_gcp_context_id" {
+  description = "UUID of the terreno-gcp CircleCI context. Required in the OIDC token before GCP impersonation is allowed."
+  type        = string
+  default     = ""
+}
+
 variable "backend_region" {
   description = "Region for the example backend Cloud Run service."
   type        = string

@@ -36,7 +36,7 @@ export {
   toDomTestProps,
   toPlatformTestProps,
   toTestProps,
-} from "./testing";
+} from "./testing/resolveTestId";
 export type {
   DataTableTestIDs,
   FieldTestIDs,
@@ -218,7 +218,10 @@ export interface TextThemeConfig {
 
 export interface SurfaceThemeConfig {
   base: keyof ThemePrimitiveColors;
+  baseAlternate: keyof ThemePrimitiveColors;
+  baseHover: keyof ThemePrimitiveColors;
   primary: keyof ThemePrimitiveColors;
+  secondaryExtraLight: keyof ThemePrimitiveColors;
   secondaryLight: keyof ThemePrimitiveColors;
   secondaryDark: keyof ThemePrimitiveColors;
   secondaryExtraDark: keyof ThemePrimitiveColors;
@@ -286,7 +289,10 @@ export interface TextTheme {
 
 export interface SurfaceTheme {
   base: string;
+  baseAlternate: string;
+  baseHover: string;
   primary: string;
+  secondaryExtraLight: string;
   secondaryLight: string;
   secondaryDark: string;
   secondaryExtraDark: string;
@@ -395,8 +401,10 @@ export type OnChangeCallback = (result: string) => void;
  * }
  * ```
  */
-// biome-ignore lint/suspicious/noEmptyInterface: Intentionally empty so consumers can augment it via declaration merging.
-export interface CustomIconRegistry {}
+export interface CustomIconRegistry {
+  /** Built-in "bars-filter" glyph (FontAwesome Classic Solid, E0AD). */
+  "bars-filter": true;
+}
 
 /** The set of custom icon names registered via {@link CustomIconRegistry}. */
 export type CustomIconName = keyof CustomIconRegistry & string;
@@ -424,6 +432,97 @@ export type CustomIconComponent = FC<CustomIconProps>;
  * `TerrenoProvider` via the `icons` prop to register custom icons.
  */
 export type IconRegistryMap = Record<string, CustomIconComponent>;
+
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
+/** Small blue dot that signals a filter control differs from its default. */
+export type FilterChangesBadgeProps = WithTestID;
+
+export interface FilterSelectMenuProps extends WithTestID {
+  /** Label shown to the left of the select control. */
+  title: string;
+  /** Selectable options for the single-select control. */
+  options: FilterOption[];
+  /** Currently selected value. */
+  value?: string;
+  /** Called with the newly selected value. */
+  onChange: (value: string) => void;
+  /** Text shown when no value is selected. */
+  placeholder?: string;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the control. */
+  disabled?: boolean;
+}
+
+export interface FilterBooleanProps extends WithTestID {
+  /** Label shown to the left of the toggle. */
+  title: string;
+  /** Whether the toggle is on. */
+  value: boolean;
+  /** Called with the next toggle value. The entire row is the click zone. */
+  onChange: (value: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+  /** Disables the toggle and the row click zone. */
+  disabled?: boolean;
+  /** Renders the toggle in a focused (keyboard) state. */
+  focused?: boolean;
+}
+
+export interface FilterAccordionProps extends WithTestID {
+  /** Label shown in the always-visible header row. */
+  title: string;
+  /** Custom content revealed when expanded. Empty by default. */
+  children?: React.ReactNode;
+  /** Controlled expanded state. Omit to use `defaultExpanded`. */
+  expanded?: boolean;
+  /** Initial expanded state when uncontrolled. */
+  defaultExpanded?: boolean;
+  /** Called with the next expanded state when the header row is pressed. */
+  onToggle?: (expanded: boolean) => void;
+  /** When true, shows the blue changes dot next to the title. */
+  showChangesBadge?: boolean;
+}
+
+export interface FilterProps extends WithTestID {
+  /** Composed filter controls rendered inside the dropdown panel. */
+  children: React.ReactNode;
+  /** Trigger button label. */
+  label?: string;
+  /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
+  iconName?: IconName;
+  /** Controlled open state. Omit to use `defaultOpen`. */
+  isOpen?: boolean;
+  /** Initial open state when uncontrolled. */
+  defaultOpen?: boolean;
+  /** Called whenever the dropdown opens or closes. */
+  onOpenChange?: (isOpen: boolean) => void;
+  /** Master toggle for the Apply/Clear/Cancel footer. */
+  showActionButtons?: boolean;
+  /** Show the Apply button in the footer. */
+  showApplyButton?: boolean;
+  /** Show the Clear hyperlink in the footer. */
+  showClearButton?: boolean;
+  /** Show the Cancel button in the footer. */
+  showCancelButton?: boolean;
+  applyButtonText?: string;
+  clearButtonText?: string;
+  cancelButtonText?: string;
+  /** Called when Apply is pressed. The dropdown then closes. */
+  onApply?: () => void;
+  /** Called when Clear is pressed. The dropdown then closes. */
+  onClear?: () => void;
+  /** Called when Cancel or a click-outside closes the dropdown. */
+  onCancel?: () => void;
+  /** Primary theming for the trigger and Apply button. */
+  variant?: "primary" | "secondary";
+  /** Panel width in pixels. Defaults to 320 per the design spec. */
+  width?: number;
+}
 
 export type AlignContent = "start" | "end" | "center" | "between" | "around" | "stretch";
 export type AlignSelf = "auto" | "start" | "end" | "center" | "baseline" | "stretch";
@@ -516,6 +615,13 @@ export interface LayerProps {
 export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
+  /**
+   * RN/RNW accessibility role (e.g. "button") for a clickable Box. Optional —
+   * most onClick Boxes get an implicit button role already (see Box.tsx); set
+   * this explicitly when a screen-reader-facing role needs to be guaranteed
+   * (e.g. a badge that opens a sheet).
+   */
+  accessibilityRole?: string;
 }
 
 export interface BoxPropsBase extends WithTestID {
@@ -531,14 +637,14 @@ export interface BoxPropsBase extends WithTestID {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
-      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
-      [key: string]: any;
+      [key: string]: unknown;
     };
   };
   direction?: "row" | "column";
   smDirection?: "row" | "column";
   mdDirection?: "row" | "column";
   lgDirection?: "row" | "column";
+  xlDirection?: "row" | "column";
   display?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   smDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
   mdDisplay?: "none" | "flex" | "block" | "inlineBlock" | "visuallyHidden";
@@ -682,6 +788,51 @@ export type CardProps = BoxProps & {
    * @default 160
    */
   imageHeight?: number;
+};
+
+export type EditableCardProps = BoxProps & {
+  /**
+   * The name of an icon shown before the title.
+   */
+  iconName?: IconName;
+
+  /**
+   * The title of the summarized information.
+   */
+  title?: string;
+
+  /**
+   * Props for a badge rendered next to the title.
+   */
+  badge?: BadgeProps;
+
+  /**
+   * The summarized information itself, displayed below the title.
+   */
+  description?: string;
+
+  /**
+   * Secondary text displayed below the description, in a muted style.
+   */
+  helperText?: string;
+
+  /**
+   * Callback invoked when the edit button is pressed. The edit button is only rendered when this
+   * is provided.
+   */
+  onEdit?: () => void | Promise<void>;
+
+  /**
+   * Accessibility label for the edit button.
+   * @default "Edit"
+   */
+  editAccessibilityLabel?: string;
+
+  /**
+   * If true, the card is highlighted to draw attention to it, e.g. for content that needs review.
+   * @default false
+   */
+  attention?: boolean;
 };
 
 export interface ErrorBoundaryProps {
@@ -969,7 +1120,11 @@ export interface LayoutChangeEvent {
   };
 }
 
-export interface SplitPageProps {
+export interface SplitPageListItem {
+  id: string;
+}
+
+export interface SplitPageProps<TItem extends SplitPageListItem = SplitPageListItem> {
   /**
    * can accept either one React Child or any array of ReactChild. If this is not provided,
    * renderContent must return one or many ReactChild.
@@ -989,18 +1144,15 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
-  renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
+  renderListViewItem: (itemInfo: ListRenderItemInfo<TItem>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
-  listViewData: any[];
+  listViewData: TItem[];
   listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
-  onSelectionChange?: (value?: any) => void | Promise<void>;
+  onSelectionChange?: (value?: ListRenderItemInfo<TItem>) => void | Promise<void>;
 }
 
 export type PermissionKind =
@@ -1504,7 +1656,14 @@ export interface BadgeProps extends WithTestID {
    * The status of the badge. Determines its color and appearance.
    * @default "info"
    */
-  status?: "info" | "error" | "warning" | "success" | "neutral" | "custom";
+  status?: "info" | "error" | "warning" | "success" | "neutral" | "active" | "custom";
+
+  /**
+   * For the "status" variant, whether the dot uses the bold (saturated) or
+   * subtle (light) tone.
+   * @default "bold"
+   */
+  color?: "bold" | "subtle";
 
   /**
    * The text or number to display inside the badge.
@@ -1512,9 +1671,123 @@ export interface BadgeProps extends WithTestID {
   value?: number | string;
 
   /**
-   * The variant of the badge. Determines if it displays an icon or number only.
+   * The variant of the badge. "status" renders a small colored dot (no text)
+   * used to indicate an active/modified state.
    */
-  variant?: "iconOnly" | "numberOnly";
+  variant?: "iconOnly" | "numberOnly" | "status";
+}
+
+export type ThumbsUpDownFeedbackValue = "positive" | "negative";
+
+export interface ThumbsUpDownFeedbackProps extends WithTestID {
+  /**
+   * If true, both options are non-interactive and rendered in a muted color.
+   * @default false
+   */
+  disabled?: boolean;
+  /**
+   * Accessibility label for the negative (thumbs down) option.
+   * @default "Thumbs down"
+   */
+  negativeAccessibilityLabel?: string;
+  /**
+   * Called with the newly selected value, or undefined when the current value is deselected.
+   */
+  onChange: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
+  /**
+   * Accessibility label for the positive (thumbs up) option.
+   * @default "Thumbs up"
+   */
+  positiveAccessibilityLabel?: string;
+  /**
+   * The currently selected feedback. Leave undefined for no selection.
+   */
+  value?: ThumbsUpDownFeedbackValue;
+}
+
+export type PopoverStatus = "loading" | "loaded" | "error";
+
+export interface PopoverProps extends WithTestID {
+  /**
+   * The body of the document, rendered under the header when status is "loaded". Use this for
+   * rich content; prefer `text` for a plain summary.
+   */
+  children?: React.ReactNode;
+  /**
+   * Supporting copy shown under the error title.
+   * @default "Something went wrong while loading this document. Check your connection and try again."
+   */
+  errorText?: string;
+  /**
+   * Title shown in the error state.
+   * @default "Couldn't load this document"
+   */
+  errorTitle?: string;
+  /**
+   * The currently selected feedback on the document. Only shown when `onFeedbackChange` is set.
+   */
+  feedback?: ThumbsUpDownFeedbackValue;
+  /**
+   * Height of the popover. The popover is the same height in every status: the body scrolls when
+   * it overflows, and the spinner and error message are centered in the remaining space.
+   * @default 480
+   */
+  height?: NumberOrPercentage;
+  /**
+   * Header text shown while the document is loading.
+   * @default "Loading document..."
+   */
+  loadingText?: string;
+  /**
+   * Called when the close button is pressed.
+   */
+  onClose: () => void | Promise<void>;
+  /**
+   * Called with the newly selected feedback, or undefined when the current value is deselected.
+   * When omitted, the thumbs up/down controls are hidden.
+   */
+  onFeedbackChange?: (value?: ThumbsUpDownFeedbackValue) => void | Promise<void>;
+  /**
+   * Called when the "Open" action is pressed. When omitted, the action is hidden.
+   */
+  onOpen?: () => void | Promise<void>;
+  /**
+   * Called when the "Try again" button is pressed in the error state. When omitted, the button
+   * is hidden.
+   */
+  onRetry?: () => void | Promise<void>;
+  /**
+   * Text of the action that opens the full document.
+   * @default "Open"
+   */
+  openText?: string;
+  /**
+   * Text of the button that retries loading in the error state.
+   * @default "Try again"
+   */
+  retryText?: string;
+  /**
+   * The state of the document being previewed.
+   * @default "loaded"
+   */
+  status?: PopoverStatus;
+  /**
+   * Secondary header line, usually the document's date.
+   */
+  subtitle?: string;
+  /**
+   * A plain text summary of the document, rendered when no `children` are provided.
+   */
+  text?: string;
+  /**
+   * The document's title, shown in the header when status is "loaded".
+   */
+  title?: string;
+  /**
+   * Width of the popover.
+   * @default 480
+   */
+  width?: NumberOrPercentage;
 }
 
 export interface SelectBadgeProps {
@@ -1796,10 +2069,10 @@ export interface CustomSelectFieldProps extends WithTestID {
   title?: string;
 
   /**
-   * When true, options can be filtered as the user types. See `SelectFieldProps.searchable`.
-   * @default true
+   * When true, hides the type-to-filter search UI. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
 }
 
 export interface DateTimeActionSheetProps {
@@ -1807,6 +2080,7 @@ export interface DateTimeActionSheetProps {
   type?: "date" | "time" | "datetime";
   // Returns an ISO 8601 string. If mode is "time", the date portion is today.
   onChange: OnChangeCallback;
+  // noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   visible: boolean;
@@ -1819,6 +2093,7 @@ export interface DecimalRangeActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
@@ -1879,6 +2154,7 @@ export type FieldProps =
 export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
+  // noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   /** Minimum height in total inches */
@@ -1889,20 +2165,31 @@ export interface HeightActionSheetProps {
   title?: string;
 }
 
+export interface LinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  text: string;
+  url: string;
+}
+
+export interface LinkifyItLike {
+  pretest: (text: string) => boolean;
+  test: (text: string) => boolean;
+  match: (text: string) => LinkifyMatch[] | null;
+}
+
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
-  linkify?: any;
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
-  linkStyle?: StyleProp<any>;
+  linkify?: LinkifyItLike;
+  linkStyle?: StyleProp<TextStyle>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
-  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
-  injectViewProps?: (url: string) => any;
+  injectViewProps?: (url: string) => Record<string, unknown>;
   children?: React.ReactNode;
-  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
-  style?: StyleProp<any>;
+  style?: StyleProp<ViewStyle | TextStyle>;
 }
 
 export interface IconButtonProps extends WithTestID {
@@ -2060,11 +2347,13 @@ export interface ModalProps extends WithTestID {
   /**
    * The function to call when the primary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   primaryButtonOnClick?: (value?: any) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
 }
@@ -2074,11 +2363,13 @@ export interface NumberPickerActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
 export interface PageProps extends WithTestID {
+  // noExplicitAny: React Navigation type varies by navigation stack configuration
   // biome-ignore lint/suspicious/noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
@@ -2087,6 +2378,8 @@ export interface PageProps extends WithTestID {
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;
+  /** When set, invoked instead of `router.back()` for the header back arrow. */
+  onBack?: () => void;
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;
@@ -2134,6 +2427,103 @@ export interface SignatureFieldProps {
   disabledText?: string;
   errorText?: string;
   fullWidth?: boolean;
+}
+
+/**
+ * A selectable signature typeface. `key` is the stable identifier consumers persist
+ * (so a stored signature keeps rendering in the same style even if `fontFamily` or
+ * `label` are later renamed); `fontFamily` is the loaded font family used for rendering;
+ * `label` is the human-readable name shown in the font picker.
+ */
+export interface SignatureFont {
+  key: string;
+  label: string;
+  fontFamily: string;
+}
+
+/**
+ * The persisted value of a typed signature: the name the signer typed and the `key` of
+ * the font they chose. Kept minimal so consumers can store it directly and re-render the
+ * signature deterministically.
+ */
+export interface TypedSignatureValue {
+  typedName: string;
+  fontKey: string;
+}
+
+export interface TypedSignatureFieldProps extends WithTestID {
+  testIDs?: FieldTestIDs;
+  /** Section title rendered above the field. Defaults to "Signature". */
+  title?: string;
+  /** Controlled value. When omitted the field starts empty with the first font selected. */
+  value?: TypedSignatureValue;
+  onChange: (value: TypedSignatureValue) => void;
+  /**
+   * Selectable fonts. Defaults to the library's bundled signature fonts. When supplying a
+   * custom list, the consumer is responsible for loading those font families (e.g. via
+   * expo-font) so the preview renders correctly.
+   */
+  fonts?: SignatureFont[];
+  /** Label for the name input. Defaults to "Full name". */
+  nameLabel?: string;
+  /** Placeholder for the name input. Defaults to "Type your full name". */
+  placeholder?: string;
+  helperText?: string;
+  errorText?: string;
+  disabled?: boolean; // default false
+}
+
+/** Which capture method the signer is using in a {@link SignatureCaptureFieldProps} field. */
+export type SignatureMode = "draw" | "type";
+
+/** A signature captured by drawing: a base64 PNG data URL. */
+export interface DrawnSignatureValue {
+  mode: "draw";
+  image: string;
+}
+
+/** A signature captured by typing: a name plus the chosen font key. */
+export interface TypedSignatureCaptureValue extends TypedSignatureValue {
+  mode: "type";
+}
+
+/**
+ * The persisted value of a signature capture field. The `mode` discriminant tells consumers
+ * how to render it: `draw` carries a base64 PNG `image`; `type` carries a `typedName` and
+ * `fontKey`.
+ */
+export type SignatureCaptureValue = DrawnSignatureValue | TypedSignatureCaptureValue;
+
+export interface SignatureCaptureFieldProps extends WithTestID {
+  testIDs?: FieldTestIDs;
+  /** Section title rendered above the field. Defaults to "Signature". */
+  title?: string;
+  /** Controlled value. When omitted the field starts empty in `defaultMode`. */
+  value?: SignatureCaptureValue;
+  onChange: (value: SignatureCaptureValue) => void;
+  /**
+   * Which capture method is shown first when the field is empty. Ignored once `value` has a
+   * mode. Defaults to "type".
+   */
+  defaultMode?: SignatureMode;
+  /**
+   * Fonts offered in "type" mode. Defaults to the library's bundled signature fonts. When
+   * supplying a custom list, the consumer must load those font families themselves.
+   */
+  fonts?: SignatureFont[];
+  /** Label for the typed name input. Defaults to "Full name". */
+  nameLabel?: string;
+  /** Placeholder for the typed name input. Defaults to "Type your full name". */
+  placeholder?: string;
+  /** Stretches the draw pad to the full available width. */
+  fullWidth?: boolean;
+  /** Fired when the signer starts drawing — use to disable a parent ScrollView. */
+  onStart?: () => void;
+  /** Fired when the signer stops drawing — use to re-enable a parent ScrollView. */
+  onEnd?: () => void;
+  helperText?: string;
+  errorText?: string;
+  disabled?: boolean; // default false
 }
 
 export interface SideDrawerProps {
@@ -2412,12 +2802,19 @@ export interface TextFieldPickerActionSheetProps {
   value?: string;
   mode?: "date" | "time";
   onChange: OnChangeCallback;
+  // noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
 export interface ToastProps {
   title: string;
+  /**
+   * Stable toast id, forwarded by `useToast` from the caller's options. Used to
+   * disambiguate the action button's testID so two stacked action toasts do not
+   * both answer to `toast-action-button`.
+   */
+  id?: string;
   variant?: "error" | "info" | "success" | "warning";
   secondary?: boolean;
   size?: "sm" | "lg";
@@ -2425,9 +2822,14 @@ export interface ToastProps {
   persistent?: boolean;
   // TODO enforce these should only show if size is "lg" with type discrinimation
   subtitle?: string;
-  // TODO Add buttons for Toast
-  // buttonText?: string;
-  // buttonOnClick?: () => void | Promise<void>;
+  /**
+   * Optional action button label. Renders only when `buttonOnClick` is also provided.
+   */
+  buttonText?: string;
+  /**
+   * Optional action button handler. Renders only when `buttonText` is also provided.
+   */
+  buttonOnClick?: () => void | Promise<void>;
 }
 
 export interface TooltipProps {
@@ -2531,19 +2933,30 @@ export type TapToEditProps =
       });
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
+  /**
+   * Root test id. Forwards to the Field input and suffixes action controls for e2e:
+   * `{testID}.edit-clickable`, `{testID}.cancel`, `{testID}.clear`, `{testID}.save`.
+   * The edit control is a pressable Box (`-clickable` is appended by Box).
+   * Cancel/Clear/Save only render when the user opened edit from inside the
+   * component, not when `isEditing` is true.
+   */
+  testID?: string;
   title: string;
+  // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   value: any;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   onSave?: (value: any) => void | Promise<void>;
 
@@ -2557,6 +2970,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
+  // noExplicitAny: input value type varies across TapToEdit field types
   // biome-ignore lint/suspicious/noExplicitAny: input value type varies across TapToEdit field types
   transform?: (value: any) => string;
   /**
@@ -2646,11 +3060,13 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
+    // noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     // biome-ignore lint/suspicious/noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
 
+// noExplicitAny: ModelFieldConfig is a passthrough for arbitrary field configuration objects from various model contexts
 // biome-ignore lint/suspicious/noExplicitAny: ModelFieldConfig is a passthrough for arbitrary field configuration objects from various model contexts
 export type ModelFieldConfig = any;
 
@@ -2680,6 +3096,7 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
+  // noExplicitAny: document shape varies by model used with ModelAdmin
   // biome-ignore lint/suspicious/noExplicitAny: document shape varies by model used with ModelAdmin
   doc: any;
   fieldKey: string; // Dot notation representation of the field.
@@ -2850,12 +3267,23 @@ export interface SelectFieldPropsBase extends WithTestID {
   placeholder?: string;
 
   /**
-   * When true, options can be filtered as the user types. On web, search happens
+   * When true, hides the type-to-filter search UI. On web, search normally happens
    * in the trigger field; on native, search appears in the dropdown menu and
-   * Android uses a centered modal similar to the platform picker.
-   * @default true
+   * Android uses a centered modal similar to the platform picker. Search is enabled
+   * by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
+
+  /**
+   * Web only. When true, the dropdown menu renders in a fixed portal on
+   * `document.body` (zIndex 9999) instead of a React Native `Modal`. Use this
+   * when the select lives inside another portaled/high-zIndex overlay (e.g. the
+   * `Filter` panel) where a `Modal` would stack behind the overlay and be
+   * invisible and unclickable.
+   * @default false
+   */
+  renderMenuInBodyPortal?: boolean;
 
   /**
    * The title of the select field.

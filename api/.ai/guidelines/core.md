@@ -69,3 +69,4 @@ router.get("/yourRoute/:id", [
 - Define statics/methods by direct assignment: `schema.methods = {bar() {}}`
 - All model types live in `src/types/models/`
 - In routes: `req.user` is `UserDocument | undefined`
+- **No barrel imports** — import from concrete files (e.g. `../models/user`), not `../models` index barrels. See `docs/explanation/no-barrel-imports.md`.

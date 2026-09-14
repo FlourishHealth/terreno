@@ -1,0 +1,21 @@
+name: Example Frontend iOS Device Build
+
+# Single-platform workflow for the EAS PR slow path when only the iOS device
+# dev client is missing. Dispatched via eas-pr-selective-build.sh so credential
+# setup runs on EAS Cloud (not on the GitHub Actions runner).
+
+on:
+  workflow_dispatch: {}
+
+defaults:
+  tools:
+    bun: 1.3.10
+    node: "22"
+
+jobs:
+  build_ios:
+    name: Build iOS dev client
+    type: build
+    params:
+      platform: ios
+      profile: development

@@ -30,6 +30,10 @@ Use this skill when converting a Claude design file into an implementation-ready
 
 If any mandatory item above is skipped, stop and correct before proceeding.
 
+## Documentation
+
+Read the app's architecture docs and `docs/reference/` for the affected area before mapping the design. Every user-visible or architectural slice names docs to create or update. Write those pages with `update-docs` in the same slice.
+
 ## Required outputs
 
 You MUST output the following sections in order.
@@ -183,5 +187,6 @@ Do not finalize until all checks pass:
 - [ ] User explicitly confirmed plan + task list before implementation.
 - [ ] Implementation was subagent-driven task-by-task.
 - [ ] Every implemented task has a Plan vs Actual entry.
+- [ ] Frontend work: `verify-ui-changes` completed — app launched, logged in when required, feature exercised, screenshots/videos saved to `/opt/cursor/artifacts/` and attached to the PR.
 
 If any box is unchecked, final output is invalid and must be corrected.

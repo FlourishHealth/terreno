@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {renderText, TextLinks, TextPreview, Texts, Truncate} from "@stories";
+import {renderText, TextLinks, TextPreview, Texts, Truncate} from "@stories/Text.stories";
 import {Text, TextProps} from "@terreno/ui";
 
 export const TextConfiguration: DemoConfiguration = {

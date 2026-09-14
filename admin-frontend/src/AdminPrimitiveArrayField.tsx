@@ -37,6 +37,8 @@ interface AdminPrimitiveArrayFieldProps {
    */
   refRenderers?: RefRendererMap;
   readOnly?: boolean;
+  /** When true, each ref item uses async search instead of first-page prefetch. */
+  autocomplete?: boolean;
 }
 
 type PrimitiveItem = string | number | boolean;
@@ -72,6 +74,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
   modelConfigs,
   refRenderers,
   readOnly,
+  autocomplete = false,
 }) => {
   const isReadOnly = Boolean(readOnly);
   const arrayValue = Array.isArray(value) ? value : [];
@@ -128,6 +131,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
           <CustomRenderer
             api={api}
             apiBase={apiBase}
+            autocomplete={autocomplete}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
             readOnly={isReadOnly}
@@ -144,6 +148,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
           <AdminRefField
             api={api}
             apiBase={apiBase}
+            autocomplete={autocomplete}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
             readOnly={isReadOnly}

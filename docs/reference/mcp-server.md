@@ -3,9 +3,16 @@
 Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
 
 - **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
-- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned)
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned). `application_info` reads bootstrap `backend/` + `frontend/`, or this monorepo's `example-backend/` + `example-frontend/` (bootstrap names win when both exist).
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
+
+Both HTTP MCP surfaces (`@terreno/mcp` and the `modelRouter` endpoint in
+`@terreno/api`) use the MCP TypeScript SDK v2 and speak the stateless
+`2026-07-28` protocol revision. The HTTP handlers retain the SDK's stateless
+legacy fallback for 2025-era clients. `terreno-mcp-local` uses v2 `serveStdio`,
+which negotiates the connection era and pins one server instance for that
+connection.
 
 ## Table of Contents
 
@@ -100,7 +107,7 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 
 ## Tools
 
-Code generation tools that return TypeScript/JavaScript code as text. **Tools do not write files** — the AI assistant receives the code and writes it to appropriate locations.
+Code generation tools that return TypeScript/JavaScript code as text. They do not write files — the AI assistant receives the code and writes it to appropriate locations. Scaffold a new app with [`create-terreno-app`](create-terreno-app.md) (`bunx create-terreno-app`), not an MCP tool.
 
 ### terreno_search_docs
 
@@ -113,8 +120,11 @@ BM25-style keyword search over markdown bundled with the MCP server: `docs/resou
   queries: string[];       // Required — one or more search phrases
   packages?: string[];     // Optional — filter by package id or scope, e.g. ["api", "@terreno/ui"]
   tokenLimit?: number;      // Approximate max tokens of markdown (default 3000)
+  version?: string;         // Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current `next` docs.
 }
 ``````
+
+Unmatched versions fall back to the nearest retained snapshot (`website/versioned_docs/`, copied into `docs/versioned/` at MCP build). The response names the resolved version and includes a note when a fallback happened. Pass the consumer app's `@terreno/*` version from `application_info` or `package.json`. Range prefixes such as `^57.2.0` are stripped before matching.
 
 ### terreno_get_component_docs
 
@@ -125,6 +135,22 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 ``````typescript
 {
   component: string;        // e.g. "Button", "TextField"
+  version?: string;         // Optional @terreno/* lockstep version. Omit for current TypeDoc props.
+}
+``````
+
+When `version` matches a retained docs snapshot, the tool returns that version's generated component page (MDX chrome stripped). Snapshot filenames may be hyphenated (`text-field.mdx`) or concatenated (`userinactivity.mdx`); lookup tries both. Otherwise it uses current `ui-types-documentation.json` and notes the fallback.
+
+### terreno_get_upgrade_guide
+
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages. The response always lists which versions in the range **have** notes. If some or all versions have none, it names those gaps — an empty concatenation would look like “nothing changed,” which is usually false. `fromVersion` must be less than or equal to `toVersion`. Note format: `mcp-server/src/docs/upgrades/README.md`.
+
+**Parameters:**
+
+``````typescript
+{
+  fromVersion: string;      // Installed @terreno/* semver (e.g. 0.19.0)
+  toVersion: string;        // Target semver to upgrade to (e.g. 0.20.0)
 }
 ``````
 
@@ -315,23 +341,6 @@ Validate a Mongoose schema against Terreno conventions.
 - Recommendations for fixes
 - Severity levels (error, warning, info)
 
-### terreno_bootstrap_app
-
-Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose backend, Cursor rules, MCP settings).
-
-**Parameters:**
-
-``````typescript
-{
-  appName: string;           // kebab-case (e.g., "my-app")
-  appDisplayName: string;    // Human-readable name
-  description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
-}
-``````
-
-**Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
-
 ### terreno_bootstrap_ai_rules
 
 Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).
@@ -366,12 +375,18 @@ Multi-step workflow prompts that guide AI assistants through complex tasks.
 
 ### terreno_bootstrap
 
-Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstrap_app` and `terreno_bootstrap_ai_rules` tools.
+Workflow prompt for scaffolding a new Terreno app. Instructs the assistant to run `bunx create-terreno-app`, then `terreno_bootstrap_ai_rules`.
 
 **Arguments:**
 
 - `appName` (string) — Application name in kebab-case
 - `appDisplayName` (string) — Human-readable display name
+
+### terreno_upgrade
+
+Lockstep Terreno upgrade workflow: read bundled upgrade notes, bump `@terreno/*` packages, run tests, and delegate Expo SDK steps to the official upgrading-expo skill.
+
+**Arguments:** `targetVersion` (optional) — target `@terreno/*` semver; omit to mean latest stable.
 
 ### terreno_create_crud_feature
 

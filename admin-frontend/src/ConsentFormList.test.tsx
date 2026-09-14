@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi} from "./types";
 
 interface ListState {
@@ -86,7 +86,7 @@ describe("ConsentFormList", () => {
     };
     const onCreateNew = mock(() => undefined);
     const onRowClick = mock((_: string) => undefined);
-    const {getByTestId} = renderWithTheme(
+    const {getAllByLabelText, getByTestId} = renderWithTheme(
       <ConsentFormList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -96,9 +96,11 @@ describe("ConsentFormList", () => {
     );
     await act(async () => {
       fireEvent.press(getByTestId("consent-form-list-create-button"));
+      fireEvent.press(getAllByLabelText("Edit")[0]);
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(onCreateNew).toHaveBeenCalled();
+    expect(onRowClick).toHaveBeenCalledWith("a");
   });
 
   it("falls back when sort column is out of range (buildSortString returns undefined)", async () => {

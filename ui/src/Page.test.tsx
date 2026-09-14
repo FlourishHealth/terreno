@@ -263,6 +263,19 @@ describe("Page", () => {
     expect(routerBack).toHaveBeenCalled();
   });
 
+  it("invokes onBack instead of router.back when provided", () => {
+    const onBack = mock(() => {});
+    routerBack.mockClear();
+    const {getByTestId} = renderWithTheme(
+      <Page backButton navigation={mockNavigation} onBack={onBack} title="Page">
+        <Text>Content</Text>
+      </Page>
+    );
+    fireEvent.press(getByTestId("icon-button-chevron-left"));
+    expect(onBack).toHaveBeenCalled();
+    expect(routerBack).not.toHaveBeenCalled();
+  });
+
   it("invokes router.back when the close button is pressed", () => {
     routerBack.mockClear();
     const {getByTestId} = renderWithTheme(

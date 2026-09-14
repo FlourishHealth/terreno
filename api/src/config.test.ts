@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 
 import {Config} from "./config";
+import {APIError} from "./errors";
 
 const KEYS = [
   "TERRENO_CFG_STRING",
@@ -108,12 +109,26 @@ describe("Config", () => {
 
     it("throws on non-numeric values", () => {
       process.env.TERRENO_CFG_NUM = "not-a-number";
-      expect(() => Config.getNumber("TERRENO_CFG_NUM")).toThrow(/not a valid number/);
+      try {
+        Config.getNumber("TERRENO_CFG_NUM");
+        expect.unreachable("expected throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(APIError);
+        expect((error as APIError).title).toBe("Invalid config value");
+        expect((error as APIError).detail).toContain("not a valid number");
+      }
     });
 
     it("throws on partially-numeric strings like '5000ms'", () => {
       process.env.TERRENO_CFG_NUM = "5000ms";
-      expect(() => Config.getNumber("TERRENO_CFG_NUM")).toThrow(/not a valid number/);
+      try {
+        Config.getNumber("TERRENO_CFG_NUM");
+        expect.unreachable("expected throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(APIError);
+        expect((error as APIError).title).toBe("Invalid config value");
+        expect((error as APIError).detail).toContain("not a valid number");
+      }
     });
 
     it("supports floats", () => {
@@ -166,7 +181,14 @@ describe("Config", () => {
 
     it("throws on malformed JSON instead of silently returning undefined", () => {
       process.env.TERRENO_CFG_JSON = "{not json";
-      expect(() => Config.getJSON("TERRENO_CFG_JSON")).toThrow(/not valid JSON/);
+      try {
+        Config.getJSON("TERRENO_CFG_JSON");
+        expect.unreachable("expected throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(APIError);
+        expect((error as APIError).title).toBe("Invalid config value");
+        expect((error as APIError).detail).toContain("not valid JSON");
+      }
     });
   });
 

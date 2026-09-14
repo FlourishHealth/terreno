@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableDateAnnotation, TableDateDemo} from "@stories";
+import {TableDateAnnotation, TableDateDemo} from "@stories/TableDate.stories";
 import {TableDate} from "@terreno/ui";
 
 export const TableDateConfiguration: DemoConfiguration = {

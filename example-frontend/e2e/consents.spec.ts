@@ -2,6 +2,7 @@ import {expect, test} from "./fixtures/test";
 import {getAdminToken} from "./helpers/adminAuth";
 import {createConsentForm, deleteConsentForm} from "./helpers/consentForms";
 import {loginAs} from "./helpers/login";
+import {waitForSyncTodosScreen} from "./helpers/syncdbSuite";
 
 test.describe("Consent Flow", () => {
   let adminToken: string;
@@ -35,8 +36,8 @@ test.describe("Consent Flow", () => {
     await page.getByTestId("consent-form-agree-button").click();
 
     // After accepting, the app should load normally (todos screen is the default)
-    await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
-    await expect(page.getByTestId("todos-new-title-input").first()).toBeVisible();
+    await waitForSyncTodosScreen(page);
+    await expect(page.getByTestId("todos-title-input")).toBeVisible();
   });
 
   test("consent history shows accepted consents", async ({page}) => {
@@ -44,11 +45,10 @@ test.describe("Consent Flow", () => {
     await loginAs(page);
     await page.getByTestId("consent-form-agree-button").waitFor({state: "visible"});
     await page.getByTestId("consent-form-agree-button").click();
-    await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
+    await waitForSyncTodosScreen(page);
 
     // Navigate to consents tab
     await page.goto("/consents");
-    await page.waitForLoadState("networkidle");
     await page.getByTestId("consent-history-list").waitFor({state: "visible"});
     await expect(page.getByTestId("consent-history-list")).toBeVisible();
   });

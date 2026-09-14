@@ -1,0 +1,93 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "libphonenumber-js": "catalog:",
+    "luxon": "catalog:"
+  },
+  "description": "Pluggable mail, SMS, push, and verification providers — part of Terreno, the batteries-included TypeScript framework for universal apps.",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/supertest": "catalog:",
+    "chai": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./adapters/expoPush": {
+      "default": "./dist/adapters/expoPush.js",
+      "types": "./dist/adapters/expoPush.d.ts"
+    },
+    "./adapters/sendgrid": {
+      "default": "./dist/adapters/sendgrid.js",
+      "types": "./dist/adapters/sendgrid.d.ts"
+    },
+    "./adapters/twilioSms": {
+      "default": "./dist/adapters/twilioSms.js",
+      "types": "./dist/adapters/twilioSms.d.ts"
+    },
+    "./adapters/twilioVerify": {
+      "default": "./dist/adapters/twilioVerify.js",
+      "types": "./dist/adapters/twilioVerify.d.ts"
+    }
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "communications",
+    "email",
+    "sms",
+    "push",
+    "terreno"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/comms",
+  "peerDependencies": {
+    "@sendgrid/mail": "^8.0.0",
+    "expo-server-sdk": "^6.0.0",
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "twilio": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@sendgrid/mail": {
+      "optional": true
+    },
+    "expo-server-sdk": {
+      "optional": true
+    },
+    "twilio": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  },
+  "types": "dist/index.d.ts",
+  "version": "57.3.0"
+}

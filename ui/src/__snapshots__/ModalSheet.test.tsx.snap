@@ -20,7 +20,10 @@ exports[`ModalSheet renders correctly with children 1`] = `
       ],
       "props": {
         "ref": {
-          "current": null,
+          "current": {
+            "close": [class Function],
+            "open": [class Function],
+          },
         },
         "style": undefined,
         "testID": "modalize",

@@ -1,7 +1,7 @@
 import {DemoConfiguration} from "@config";
 import {DateTimeField} from "@terreno/ui";
 
-import {DateTimeFieldDemo, DateTimeFieldStory, DateTimeFieldTypes} from "../stories";
+import {DateTimeFieldDemo, DateTimeFieldStory, DateTimeFieldTypes} from "../stories/DateTimeField.stories";
 
 // TODO: Update with the notes from TimeField and DateField.
 export const DateTimeFieldConfiguration: DemoConfiguration = {

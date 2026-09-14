@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi} from "./types";
 
 interface State {
@@ -34,6 +34,7 @@ let translateImpl: (body: unknown) => Promise<unknown> = async () => ({
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useBulkPatchMutation: () => [async () => ({unwrap: async () => ({})}), {isLoading: false}],
     useCreateMutation: () => [
       (body: unknown) => ({
         unwrap: async () => {
@@ -43,6 +44,8 @@ mock.module("./useAdminApi", () => ({
       }),
       {isLoading: false},
     ],
+    useDeleteMutation: () => [async () => ({unwrap: async () => ({})}), {isLoading: false}],
+    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false}),
     useReadQuery: (_id: string, opts: {skip?: boolean}) => {
       if (opts?.skip) {
         return {data: undefined, isLoading: false};

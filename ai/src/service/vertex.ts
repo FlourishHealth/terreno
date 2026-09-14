@@ -43,6 +43,11 @@ export interface CreateVertexProviderOptions {
   /** GCP project id. Falls back to the GOOGLE_VERTEX_PROJECT env var. */
   project?: string;
   /**
+   * Injectable loader for the `@ai-sdk/google-vertex` module, primarily for testing the
+   * "module not installed" fallback deterministically. Defaults to a `require`-based loader.
+   */
+  loadModule?: () => VertexModule | undefined;
+  /**
    * Injectable factory for the `@ai-sdk/google-vertex` provider, primarily for testing. When
    * omitted, the provider is loaded dynamically from `@ai-sdk/google-vertex`.
    */
@@ -170,7 +175,8 @@ export const createVertexProvider = (
   const allowedModels =
     options.allowedModels && options.allowedModels.length > 0 ? options.allowedModels : undefined;
 
-  const factory = options.vertexFactory ?? loadVertexModule()?.createVertex;
+  const loadModule = options.loadModule ?? loadVertexModule;
+  const factory = options.vertexFactory ?? loadModule()?.createVertex;
   if (!factory) {
     logger.warn(
       "Vertex AI (Gemini Enterprise Agent Platform) provider requested but @ai-sdk/google-vertex is not installed."

@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {PageDemo, PageLoadingBoolean, PageLoadingText} from "@stories";
+import {PageDemo, PageLoadingBoolean, PageLoadingText} from "@stories/Page.stories";
 import {Page} from "@terreno/ui";
 
 export const PageConfiguration: DemoConfiguration = {

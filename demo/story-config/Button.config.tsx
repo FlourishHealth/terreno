@@ -10,7 +10,7 @@ import {
   ConfirmationButton,
   FullWidthButtons,
   MultilineButtons,
-} from "@stories";
+} from "@stories/Button.stories";
 import {Button} from "@terreno/ui";
 
 export const ButtonConfiguration: DemoConfiguration = {

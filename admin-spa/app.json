@@ -6,7 +6,6 @@
     "orientation": "default",
     "scheme": "terreno-admin",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "extra": {
       "router": {},
       "BASE_URL": "__SAME_ORIGIN__"

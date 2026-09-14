@@ -129,11 +129,18 @@ export interface RNPickerSelectProps {
   InputAccessoryView?: ComponentType<{testID?: string}>;
 
   /**
-   * When true, options can be filtered as the user types. On web, search happens
-   * in the trigger field; on native, search appears in the dropdown menu.
-   * @default true
+   * When true, hides the type-to-filter search UI. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
+
+  /**
+   * Web only. When true, the dropdown menu renders in a fixed portal on
+   * `document.body` instead of a React Native `Modal`, so it floats above
+   * ancestor portals / high-zIndex overlays (e.g. the `Filter` panel).
+   * @default false
+   */
+  renderMenuInBodyPortal?: boolean;
 }
 
 export const RNPickerSelect = ({
@@ -158,8 +165,10 @@ export const RNPickerSelect = ({
   touchableWrapperProps,
 
   InputAccessoryView,
-  searchable = true,
+  disableSearch = false,
+  renderMenuInBodyPortal = false,
 }: RNPickerSelectProps) => {
+  const searchable = !disableSearch;
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [webSearchQuery, setWebSearchQuery] = useState("");
   const webSearchInputRef = useRef<TextInput>(null);
@@ -426,6 +435,9 @@ export const RNPickerSelect = ({
     const baseTextInputStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
       flex: 1,
+      // Text inputs have an intrinsic width; without this they refuse to shrink inside
+      // narrow triggers and push the chevron outside the field border on web.
+      minWidth: 0,
     };
     return (
       <View
@@ -715,6 +727,9 @@ export const RNPickerSelect = ({
       flex: 1,
       fontFamily: "text" as const,
       fontSize: 16,
+      // Text inputs have an intrinsic width; without this they refuse to shrink inside
+      // narrow triggers and push the chevron outside the field border on web.
+      minWidth: 0,
       paddingLeft: 0,
       paddingRight: 8,
       paddingVertical: 0,
@@ -795,6 +810,7 @@ export const RNPickerSelect = ({
                 flex: 1,
                 fontFamily: "text",
                 fontSize: 16,
+                minWidth: 0,
                 paddingRight: 8,
               }}
               testID="text_input"
@@ -810,6 +826,7 @@ export const RNPickerSelect = ({
         )}
         <WebDropdownMenu
           anchor={webAnchor}
+          disableSearch={disableSearch || searchInTrigger}
           keepTriggerFocus={searchInTrigger}
           onClose={closeWebMenu}
           onSelect={(_val, idx) => {
@@ -823,7 +840,7 @@ export const RNPickerSelect = ({
           }}
           options={menuOptions}
           presentation={Platform.OS === "android" ? "centered" : "anchored"}
-          searchable={searchable && !searchInTrigger}
+          renderInBodyPortal={renderMenuInBodyPortal}
           selectedIndex={menuSelectedIndex >= 0 ? menuSelectedIndex : undefined}
           showEmptyStateWhenNoOptions={searchInTrigger && webSearchQuery.trim().length > 0}
           testIDPrefix="web_dropdown"

@@ -32,6 +32,18 @@ export const Toasts = () => {
             variant="warning"
           />
         </Box>
+        <Box marginBottom={2}>
+          <Toast
+            buttonOnClick={() => {}}
+            buttonText="Resolve"
+            onDismiss={() => {}}
+            persistent
+            size="lg"
+            subtitle="Tap Resolve to review and fix conflicts."
+            title="Todos sync needs attention: 1 conflict"
+            variant="warning"
+          />
+        </Box>
       </Box>
       <Box justifyContent="between" marginTop={6} width="100%">
         <Box marginBottom={2}>

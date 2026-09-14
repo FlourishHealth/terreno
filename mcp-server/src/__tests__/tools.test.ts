@@ -11,7 +11,6 @@ describe("tools", () => {
     expect(toolNames).toContain("terreno_generate_form_fields");
     expect(toolNames).toContain("terreno_validate_model_schema");
     expect(toolNames).toContain("terreno_install_admin");
-    expect(toolNames).toContain("terreno_bootstrap_app");
     expect(toolNames).toContain("terreno_bootstrap_ai_rules");
     expect(toolNames).toContain("terreno_search_docs");
     expect(toolNames).toContain("terreno_get_component_docs");
@@ -592,12 +591,12 @@ describe("tools", () => {
   });
 
   describe("handleToolCall - bootstrap dispatch", () => {
-    test("should delegate terreno_bootstrap_app to bootstrap handler", () => {
+    test("does not expose terreno_bootstrap_app", () => {
       const result = handleToolCall("terreno_bootstrap_app", {
         appDisplayName: "Dispatch App",
         appName: "dispatch-app",
       });
-      expect(result.content[0].text).toContain("# Bootstrap Dispatch App");
+      expect(result.content[0].text).toContain("Unknown tool");
     });
 
     test("should delegate terreno_bootstrap_ai_rules to bootstrap handler", () => {
@@ -625,7 +624,7 @@ describe("tools", () => {
         tokenLimit: 2000,
       });
       expect(ok.content[0].text).toContain("Terreno documentation search results");
-    });
+    }, 15_000);
 
     test("should run terreno_get_component_docs with component name", () => {
       const out = handleToolCall("terreno_get_component_docs", {component: "Button"});
@@ -645,6 +644,40 @@ describe("tools", () => {
         toVersion: "0.20.0",
       });
       expect(out.content[0].text).toContain("0.20.0");
+    });
+
+    test("should describe a fully covered range", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "0.19.0",
+        toVersion: "0.20.0",
+      });
+      expect(out.content[0].text).toContain("Recorded notes in 0.19.0 → 0.20.0: 0.20.0");
+    });
+
+    test("should describe a partially covered range", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "0.21.0",
+        toVersion: "0.31.0",
+      });
+      expect(out.content[0].text).toContain("Recorded notes in 0.21.0 → 0.31.0: 0.30.0, 0.31.0");
+      expect(out.content[0].text).toContain("No bundled notes for 0.22.0");
+    });
+
+    test("should name versions when a range has no notes", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "99.0.0",
+        toVersion: "99.1.0",
+      });
+      expect(out.content[0].text).toContain("No upgrade notes recorded for 99.0.0 → 99.1.0");
+      expect(out.content[0].text).toContain("Do not conclude that nothing changed");
+    });
+
+    test("should reject an inverted version range", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "0.21.0",
+        toVersion: "0.20.0",
+      });
+      expect(out.content[0].text).toContain("Invalid version range");
     });
   });
 });

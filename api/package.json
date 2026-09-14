@@ -5,27 +5,21 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
+    "@modelcontextprotocol/node": "catalog:",
+    "@modelcontextprotocol/server": "catalog:",
     "@sentry/bun": "catalog:",
-    "@sentry/profiling-node": "^10.25.0",
     "@terreno/test": "workspace:*",
+    "@thream/socketio-jwt": "catalog:",
     "@types/qs": "catalog:",
-    "ajv": "8.18.0",
+    "ajv": "8.20.0",
     "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
-    "http-errors": "^2.0.0",
-    "path-to-regexp": "^6.3.0",
-    "router": "^2.2.0",
-    "serve-static": "^1.15.0",
-    "swagger-parser": "^10.0.3",
-    "swagger-ui-dist": "^5.11.8",
-    "yaml": "^2.4.0",
     "axios": "catalog:",
     "better-auth": "catalog:",
     "cors": "^2.8.5",
     "cron": "^4.3.4",
-    "expo-server-sdk": "^6.0.0",
     "express": "catalog:",
-    "generaterr": "^1.5.0",
+    "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "catalog:",
     "luxon": "catalog:",
@@ -37,24 +31,26 @@
     "passport-github2": "^0.1.12",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
-    "passport-local-mongoose": "catalog:",
+    "path-to-regexp": "^8.4.2",
     "qs": "catalog:",
-    "@thream/socketio-jwt": "catalog:",
-    "scmp": "^2.1.0",
+    "router": "^2.2.0",
+    "serve-static": "^2.2.1",
     "socket.io": "catalog:",
-    "winston": "catalog:"
+    "swagger-parser": "^10.0.3",
+    "swagger-ui-dist": "^5.11.8",
+    "winston": "catalog:",
+    "yaml": "^2.4.0"
   },
-  "description": "Styled after the Django & Django REST Framework, a batteries-include framework for building REST APIs with Node/Express/Mongoose.",
+  "description": "REST API framework for Express/Mongoose (modelRouter, auth, OpenAPI) — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@types/bcrypt": "^6.0.0",
+    "@modelcontextprotocol/client": "catalog:",
+    "@terreno/syncdb": "workspace:*",
     "@types/bun": "catalog:",
     "@types/cors": "^2.8.17",
-    "@types/cron": "^2.4.3",
     "@types/express": "catalog:",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "catalog:",
-    "@types/mongodb": "^4.0.7",
     "@types/node": "catalog:",
     "@types/on-finished": "^2.3.4",
     "@types/passport": "^1.0.17",
@@ -62,15 +58,23 @@
     "@types/passport-github2": "^1.2.9",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
-    "@types/sinon": "^21.0.0",
     "@types/supertest": "catalog:",
     "mongodb-memory-server": "catalog:",
     "mongoose": "catalog:",
-    "sinon": "^21.0.1",
+    "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
-    "typedoc": "catalog:",
     "typescript": "catalog:",
     "zod": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "default": "./dist/tests.js",
+      "types": "./dist/tests.d.ts"
+    }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
@@ -79,25 +83,25 @@
     "mongoose",
     "express"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+  "name": "@terreno/api",
+  "peerDependencies": {
+    "ioredis": "^5.11.0",
+    "mongoose": "^8.0.0 || ^9.0.0",
+    "passport-local-mongoose": "catalog:",
+    "zod": "^4.3.6"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
     },
-    "./testing": {
-      "types": "./dist/tests.d.ts",
-      "default": "./dist/tests.js"
+    "passport-local-mongoose": {
+      "optional": true
     }
   },
-  "name": "@terreno/api",
   "publishConfig": {
     "access": "public"
-  },
-  "peerDependencies": {
-    "mongoose": "^8.0.0 || ^9.0.0",
-    "zod": "^4.3.6"
   },
   "repository": {
     "type": "git",
@@ -110,18 +114,20 @@
     "compile": "node ../.github/scripts/compile-workspace-deps.js && bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
-    "docs": "typedoc --out docs src/index.ts",
+    "docs": "bunx typedoc@0.28.19 --out docs src/index.ts",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "lint:unsafefix": "biome check --fix --unsafe ./src",
+    "load": "bun src/sync/loadHarness.ts",
     "test": "bun test --update-snapshots",
-    "test:ci": "bun test",
-    "test:coverage": "bun run ../scripts/check-coverage.ts",
+    "test:agent": "AGENT=1 bun test --only-failures",
     "test:cache:clean": "bun ./src/tests/mongoTestSetup.ts clean",
     "test:cache:setup": "bun ./src/tests/mongoTestSetup.ts setup",
     "test:cache:status": "bun ./src/tests/mongoTestSetup.ts status",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts",
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "0.25.0"
+  "version": "57.3.0"
 }

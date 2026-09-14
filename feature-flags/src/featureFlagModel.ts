@@ -4,6 +4,7 @@ import {
   findExactlyOne,
   findOneOrNone,
   isDeletedPlugin,
+  logger,
 } from "@terreno/api";
 import mongoose from "mongoose";
 import type {FeatureFlagDocument, FeatureFlagModel} from "./types";
@@ -193,9 +194,23 @@ export const FeatureFlag = mongoose.model<FeatureFlagDocument, FeatureFlagModel>
  *   .start();
  * ```
  */
-export const featureFlagAdminConfig = {
+const featureFlagAdminConfigValue = {
   displayName: "Feature Flags",
   listFields: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
   model: FeatureFlag,
   routePath: "/feature-flags",
 };
+
+const warnedLegacyAdminConfigs = new WeakSet<object>();
+
+export const featureFlagAdminConfig = new Proxy(featureFlagAdminConfigValue, {
+  get(target, property, receiver) {
+    if (!warnedLegacyAdminConfigs.has(target)) {
+      warnedLegacyAdminConfigs.add(target);
+      logger.warn(
+        "[feature-flags] featureFlagAdminConfig is deprecated. Use new FeatureFlagsApp() and register it with TerrenoApp — see docs/how-to/admin-import-prebuilt.md"
+      );
+    }
+    return Reflect.get(target, property, receiver);
+  },
+});

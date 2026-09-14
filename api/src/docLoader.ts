@@ -1,9 +1,32 @@
-import * as Sentry from "@sentry/bun";
 import mongoose, {type Model} from "mongoose";
 
 import {addPopulateToQuery} from "./api";
-import {APIError, isAPIError} from "./errors";
+import {APIError, errorDetail, isAPIError, NotFoundError} from "./errors";
 import type {PopulatePath} from "./populate";
+
+const isCastErrorOnDocumentId = (error: unknown): boolean => {
+  if (error instanceof mongoose.Error.CastError) {
+    return error.path === "_id";
+  }
+  const maybe = error as {name?: string; path?: string} | undefined;
+  return maybe?.name === "CastError" && maybe.path === "_id";
+};
+
+const isInvalidIdError = (error: unknown): boolean => {
+  if (isCastErrorOnDocumentId(error)) {
+    return true;
+  }
+  const name = (error as {name?: string} | undefined)?.name;
+  return name === "BSONError" || name === "BSONTypeError";
+};
+
+const documentNotFound = (modelName: string, id: string): NotFoundError => {
+  return new NotFoundError({
+    code: "document-not-found",
+    detail: `Document ${id} not found for model ${modelName}`,
+    title: "Document not found",
+  });
+};
 
 /**
  * Loads a document by id or throws a 404 APIError.
@@ -16,8 +39,7 @@ export const loadDocOr404 = async <T>(
 ): Promise<T> => {
   const builtQuery = model.findById(id);
   const populatedQuery = addPopulateToQuery(
-    // biome-ignore lint/suspicious/noExplicitAny: Query types vary based on populate paths
-    builtQuery as any,
+    builtQuery as unknown as Parameters<typeof addPopulateToQuery>[0],
     populatePaths
   );
   let data: T | null;
@@ -27,25 +49,37 @@ export const loadDocOr404 = async <T>(
     if (isAPIError(error)) {
       throw error;
     }
+    if (isInvalidIdError(error)) {
+      throw documentNotFound(model.modelName, id);
+    }
     throw new APIError({
-      error: error as Error,
+      cause: error,
+      code: "get-error",
+      detail: `GET failed on ${id}: ${errorDetail(error)}`,
+      meta: {model: model.modelName},
       status: 500,
-      title: `GET failed on ${id}`,
+      title: "GET error",
     });
   }
   if (!data) {
+    const idSchemaType = model.schema?.path("_id");
+    let hiddenId: unknown;
+    try {
+      hiddenId = idSchemaType?.instance === "String" ? id : new mongoose.Types.ObjectId(id);
+    } catch (error: unknown) {
+      if (isInvalidIdError(error)) {
+        throw documentNotFound(model.modelName, id);
+      }
+      throw error;
+    }
     const hiddenDoc = await model.collection.findOne({
-      _id: new mongoose.Types.ObjectId(id),
+      _id: hiddenId as never,
     });
 
+    const notFoundDetail = `Document ${id} not found for model ${model.modelName}`;
+
     if (!hiddenDoc) {
-      Sentry.captureMessage(`Document ${id} not found for model ${model.modelName}`);
-      const error = new APIError({
-        status: 404,
-        title: `Document ${id} not found for model ${model.modelName}`,
-      });
-      error.meta = undefined;
-      throw error;
+      throw documentNotFound(model.modelName, id);
     }
 
     let reason: {[key: string]: string} | null = null;
@@ -58,18 +92,18 @@ export const loadDocOr404 = async <T>(
     }
 
     if (!reason) {
-      const error = new APIError({
-        status: 404,
-        title: `Document ${id} not found for model ${model.modelName}`,
+      throw new NotFoundError({
+        code: "document-not-found",
+        detail: notFoundDetail,
+        title: "Document not found",
       });
-      error.meta = undefined;
-      throw error;
     }
-    throw new APIError({
+    throw new NotFoundError({
+      code: "document-not-found",
+      detail: notFoundDetail,
       disableExternalErrorTracking: true,
       meta: reason,
-      status: 404,
-      title: `Document ${id} not found for model ${model.modelName}`,
+      title: "Document not found",
     });
   }
 

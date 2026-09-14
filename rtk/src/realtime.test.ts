@@ -1,17 +1,57 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
-import {afterEach, describe, expect, it} from "bun:test";
+import {afterEach, describe, expect, it, spyOn} from "bun:test";
 import type {Socket} from "socket.io-client";
 
-const {getRealtimeSocket, realtimeDocument, realtimeList, setRealtimeSocket} = await import(
-  "./realtime"
-);
+import type {RealtimeEvent} from "./realtime";
+
+const {
+  getRealtimeSocket,
+  realtimeDocument,
+  realtimeList,
+  resetRealtimeDeprecationWarningsForTests,
+  RTK_REALTIME_DEPRECATION_MESSAGE,
+  setRealtimeSocket,
+} = await import("./realtime");
+
+/** Acknowledgement payload the server sends after a query subscription. */
+interface MockQuerySubscribedPayload {
+  clientQueryId?: string;
+  collection: string;
+  queryId: string;
+}
+
+type MockSocketPayload = RealtimeEvent | MockQuerySubscribedPayload;
+
+type MockSocketHandler = (payload: MockSocketPayload) => void;
 
 interface MockSocket {
-  emitted: Array<{event: string; payload: any}>;
-  emit: (event: string, payload: any) => void;
-  off: (event: string, handler: (payload: any) => void) => void;
-  on: (event: string, handler: (payload: any) => void) => void;
-  trigger: (event: string, payload: any) => void;
+  emitted: Array<{event: string; payload: unknown}>;
+  emit: (event: string, payload: unknown) => void;
+  off: (event: string, handler: MockSocketHandler) => void;
+  on: (event: string, handler: MockSocketHandler) => void;
+  trigger: (event: string, payload: MockSocketPayload) => void;
+}
+
+/** Cache draft for a single document endpoint. */
+interface MockDocumentDraft {
+  _id?: string;
+  id?: string;
+  title?: string;
+  updated?: string;
+  [key: string]: unknown;
+}
+
+/** Cache draft for a list endpoint. */
+interface MockListDraft {
+  data: MockDocumentDraft[];
+  total?: number;
+  [key: string]: unknown;
+}
+
+interface MockCacheApi<TDraft> {
+  cacheDataLoaded: Promise<void>;
+  cacheEntryRemoved: Promise<void>;
+  remove: () => void;
+  updateCachedData: (callback: (draft: TDraft) => void) => void;
 }
 
 const createDeferred = (): {promise: Promise<void>; resolve: () => void} => {
@@ -23,7 +63,7 @@ const createDeferred = (): {promise: Promise<void>; resolve: () => void} => {
 };
 
 const createMockSocket = (canonicalQueryId?: string): MockSocket => {
-  const listeners = new Map<string, Set<(payload: any) => void>>();
+  const listeners = new Map<string, Set<MockSocketHandler>>();
   const socket: MockSocket = {
     emit: (event, payload) => {
       socket.emitted.push({event, payload});
@@ -31,9 +71,10 @@ const createMockSocket = (canonicalQueryId?: string): MockSocket => {
         return;
       }
       queueMicrotask(() => {
-        const handlers = listeners.get("query:subscribed") ?? new Set();
+        const handlers = listeners.get("query:subscribed") ?? new Set<MockSocketHandler>();
+        const {collection} = payload as {collection: string};
         for (const handler of handlers) {
-          handler({collection: payload.collection, queryId: canonicalQueryId});
+          handler({collection, queryId: canonicalQueryId});
         }
       });
     },
@@ -48,7 +89,7 @@ const createMockSocket = (canonicalQueryId?: string): MockSocket => {
       listeners.get(event)?.add(handler);
     },
     trigger: (event, payload) => {
-      const handlers = listeners.get(event) ?? new Set();
+      const handlers = listeners.get(event) ?? new Set<MockSocketHandler>();
       for (const handler of handlers) {
         handler(payload);
       }
@@ -57,14 +98,7 @@ const createMockSocket = (canonicalQueryId?: string): MockSocket => {
   return socket;
 };
 
-const createCacheApi = (
-  draft: any
-): {
-  cacheDataLoaded: Promise<void>;
-  cacheEntryRemoved: Promise<void>;
-  remove: () => void;
-  updateCachedData: (callback: (draft: any) => void) => void;
-} => {
+const createCacheApi = <TDraft>(draft: TDraft): MockCacheApi<TDraft> => {
   const cacheEntryRemoved = createDeferred();
   return {
     cacheDataLoaded: Promise.resolve(),
@@ -81,19 +115,35 @@ const flushPromises = async (): Promise<void> => {
   await Promise.resolve();
 };
 
+describe("realtime deprecation", () => {
+  it("warns once across realtimeList, realtimeDocument, and setRealtimeSocket", () => {
+    resetRealtimeDeprecationWarningsForTests();
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => undefined);
+
+    realtimeList("todos");
+    realtimeDocument("todos");
+    setRealtimeSocket(null);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0]?.[0]).toBe(RTK_REALTIME_DEPRECATION_MESSAGE);
+
+    warnSpy.mockRestore();
+  });
+});
+
 describe("realtimeDocument", () => {
   afterEach(() => {
     setRealtimeSocket(null);
   });
 
   it("waits for a socket, patches matching update payloads, and unsubscribes", async () => {
-    const draft: any = {id: "doc-1", title: "Old"};
+    const draft: MockDocumentDraft = {id: "doc-1", title: "Old"};
     const api = createCacheApi(draft);
     const task = realtimeDocument("todos")("doc-1", api);
 
     await Promise.resolve();
     const socket = createMockSocket();
-    setRealtimeSocket(socket as any);
+    setRealtimeSocket(socket as unknown as Socket);
     await flushPromises();
 
     socket.trigger("sync", {
@@ -144,7 +194,7 @@ describe("realtimeDocument", () => {
 
   it("returns before subscribing when id or cache load is unavailable", async () => {
     const socket = createMockSocket();
-    setRealtimeSocket(socket as any);
+    setRealtimeSocket(socket as unknown as Socket);
 
     await realtimeDocument("todos")({}, createCacheApi({}));
     await realtimeDocument("todos")("doc-1", {
@@ -180,7 +230,7 @@ describe("realtimeDocument", () => {
 
     setRealtimeDebug(true);
     try {
-      const draft = {id: "doc-1", title: "Old"};
+      const draft: MockDocumentDraft = {id: "doc-1", title: "Old"};
       const api = createCacheApi(draft);
       const socket = createMockSocket();
       setRealtimeSocket(socket as unknown as Socket);
@@ -215,7 +265,7 @@ describe("realtimeList", () => {
   it("unsubscribes from the server-canonical queryId", async () => {
     const cacheEntryRemoved = createDeferred();
     const socket = createMockSocket('todos:{"completed":false,"ownerId":"user1"}');
-    setRealtimeSocket(socket as any);
+    setRealtimeSocket(socket as unknown as Socket);
 
     const task = realtimeList("todos")(
       {completed: false, limit: 20},
@@ -239,8 +289,8 @@ describe("realtimeList", () => {
 
   it("handles model-room create, update, stale update, insert-on-update, and delete events", async () => {
     const socket = createMockSocket();
-    setRealtimeSocket(socket as any);
-    const draft = {
+    setRealtimeSocket(socket as unknown as Socket);
+    const draft: MockListDraft = {
       data: [{id: "todo-1", title: "Existing", updated: "2026-01-02T00:00:00.000Z"}],
       total: 1,
     };
@@ -297,7 +347,7 @@ describe("realtimeList", () => {
       timestamp: 1,
     });
 
-    expect(draft.data.map((item: any) => item.id)).toEqual(["todo-3", "todo-1"]);
+    expect(draft.data.map((item) => item.id)).toEqual(["todo-3", "todo-1"]);
     expect(draft.data[1].title).toBe("Updated");
     expect(draft.total).toBe(2);
 
@@ -307,10 +357,24 @@ describe("realtimeList", () => {
     expect(socket.emitted).toContainEqual({event: "unsubscribe:model", payload: "todos"});
   });
 
+  it("subscribes to the model room when the argument is not a filter object", async () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    const api = createCacheApi<MockListDraft>({data: [], total: 0});
+    const task = realtimeList("todos")(undefined, api);
+
+    await flushPromises();
+    api.remove();
+    await task;
+
+    expect(socket.emitted).toContainEqual({event: "subscribe:model", payload: "todos"});
+    expect(socket.emitted.some((item) => item.event === "subscribe:query")).toBe(false);
+  });
+
   it("correlates query subscription acknowledgements before using canonical queryId", async () => {
     const socket = createMockSocket();
-    setRealtimeSocket(socket as any);
-    const api = createCacheApi({data: [], total: 0});
+    setRealtimeSocket(socket as unknown as Socket);
+    const api = createCacheApi<MockListDraft>({data: [], total: 0});
     const task = realtimeList("todos")({completed: false}, api);
 
     await flushPromises();
@@ -341,7 +405,7 @@ describe("realtimeList", () => {
 
   it("returns before subscribing when cache load fails or socket never arrives", async () => {
     const socket = createMockSocket();
-    setRealtimeSocket(socket as any);
+    setRealtimeSocket(socket as unknown as Socket);
     await realtimeList("todos")(
       {},
       {
@@ -379,7 +443,7 @@ describe("realtimeList", () => {
     try {
       const socket = createMockSocket();
       setRealtimeSocket(socket as unknown as Socket);
-      const draft = {data: [{id: "todo-1", title: "Existing"}], total: 1};
+      const draft: MockListDraft = {data: [{id: "todo-1", title: "Existing"}], total: 1};
       const api = createCacheApi(draft);
       const task = realtimeList("todos")({limit: 20}, api);
 

@@ -1,12 +1,17 @@
-import {createContext, type FC, type ReactNode, useContext} from "react";
+import {createContext, type FC, type ReactNode, useContext, useMemo} from "react";
 
 import type {CustomIconComponent, IconName, IconRegistryMap} from "./Common";
+import {BarsFilterIcon} from "./icons/BarsFilterIcon";
 
-// Stable empty registry so consumers that don't register icons don't trigger
-// unnecessary context re-renders.
-const EMPTY_REGISTRY: IconRegistryMap = {};
+// Icons shipped with @terreno/ui and always available via `iconName`. Consumer
+// icons passed to the provider override these on name collision.
+const BUILT_IN_ICONS: IconRegistryMap = {
+  "bars-filter": ({color, size, testID}) => (
+    <BarsFilterIcon fill={color} height={size} testID={testID} width={size} />
+  ),
+};
 
-const IconRegistryContext = createContext<IconRegistryMap>(EMPTY_REGISTRY);
+const IconRegistryContext = createContext<IconRegistryMap>(BUILT_IN_ICONS);
 
 interface IconRegistryProviderProps {
   /** Map of custom icon name to the component that renders it. */
@@ -15,10 +20,10 @@ interface IconRegistryProviderProps {
 }
 
 export const IconRegistryProvider: FC<IconRegistryProviderProps> = ({icons, children}) => {
+  // Built-in icons are always available; consumer icons override them by name.
+  const mergedIcons = useMemo(() => ({...BUILT_IN_ICONS, ...icons}), [icons]);
   return (
-    <IconRegistryContext.Provider value={icons ?? EMPTY_REGISTRY}>
-      {children}
-    </IconRegistryContext.Provider>
+    <IconRegistryContext.Provider value={mergedIcons}>{children}</IconRegistryContext.Provider>
   );
 };
 

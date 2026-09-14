@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
 import {DateTime} from "luxon";
-import type {Model, ObjectId} from "mongoose";
+import type {Model, ObjectId, Query} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
 import {Strategy as AnonymousStrategy} from "passport-anonymous";
@@ -12,10 +12,12 @@ import {
   type StrategyOptions,
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
-
+import {addAuthRecoveryRoutes, sendVerificationEmail} from "./authRecovery";
+import {AuthToken} from "./authTokens";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {isJwtCredentialExchangePath} from "./rateLimit/policies";
 import {
   getSessionIdFromJwtPayload,
   type JwtSessionPayload,
@@ -34,6 +36,12 @@ export interface User {
    * This can be helpful for pre-signup users.
    */
   isAnonymous?: boolean;
+  /** Login identifier; present on passport-local and Better Auth app users. */
+  email?: string;
+  /** Incremented on password reset so outstanding refresh tokens fail. */
+  tokenEpoch?: number;
+  /** Set by emailVerificationPlugin; login may require this when requireEmailVerification is on. */
+  emailVerified?: boolean;
 }
 
 export interface UserModel extends Model<User> {
@@ -41,14 +49,14 @@ export interface UserModel extends Model<User> {
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
   postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  createStrategy(): any;
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  serializeUser(): any;
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  deserializeUser(): any;
-  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
-  findByUsername(username: string, findOpts: any): any;
+  // Provided by passport-local-mongoose:
+  createStrategy(): passport.Strategy;
+  serializeUser(): (user: User, cb: (err: unknown, id?: unknown) => void) => void;
+  deserializeUser(): (username: string, cb: (err: unknown, user?: User | null) => void) => void;
+  findByUsername(
+    username: string,
+    findOpts: boolean | {selectHashSaltFields?: boolean}
+  ): Query<User | null, User>;
 }
 
 export interface GenerateTokensOptions {
@@ -96,6 +104,89 @@ export const authenticateMiddleware = (anonymous = false) => {
   };
 };
 
+/**
+ * User fields that confer authority or skip security gates. Self-service requests
+ * (anonymous signup, `PATCH /me`) must never set them, or any caller could grant
+ * themselves admin, an RBAC role, a verified email, or a reset epoch. Elevate users
+ * through the admin API or `access.roles.assign` instead.
+ */
+export const PRIVILEGED_USER_FIELDS = [
+  "admin",
+  "roles",
+  "organizationIds",
+  "emailVerified",
+  "tokenEpoch",
+] as const;
+
+/**
+ * Removes {@link PRIVILEGED_USER_FIELDS} from a self-service body. Fields are dropped rather
+ * than rejected so clients that echo a whole user object back still succeed.
+ */
+export const stripPrivilegedUserFields = (
+  body: Record<string, unknown>,
+  context: string
+): Record<string, unknown> => {
+  const sanitized: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, value] of Object.entries(body)) {
+    if ((PRIVILEGED_USER_FIELDS as readonly string[]).includes(key)) {
+      dropped.push(key);
+      continue;
+    }
+    sanitized[key] = value;
+  }
+  if (dropped.length > 0) {
+    logger.warn(`Ignored privileged user fields on ${context}: ${dropped.join(", ")}`);
+  }
+  return sanitized;
+};
+
+const isEmailUpdateChangingMailbox = (currentEmail: unknown, nextEmail: unknown): boolean => {
+  if (typeof currentEmail !== "string" || typeof nextEmail !== "string") {
+    return false;
+  }
+  return currentEmail.trim().toLowerCase() !== nextEmail.trim().toLowerCase();
+};
+
+const omitPrivilegedFieldsFromObject = (item: unknown, allowAdminWrite: boolean): unknown => {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    return item;
+  }
+  const record = item as Record<string, unknown>;
+  const fieldsToDrop = PRIVILEGED_USER_FIELDS.filter(
+    (field) => field in record && !(field === "admin" && allowAdminWrite)
+  );
+  if (fieldsToDrop.length === 0) {
+    return item;
+  }
+  const next = {...record};
+  for (const field of fieldsToDrop) {
+    Reflect.deleteProperty(next, field);
+  }
+  logger.warn(`Ignored privileged User fields on a modelRouter write: ${fieldsToDrop.join(", ")}`);
+  return next;
+};
+
+/**
+ * When RBAC is enabled, authority-bearing User fields must not flow through ordinary mongoose
+ * writes on `/users`, sync, or MCP. AdminApp captures role assignments before this runs and
+ * explicitly marks authorized legacy-admin writes after its additional checks.
+ */
+export const omitUserRolesFromWriteBody = (
+  modelName: string,
+  accessControl: unknown,
+  body: unknown,
+  allowAdminWrite = false
+): unknown => {
+  if (modelName !== "User" || !accessControl || body == null) {
+    return body;
+  }
+  if (Array.isArray(body)) {
+    return body.map((item) => omitPrivilegedFieldsFromObject(item, allowAdminWrite));
+  }
+  return omitPrivilegedFieldsFromObject(body, allowAdminWrite);
+};
+
 export const signupUser = async (
   userModel: UserModel,
   email: string,
@@ -104,11 +195,22 @@ export const signupUser = async (
 ) => {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
-  const {email: _email, password: _password, ...bodyRest} = body ?? {};
+  const {email: _email, password: _password, ...rawBody} = body ?? {};
+  const bodyRest = stripPrivilegedUserFields(rawBody, "signup");
 
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
-    const user = await (userModel as any).register({email, ...bodyRest}, password);
+    const registrableModel = userModel as UserModel & {
+      register(
+        user: Record<string, unknown>,
+        password: string
+      ): Promise<
+        User & {
+          postCreate?: (body: Record<string, unknown>) => Promise<void>;
+          save: () => Promise<unknown>;
+        }
+      >;
+    };
+    const user = await registrableModel.register({email, ...bodyRest}, password);
 
     if (user.postCreate) {
       try {
@@ -124,6 +226,114 @@ export const signupUser = async (
     const message = errorMessage(error);
     throw new APIError({title: message});
   }
+};
+
+/** A user document exposing passport-local-mongoose's `setPassword`. */
+export interface HasSetPassword {
+  _id?: unknown;
+  id?: string;
+  setPassword: (
+    password: string,
+    callback?: (error?: unknown) => void
+  ) => Promise<unknown> | unknown;
+}
+
+/** Upper bound on password length accepted by {@link setPasswordForUser} (D5). */
+export const MAX_PASSWORD_LENGTH = 256;
+
+/** Optional audit context for {@link setPasswordForUser} — never includes the password itself. */
+export interface SetPasswordAuditContext {
+  /** The admin performing the change, when set via an admin-only route. */
+  adminId?: unknown;
+}
+
+/**
+ * Sets a password on a passport-local-mongoose user document, returning a Promise regardless of
+ * whether the installed version of `setPassword` is callback- or promise-based. Newer versions
+ * return a promise while older ones only invoke the callback; this helper normalizes both and
+ * rejects after `timeoutMs` (default 15s) if neither settles. Call `user.save()` afterwards to
+ * persist the new hash/salt.
+ *
+ * Rejects synchronously (before touching `setPassword`) when `password` exceeds
+ * {@link MAX_PASSWORD_LENGTH} characters. When `audit.adminId` is provided (an admin-initiated
+ * password change), logs a `logger.info` audit line with the admin id, target user id, and
+ * timestamp — NEVER the password itself.
+ */
+export const setPasswordForUser = async (
+  user: HasSetPassword,
+  password: string,
+  timeoutMs = 15_000,
+  audit?: SetPasswordAuditContext
+): Promise<void> => {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new APIError({
+      status: 400,
+      title: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+    });
+  }
+  if (audit?.adminId !== undefined) {
+    const targetUserId = user._id ?? user.id ?? "unknown";
+    logger.info(
+      `[auth] Admin ${String(audit.adminId)} set password for user ${String(targetUserId)} ` +
+        `at ${DateTime.now().toISO()}`
+    );
+  }
+  await new Promise<void>((resolve, reject) => {
+    let isSettled = false;
+    const timeout = setTimeout(() => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      reject(new Error("Timed out while setting password"));
+    }, timeoutMs);
+
+    const resolveOnce = (): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const rejectOnce = (error: unknown): void => {
+      if (isSettled) {
+        return;
+      }
+      isSettled = true;
+      clearTimeout(timeout);
+      reject(error);
+    };
+
+    try {
+      const maybePromise = user.setPassword(password, (error?: unknown) => {
+        if (error) {
+          rejectOnce(error);
+          return;
+        }
+        resolveOnce();
+      });
+
+      if (maybePromise && typeof (maybePromise as Promise<unknown>).then === "function") {
+        (maybePromise as Promise<unknown>).then(resolveOnce).catch(rejectOnce);
+      }
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+};
+
+/**
+ * Returns the duration when `ms` can parse it, otherwise logs and returns undefined so the caller
+ * keeps its default. Signing a token with an unparseable duration throws instead.
+ */
+const validateDuration = (envName: string, value: string): StringValue | undefined => {
+  if (ms(value as StringValue) === undefined) {
+    logger.error(`${envName} is not a valid duration: "${value}". Using the default instead.`);
+    return undefined;
+  }
+  return value as StringValue;
 };
 
 /**
@@ -158,24 +368,24 @@ export const generateTokens = async (
     return {refreshToken: null, token: null};
   }
   const sessionId = options.sessionId ?? randomUUID();
-  let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
+  const authUser = user as User;
+  let payload: Record<string, unknown> = {
+    id: String(tokenUser._id),
+    sid: sessionId,
+    te: authUser.tokenEpoch ?? 0,
+  };
   if (authOptions?.generateJWTPayload) {
-    payload = {...authOptions.generateJWTPayload(user), ...payload};
+    payload = {...authOptions.generateJWTPayload(authUser), ...payload};
   }
   const tokenOptions: jwt.SignOptions = {
     expiresIn: "15m",
   };
   if (authOptions?.generateTokenExpiration) {
-    tokenOptions.expiresIn = authOptions.generateTokenExpiration(user);
+    tokenOptions.expiresIn = authOptions.generateTokenExpiration(authUser);
   } else if (process.env.TOKEN_EXPIRES_IN) {
-    try {
-      // this call to ms is purely for validation of the env variable. If it is invalid,
-      // we want to be able to log the error and use the default.
-      ms(process.env.TOKEN_EXPIRES_IN as StringValue);
-      tokenOptions.expiresIn = process.env.TOKEN_EXPIRES_IN as StringValue;
-    } catch (error) {
-      // This error will result in using the default value above of 15m.
-      logger.error(error as string);
+    const expiresIn = validateDuration("TOKEN_EXPIRES_IN", process.env.TOKEN_EXPIRES_IN);
+    if (expiresIn) {
+      tokenOptions.expiresIn = expiresIn;
     }
   }
   if (process.env.TOKEN_ISSUER) {
@@ -190,16 +400,14 @@ export const generateTokens = async (
       expiresIn: "30d",
     };
     if (authOptions?.generateRefreshTokenExpiration) {
-      refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(user);
+      refreshTokenOptions.expiresIn = authOptions.generateRefreshTokenExpiration(authUser);
     } else if (process.env.REFRESH_TOKEN_EXPIRES_IN) {
-      try {
-        // this call to ms is purely for validation of the env variable. If it is invalid,
-        // we want to be able to log the error and use the default.
-        ms(process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue);
-        refreshTokenOptions.expiresIn = process.env.REFRESH_TOKEN_EXPIRES_IN as StringValue;
-      } catch (error) {
-        // This error will result in using the default value above of 30d.
-        logger.error(error as string);
+      const expiresIn = validateDuration(
+        "REFRESH_TOKEN_EXPIRES_IN",
+        process.env.REFRESH_TOKEN_EXPIRES_IN
+      );
+      if (expiresIn) {
+        refreshTokenOptions.expiresIn = expiresIn;
       }
     }
     refreshToken = jwt.sign(payload, refreshTokenSecretOrKey, refreshTokenOptions);
@@ -210,6 +418,10 @@ export const generateTokens = async (
 };
 
 export const setupAuth = (app: express.Application, userModel: UserModel): void => {
+  if (!userModel.createStrategy) {
+    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
+  }
+
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
   passport.use(
@@ -230,10 +442,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     ) as passport.Strategy
   );
 
-  if (!userModel.createStrategy) {
-    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
-  }
-
   const customTokenExtractor: JwtFromRequestFunction = (req) => {
     let token: string | null = null;
     if (req?.cookies?.jwt) {
@@ -250,9 +458,6 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     }
 
     const secretOrKey = process.env.TOKEN_SECRET;
-    if (!secretOrKey) {
-      throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
-    }
     const jwtOpts: StrategyOptions = {
       issuer: process.env.TOKEN_ISSUER,
       jwtFromRequest: customTokenExtractor,
@@ -296,6 +501,12 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
       return next();
     }
 
+    // Login, signup, and refresh exchange credentials. A stale access JWT in
+    // Authorization / the jwt cookie must not 401 before those handlers run.
+    if (isJwtCredentialExchangePath(req)) {
+      return next();
+    }
+
     // Allow requests with a "Secret" prefix to pass through since this is a string value,
     // not a jwt that needs to be decoded
     if (req?.headers?.authorization?.split(" ")[0] === "Secret") {
@@ -317,6 +528,19 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
         issuer: process.env.TOKEN_ISSUER,
       }) as jwt.JwtPayload;
     } catch (error: unknown) {
+      // A bearer token that is not a JWT at all (e.g. a Better Auth opaque session
+      // token) is not ours to reject — fall through so a later auth layer (Better
+      // Auth session middleware) or the route's own permissions can handle it.
+      // Detect this by decoding the token's header/payload structure (D1) rather
+      // than counting dot-delimited segments: an opaque token can coincidentally
+      // contain exactly two dots, and a malformed-but-JWT-shaped string can fail
+      // this same check for the wrong reason — `jwt.decode` parses the actual
+      // base64url JSON structure of each segment, which dot-counting cannot.
+      // Genuine JWTs that fail verification (malformed/expired) still return 401 so the
+      // client's token-refresh flow is preserved.
+      if (jwt.decode(token, {complete: true}) === null) {
+        return next();
+      }
       const userText = req.user?._id ? ` for user ${req.user._id} ` : "";
       const expiredAt =
         error && typeof error === "object" && "expiredAt" in error
@@ -349,8 +573,8 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
     return next();
   };
   app.use(decodeJWTMiddleware);
-  // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
-  app.use(express.urlencoded({extended: false}) as any);
+  // express 5's urlencoded() handler type doesn't match RequestHandler directly
+  app.use(express.urlencoded({extended: false}) as unknown as express.RequestHandler);
 };
 
 export const addAuthRoutes = (
@@ -375,6 +599,15 @@ export const addAuthRoutes = (
         if (!user) {
           logger.warn(`Invalid login: ${info}`);
           return res.status(401).json({message: info?.message});
+        }
+        if (authOptions?.requireEmailVerification && user.emailVerified !== true) {
+          return next(
+            new APIError({
+              code: "email-not-verified",
+              status: 403,
+              title: "Email is not verified",
+            })
+          );
         }
         if (process.env.NODE_ENV !== "test") {
           logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
@@ -415,6 +648,12 @@ export const addAuthRoutes = (
     }
     if (decoded?.id) {
       const user = await userModel.findById(decoded.id);
+      const tokenEpoch = typeof decoded.te === "number" ? decoded.te : 0;
+      const userEpoch = (user as User | null)?.tokenEpoch ?? 0;
+      if (!user || tokenEpoch !== userEpoch) {
+        logger.error(`Invalid refresh token, user id: ${req.user?.id}`);
+        return res.status(401).json({message: "Invalid refresh token"});
+      }
       const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
       const tokens = await generateTokens(user, authOptions, {sessionId});
       if (tokens.sessionId) {
@@ -456,6 +695,13 @@ export const addAuthRoutes = (
         )(req, res, next);
       },
       async (req: express.Request, res: express.Response) => {
+        if (req.user) {
+          try {
+            await sendVerificationEmail(req.user, authOptions);
+          } catch (error: unknown) {
+            logger.error("[auth] Failed to send verification mail after signup", {error});
+          }
+        }
         const tokens = await generateTokens(req.user, authOptions);
         if (tokens.sessionId) {
           setRequestContext({
@@ -472,12 +718,14 @@ export const addAuthRoutes = (
   }
   app.set("etag", false);
   app.use("/auth", router);
+  addAuthRecoveryRoutes(app, userModel, authOptions);
 };
 
 export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
-  _authOptions?: AuthOptions
+  _authOptions?: AuthOptions,
+  accessControl?: import("./rbac/types").AnyTerrenoAccess
 ): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
@@ -492,6 +740,13 @@ export const addMeRoutes = (
     }
     const dataObject = data.toObject() as unknown as Record<string, unknown>;
     dataObject.id = data._id;
+    if (accessControl) {
+      const withRoles = data as unknown as {roles?: string[]};
+      dataObject.roles = withRoles.roles ?? [];
+      dataObject.permissions = await accessControl.getPermissions({
+        user: data as unknown as User,
+      });
+    }
     return res.json({data: dataObject});
   });
 
@@ -510,7 +765,16 @@ export const addMeRoutes = (
     //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
-      Object.assign(doc, req.body);
+      const update = stripPrivilegedUserFields(req.body ?? {}, "PATCH /auth/me");
+      const isMailboxChange = isEmailUpdateChangingMailbox(doc.email, update.email);
+      Object.assign(doc, update);
+      if (isMailboxChange) {
+        await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "passwordReset");
+        if (userModel.schema.path("emailVerified") !== undefined) {
+          doc.emailVerified = false;
+          await AuthToken.invalidateUnusedFor({_id: String(doc._id)}, "emailVerification");
+        }
+      }
       await doc.save();
 
       const dataObject = doc.toObject() as unknown as Record<string, unknown>;

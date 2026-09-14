@@ -1,8 +1,11 @@
-import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent} from "@testing-library/react-native";
+import {afterEach, describe, expect, it, mock} from "bun:test";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
+import {assert} from "chai";
+import {Platform} from "react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
 import {SignatureField} from "./SignatureField";
+import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -23,6 +26,12 @@ const baseForm: ConsentFormPublic = {
   title: "Consent",
   type: "tos",
   version: 1,
+};
+
+const waitForConsentMarkdown = async (getByText: (text: string) => unknown): Promise<void> => {
+  await waitFor(() => {
+    expect(getByText("Consent body")).toBeTruthy();
+  });
 };
 
 describe("ConsentFormScreen", () => {
@@ -274,13 +283,13 @@ describe("ConsentFormScreen", () => {
     });
   });
 
-  it("auto-satisfies scroll requirement when content fits the viewport via contentSizeChange", () => {
+  it("auto-satisfies scroll requirement when content fits the viewport via contentSizeChange", async () => {
     const form = {...baseForm, requireScrollToBottom: true};
-    const {getByTestId, queryByTestId} = renderWithTheme(
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
+    await waitForConsentMarkdown(getByText);
     const scroll = getByTestId("consent-form-scroll-view");
-    // First set the layout height, then content size smaller than layout
     act(() => {
       fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
     });
@@ -290,13 +299,13 @@ describe("ConsentFormScreen", () => {
     expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
   });
 
-  it("auto-satisfies scroll requirement when content fits the viewport via layout", () => {
+  it("auto-satisfies scroll requirement when content fits the viewport via layout", async () => {
     const form = {...baseForm, requireScrollToBottom: true};
-    const {getByTestId, queryByTestId} = renderWithTheme(
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
+    await waitForConsentMarkdown(getByText);
     const scroll = getByTestId("consent-form-scroll-view");
-    // First set the content size, then layout height larger than content
     act(() => {
       fireEvent(scroll, "contentSizeChange", 0, 300);
     });
@@ -304,6 +313,57 @@ describe("ConsentFormScreen", () => {
       fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
     });
     expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+  });
+
+  it("re-requires scroll when lazy content grows past the viewport", async () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    await waitForConsentMarkdown(getByText);
+    const scroll = getByTestId("consent-form-scroll-view");
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 80);
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 2000);
+    });
+    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
+  });
+
+  it("keeps a completed scroll when content shrinks after the in-list hint unmounts", async () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    await waitForConsentMarkdown(getByText);
+    const scroll = getByTestId("consent-form-scroll-view");
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 2000);
+    });
+    expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
+    act(() => {
+      fireEvent(scroll, "scroll", {
+        nativeEvent: {
+          contentOffset: {y: 1480},
+          contentSize: {height: 2000},
+          layoutMeasurement: {height: 500},
+        },
+      });
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 1900);
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+    expect(getByTestId("consent-form-agree-button")).toBeTruthy();
   });
 
   it("handleScroll returns early when already scrolled to bottom", () => {
@@ -351,6 +411,28 @@ describe("ConsentFormScreen", () => {
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
   });
 
+  it("toggles scrolling with the signature touch handlers on iOS", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      captureSignature: true,
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const signature = getByTestId("consent-form-signature");
+    const scroll = getByTestId("consent-form-scroll-view");
+
+    act(() => {
+      fireEvent(signature, "touchStart");
+    });
+    expect(scroll.props.scrollEnabled).toBe(false);
+
+    act(() => {
+      fireEvent(signature, "touchEnd");
+    });
+    expect(scroll.props.scrollEnabled).toBe(true);
+  });
+
   it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
     const form: ConsentFormPublic = {
       ...baseForm,
@@ -370,5 +452,82 @@ describe("ConsentFormScreen", () => {
       sig.props.onEnd();
     });
     expect(sig).toBeTruthy();
+  });
+});
+
+describe("ConsentFormScreen web scroll measurement", () => {
+  const originalOS = Platform.OS;
+  const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+  let frames: FrameRequestCallback[] = [];
+
+  const renderOnWeb = (scrollNode: {clientHeight?: number; scrollHeight?: number} | null) => {
+    Platform.OS = "web";
+    frames = [];
+    globalThis.requestAnimationFrame = ((callback: FrameRequestCallback): number => {
+      frames.push(callback);
+      return frames.length;
+    }) as typeof globalThis.requestAnimationFrame;
+
+    return render(
+      <ConsentFormScreen
+        form={{...baseForm, requireScrollToBottom: true}}
+        locale="en"
+        onAgree={() => {}}
+      />,
+      {
+        createNodeMock: () => ({getScrollableNode: () => scrollNode}),
+        wrapper: ThemeProvider,
+      }
+    );
+  };
+
+  const flushFrames = (): void => {
+    act(() => {
+      for (const frame of frames.splice(0)) {
+        frame(0);
+      }
+    });
+  };
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+    globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  it("unlocks the gate when the loaded content fits the viewport", async () => {
+    const {getByText, queryByTestId} = renderOnWeb({clientHeight: 500, scrollHeight: 200});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNull(queryByTestId("consent-form-scroll-hint"));
+    assert.isNull(queryByTestId("consent-footer-scroll-hint"));
+  });
+
+  it("keeps the gate when the loaded content overflows the viewport", async () => {
+    const {getByTestId, getByText} = renderOnWeb({clientHeight: 200, scrollHeight: 900});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
+  });
+
+  it("keeps the gate when the scroll node has no measurements", async () => {
+    const {getByTestId, getByText} = renderOnWeb({});
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
+  });
+
+  it("keeps the gate when the scroll view has no node", async () => {
+    const {getByTestId, getByText} = renderOnWeb(null);
+    await waitForConsentMarkdown(getByText);
+
+    flushFrames();
+
+    assert.isNotNull(getByTestId("consent-form-scroll-hint"));
   });
 });

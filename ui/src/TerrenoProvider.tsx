@@ -1,10 +1,10 @@
 import type React from "react";
 import type {FC} from "react";
-import {Host} from "react-native-portalize";
 
 import type {IconRegistryMap} from "./Common";
 import {IconRegistryProvider} from "./IconRegistry";
 import {OpenAPIProvider} from "./OpenAPIContext";
+import {Host} from "./PortalHost";
 import {ThemeProvider} from "./Theme";
 import {Toast} from "./Toast";
 import {ToastProvider} from "./ToastNotifications";
@@ -36,7 +36,12 @@ export const TerrenoProvider: FC<{
               providerOnHide?.();
             };
 
-            return <Toast {...toastOptions?.data} onDismiss={handleDismiss} />;
+            const toastData = toastOptions?.data;
+            const title =
+              toastData?.title ??
+              (typeof toastOptions?.message === "string" ? toastOptions.message : "");
+
+            return <Toast {...toastData} onDismiss={handleDismiss} title={title} />;
           }}
           swipeEnabled
         >

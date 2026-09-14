@@ -15,6 +15,7 @@ import {
 
 import {createWebPortal} from "./createWebPortal";
 import {useTheme} from "./Theme";
+import {createBoxShadow} from "./Utilities";
 
 export const scheduleAfterPaint = (callback: () => void): void => {
   if (typeof requestAnimationFrame === "function") {
@@ -22,6 +23,13 @@ export const scheduleAfterPaint = (callback: () => void): void => {
   } else {
     setTimeout(callback, 0);
   }
+};
+
+export const resolveDocumentBodyPortalTarget = (): HTMLElement | null => {
+  if (typeof document === "undefined" || typeof HTMLElement === "undefined") {
+    return null;
+  }
+  return document.body instanceof HTMLElement ? document.body : null;
 };
 
 export interface WebDropdownMenuOption {
@@ -69,12 +77,11 @@ export interface WebDropdownMenuProps {
   /** Prefix for the testIDs on the menu / backdrop / option nodes. */
   testIDPrefix?: string;
   /**
-   * When true, renders a search input at the top of the dropdown that
-   * filters options by label as the user types. The filter resets each
-   * time the menu opens.
-   * @default true
+   * When true, hides the type-to-filter search input at the top of the dropdown.
+   * The filter resets each time the menu opens. Search is enabled by default.
+   * @default false
    */
-  searchable?: boolean;
+  disableSearch?: boolean;
   /**
    * When true and `options` is empty, shows a "No matching options" message.
    * Used when the parent filters options externally (e.g. search in the trigger).
@@ -86,6 +93,8 @@ export interface WebDropdownMenuProps {
    * Web only.
    */
   keepTriggerFocus?: boolean;
+  /** Web only. Renders the menu in a fixed portal attached to `document.body`. */
+  renderInBodyPortal?: boolean;
   /**
    * `anchored` positions the menu below/above the trigger (web-style).
    * `centered` shows a centered dialog, matching Android's native picker modal.
@@ -105,10 +114,10 @@ interface PressableWebState {
  * via `useWebDropdownAnchor` (or an equivalent measurement) when using anchored
  * presentation.
  *
- * When `searchable` is true a text input appears at the top of the menu so
+ * When search is enabled a text input appears at the top of the menu so
  * the user can type to filter options by label. `RNPickerSelect` handles
  * search in the trigger field on web instead and passes pre-filtered options
- * with `searchable={false}`.
+ * with `disableSearch={true}`.
  */
 export const WebDropdownMenu = ({
   visible,
@@ -122,11 +131,13 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
-  searchable = true,
+  disableSearch = false,
   showEmptyStateWhenNoOptions = false,
   keepTriggerFocus = false,
+  renderInBodyPortal = false,
   presentation = "anchored",
 }: WebDropdownMenuProps): ReactElement => {
+  const searchable = !disableSearch;
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<TextInput>(null);
@@ -234,36 +245,35 @@ export const WebDropdownMenu = ({
     borderColor: theme.border.dark,
     borderRadius: 4,
     borderWidth: 1,
+    boxShadow: createBoxShadow({blurRadius: 8, offsetY: 2, opacity: 0.15}),
     left: anchor.x,
     maxHeight: clampedMaxHeight,
     minWidth,
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 2, width: 0},
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
     width: width ?? anchor.width,
     zIndex: 2,
   };
 
+  // Centered presentation is the Android native-picker path. `boxShadow` and
+  // `elevation` both paint on Android, so keep elevation-only there — matching
+  // Box's `shadow` prop. iOS/web get `boxShadow`.
   const centeredMenuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderRadius: 8,
-    elevation: 8,
     maxHeight: clampedMaxHeight,
     maxWidth: Math.min(400, windowWidth - 48),
     overflow: "hidden" as const,
-    shadowColor: "#000",
-    shadowOffset: {height: 4, width: 0},
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
     width: Math.min(400, windowWidth - 48),
+    ...(Platform.OS === "android"
+      ? {elevation: 8}
+      : {boxShadow: createBoxShadow({blurRadius: 12, offsetY: 4, opacity: 0.25})}),
   };
 
   const menuLayoutStyle = isCenteredPresentation
     ? centeredMenuLayoutStyle
     : anchoredMenuLayoutStyle;
+  const usesWebPortal = keepTriggerFocus || renderInBodyPortal;
 
   const menuContent = (
     <>
@@ -375,7 +385,7 @@ export const WebDropdownMenu = ({
 
   // Close on Escape when using the portal overlay (Modal handles this itself).
   useEffect(() => {
-    if (!visible || !keepTriggerFocus || Platform.OS !== "web" || typeof document === "undefined") {
+    if (!visible || !usesWebPortal || Platform.OS !== "web" || typeof document === "undefined") {
       return;
     }
     const closeOnEscape = (event: KeyboardEvent): void => {
@@ -390,15 +400,17 @@ export const WebDropdownMenu = ({
         document.removeEventListener("keyup", closeOnEscape, false);
       }
     };
-  }, [keepTriggerFocus, onClose, visible]);
+  }, [onClose, usesWebPortal, visible]);
 
-  if (Platform.OS === "web" && keepTriggerFocus) {
+  if (Platform.OS === "web" && usesWebPortal) {
     if (!visible) {
       return <View testID={`${testIDPrefix}_modal`} />;
     }
 
     const webFixedOverlayStyle = {
       inset: 0,
+      // box-none lets clicks pass to the backdrop / menu but not the empty overlay.
+      pointerEvents: "box-none",
       position: "fixed",
       zIndex: 9999,
     } as unknown as ViewStyle;
@@ -415,7 +427,7 @@ export const WebDropdownMenu = ({
     } as unknown as ViewStyle;
 
     const overlay = (
-      <View pointerEvents="box-none" style={webFixedOverlayStyle}>
+      <View style={webFixedOverlayStyle}>
         <Pressable
           aria-role="button"
           onPress={onClose}
@@ -428,10 +440,7 @@ export const WebDropdownMenu = ({
       </View>
     );
 
-    const portalTarget =
-      typeof document !== "undefined" && document.body instanceof HTMLElement
-        ? document.body
-        : null;
+    const portalTarget = resolveDocumentBodyPortalTarget();
 
     if (portalTarget) {
       return createWebPortal({children: overlay, container: portalTarget});
@@ -506,23 +515,37 @@ export const WebDropdownMenu = ({
 export const useWebDropdownAnchor = (): {
   triggerRef: React.RefObject<View | null>;
   anchor: WebDropdownAnchor;
+  cancelPendingMeasurement: () => void;
   measure: (onMeasured: (anchor: WebDropdownAnchor) => void) => void;
 } => {
   const triggerRef = useRef<View>(null);
   const [anchor, setAnchor] = useState<WebDropdownAnchor>({height: 0, width: 0, x: 0, y: 0});
+  const measurementRequestRef = useRef(0);
 
-  const measure = (onMeasured: (next: WebDropdownAnchor) => void): void => {
-    const node = triggerRef.current;
-    if (node && typeof node.measureInWindow === "function") {
-      node.measureInWindow((x, y, w, h) => {
-        const next = {height: h, width: w, x, y};
-        setAnchor(next);
-        onMeasured(next);
-      });
-      return;
-    }
-    onMeasured(anchor);
-  };
+  const cancelPendingMeasurement = useCallback((): void => {
+    measurementRequestRef.current += 1;
+  }, []);
 
-  return {anchor, measure, triggerRef};
+  const measure = useCallback(
+    (onMeasured: (next: WebDropdownAnchor) => void): void => {
+      const requestId = measurementRequestRef.current + 1;
+      measurementRequestRef.current = requestId;
+      const node = triggerRef.current;
+      if (node && typeof node.measureInWindow === "function") {
+        node.measureInWindow((x, y, w, h) => {
+          if (requestId !== measurementRequestRef.current) {
+            return;
+          }
+          const next = {height: h, width: w, x, y};
+          setAnchor(next);
+          onMeasured(next);
+        });
+        return;
+      }
+      onMeasured(anchor);
+    },
+    [anchor]
+  );
+
+  return {anchor, cancelPendingMeasurement, measure, triggerRef};
 };

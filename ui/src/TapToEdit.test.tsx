@@ -1,5 +1,4 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {Linking} from "react-native";
 
@@ -140,9 +139,7 @@ describe("TapToEdit", () => {
   });
 
   it("invokes Linking.openURL for url type when clicked", async () => {
-    const originalOpen = Linking.openURL;
-    const openMock = mock(() => Promise.resolve(true));
-    (Linking as any).openURL = openMock;
+    const openURLSpy = spyOn(Linking, "openURL").mockImplementation(() => Promise.resolve(true));
 
     const {getByLabelText} = renderWithTheme(
       <TapToEdit editable={false} title="Site" type="url" value="https://example.com" />
@@ -151,15 +148,13 @@ describe("TapToEdit", () => {
     await act(async () => {
       fireEvent.press(getByLabelText("Link"));
     });
-    expect(openMock).toHaveBeenCalled();
+    expect(openURLSpy).toHaveBeenCalled();
 
-    (Linking as any).openURL = originalOpen;
+    openURLSpy.mockRestore();
   });
 
   it("invokes Linking.openURL with google maps for address type when clicked", async () => {
-    const originalOpen = Linking.openURL;
-    const openMock = mock(() => Promise.resolve(true));
-    (Linking as any).openURL = openMock;
+    const openURLSpy = spyOn(Linking, "openURL").mockImplementation(() => Promise.resolve(true));
 
     const {getByLabelText} = renderWithTheme(
       <TapToEdit
@@ -173,11 +168,11 @@ describe("TapToEdit", () => {
     await act(async () => {
       fireEvent.press(getByLabelText("Link"));
     });
-    expect(openMock).toHaveBeenCalled();
-    const arg = openMock.mock.calls[0][0];
+    expect(openURLSpy).toHaveBeenCalled();
+    const arg = openURLSpy.mock.calls[0][0];
     expect(arg).toContain("google.com/maps");
 
-    (Linking as any).openURL = originalOpen;
+    openURLSpy.mockRestore();
   });
 
   it("throws when editable is true and setValue is not provided", () => {
@@ -407,5 +402,50 @@ describe("TapToEdit - additional function coverage", () => {
     );
     expect(getByText("Bio")).toBeTruthy();
     expect(getByText("A long bio text")).toBeTruthy();
+  });
+
+  it("forwards testID to the edit control", () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} testID="profile.name" title="Name" value="Jane" />
+    );
+    expect(getByTestId("profile.name.edit-clickable")).toBeTruthy();
+  });
+
+  it("forwards testID to cancel, clear, and save buttons while editing", async () => {
+    const {getByTestId} = renderWithTheme(
+      <TapToEdit
+        onSave={async () => {}}
+        setValue={() => {}}
+        showClearButton
+        testID="profile.name"
+        title="Name"
+        value="Jane"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("profile.name.edit-clickable"));
+    });
+
+    expect(getByTestId("profile.name")).toBeTruthy();
+    expect(getByTestId("profile.name.cancel")).toBeTruthy();
+    expect(getByTestId("profile.name.clear")).toBeTruthy();
+    expect(getByTestId("profile.name.save")).toBeTruthy();
+  });
+
+  it("does not set action testIDs when testID is omitted", async () => {
+    const {getByLabelText, queryByTestId} = renderWithTheme(
+      <TapToEdit setValue={() => {}} showClearButton title="Name" value="Jane" />
+    );
+
+    expect(queryByTestId("undefined.edit-clickable")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+
+    expect(queryByTestId("undefined.cancel")).toBeNull();
+    expect(queryByTestId("undefined.clear")).toBeNull();
+    expect(queryByTestId("undefined.save")).toBeNull();
   });
 });

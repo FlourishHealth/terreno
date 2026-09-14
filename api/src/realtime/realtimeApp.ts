@@ -1,13 +1,15 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type http from "node:http";
 import * as Sentry from "@sentry/bun";
-import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import {Server, type Socket} from "socket.io";
 
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import {logger} from "../logger";
-import {checkPermissions} from "../permissions";
+import {canSubscribeRealtime} from "../rbac/realtimeAccess";
+import {warnOnSyncScopesWithoutUserModel} from "../sync/registry";
+import {installSyncSocketHandlers} from "../sync/socketHandlers";
+import {getSyncAppOptions} from "../sync/syncApp";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -17,7 +19,13 @@ import {
   removeQuerySubscription,
 } from "./queryStore";
 import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
-import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
+import {
+  loadFullUserForSocket,
+  type SessionRevalidationHandle,
+  startSessionRevalidationSweep,
+} from "./sessionRevalidation";
+import {createSocketAuthMiddleware} from "./socketAuth";
+import {getSocketUser, type SocketDataBag, type SocketWithDecodedToken} from "./socketUser";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -35,6 +43,7 @@ export const MAX_QUERY_SUBSCRIPTIONS = 100;
  *
  * Exported for testing.
  */
+/** @internal */
 export const redactCredentials = (url: string): string => {
   try {
     const parsed = new URL(url);
@@ -60,17 +69,14 @@ export interface RealtimeSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  on: (event: string, handler: (...args: any[]) => any) => void;
+  on: (event: string, handler: (...args: never[]) => void | Promise<void>) => void;
 }
 
 const canSubscribe = async (
   entry: RealtimeRegistryEntry,
   method: "list" | "read",
   user?: User
-): Promise<boolean> => {
-  const permissions = entry.options.permissions[method];
-  return checkPermissions(method, permissions, user);
-};
+): Promise<boolean> => canSubscribeRealtime(entry, method, user);
 
 const getAuthorizedQuery = async (
   entry: RealtimeRegistryEntry,
@@ -121,7 +127,9 @@ export const installRealtimeSocketHandlers = (
   const logInfo = options.logInfo ?? ((): void => {});
   const userId = socket.decodedToken?.id;
   const isAdmin = socket.decodedToken?.admin === true;
-  const user = getSocketUser(socket);
+  // D2: re-derive per event rather than capturing once at install time, so a
+  // handshake-time-loaded full user (or one refreshed by D1's sweep) is always used.
+  const currentUser = (): User | undefined => getSocketUser(socket);
 
   const counts = {document: 0, model: 0, query: 0};
 
@@ -168,7 +176,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    if (!(await canSubscribe(entry, "list", user))) {
+    if (!(await canSubscribe(entry, "list", currentUser()))) {
       logInfo(
         `[realtime] User ${userId} denied model subscription for ${modelName}: list permission denied`
       );
@@ -211,7 +219,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    if (!(await canSubscribe(entry, "read", user))) {
+    if (!(await canSubscribe(entry, "read", currentUser()))) {
       logInfo(
         `[realtime] User ${userId} denied document subscription for ` +
           `${payload.collection}/${payload.id}: read permission denied`
@@ -266,7 +274,7 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    let query = await getAuthorizedQuery(entry, {...payload.query}, user);
+    let query = await getAuthorizedQuery(entry, {...payload.query}, currentUser());
     if (!query) {
       logInfo(
         `[realtime] User ${userId} denied query subscription for ${payload.collection}: ` +
@@ -314,7 +322,7 @@ export const installRealtimeSocketHandlers = (
  * TerrenoPlugin that provides real-time sync via Socket.io and MongoDB change streams.
  *
  * Attaches a Socket.io server to the HTTP server created by TerrenoApp.start(),
- * sets up JWT authentication for socket connections, manages room subscriptions
+ * sets up JWT and/or Better Auth authentication for socket connections, manages room subscriptions
  * (model, document, and query rooms), and starts a change stream watcher that
  * emits events to connected clients.
  *
@@ -335,8 +343,10 @@ export const installRealtimeSocketHandlers = (
  * ```
  */
 export class RealtimeApp implements TerrenoPlugin {
+  private app: express.Application | null = null;
   private io: Server | null = null;
   private config: RealtimeAppOptions;
+  private sessionRevalidation: SessionRevalidationHandle | null = null;
 
   constructor(config: RealtimeAppOptions = {}) {
     this.config = config;
@@ -346,6 +356,7 @@ export class RealtimeApp implements TerrenoPlugin {
    * Register routes and middleware. Adds a /realtime/health endpoint.
    */
   register(app: express.Application): void {
+    this.app = app;
     app.get("/realtime/health", (_req, res) => {
       const connected = this.io?.engine?.clientsCount ?? 0;
       res.json({
@@ -372,29 +383,53 @@ export class RealtimeApp implements TerrenoPlugin {
     try {
       logInfo("[realtime] Setting up Socket.io server...");
 
-      this.io = new Server(server, {
+      // Prefer an injected Server constructor in tests so callers never need
+      // process-wide `mock.module("socket.io")` (which poisons later files).
+      const SocketServerCtor = this.config.SocketServer ?? Server;
+      this.io = new SocketServerCtor(server, {
         cors: this.config.cors ?? {
           methods: ["GET", "POST"],
           origin: "*",
         },
       });
 
-      // JWT authentication middleware
+      // Authentication middleware: legacy JWT first when configured, optionally Better Auth sessions.
       const tokenSecret = this.config.tokenSecret ?? process.env.TOKEN_SECRET;
-      if (!tokenSecret) {
-        throw new Error(
-          "[realtime] TOKEN_SECRET is required for socket authentication. " +
-            "Set process.env.TOKEN_SECRET or pass tokenSecret in RealtimeAppOptions."
-        );
+      if (!tokenSecret && !this.config.betterAuth) {
+        throw new APIError({
+          status: 500,
+          title:
+            "[realtime] Socket authentication requires TOKEN_SECRET or Better Auth. " +
+            "Set process.env.TOKEN_SECRET, pass tokenSecret, or configure betterAuth.",
+        });
       }
 
+      // D1: pass the issuer through for parity with the HTTP JWT path
+      // (jwt.verify(token, secret, {issuer})) — without it a validly-signed token
+      // issued for a different TOKEN_ISSUER was silently accepted over sockets. A
+      // thunk (not a value captured once here) so a later change to
+      // process.env.TOKEN_ISSUER — or to an explicitly configured tokenIssuer — is
+      // honored on every handshake, matching the HTTP path's per-request env read.
+      const resolveTokenIssuer = (): string | undefined =>
+        this.config.tokenIssuer ?? process.env.TOKEN_ISSUER;
+
       this.io.use(
-        authorize({
-          secret: tokenSecret,
+        createSocketAuthMiddleware({
+          betterAuth: this.config.betterAuth,
+          issuer: resolveTokenIssuer,
+          ...(tokenSecret ? {tokenSecret} : {}),
         })
       );
 
-      logInfo("[realtime] JWT authorization middleware added");
+      const authKinds = [tokenSecret ? "JWT" : null, this.config.betterAuth ? "Better Auth" : null]
+        .filter(Boolean)
+        .join(" + ");
+      logInfo(`[realtime] Socket auth middleware added (${authKinds})`);
+
+      // Task 9.21: tenant/custom sync scopes can only be resolved from the full user
+      // document, so warn loudly here (once, at startup) rather than silently serving
+      // empty tenant streams for the life of the process.
+      warnOnSyncScopesWithoutUserModel({userModel: this.config.userModel});
 
       // Configure adapter for multi-instance deployments
       this.setupAdapter(logInfo);
@@ -402,9 +437,27 @@ export class RealtimeApp implements TerrenoPlugin {
       // Connection handling
       this.io.on("connection", (socket: Socket): void => {
         try {
-          // socketio-jwt's authorize middleware adds `decodedToken` at runtime; cast through
+          // D2: load the full user document once at handshake (by the decoded
+          // token's id) and cache it on socket.data.fullUser — getSocketUser prefers
+          // it over the synthetic {_id, admin, id} shape for every authorization
+          // check below. Fire-and-forget: handlers install synchronously and fall
+          // back to the synthetic shape until this resolves.
+          void loadFullUserForSocket(
+            socket as unknown as Socket & {data: SocketDataBag},
+            this.config.userModel
+          );
+          // The auth middleware adds `decodedToken` at runtime; cast through
           // RealtimeSocketLike (a structural subset) to keep socket handler logic testable.
           installRealtimeSocketHandlers(socket as unknown as RealtimeSocketLike, {logInfo});
+          // Sync protocol handlers (sync:subscribe / sync:mutate). Options come from the
+          // SyncApp registered on this Express app or an explicit `sync` override here;
+          // with neither, the handlers still install and reject unknown collections.
+          installSyncSocketHandlers(
+            this.io,
+            socket as unknown as RealtimeSocketLike,
+            this.config.sync ?? (this.app ? getSyncAppOptions(this.app) : undefined) ?? {},
+            {logInfo}
+          );
         } catch (error) {
           logger.error(`[realtime] Error handling connection: ${error}`);
           Sentry.captureException(error);
@@ -416,8 +469,22 @@ export class RealtimeApp implements TerrenoPlugin {
         Sentry.captureException(error);
       });
 
-      // Start the change stream watcher
-      startChangeStreamWatcher(this.io, this.config.changeStream, debug);
+      // Start the change stream watcher (injectable for unit tests — see SocketServer).
+      const startWatcher = this.config.startChangeStreamWatcher ?? startChangeStreamWatcher;
+      startWatcher(this.io, this.config.changeStream, debug);
+
+      // D1: periodic session re-validation sweep — disconnects sockets whose JWT has
+      // expired, whose Better Auth session is no longer valid, or whose user has
+      // since been disabled; also refreshes socket.data.fullUser (D2) and
+      // re-resolves sync room membership (D4) for sockets that remain valid.
+      // A thunk (not a snapshot) reads this app's SyncApp options fresh on every sweep.
+      this.sessionRevalidation = startSessionRevalidationSweep(this.io, () => ({
+        betterAuth: this.config.betterAuth,
+        intervalMs: this.config.sessionRevalidationIntervalMs,
+        logInfo,
+        sync: this.config.sync ?? (this.app ? getSyncAppOptions(this.app) : undefined),
+        userModel: this.config.userModel,
+      }));
 
       logInfo("[realtime] Socket.io server setup complete");
     } catch (error) {
@@ -439,6 +506,8 @@ export class RealtimeApp implements TerrenoPlugin {
    */
   async close(): Promise<void> {
     try {
+      this.sessionRevalidation?.stop();
+      this.sessionRevalidation = null;
       await stopChangeStreamWatcher();
       if (this.io) {
         await this.io.close();

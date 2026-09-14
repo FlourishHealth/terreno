@@ -2,7 +2,8 @@ import {type FC, useCallback, useEffect, useRef} from "react";
 import {Animated, Pressable, View} from "react-native";
 
 import type {BooleanFieldProps} from "./Common";
-import {FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";

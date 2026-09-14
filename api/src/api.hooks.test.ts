@@ -1,14 +1,24 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, type mock} from "bun:test";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {
+  authAsUser,
+  type Food,
+  FoodModel,
+  getBaseServer,
+  setupDb,
+  type User,
+  UserModel,
+} from "./tests";
+
+const captureExceptionMock = Sentry.captureException as unknown as ReturnType<typeof mock>;
 
 describe("pre and post hooks", () => {
   let server: TestAgent;
@@ -18,9 +28,10 @@ describe("pre and post hooks", () => {
   beforeEach(async () => {
     await setupDb();
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     agent = await authAsUser(app, "notAdmin");
+    captureExceptionMock.mockClear?.();
   });
 
   it("pre hooks change data", async () => {
@@ -36,15 +47,15 @@ describe("pre and post hooks", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preCreate: (data: any) => {
+        preCreate: (data) => {
           data.calories = 14;
           return data;
         },
-        preDelete: (data: any) => {
+        preDelete: (data) => {
           deleteCalled = true;
           return data;
         },
-        preUpdate: (data: any) => {
+        preUpdate: (data) => {
           data.calories = 15;
           return data;
         },
@@ -90,7 +101,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -137,7 +148,7 @@ describe("pre and post hooks", () => {
     let deleteCalled = false;
     app.use(
       "/food",
-      modelRouter(FoodModel as any, {
+      modelRouter(FoodModel, {
         allowAnonymous: true,
         permissions: {
           create: [Permissions.IsAny],
@@ -146,16 +157,16 @@ describe("pre and post hooks", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        postCreate: async (data: any) => {
+        postCreate: async (data) => {
           data.calories = 14;
           await data.save();
           return data;
         },
-        postDelete: (data: any) => {
+        postDelete: (data) => {
           deleteCalled = true;
           return data;
         },
-        postUpdate: async (data: any) => {
+        postUpdate: async (data) => {
           data.calories = 15;
           await data.save();
           return data;
@@ -229,7 +240,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preCreate error");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preCreate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -245,8 +259,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preCreate: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -262,7 +277,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preCreate hook error");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preUpdate hook preserves disableExternalErrorTracking on APIError", async () => {
@@ -274,7 +292,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -310,7 +328,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toBe("Custom preUpdate error");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preUpdate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -322,7 +343,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -340,8 +361,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preUpdate: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -356,7 +378,10 @@ describe("pre and post hooks", () => {
       .expect(400);
 
     expect(res.body.title).toContain("preUpdate hook error");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
   it("preDelete hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -368,7 +393,7 @@ describe("pre and post hooks", () => {
       created: new Date("2021-12-03T00:00:20.000Z"),
       hidden: false,
       name: "Spinach",
-      ownerId: (notAdmin as any)._id,
+      ownerId: notAdmin?._id,
       source: {
         name: "Brand",
       },
@@ -386,8 +411,9 @@ describe("pre and post hooks", () => {
           update: [Permissions.IsAny],
         },
         preDelete: () => {
-          const error: any = new Error("Some custom error");
-          error.disableExternalErrorTracking = true;
+          const error = Object.assign(new Error("Some custom error"), {
+            disableExternalErrorTracking: true,
+          });
           throw error;
         },
       })
@@ -397,14 +423,17 @@ describe("pre and post hooks", () => {
     const res = await agent.delete(`/food/${spinach._id}`).expect(403);
 
     expect(res.body.title).toContain("preDelete hook error");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });
 
 describe("hook error handling", () => {
   let server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: User;
   let agent: TestAgent;
   let spinach: Food;
 
@@ -423,8 +452,9 @@ describe("hook error handling", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
+    captureExceptionMock.mockClear?.();
   });
 
   it("preCreate returning undefined throws error", async () => {
@@ -439,7 +469,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preCreate: () => undefined as any,
+        preCreate: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);
@@ -461,7 +491,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preUpdate: () => undefined as any,
+        preUpdate: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);
@@ -483,7 +513,7 @@ describe("hook error handling", () => {
           read: [Permissions.IsAny],
           update: [Permissions.IsAny],
         },
-        preDelete: () => undefined as any,
+        preDelete: () => undefined as unknown as Food,
       })
     );
     server = supertest(app);
@@ -700,6 +730,9 @@ describe("hook error handling", () => {
 
     const res = await agent.delete(`/food/${spinach._id}`).expect(400);
     expect(res.body.title).toBe("Custom preDelete APIError");
+    // Serialized when true so the frontend can suppress duplicate Sentry reporting; also
+    // suppresses Sentry capture in apiErrorMiddleware.
     expect(res.body.disableExternalErrorTracking).toBe(true);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 });

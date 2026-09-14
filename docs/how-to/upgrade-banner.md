@@ -84,7 +84,7 @@ The hook handles:
 
 ### 4. Admin: Configure thresholds
 
-Navigate to the admin panel and select "Version Config". Set:
+Open the admin panel's `/version-config` route directly. The configuration screen is not included in the main sidebar. Set:
 
 - **Web Warning Version**: Build number below which web users see a warning toast
 - **Web Required Version**: Build number below which web users are blocked

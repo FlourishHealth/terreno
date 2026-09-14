@@ -1,10 +1,10 @@
 // noExplicitAny: test mocks use type-erased mock.calls access for assertion
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import {CheckboxListEditor} from "./CheckboxListEditor";
 
 const press = async (el: ReactTestInstance): Promise<void> => {
@@ -69,7 +69,7 @@ describe("CheckboxListEditor", () => {
 
   it("updates a field when label/prompt changes", () => {
     const onChange = mock((_: unknown) => undefined);
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
       <CheckboxListEditor onChange={onChange} value={[{label: "a", required: false}]} />
     );
     fireEvent.changeText(getByTestId("checkbox-label-0"), "new-label");
@@ -79,5 +79,12 @@ describe("CheckboxListEditor", () => {
     fireEvent.changeText(getByTestId("checkbox-prompt-0"), "prompt?");
     const second = (onChange.mock.calls[1] as unknown[])[0];
     expect(second[0].confirmationPrompt).toBe("prompt?");
+
+    const requiredField = UNSAFE_root.find(
+      (node: ReactTestInstance) => node.props?.title === "Required"
+    );
+    requiredField.props.onChange(true);
+    const third = (onChange.mock.calls[2] as unknown[])[0];
+    expect(third[0].required).toBe(true);
   });
 });

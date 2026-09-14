@@ -2,6 +2,9 @@
 
 Backend plugin that auto-generates admin CRUD endpoints for Mongoose models. Works with `@terreno/admin-frontend` to provide a complete admin panel solution.
 
+Screens, sidebar, and host wiring: [How admin interfaces are shaped](../explanation/admin-interface.md)
+and [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Quick Start
 
 ``````typescript
@@ -33,7 +36,7 @@ admin.register(app);
 This creates:
 - `GET /admin/config` — Model metadata endpoint
 - Standard CRUD routes for each model at `{basePath}{routePath}`
-- All routes protected with `Permissions.IsAdmin`
+- All routes protected with `Permissions.IsAdmin`, or fine-grained RBAC when `accessControl` is set
 
 ## AdminApp Options
 
@@ -54,9 +57,11 @@ interface AdminModelConfig {
 
 ## Generated Routes
 
-For each model, creates standard modelRouter CRUD endpoints:
+For each model, creates standard modelRouter CRUD endpoints plus admin membership helpers:
 
-- `GET {basePath}{routePath}` — List (paginated, sortable)
+- `GET {basePath}{routePath}` — List (paginated, sortable). Query params: `page`, `limit`, `sort`, `q` (partial search across string `searchFields`), plus `queryFields` from list/filter metadata. Envelope: `{data, limit, more, page, total}` (`page` is the raw query string when provided)
+- `GET {basePath}{routePath}/search?q=` — Typeahead search. Envelope: `{data}` (limit 20; empty `q` returns `{data: []}`)
+- `POST {basePath}{routePath}/bulk-patch` — Body `{ids: string[], patch: object}`. Success body `{updated}` plus `failures` when any id fails. Ids must pass `mongoose.isValidObjectId` (hex String `_id` values work; arbitrary UUID-like strings are rejected as `"Invalid id"`)
 - `POST {basePath}{routePath}` — Create
 - `GET {basePath}{routePath}/:id` — Read
 - `PATCH {basePath}{routePath}/:id` — Update
@@ -86,23 +91,107 @@ For each model, creates standard modelRouter CRUD endpoints:
           required: false,
           default: false
         }
-      }
+      },
+      adminBroadcast: false
     }
   ]
 }
 ``````
 
 Field metadata includes:
-- `type` — Field type (string, number, boolean, date, objectid, etc.)
+- `type` — Field type (string, number, boolean, date, objectid, array, etc.)
 - `required` — Whether field is required
 - `description` — From schema (ensure all fields have descriptions!)
 - `enum` — Enum values if applicable
 - `default` — Default value
 - `ref` — Referenced model name for ObjectId refs
+- `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set `adminBroadcast`
+- `syncCollection` — Sync collection tag (app `routePath` without a leading slash, e.g. `todos`) when `adminBroadcast` is true; omitted otherwise
+
+Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.
 
 ## Permissions
 
-All admin routes use `Permissions.IsAdmin`, which checks `user.admin === true`.
+`admin:access` is the only permission that opens the admin page. `GET /admin/config` returns 403
+without it. Script, configuration, RBAC, and per-model permissions never grant entry on their own.
+
+Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.admin`).
+
+`AdminApp.register` also installs each model's list/read permissions and `queryFilter` on
+the sync admin window (`registerAdminBroadcastScope`). `GET /sync/entities` and
+`{collection}|admin` deltas then use that contract, not product `IsOwner`.
+
+For writes, AdminApp registers an admin-window mutation scope (`registerAdminWindowMutationScope`).
+Sync clients listed in `createSyncDb({windowCollections})` tag outbox rows with
+`mutationMode: "adminWindow"`. The server does not trust the marker alone: it also requires
+`adminBroadcast`, admin-window access (`admin:access` with RBAC, else `user.admin`), and the
+registered scope. Successful admin-window sync mutations enforce the same create/update/delete
+enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, User admin-flag/role
+gates, and `onAdminAudit` post hooks as REST — via AdminApp executor callbacks on the shared
+sync write pipeline (Mongoose validation, conflict/baseVersion checks, and ledger ordering
+unchanged). Product clients that omit the marker keep product sync permissions and hooks.
+
+With `accessControl`, each model can use a standard admin resource with three actions:
+
+| Action | Access |
+| --- | --- |
+| `read` | List, search, and read any record |
+| `write` | Create, update, bulk-update, and delete any record |
+| `writeOwned` | Create records and update/delete records accepted by the ownership helper |
+
+Declare an `admin<ModelName>` statement and optionally customize ownership:
+
+```typescript
+import {ADMIN_MODEL_ACCESS} from "@terreno/api";
+import {adminOwnedBy, AdminApp} from "@terreno/admin-backend";
+
+const statements = {
+  adminForm: ADMIN_MODEL_ACCESS,
+  adminScreen: ["formReports"],
+} as const;
+
+modelRouter("/forms", Form, {
+  admin: {
+    adminAccess: {isOwned: adminOwnedBy("staffId")},
+    displayName: "Forms",
+    listFields: ["title", "staffId"],
+  },
+  // ...
+});
+
+new AdminApp({
+  accessControl,
+  customScreens: [{
+    adminAccess: {resource: "adminScreen", action: "formReports"},
+    displayName: "Form reports",
+    name: "form-reports",
+  }],
+});
+```
+
+`adminAccess.resource` overrides the default `admin<ModelName>` name. Use
+`adminAccess.authorize({action, instance, user})` when a model or screen needs a completely
+custom decision. The callback replaces the standard read/write/write-owned decision, while
+`admin:access` still protects the admin shell. Every action is authorized without an instance
+first (router and `/admin/config` probes). Return `true` for `read` / `update` / `delete` when
+`instance` is missing if some records may be allowed; the loaded record is authorized next.
+`create` is also checked again with the request body.
+
+`writeOwned` can create any new record; `isOwned` is only applied to update and delete.
+
+The config endpoint is caller-specific: models and custom screens without read access are omitted,
+writable controls are disabled, and `platformTools` reports visibility for Scripts, Roles, Version,
+and Configuration. Built-in tools use the existing editable permissions:
+
+- Scripts: `admin:runScripts` or `admin:viewBackgroundTasks`
+- Roles: `rbac:read`
+- Version and Configuration: `configuration:read`
+- Audit Log and Feature Flags: their model's admin `read` permission
+
+Read and list responses include `_adminCapabilities.update` and
+`_adminCapabilities.delete` for each record. This keeps `writeOwned` forms and row controls
+read-only for records the current user does not own. Script metadata separately exposes run and
+history permissions so a history-only role never receives an enabled Run control.
 
 **Important:** Only expose models that should be editable via admin panel. Avoid sensitive internal models.
 

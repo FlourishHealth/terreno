@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {registerSimpleMongoPreload} from "@terreno/test";
 
 if (!process.env.TERRENO_TEST_MONGODB_URI?.trim()) {

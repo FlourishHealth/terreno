@@ -79,7 +79,7 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument, VersionCo
 // Enforce singleton: only one VersionConfig document can exist.
 // The _singleton field is always "config" (required, immutable, enum-constrained)
 // and a unique index guarantees at most one document.
-(versionConfigSchema as mongoose.Schema).add({
+(versionConfigSchema as unknown as mongoose.Schema).add({
   _singleton: {
     default: "config",
     description: "Sentinel field to enforce singleton via unique index",

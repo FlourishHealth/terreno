@@ -1,4 +1,4 @@
-import {customIcons} from "@components";
+import {customIcons} from "@components/customIcons";
 import {TerrenoProvider} from "@terreno/ui";
 import {Slot} from "expo-router";
 import {GestureHandlerRootView} from "react-native-gesture-handler";

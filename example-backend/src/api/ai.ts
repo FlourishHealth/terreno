@@ -1,12 +1,13 @@
 import {
   AIService,
-  addAiRequestsExplorerRoutes,
   addFileRoutes,
   addGptHistoryRoutes,
   addGptRoutes,
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  GptHistory,
+  getMCPTools,
   listEnabledVertexModels,
   listGeminiApiModels,
   MCPService,
@@ -15,17 +16,12 @@ import {
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
-import type {ModelRouterOptions} from "@terreno/api";
-import {
-  APIError,
-  asyncHandler,
-  authenticateMiddleware,
-  createOpenApiBuilder,
-  logger,
-} from "@terreno/api";
+import type {ModelRouterOptions, User} from "@terreno/api";
+import {APIError, logger, modelRouter, Permissions} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
+import {DateTime} from "luxon";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 
@@ -34,6 +30,8 @@ interface AIProvider {
   (modelId: string): LanguageModel;
   image: (modelId: string) => ImageModel;
 }
+
+type GptRouteOptions = Parameters<typeof addGptRoutes>[1];
 
 /** The subset of @ai-sdk/google we use (loaded dynamically). */
 interface GoogleModule {
@@ -227,6 +225,34 @@ const listAvailableModels = async (): Promise<SelectableModel[]> => {
   );
   return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
+
+const disabledCrud = {
+  create: [],
+  delete: [],
+  list: [],
+  read: [],
+  update: [],
+};
+
+/**
+ * Named collection action so GET `/ai/models` is registered through modelRouter,
+ * not `router.get`.
+ */
+export const aiModelsRouter = modelRouter("/ai", GptHistory, {
+  collectionActions: {
+    models: {
+      handler: async () => {
+        const models = await listAvailableModels();
+        return {models};
+      },
+      method: "GET",
+      permissions: [Permissions.IsAuthenticated],
+      summary: "List selectable AI chat models",
+      tag: "ai",
+    },
+  },
+  permissions: disabledCrud,
+});
 
 const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
@@ -542,7 +568,7 @@ const createImageTool = (apiKey?: string): Tool => {
       return {
         description: `Generated image for: "${prompt}"`,
         fileData: dataUrl,
-        filename: `image-${Date.now()}.png`,
+        filename: `image-${DateTime.now().toMillis()}.png`,
         mimeType: mediaType,
       };
     },
@@ -562,12 +588,14 @@ const createImageTool = (apiKey?: string): Tool => {
 };
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  const tools: Record<string, Tool> = {...getMCPTools(req.user as User | undefined)};
+
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
-  if (!apiKey) {
-    return {};
+  if (apiKey) {
+    tools.generate_image = createImageTool(apiKey);
   }
 
-  return {generate_image: createImageTool(apiKey)};
+  return tools;
 };
 
 const pdfTool = tool({
@@ -654,9 +682,12 @@ const getDemoTools = (): Record<string, Tool> => {
     get_current_time: tool({
       description: "Get the current date and time",
       execute: async ({timezone}: {timezone?: string}) => {
-        const now = new Date();
+        const now = DateTime.now().setZone(timezone ?? "UTC");
+        if (!now.isValid) {
+          throw new APIError({status: 400, title: `Invalid timezone: ${timezone}`});
+        }
         return {
-          time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
+          time: now.setLocale("en-US").toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS),
           timezone: timezone ?? "UTC",
         };
       },
@@ -680,6 +711,7 @@ const getDemoTools = (): Record<string, Tool> => {
 
 export const addAiRoutes = (
   router: express.Router,
+  // noExplicitAny: ModelRouterOptions generic varies per downstream caller
   // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
   options?: Partial<ModelRouterOptions<any>>
 ): void => {
@@ -693,36 +725,11 @@ export const addAiRoutes = (
     void verifyAllowedVertexModels(vertexProvider);
   }
 
-  router.get("/ai/models", [
-    authenticateMiddleware(),
-    createOpenApiBuilder(options ?? {})
-      .withTags(["ai"])
-      .withSummary("List selectable AI chat models")
-      .withResponse(200, {
-        models: {
-          items: {
-            properties: {
-              label: {type: "string"},
-              value: {type: "string"},
-            },
-            type: "object",
-          },
-          type: "array",
-        },
-      })
-      .build(),
-    asyncHandler(async (_req, res) => {
-      const models = await listAvailableModels();
-      return res.json({models});
-    }),
-  ]);
-
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    createRequestTools: createPerRequestTools as any,
+    createRequestTools: createPerRequestTools as unknown as GptRouteOptions["createRequestTools"],
     createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",
@@ -730,11 +737,8 @@ export const addAiRoutes = (
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
-    // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    tools: getDemoTools() as any,
+    tools: getDemoTools() as unknown as GptRouteOptions["tools"],
   });
-  addAiRequestsExplorerRoutes(router, {openApiOptions: options});
-
   if (fileStorageService) {
     addFileRoutes(router, {
       fileStorageService,

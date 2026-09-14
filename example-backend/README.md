@@ -15,11 +15,15 @@ cp .env.example .env
 ```
 
    **Required variables** (must be set):
-   - `TOKEN_SECRET` - JWT signing secret
+   - `MONGO_URI` - MongoDB connection string (replica set required for realtime; default: `mongodb://127.0.0.1:27017/terreno-example?replicaSet=rs0`)
+   - `BETTER_AUTH_SECRET` - Better Auth session encryption secret (min 32 chars)
+   - `BETTER_AUTH_URL` - Better Auth base URL (default: `http://localhost:4000`)
+   - `TOKEN_SECRET` - Legacy JWT secret (still used by RealtimeApp socket fallback)
    - `TOKEN_ISSUER` - JWT issuer claim
    - `REFRESH_TOKEN_SECRET` - Refresh token secret
    - `SESSION_SECRET` - Express session secret
-   - `MONGO_URI` - MongoDB connection string (default: `mongodb://localhost:27017/terreno-example`)
+
+   The example app defaults to `AUTH_PROVIDER=better-auth`. Set `AUTH_PROVIDER=jwt` to use legacy Passport/JWT auth instead.
 
    See `.env.example` for all available configuration options.
 
@@ -54,6 +58,8 @@ bun run dev
 
 `src/server.ts` registers `@terreno/admin-backend` with a **full admin UI v2** surface for the example app: home dashboard slots (stats, feature-flag shortcut, scripts, version config, recent audit), per-model filters, fieldsets, list display and row links, read-only fields, bulk row actions, `onAdminAudit` → `AdminAuditLog`, maintenance scripts, and a `customScreens` entry for the Expo “Admin UI v2 map” route. Pair with `example-frontend` Profile → Admin to explore the UI (model cards and tools render on the list screen below the home widgets).
 
+MCP service tokens are on. `TerrenoApp` sets `mcpServiceTokens: {enabled: true, publicMcpUrl: PUBLIC_API_URL or BETTER_AUTH_URL}`. Operators mint keys from `POST /mcp/service-tokens`. Admins list and revoke every user's tokens at **Admin → MCP service tokens** (`/admin/mcp-service-tokens`). Admin delete sets `revokedAt`; it does not hard-delete the row. See [Connect an MCP client with a service token](../docs/how-to/connect-mcp-service-token.md).
+
 ## Scripts
 
 - `bun run dev` - Start development server with hot reload
@@ -71,7 +77,6 @@ bun run dev
 ```
 src/
 ├── api/           # API route handlers
-├── constants/     # Application constants
 ├── models/        # Mongoose models
 ├── scripts/       # Utility scripts
 ├── services/      # Business logic services

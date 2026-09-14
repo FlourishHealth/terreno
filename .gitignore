@@ -73,3 +73,11 @@ docs/reference/generated/
 website/.docusaurus/
 website/build/
 website/node_modules/
+
+# Local dev databases (e.g. mongod dbpath used by the cloud dev setup)
+.devdata/
+
+.claude/worktrees/
+.terreno-skills-sync/
+.terreno/pipeline/
+.roast-probe/

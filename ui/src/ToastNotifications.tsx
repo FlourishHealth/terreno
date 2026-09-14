@@ -56,6 +56,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import type {ToastProps as TerrenoToastPayload} from "./Common";
 
 // ============================================================================
 // useDimensions hook
@@ -175,10 +176,10 @@ export interface ToastOptions {
   onClose?(): void;
 
   /**
-   * Payload data for custom toasts. You can pass whatever you want
+   * Payload forwarded to {@link Toast} via TerrenoProvider's renderToast.
+   * Extra keys are allowed for custom renderToast implementations.
    */
-  // biome-ignore lint/suspicious/noExplicitAny: This is the public API of a vendored 3rd-party library (react-native-toast-notifications); the data field is an opaque user-provided payload. Tightening to unknown breaks downstream consumers that spread data into Toast (e.g. TerrenoProvider) without refactor.
-  data?: any;
+  data?: Partial<TerrenoToastPayload> & Record<string, unknown>;
 
   swipeEnabled?: boolean;
 }
@@ -396,7 +397,6 @@ const ToastItem: FC<ToastProps> = (props) => {
 
   return (
     <Animated.View
-      pointerEvents={"box-none"}
       ref={containerRef}
       {...(swipeEnabled ? getPanResponder().panHandlers : null)}
       style={[toastStyles.container, animationStyle]}
@@ -428,7 +428,7 @@ const ToastItem: FC<ToastProps> = (props) => {
 };
 
 const toastStyles = StyleSheet.create({
-  container: {alignItems: "center", width: "100%"},
+  container: {alignItems: "center", pointerEvents: "box-none", width: "100%"},
   iconContainer: {
     marginRight: 5,
   },
@@ -539,7 +539,18 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
 
   const [toasts, setToasts] = useState<Array<ToastProps>>([]);
 
+  // `show` defers insertion to the next frame, so a `hide` can arrive before the
+  // toast it targets exists in state. These track ids whose insertion is still
+  // scheduled, and of those, the ones that have since been hidden — without
+  // them the deferred insert would resurrect an already-hidden toast, leaving it
+  // stuck on screen forever (persistent toasts never time out).
+  const pendingShowsRef = useRef<Set<string>>(new Set());
+  const cancelledShowsRef = useRef<Set<string>>(new Set());
+
   const hide = useCallback((id: string) => {
+    if (pendingShowsRef.current.has(id)) {
+      cancelledShowsRef.current.add(id);
+    }
     setToasts((prev) => prev.map((t) => (t.id === id ? {...t, open: false} : t)));
   }, []);
 
@@ -551,7 +562,15 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
         setToasts((prev) => prev.filter((t) => t.id !== id));
       };
 
+      // Re-showing an id supersedes any hide that raced ahead of it.
+      cancelledShowsRef.current.delete(id);
+      pendingShowsRef.current.add(id);
+
       requestAnimationFrame(() => {
+        pendingShowsRef.current.delete(id);
+        if (cancelledShowsRef.current.delete(id)) {
+          return;
+        }
         setToasts((prev) => [
           {
             id,
@@ -564,7 +583,9 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
             ...toastDefaults,
             ...toastOptions,
           },
-          ...prev.filter((t) => t.open),
+          // Replace rather than stack any toast already using this id, so a
+          // caller-supplied id always maps to exactly one toast on screen.
+          ...prev.filter((t) => t.open && t.id !== id),
         ]);
       });
 
@@ -583,6 +604,9 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
   );
 
   const hideAll = useCallback(() => {
+    for (const id of pendingShowsRef.current) {
+      cancelledShowsRef.current.add(id);
+    }
     setToasts((prev) => prev.map((t) => ({...t, open: false})));
   }, []);
 
@@ -615,7 +639,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         <SafeAreaView>
@@ -639,7 +662,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         <SafeAreaView>
@@ -670,7 +692,6 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        pointerEvents="box-none"
         style={[containerStyles.container, style]}
       >
         {toasts
@@ -699,6 +720,9 @@ const containerStyles = StyleSheet.create({
     elevation: 999999,
     flex: 0,
     maxWidth: "100%",
+    // box-none lets clicks pass through the full-width container to the page below,
+    // while individual toasts stay interactive.
+    pointerEvents: "box-none",
     // @ts-expect-error: fixed is available on web.
     position: Platform.OS === "web" ? "fixed" : "absolute",
     zIndex: 999999,

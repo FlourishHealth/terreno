@@ -7,6 +7,7 @@ import m2s from "mongoose-to-swagger";
 import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
+import type {SyncConfig, SyncScope} from "./sync/types";
 
 const noop = (_a: unknown, _b: unknown, next: () => void) => next();
 
@@ -14,7 +15,7 @@ const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
 };
 
-export const apiErrorContent = {
+const apiErrorContent = {
   "application/json": {
     schema: {$ref: "#/components/schemas/APIError"},
   },
@@ -160,9 +161,38 @@ export const getOpenApiMiddleware = <T>(
   );
 };
 
+const resolveSyncScopeLabel = (scope: SyncScope): "owner" | "tenant" | "broadcast" | "custom" => {
+  if (typeof scope === "function") {
+    return "custom";
+  }
+  return scope.type;
+};
+
+const buildTerrenoSyncExtension = (
+  sync: SyncConfig | undefined,
+  routePath: string | undefined,
+  fallbackCollection?: string
+): Record<string, unknown> => {
+  if (!sync) {
+    return {};
+  }
+  const rawPath = routePath ?? (fallbackCollection ? `/${fallbackCollection}` : undefined);
+  if (!rawPath) {
+    return {};
+  }
+  const collection = rawPath.replace(/^\//, "");
+  return {
+    "x-terreno-sync": {
+      collection,
+      scope: resolveSyncScopeLabel(sync.scope),
+    },
+  };
+};
+
 export const listOpenApiMiddleware = <T>(
   model: Model<T>,
-  options: Partial<ModelRouterOptions<T>>
+  options: Partial<ModelRouterOptions<T>>,
+  routePath?: string
 ): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
@@ -258,6 +288,7 @@ export const listOpenApiMiddleware = <T>(
   return options.openApi.path(
     merge(
       {
+        ...buildTerrenoSyncExtension(options.sync, routePath, model.collection.collectionName),
         parameters: [
           ...defaultQueryParams,
           ...(modelQueryParams ?? []),
@@ -460,6 +491,7 @@ export const deleteOpenApiMiddleware = <T>(
 
 // This is a generic OpenAPI wrapper for a read that returns any object described by `properties`.
 // Useful for endpoints that don't directly map to a model.
+/** @internal */
 export const readOpenApiMiddleware = <T>(
   options: Partial<ModelRouterOptions<T>>,
   properties: Record<string, unknown>,

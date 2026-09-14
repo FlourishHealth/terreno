@@ -1,21 +1,33 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {type Model, model, Schema} from "mongoose";
+import type {Request} from "express";
+import mongoose, {type HydratedDocument, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {
   ACTION_NAME_PATTERN,
+  type CollectionActionConfig,
   createActionOpenApiMiddleware,
   defineCollectionAction,
   defineInstanceAction,
+  runActionPermissions,
 } from "./actions";
 import {modelRouter, type OpenApiMiddleware} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiUnauthorizedMiddleware} from "./errors";
 import {Permissions} from "./permissions";
 import {type IsDeleted, isDeletedPlugin} from "./plugins";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {createAccess} from "./rbac/access";
+import {terrenoStatements} from "./rbac/statements";
+import {
+  authAsUser,
+  type Food,
+  FoodModel,
+  getBaseServer,
+  setupDb,
+  type User,
+  UserModel,
+} from "./tests";
 import {z} from "./zodOpenApi";
 
 interface Stuff extends IsDeleted {
@@ -48,7 +60,7 @@ describe("modelRouter actions", () => {
             broken: {
               handler: async () => ({ok: true}),
               method: "POST",
-            } as any,
+            } as unknown as CollectionActionConfig<unknown, unknown, unknown>,
           },
           permissions: allPermissions,
         })
@@ -141,8 +153,8 @@ describe("modelRouter actions", () => {
   describe("integration", () => {
     let app: express.Application;
     let server: TestAgent;
-    let admin: any;
-    let notAdmin: any;
+    let admin: HydratedDocument<User>;
+    let notAdmin: HydratedDocument<User>;
     let spinach: Food;
 
     const mountFoodRouter = (options: Parameters<typeof modelRouter<Food>>[1]): void => {
@@ -173,12 +185,47 @@ describe("modelRouter actions", () => {
         }),
       ]);
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as UserMongooseModel);
+      addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
       server = supertest(app);
     });
 
     describe("routing and permissions", () => {
+      it("inherits router access.resource on instance POST when action.access is omitted", async () => {
+        const access = createAccess({
+          connection: mongoose.connection,
+          defaultRoles: [
+            {
+              displayName: "Reader",
+              name: "reader",
+              permissions: {food: ["read", "list"]},
+            },
+          ],
+          statements: {
+            ...terrenoStatements,
+            food: ["create", "read", "update", "delete", "list"],
+          },
+        });
+        await access.roles.seedDefaults();
+        await UserModel.updateOne({_id: notAdmin._id}, {$set: {roles: ["reader"]}});
+
+        mountFoodRouter({
+          access: {resource: "food"},
+          accessControl: access,
+          instanceActions: {
+            mark: {
+              handler: async () => ({ok: true}),
+              method: "POST",
+              permissions: [Permissions.IsAny],
+            },
+          },
+          permissions: allPermissions,
+        });
+        const agent = await authAsUser(app, "notAdmin");
+        const res = await agent.post(`/food/${spinach._id}/mark`).send({}).expect(405);
+        expect(res.body.title).toBe("Access denied");
+      });
+
       it("allows empty permissions array and returns 405 at runtime", async () => {
         mountFoodRouter({
           collectionActions: {
@@ -192,7 +239,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "admin");
         const res = await agent.post("/food/disabled").send({}).expect(405);
-        expect(res.body.title).toContain("Access to CREATE on Food denied");
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain("Access to CREATE on Food denied");
       });
 
       it("runs instance POST action with ctx.doc and req.obj", async () => {
@@ -273,7 +321,8 @@ describe("modelRouter actions", () => {
         });
         const missingId = "507f1f77bcf86cd799439011";
         const res = await server.get(`/food/${missingId}/peek`).expect(404);
-        expect(res.body.title).toContain(missingId);
+        expect(res.body.title).toBe("Document not found");
+        expect(res.body.detail).toContain(missingId);
         expect(res.body.meta).toBeUndefined();
       });
 
@@ -281,8 +330,8 @@ describe("modelRouter actions", () => {
         await StuffModel.deleteMany({});
         const doc = await StuffModel.create({deleted: true, name: "hidden", ownerId: "1"});
         app = getBaseServer();
-        setupAuth(app, UserModel as any);
-        addAuthRoutes(app, UserModel as any);
+        setupAuth(app, UserModel as unknown as UserMongooseModel);
+        addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
         app.use(
           "/stuff",
           modelRouter(StuffModel as Model<Stuff>, {
@@ -331,7 +380,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "notAdmin");
         const res = await agent.post("/food/adminOnly").send({}).expect(405);
-        expect(res.body.title).toContain("Access to CREATE on Food denied");
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain("Access to CREATE on Food denied");
       });
 
       it("returns 403 for instance action when post-doc permission denied", async () => {
@@ -355,7 +405,8 @@ describe("modelRouter actions", () => {
         });
         const agent = await authAsUser(app, "notAdmin");
         const res = await agent.post(`/food/${adminFood._id}/ownerOnly`).send({}).expect(403);
-        expect(res.body.title).toContain(`Access to UPDATE on Food:${adminFood._id} denied`);
+        expect(res.body.title).toBe("Access denied");
+        expect(res.body.detail).toContain(`Access to UPDATE on Food:${adminFood._id} denied`);
       });
 
       it("allows IsAuthenticatedOrReadOnly on GET with allowAnonymous", async () => {
@@ -410,6 +461,7 @@ describe("modelRouter actions", () => {
         });
         const res = await server.post("/food/notify").send({email: "not-an-email"}).expect(400);
         expect(res.body.title).toBe("Validation failed");
+        expect(res.body.code).toBe("action-body-validation-failed");
         expect(res.body.meta.fields.email).toBeDefined();
       });
 
@@ -449,6 +501,7 @@ describe("modelRouter actions", () => {
         });
         const res = await server.get("/food/lookup?email=bad").expect(400);
         expect(res.body.title).toBe("Validation failed");
+        expect(res.body.code).toBe("action-query-validation-failed");
         expect(res.body.meta.fields.email).toBeDefined();
       });
 
@@ -778,6 +831,160 @@ describe("modelRouter actions", () => {
         scope: "collection",
       });
       expect(mock.captured?.requestBody).toBeDefined();
+    });
+  });
+
+  describe("runActionPermissions", () => {
+    it("combines legacy action.permissions with RBAC access checks", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Reader",
+            name: "reader",
+            permissions: {todo: ["read"]},
+          },
+        ],
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const reader = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["reader"],
+      };
+      const req = {params: {}, user: reader} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {
+            access: {action: "create", resource: "todo"},
+            method: "POST",
+            permissions: [Permissions.IsAny],
+          },
+          "collection",
+          FoodModel,
+          req,
+          undefined,
+          access
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
+    });
+
+    it("inherits router access.resource when the action omits access", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        defaultRoles: [
+          {
+            displayName: "Reader",
+            name: "reader",
+            permissions: {todo: ["read", "list"]},
+          },
+        ],
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const reader = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["reader"],
+      };
+      const req = {params: {}, user: reader} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {
+            method: "POST",
+            permissions: [Permissions.IsAny],
+          },
+          "instance",
+          FoodModel,
+          req,
+          undefined,
+          access,
+          {resource: "todo"}
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
+    });
+
+    it("keeps empty action permissions disabled when inheriting router access", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const superadmin = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["superadmin"],
+      };
+      const req = {params: {}, user: superadmin} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {method: "POST", permissions: []},
+          "instance",
+          FoodModel,
+          req,
+          undefined,
+          access,
+          {resource: "todo"}
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
+    });
+
+    it("keeps actions disabled when the inherited CRUD action maps to null", async () => {
+      await setupDb();
+      const access = createAccess({
+        connection: mongoose.connection,
+        statements: {
+          ...terrenoStatements,
+          todo: ["create", "read", "update", "delete", "list"],
+        },
+      });
+      await access.roles.seedDefaults();
+
+      const id = new mongoose.Types.ObjectId();
+      const superadmin = {
+        _id: id as unknown as User["_id"],
+        admin: false,
+        id: id.toString(),
+        roles: ["superadmin"],
+      };
+      const req = {params: {}, user: superadmin} as unknown as Request;
+
+      await expect(
+        runActionPermissions(
+          {method: "POST", permissions: [Permissions.IsAny]},
+          "instance",
+          FoodModel,
+          req,
+          undefined,
+          access,
+          {actions: {update: null}, resource: "todo"}
+        )
+      ).rejects.toMatchObject({status: 405, title: "Access denied"});
     });
   });
 });

@@ -1,5 +1,5 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 
 // Keep this mock a superset of the preload's react-native mock so that other
 // test files (e.g. useUpgradeCheck.test.ts) can still find AppState and Linking
@@ -17,7 +17,8 @@ mock.module("react-native", () => ({
 
 // Force IsWeb=false regardless of whether ./platform was already imported
 // elsewhere in the test run. `mock.module` is hoisted in bun, so this takes
-// effect before the dynamic imports below.
+// effect before the dynamic imports below. Web-path test files must set their
+// own top-of-file `IsWeb: true` guard; do not rely on afterAll restore here.
 mock.module("./platform", () => ({IsWeb: false}));
 
 const secureCalls = {
@@ -26,14 +27,18 @@ const secureCalls = {
   set: [] as Array<[string, string]>,
 };
 
+// Keep sync getItem/setItem alongside *Async — last-writer-wins mock.module
+// pollution must remain a superset of test-preload / betterAuthClient mocks.
 mock.module("expo-secure-store", () => ({
   deleteItemAsync: async (key: string): Promise<void> => {
     secureCalls.delete.push(key);
   },
+  getItem: (_key: string): string | null => null,
   getItemAsync: async (key: string): Promise<string | null> => {
     secureCalls.get.push(key);
     return null;
   },
+  setItem: (_key: string, _value: string): void => {},
   setItemAsync: async (key: string, value: string): Promise<void> => {
     secureCalls.set.push([key, value]);
   },
@@ -69,7 +74,7 @@ const api = createApi({
 });
 
 const createTestStore = () => {
-  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(api as any);
+  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(api);
   const store = configureStore({
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, ...middleware),
@@ -111,20 +116,6 @@ describe("native listener middleware side effects", () => {
     console.error = originalError;
   });
 
-  afterAll(() => {
-    // Restore mocks to the values the rest of the suite expects.
-    mock.module("react-native", () => ({
-      Platform: {OS: "web"},
-      StyleSheet: {create: (s: unknown) => s},
-    }));
-    mock.module("./platform", () => ({IsWeb: true}));
-    mock.module("expo-secure-store", () => ({
-      deleteItemAsync: async () => {},
-      getItemAsync: async () => null,
-      setItemAsync: async () => {},
-    }));
-  });
-
   it("stores tokens in SecureStore on native login", async () => {
     const {store} = createTestStore();
     store.dispatch({
@@ -145,7 +136,9 @@ describe("native listener middleware side effects", () => {
       deleteItemAsync: async (key: string): Promise<void> => {
         secureCalls.delete.push(key);
       },
+      getItem: (_key: string): string | null => null,
       getItemAsync: async (): Promise<string | null> => null,
+      setItem: (_key: string, _value: string): void => {},
       setItemAsync: async (): Promise<void> => {
         throw new Error("secure-store-fail");
       },
@@ -161,12 +154,14 @@ describe("native listener middleware side effects", () => {
       args.some((v) => typeof v === "string" && v.includes("Error setting auth token"))
     );
     expect(found).toBeDefined();
-    // Reset setItemAsync back so other tests aren't affected.
+    // Reset SecureStore mock so other suites keep sync + async APIs.
     mock.module("expo-secure-store", () => ({
       deleteItemAsync: async (key: string): Promise<void> => {
         secureCalls.delete.push(key);
       },
+      getItem: (_key: string): string | null => null,
       getItemAsync: async (): Promise<string | null> => null,
+      setItem: (_key: string, _value: string): void => {},
       setItemAsync: async (key: string, value: string): Promise<void> => {
         secureCalls.set.push([key, value]);
       },
@@ -190,5 +185,21 @@ describe("native listener middleware side effects", () => {
     await flushAsyncListeners();
     // Nothing should have been written to SecureStore since the outer token check filters.
     expect(secureCalls.set).toEqual([]);
+  });
+
+  it("stores an empty refresh token when the native login response omits one", async () => {
+    const {store} = createTestStore();
+    store.dispatch({
+      meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "native-login-3"},
+      payload: {token: "native-auth-only"},
+      type: "terreno-rtk/executeMutation/fulfilled",
+    });
+    await flushAsyncListeners();
+    assert.deepEqual(secureCalls.set, [
+      ["AUTH_TOKEN", "native-auth-only"],
+      ["REFRESH_TOKEN", ""],
+    ]);
+    // A missing userId falls back to an empty string rather than leaving it undefined.
+    assert.equal(store.getState().auth.userId, "");
   });
 });

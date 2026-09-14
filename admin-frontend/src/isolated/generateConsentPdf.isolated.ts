@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {Platform} from "react-native";
 
 interface JsPDFCall {
   method: string;
@@ -55,6 +56,10 @@ class MockJsPDF {
 }
 
 mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
+
+// These tests assert against the jsPDF drawing calls, which only the web branch of
+// generateConsentPdf makes; the native branch delegates to expo-print instead.
+Platform.OS = "web";
 
 // Single import of the module-under-test so all tests share coverage counters.
 import {generateConsentPdf} from "../generateConsentPdf";

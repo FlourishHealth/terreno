@@ -123,7 +123,13 @@ export const serialize = <T>(
     serializeData: Document<unknown, unknown, unknown> & T,
     serializeUser?: User
   ) => {
-    const dataObject = serializeData.toObject() as T;
+    // Change-stream post-images are plain BSON objects (no toObject). Calling
+    // toObject on them throws and used to drop every sync:delta / realtime emit.
+    const dataObject = (
+      typeof serializeData.toObject === "function"
+        ? serializeData.toObject()
+        : {...(serializeData as unknown as Record<string, unknown>)}
+    ) as T;
     (dataObject as unknown as {id: unknown}).id = serializeData._id;
 
     // Search for any value that is a Map and transform it to a plain object.
@@ -173,9 +179,11 @@ export const defaultResponseHandler = async <T>(
   } catch (error: unknown) {
     const errorObj = error as Error;
     throw new APIError({
-      error: errorObj,
+      cause: errorObj,
+      code: "serialization-error",
+      detail: errorObj.message,
       status: 400,
-      title: `Error serializing ${method} response: ${errorObj.message}`,
+      title: `Error serializing ${method} response`,
     });
   }
 };

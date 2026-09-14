@@ -16,6 +16,7 @@ const monorepoPackages = {
   "@terreno/ui": path.resolve(monorepoRoot, "ui"),
   "@terreno/admin-frontend": path.resolve(monorepoRoot, "admin-frontend"),
   "@terreno/rtk": path.resolve(monorepoRoot, "rtk"),
+  "@terreno/syncdb": path.resolve(monorepoRoot, "syncdb"),
 };
 
 // 1. Watch the local app folder, and only the shared packages (limiting the scope and speeding it
@@ -64,9 +65,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-// Enable symlinks for bun workspaces
-config.resolver.unstable_enableSymlinks = true;
-
+// Symlinks: default in SDK 56+; monorepo resolution uses extraNodeModules + realpath above.
 // Force React-related imports to resolve to a single canonical path
 // This prevents the "Invalid hook call" error caused by duplicate React instances
 const reactPackages = ["react", "react-dom", "react-native", "react-native-web"];

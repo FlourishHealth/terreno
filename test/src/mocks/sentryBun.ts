@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {mock} from "bun:test";
 
@@ -70,6 +71,15 @@ export const registerSentryBunMock = (): void => {
       tracingHandler: mock(() => (_req: any, _res: any, next: any) => next()),
     };
 
+    const structuredLogger = {
+      debug: mockFn(),
+      error: mockFn(),
+      fatal: mockFn(),
+      info: mockFn(),
+      trace: mockFn(),
+      warn: mockFn(),
+    };
+
     return {
       addBreadcrumb: mockFn(),
       captureException: mockFn(),
@@ -91,6 +101,7 @@ export const registerSentryBunMock = (): void => {
         Handlers: handlers,
         init: mockFn(),
         isInitialized: mock(() => true),
+        logger: structuredLogger,
         popScope: mockFn(),
         pushScope: mockFn(),
         Severity: {
@@ -117,6 +128,7 @@ export const registerSentryBunMock = (): void => {
       Handlers: handlers,
       init: mockFn(),
       isInitialized: mock(() => true),
+      logger: structuredLogger,
       popScope: mockFn(),
       pushScope: mockFn(),
       Severity: {

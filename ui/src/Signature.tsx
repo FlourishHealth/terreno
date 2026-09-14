@@ -8,6 +8,7 @@ import {
 import {Text, View} from "react-native";
 
 import {useTheme} from "./Theme";
+import {toDomTestProps} from "./testing/resolveTestId";
 
 export interface SignatureProps {
   onChange: (signature: string) => void;
@@ -15,6 +16,8 @@ export interface SignatureProps {
   onEnd?: () => void;
   fullWidth?: boolean;
   value?: string; // note this
+  /** Test id applied to the drawing surface (the canvas on web). */
+  testID?: string;
 }
 
 const SIGNATURE_WIDTH_PX = 300;
@@ -40,6 +43,7 @@ export const Signature = ({
   onChange,
   onStart,
   onEnd,
+  testID,
 }: SignatureProps): ReactElement => {
   const {theme} = useTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -168,6 +172,7 @@ export const Signature = ({
         }}
       >
         <canvas
+          {...toDomTestProps(testID)}
           height={SIGNATURE_HEIGHT_PX}
           onPointerDown={handlePointerDown}
           onPointerLeave={handlePointerUp}

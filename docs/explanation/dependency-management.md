@@ -1,192 +1,100 @@
 # Dependency Management
 
-Understanding how Terreno manages dependencies, updates, and security.
+Terreno pins shared versions in the Bun catalog, lands JavaScript updates through
+an agent skill that proves each bump with a test, and keeps Expo native
+fingerprints frozen until a release.
 
-## Overview
+## Layers
 
-Terreno uses a multi-layered approach to dependency management:
-- **Bun catalogs** for version consistency across the monorepo
-- **Dependabot** for automated dependency updates
-- **Auto-merge workflow** for hands-off maintenance
-- **7-day cooldown** for security and stability
+| Layer | Job |
+| --- | --- |
+| **Bun catalog** | One version for every dependency shared by two or more workspace packages (`catalog:` in manifests) |
+| **`update-dependencies` skill** | Daily rolling PR on `chore/update-dependencies`: cooldown, exercise test, fingerprint freeze, ledger of landed/failed |
+| **Dependabot** | Backup signal for bun + GitHub Actions. Native/Expo catalog names are ignored so auto-merge cannot change the fingerprint |
+| **Release + `upgrading-expo`** | Expo SDK, React Native, and other native-module bumps |
 
-## Bun Catalogs
+Operator steps: [Update dependencies](../how-to/update-dependencies.md). Catalog rule: workspace `package.json` files use `"catalog:"` for shared pins.
 
-Shared dependency versions are defined in the root `package.json` under the `catalog` field. Workspace packages reference catalog versions with `catalog:` prefix.
+## Bun catalogs
 
-**Benefits:**
-- Single source of truth for shared dependency versions
-- Consistent versions across all packages
-- Easier updates — change once, apply everywhere
+Shared versions live in the root `package.json` `catalog` field.
 
-**Example:**
-
-``````json
-// root package.json
+```json
 {
   "catalog": {
     "react": "19.1.0",
     "react-native": "0.81.5"
   }
 }
-``````
+```
 
-``````json
-// ui/package.json
+```json
 {
   "dependencies": {
     "react": "catalog:",
     "react-native": "catalog:"
   }
 }
-``````
+```
 
-## Dependabot Configuration
+Change a shared version in the catalog once. Do not pin a second copy in a workspace package. Exceptions (`@types/node`, `path-to-regexp`, `@opentelemetry/sdk-node`) are listed in `.rulesync/rules/01-dependency-catalog.md`.
 
-Dependabot monitors dependencies across the monorepo with different update schedules and grouping strategies.
+## Agent updates vs Dependabot
 
-### Update Groups
+Dependabot groups many packages and merges when CI is green. That misses two Terreno constraints:
 
-| Group | Packages | Schedule | Strategy |
-|-------|----------|----------|----------|
-| **GitHub Actions** | Workflow dependencies | Weekly | Individual PRs |
-| **Root** | Catalog & dev tools | Monthly | Grouped PR |
-| **Backend** | `api`, `example-backend`, `mcp-server` | Monthly | Grouped PR |
-| **Frontend** | `ui`, `rtk`, `demo`, `example-frontend` | Monthly | Grouped PR |
+1. **Exercise.** CI can pass without any test importing the bumped module. The skill requires a named test file that imports the package and that passed **after** the bump. If none exists, write a tracer-bullet test first.
+2. **Fingerprint.** Expo `runtimeVersion.policy: "fingerprint"` ties OTA runtime and EAS dev builds to native hashes of `example-frontend` and `demo`. Native module bumps belong in a release, not a weekday dependency PR.
 
-### 7-Day Cooldown
+`scripts/planning/fingerprintRisk.ts` (`isFingerprintSkip`) is the skip matcher. After every allowed bump the skill still recomputes hashes; a changed hash is reverted even if the matcher allowed the name.
 
-**Why:** Malicious actors occasionally compromise NPM packages. Most compromises are detected and removed within 24 hours.
+## Cooldown
 
-**How it works:**
-- Dependabot waits 7 days after a package version is published before creating a PR
-- Security updates **bypass** the cooldown (immediate PRs for CVEs)
-- Reduces risk of incorporating compromised dependencies
+Non-security npm versions wait **7 days** after publish before a bump (`npm view <name> time`). Most malicious publishes are yanked inside a day. GitHub Dependabot uses the same `cooldown.default-days: 7`. CVE/advisory bumps skip the wait and still need an exercise test and a fingerprint freeze.
 
-**Configuration:**
+## Fingerprint freeze
 
-``````yaml
-cooldown:
-  default-days: 7
-``````
+Do not bump from this path:
 
-### Ignored Dependencies
+- `expo`, `expo-*`, `react-native`, `react-native-*` except `react-native-web`
+- `@react-native/*` and related community native modules
+- `@expo/config-plugins`, `@sentry/react-native`, `@shopify/flash-list`, `@shopify/react-native-skia`
+- `eas.json` Bun version (it is a fingerprint input)
 
-Frontend packages ignore catalog-managed dependencies to prevent duplicate PRs. Updates to these dependencies must be done via the root `package.json` catalog.
+Those wait for a Terreno release (`release` + `upgrading-expo` skills). Do not use the `fingerprint-acknowledged` label to sneak them through a dependency PR.
 
-**Examples:**
-- `react`, `react-native`, `expo`, `typescript`
-- `@reduxjs/toolkit`, `luxon`, `lodash`
-- All other dependencies listed in the root catalog
+JavaScript packages, GitHub Actions, and a few Expo JS-only names may update. Measure hashes for both apps anyway.
 
-## Auto-Merge Workflow
+## Dependabot configuration
 
-The `dependabot-auto-merge.yml` workflow automatically approves and merges Dependabot PRs once all CI checks pass.
+`.github/dependabot.yml` still opens grouped PRs:
 
-### How It Works
+| Group | Ecosystem | Schedule |
+| --- | --- | --- |
+| GitHub Actions | `github-actions` at `/` | Weekly |
+| Root catalog and root tools | `bun` at `/` | Monthly |
+| Backend workspaces | `bun` under api, ai, backends, … | Monthly |
+| Frontend workspaces | `bun` under ui, rtk, demo, apps, … | Monthly |
 
-1. **Trigger:** Runs on every pull request
-2. **Condition:** Only executes if author is `dependabot[bot]`
-3. **Approval:** Automatically approves the PR using `GITHUB_TOKEN`
-4. **Auto-merge:** Enables squash-merge with `--auto` flag
-5. **Merge:** PR merges automatically once all required status checks pass
+Frontend ignores catalog-managed names so those PRs do not duplicate the root catalog. Root ignores fingerprint-skip names. `dependabot-auto-merge.yml` still squash-merges Dependabot PRs when required checks pass. Do not merge a Dependabot PR that includes a skip-list package; redo it with [Update dependencies](../how-to/update-dependencies.md).
 
-### Prerequisites
+## Daily rolling PR
 
-For auto-merge to function:
-1. ✅ Enable "Allow auto-merge" in **Settings → General → Pull Requests**
-2. ✅ Configure branch protection on `master` with required status checks
-3. ✅ All configured CI workflows (api-ci, ui-ci, etc.) must pass
+The skill runs every day against **one trusted** open PR: exact same-repository head `chore/update-dependencies`, base `master`, and `isCrossRepository: false`. The marker `<!-- terreno-update-dependencies -->` and title are display metadata, not trust signals. Forks that copy them are ignored.
 
-### Security Considerations
+A later run merges current master into that branch without rewriting history, retries **Failed** rows, appends **Landed** / **Failed** / **Skipped**, and pushes to the same head. It does not open a second trusted PR while that one is open. After merge, the next day may open the next rolling PR.
 
-**Why this is safe:**
-- PRs only merge after **all CI checks pass** (tests, linting, builds)
-- Security updates bypass cooldown but still require passing tests
-- Grouped PRs reduce noise while maintaining test coverage
-- Failed CI checks prevent merge — human review required
+Each package is still proven alone (exercise test + fingerprint) before it stays on the branch. Failures are reverted and kept in the PR body so the next day does not rediscover them from scratch.
 
-**When human review is needed:**
-- CI failures on Dependabot PRs
-- Major version updates (may include breaking changes)
-- Updates that touch critical dependencies (e.g., Express, React Native core)
+## Best practices
 
-## Workflow Diagram
+- One rolling PR; many proven commits on that branch.
+- Majors: exercise test + fingerprint freeze; no auto-merge.
+- Security: skip cooldown; do not skip tests or fingerprints.
+- New feature dependencies belong in that feature's slice, not this maintenance path.
 
-``````mermaid
-flowchart TD
-    A[Package Version Published] -->|Wait 7 days| B{Security Update?}
-    B -->|Yes| C[Immediate PR Creation]
-    B -->|No| D[Create PR after cooldown]
-    C --> E[Auto-merge Workflow Triggered]
-    D --> E
-    E --> F{All CI Checks Pass?}
-    F -->|Yes| G[Auto-approve PR]
-    F -->|No| H[Require Human Review]
-    G --> I[Enable Auto-merge]
-    I --> J[Squash & Merge]
-    H --> K[Fix Issues & Re-run CI]
-    K --> F
-``````
+## Related
 
-## Best Practices
-
-### When to Update the Catalog
-
-Update root `package.json` catalog when:
-- Multiple packages need the same dependency update
-- Major version updates require coordinated changes
-- New shared dependencies are introduced
-
-### When to Update Individual Packages
-
-Update individual package dependencies when:
-- Package-specific dependencies (not in catalog)
-- Testing new versions before promoting to catalog
-- Overriding catalog versions for specific use cases (rare)
-
-### Monitoring Dependabot
-
-Check Dependabot activity:
-1. Navigate to **Security → Dependabot** in GitHub repository
-2. Review open PRs with `dependencies` label
-3. Check for failed updates or security alerts
-4. Monitor auto-merge success rate in Actions tab
-
-## Troubleshooting
-
-### Dependabot PR Not Auto-Merging
-
-**Symptom:** PR approved but not merging
-
-**Checks:**
-1. Are all required status checks passing?
-2. Is auto-merge enabled in repository settings?
-3. Is branch protection configured on `master`?
-4. Check Actions tab for workflow failures
-
-### CI Failures on Dependency Updates
-
-**Symptom:** Dependabot PR fails CI
-
-**Actions:**
-1. Review CI logs to identify breaking changes
-2. Check dependency changelog for migration guides
-3. Update code to accommodate breaking changes
-4. Push fixes to the Dependabot branch or close PR
-
-### Too Many Dependabot PRs
-
-**Symptom:** Overwhelming number of update PRs
-
-**Solutions:**
-- Verify grouping is configured correctly in `.github/dependabot.yml`
-- Adjust update schedules (weekly → monthly)
-- Add dependencies to ignore list if catalog-managed
-- Increase cooldown period if needed
-
-## Related Documentation
-
-- [CI/CD Workflows](../how-to/setup-cicd.md) *(coming soon)*
-- [GitHub Actions Security](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
-- [Dependabot Documentation](https://docs.github.com/en/code-security/dependabot)
+- [Update dependencies](../how-to/update-dependencies.md)
+- [Install agent skills](../how-to/install-agent-skills.md)
+- [Bun catalogs](https://bun.sh/docs/install/catalogs)

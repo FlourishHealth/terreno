@@ -1,12 +1,17 @@
 {
   "name": "terreno-planning",
-  "displayName": "Terreno Planning",
-  "description": "Plugins for planning and executing plans for the whole SDLC",
-  "version": "1.0.2",
+  "displayName": "Terreno",
+  "description": "Terreno lifecycle and app workflows: Grow, Pick/Roast, Brew, Taste, continuous outer loops, backend/API, UI, data, schema, admin, docs, upgrades, deployment, and verification agents.",
+  "version": "2.10.0",
   "author": {
-    "name": "Flourish Health",
-    "email": "josh@flourish.health"
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
   },
   "keywords": ["terreno", "planning", "sdlc", "implementation", "review", "tdd"],
-  "skills": "skills"
+  "skills": "skills",
+  "agents": ["agents"],
+  "compatibility": {
+    "terreno": ">=1.0.0",
+    "expoSdk": "~57"
+  }
 }

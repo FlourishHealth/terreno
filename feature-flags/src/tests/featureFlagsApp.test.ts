@@ -48,6 +48,18 @@ describe("FeatureFlagsApp", () => {
   });
 
   describe("construction", () => {
+    it("contributes FeatureFlag admin metadata and the overrides home widget", () => {
+      const contribution = new FeatureFlagsApp().adminContribution();
+
+      expect(contribution.models).toHaveLength(1);
+      expect(contribution.models?.[0]?.model).toBe(FeatureFlag);
+      expect(contribution.models?.[0]?.routePath).toBe("/feature-flags");
+      expect(contribution.models?.[0]?.admin.displayName).toBe("Feature Flags");
+      expect(contribution.homeWidgets).toEqual([
+        {displayName: "Flag Overrides", icon: "flag", id: "feature-flags-overrides"},
+      ]);
+    });
+
     it("defaults basePath to /feature-flags and segments to an empty object", async () => {
       app = buildApp();
       adminAgent = await authAsUser(app, "admin");

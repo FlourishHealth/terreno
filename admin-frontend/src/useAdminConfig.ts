@@ -1,5 +1,7 @@
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, AdminConfigResponse, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcQuery} from "./useAdminRpc";
 
 const ENDPOINT_NAME = "adminConfig";
 
@@ -33,6 +35,12 @@ const ENDPOINT_NAME = "adminConfig";
  * @see AdminModelList for usage in the model list screen
  */
 export const useAdminConfig = (api: AdminApi, apiBase: string) => {
+  const rpc = useAdminRpc();
+  const fetchState = useAdminRpcQuery<AdminConfigResponse>({
+    rpc,
+    skip: !rpc,
+    url: `${apiBase}/config`,
+  });
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
@@ -47,11 +55,24 @@ export const useAdminConfig = (api: AdminApi, apiBase: string) => {
     });
   }, [api, apiBase]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
+  const useConfigQuery = asDynamicHookApi(enhancedApi).useAdminConfigQuery as (
+    arg?: unknown,
+    options?: {skip?: boolean}
+  ) => {
+    data?: AdminConfigResponse;
+    error: unknown;
+    isLoading: boolean;
+  };
 
-  const {data, isLoading, error} = useConfigQuery();
+  const {data, isLoading, error} = useConfigQuery(undefined, {skip: Boolean(rpc)});
+
+  if (rpc) {
+    return {
+      config: fetchState.data ?? null,
+      error: fetchState.error,
+      isLoading: fetchState.isLoading,
+    };
+  }
 
   return {config: data as AdminConfigResponse | null, error, isLoading};
 };

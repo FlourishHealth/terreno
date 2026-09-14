@@ -60,8 +60,7 @@ const mapToObject = (
 
 const refreshFromDoc = async (Model: Model<unknown>): Promise<void> => {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: doc shape determined by consumer schema
-    const doc = (await findOneOrNoneFor(Model as Model<any>, {})) as
+    const doc = (await findOneOrNoneFor(Model, {})) as
       | (Document & {env?: Map<string, string> | Record<string, string>})
       | null;
     Config.setCachedEnv(mapToObject(doc?.env));
@@ -72,8 +71,7 @@ const refreshFromDoc = async (Model: Model<unknown>): Promise<void> => {
   }
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
-export const envConfigurationPlugin = (schema: Schema<any, any, any, any>): void => {
+export const envConfigurationPlugin = (schema: Schema): void => {
   schema.add({
     env: {
       default: () => new Map<string, string>(),

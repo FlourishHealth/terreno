@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableTextDemo, TableTextVariants} from "@stories";
+import {TableTextDemo, TableTextVariants} from "@stories/TableText.stories";
 import {TableText} from "@terreno/ui";
 
 export const TableTextConfiguration: DemoConfiguration = {

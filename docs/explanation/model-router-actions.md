@@ -2,20 +2,39 @@
 
 `modelRouter` can register **actions** — named operations at collection or instance scope — alongside standard CRUD. Actions reuse the same permission model, error envelope, and OpenAPI pipeline as CRUD routes, without hand-wiring `endpoints`, `asyncHandler`, and doc loading.
 
+CRUD **create, update, and delete** (not named actions) share one write pipeline: REST, Sync, and MCP all call `executeCreate` / `executeUpdate` / `executeDelete` in `api/src/sync/executors.ts`. MCP tools map arguments and `APIError` titles onto the MCP result envelope after the executor returns. RBAC User-role stripping runs in those executors **after** `transform` / `preCreate` / `preUpdate`. MCP passes the registry `modelName` so stripping still applies when the compiled mongoose `modelName` is not `"User"`. Invalid document `_id` values (`CastError` on path `_id`, BSON invalid ObjectId) load as 404 `Document not found`; `CastError` on populate paths is a GET error, not a missing document.
+
 ## When to use actions
+
+Use `collectionActions` / `instanceActions` for every application GET or POST that is not
+plain document CRUD. Do **not** register `app.get`, `app.post`, `router.get`, or
+`router.post` for those endpoints.
 
 Use actions when an endpoint performs an operation that is not a plain create/read/update/delete on the model document:
 
 - **Collection scope** (`POST /todos/bulkComplete`) — operate on many documents or the collection as a whole.
 - **Instance scope** (`POST /todos/:id/markComplete`) — operate on one loaded document.
 
-Use [custom routes with `createOpenApiBuilder`](./modular-api-design.md) when the URL does not fit the `/:id/{actionName}` or `/{actionName}` pattern.
+Leave Express `app.get` / `app.post` only for:
+
+- Inbound webhooks (`WebhooksApp`)
+- Static SPA / file serving
+- Framework auth, health, and version-check plugins
+- SSE or other streaming handlers that write the response themselves
+- Tests and harnesses
+
+PATCH and DELETE are CRUD (or a POST action that performs the same work). Do not add a
+hand-rolled DELETE next to a modelRouter.
+
+Use [custom routes with `createOpenApiBuilder`](./modular-api-design.md) only when the
+URL cannot be `/{actionName}` or `/:id/{actionName}` **and** the exceptions above do not
+apply.
 
 ## Example
 
 ```typescript
 import {modelRouter, Permissions, z} from "@terreno/api";
-import {Todo} from "../models";
+import {Todo} from "../models/todo";
 
 export const todoRouter = modelRouter("/todos", Todo, {
   permissions: {

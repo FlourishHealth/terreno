@@ -1,0 +1,9 @@
+Terreno
+
+Copyright 2026 Flourish Health, Inc.
+
+This project is licensed under the MIT License. See LICENSE for the full text.
+
+Third-party components:
+
+- api/src/vendor/wesleytodd-openapi/ — see api/src/vendor/wesleytodd-openapi/LICENSE

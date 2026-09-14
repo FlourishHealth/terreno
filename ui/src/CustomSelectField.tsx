@@ -2,7 +2,7 @@ import {type FC, useEffect, useMemo, useRef, useState} from "react";
 import {type TextInput, View} from "react-native";
 
 import type {CustomSelectFieldProps} from "./Common";
-import {FieldHelperText} from "./fieldElements";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
 import {resolveFieldTestIDsFromProps, resolveTestID} from "./testing/resolveTestId";
@@ -18,7 +18,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   helperText,
   testID,
   testIDs,
-  searchable,
+  disableSearch,
 }) => {
   const [currentValue, setCurrentValue] = useState(value);
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -87,11 +87,11 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
       >
         <SelectField
           disabled={disabled}
+          disableSearch={disableSearch}
           errorText={errorText}
           onChange={handleCustomSelectListChange}
           options={[...options, {label: "Custom", value: "custom"}]}
           placeholder={placeholder}
-          searchable={searchable}
           testID={fieldTestIDs.input}
           testIDs={testIDs}
           title={title}

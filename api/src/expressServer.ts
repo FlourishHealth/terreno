@@ -7,25 +7,68 @@ import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
 import type {ModelRouterOptions} from "./api";
+import type {User} from "./auth";
+import {APIError} from "./errors";
 import {type LoggingOptions, logger} from "./logger";
-import {sendToSlack} from "./notifiers";
+import {sendToSlack} from "./notifiers/slackNotifier";
 
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
 const IS_JEST = process.env.JEST_WORKER_ID !== undefined;
+const SENSITIVE_REQUEST_BODY_KEYS = [
+  "newPassword",
+  "oldPassword",
+  "password",
+  "refreshToken",
+  "token",
+] as const;
+
+const redactSensitiveRequestBody = (body: Record<string, unknown>): Record<string, unknown> => {
+  const bodyCopy = cloneDeep(body);
+  for (const key of SENSITIVE_REQUEST_BODY_KEYS) {
+    if (key in bodyCopy && bodyCopy[key] !== undefined) {
+      bodyCopy[key] = "<REDACTED>";
+    }
+  }
+  return bodyCopy;
+};
+
+const sensitiveQueryKeySet = new Set<string>(SENSITIVE_REQUEST_BODY_KEYS);
+
+export const redactSensitiveRequestUrl = (url: string | undefined): string => {
+  if (!url) {
+    return "";
+  }
+  const isAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(url);
+  const parsed = new URL(url, "http://terreno.invalid");
+  let didRedact = false;
+  for (const key of parsed.searchParams.keys()) {
+    if (sensitiveQueryKeySet.has(key)) {
+      parsed.searchParams.set(key, "<REDACTED>");
+      didRedact = true;
+    }
+  }
+  if (!didRedact) {
+    return url;
+  }
+  if (isAbsolute) {
+    return parsed.toString();
+  }
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+};
 
 export const setupEnvironment = (): void => {
   if (!process.env.TOKEN_ISSUER) {
-    throw new Error("TOKEN_ISSUER must be set in env.");
+    throw new APIError({status: 500, title: "TOKEN_ISSUER must be set in env."});
   }
   if (!process.env.TOKEN_SECRET) {
-    throw new Error("TOKEN_SECRET must be set.");
+    throw new APIError({status: 500, title: "TOKEN_SECRET must be set."});
   }
   if (!process.env.REFRESH_TOKEN_SECRET) {
-    throw new Error("REFRESH_TOKEN_SECRET must be set.");
+    throw new APIError({status: 500, title: "REFRESH_TOKEN_SECRET must be set."});
   }
   if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set.");
+    throw new APIError({status: 500, title: "SESSION_SECRET must be set."});
   }
   if (!process.env.TOKEN_EXPIRES_IN && !IS_JEST) {
     logger.warn("TOKEN_EXPIRES_IN is not set so using default.");
@@ -71,10 +114,12 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
   } else if (req.route) {
     pathName = req.route.path;
   } else if (res.statusCode != null && res.statusCode < 400) {
-    logger.warn(`Request without route: ${req.originalUrl}`);
+    logger.warn(`Request without route: ${redactSensitiveRequestUrl(req.originalUrl)}`);
   }
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
-    logger.debug(`${req.method} -> ${req.originalUrl} ${res.statusCode} ${`${diffInMs}ms`}`);
+    logger.debug(
+      `${req.method} -> ${redactSensitiveRequestUrl(req.originalUrl)} ${res.statusCode} ${`${diffInMs}ms`}`
+    );
   }
   if (options.logSlowRequests) {
     if (diffInMs > slowReadMs && req.method === "GET") {
@@ -82,7 +127,7 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
         `Slow GET request, ${JSON.stringify({
           pathName,
           requestTime: diffInMs,
-          url: req.originalUrl,
+          url: redactSensitiveRequestUrl(req.originalUrl),
         })}`
       );
     } else if (diffInMs > slowWriteMs) {
@@ -90,7 +135,7 @@ const logRequestsFinished = (req: LoggableRequest, res: LoggableResponse, startT
         `Slow write request ${JSON.stringify({
           pathName,
           requestTime: diffInMs,
-          url: req.originalUrl,
+          url: redactSensitiveRequestUrl(req.originalUrl),
         })}`
       );
     }
@@ -119,15 +164,11 @@ export const logRequests = (
 
   let body = "";
   if (req.body && Object.keys(req.body).length > 0) {
-    const bodyCopy = cloneDeep(req.body);
-    if (bodyCopy.password) {
-      bodyCopy.password = "<PASSWORD>";
-    }
-    body = ` Body: ${JSON.stringify(bodyCopy)}`;
+    body = ` Body: ${JSON.stringify(redactSensitiveRequestBody(req.body))}`;
   }
 
   if (process.env.DISABLE_LOG_ALL_REQUESTS !== "true") {
-    logger.debug(`${req.method} <- ${req.url}${userString}${body}`);
+    logger.debug(`${req.method} <- ${redactSensitiveRequestUrl(req.url)}${userString}${body}`);
   }
   onFinished(res as unknown as OutgoingMessage, () => logRequestsFinished(req, res, startTime));
   next();
@@ -167,14 +208,32 @@ export const createRouterWithAuth = (
   ]);
 };
 
+export interface AuthRecoveryMail {
+  html?: string;
+  subject: string;
+  text: string;
+  to: string;
+}
+
 export interface AuthOptions {
-  // noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
-  generateJWTPayload?: (user: any) => Record<string, unknown>;
-  // biome-ignore lint/suspicious/noExplicitAny: see above
-  generateTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
-  // biome-ignore lint/suspicious/noExplicitAny: see above
-  generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
+  generateJWTPayload?: (user: User) => Record<string, unknown>;
+  generateTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
+  generateRefreshTokenExpiration?: (user: User) => number | jwt.SignOptions["expiresIn"];
+  /** Public web/app origin used in password-reset and verification links. */
+  publicAppUrl?: string;
+  /**
+   * Deliver recovery mail (forgot password / verify email). Wire to
+   * `getCommsService().sendMail` when `@terreno/comms` is registered.
+   */
+  sendMail?: (message: AuthRecoveryMail) => Promise<void>;
+  /** When true, unverified users receive 403 `email-not-verified` on login. Default false. */
+  requireEmailVerification?: boolean;
+  /**
+   * After a successful JWT password reset, update the Better Auth credential hash
+   * and delete that user's Better Auth sessions. TerrenoApp wires this when
+   * BetterAuthApp is registered.
+   */
+  syncPasswordResetToBetterAuth?: (user: User, password: string) => Promise<void>;
 }
 
 export const cronjob = (
@@ -188,7 +247,12 @@ export const cronjob = (
   try {
     new cron.CronJob(cronSchedule, callback, null, true, "America/Chicago");
   } catch (error) {
-    throw new Error(`Failed to create cronjob: ${error}`);
+    throw new APIError({
+      cause: error,
+      detail: `Failed to create cronjob ${name} with schedule ${cronSchedule}: ${error}`,
+      status: 500,
+      title: "Failed to create cronjob",
+    });
   }
 };
 

@@ -1,7 +1,12 @@
 import {existsSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
-import {resolveTerrenoProjectRoot} from "../projectRoot.js";
+import {
+  BACKEND_WORKSPACE_DIR_NAMES,
+  FRONTEND_WORKSPACE_DIR_NAMES,
+  resolveFirstWorkspaceDir,
+  resolveTerrenoProjectRoot,
+} from "../projectRoot.js";
 
 interface PackageJson {
   dependencies?: Record<string, string>;
@@ -51,8 +56,10 @@ export const applicationInfo = (): string => {
   const lockPath = join(root, "bun.lock");
   const lockExists = existsSync(lockPath);
 
-  const backendPkg = readJson(join(root, "backend", "package.json"));
-  const frontendPkg = readJson(join(root, "frontend", "package.json"));
+  const backendDir = resolveFirstWorkspaceDir(root, BACKEND_WORKSPACE_DIR_NAMES);
+  const frontendDir = resolveFirstWorkspaceDir(root, FRONTEND_WORKSPACE_DIR_NAMES);
+  const backendPkg = backendDir ? readJson(join(root, backendDir, "package.json")) : null;
+  const frontendPkg = frontendDir ? readJson(join(root, frontendDir, "package.json")) : null;
 
   const lines: string[] = [];
   lines.push(`# Application info`);
@@ -95,8 +102,8 @@ export const applicationInfo = (): string => {
     lines.push("");
   };
 
-  pick("Backend workspace", backendPkg);
-  pick("Frontend workspace", frontendPkg);
+  pick(backendDir ? `Backend workspace (${backendDir}/)` : "Backend workspace", backendPkg);
+  pick(frontendDir ? `Frontend workspace (${frontendDir}/)` : "Frontend workspace", frontendPkg);
 
   if (lockExists) {
     lines.push("## Lockfile");

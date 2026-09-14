@@ -1,0 +1,25 @@
+{
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".rulesync/hooks/quality-check.sh devin",
+          "timeout": 300
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bun run analyze:fast",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
+}

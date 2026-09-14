@@ -235,7 +235,7 @@ describe("prompts", () => {
 
       expect(content).toContain("email");
       expect(content).toContain("User Model");
-      expect(content).toContain("Auth Routes");
+      expect(content).toContain("Better Auth Configuration");
       expect(content).toContain("Login Screen");
       expect(content).toContain("Signup Screen");
     });
@@ -248,8 +248,8 @@ describe("prompts", () => {
       const content = result.messages[0].content.text;
 
       expect(content).toContain("passwordReset");
-      expect(content).toContain("forgot-password");
-      expect(content).toContain("reset-password");
+      expect(content).toContain("Password Reset");
+      expect(content).toContain("Better Auth password reset");
     });
 
     test("should include auth state management", () => {
@@ -257,8 +257,9 @@ describe("prompts", () => {
 
       const content = result.messages[0].content.text;
 
-      expect(content).toContain("authSlice");
-      expect(content).toContain("LOGOUT_ACTION_TYPE");
+      expect(content).toContain("generateBetterAuthSlice");
+      expect(content).toContain("selectBetterAuthUserId");
+      expect(content).toContain("syncBetterAuthSession");
       expect(content).toContain("isAuthenticated");
     });
   });
@@ -350,6 +351,7 @@ describe("prompts", () => {
       expect(content).toContain("0.21.0");
       expect(content).toContain("terreno_get_upgrade_guide");
       expect(content).toContain("upgrading-expo");
+      expect(content).toContain("upgrading-terreno");
     });
   });
 
@@ -363,7 +365,8 @@ describe("prompts", () => {
 
       expect(content).toContain("my-bootstrap-app");
       expect(content).toContain("My Bootstrap App");
-      expect(content).toContain("terreno_bootstrap_app");
+      expect(content).toContain("bunx create-terreno-app");
+      expect(content).not.toContain("terreno_bootstrap_app");
       expect(content).toContain("terreno_bootstrap_ai_rules");
     });
   });

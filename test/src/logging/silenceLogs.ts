@@ -1,3 +1,4 @@
+// noExplicitAny: test mock typing
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach} from "bun:test";
 import {Writable} from "node:stream";
@@ -21,6 +22,7 @@ export interface SilenceLogsController {
 const getApiWinstonLogger = (): winston.Logger | undefined => {
   try {
     // Runtime-only so @terreno/test compiles without @terreno/api.
+    // noExplicitAny: optional peer resolved at preload time
     // biome-ignore lint/suspicious/noExplicitAny: optional peer resolved at preload time
     const api = require("@terreno/api") as any;
     return api.winstonLogger as winston.Logger | undefined;
@@ -80,10 +82,13 @@ export const createLogSilencer = (options: SilenceLogsOptions = {}): SilenceLogs
     winston.clear();
     winston.add(silentTransport);
 
-    const extraLoggers = [
-      ...(options.additionalWinstonLoggers ?? []),
-      getApiWinstonLogger(),
-    ].filter(Boolean) as winston.Logger[];
+    // Only reach for @terreno/api when the caller has not supplied its logger. Requiring the
+    // package from inside api's own test run would load its built dist alongside the sources
+    // under test, registering every Mongoose model twice.
+    const provided = options.additionalWinstonLoggers ?? [];
+    const extraLoggers = (provided.length > 0 ? provided : [getApiWinstonLogger()]).filter(
+      Boolean
+    ) as winston.Logger[];
 
     for (const extraLogger of extraLoggers) {
       extraLogger.clear();

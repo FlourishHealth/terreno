@@ -46,6 +46,8 @@ export interface LoginScreenProps {
   forgotPasswordText?: string;
   /** Callback triggered when the forgot password link is pressed. */
   onForgotPasswordPress?: () => void;
+  /** Alias for `onForgotPasswordPress`. */
+  onForgotPassword?: () => void;
   /** Test ID for the root element. */
   testID?: string;
 }

@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableTitleDemo, TableTitleExample} from "@stories";
+import {TableTitleDemo, TableTitleExample} from "@stories/TableTitle.stories";
 import {TableTitle} from "@terreno/ui";
 
 export const TableTitleConfiguration: DemoConfiguration = {

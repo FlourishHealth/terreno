@@ -1,11 +1,22 @@
+import {EventEmitter} from "node:events";
 import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
+import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
+import {
+  applyJwtPasswordResetToBetterAuth,
+  type BetterAuthInstance,
+  createBetterAuthSessionMiddleware,
+} from "./betterAuthSetup";
+import {
+  ConfigurationApp,
+  type ConfigurationAppOptions,
+  type ConfigurationModelLike,
+} from "./configurationApp";
 import {
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
@@ -14,9 +25,19 @@ import {
 import {type AddRoutes, type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {mountMCPServer} from "./mcp/server";
+import {
+  addMcpServiceTokenRoutes,
+  type McpServiceTokensAppOption,
+  resolveMcpServiceTokensOption,
+} from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
+import {createRateLimitStore} from "./rateLimit/createStore";
+import {createRateLimitMiddleware} from "./rateLimit/middleware";
+import type {RateLimitOptions} from "./rateLimit/types";
 import {RealtimeApp} from "./realtime/realtimeApp";
 import type {RealtimeAppOptions} from "./realtime/types";
 import {
@@ -24,8 +45,18 @@ import {
   requestContextMiddleware,
   updateRequestContextFromRequest,
 } from "./requestContext";
+import {ensureSyncIndexes} from "./sync/registry";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
+import {jsonBodyParserOptions, urlencodedBodyParserOptions} from "./webhooks/rawBody";
+
+/** A registered plugin that exposes a Better Auth instance, e.g. BetterAuthApp. */
+interface BetterAuthProvider {
+  getAuth: () => BetterAuthInstance | undefined;
+  ensureAuth?: () => BetterAuthInstance;
+  markSessionMiddlewareMounted?: () => void;
+  getBetterAuthBasePath?: () => string;
+}
 
 type CorsOrigin =
   | string
@@ -70,6 +101,10 @@ export interface TerrenoAppOptions {
    */
   realtime?: boolean | RealtimeAppOptions;
   /**
+   * RBAC access controller injected into model routers and `/auth/me` enrichment.
+   */
+  accessControl?: import("./rbac/types").AnyTerrenoAccess;
+  /**
    * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
    * Use to attach early middleware via `app.use(...)` before JSON parsing.
    */
@@ -79,6 +114,17 @@ export interface TerrenoAppOptions {
    * Receives the Express app and OpenAPI bundle for `modelRouter` / `createOpenApiBuilder` wiring.
    */
   configureApp?: AddRoutes;
+  /**
+   * Optional HTTP rate limiting. Omitted or `undefined` leaves the limiter off
+   * (Terreno 58 will default it on). Pass `{}` or `{store, limits, trustProxy}`
+   * to enable. See [Rate limiting](../how-to/rate-limiting.md).
+   */
+  rateLimit?: RateLimitOptions;
+  /**
+   * Opt-in personal MCP service tokens. `true` is `{enabled: true}`. When enabled,
+   * mounts `/mcp/service-tokens` and accepts `Authorization: Bearer mcp_…` on `/mcp`.
+   */
+  mcpServiceTokens?: McpServiceTokensAppOption;
 }
 
 /**
@@ -92,7 +138,7 @@ export interface TerrenoAppOptions {
  * 1. CORS
  * 2. Optional `beforeJsonSetup` (configure the app before JSON parsing)
  * 3. Custom middleware (via addMiddleware)
- * 4. JSON body parser
+ * 4. JSON and urlencoded body parsers (stash `req.rawBody`)
  * 5. Auth routes (/auth/login, /auth/signup, etc.)
  * 6. JWT authentication setup
  * 7. Request logging
@@ -148,6 +194,7 @@ export class TerrenoApp {
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
+  private readonly adminEvents = new EventEmitter();
 
   /**
    * Create a new TerrenoApp builder.
@@ -156,6 +203,7 @@ export class TerrenoApp {
    */
   constructor(options: TerrenoAppOptions) {
     this.options = options;
+    this.adminEvents.setMaxListeners(50);
   }
 
   /**
@@ -181,6 +229,37 @@ export class TerrenoApp {
   register(registration: ModelRouterRegistration | TerrenoPlugin): this {
     this.registrations.push(registration);
     return this;
+  }
+
+  /**
+   * Returns registered model routers and plugins in mount order.
+   */
+  getRegistrations(): readonly (ModelRouterRegistration | TerrenoPlugin)[] {
+    return this.registrations;
+  }
+
+  /**
+   * Returns only TerrenoPlugin registrations (excludes model routers).
+   */
+  getPlugins(): TerrenoPlugin[] {
+    return this.registrations.filter(
+      (registration): registration is TerrenoPlugin => !this.isModelRouterRegistration(registration)
+    );
+  }
+
+  on(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.on(event, listener);
+    return this;
+  }
+
+  off(event: TerrenoAppAdminEvent, listener: (payload: AdminChangeEvent) => void): this {
+    this.adminEvents.off(event, listener);
+    return this;
+  }
+
+  /** @internal Emits scrubbed admin model change events from modelRouter hooks. */
+  emitAdminModelChanged(payload: AdminChangeEvent): void {
+    this.adminEvents.emit("admin:model.changed", payload);
   }
 
   /**
@@ -227,11 +306,7 @@ export class TerrenoApp {
    *   .start();
    * ```
    */
-  configure(
-    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
-    model: import("mongoose").Model<any>,
-    options?: Omit<ConfigurationAppOptions, "model">
-  ): this {
+  configure(model: ConfigurationModelLike, options?: Omit<ConfigurationAppOptions, "model">): this {
     this.configurationApp = new ConfigurationApp({model, ...options});
     return this;
   }
@@ -240,8 +315,9 @@ export class TerrenoApp {
    * Build the Express application without starting the server.
    *
    * Configures the complete middleware stack including:
-   * - CORS, JSON parsing, authentication, logging, Sentry, OpenAPI
-   * - All registered model routers and plugins
+   * - CORS, JSON parsing, JWT decode, optional HTTP rate limiting, auth routes
+   * - Better Auth session (when BetterAuthApp is registered) before the limiter
+   * - Logging, Sentry, OpenAPI, model routers and plugins
    * - Error handling middleware
    *
    * Use this method when you need the Express app instance for testing
@@ -291,15 +367,45 @@ export class TerrenoApp {
       }
     }
 
-    app.use(express.json({limit: "50mb"}));
+    app.use(express.json(jsonBodyParserOptions));
+    app.use(express.urlencoded(urlencodedBodyParserOptions) as unknown as express.RequestHandler);
 
-    // Auth routes (login/signup/refresh_token) before JWT middleware
-    addAuthRoutes(app, options.userModel, options.authOptions);
+    // JWT decode before rate limiting so authenticated keys use userId.
+    // Auth routes mount after the limiter so login is in the auth bucket.
     setupAuth(app, options.userModel);
     app.use((req, res, next) => {
       updateRequestContextFromRequest(req, res);
       next();
     });
+
+    const betterAuthForLimiter = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    if (betterAuthForLimiter?.ensureAuth) {
+      const auth = betterAuthForLimiter.ensureAuth();
+      app.use(createBetterAuthSessionMiddleware(auth, options.userModel));
+      betterAuthForLimiter.markSessionMiddlewareMounted?.();
+    }
+
+    if (options.rateLimit) {
+      const betterAuthBasePath =
+        options.rateLimit.betterAuthBasePath ?? betterAuthForLimiter?.getBetterAuthBasePath?.();
+      const rateLimit = {
+        ...options.rateLimit,
+        ...(betterAuthBasePath ? {betterAuthBasePath} : {}),
+      };
+      applyRateLimitTrustProxy(app, rateLimit);
+      const store = createRateLimitStore(rateLimit);
+      app.use(createRateLimitMiddleware(store, rateLimit));
+    }
+
+    if (!options.authOptions) {
+      options.authOptions = {};
+    }
+    const authOptions = options.authOptions;
+    addAuthRoutes(app, options.userModel, authOptions);
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -363,12 +469,42 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        const router = registration._buildWithOpenApi(oapi);
+        const router = registration._buildWithContext({
+          accessControl: options.accessControl,
+          openApi: oapi,
+          routePath: registration.path,
+          terrenoApp: this,
+        });
         app.use(registration.path, router);
       } else {
-        registration.register(app, oapi);
+        registration.register(app, oapi, this);
       }
     }
+
+    // Mount MCP at POST /mcp when any model opted in or a custom tool was registered.
+    const betterAuthPlugin = this.registrations.find(
+      (registration) =>
+        "getAuth" in registration &&
+        typeof (registration as Partial<BetterAuthProvider>).getAuth === "function"
+    ) as BetterAuthProvider | undefined;
+    const betterAuth = betterAuthPlugin?.ensureAuth?.() ?? betterAuthPlugin?.getAuth();
+    if (betterAuth) {
+      authOptions.syncPasswordResetToBetterAuth = async (user, password): Promise<void> => {
+        await applyJwtPasswordResetToBetterAuth(betterAuth, user, password);
+      };
+    }
+    const mcpServiceTokens = resolveMcpServiceTokensOption(options.mcpServiceTokens);
+    if (mcpServiceTokens.enabled) {
+      addMcpServiceTokenRoutes(app, {
+        openApi: oapi,
+        publicMcpUrl: mcpServiceTokens.publicMcpUrl,
+      });
+    }
+    mountMCPServer(app, {
+      betterAuth,
+      mcpServiceTokens: mcpServiceTokens.enabled,
+      userModel: options.userModel,
+    });
 
     if (options.configureApp) {
       options.configureApp(app, {openApi: oapi});
@@ -376,7 +512,7 @@ export class TerrenoApp {
 
     // /auth/me must be registered after plugins so that session middleware
     // (e.g. Better Auth) has a chance to populate req.user first.
-    addMeRoutes(app, options.userModel, options.authOptions);
+    addMeRoutes(app, options.userModel, options.authOptions, options.accessControl);
 
     Sentry.setupExpressErrorHandler(app);
 
@@ -418,7 +554,16 @@ export class TerrenoApp {
       if (!hasRealtimePlugin) {
         const realtimeConfig =
           typeof this.options.realtime === "object" ? this.options.realtime : {};
-        this.register(new RealtimeApp(realtimeConfig));
+        this.register(
+          new RealtimeApp({
+            ...realtimeConfig,
+            // Task 9.21 (D2): default the socket full-user load to this app's own user
+            // model. Without it socket authorization falls back to the synthetic
+            // JWT-claim user, which trusts the token's `admin` over the database and
+            // carries no membership fields for tenant-scoped sync.
+            userModel: realtimeConfig.userModel ?? (this.options.userModel as never),
+          })
+        );
       }
     }
 
@@ -426,24 +571,34 @@ export class TerrenoApp {
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      try {
-        const server = createServer(app);
+      // Await sync index creation before listening: the per-model snapshot indexes (a
+      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
+      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
+      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
+      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
+      // loud startup error rather than a silent correctness cliff. No-op when no sync
+      // models or SyncApp are registered. Detached because start() returns synchronously.
+      void (async (): Promise<void> => {
+        try {
+          await ensureSyncIndexes();
+          const server = createServer(app);
 
-        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-        for (const reg of this.registrations) {
-          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-            reg.onServerCreated(server);
+          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+          for (const reg of this.registrations) {
+            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+              reg.onServerCreated(server);
+            }
           }
-        }
 
-        server.listen(port, () => {
-          logger.info(`Listening on port ${port}`);
-        });
-      } catch (error) {
-        const stack = error instanceof Error ? error.stack : String(error);
-        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-        process.exit(1);
-      }
+          server.listen(port, () => {
+            logger.info(`Listening on port ${port}`);
+          });
+        } catch (error) {
+          const stack = error instanceof Error ? error.stack : String(error);
+          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+          process.exit(1);
+        }
+      })();
     }
 
     return app;

@@ -1,30 +1,64 @@
 # Authentication Architecture
 
-Understanding how authentication works in @terreno/api — from JWT tokens to OAuth strategies to automatic token refresh.
+Understanding how authentication works in @terreno/api — Better Auth sessions for new apps, with JWT/Passport documented for legacy consumers.
 
 ## Overview
 
-@terreno/api provides two complete authentication systems to choose from:
+**Better Auth is the default path** for new Terreno apps. It provides session-based authentication with MongoDB storage, built-in social OAuth (Google, GitHub, Apple), and clean integration with `@terreno/syncdb` (`betterAuthAdapter`, `RealtimeApp` socket sessions).
 
-**JWT/Passport Authentication (Default)**
-- **JWT (JSON Web Tokens)** for stateless session management
-- **Passport.js** for authentication strategy management
-- **Multiple strategies**: Email/password, GitHub OAuth, Anonymous
-- **Automatic token refresh** to maintain long-lived sessions
-- **Token storage utilities** for secure frontend storage (via @terreno/rtk)
+Set `AUTH_PROVIDER=better-auth` and register `BetterAuthApp` on the server. On the client, use `createBetterAuthClient` + `generateBetterAuthSlice` from `@terreno/rtk` for session Redux state, then wire `betterAuthAdapter` into `createSyncDb`.
 
-**Better Auth (Optional)**
-- **Session-based authentication** with MongoDB storage
-- **Built-in OAuth providers**: Google, GitHub, Apple
-- **Modern OAuth 2.0 flows** with PKCE
-- **Automatic session management** via cookies
-- **Redux integration** for session state (via @terreno/rtk)
+**JWT/Passport (legacy)** remains supported through the current major release line for existing deployments. It uses stateless tokens, Passport strategies (email/password, GitHub OAuth, anonymous), and manual token refresh via `@terreno/rtk`. New projects should not start on JWT unless they have a specific requirement (custom token contracts, non-cookie clients, or a phased migration).
 
-Choose your authentication provider via `AUTH_PROVIDER` environment variable. Both systems can run in parallel, allowing gradual migration.
+Both systems can run in parallel during migration (`AUTH_PROVIDER` selects the primary path; legacy JWT routes stay available).
+
+**MCP service tokens** are a third, opt-in credential. They authenticate the consumer app's `POST /mcp` only. They are not Better Auth sessions, not JWTs, and not a REST personal-access-token. Enable them with `mcpServiceTokens` on `TerrenoApp`. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
+## When to choose which
+
+| Choose Better Auth | Stay on JWT (legacy) |
+|--------------------|----------------------|
+| New app or greenfield screen | Existing production JWT deployment |
+| Social login (Google, GitHub, Apple) | Custom JWT payload requirements |
+| `@terreno/syncdb` local-first data | Non-cookie API clients only |
+| Socket sessions via `RealtimeApp` | Gradual migration in progress |
+
+**Setup:** [Configure Better Auth](../how-to/configure-better-auth.md). **Data layer:** migrate auth before or with syncdb — see [Migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md) §7.
 
 ## Authentication Strategies
 
-### Email/Password (Local Strategy)
+### Better Auth (default)
+
+Modern session-based authentication with built-in social OAuth support.
+
+**Flow:**
+1. Configure Better Auth with `AUTH_PROVIDER=better-auth` and register `BetterAuthApp`
+2. User chooses social provider (Google, GitHub, Apple) or email/password
+3. Backend redirects to OAuth provider or validates credentials
+4. Better Auth creates session in MongoDB
+5. Frontend receives session cookie (web) or bearer session token (native)
+6. On the first authenticated request, session middleware looks up the app `User` by `betterAuthId` and creates it if missing (`syncBetterAuthUser`)
+7. `req.user` is that app document for subsequent `modelRouter` permissions
+
+Email/password create omits `oauthProvider`. Apps that never use social login can keep `strict: "throw"` without declaring that field. OAuth create sets `oauthProvider` and the User schema must declare it.
+
+**Key properties:**
+- Session-based (cookies / bearer session) vs. stateless JWT
+- Built-in OAuth providers with PKCE
+- `betterAuthAdapter` for syncdb socket auth
+- `sync:auth-expired` socket event when the session is no longer valid
+
+**Endpoints (when enabled):**
+- `POST /api/auth/signup/email` — Email/password signup
+- `POST /api/auth/signin/email` — Email/password signin
+- `GET /api/auth/signin/{provider}` — Initiate OAuth flow (google, github, apple)
+- `GET /api/auth/callback/{provider}` — OAuth callback handler
+- `POST /api/auth/signout` — Sign out session
+- `GET /api/auth/session` — Get current session
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
+
+### Email/Password (JWT / Local Strategy — legacy)
 
 Traditional username/password authentication using `passport-local-mongoose`.
 
@@ -39,7 +73,7 @@ Traditional username/password authentication using `passport-local-mongoose`.
 - `POST /auth/signup` — Create new user account
 - `POST /auth/login` — Authenticate and receive tokens
 
-### GitHub OAuth Strategy
+### GitHub OAuth Strategy (JWT — legacy)
 
 OAuth 2.0 authentication with GitHub.
 
@@ -60,45 +94,17 @@ OAuth 2.0 authentication with GitHub.
 
 **Learn more:** [How to add GitHub OAuth](../how-to/add-github-oauth.md)
 
-### Better Auth Strategy
+### MCP service tokens (opt-in, `/mcp` only)
 
-Modern session-based authentication with built-in social OAuth support. Better Auth runs **alongside** JWT/Passport authentication as an optional alternative.
+Personal `mcp_` keys for remote MCP clients (Perplexity, Cursor JSON config) that cannot hold a session cookie. `TerrenoApp` must set `mcpServiceTokens`. Users mint keys from `POST /mcp/service-tokens` or **Profile → MCP connections**. The plaintext secret is returned **once**; the database stores SHA-256 `tokenHash`.
 
-**Flow:**
-1. Configure Better Auth with `AUTH_PROVIDER=better-auth`
-2. User chooses social provider (Google, GitHub, Apple) or email/password
-3. Backend redirects to OAuth provider or validates credentials
-4. Better Auth creates session in MongoDB
-5. Frontend receives session cookie
-6. Session middleware populates `req.user` for subsequent requests
+`extractUserFromHeaders` on `/mcp` tries a `mcp_` Bearer first, then Better Auth, then JWT. A match loads the owning `User` and updates `lastUsedAt`. Revoked, expired, or disabled-user keys resolve to no user. The same Bearer is ignored on REST, sync, admin, and on the mint/list/revoke routes (a key cannot mint another key).
 
-**Key differences from JWT auth:**
-- Session-based (cookies) vs. stateless (tokens)
-- Built-in OAuth providers vs. custom Passport strategies
-- Automatic session management vs. manual token refresh
-- Modern OAuth 2.0 flows with PKCE
+This is not OAuth 2.1. Interactive MCP clients that cannot send a static key wait for the app MCP OAuth work ([app MCP server](../implementationPlans/app-mcp-server.md)). It is also not the hosted `@terreno/mcp` codegen server ([MCP server reference](../reference/mcp-server.md)).
 
-**Use Better Auth when you need:**
-- Social login (Google, GitHub, Apple)
-- Session-based authentication
-- Modern OAuth 2.0 flows
+**Learn more:** [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md)
 
-**Use JWT authentication when you need:**
-- Stateless authentication
-- Simpler token-based auth
-- No social login required
-
-**Endpoints (when enabled):**
-- `POST /api/auth/signup/email` — Email/password signup
-- `POST /api/auth/signin/email` — Email/password signin
-- `GET /api/auth/signin/{provider}` — Initiate OAuth flow (google, github, apple)
-- `GET /api/auth/callback/{provider}` — OAuth callback handler
-- `POST /api/auth/signout` — Sign out session
-- `GET /api/auth/session` — Get current session
-
-**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
-
-### Anonymous Strategy
+### Anonymous Strategy (JWT — legacy)
 
 Allows limited access without authentication.
 
@@ -116,7 +122,9 @@ modelRouter(Model, {
 });
 ``````
 
-## JWT Token System
+## JWT Token System (legacy)
+
+> JWT/Passport auth is **legacy**. It remains supported through the current major line but is not the recommended path for new apps. Prefer Better Auth above.
 
 ### Token Types
 
@@ -266,7 +274,8 @@ modelRouter(Model, {
 - Use HTTPS in production
 - Validate token issuer (`TOKEN_ISSUER`)
 - Set appropriate token expiration times
-- Implement rate limiting on auth endpoints
+- Enable `TerrenoApp` `rateLimit` so login/signup/refresh use the stricter `auth` bucket (20 / 15 min). See [Rate limiting](../how-to/rate-limiting.md).
+- Keep login/signup/refresh reachable when the client still sends an expired access JWT. Those three routes skip JWT verification; `/auth/me` and other APIs still 401.
 - Log authentication failures
 
 ❌ **Don't:**
@@ -287,7 +296,7 @@ modelRouter(Model, {
 ❌ **Don't:**
 - Store tokens in localStorage on web (use httpOnly cookies in production)
 - Log tokens to console
-- Send tokens in URL query parameters
+- Send tokens in URL query parameters (MCP service tokens included)
 - Ignore token refresh failures
 
 ## Environment Variables
@@ -409,30 +418,30 @@ modelRouter(Model, {
 
 ### Webhook Authentication
 
-Verify webhook signatures instead of JWT:
+Verify signatures on `WebhooksApp` using `req.rawBody`. Do not `JSON.stringify(req.body)`
+and do not put webhook POSTs in OpenAPI.
 
-``````typescript
-import crypto from "crypto";
+```typescript
+import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
 
-router.post("/webhook", asyncHandler(async (req, res) => {
-  const signature = req.headers["x-signature"];
-  const payload = JSON.stringify(req.body);
-  const expected = crypto
-    .createHmac("sha256", process.env.WEBHOOK_SECRET!)
-    .update(payload)
-    .digest("hex");
-  
-  if (signature !== expected) {
-    throw new APIError({status: 401, title: "Invalid signature"});
-  }
-  
-  // Process webhook
-}));
-``````
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => undefined,
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
+```
+
+See [Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ## Learn More
 
+- [Receive inbound webhooks](../how-to/inbound-webhooks.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Create a model](../how-to/create-a-model.md)
 - [API reference](../reference/api.md)
-- [@terreno/rtk reference](../reference/rtk.md)
+- [@terreno/rtk reference (legacy)](../reference/legacy/rtk.md)

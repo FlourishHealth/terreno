@@ -1,0 +1,28 @@
+# Default owners for everything not matched below.
+* @joshgachnang
+
+# Published packages
+/api/ @joshgachnang
+/test/ @joshgachnang
+/ui/ @joshgachnang
+/rtk/ @joshgachnang
+/admin-backend/ @joshgachnang
+/admin-frontend/ @joshgachnang
+/admin-spa/ @joshgachnang
+/ai/ @joshgachnang
+/api-health/ @joshgachnang
+/feature-flags/ @joshgachnang
+/mcp-server/ @joshgachnang
+
+# Examples and demo apps
+/demo/ @joshgachnang
+/example-backend/ @joshgachnang
+/example-frontend/ @joshgachnang
+/website/ @joshgachnang
+
+# Shared infrastructure
+/docs/ @joshgachnang
+/.github/ @joshgachnang
+/.rulesync/ @joshgachnang
+/terraform/ @joshgachnang
+/plugins/ @joshgachnang

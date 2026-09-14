@@ -5,6 +5,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Table of Contents
 
 - [Server Setup](#server-setup)
+- [MCP tools](#mcp-tools)
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
@@ -20,12 +21,15 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
 - Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
+- Seeds: `runSeeds`, `runSeedCli`, `seedBetterAuthUser`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
-- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
+- `AuthToken`, `AUTH_TOKEN_TTL` (hashed single-use password-reset / email-verification tokens)
+- Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`, `emailVerificationPlugin`
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
@@ -35,6 +39,14 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Server Setup
 
 Two patterns for building Terreno APIs:
+
+### Deprecated: modelRouter `realtime`
+
+`modelRouter({ realtime })` (RTK cache-patching websocket events) is **deprecated** and **will be removed in Terreno 58**. Use `sync` with [`@terreno/syncdb`](syncdb.md). See [Migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).
+
+`RealtimeApp` is **not** deprecated. It still hosts Socket.io, change streams, and `sync:delta`.
+
+Keep `admin.realtime` when you want admin `admin:model.changed` events.
 
 ### TerrenoApp (Recommended)
 
@@ -67,6 +79,43 @@ const app = new TerrenoApp({userModel: User})
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
 
+### HTTP rate limiting
+
+Opt-in. Pass `rateLimit: {}` on `TerrenoApp` to enable (omitted = off; Terreno 58 defaults on).
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
+});
+```
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `store` | `"memory"` | `"memory"` \| `"redis"` \| `"mongo"` |
+| `limits.authMax` | 20 / 15 min | login, signup, refresh, OTP, GitHub OAuth, Better Auth sign-in / sign-up / password reset / OAuth callback |
+| `betterAuthBasePath` | `BetterAuthApp` `config.basePath` or `/api/auth` | Prefix used to classify Better Auth credential routes |
+| `limits.apiMax` | 600 / 15 min | modelRouter and other HTTP |
+| `trustProxy` | `false` | Express `trust proxy`. Use `1` on Cloud Run. Unauthenticated key is `req.ip` |
+
+Skip: `GET /health`, `/healthz`, `/openapi.json`, `/swagger` (trailing slashes and letter case ignored). 429 is `APIError` `code: "rate-limit-exceeded"` with `Retry-After` and `RateLimit` / `RateLimit-Policy`. JWT login/signup/refresh ignore a stale access token. Operator guide: [Rate limiting](../how-to/rate-limiting.md).
+
+### MCP service tokens
+
+Opt-in. Omitted or `enabled: false` leaves `/mcp/service-tokens` unmounted and ignores `mcp_` Bearer credentials on `/mcp`.
+
+```typescript
+new TerrenoApp({
+  userModel: User,
+  mcpServiceTokens: {
+    enabled: true,
+    publicMcpUrl: process.env.PUBLIC_API_URL,
+  },
+});
+```
+
+`mcpServiceTokens: true` is `{enabled: true}`. When enabled, TerrenoApp mounts the self-serve routes (passing its OpenAPI bundle) and sets `mcpServiceTokens` on MCP auth. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
 ### setupServer (Legacy)
 
 Callback-based pattern:
@@ -82,7 +131,89 @@ setupServer({
 });
 ``````
 
-Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI). HTTP rate limiting is a `TerrenoApp` option only — migrate from `setupServer` to `TerrenoApp` to enable it.
+
+## Collection catalog
+
+`modelRouter("/path", Model, options)` writes one catalog record per route path. MCP, realtime, and sync surfaces read that record; TerrenoApp calls `replaceCollectionOptions` once when access control is injected. Test helpers `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the entire catalog.
+
+## modelRouter actions
+
+Named GET/POST operations on a collection or document. Use these instead of `app.get` /
+`app.post` / `router.get` / `router.post` for application APIs.
+
+See [modelRouter actions](../explanation/model-router-actions.md). Example:
+
+```typescript
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => {
+        return doc;
+      },
+    },
+  },
+  permissions: { /* CRUD */ },
+});
+```
+
+Do not add `endpoints: (router) => { router.get(...) }` when an action fits.
+
+## MCP tools
+
+Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
+
+```typescript
+const todoRouter = modelRouter("/todos", Todo, {
+  mcp: {
+    excludeFields: ["ownerId"],
+    methods: ["list", "read", "create", "update", "delete"],
+  },
+  permissions: { /* same as REST */ },
+});
+```
+
+Cross-model tools use `registerMCPTool` (see the example backend's `users_todo_statuses`). How-to: [Expose MCP tools](../how-to/expose-mcp-tools.md). In-process Vercel AI SDK wrappers: `getMCPTools` from `@terreno/ai`.
+
+Create, update, and delete tools share REST permission, hook, and persistence semantics: they call the same `executeCreate` / `executeUpdate` / `executeDelete` pipeline. MCP error results use `APIError.title` (for example `Create not allowed`, `preCreate hook error`). User-role stripping for RBAC User writes happens in the executor after hooks; MCP supplies the registry `modelName` for that check. List and read stay MCP handlers. `excludeFields` and `mcpResponseHandler` still apply after the executor returns. Invalid ids on instance writes 404 only when the document `_id` cannot be cast, not when a populate ref fails.
+
+### MCP service token model
+
+`McpServiceToken` stores the hashed credential records used by the optional MCP service-token feature. It is not a `modelRouter` model: consumer-facing create, list, and revoke routes are registered only when `mcpServiceTokens` is enabled on `TerrenoApp`.
+
+```typescript
+import {McpServiceToken} from "@terreno/api";
+
+const {mcpServiceToken, token} = await McpServiceToken.issueFor(
+  {_id: user._id},
+  {name: "Perplexity"}
+);
+// Store or show `token` once. Only its SHA-256 hash is persisted.
+```
+
+The token begins with `mcp_` followed by 32 random bytes encoded as hex. `verify(token)` returns `null` for unknown, expired, or revoked tokens. `revokeForUser(user, tokenId)` records `revokedAt`, and `countActiveForUser(userId)` excludes expired or revoked records. Document `deleteOne` (admin DELETE) also sets `revokedAt` and leaves the row for audit. Never return or log `tokenHash` or the plaintext token outside the initial issue result.
+
+Self-serve HTTP routes live at `/mcp/service-tokens`. `TerrenoApp` mounts them when `mcpServiceTokens` is enabled, passing its OpenAPI bundle. You can also call `addMcpServiceTokenRoutes(app, {publicMcpUrl, openApi})` yourself. They require session or JWT auth and **reject** `Authorization: Bearer mcp_…` so a service token cannot mint or list tokens.
+
+| Method | Path | Body / params | Response |
+| --- | --- | --- | --- |
+| POST | `/mcp/service-tokens` | `{name, expiresAt?}` | `{data: {id, name, token, tokenPrefix, mcpUrl, expiresAt, created}}` |
+| GET | `/mcp/service-tokens` | `?page&limit` | `{data, page, limit, total, more}` — no `token` or `tokenHash` |
+| DELETE | `/mcp/service-tokens/:id` | — | `{data: {id, revokedAt}}` — owner only |
+
+`expiresAt` is an optional ISO-8601 datetime (Luxon `DateTime.fromISO`). Omit it for a token that does not expire. Create returns `mcpUrl` from `publicMcpUrl`, else `BETTER_AUTH_URL`, else the request host, with `/mcp` appended when missing. An 11th **active** token for the same user is `400`. Revoke and cross-owner access are `404`. List includes revoked rows for the owner so the UI can show history. Default page size is 100 (maximum 100).
 
 ## Authentication
 
@@ -110,8 +241,45 @@ setupServer({
 - `POST /auth/signup` — Create user account
 - `POST /auth/login` — Authenticate with email/password
 - `POST /auth/refresh_token` — Refresh access token
+- `POST /auth/forgotPassword` — Always 202; mails a reset link only when the email exists
+- `POST /auth/resetPassword` — `{token, password}`; also aliased at `POST /resetPassword` for the RTK client
+- `POST /auth/sendVerification` — Authenticated; 202 only after delivery succeeds; mails a verification link when `emailVerified` is not true
+- `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
+
+Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
+`emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
+`oldPassword`, `token`, and `refreshToken` in request bodies and in URL query strings. Changing the mailbox through `PATCH /auth/me`
+invalidates unused `passwordReset` AuthTokens for that user even when the schema has no
+`emailVerified` field. When the schema uses `emailVerificationPlugin`, mailbox change also
+sets `emailVerified` to false and invalidates unused `emailVerification` tokens; changing letter
+casing alone does not.
+
+**AuthToken (password reset / email verification):** hashed single-use tokens live in a separate
+`AuthToken` collection, not on User. `AuthToken.issueFor(user, type)` invalidates other
+unused, unexpired tokens of that type for the same user, then returns a 32-byte hex
+plaintext once and stores only the SHA-256 hash. `AuthToken.consume(token, type)` atomically
+marks one unused, unexpired row. TTL is 1 hour for `passwordReset` and 24 hours for
+`emailVerification` (`AUTH_TOKEN_TTL`). Mongo also TTL-indexes `expiresAt`.
+
+Wire `authOptions.publicAppUrl` and `authOptions.sendMail` (typically
+`getCommsService().sendMail`) so forgot-password can deliver the link
+`${publicAppUrl}/resetPassword?token=...`. Forgot-password skips issuing a token when
+`publicAppUrl` is missing. Authenticated `POST /auth/sendVerification` returns 501 in that
+case instead of 202. Email lookup is case-insensitive. Successful reset calls `setPassword`, increments
+`tokenEpoch` so outstanding **refresh** tokens fail, and returns new JWT tokens. When
+`BetterAuthApp` is registered, JWT reset also updates that user's Better Auth password
+and deletes Better Auth sessions. Better Auth password reset updates the JWT password
+and `tokenEpoch` for the matching app User. Access
+tokens stay valid until expiry (default 15m). `POST /resetPassword`
+matches the `@terreno/rtk` `resetPassword` mutation path (`password` or `newPassword`).
+
+Add `tokenEpoch` (number, default 0) on the User schema so epoch bumps persist under
+`strict: "throw"`. See `example-backend` User. Opt in to `emailVerified` with
+`emailVerificationPlugin`. Set `authOptions.requireEmailVerification` to reject login
+with 403 `email-not-verified` until `POST /auth/verifyEmail`. Signup still returns JWTs
+and sends `${publicAppUrl}/verifyEmail?token=...` so the user can complete verification.
 
 **Environment variables:**
 - `TOKEN_SECRET` — JWT signing secret (required)
@@ -178,6 +346,15 @@ const app = new TerrenoApp({userModel: User});
 app.register(new BetterAuthApp({config: betterAuthConfig, userModel: User}));
 const server = app.start();
 ``````
+
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` (from `@terreno/comms`) so Better Auth
+`sendResetPassword` / `sendVerificationEmail` use the same templates as JWT recovery mail.
+Those hooks throw 501 and do not send when `publicAppUrl` is missing, so links are never
+relative. Password reset also sets `revokeSessionsOnPasswordReset`, so existing Better Auth sessions
+are deleted when that reset path succeeds. JWT `POST /auth/resetPassword` updates the
+Better Auth password and deletes those sessions when `BetterAuthApp` is registered.
+Optional `authMailTemplates` overrides
+subject/text/html per template id.
 
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup
@@ -385,6 +562,21 @@ userSchema.plugin(baseUserPlugin);
 // - admin: boolean (default: false)
 ``````
 
+### emailVerificationPlugin
+
+Opt-in `emailVerified` boolean for user schemas. Defaults to `false` so existing users stay
+unverified until they complete the verification flow. Apply this plugin; do not add the
+field by hand.
+
+``````typescript
+import {emailVerificationPlugin, type EmailVerified} from "@terreno/api";
+
+userSchema.plugin(emailVerificationPlugin);
+
+// Adds:
+// - emailVerified: boolean (default: false)
+``````
+
 ### firebaseJWTPlugin
 
 Firebase authentication integration.
@@ -472,6 +664,10 @@ router.use("/todos", modelRouter(Todo, {
   // Validation happens automatically based on Mongoose schema
 }));
 ``````
+
+### Builder validation
+
+Call `.withValidation()` before `.build()` so body and query checks run in the same handler that documents the route. `build()` still returns one Express `RequestHandler`, so callers can nest it in a middleware array. OpenAPI metadata stays on that handler, so the route remains in `/openapi.json`.
 
 ### Manual Validation
 
@@ -589,6 +785,46 @@ router.post("/todos", [
 - Use in development/staging to catch API contract violations
 
 **Learn more:** See `api/src/openApiValidator.ts` for advanced usage and `api/src/api.ts` for modelRouter integration.
+
+## describeModel
+
+Walk a Mongoose model once and get a canonical field graph (`ModelDescription`). OpenAPI, admin config, and MCP Zod tools format that graph instead of re-walking `schema.paths`.
+
+``````typescript
+import {
+  describeModel,
+  describeModelForRouter,
+  modelDescriptionToOpenApiSpec,
+  modelDescriptionToAdminFields,
+  fieldDescriptionToZodType,
+} from "@terreno/api";
+
+const description = describeModel(Todo);
+const openApi = modelDescriptionToOpenApiSpec(description);
+const adminFields = modelDescriptionToAdminFields(description);
+``````
+
+### Field kinds
+
+| Kind | Description |
+|------|-------------|
+| `string` | String (optional `enum`) |
+| `number` | Number |
+| `boolean` | Boolean |
+| `date` | Date (OpenAPI `date-time`) |
+| `dateOnly` | Terreno DateOnly type |
+| `objectId` | ObjectId with optional `ref` |
+| `embedded` | Subdocument or array of subdocuments |
+| `mixed` | Schema.Types.Mixed |
+| `map` | Map type (`item` is the `of` kind; omitted `of` is `mixed`) |
+
+Each field includes `required`, optional `description`, `isArray`, nested `item` / `fields`, and `system` for `_id`, `__v`, `created`, `updated`, `deleted`.
+
+`describeModelForRouter(model, options)` adds `writableOnCreate` and `writableOnUpdate` using the same rules as MCP system-field exclusions and router validation / field views.
+
+`getOpenApiSpecForModel` builds HTTP body schemas from `ModelDescription`; populate merging for referenced models is unchanged.
+
+See [Schema metadata explanation](../explanation/schema-metadata.md).
 
 ## Middleware
 
@@ -921,6 +1157,35 @@ setupServer({
 
 ## Webhooks & Notifications
 
+JSON and `application/x-www-form-urlencoded` parsers on `TerrenoApp` copy the original
+bytes onto `req.rawBody` (`Buffer`) so inbound webhook signatures can be verified
+without re-serializing `req.body`.
+
+Register inbound routes on `WebhooksApp`. Helpers: `hmacSignature`, `stripeSignature`,
+`twilioSignature`, `sendgridEventSignature`. Timestamped HMAC, Stripe, and SendGrid
+reject timestamps outside a 300s window by default. Idempotency is `memory` or `mongo`
+(`webhookReceipts`). Paths are not added to `/openapi.json` and do not use JWT.
+
+```typescript
+import {hmacSignature, TerrenoApp, WebhooksApp} from "@terreno/api";
+
+const webhooks = new WebhooksApp({idempotency: {store: "mongo"}});
+webhooks.route({
+  path: "/webhooks/example",
+  source: "example",
+  verify: hmacSignature({secret: process.env.WEBHOOK_SECRET!, header: "X-Webhook-Signature"}),
+  eventId: (req) => String((req.body as {id?: string})?.id ?? ""),
+  handler: async () => {
+    // process event
+  },
+});
+
+new TerrenoApp({userModel: User}).register(webhooks).start();
+```
+
+Call `webhooks.claim` / `webhooks.release` from a handler when one HTTP body contains
+nested ids (SendGrid `sg_event_id`). Operator guide: [Receive inbound webhooks](../how-to/inbound-webhooks.md).
+
 ### Slack Notifications
 
 ``````typescript
@@ -1105,6 +1370,25 @@ for (let i = 0; i < 3; i++) {
 
 ## Script Helpers
 
+### runSeeds and runSeedCli
+
+Define ordered `SeedStep` entries and run them in the default `sync` mode or in
+`reset` mode. The `SeedContext` provides:
+
+- `upsert(model, key, values)` — creates, updates, or reports unchanged data. Nested values ignore generated `_id`s. `Map` payloads compare as plain objects. Soft-deleted matches are restored instead of duplicated. Duplicate key matches keep the first document and remove the extras.
+- `deleteMany(model, filter?)` — reset helper with dry-run support
+- `mode`, `dryRun`, and structured `changes`
+
+`runSeedCli` adds `--dry-run`, `--reset`, repeatable `--only`, `--force`, and
+`--help`. It returns an exit code instead of terminating the process; seed CLIs
+should `process.exit` after `disconnect` so leftover Better Auth handles cannot
+keep the event loop open. Production resets require both `--force` and an
+approving `allowProductionReset` option.
+See [Seed a database](../how-to/seed-a-database.md).
+
+`seedBetterAuthUser` provisions a credential account and reconciles the
+application user model without requiring a running HTTP server.
+
 ### wrapScript
 
 Error handling wrapper for scripts and cron jobs.
@@ -1115,7 +1399,7 @@ import {wrapScript} from "@terreno/api";
 wrapScript(async () => {
   // Your script logic
   await processData();
-  console.log("Script completed successfully");
+  logger.info("Script completed successfully");
 });
 ``````
 
@@ -1272,5 +1556,4 @@ SENTRY_DSN=https://...@sentry.io/...
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
-- [API package source](../../api/src/)
-- [AI assistant rules](./.cursor/rules/api/)
+- [API package source](https://github.com/flourishhealth/terreno/tree/master/api/src)

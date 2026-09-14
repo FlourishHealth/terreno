@@ -1,12 +1,14 @@
 ---
 name: fix-conflicts
 description: >-
-  Pull latest from master, resolve merge conflicts, validate with lint/compile
-  checks, and monitor CI
+  Integrate the latest base, resolve Terreno conflicts without dropping either
+  side, and run affected validation. Lifecycle composition: Brew for PR-update
+  conflicts; Taste for current-PR conflicts.
 ---
 # Fix Conflicts
 
-Pull latest from master, resolve merge conflicts, validate with lint/compile checks, and monitor CI.
+Pull the latest base, resolve merge conflicts, and validate the affected areas. Return
+after the push; the outer lifecycle loop owns later CI observation.
 
 ## Instructions
 
@@ -16,11 +18,13 @@ Pull latest from master, resolve merge conflicts, validate with lint/compile che
    ```
    - If there are uncommitted changes, ask the user whether to stash them or abort
 
-2. Fetch and merge the latest master into the current branch:
+2. Resolve the PR/default base branch, then fetch and merge it into the current branch:
    ```
-   git fetch origin master
-   git merge origin/master
+   BASE_BRANCH="$(gh pr view --json baseRefName --jq .baseRefName 2>/dev/null || git remote show origin | awk '/HEAD branch/ {print $NF}')"
+   git fetch origin "$BASE_BRANCH"
+   git merge "origin/$BASE_BRANCH"
    ```
+   - If `BASE_BRANCH` is empty, stop and ask for the base; never guess `master`/`main`.
    - If the fetch or merge fails, check network connectivity and repository access permissions. Notify the user if the issue persists.
 
 3. Check for merge conflicts:
@@ -73,10 +77,8 @@ Pull latest from master, resolve merge conflicts, validate with lint/compile che
    git push origin HEAD
    ```
 
-8. Run check-watcher by invoking `/check-watcher`:
-   - This monitors GitHub Actions checks
-   - If checks fail, it will automatically read failures, fix them, and push again
-   - Continue until all checks pass
+8. Return the pushed head and validation evidence. Do not launch a watcher; Brew/Taste
+   emits lifecycle state and the outer loop schedules later observation.
 
 ## Arguments
 

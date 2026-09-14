@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {UserInactivityDemo} from "@stories";
+import {UserInactivityDemo} from "@stories/UserInactivity.stories";
 import {UserInactivity} from "@terreno/ui";
 
 export const UserInactivityConfiguration: DemoConfiguration = {

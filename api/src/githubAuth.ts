@@ -60,6 +60,7 @@ export interface GitHubUserFields {
  * userSchema.plugin(githubUserPlugin);
  * ```
  */
+// noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const githubUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
@@ -89,8 +90,7 @@ export const setupGitHubAuth = (
 
   passport.use(
     "github",
-    // biome-ignore lint/suspicious/noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
-    new (GitHubStrategy as any)(
+    new GitHubStrategy(
       {
         callbackURL: githubOptions.callbackURL,
         clientID: githubOptions.clientId,

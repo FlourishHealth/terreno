@@ -9,7 +9,7 @@
     "express": "catalog:",
     "lodash": "catalog:"
   },
-  "description": "Feature flags and A/B testing plugin for @terreno/api",
+  "description": "Feature flags and A/B testing plugin for @terreno/api — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@terreno/test": "workspace:*",
@@ -17,7 +17,6 @@
     "@types/express": "catalog:",
     "@types/lodash": "catalog:",
     "@types/supertest": "catalog:",
-    "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:"
   },
@@ -29,12 +28,12 @@
     "express",
     "terreno"
   ],
-  "license": "Apache-2.0",
-  "peerDependencies": {
-    "mongoose": ">=8.0.0"
-  },
+  "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/feature-flags",
+  "peerDependencies": {
+    "mongoose": "^8.0.0 || ^9.0.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -49,9 +48,10 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
     "test:ci": "bun test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.25.0"
+  "version": "57.3.0"
 }

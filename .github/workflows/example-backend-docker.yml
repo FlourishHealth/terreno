@@ -1,0 +1,38 @@
+name: Example Backend Docker Build
+
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
+
+jobs:
+  build-image:
+    name: Build backend Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required inputs
+        run: |
+          missing=()
+          if [ -z "${{ github.event.pull_request.number }}" ]; then
+            missing+=("pull_request context")
+          fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required inputs: ${missing[*]}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6.0.3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: example-backend/Dockerfile
+          push: false
+          # Buildx already proves the image compiles; loading into the local
+          # daemon (~1–2 extra minutes) is only needed if a later step runs it.
+          load: false
+          tags: terreno-example-backend:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

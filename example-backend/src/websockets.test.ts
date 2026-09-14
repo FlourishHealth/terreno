@@ -1,7 +1,13 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import type express from "express";
-import {connectToMongoDB} from "./utils/database";
-import {closeWebsockets, connectToWebsockets, emitToUser, getIoInstance} from "./websockets";
+
+type WebsocketModule = typeof import("./websockets");
+
+let connectToMongoDB: typeof import("./utils/database").connectToMongoDB;
+let closeWebsockets: WebsocketModule["closeWebsockets"];
+let connectToWebsockets: WebsocketModule["connectToWebsockets"];
+let emitToUser: WebsocketModule["emitToUser"];
+let getIoInstance: WebsocketModule["getIoInstance"];
 
 // Mock socket.io module
 mock.module("socket.io", () => ({
@@ -19,6 +25,13 @@ mock.module("socket.io", () => ({
 mock.module("@thream/socketio-jwt", () => ({
   authorize: mock(() => {}),
 }));
+
+beforeAll(async (): Promise<void> => {
+  ({connectToMongoDB} = await import("./utils/database"));
+  ({closeWebsockets, connectToWebsockets, emitToUser, getIoInstance} = await import(
+    "./websockets"
+  ));
+});
 
 // Mock socket type for testing
 type MockSocket = {

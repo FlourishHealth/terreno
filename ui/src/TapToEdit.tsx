@@ -8,6 +8,7 @@ import {Field} from "./Field";
 import {Icon} from "./Icon";
 // import {useOpenAPISpec} from "./OpenAPIContext";
 import {Text} from "./Text";
+import {resolveTestID} from "./testing/resolveTestId";
 
 const TapToEditTitle: FC<{
   onlyShowHelperTextWhileEditing?: boolean;
@@ -77,6 +78,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   helperText: propsHelperText,
   onlyShowHelperTextWhileEditing = true,
   showClearButton = false,
+  testID,
   ...fieldProps
 }) => {
   const [editing, setEditing] = useState(false);
@@ -84,14 +86,16 @@ export const TapToEdit: FC<TapToEditProps> = ({
   const helperText: string | undefined = propsHelperText;
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
-  // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
-  const inputRef = useRef<any>(null);
+  interface FocusableInput {
+    focus?: () => void;
+  }
+  const inputRef = useRef<FocusableInput | null>(null);
 
   // bring the bring the input into focus when editing from within the component,
   // but not when editing from outside
   useEffect(() => {
     if (editable && editing && !isEditing) {
-      inputRef.current?.focus();
+      inputRef.current?.focus?.();
     }
   }, [editable, editing, isEditing]);
 
@@ -100,29 +104,29 @@ export const TapToEdit: FC<TapToEditProps> = ({
   }
 
   if (editable && (editing || isEditing)) {
+    const editableFieldProps = {
+      grow: fieldProps?.type === "textarea" ? (fieldProps.grow ?? true) : undefined,
+      helperText,
+      inputRef: ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
+        ? (ref: unknown): void => {
+            inputRef.current = ref as FocusableInput | null;
+          }
+        : undefined,
+      onChange: setValue as NonNullable<typeof setValue>,
+      row: fieldProps?.type === "textarea" ? 5 : undefined,
+      value,
+      ...fieldProps,
+      testID,
+      type: (fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>,
+    } as unknown as FieldProps;
+
     return (
       <View style={{flexDirection: "column", width: "100%"}}>
         <View style={{flex: 1, justifyContent: "center"}}>
           <Text bold>{title}</Text>
         </View>
         <View style={{gap: 16}}>
-          <Field
-            grow={fieldProps?.type === "textarea" ? (fieldProps.grow ?? true) : undefined}
-            helperText={helperText}
-            inputRef={
-              ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
-                ? (ref: unknown) => {
-                    inputRef.current = ref;
-                  }
-                : undefined
-            }
-            onChange={setValue as NonNullable<typeof setValue>}
-            row={fieldProps?.type === "textarea" ? 5 : undefined}
-            type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
-            value={value}
-            // biome-ignore lint/suspicious/noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
-            {...(fieldProps as any)}
-          />
+          <Field {...editableFieldProps} />
           {editing && !isEditing && (
             <View style={{flexDirection: "row", gap: 16, justifyContent: "flex-end"}}>
               <Button
@@ -132,6 +136,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   }
                   setEditing(false);
                 }}
+                testID={resolveTestID(testID, "cancel")}
                 text="Cancel"
                 variant="muted"
               />
@@ -146,6 +151,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  testID={resolveTestID(testID, "clear")}
                   text="Clear"
                   variant="muted"
                 />
@@ -162,6 +168,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  testID={resolveTestID(testID, "save")}
                   text="Save"
                   withConfirmation={withConfirmation}
                 />
@@ -271,6 +278,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   initialValueRef.current = value;
                   setEditing(true);
                 }}
+                testID={resolveTestID(testID, "edit")}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />

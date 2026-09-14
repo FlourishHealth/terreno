@@ -1,6 +1,9 @@
+import {adminOwnedBy} from "@terreno/admin-backend";
 import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
-import {Todo} from "../models";
-import type {TodoDocument, UserDocument} from "../types";
+import {Todo} from "../models/todo";
+import type {TodoDocument} from "../types/models/todoTypes";
+import type {UserDocument} from "../types/models/userTypes";
+import {todoLoadTestCollectionActions} from "./loadtest";
 
 const bulkCompleteBodySchema = z
   .object({
@@ -9,8 +12,54 @@ const bulkCompleteBodySchema = z
   .strict();
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  access: {resource: "todo"},
+  admin: {
+    actions: [
+      {
+        confirm: "Mark selected todos as completed?",
+        id: "markComplete",
+        label: "Mark completed",
+        patchKeys: ["completed"],
+      },
+    ],
+    adminAccess: {isOwned: adminOwnedBy("ownerId")},
+    adminPermissions: {delete: [Permissions.IsAdmin]},
+    bulkPatchAllowlist: ["completed", "priority", "tags"],
+    defaultSort: "-created",
+    displayName: "Todos",
+    fieldsets: [
+      {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+      {fields: ["ownerId"], title: "Ownership"},
+    ],
+    filters: [
+      {field: "completed", kind: "boolean", label: "Completed"},
+      {
+        choices: [
+          {label: "Low", value: "low"},
+          {label: "Medium", value: "medium"},
+          {label: "High", value: "high"},
+        ],
+        field: "priority",
+        kind: "choice",
+        label: "Priority",
+      },
+      {field: "created", kind: "dateRange", label: "Created"},
+      {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
+    ],
+    group: "Demo: shared app data",
+    listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+    listDisplayLinks: ["title"],
+    listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
+    pageSize: 25,
+    readonlyFields: ["ownerId"],
+    realtime: true,
+    searchFields: ["title", "tags"],
+    sortableFields: ["title", "completed", "created", "priority"],
+  },
   collectionActions: {
+    ...todoLoadTestCollectionActions,
     bulkComplete: {
+      access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
       handler: async ({body, user}) => {
         const ownerId = (user as unknown as UserDocument)?._id;
@@ -19,9 +68,20 @@ export const todoRouter = modelRouter("/todos", Todo, {
         }
 
         const {ids} = body as z.infer<typeof bulkCompleteBodySchema>;
-        const result = await Todo.updateMany({_id: {$in: ids}, ownerId}, {completed: true});
+        // Per-doc loop instead of Todo.updateMany: updateMany throws on synced models
+        // because multi-document writes cannot stamp a per-document _syncSeq.
+        const todos = await Todo.find({_id: {$in: ids}, ownerId});
+        let modified = 0;
+        for (const todo of todos) {
+          if (todo.completed) {
+            continue;
+          }
+          todo.completed = true;
+          await todo.save();
+          modified += 1;
+        }
 
-        return {matched: result.matchedCount, modified: result.modifiedCount};
+        return {matched: todos.length, modified};
       },
       method: "POST",
       permissions: [Permissions.IsAuthenticated],
@@ -36,6 +96,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   instanceActions: {
     markComplete: {
+      access: {action: "update", resource: "todo"},
       handler: async ({doc}) => {
         const todo = doc as TodoDocument;
         if (todo.completed) {
@@ -49,6 +110,11 @@ export const todoRouter = modelRouter("/todos", Todo, {
       permissions: [Permissions.IsOwner],
       summary: "Mark a single todo as complete",
     },
+  },
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read", "create", "update", "delete"],
   },
   permissions: {
     create: [Permissions.IsAuthenticated],
@@ -70,6 +136,8 @@ export const todoRouter = modelRouter("/todos", Todo, {
     roomStrategy: "owner",
   },
   sort: "-created",
+  // Local-first sync (@terreno/syncdb): stream = todos|owner:{ownerId}.
+  sync: {adminBroadcast: true, scope: {type: "owner"}},
   validation: {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],

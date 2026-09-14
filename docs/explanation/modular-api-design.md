@@ -158,6 +158,14 @@ This would be nearly impossible with `setupServer()` because installing an app r
 
 With TerrenoApp, an "app" is just a function that receives the `TerrenoApp` instance and calls its methods.
 
+#### 6. One collection catalog for surfaces
+
+`modelRouter` registers each collection once in an in-memory **collection catalog** keyed by route path (for example `/todos`). The record holds the Mongoose model, `ModelRouterOptions`, and which surfaces are active (`mcp`, `realtime`, `sync`). TerrenoApp option enrichment calls `replaceCollectionOptions` once per path after RBAC injects `accessControl`.
+
+MCP, realtime, and sync read **views** of that catalog — they do not keep separate option arrays. `registerMCPModel`, `registerRealtime`, `registerSync`, and the `update*RegistryOptions` helpers remain as wrappers for tests and legacy callers. `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the **whole** catalog so tests cannot leave a stale MCP entry after a sync-only clear.
+
+Custom MCP tools stay on a separate list; they are not collections. Sync schema validation and index enqueue still run when a collection first opts into `sync`.
+
 ## Design Principles
 
 ### 1. Explicit over Implicit

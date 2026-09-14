@@ -1,11 +1,7 @@
 name: AI CI
 
-on:
-  push:
-    paths:
-      - "ai/**"
-      - "bun.lock"
-      - ".github/workflows/ai-ci.yml"
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 defaults:
   run:
@@ -23,11 +19,11 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -55,7 +51,13 @@ jobs:
         run: bun run lint
       - name: Build
         run: bun run compile
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: ai
+          flag: ai
+          token: ${{ secrets.CODECOV_TOKEN }}

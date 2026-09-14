@@ -99,7 +99,7 @@ export const prompts: Prompt[] = [
         required: true,
       },
     ],
-    description: "Generate a form screen with validation using @terreno/ui and RTK Query",
+    description: "Generate a form screen with validation using @terreno/ui and @terreno/syncdb",
     name: "terreno_create_form_screen",
   },
   {
@@ -187,24 +187,23 @@ ${hasOwnerBool ? "- ownerId: ObjectId (reference to User, required)" : ""}
    - Add queryFields for filterable fields
    - Set default sort order
 
-### Frontend (using @terreno/ui and @terreno/rtk)
+### Frontend (using @terreno/syncdb, @terreno/ui, and @terreno/rtk for SDK/auth)
 
 3. **List Screen** (\`screens/${name}ListScreen.tsx\`):
-   - Use \`useGet${name}sQuery\` hook
-   - Handle loading and error states
+   - Use \`useQuery\` / \`useEntityIds\` from \`@terreno/syncdb/react\` (not RTK Query list hooks)
+   - Handle sync status with \`useSyncStatus\` instead of request loading spinners
    - Display items in a scrollable list
-   - Add pull-to-refresh functionality
 
 4. **Detail Screen** (\`screens/${name}DetailScreen.tsx\`):
-   - Use \`useGet${name}Query\` with id parameter
+   - Use \`useEntity\` with id parameter
    - Display all fields
-   - Add edit and delete buttons
+   - Use \`useMutate\` for update/delete
 
 5. **Form Screen** (\`screens/${name}FormScreen.tsx\`):
    - Create/Edit form with all fields
    - Client-side validation
-   - Use \`useCreate${name}Mutation\` or \`useUpdate${name}Mutation\`
-   - Handle API errors and display field-specific errors
+   - Use \`useMutate\` \`create\` / \`update\` (local-first — no mutation loading spinners)
+   - Handle conflicts with \`useConflicts\` when the server rejects a write
 
 ## Code Style Requirements
 - Use const arrow functions
@@ -504,63 +503,63 @@ ${features.map((f) => `- ${f}`).join("\n")}
 ## Backend Setup (@terreno/api)
 
 1. **User Model** (\`models/user.ts\`):
-   - Use passport-local-mongoose plugin
+   - Add \`betterAuthId\` for Better Auth account linkage
    - Add baseUserPlugin for standard fields
    - Include email, name, and admin fields
-   - Add custom methods (getDisplayName)
 
-2. **Auth Configuration** (\`config/auth.ts\`):
-   - Configure Passport strategies (local, JWT)
-   - Set up session management
-   - Configure token secrets from environment
+2. **Better Auth Configuration** (\`utils/betterAuthConfig.ts\`):
+   - Export \`createBetterAuth\` with email/password enabled
+   - Set \`trustedOrigins\` from \`getWebOrigins()\`
+   - Read \`BETTER_AUTH_SECRET\` and \`BETTER_AUTH_URL\` from environment
 
-3. **Auth Routes** (\`routes/auth.ts\`):
-   - POST /auth/signup - Create new user
-   - POST /auth/login - Email/password login
-   - POST /auth/refresh - Refresh token
-   - POST /auth/logout - Logout
-   ${features.includes("passwordReset") ? "- POST /auth/forgot-password\n   - POST /auth/reset-password" : ""}
+3. **Server wiring** (\`server.ts\`):
+   - Register \`BetterAuthApp\` with \`createBetterAuth\`
+   - Set \`AUTH_PROVIDER=better-auth\` in \`.env\`
+   - Use a MongoDB replica set (\`MONGO_URI\` with \`replicaSet=rs0\`) for change streams
+   ${features.includes("passwordReset") ? "- Enable Better Auth password reset in the auth config" : ""}
 
-## Frontend Setup (@terreno/rtk, @terreno/ui)
+## Frontend Setup (@terreno/syncdb, @terreno/rtk for Better Auth + SDK, @terreno/ui)
 
 4. **Store Configuration** (\`store/index.ts\`):
-   - Import authSlice from @terreno/rtk
-   - Configure store with auth reducer
-   - Set up persist configuration
+   - Import \`generateBetterAuthSlice\` from @terreno/rtk for session state
+   - Keep \`terrenoApi\` reducer for non-synced OpenAPI routes only
+   - Add \`store/syncdb.ts\` with \`createSyncDb\` + \`betterAuthAdapter\`
 
-5. **Login Screen** (\`screens/LoginScreen.tsx\`):
-   - Email and password fields
-   - Login button with loading state
-   - Error display
-   - Link to signup
+5. **Login Screen** (\`app/login.tsx\`):
+   - Email and password fields only (no name field on login)
+   - \`betterAuthClient.signIn.email\` on submit
+   - \`onSignUpPress\` navigates to a separate signup screen
 
-6. **Signup Screen** (\`screens/SignupScreen.tsx\`):
-   - Name, email, password fields
-   - Validation (email format, password strength)
-   - Signup mutation
-   - Error handling
+6. **Signup Screen** (\`app/signup.tsx\`):
+   - Name, email, password fields via \`SignUpScreen\`
+   - \`betterAuthClient.signUp.email\` on submit
+   - \`onLoginPress\` navigates back to login
 
 ${
   features.includes("passwordReset")
     ? `7. **Password Reset**:
    - Forgot password screen with email input
-   - Reset password screen with token validation`
+   - Reset password screen with token validation via Better Auth`
     : ""
 }
 
 ## Auth State Management
 
 \`\`\`typescript
+import {selectBetterAuthUserId, syncBetterAuthSession} from "@/store/index";
+import {betterAuthClient} from "@/lib/betterAuth";
+
 // Check authentication
-const userId = useAppSelector((state) => state.auth.userId);
-const isAuthenticated = !!userId;
+const userId = useAppSelector(selectBetterAuthUserId);
+const isAuthenticated = Boolean(userId);
 
-// Login
-const [emailLogin] = useEmailLoginMutation();
-await emailLogin({ email, password }).unwrap();
+// Sign in
+const result = await betterAuthClient.signIn.email({ email, password });
+await syncBetterAuthSession(dispatch);
 
-// Logout
-dispatch({ type: LOGOUT_ACTION_TYPE });
+// Sign out
+await betterAuthClient.signOut();
+await syncBetterAuthSession(dispatch);
 \`\`\`
 
 ## Protected Routes
@@ -609,31 +608,17 @@ const terrenoUpgradePrompt = (args: {targetVersion?: string}): string => {
 
   return `You are upgrading a Terreno application (${targetLine})
 
-## 1. Inventory
+Execute the **upgrading-terreno** skill (source: \`.rulesync/skills/upgrading-terreno/SKILL.md\`). Do not invent a second ordering. The skill's ten steps and \`references/ordering.md\` are authoritative.
 
-- Read \`package.json\` files (root, backend, frontend) and note every \`@terreno/*\` dependency.
-- Call the hosted MCP tool \`terreno_get_upgrade_guide\` with \`fromVersion\` = current installed semver and \`toVersion\` = target.
+## Discovery (agents without skill support)
 
-## 2. Backend
+1. Refuse unless the git tree is clean and you are not on \`master\`/\`main\`.
+2. Call \`terreno_get_upgrade_guide\` with \`fromVersion\` = installed lockstep semver and \`toVersion\` = target.
+3. Print versions, notes, packages, and the skill's step list; stop for confirmation before mutating.
+4. Follow \`docs/how-to/upgrade-terreno.md\`. At the Expo phase invoke **upgrading-expo** by name.
+5. On failure report succeeded/failed/rollback (\`git reset --hard\` on this branch). Multi-version jumps retry one version at a time.
 
-- Apply any breaking-change instructions from the upgrade notes.
-- Bump \`@terreno/api\`, \`@terreno/ai\`, \`@terreno/admin-backend\`, etc. together.
-- Run backend tests and fix compile errors.
-
-## 3. Expo / React Native (delegate)
-
-- Do **not** duplicate Expo's official checklist. Install/use the \`upgrading-expo\` skill from \`expo/skills\` for SDK bumps, \`expo install --fix\`, doctor, and caches.
-
-## 4. Terreno frontend
-
-- Bump \`@terreno/ui\`, \`@terreno/rtk\`, \`@terreno/admin-frontend\` together.
-- Regenerate the RTK OpenAPI SDK (\`bun run sdk\` in the frontend) after backend API changes.
-- Run \`bun run compile\` / \`bun run lint\` where available.
-
-## 5. MCP / dev tooling
-
-- Ensure \`.cursor/mcp.json\` lists **terreno** (hosted), **terreno-local** (stdio), **expo**, and **playwright** as generated by \`terreno_bootstrap_app\`.
-- Use **terreno-local** for Mongo + dev logs; use **expo**/**playwright** for UI automation.`;
+Do not continue past a failed compile or test run.`;
 };
 
 export const handlePromptRequest = (

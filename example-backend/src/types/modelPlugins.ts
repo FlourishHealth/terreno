@@ -1,6 +1,8 @@
 import type {APIErrorConstructor} from "@terreno/api";
 import type mongoose from "mongoose";
-import type {Document, FilterQuery, Model} from "mongoose";
+import type {Document, Model} from "mongoose";
+
+type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
 
 /**
  * Interface that models can extend to include all the methods and properties
@@ -9,23 +11,22 @@ import type {Document, FilterQuery, Model} from "mongoose";
 export interface DefaultStatics<T> {
   // Static methods from plugins
   findOneOrNone(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & T) | null>;
 
   findExactlyOne(
-    query: FilterQuery<T>,
+    query: ModelQuery<T>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T>;
 
-  // biome-ignore lint/suspicious/noExplicitAny: TODO Need to tighten up any
-  upsert(conditions: Record<string, any>, update: Record<string, any>): Promise<T>;
+  upsert(conditions: Record<string, unknown>, update: Record<string, unknown>): Promise<T>;
 }
 
 /**
  * Interface for document properties added by default plugins
  */
-export interface DefaultPluginFields {
+interface DefaultPluginFields {
   // From createdUpdatedPlugin
   created: Date;
   updated: Date;

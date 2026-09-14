@@ -47,7 +47,7 @@ describe("requireAdmin", () => {
         status?: number;
         title?: string;
       };
-      expect(apiError.name).toBe("APIError");
+      expect(apiError.name).toBe("ForbiddenError");
       expect(apiError.status).toBe(403);
       expect(apiError.title).toBe("Forbidden");
       expect(apiError.disableExternalErrorTracking).toBe(true);

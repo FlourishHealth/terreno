@@ -64,8 +64,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-// Enable symlinks for bun workspaces
-config.resolver.unstable_enableSymlinks = true;
+// Symlinks: default in SDK 56+; monorepo resolution uses extraNodeModules + realpath above.
 
 // Force React-related imports to resolve to a single canonical path
 // This prevents the "Invalid hook call" error caused by duplicate React instances

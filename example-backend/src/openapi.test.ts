@@ -1,4 +1,6 @@
+/** Verifies generated `/openapi.json` includes registered example-backend routes. */
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
 import supertest from "supertest";
 
@@ -27,8 +29,7 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/admin/todos/"].post).toBeDefined();
     expect(res.body.paths["/admin/todos/{id}"].get).toBeDefined();
     expect(res.body.paths["/admin/todos/{id}"].patch).toBeDefined();
-    // Example backend registers Todos with permissions.delete false, so DELETE is omitted from OpenAPI.
-    expect(res.body.paths["/admin/todos/{id}"].delete).toBeUndefined();
+    expect(res.body.paths["/admin/todos/{id}"].delete).toBeDefined();
   });
 
   it("includes admin user routes", async () => {
@@ -49,6 +50,35 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/feature-flags/flags/"].post).toBeDefined();
   });
 
+  it("includes communications routes", async (): Promise<void> => {
+    const server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+
+    assert.property(res.body.paths, "/comms/pushTokens");
+    assert.property(res.body.paths["/comms/pushTokens"], "post");
+    assert.property(res.body.paths["/comms/pushTokens"], "get");
+    assert.property(res.body.paths, "/comms/dev/testPush");
+    assert.property(res.body.paths["/comms/dev/testPush"], "post");
+
+    const tokenCollection = res.body.paths["/comms/pushTokens"];
+    const messages = res.body.paths["/comms/messages"].get;
+    assert.isDefined(tokenCollection.post.requestBody);
+    assert.property(tokenCollection.post.responses, "401");
+    assert.includeMembers(tokenCollection.post.tags, ["comms"]);
+    assert.includeMembers(
+      tokenCollection.get.parameters.map((parameter: {name: string}) => parameter.name),
+      ["active", "limit", "page", "platform"]
+    );
+    assert.property(tokenCollection.get.responses, "401");
+    assert.includeMembers(
+      messages.parameters.map((parameter: {name: string}) => parameter.name),
+      ["channel", "endDate", "limit", "page", "startDate", "status", "userId"]
+    );
+    assert.property(messages.responses, "401");
+    assert.property(messages.responses, "403");
+    assert.includeMembers(messages.tags, ["admin", "comms"]);
+  });
+
   it("includes GPT routes", async () => {
     const server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
@@ -57,6 +87,9 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/gpt/prompt"].post).toBeDefined();
     expect(res.body.paths["/gpt/remix"]).toBeDefined();
     expect(res.body.paths["/gpt/remix"].post).toBeDefined();
+    expect(res.body.paths["/gpt/histories/"]).toBeDefined();
+    expect(res.body.paths["/gpt/histories/"].get).toBeDefined();
+    expect(res.body.paths["/gpt/histories/{id}"]).toBeDefined();
   });
 
   it("includes settings routes", async () => {
@@ -64,6 +97,10 @@ describe("OpenAPI spec generation", () => {
     const res = await server.get("/openapi.json").expect(200);
 
     expect(res.body.paths["/settings/gcs"]).toBeDefined();
+    expect(res.body.paths["/settings/configureGcs"]).toBeDefined();
+    expect(res.body.paths["/settings/clearGcs"]).toBeDefined();
+    expect(res.body.paths["/todos/loadtestGenerate"]).toBeDefined();
+    expect(res.body.paths["/users/{id}/password"]).toBeDefined();
   });
 
   it("has list/create/read/patch operations on admin todo routes", async () => {
@@ -84,7 +121,7 @@ describe("OpenAPI spec generation", () => {
     // Detail endpoints should have id path parameter
     expect(todoDetail.get).toBeDefined();
     expect(todoDetail.patch).toBeDefined();
-    expect(todoDetail.delete).toBeUndefined();
+    expect(todoDetail.delete).toBeDefined();
   });
 
   it("has ETag caching on openapi.json", async () => {

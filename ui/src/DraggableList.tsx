@@ -158,6 +158,9 @@ export const DragItem: React.FC<DragItemProps> = (props) => {
   const offset = useSharedValue(0);
   const startY = useSharedValue(0);
   const top = useSharedValue(plainPosition * (itemHeight + itemsGap));
+  // Drives the alpha of the drag shadow. `boxShadow` takes a single string, so the
+  // opacity has to be animated separately and interpolated into that string.
+  const shadowAlpha = useSharedValue(0);
   const [moving, setMoving] = useState(false);
 
   // React to changes in positions when not actively moving
@@ -196,13 +199,11 @@ export const DragItem: React.FC<DragItemProps> = (props) => {
       zIndex: pressed.value ? 1 : 0,
     };
 
-    // Enhanced styles with shadow for iOS
+    // Enhanced styles with shadow for iOS and web
     const animBetter = {
       backgroundColor: pressed.value ? backgroundOnHold : "transparent",
+      boxShadow: `0px 0px 5px rgba(0, 0, 0, ${shadowAlpha.value})`,
       height: itemHeight,
-      shadowOffset: {height: 0, width: 0},
-      shadowOpacity: isAndroid ? 0 : withSpring(pressed.value ? 0.2 : 0),
-      shadowRadius: isAndroid ? 0 : 5,
       top: topOffset,
       zIndex: pressed.value ? 1 : 0,
     };
@@ -216,6 +217,7 @@ export const DragItem: React.FC<DragItemProps> = (props) => {
     .onBegin(() => {
       // When dragging starts
       pressed.value = true;
+      shadowAlpha.value = withSpring(isAndroid ? 0 : 0.2);
       runOnJS(setMoving)(true);
       if (passVibration) passVibration();
       startY.value = top.value;
@@ -247,6 +249,7 @@ export const DragItem: React.FC<DragItemProps> = (props) => {
       offset.value = 0;
       top.value = positions.value[item] * (itemHeight + itemsGap);
       pressed.value = false;
+      shadowAlpha.value = withSpring(0);
 
       // Notify about the new order
       onCallbackData(positions.value, callbackNewDataIds, prevArrayFromPositions);

@@ -1,15 +1,19 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import {
+  type AnyTerrenoAccess,
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  createAccess,
   type ScriptRunner,
   setupAuth,
+  terrenoStatements,
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
 import type express from "express";
+import mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -47,12 +51,16 @@ const createFailingScript = () => ({
   },
 });
 
-const buildApp = (scripts = [createTestScript()]): express.Application => {
+const buildApp = (
+  scripts = [createTestScript()],
+  accessControl?: AnyTerrenoAccess
+): express.Application => {
   const app = getBaseServer();
   setupAuth(app, UserModel as unknown as UserModelType);
   addAuthRoutes(app, UserModel as unknown as UserModelType);
 
   const admin = new AdminApp({
+    accessControl,
     basePath: "/admin",
     models: [],
     scripts,
@@ -99,6 +107,32 @@ describe("AdminApp script routes", () => {
       expect(task).not.toBeNull();
       expect(task?.taskType).toBe("test-script");
       expect(task?.isDryRun).toBe(true);
+    });
+
+    it("requires admin:runScripts when accessControl is configured", async () => {
+      const accessControl = createAccess({
+        connection: mongoose.connection,
+        resolvePermissions: async () => ({admin: ["access"]}),
+        statements: terrenoStatements,
+      });
+      const rbacApp = buildApp([createTestScript()], accessControl);
+      const legacyAdmin = await authAsUser(rbacApp, "admin");
+
+      await legacyAdmin.post("/admin/scripts/test-script/run").expect(403);
+    });
+
+    it("allows admin:runScripts through accessControl", async () => {
+      const accessControl = createAccess({
+        connection: mongoose.connection,
+        resolvePermissions: async () => ({
+          admin: ["access", "runScripts", "viewBackgroundTasks"],
+        }),
+        statements: terrenoStatements,
+      });
+      const rbacApp = buildApp([createTestScript()], accessControl);
+      const superadmin = await authAsUser(rbacApp, "admin");
+
+      await superadmin.post("/admin/scripts/test-script/run").expect(201);
     });
 
     it("creates a wet run task when wetRun=true", async () => {

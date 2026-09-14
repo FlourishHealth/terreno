@@ -60,15 +60,22 @@ describe("LoginScreen", () => {
     expect(getByTestId("login-screen-signup-link")).toBeTruthy();
   });
 
-  it("renders forgot password button when onForgotPasswordPress is provided", () => {
+  it("renders forgot password button when onForgotPassword is provided", () => {
     const {getByTestId} = renderWithTheme(
       <LoginScreen
         fields={defaultFields}
-        onForgotPasswordPress={() => {}}
+        onForgotPassword={() => {}}
         onSubmit={mock(() => Promise.resolve())}
       />
     );
     expect(getByTestId("login-screen-forgot-password")).toBeTruthy();
+  });
+
+  it("does not render forgot password without a callback", () => {
+    const {queryByTestId} = renderWithTheme(
+      <LoginScreen fields={defaultFields} onSubmit={mock(() => Promise.resolve())} />
+    );
+    expect(queryByTestId("login-screen-forgot-password")).toBeNull();
   });
 
   it("renders error message", () => {

@@ -1,20 +1,23 @@
 # Configure Better Auth
 
-Set up Better Auth as an alternative authentication provider with built-in social OAuth support.
+Set up Better Auth as the **default** authentication provider for new Terreno apps — session-based auth with built-in social OAuth and first-class `@terreno/syncdb` integration.
 
 ## Overview
 
-Better Auth is an optional authentication system that runs **alongside** the existing JWT/Passport authentication. You can choose which authentication provider to use at server startup via environment variables.
+Better Auth is the recommended authentication system for new Terreno frontends. Register `BetterAuthApp` on the backend, set `AUTH_PROVIDER=better-auth`, and wire `createBetterAuthClient` + `generateBetterAuthSlice` on the client. Pair with `betterAuthAdapter` when using `@terreno/syncdb`.
 
-**Use Better Auth when you need:**
+JWT/Passport remains available for legacy deployments (`AUTH_PROVIDER=jwt`). Both can run in parallel during migration.
+
+**Choose Better Auth for:**
+- New apps and greenfield screens
 - Social login (Google, GitHub, Apple)
-- Session-based authentication
-- Modern OAuth 2.0 flows
+- Session-based authentication with `@terreno/syncdb`
+- Socket.io sync via `RealtimeApp` bearer sessions
 
-**Use JWT authentication when you need:**
-- Stateless authentication
-- Simpler token-based auth
-- No social login required
+**Stay on JWT only when:**
+- You have an existing JWT deployment and are mid-migration
+- You require a fully stateless token contract with no session cookies
+- You have custom JWT payload requirements Better Auth cannot satisfy
 
 ## Backend Setup
 
@@ -89,6 +92,27 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 };
 ``````
 
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms` so password-reset and
+email-verification mail match the JWT recovery templates. The hooks throw 501 and do not send when
+`publicAppUrl` is missing. JWT `POST /auth/resetPassword` updates the Better Auth password and
+deletes Better Auth sessions when this plugin is registered. Better Auth password reset updates
+the JWT password and `tokenEpoch` for the matching app User so dual-enrolled accounts cannot keep
+the old passport hash.
+
+```typescript
+import {getCommsService, renderAuthMail} from "@terreno/comms";
+
+const config: BetterAuthConfig = {
+  enabled: true,
+  publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+  renderAuthMail,
+  sendMail: async (message) => {
+    await getCommsService().sendMail(message);
+  },
+  // ...
+};
+```
+
 ### 3. Register BetterAuthApp Plugin
 
 Use the TerrenoApp plugin system:
@@ -117,19 +141,21 @@ const server = app.start();
 
 ### 4. Update User Model
 
-Add optional Better Auth fields to your User schema:
+`syncBetterAuthUser` creates the app `User` on the first authenticated request after Better Auth sign-up. Declare `betterAuthId` on that schema. Declare `oauthProvider` only if the app uses social OAuth.
+
+Email/password sync does **not** write `oauthProvider`. A `strict: "throw"` schema that omits the field stays valid. Social login still passes a provider string and requires the field.
 
 ``````typescript
-import {betterAuthUserPlugin} from "@terreno/api";
-
-const userSchema = new mongoose.Schema({
-  email: {type: String, unique: true},
-  name: {type: String},
-  // ... other fields
-});
-
-// Adds: betterAuthId, oauthProvider
-userSchema.plugin(betterAuthUserPlugin);
+const userSchema = new mongoose.Schema(
+  {
+    email: {type: String, unique: true},
+    name: {type: String},
+    betterAuthId: {index: true, sparse: true, type: String},
+    // Required only when using Google, GitHub, or Apple:
+    // oauthProvider: {type: String},
+  },
+  {strict: "throw"}
+);
 ``````
 
 ## Frontend Setup
@@ -292,5 +318,5 @@ Better Auth runs **in parallel** with JWT auth. You don't need to migrate existi
 
 - [Authentication Architecture](../explanation/authentication.md)
 - [@terreno/api Reference](../reference/api.md#better-auth)
-- [@terreno/rtk Reference](../reference/rtk.md#better-auth)
+- [@terreno/rtk Reference (legacy)](../reference/legacy/rtk.md#better-auth)
 - [Better Auth Documentation](https://better-auth.com/)

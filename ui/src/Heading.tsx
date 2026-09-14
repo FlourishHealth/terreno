@@ -1,12 +1,8 @@
-import {
-  TitilliumWeb_600SemiBold,
-  TitilliumWeb_700Bold,
-  useFonts,
-} from "@expo-google-fonts/titillium-web";
-import type React from "react";
+import React from "react";
 import {Text as NativeText, Platform, type StyleProp, type TextStyle} from "react-native";
 
 import type {HeadingProps} from "./Common";
+import {useTerrenoFontsLoaded} from "./TerrenoFontProvider";
 import {useTheme} from "./Theme";
 
 const fontSizeAndWeightWeb = {
@@ -27,7 +23,7 @@ const fontSizeAndWeighMobile = {
 
 const fontSizes = Platform.OS === "web" ? fontSizeAndWeightWeb : fontSizeAndWeighMobile;
 
-export const Heading = ({
+const HeadingComponent = ({
   align,
   children,
   color = "primary",
@@ -35,13 +31,7 @@ export const Heading = ({
   testID,
 }: HeadingProps): React.ReactElement => {
   const {theme} = useTheme();
-
-  // TODO: make fonts part of theme.
-  useFonts({
-    heading: TitilliumWeb_600SemiBold,
-    "heading-bold": TitilliumWeb_700Bold,
-    "heading-semibold": TitilliumWeb_600SemiBold,
-  });
+  useTerrenoFontsLoaded();
 
   const style: StyleProp<TextStyle> = {};
 
@@ -64,3 +54,7 @@ export const Heading = ({
     </NativeText>
   );
 };
+
+HeadingComponent.displayName = "Heading";
+
+export const Heading = React.memo(HeadingComponent);

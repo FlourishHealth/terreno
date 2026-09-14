@@ -11,6 +11,9 @@
       "stories/**/*.ts",
       "stories/**/*.tsx",
       "demoConfig.tsx",
+      "collectRegisteredStoryRenders.ts",
+      "collectRegisteredStoryRenders.test.tsx",
+      "storiesSmoke.test.tsx",
       "story-config.tsx",
       "!!**/node_modules",
       "!!node_modules",
@@ -45,5 +48,6 @@
       }
     }
   },
+  "plugins": ["../biome/plugins/no-barrel-imports.grit"],
   "root": true
 }

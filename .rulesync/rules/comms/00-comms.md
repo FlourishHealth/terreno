@@ -1,0 +1,156 @@
+---
+targets: ["cursor", "devin", "copilot", "claudecode"]
+description: "@terreno/comms - pluggable transactional communications"
+globs: ["comms/**/*.ts", "comms/package.json"]
+---
+
+# @terreno/comms
+
+Backend-only communications plugin for Terreno apps. It defines provider contracts for mail, SMS,
+push, and verification without adding concrete SendGrid, Twilio, or Expo SDKs to the core package.
+
+## Commands
+
+```bash
+bun run comms:compile
+bun run comms:lint
+bun run comms:test
+```
+
+## Usage
+
+```typescript
+import {CommsApp, getCommsService} from "@terreno/comms";
+
+new TerrenoApp({userModel: User}).register(new CommsApp({mail: mailProvider})).start();
+
+await getCommsService().sendMail({
+  subject: "Welcome",
+  to: "person@example.com",
+});
+```
+
+Auth mail: `renderAuthMail({publicAppUrl, templateId: "resetPassword" | "verifyEmail", token})`.
+Pass `templates` to override. See `docs/how-to/password-reset.md`.
+
+## Provider contracts
+
+- `MailProvider.sendMail()` returns one `SendResult`.
+- `SmsProvider.sendSms()` returns one `SendResult`.
+- `PushProvider.sendPush()` returns one `SendResult` per token.
+- `VerificationProvider` implements `startVerification()` and `checkVerification()` for both
+  `channel: "sms"` and `channel: "email"`.
+- Invalid verification results may include an `error` reason; start attempts log the selected
+  verification channel in metadata without storing the destination.
+- Permanent push failures set `errorClass: "permanent"` and/or `isPermanentFailure: true`;
+  either one deactivates the token.
+- `beforeSend` may mutate or cancel; throwing hooks are logged and never change the send.
+- `recordDeliveryEvent` / `recordOptOut` are the adapter intake for callbacks. HTTP lives
+  on `WebhooksApp` via `CommsApp({webhooks})` (Twilio status/inbound, SendGrid Event
+  Webhook). Omit `webhooks` to keep the send path without inbound routes.
+- Transient `errorClass` retries once on mail, SMS, verification start, and failed push tokens.
+- `checkVerification` does not retry. Provider throws become `errorCode: "provider-throw"`.
+- Payloads are retained `retainPayloadDays` (default 30) after `redactPayload`; `0` stores none.
+
+Concrete providers belong in adapter subpath exports with optional peer dependencies. Never add a
+provider SDK to core `dependencies`.
+
+### SendGrid (`@terreno/comms/adapters/sendgrid`)
+
+```typescript
+import {SendGridMailProvider} from "@terreno/comms/adapters/sendgrid";
+
+new CommsApp({
+  mail: new SendGridMailProvider({fromEmail: "noreply@example.com"}),
+});
+```
+
+Requires optional peer `@sendgrid/mail` and `SENDGRID_API_KEY` (or `apiKey`). Constructor fails
+fast when the key is missing. Errors return classified `SendResult` values and never throw.
+
+### Twilio SMS (`@terreno/comms/adapters/twilioSms`)
+
+```typescript
+import {TwilioSmsProvider} from "@terreno/comms/adapters/twilioSms";
+
+new CommsApp({
+  sms: new TwilioSmsProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and a sender
+(`TWILIO_MESSAGING_SERVICE_SID` preferred, else `TWILIO_FROM_NUMBER`). Invalid destinations
+return `errorClass: permanent` (`errorCode: twilio-invalid-destination`) before the API.
+Send failures return classified `SendResult` values and never throw. Apps that
+`bun build --compile` must inject a Twilio client (static `import twilio from "twilio"`).
+
+### Twilio Verify (`@terreno/comms/adapters/twilioVerify`)
+
+```typescript
+import {TwilioVerifyProvider} from "@terreno/comms/adapters/twilioVerify";
+
+new CommsApp({
+  verification: new TwilioVerifyProvider(),
+});
+```
+
+Requires optional peer `twilio` plus `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` and
+`TWILIO_VERIFY_SERVICE_SID`. Constructor fails fast when any of those is missing. Check
+results map `approved` to `valid: true`; `pending` / `expired` / `max-attempts` stay invalid.
+Verification rows never store OTP codes and are not retryable.
+
+### Expo push (`@terreno/comms/adapters/expoPush`)
+
+```typescript
+import {ExpoPushProvider} from "@terreno/comms/adapters/expoPush";
+
+new CommsApp({
+  push: new ExpoPushProvider(),
+});
+```
+
+Requires optional peer `expo-server-sdk`. `EXPO_ACCESS_TOKEN` is optional. Invalid tokens
+are rejected before the SDK (`errorCode: expo-invalid-token`). Ticket/receipt
+`DeviceNotRegistered` is `errorClass: permanent`; wire `onDeadToken` to
+`getCommsService().deactivatePushToken` so later receipts prune tokens. `MessageTooBig`
+is `errorClass: config` and does not deactivate the token. The example
+app requests notification permission before `getExpoPushTokenAsync`; denied permission
+and web skip `POST /comms/pushTokens`.
+
+## Runtime behavior
+
+- Unconfigured channels use privacy-safe console providers outside production.
+- Unconfigured production channels throw a 501 `APIError`.
+- Every provider attempt creates a `CommsMessage`; logging failure never breaks the send.
+- Recipients are redacted at rest by default.
+- `CommsMessage.attempts` records each facade attempt; expired payloads are unset, not TTL-deleted.
+- Console logs contain counts and lengths only, never content, addresses, phone numbers, tokens, or
+  verification codes.
+
+## Routes
+
+- `POST /comms/pushTokens`: authenticated, idempotent token registration.
+- `GET /comms/pushTokens`: authenticated, restricted to the current user's tokens.
+- `GET /comms/pushTokens/:id`: owner-only token read.
+- `DELETE /comms/pushTokens/:id`: owner-only token deactivation.
+- `GET /comms/messages`: admin-only filtered delivery log (`q`, channel, provider, status, dates).
+- `GET /comms/messages/:id`: admin-only detail (attempts, metadata, payload, retry flags).
+- `POST /comms/messages/:id/retry`: admin-only re-send; linked row; stable 400 `code`s.
+- `POST /comms/messages/retryMany`: admin-only bulk retry, cap 100, `{retried, skipped}`.
+- `GET /comms/stats`: admin-only channel × provider × status aggregation (default 7d).
+- `POST /comms/webhooks/twilio/status` and `.../inbound`: Twilio signed; registered when
+  `CommsApp` receives `webhooks` and `TwilioSmsProvider`.
+- `POST /comms/webhooks/sendgrid`: SendGrid Event Webhook ECDSA; registered when `webhooks`
+  and `SendGridMailProvider` plus a verification key.
+- Admin UI: `COMMS_ADMIN_WIDGETS` in `@terreno/admin-frontend`; screen name `comms`.
+
+An active push token cannot transfer between users. Its owner must deactivate it before another
+user can register it.
+
+## Testing
+
+- Use the real `@terreno/test` Mongo preload; never mock models or `@terreno/api`.
+- Use Supertest for route permissions and ownership boundaries.
+- Keep provider fakes local to each test and mock only external provider/logging boundaries.
+- Mutate environment keys narrowly and rely on the package preload reset contract.
+- Use Chai `assert`.

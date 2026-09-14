@@ -1,0 +1,34 @@
+# Source of truth for the "Terreno Roadmap" GitHub Project field options.
+#
+# Area options are NOT listed here — they are derived from the `area:*` labels
+# in .github/labels.yml so the two cannot drift. Everything else lives here and
+# is read by scripts/roadmap/checkRoadmapItem.ts and quoted by
+# docs/explanation/roadmap-process.md.
+#
+# Changing an option here means changing it in the Project UI too; the GitHub
+# API cannot create single-select options for you.
+
+status:
+  - Inbox
+  - Shaping
+  - Planned
+  - In progress
+  - In review
+  - Shipped
+  - Declined
+
+# Target answers "which release", not "what state" — Status carries the state.
+# `Released` is the home for already-shipped items so they group together at the
+# bottom of ROADMAP.md instead of polluting an upcoming version.
+target:
+  - "57.3"
+  - "58"
+  - Next
+  - Future
+  - Released
+
+impact:
+  - Breaking
+  - Feature
+  - Improvement
+  - Fix

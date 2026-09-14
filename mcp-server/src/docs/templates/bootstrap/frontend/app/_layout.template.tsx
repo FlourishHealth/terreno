@@ -1,5 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
+import {DarkTheme, DefaultTheme, ThemeProvider} from "expo-router/react-navigation";
 import {useFonts} from "expo-font";
 import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -10,7 +10,7 @@ import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useColorScheme} from "@/components/useColorScheme";
-import store, {persistor} from "@/store";
+import store, {persistor} from "@/store/index";
 
 export {ErrorBoundary} from "expo-router";
 

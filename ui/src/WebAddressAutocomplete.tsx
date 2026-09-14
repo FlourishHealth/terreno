@@ -48,8 +48,12 @@ export const WebAddressAutocomplete = ({
     }
     loadGooglePlacesScript(googleMapsApiKey, callbackName)
       .then(() => {
-        const autocomplete = new window.google.maps.places.Autocomplete(
-          autocompleteInputRef.current,
+        const googleMaps = window.google;
+        if (!googleMaps?.maps?.places) {
+          throw new Error("Google Maps Places failed to load");
+        }
+        const autocomplete = new googleMaps.maps.places.Autocomplete(
+          autocompleteInputRef.current as unknown as HTMLInputElement | null,
           {
             componentRestrictions: {country: GOOGLE_PLACES_API_RESTRICTIONS.components.country},
             fields: Object.values(GOOGLE_PLACES_API_RESTRICTIONS.fields),

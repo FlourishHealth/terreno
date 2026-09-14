@@ -15,47 +15,46 @@
     "luxon": "catalog:",
     "multer": "catalog:"
   },
-  "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
+  "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@terreno/api": "workspace:*",
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
     "@types/express": "catalog:",
     "@types/luxon": "catalog:",
     "@types/multer": "catalog:",
-    "@types/passport-local-mongoose": "catalog:",
     "@types/supertest": "catalog:",
-    "@terreno/api": "workspace:*",
+    "express": "catalog:",
     "mongoose": "catalog:",
     "passport-local-mongoose": "catalog:",
     "supertest": "catalog:",
-    "typescript": "catalog:",
-    "winston": "catalog:"
+    "typescript": "catalog:"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
       "import": "./dist/index.js",
       "require": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./langfuseClient": {
-      "types": "./dist/langfuseClient.d.ts",
-      "import": "./dist/langfuseClient.js",
-      "require": "./dist/langfuseClient.js",
-      "default": "./dist/langfuseClient.js"
+      "types": "./dist/index.d.ts"
     },
     "./langfuseApp": {
-      "types": "./dist/langfuseApp.d.ts",
+      "default": "./dist/langfuseApp.js",
       "import": "./dist/langfuseApp.js",
       "require": "./dist/langfuseApp.js",
-      "default": "./dist/langfuseApp.js"
+      "types": "./dist/langfuseApp.d.ts"
+    },
+    "./langfuseClient": {
+      "default": "./dist/langfuseClient.js",
+      "import": "./dist/langfuseClient.js",
+      "require": "./dist/langfuseClient.js",
+      "types": "./dist/langfuseClient.d.ts"
     },
     "./parseAiJson": {
-      "types": "./dist/service/parseAiJson.d.ts",
+      "default": "./dist/service/parseAiJson.js",
       "import": "./dist/service/parseAiJson.js",
       "require": "./dist/service/parseAiJson.js",
-      "default": "./dist/service/parseAiJson.js"
+      "types": "./dist/service/parseAiJson.d.ts"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -65,15 +64,21 @@
     "mongoose",
     "express"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "name": "@terreno/ai",
+  "peerDependencies": {
+    "@ai-sdk/google-vertex": "^4.0.142",
+    "@terreno/api": "workspace:*",
+    "mongoose": "^8.0.0 || ^9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/google-vertex": {
+      "optional": true
+    }
+  },
   "publishConfig": {
     "access": "public"
-  },
-  "peerDependencies": {
-    "@terreno/api": "workspace:*",
-    "mongoose": "^8.0.0"
   },
   "repository": {
     "type": "git",
@@ -87,9 +92,10 @@
     "lint:fix": "biome check --write ./src",
     "lint:unsafefix": "biome check --fix --unsafe ./src",
     "test": "bun test --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do bun test --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
+    "test:agent": "AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
     "test:ci": "bun test --preload ./src/tests/bunSetup.ts && for f in ./src/isolated/*.isolated.ts; do bun test --preload ./src/tests/bunSetup.ts \"$f\" || exit 1; done",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.25.0"
+  "version": "57.3.0"
 }

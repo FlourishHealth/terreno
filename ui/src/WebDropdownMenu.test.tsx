@@ -1,10 +1,16 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, renderHook} from "@testing-library/react-native";
+import {assert} from "chai";
 import type {ComponentProps} from "react";
 import {Dimensions} from "react-native";
 
 import {renderWithTheme} from "./test-utils";
-import {scheduleAfterPaint, useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
+import {
+  resolveDocumentBodyPortalTarget,
+  scheduleAfterPaint,
+  useWebDropdownAnchor,
+  WebDropdownMenu,
+} from "./WebDropdownMenu";
 
 describe("WebDropdownMenu", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
@@ -175,10 +181,10 @@ describe("WebDropdownMenu", () => {
     const {getByText} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={optsWithHelper}
-        searchable={false}
         visible
       />
     );
@@ -221,10 +227,10 @@ describe("WebDropdownMenu positioning", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={bottomAnchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -242,10 +248,10 @@ describe("WebDropdownMenu positioning", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={topAnchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -268,10 +274,10 @@ describe("WebDropdownMenu positioning", () => {
       const {getByTestId} = renderWithTheme(
         <WebDropdownMenu
           anchor={midAnchor}
+          disableSearch
           onClose={() => {}}
           onSelect={() => {}}
           options={options}
-          searchable={false}
           visible
         />
       );
@@ -288,7 +294,7 @@ describe("WebDropdownMenu positioning", () => {
   });
 });
 
-describe("WebDropdownMenu searchable", () => {
+describe("WebDropdownMenu disableSearch", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
   const options = [
     {label: "Apple", value: "apple"},
@@ -297,7 +303,7 @@ describe("WebDropdownMenu searchable", () => {
     {label: "Avocado", value: "avocado"},
   ];
 
-  it("renders a search input by default (searchable defaults to true)", () => {
+  it("renders a search input by default (search is enabled when disableSearch is omitted)", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
@@ -310,14 +316,14 @@ describe("WebDropdownMenu searchable", () => {
     expect(getByTestId("web_dropdown_search")).toBeTruthy();
   });
 
-  it("does not render a search input when searchable is false", () => {
+  it("does not render a search input when disableSearch is true", () => {
     const {queryByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );
@@ -331,7 +337,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -350,7 +355,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -368,7 +372,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={onSelect}
         options={options}
-        searchable
         visible
       />
     );
@@ -386,7 +389,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -403,7 +405,6 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );
@@ -420,10 +421,10 @@ describe("WebDropdownMenu searchable", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={[]}
-        searchable={false}
         showEmptyStateWhenNoOptions
         visible
       />
@@ -499,16 +500,30 @@ describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
     return renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         keepTriggerFocus
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
         {...props}
       />
     );
   };
+
+  it("resolves document.body as the portal target when it is an HTMLElement", () => {
+    ensureWebDocument();
+    const body = new (globalThis as {HTMLElement: typeof HTMLElement}).HTMLElement();
+    Object.defineProperty((globalThis as {document: Document}).document, "body", {
+      configurable: true,
+      value: body,
+    });
+    try {
+      assert.strictEqual(resolveDocumentBodyPortalTarget(), body);
+    } finally {
+      restoreWebDocument();
+    }
+  });
 
   it("renders fixed-position overlay instead of Modal when keepTriggerFocus is true on web", () => {
     ensureWebDocument();
@@ -529,6 +544,25 @@ describe("WebDropdownMenu keepTriggerFocus portal overlay", () => {
 
       const modals = root.findAll((node) => node.type === "Modal");
       expect(modals.length).toBe(0);
+    } finally {
+      PlatformModule.OS = savedOS;
+      restoreWebDocument();
+    }
+  });
+
+  it("renders in the body portal without requiring trigger focus retention", () => {
+    ensureWebDocument();
+    savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "web";
+      const {getByTestId, queryByTestId, root} = renderKeepFocusMenu({
+        keepTriggerFocus: false,
+        renderInBodyPortal: true,
+      });
+
+      assert.isOk(getByTestId("web_dropdown_menu"));
+      assert.isNull(queryByTestId("web_dropdown_modal"));
+      assert.equal(root.findAll((node) => node.type === "Modal").length, 0);
     } finally {
       PlatformModule.OS = savedOS;
       restoreWebDocument();
@@ -596,11 +630,11 @@ describe("WebDropdownMenu centered presentation", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
         presentation="centered"
-        searchable={false}
         visible
       />
     );
@@ -612,6 +646,60 @@ describe("WebDropdownMenu centered presentation", () => {
     expect(style.left).toBeUndefined();
     expect(style.top).toBeUndefined();
     expect(style.maxHeight).toBe(Math.round(812 * 0.55));
+  });
+
+  it("uses elevation without boxShadow on Android", () => {
+    const PlatformModule = require("react-native").Platform;
+    const savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "android";
+      const {getByTestId} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          presentation="centered"
+          visible
+        />
+      );
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.elevation).toBe(8);
+      expect(style.boxShadow).toBeUndefined();
+    } finally {
+      PlatformModule.OS = savedOS;
+    }
+  });
+
+  it("uses boxShadow without elevation on iOS", () => {
+    const PlatformModule = require("react-native").Platform;
+    const savedOS = PlatformModule.OS;
+    try {
+      PlatformModule.OS = "ios";
+      const {getByTestId} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          presentation="centered"
+          visible
+        />
+      );
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.elevation).toBeUndefined();
+      expect(style.boxShadow).toBe("0px 4px 12px rgba(0, 0, 0, 0.25)");
+    } finally {
+      PlatformModule.OS = savedOS;
+    }
   });
 });
 
@@ -646,6 +734,53 @@ describe("useWebDropdownAnchor", () => {
     expect(onMeasured).toHaveBeenCalledTimes(1);
     expect(onMeasured.mock.calls[0][0]).toEqual({height: 40, width: 100, x: 10, y: 20});
     expect(result.current.anchor).toEqual({height: 40, width: 100, x: 10, y: 20});
+  });
+
+  it("ignores an older measurement that completes after a newer request", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    const callbacks: Array<(x: number, y: number, width: number, height: number) => void> = [];
+    const measureInWindow = mock(
+      (callback: (x: number, y: number, width: number, height: number) => void): void => {
+        callbacks.push(callback);
+      }
+    );
+    (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
+    const onFirstMeasured = mock(() => {});
+    const onSecondMeasured = mock(() => {});
+
+    act(() => {
+      result.current.measure(onFirstMeasured);
+      result.current.measure(onSecondMeasured);
+    });
+    act(() => {
+      callbacks[1](20, 30, 120, 50);
+      callbacks[0](10, 15, 100, 40);
+    });
+
+    assert.deepEqual(result.current.anchor, {height: 50, width: 120, x: 20, y: 30});
+    assert.equal(onFirstMeasured.mock.calls.length, 0);
+    assert.equal(onSecondMeasured.mock.calls.length, 1);
+  });
+
+  it("ignores a pending measurement after cancellation", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    let completeMeasurement = (_x: number, _y: number, _width: number, _height: number): void => {};
+    const measureInWindow = mock(
+      (callback: (x: number, y: number, width: number, height: number) => void): void => {
+        completeMeasurement = callback;
+      }
+    );
+    (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
+    const onMeasured = mock(() => {});
+
+    act(() => {
+      result.current.measure(onMeasured);
+      result.current.cancelPendingMeasurement();
+      completeMeasurement(10, 20, 100, 40);
+    });
+
+    assert.deepEqual(result.current.anchor, {height: 0, width: 0, x: 0, y: 0});
+    assert.equal(onMeasured.mock.calls.length, 0);
   });
 
   it("exercises the Pressable style callback for hover/pressed states", () => {
@@ -719,6 +854,19 @@ describe("scheduleAfterPaint", () => {
 });
 
 describe("WebDropdownMenu layout callbacks", () => {
+  // scheduleAfterPaint defers to requestAnimationFrame; run callbacks synchronously so
+  // scrolling happens inside the act() block that fires the layout events.
+  const runAnimationFramesSynchronously = (): (() => void) => {
+    const globals = globalThis as {requestAnimationFrame?: typeof requestAnimationFrame};
+    const originalRaf = globals.requestAnimationFrame;
+    globals.requestAnimationFrame = ((callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    }) as unknown as typeof requestAnimationFrame;
+    return () => {
+      globals.requestAnimationFrame = originalRaf;
+    };
+  };
   const anchor = {height: 40, width: 200, x: 16, y: 32};
   const options = [
     {label: "Option A", value: "a"},
@@ -730,10 +878,10 @@ describe("WebDropdownMenu layout callbacks", () => {
     const {root} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         selectedIndex={1}
         visible
       />
@@ -752,10 +900,10 @@ describe("WebDropdownMenu layout callbacks", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         selectedIndex={1}
         visible
       />
@@ -772,14 +920,128 @@ describe("WebDropdownMenu layout callbacks", () => {
     expect(getByTestId("web_dropdown_option_b")).toBeTruthy();
   });
 
+  it("centers the selected option once its layout and the viewport height are known", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={2}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(getByTestId("web_dropdown_option_c"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 80}},
+        });
+        fireEvent(scrollView, "layout", {nativeEvent: {layout: {height: 60, width: 200}}});
+      });
+
+      // offset 80 - viewport 60 / 2 + height 40 / 2 = 70
+      assert.deepEqual(scrollCalls, [{animated: false, y: 70}]);
+    } finally {
+      restoreRaf();
+    }
+  });
+
+  it("clamps the centered scroll offset at the top of the list", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={0}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(scrollView, "layout", {nativeEvent: {layout: {height: 200, width: 200}}});
+        fireEvent(getByTestId("web_dropdown_option_a"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 0}},
+        });
+      });
+
+      assert.deepEqual(scrollCalls, [{animated: false, y: 0}]);
+    } finally {
+      restoreRaf();
+    }
+  });
+
+  it("does not scroll when the list viewport height has not been measured yet", () => {
+    const restoreRaf = runAnimationFramesSynchronously();
+
+    try {
+      const {getByTestId, root} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={anchor}
+          disableSearch
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          selectedIndex={1}
+          visible
+        />
+      );
+
+      const scrollView = root.findAll((node) => node.type === "ScrollView")[0];
+      const scrollCalls: Array<{animated?: boolean; y?: number}> = [];
+      const scrollRef = scrollView.props.ref as {current: unknown};
+      scrollRef.current = {
+        scrollTo: (options: {animated?: boolean; y?: number}) => {
+          scrollCalls.push(options);
+        },
+      };
+
+      act(() => {
+        fireEvent(getByTestId("web_dropdown_option_b"), "layout", {
+          nativeEvent: {layout: {height: 40, width: 200, x: 0, y: 40}},
+        });
+      });
+
+      assert.lengthOf(scrollCalls, 0);
+    } finally {
+      restoreRaf();
+    }
+  });
+
   it("does not schedule a scroll for option layout when nothing is selected", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
+        disableSearch
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable={false}
         visible
       />
     );

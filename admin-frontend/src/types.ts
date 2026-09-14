@@ -1,4 +1,8 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
+import type {
+  Api,
+  BaseQueryFn,
+  EndpointBuilder as RtkEndpointBuilder,
+} from "@reduxjs/toolkit/query/react";
 import type React from "react";
 
 /**
@@ -9,8 +13,12 @@ import type React from "react";
  * OpenAPI SDK with thousands of distinct endpoint types — there is no shared base
  * type we can constrain to, so the generic parameters are erased.
  */
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
-export type AdminApi = Api<any, any, any, any>;
+export type AdminApi = Api<
+  BaseQueryFn<unknown, unknown, unknown>,
+  Record<string, never>,
+  string,
+  string
+>;
 
 /**
  * Generic field/document value used throughout the admin panel.
@@ -21,6 +29,11 @@ export type AdminApi = Api<any, any, any, any>;
  */
 export type AdminFieldValue = unknown;
 
+export interface AdminRecordCapabilities {
+  delete: boolean;
+  update: boolean;
+}
+
 /**
  * RTK Query's `build` argument from `api.injectEndpoints({ endpoints: (build) => ... })`.
  *
@@ -28,8 +41,11 @@ export type AdminFieldValue = unknown;
  * endpoints dynamically into a consumer-supplied API, the endpoint shapes are not
  * statically expressible here.
  */
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-export type EndpointBuilder = any;
+export type EndpointBuilder = RtkEndpointBuilder<
+  BaseQueryFn<unknown, unknown, unknown>,
+  string,
+  string
+>;
 
 export interface AdminFieldConfig {
   type: string;
@@ -50,7 +66,7 @@ export interface AdminFieldConfig {
   itemRef?: string;
 }
 
-export interface AdminModelPermissions {
+interface AdminModelPermissions {
   create?: boolean;
   delete?: boolean;
   update?: boolean;
@@ -63,6 +79,17 @@ export interface AdminModelConfig {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
+  /**
+   * From `GET /admin/config`: true when the app collection registered
+   * `sync.adminBroadcast`. Windowed TinyBase lists require this plus
+   * {@link AdminProviderValue.syncDb} and a fetch client.
+   */
+  adminBroadcast?: boolean;
+  /**
+   * Sync collection tag (`todos`, not `/admin/todos`) when `adminBroadcast`
+   * is true. Omitted on other models.
+   */
+  syncCollection?: string;
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
@@ -71,8 +98,13 @@ export interface AdminModelConfig {
    * picks a scalar label from common keys (`name`, `title`, …) then the first list column.
    */
   recordTitleField?: string;
+  /** Fields that use async autocomplete against the model list endpoint (Phase 3+). */
+  autocompleteFields?: string[];
+  /** Server-side excluded fields (scrubbed from responses; informational for forms). */
+  excludeFields?: string[];
   /** Admin UI v2 — declarative bulk actions */
   actions?: {
+    allowed?: boolean;
     background?: boolean;
     confirm?: string;
     id: string;
@@ -111,7 +143,7 @@ export interface AdminScriptConfig {
 }
 
 /** Admin UI v2 home layout slots (Django template-block analogue). */
-export interface AdminHomeSlots {
+interface AdminHomeSlots {
   contentTop?: string[];
   main?: string[];
   navGlobal?: string[];
@@ -123,21 +155,139 @@ export interface AdminHome {
   title: string;
 }
 
+export interface AdminCapabilities {
+  actions: boolean;
+  fieldsets: boolean;
+  filters: boolean;
+  realtime: boolean;
+}
+
 export interface AdminConfigResponse {
+  capabilities?: AdminCapabilities;
   customScreens?: AdminCustomScreen[];
   home?: AdminHome;
   models: AdminModelConfig[];
+  /** Server-authorized visibility for built-in Platform sidebar tools. */
+  platformTools?: {
+    configuration: boolean;
+    roles: boolean;
+    runScripts?: boolean;
+    scripts: boolean;
+    version: boolean;
+    viewScripts?: boolean;
+  };
   schemaVersion?: number;
   scripts: AdminScriptConfig[];
+  /** Plugin home widget ids merged from admin contributions (informational). */
+  widgetIds?: string[];
 }
 
-export interface BackgroundTaskProgress {
+/** Props passed to home dashboard widgets resolved from `home.slots`. */
+export interface AdminHomeWidgetProps {
+  api: AdminApi;
+  apiBase: string;
+  routeBase: string;
+  config: AdminConfigResponse;
+  models: AdminModelConfig[];
+  auditModel?: AdminModelConfig;
+  featureFlagModel?: AdminModelConfig;
+}
+
+/** Props passed to custom admin screen widgets registered in `widgets.screens`. */
+export interface AdminScreenWidgetProps extends AdminScreenProps {
+  config: AdminConfigResponse;
+  screenName: string;
+}
+
+/** Props passed to per-field form widgets registered in `widgets.fields`. */
+export interface AdminFieldWidgetProps extends AdminScreenProps {
+  errorText?: string;
+  fieldConfig: AdminFieldConfig;
+  fieldKey: string;
+  modelConfigs?: Array<{name: string; routePath: string}>;
+  onChange: (value: AdminFieldValue) => void;
+  parentFormState?: Record<string, AdminFieldValue>;
+  readOnly?: boolean;
+  refRenderers?: RefRendererMap;
+  value: AdminFieldValue;
+}
+
+export type HomeWidgetComponent = React.FC<AdminHomeWidgetProps>;
+export type ScreenWidgetComponent = React.FC<AdminScreenWidgetProps>;
+export type FieldWidgetComponent = React.FC<AdminFieldWidgetProps>;
+
+export interface AdminWidgetRegistry {
+  fields: Record<string, FieldWidgetComponent>;
+  home: Record<string, HomeWidgetComponent>;
+  screens: Record<string, ScreenWidgetComponent>;
+}
+
+import type {AdminRpc} from "./adminRpc";
+
+export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
+
+/** Narrow syncdb surface admin collection CRUD uses. Hosts pass `createSyncDb()` as this. */
+export interface AdminSyncDbEntity {
+  data: unknown;
+  deleted?: boolean;
+  id: string;
+}
+
+export interface AdminSyncConflict {
+  collection: string;
+  entityId: string;
+  localData: string;
+  mutationId: string;
+  serverData: string;
+}
+
+export interface AdminSyncConflicts {
+  conflicts: AdminSyncConflict[];
+  resolve: (args: {mutationId: string; strategy: "useServer" | "keepMine"}) => void;
+}
+
+export interface AdminSyncDb {
+  hydrateWindow: (args: {
+    collection: string;
+    ids: string[];
+    restRows?: Record<string, unknown>;
+  }) => Promise<{hydratedIds: string[]}>;
+  mutate: (args: {
+    collection: string;
+    data?: Record<string, unknown>;
+    id?: string;
+    operation: "create" | "update" | "delete";
+  }) => {id: string; mutationId: string};
+  store: {
+    getEntity: (args: {collection: string; id: string}) => AdminSyncDbEntity | undefined;
+    raw: {
+      addTableListener: (tableId: string, listener: () => void) => string;
+      delListener: (listenerId: string) => void;
+    };
+  };
+}
+
+export interface AdminProviderValue {
+  adminRpc?: AdminRpc;
+  api: AdminApi;
+  apiBase: string;
+  /** API origin for cross-origin embedded RPC (`http://localhost:4000`). */
+  apiOrigin?: string;
+  credentials?: RequestCredentials;
+  getAuthHeaders?: AdminGetAuthHeaders;
+  routeBase: string;
+  syncConflicts?: AdminSyncConflicts;
+  syncDb?: AdminSyncDb;
+  widgets: AdminWidgetRegistry;
+}
+
+interface BackgroundTaskProgress {
   percentage: number;
   stage?: string;
   message?: string;
 }
 
-export interface BackgroundTaskLog {
+interface BackgroundTaskLog {
   timestamp: string;
   level: "info" | "warn" | "error";
   message: string;
@@ -193,7 +343,24 @@ export interface AdminScreenProps {
   apiBase?: string;
   /** Base path used for in-app navigation. Falls back to `baseUrl`. */
   routeBase?: string;
+  /**
+   * @deprecated Terreno 57 compatibility for ObjectId/API-only CRUD. Do not add
+   * new admin `injectEndpoints`; Terreno 58 removes the required `api` prop.
+   */
   api: AdminApi;
+  /**
+   * Fetch credentials mode for {@link adminRequest}. SPA cookie sessions use
+   * `"same-origin"`; omit when the host only sends Bearer headers.
+   */
+  credentials?: RequestCredentials;
+  /** Extra headers for {@link adminRequest} (embedded hosts return `Authorization: Bearer …`). */
+  getAuthHeaders?: AdminGetAuthHeaders;
+  /**
+   * Backend origin for native `fetch` RPC when the Expo app and API are on
+   * different hosts. Do not put this in `apiBase` — that stays a path prefix
+   * (`/admin`) so navigation `routeBase` is not rewritten to the API origin.
+   */
+  apiOrigin?: string;
 }
 
 /**
@@ -240,6 +407,9 @@ export interface RefFieldRendererProps {
   helperText?: string;
   /** When true, the picker is display-only and does not submit changes. */
   readOnly?: boolean;
+  /** When true, query the referenced model search endpoint as the user types. */
+  autocomplete?: boolean;
+  testID?: string;
 }
 
 /**
@@ -272,6 +442,8 @@ export interface DocumentListResponse {
 export interface DocumentStorageBrowserProps {
   api: AdminApi;
   basePath: string;
+  /** Route opened by the standard admin screen back arrow. */
+  backHref?: string;
   title?: string;
   allowDelete?: boolean;
   allowUpload?: boolean;

@@ -43,13 +43,13 @@ exports[`TerrenoProvider renders correctly with default props 1`] = `
     ],
     "props": {
       "behavior": "position",
-      "pointerEvents": "box-none",
       "style": [
         {
           "alignSelf": "center",
           "elevation": 999999,
           "flex": 0,
           "maxWidth": "100%",
+          "pointerEvents": "box-none",
           "position": "absolute",
           "zIndex": 999999,
         },
@@ -75,13 +75,13 @@ exports[`TerrenoProvider renders correctly with default props 1`] = `
     ],
     "props": {
       "behavior": "position",
-      "pointerEvents": "box-none",
       "style": [
         {
           "alignSelf": "center",
           "elevation": 999999,
           "flex": 0,
           "maxWidth": "100%",
+          "pointerEvents": "box-none",
           "position": "absolute",
           "zIndex": 999999,
         },
@@ -131,13 +131,13 @@ exports[`TerrenoProvider renders with openAPISpecUrl 1`] = `
     ],
     "props": {
       "behavior": "position",
-      "pointerEvents": "box-none",
       "style": [
         {
           "alignSelf": "center",
           "elevation": 999999,
           "flex": 0,
           "maxWidth": "100%",
+          "pointerEvents": "box-none",
           "position": "absolute",
           "zIndex": 999999,
         },
@@ -163,13 +163,13 @@ exports[`TerrenoProvider renders with openAPISpecUrl 1`] = `
     ],
     "props": {
       "behavior": "position",
-      "pointerEvents": "box-none",
       "style": [
         {
           "alignSelf": "center",
           "elevation": 999999,
           "flex": 0,
           "maxWidth": "100%",
+          "pointerEvents": "box-none",
           "position": "absolute",
           "zIndex": 999999,
         },

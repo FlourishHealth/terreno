@@ -54,6 +54,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+src/benchmarks/.fresh-import-probe.ts
 
 
 

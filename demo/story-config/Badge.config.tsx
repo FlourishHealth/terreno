@@ -1,5 +1,6 @@
 import {DemoConfiguration} from "@config";
-import {BadgeDemo, BadgeSelectBadgeComparison, BadgeStories} from "@stories";
+import {BadgeDemo, BadgeStories} from "@stories/Badge.stories";
+import {BadgeSelectBadgeComparison} from "@stories/SelectBadge.stories";
 import {Badge} from "@terreno/ui";
 import React from "react";
 

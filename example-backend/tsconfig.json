@@ -13,11 +13,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["bun-types"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],
-      "@constants": ["src/constants/index.ts"],
-      "@constants/*": ["src/constants/*"],
       "@models/*": ["src/models/*"],
       "@scripts/*": ["src/scripts/*"],
       "@services/*": ["src/services/*"],

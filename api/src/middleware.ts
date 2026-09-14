@@ -1,7 +1,22 @@
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
 
+import {APIError} from "./errors";
 import {getCurrentRequestContext} from "./requestContext";
+
+/**
+ * Express middleware that rejects the request with a 403 unless the authenticated user is an admin
+ * (`req.user.admin === true`). Run it after {@link authenticateMiddleware} so `req.user` is
+ * populated, e.g. `[authenticateMiddleware(), requireAdminMiddleware]`. Use this for admin-only
+ * custom routes instead of hand-rolling an inline admin guard.
+ */
+export const requireAdminMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
+  const user = req.user as {admin?: boolean} | undefined;
+  if (!user?.admin) {
+    throw new APIError({status: 403, title: "Admin access required"});
+  }
+  next();
+};
 
 /**
  * Express middleware that captures the app version from the request header

@@ -19,6 +19,9 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   }
 
   # Restrict to the configured owner so the pool can't be impersonated by other orgs.
+  # IAM bindings further pin attribute.repository to github_repos. Fork PRs against
+  # those repos still present the base repository claim; GitHub Actions must skip
+  # them in cd.yml (head.repo.full_name == github.repository).
   attribute_condition = "assertion.repository_owner == '${var.github_owner}'"
 
   oidc {

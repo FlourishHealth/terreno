@@ -1,0 +1,31 @@
+{
+  "agents": [
+    "./agents/"
+  ],
+  "author": {
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
+  },
+  "description": "Terreno lifecycle and app workflows: Grow, Pick/Roast, Brew, Taste, continuous outer loops, backend/API, UI, data, schema, admin, docs, upgrades, deployment, and verification agents.",
+  "displayName": "Terreno",
+  "homepage": "https://github.com/FlourishHealth/terreno/blob/master/plugins/README.md",
+  "keywords": [
+    "terreno",
+    "planning",
+    "sdlc",
+    "implementation",
+    "review",
+    "tdd"
+  ],
+  "license": "MIT",
+  "metadata": {
+    "compatibility": {
+      "terreno": ">=1.0.0",
+      "expoSdk": "~57"
+    }
+  },
+  "name": "terreno",
+  "repository": "https://github.com/FlourishHealth/terreno",
+  "skills": "./skills/",
+  "version": "2.10.0"
+}

@@ -5,9 +5,11 @@ interface {{Name}}Document extends mongoose.Document {
 {{interfaceFields}}
 }
 
+type ModelQuery<T> = Partial<Record<keyof T, unknown>> & Record<string, unknown>;
+
 interface {{Name}}Model extends mongoose.Model<{{Name}}Document> {
-  findOneOrNone(query: mongoose.FilterQuery<{{Name}}Document>): Promise<{{Name}}Document | null>;
-  findExactlyOne(query: mongoose.FilterQuery<{{Name}}Document>): Promise<{{Name}}Document>;
+  findOneOrNone(query: ModelQuery<{{Name}}Document>): Promise<{{Name}}Document | null>;
+  findExactlyOne(query: ModelQuery<{{Name}}Document>): Promise<{{Name}}Document>;
 }
 
 const {{lowerName}}Schema = new mongoose.Schema<{{Name}}Document, {{Name}}Model>(

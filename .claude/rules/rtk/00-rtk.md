@@ -2,6 +2,8 @@
 paths:
   - '**/*'
 ---
+> **LEGACY — data synchronization:** Do **not** generate RTK Query hooks for new collection CRUD. Use [`@terreno/syncdb`](../syncdb/00-syncdb.md) and [`migrate-rtk-to-syncdb.md`](../../docs/how-to/migrate-rtk-to-syncdb.md). This rule remains for maintaining existing consumers and for **non-synced** OpenAPI SDK routes, Better Auth session Redux, feature flags, and sockets.
+
 # @terreno/rtk
 
 Redux Toolkit Query utilities for frontends connecting to @terreno/api backends. Provides JWT authentication, token management, SDK code generation support, and Socket.io integration. This is a **frontend state management** package — no Express, no Mongoose, no backend code.

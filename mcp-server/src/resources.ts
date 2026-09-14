@@ -69,6 +69,7 @@ export const loadTypeDocJson = (): TypeDocRoot | null => {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 };
 
+/** @internal */
 export const extractTypeString = (typeObj: TypeDocType | null | undefined): string => {
   if (!typeObj) {
     return "unknown";
@@ -151,6 +152,7 @@ export const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[]
   });
 };
 
+/** @internal */
 export const componentToSlug = (name: string): string => {
   return name.toLowerCase().replace(/\s+/g, "-");
 };
@@ -181,6 +183,7 @@ export const formatComponentMarkdown = (component: ComponentDoc): string => {
   return lines.join("\n");
 };
 
+/** @internal */
 export const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
   const lines: string[] = [
     "# @terreno/ui Component Reference",
@@ -255,10 +258,17 @@ const buildResources = (): Resource[] => {
       uri: "terreno://docs/ui",
     },
     {
-      content: loadMarkdown("rtk.md"),
-      description: "Complete documentation for the @terreno/rtk package",
+      content: loadMarkdown("syncdb.md"),
+      description: "Local-first data layer (@terreno/syncdb) — primary path for collection CRUD",
       mimeType: "text/markdown",
-      name: "@terreno/rtk Documentation",
+      name: "@terreno/syncdb Documentation",
+      uri: "terreno://docs/syncdb",
+    },
+    {
+      content: loadMarkdown("rtk.md"),
+      description: "Legacy @terreno/rtk docs — OpenAPI SDK, auth, feature flags (not data sync)",
+      mimeType: "text/markdown",
+      name: "@terreno/rtk Documentation (legacy)",
       uri: "terreno://docs/rtk",
     },
     {

@@ -96,10 +96,9 @@ describe("TerrenoProvider", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    // Find the dismiss Pressable via its aria-role="button" that wraps the xmark icon.
-    const buttons = UNSAFE_getAllByProps({"aria-role": "button"});
-    // The dismiss button is the one without an accessibilityLabel
-    const dismissBtn = buttons.find((b) => !b.props.accessibilityLabel && b.props.onPress);
+    // The dismiss Pressable wrapping the xmark icon, found by the label it announces.
+    const buttons = UNSAFE_getAllByProps({accessibilityLabel: "Dismiss notification"});
+    const dismissBtn = buttons.find((b) => b.props.onPress);
     expect(dismissBtn).toBeDefined();
 
     await act(async () => {

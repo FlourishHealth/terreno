@@ -1,9 +1,7 @@
 name: UI CI
 
-on:
-  push:
-    paths:
-      - 'ui/**'
+# Disabled after migration to CircleCI; retained for rollback.
+on: []
 
 jobs:
   ui-lint-and-test:
@@ -16,18 +14,18 @@ jobs:
       - uses: actions/checkout@v6.0.3
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -52,11 +50,17 @@ jobs:
         run: bun run types
         working-directory: ui
 
-      - name: Run UI tests
-        run: bun run test:ci
+      - name: Run UI tests with coverage threshold
+        run: bun run test:coverage
         working-directory: ui
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: ui
+          flag: ui
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   demo-typecheck:
     name: Demo TypeScript Check (UI dependency)
@@ -68,18 +72,18 @@ jobs:
       - uses: actions/checkout@v6.0.3
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.0
 
       - name: Cache Bun dependencies
         id: cache2
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -102,3 +106,12 @@ jobs:
       - name: TypeScript compile Demo
         run: bun run compile
         working-directory: demo
+
+      - name: Demo story smoke tests
+        run: bun run test:ci
+        working-directory: demo
+
+      - name: Check demo story coverage
+        run: |
+          bun test scripts/check-demo-coverage.test.ts
+          bun run check:demo-coverage

@@ -9,7 +9,7 @@ import {
   LoadingIconButton,
   NavigationIconButton,
   ToolTipIconButton,
-} from "@stories";
+} from "@stories/IconButton.stories";
 import {IconButton} from "@terreno/ui";
 
 export const IconButtonConfiguration: DemoConfiguration = {

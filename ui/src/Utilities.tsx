@@ -193,6 +193,84 @@ export const isNative = (): boolean => {
   return ["android", "ios"].includes(Platform.OS);
 };
 
+interface ColorWithOpacityOptions {
+  color: string;
+  opacity: number;
+}
+
+/**
+ * Applies an opacity to a color, returning an `rgba()` string. Supports `#rgb`,
+ * `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`, and `rgba()` inputs. Colors that
+ * can't be parsed (e.g. named CSS colors) are returned unchanged.
+ */
+export const applyColorOpacity = ({color, opacity}: ColorWithOpacityOptions): string => {
+  const clampedOpacity = Math.max(0, Math.min(1, opacity));
+
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    const isShorthand = hex.length === 3 || hex.length === 4;
+    if (!isShorthand && hex.length !== 6 && hex.length !== 8) {
+      return color;
+    }
+    const expanded = isShorthand
+      ? hex
+          .split("")
+          .map((char) => `${char}${char}`)
+          .join("")
+      : hex;
+    const red = Number.parseInt(expanded.slice(0, 2), 16);
+    const green = Number.parseInt(expanded.slice(2, 4), 16);
+    const blue = Number.parseInt(expanded.slice(4, 6), 16);
+    if (Number.isNaN(red) || Number.isNaN(green) || Number.isNaN(blue)) {
+      return color;
+    }
+    // An alpha channel on the input color multiplies with the requested opacity,
+    // matching how react-native-web combined a shadow's color and opacity.
+    const alphaChannel =
+      expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
+    const alpha = Number.isNaN(alphaChannel) ? clampedOpacity : alphaChannel * clampedOpacity;
+    return `rgba(${red}, ${green}, ${blue}, ${roundOpacity(alpha)})`;
+  }
+
+  const rgbMatch = /^rgba?\(([^)]+)\)$/i.exec(color);
+  if (!rgbMatch) {
+    return color;
+  }
+  const parts = rgbMatch[1].split(",").map((part) => part.trim());
+  if (parts.length !== 3 && parts.length !== 4) {
+    return color;
+  }
+  const existingAlpha = parts.length === 4 ? Number.parseFloat(parts[3]) : 1;
+  const alpha = Number.isNaN(existingAlpha) ? clampedOpacity : existingAlpha * clampedOpacity;
+  return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${roundOpacity(alpha)})`;
+};
+
+const roundOpacity = (alpha: number): number => Math.round(alpha * 1000) / 1000;
+
+interface BoxShadowOptions {
+  blurRadius: number;
+  /** Shadow color. Defaults to black, matching the platform shadow default. */
+  color?: string;
+  offsetX?: number;
+  offsetY?: number;
+  /** Shadow alpha, folded into the color since `boxShadow` has no opacity field. */
+  opacity?: number;
+}
+
+/**
+ * Builds a CSS `box-shadow` value for the `boxShadow` style prop, which replaces
+ * the deprecated `shadow*` style props (color, offset, opacity, and radius).
+ */
+export const createBoxShadow = ({
+  blurRadius,
+  color = "#000000",
+  offsetX = 0,
+  offsetY = 0,
+  opacity = 1,
+}: BoxShadowOptions): string => {
+  return `${offsetX}px ${offsetY}px ${blurRadius}px ${applyColorOpacity({color, opacity})}`;
+};
+
 // Find more information about the address component types here: https://developers.google.com/maps/documentation/javascript/place-autocomplete
 export type AddressComponentType = {
   long_name: string;

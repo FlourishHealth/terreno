@@ -1,7 +1,11 @@
-import type {HydratedDocument} from "mongoose";
+import {DateTime} from "luxon";
+import mongoose, {type HydratedDocument} from "mongoose";
 import type {PassportLocalMongooseDocument} from "passport-local-mongoose";
 
+import {APIError} from "../errors";
 import {logger} from "../logger";
+import {createRbacAuditModel} from "../rbac/auditModel";
+import {createRbacRoleModel} from "../rbac/roleModel";
 import {FoodModel, RequiredModel, type User, UserModel} from "./models";
 import type {CachedTestData, TestData, TestFoods, TestRequired, TestUsers} from "./types";
 
@@ -15,6 +19,8 @@ export const clearTestCollections = async (): Promise<void> => {
     UserModel.deleteMany({}),
     FoodModel.deleteMany({}),
     RequiredModel.deleteMany({}),
+    createRbacRoleModel(mongoose.connection).deleteMany({}),
+    createRbacAuditModel(mongoose.connection).deleteMany({}),
   ]).catch(logger.catch);
 };
 
@@ -34,19 +40,19 @@ export const createTestUsers = async (): Promise<TestUsers> => {
   return {admin, adminOther, notAdmin};
 };
 
-export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> => {
+const createStandardFoods = async (users: TestUsers): Promise<TestFoods> => {
   const {admin, adminOther, notAdmin} = users;
 
   const [spinach, apple, carrots, pizza] = await Promise.all([
     FoodModel.create({
       calories: 1,
       categories: [{name: "Vegetables", show: true}],
-      created: new Date("2021-12-03T00:00:20.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:20.000Z").toJSDate(),
       eatenBy: [admin._id],
       expiration: "2026-12-31",
       hidden: false,
       lastEatenWith: {
-        dressing: new Date("2021-12-03T19:00:30.000Z"),
+        dressing: DateTime.fromISO("2021-12-03T19:00:30.000Z").toJSDate(),
       },
       likesIds: [
         {likes: true, userId: admin._id},
@@ -63,7 +69,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 100,
-      created: new Date("2021-12-03T00:00:30.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:30.000Z").toJSDate(),
       expiration: "2026-12-31",
       hidden: true,
       likesIds: [{likes: true, userId: admin._id}],
@@ -74,7 +80,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 100,
-      created: new Date("2021-12-03T00:00:00.000Z"),
+      created: DateTime.fromISO("2021-12-03T00:00:00.000Z").toJSDate(),
       eatenBy: [admin._id, notAdmin._id],
       expiration: "2026-12-31",
       hidden: false,
@@ -86,7 +92,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
     }),
     FoodModel.create({
       calories: 800,
-      created: new Date("2022-01-01T00:00:00.000Z"),
+      created: DateTime.fromISO("2022-01-01T00:00:00.000Z").toJSDate(),
       expiration: "2026-12-31",
       hidden: false,
       likesIds: [{likes: true, userId: adminOther._id}],
@@ -100,7 +106,7 @@ export const createStandardFoods = async (users: TestUsers): Promise<TestFoods> 
   return {apple, carrots, pizza, spinach};
 };
 
-export const createRequiredFixtures = async (): Promise<TestRequired> => {
+const createRequiredFixtures = async (): Promise<TestRequired> => {
   const [sample, withAbout] = await Promise.all([
     RequiredModel.create({name: "Sample Required"}),
     RequiredModel.create({about: "Optional about text", name: "Required With About"}),
@@ -165,7 +171,10 @@ export const loadTestDataFromDocuments = async (cached: CachedTestData): Promise
     !sample ||
     !withAbout
   ) {
-    throw new Error("[createTestData] Cached test data references missing documents");
+    throw new APIError({
+      status: 500,
+      title: "[createTestData] Cached test data references missing documents",
+    });
   }
 
   return {

@@ -45,8 +45,9 @@ const userSchema = new Schema<User>(
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
-// biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's plugin type is incompatible with mongoose Schema generics
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(passportLocalMongoose as unknown as Parameters<typeof userSchema.plugin>[0], {
+  usernameField: "email",
+});
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDeletedPlugin);
 userSchema.plugin(findOneOrNone);

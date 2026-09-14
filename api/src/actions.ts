@@ -1,14 +1,16 @@
 import {OpenAPIRegistry, OpenApiGeneratorV3} from "@asteasolutions/zod-to-openapi";
 import type express from "express";
 import type {NextFunction, Request, Response} from "express";
-import type {Model} from "mongoose";
+import type {Model, SchemaType} from "mongoose";
 import type {ZodSchema, ZodType} from "zod";
 import {asyncHandler, type ModelRouterOptions, type RESTMethod} from "./api";
 import {authenticateMiddleware, type User} from "./auth";
 import {loadDocOr404} from "./docLoader";
-import {APIError} from "./errors";
+import {APIError, ForbiddenError, ValidationError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
+import {createIsPermitted} from "./rbac/middleware";
+import type {AnyTerrenoAccess, ModelRouterAccessOptions} from "./rbac/types";
 
 // At least two characters: leading letter plus one or more alphanumeric/_/- chars.
 export const ACTION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]+$/;
@@ -24,7 +26,8 @@ export interface ActionContext<TDoc, TBody, TQuery> {
 
 interface BaseActionConfig<TBody, TQuery, TResponse> {
   method: "GET" | "POST";
-  permissions: PermissionMethod<unknown>[];
+  permissions?: PermissionMethod<unknown>[];
+  access?: {resource: string; action: string};
   body?: ZodSchema<TBody>;
   query?: ZodSchema<TQuery>;
   response?: ZodSchema<TResponse>;
@@ -71,32 +74,74 @@ const mapActionToCrudMethod = (scope: ActionScope, httpMethod: "GET" | "POST"): 
   return httpMethod === "GET" ? "list" : "create";
 };
 
+const resolveActionAccess = (
+  action: BaseActionConfig<unknown, unknown, unknown>,
+  scope: ActionScope,
+  routerAccess?: ModelRouterAccessOptions
+): {action: string; resource: string} | null | undefined => {
+  if (action.access) {
+    return action.access;
+  }
+  if (!routerAccess?.resource) {
+    return undefined;
+  }
+  const crud = mapActionToCrudMethod(scope, action.method);
+  const mapped = routerAccess.actions?.[crud];
+  if (mapped === null) {
+    return null;
+  }
+  return {action: mapped ?? crud, resource: routerAccess.resource};
+};
+
 export const runActionPermissions = async <T>(
   action: BaseActionConfig<unknown, unknown, unknown>,
   scope: ActionScope,
   model: Model<T>,
   req: Request,
-  doc?: T
+  doc?: T,
+  accessControl?: AnyTerrenoAccess,
+  routerAccess?: ModelRouterAccessOptions
 ): Promise<void> => {
   const method = mapActionToCrudMethod(scope, action.method);
-  const allowed = await checkPermissions(method, action.permissions, req.user, doc);
+  let permissions = action.permissions;
+  const rbacAccess = resolveActionAccess(action, scope, routerAccess);
+  if (rbacAccess === null || permissions?.length === 0) {
+    permissions = [];
+  } else if (rbacAccess && accessControl) {
+    const isPermitted = createIsPermitted({can: accessControl.can});
+    const rbacCheck = isPermitted({
+      [rbacAccess.resource]: [rbacAccess.action],
+    }) as PermissionMethod<unknown>;
+    permissions = [...(action.permissions ?? []), rbacCheck];
+  }
+  if (!permissions) {
+    throw new APIError({status: 500, title: "Action missing permissions configuration"});
+  }
+  const allowed = await checkPermissions(method, permissions, req.user, doc);
   if (allowed) {
     return;
   }
 
   if (!doc) {
+    // Status kept at 405 for backwards compatibility with the same pre-document permission denial
+    // in modelRouter's array operations; changing it would break consumers matching on it.
     throw new APIError({
-      status: 405,
-      title:
+      code: "action-access-denied",
+      detail:
         `Access to ${method.toUpperCase()} on ${model.modelName} ` + `denied for ${req.user?.id}`,
+      meta: {action: method.toUpperCase(), model: model.modelName},
+      status: 405,
+      title: "Access denied",
     });
   }
 
-  throw new APIError({
-    status: 403,
-    title:
+  throw new ForbiddenError({
+    code: "action-access-denied",
+    detail:
       `Access to ${method.toUpperCase()} on ${model.modelName}:${req.params.id} ` +
       `denied for ${req.user?.id}`,
+    meta: {action: method.toUpperCase(), model: model.modelName},
+    title: "Access denied",
   });
 };
 
@@ -123,9 +168,10 @@ export const validateActionRequest = <TBody, TQuery>({
   if (action.body) {
     const parsedBody = action.body.safeParse(req.body);
     if (!parsedBody.success) {
-      throw new APIError({
+      throw new ValidationError({
+        code: "action-body-validation-failed",
+        detail: "The request body did not match the action's schema",
         fields: flattenZodFieldErrors(parsedBody.error.flatten().fieldErrors),
-        status: 400,
         title: "Validation failed",
       });
     }
@@ -138,9 +184,10 @@ export const validateActionRequest = <TBody, TQuery>({
   if (action.query) {
     const parsedQuery = action.query.safeParse(req.query);
     if (!parsedQuery.success) {
-      throw new APIError({
+      throw new ValidationError({
+        code: "action-query-validation-failed",
+        detail: "The query parameters did not match the action's schema",
         fields: flattenZodFieldErrors(parsedQuery.error.flatten().fieldErrors),
-        status: 400,
         title: "Validation failed",
       });
     }
@@ -273,33 +320,42 @@ export const createActionOpenApiMiddleware = <T>({
 };
 
 const getArrayFieldNames = <T>(model: Model<T>): string[] => {
-  return Object.values(model.schema.paths)
+  return (Object.values(model.schema.paths) as SchemaType[])
     .filter((config) => config.instance === "Array")
     .map((config) => config.path);
 };
 
-// Registration-time validation throws plain Error so misconfiguration fails at app boot.
+// Registration-time validation throws APIError so misconfiguration fails at app boot.
 const validateActionConfig = (
   scope: ActionScope,
   name: string,
   config: BaseActionConfig<unknown, unknown, unknown>
 ): void => {
   if (!name) {
-    throw new Error("Action name cannot be empty");
+    throw new APIError({status: 500, title: "Action name cannot be empty"});
   }
   if (!ACTION_NAME_PATTERN.test(name)) {
-    throw new Error(
-      `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`
-    );
+    throw new APIError({
+      status: 500,
+      title: `Invalid action name "${name}". Action names must match ${ACTION_NAME_PATTERN.toString()}`,
+    });
   }
-  if (config.permissions === undefined) {
-    throw new Error(
-      `Action "${name}" (${scope}) is missing required "permissions". ` +
-        "Provide at least one permission function, or [] to disable the action."
-    );
+  if (config.permissions === undefined && !config.access) {
+    throw new APIError({
+      status: 500,
+      title:
+        `Action "${name}" (${scope}) is missing required "permissions" or "access". ` +
+        "Provide at least one permission function, an access descriptor, or [] to disable the action.",
+    });
+  }
+  if (config.permissions !== undefined && config.permissions.length === 0 && !config.access) {
+    return;
   }
   if (config.method !== "GET" && config.method !== "POST") {
-    throw new Error(`Action "${name}" (${scope}) only supports GET and POST methods`);
+    throw new APIError({
+      status: 500,
+      title: `Action "${name}" (${scope}) only supports GET and POST methods`,
+    });
   }
 };
 
@@ -322,9 +378,10 @@ export const assertNoActionCollisions = <T>(
     for (const [name, config] of Object.entries(actions)) {
       validateActionConfig(scope, name, config);
       if (scope === "instance" && arrayFields.has(name)) {
-        throw new Error(
-          `instanceAction '${name}' collides with array field operations on /:id/${name}`
-        );
+        throw new APIError({
+          status: 500,
+          title: `instanceAction '${name}' collides with array field operations on /:id/${name}`,
+        });
       }
     }
   };
@@ -344,7 +401,15 @@ const buildActionMiddleware = <T>(
 
   const preDocPermissions = async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      await runActionPermissions(action, scope, model, req);
+      await runActionPermissions(
+        action,
+        scope,
+        model,
+        req,
+        undefined,
+        options.accessControl,
+        options.access
+      );
       return next();
     } catch (error) {
       return next(error);
@@ -361,7 +426,15 @@ const buildActionMiddleware = <T>(
               options.populatePaths
             );
             (req as Request & {obj?: T}).obj = doc;
-            await runActionPermissions(action, scope, model, req, doc);
+            await runActionPermissions(
+              action,
+              scope,
+              model,
+              req,
+              doc,
+              options.accessControl,
+              options.access
+            );
             return next();
           } catch (error) {
             return next(error);

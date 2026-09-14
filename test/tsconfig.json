@@ -7,6 +7,7 @@
     "downlevelIteration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
     "jsx": "react",
     "lib": ["es2017", "dom", "es2017.object"],
     "module": "commonjs",
@@ -20,11 +21,13 @@
     "outDir": "./dist",
     "preserveConstEnums": true,
     "removeComments": false,
+    "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "target": "es5"
+    "target": "es5",
+    "types": ["bun", "node"]
   },
   "exclude": ["node_modules", "src/mongo/ensureMongoBinary.ts"],
   "include": ["src/**/*.ts"]

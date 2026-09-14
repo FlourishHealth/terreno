@@ -1,4 +1,5 @@
 import DateTimePicker, {type DateTimePickerEvent} from "@react-native-community/datetimepicker";
+import {DateTime} from "luxon";
 import React from "react";
 
 import {ActionSheet} from "./ActionSheet";
@@ -13,6 +14,10 @@ export class NumberPickerActionSheet extends React.Component<
   NumberPickerActionSheetState
 > {
   render(): React.ReactElement {
+    const parsedValue = this.props.value ? DateTime.fromISO(this.props.value) : undefined;
+    const pickerValue =
+      parsedValue?.isValid === true ? parsedValue.toJSDate() : DateTime.now().toJSDate();
+
     return (
       <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
@@ -34,10 +39,14 @@ export class NumberPickerActionSheet extends React.Component<
               if (!date) {
                 return;
               }
-              this.props.onChange(date.toString());
+              const iso = DateTime.fromJSDate(date).toUTC().toISO();
+              if (!iso) {
+                return;
+              }
+              this.props.onChange(iso);
             }}
             testID="dateTimePicker"
-            value={this.props.value ? new Date(this.props.value) : new Date()}
+            value={pickerValue}
           />
         </Box>
       </ActionSheet>

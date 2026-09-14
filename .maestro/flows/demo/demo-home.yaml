@@ -1,0 +1,14 @@
+url: http://localhost:8085/demo
+---
+# Demo web smoke: home screen renders component catalog
+# Prerequisites: demo static export served on port 8085 (without SPA rewrite)
+
+- launchApp
+
+- extendedWaitUntil:
+    visible: "AI Palette Generator"
+    timeout: 30000
+
+- extendedWaitUntil:
+    visible: "Open palette generator"
+    timeout: 15000

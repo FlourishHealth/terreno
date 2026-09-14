@@ -122,7 +122,7 @@ export interface AdminModelQueryFieldSource {
  * filters and sort keys match allowed query parameters on `GET` list routes.
  */
 export const buildAdminModelQueryFields = (config: AdminModelQueryFieldSource): string[] => {
-  const fields = new Set<string>(["_id"]);
+  const fields = new Set<string>(["_id", "q"]);
   for (const name of config.listFields) {
     fields.add(name);
   }

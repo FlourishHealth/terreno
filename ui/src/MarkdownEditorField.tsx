@@ -4,7 +4,9 @@ import {Platform, Pressable, Text as RNText, ScrollView, TextInput, View} from "
 
 import {Box} from "./Box";
 import type {ErrorTextProps, HelperTextProps} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {MarkdownView} from "./MarkdownView";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";

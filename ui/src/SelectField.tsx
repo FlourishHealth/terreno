@@ -2,7 +2,9 @@ import type {FC} from "react";
 import {View} from "react-native";
 
 import type {SelectFieldProps} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {RNPickerSelect} from "./PickerSelect";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
 
@@ -13,7 +15,8 @@ export const SelectField: FC<SelectFieldProps> = ({
   options,
   requireValue = false,
   placeholder = "Please select an option.",
-  searchable = true,
+  disableSearch = false,
+  renderMenuInBodyPortal = false,
   title,
   value,
   onChange,
@@ -30,6 +33,7 @@ export const SelectField: FC<SelectFieldProps> = ({
       <View style={{alignSelf: "stretch", minWidth: 0, width: "100%"}}>
         <RNPickerSelect
           disabled={disabled}
+          disableSearch={disableSearch}
           items={options}
           onValueChange={(v) => {
             if (v === undefined || v === null || v === "") {
@@ -39,7 +43,7 @@ export const SelectField: FC<SelectFieldProps> = ({
             }
           }}
           placeholder={!requireValue ? clearOption : {}}
-          searchable={searchable}
+          renderMenuInBodyPortal={renderMenuInBodyPortal}
           textInputProps={{testID: fieldTestIDs.input}}
           value={value ?? ""}
         />

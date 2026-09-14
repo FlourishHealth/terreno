@@ -1,9 +1,12 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterAll, beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {afterAll, beforeAll, beforeEach, describe, expect, it, spyOn} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
-import type {SecretProvider} from "./configurationPlugin";
+import type {ConfigurationModel, Paths, SecretProvider} from "./configurationPlugin";
 import {configurationPlugin, flattenToDotPaths} from "./configurationPlugin";
-import {isDeletedPlugin} from "./plugins";
+import type {APIError} from "./errors";
+import {type FindOneOrNonePlugin, type IsDeleted, isDeletedPlugin} from "./plugins";
+
+/** A configuration model as created by the plugin, including the findOneOrNone static it adds. */
+type ConfigModel<T extends object> = ConfigurationModel<T> & FindOneOrNonePlugin<T>;
 
 // --- Test schema with secret fields ---
 
@@ -56,36 +59,58 @@ const testConfigSchema = new Schema<TestConfig>({
 
 testConfigSchema.plugin(configurationPlugin);
 
-const TestConfigModel = model("TestConfiguration", testConfigSchema) as any;
+const TestConfigModel = model<TestConfig, ConfigModel<TestConfig>>(
+  "TestConfiguration",
+  testConfigSchema
+);
 
 // --- Simple schema for singleton tests ---
 
-const simpleSchema = new Schema({
+interface SimpleConfig {
+  value: string;
+}
+
+const simpleSchema = new Schema<SimpleConfig>({
   value: {default: "default", description: "A value", type: String},
 });
 simpleSchema.plugin(configurationPlugin);
-const SimpleConfigModel = model("SimpleConfiguration", simpleSchema) as any;
+const SimpleConfigModel = model<SimpleConfig, ConfigModel<SimpleConfig>>(
+  "SimpleConfiguration",
+  simpleSchema
+);
 
 // --- Schema opting into the _singleton unique index ---
 
-const indexedSchema = new Schema({
+const indexedSchema = new Schema<SimpleConfig>({
   value: {default: "default", description: "A value", type: String},
 });
 indexedSchema.plugin(configurationPlugin, {enforceSingletonIndex: true});
-const IndexedConfigModel = model("IndexedConfiguration", indexedSchema) as any;
+const IndexedConfigModel = model<SimpleConfig, ConfigModel<SimpleConfig>>(
+  "IndexedConfiguration",
+  indexedSchema
+);
 
 // --- Soft-delete-aware schema ---
 
-const softDeleteSchema = new Schema({
+interface SoftDeleteConfig extends SimpleConfig, IsDeleted {}
+
+const softDeleteSchema = new Schema<SoftDeleteConfig>({
   value: {default: "default", description: "A value", type: String},
 });
 softDeleteSchema.plugin(configurationPlugin);
 softDeleteSchema.plugin(isDeletedPlugin);
-const SoftDeleteConfigModel = model("SoftDeleteConfiguration", softDeleteSchema) as any;
+const SoftDeleteConfigModel = model<SoftDeleteConfig, ConfigModel<SoftDeleteConfig>>(
+  "SoftDeleteConfiguration",
+  softDeleteSchema
+);
 
 // --- Schema with a validated field (enum) for runValidators coverage ---
 
-const validatedSchema = new Schema({
+interface ValidatedConfig {
+  level: string;
+}
+
+const validatedSchema = new Schema<ValidatedConfig>({
   level: {
     default: "low",
     description: "Severity level",
@@ -94,26 +119,25 @@ const validatedSchema = new Schema({
   },
 });
 validatedSchema.plugin(configurationPlugin);
-const ValidatedConfigModel = model("ValidatedConfiguration", validatedSchema) as any;
+const ValidatedConfigModel = model<ValidatedConfig, ConfigModel<ValidatedConfig>>(
+  "ValidatedConfiguration",
+  validatedSchema
+);
 
 describe("configurationPlugin", () => {
   describe("schema setup", () => {
     it("does not add a _singleton index by default", () => {
       const indexes = SimpleConfigModel.schema.indexes();
-      const singletonIndex = indexes.find(
-        ([fields]: [Record<string, any>]) => fields._singleton !== undefined
-      );
+      const singletonIndex = indexes.find(([fields]) => fields._singleton !== undefined);
       expect(singletonIndex).toBeUndefined();
       expect(SimpleConfigModel.schema.path("_singleton")).toBeUndefined();
     });
 
     it("adds a _singleton field with unique index when enforceSingletonIndex is true", () => {
       const indexes = IndexedConfigModel.schema.indexes();
-      const singletonIndex = indexes.find(
-        ([fields]: [Record<string, any>]) => fields._singleton !== undefined
-      );
+      const singletonIndex = indexes.find(([fields]) => fields._singleton !== undefined);
       expect(singletonIndex).toBeDefined();
-      expect(singletonIndex[1].unique).toBe(true);
+      expect(singletonIndex?.[1]?.unique).toBe(true);
     });
 
     it("adds getConfig static", () => {
@@ -136,22 +160,22 @@ describe("configurationPlugin", () => {
   describe("getSecretFields", () => {
     it("discovers top-level secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const apiKeySecret = secrets.find((s: {path: string}) => s.path === "apiKey");
+      const apiKeySecret = secrets.find((s) => s.path === "apiKey");
       expect(apiKeySecret).toBeDefined();
-      expect(apiKeySecret.secretName).toBe("ext-api-key");
+      expect(apiKeySecret?.secretName).toBe("ext-api-key");
     });
 
     it("discovers nested secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const nestedSecret = secrets.find((s: {path: string}) => s.path === "nested.secretToken");
+      const nestedSecret = secrets.find((s) => s.path === "nested.secretToken");
       expect(nestedSecret).toBeDefined();
-      expect(nestedSecret.secretName).toBe("nested-token");
-      expect(nestedSecret.secretProvider).toBe("vault");
+      expect(nestedSecret?.secretName).toBe("nested-token");
+      expect(nestedSecret?.secretProvider).toBe("vault");
     });
 
     it("does not include non-secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const nonSecret = secrets.find((s: {path: string}) => s.path === "appName");
+      const nonSecret = secrets.find((s) => s.path === "appName");
       expect(nonSecret).toBeUndefined();
     });
 
@@ -210,7 +234,7 @@ describe("configurationPlugin", () => {
     });
 
     it("passes the discovered secret version to the provider", async () => {
-      const versionedSchema = new Schema({
+      const versionedSchema = new Schema<{token: string}>({
         token: {
           default: "",
           description: "Pinned secret",
@@ -221,7 +245,10 @@ describe("configurationPlugin", () => {
         },
       });
       versionedSchema.plugin(configurationPlugin);
-      const VersionedModel = model("VersionedConfiguration", versionedSchema) as any;
+      const VersionedModel = model<{token: string}, ConfigModel<{token: string}>>(
+        "VersionedConfiguration",
+        versionedSchema
+      );
 
       const received: Array<{name: string; version?: string}> = [];
       const provider: SecretProvider = {
@@ -310,7 +337,7 @@ describe("configurationPlugin", () => {
       }
       const first = await SimpleConfigModel.getConfig();
       const second = await SimpleConfigModel.getConfig();
-      expect(first._id.toString()).toBe(second._id.toString());
+      expect(String(first._id)).toBe(String(second._id));
     });
 
     it("prevents creating a second document via save", async () => {
@@ -320,6 +347,54 @@ describe("configurationPlugin", () => {
       await SimpleConfigModel.getConfig();
       const duplicate = new SimpleConfigModel({value: "duplicate"});
       await expect(duplicate.save()).rejects.toThrow();
+    });
+
+    it("re-fetches the existing singleton when a concurrent create hits a 409", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const existing = await SimpleConfigModel.getConfig();
+      // Simulate a race: the initial lookup misses, so getConfig attempts a create
+      // that the pre-save singleton guard rejects with a 409. getConfig should then
+      // re-fetch and return the document created by the "other process".
+      const spy = spyOn(SimpleConfigModel, "findOneOrNone").mockResolvedValueOnce(null);
+      try {
+        const config = await SimpleConfigModel.getConfig();
+        expect(String(config._id)).toBe(String(existing._id));
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("rethrows non-409 errors raised while creating the singleton", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const findSpy = spyOn(SimpleConfigModel, "findOneOrNone").mockResolvedValueOnce(null);
+      const saveSpy = spyOn(SimpleConfigModel.prototype, "save").mockRejectedValueOnce(
+        new Error("unexpected save failure")
+      );
+      try {
+        await expect(SimpleConfigModel.getConfig()).rejects.toThrow("unexpected save failure");
+      } finally {
+        findSpy.mockRestore();
+        saveSpy.mockRestore();
+      }
+    });
+
+    it("returns undefined for a dotted key that traverses a non-object value", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      await SimpleConfigModel.getConfig();
+      // `value` is a string, so descending into `value.missing` bails out.
+      expect(
+        await SimpleConfigModel.getConfig("value.missing" as Paths<SimpleConfig>)
+      ).toBeUndefined();
+      // A missing top-level segment also resolves to undefined.
+      expect(
+        await SimpleConfigModel.getConfig("nope.deeper" as Paths<SimpleConfig>)
+      ).toBeUndefined();
     });
 
     it("updates an existing document via updateConfig", async () => {
@@ -366,8 +441,8 @@ describe("configurationPlugin", () => {
       try {
         await SimpleConfigModel.deleteOne({}).exec();
         expect.unreachable("Should have thrown");
-      } catch (err: any) {
-        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
+      } catch (err) {
+        expect((err as APIError).title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
 
@@ -379,8 +454,8 @@ describe("configurationPlugin", () => {
       try {
         await SimpleConfigModel.findOneAndDelete({}).exec();
         expect.unreachable("Should have thrown");
-      } catch (err: any) {
-        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
+      } catch (err) {
+        expect((err as APIError).title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
 
@@ -392,8 +467,8 @@ describe("configurationPlugin", () => {
       try {
         await SimpleConfigModel.deleteMany({}).exec();
         expect.unreachable("Should have thrown");
-      } catch (err: any) {
-        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
+      } catch (err) {
+        expect((err as APIError).title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
   });
@@ -451,7 +526,7 @@ describe("configurationPlugin", () => {
       // A new non-deleted singleton can now be created
       const second = await SoftDeleteConfigModel.getConfig();
       expect(second.deleted).toBe(false);
-      expect(second._id.toString()).not.toBe(first._id.toString());
+      expect(String(second._id)).not.toBe(String(first._id));
     });
 
     it("does not let updateConfig touch a soft-deleted document", async () => {
@@ -466,7 +541,7 @@ describe("configurationPlugin", () => {
       const updated = await SoftDeleteConfigModel.updateConfig({value: "fresh"});
       expect(updated.deleted).toBe(false);
       expect(updated.value).toBe("fresh");
-      expect(updated._id.toString()).not.toBe(first._id.toString());
+      expect(String(updated._id)).not.toBe(String(first._id));
     });
   });
 });

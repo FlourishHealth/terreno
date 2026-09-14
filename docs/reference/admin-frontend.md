@@ -2,15 +2,37 @@
 
 React Native components for building admin panels that connect to `@terreno/admin-backend`.
 
+**Build a screen or change nav:** [How admin interfaces are shaped](../explanation/admin-interface.md)
+and [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Quick Start
+
+Home is `AdminHome` inside `AdminProvider` + `AdminShellLayout`. Generic models use
+`AdminScreenRouter` on `[model]/index`. See the how-to for `apiBase` vs `routeBase`.
+
+Pass fetch auth on `AdminProvider`:
+
+| Host | Props |
+| --- | --- |
+| Standalone SPA | `credentials="same-origin"` and `getAuthHeaders` that return `{}` (cookie session). Omit `apiOrigin`. |
+| Embedded app | `getAuthHeaders` that return `Authorization: Bearer …`, plus `apiOrigin` set to the API origin (`@terreno/rtk` `baseUrl`) |
+
+RPC that has left RTK uses `bindAdminRequest({credentials, getAuthHeaders, origin})` then `adminRequest`. Relative URLs such as `/admin/config` are prefixed with `origin` when it is set. When `AdminProvider` has `credentials` or `getAuthHeaders`, RPC hooks (`useAdminConfig`, scripts, roles, configuration, documents, comms, consent, version-config, background-tasks, AI explorer, object picker) use that client. Successful comms, scripts, and configuration mutations invalidate mounted fetch queries through the same tag contracts as RTK; those background refetches keep cached data with `isLoading: false` and report `isFetching: true`. Passing only `api` keeps `injectEndpoints`. Do not add axios.
+
+Optional `syncDb` on `AdminProvider` enables windowed changelists for models whose
+config includes `adminBroadcast: true` and `syncCollection`. When product screens
+also sync the same collection, inject a dedicated admin client/store configured
+with `windowCollections`; one client cannot join owner/tenant and admin modes for
+the same collection. Do not add `@terreno/syncdb` as a hard dependency of
+admin-frontend.
 
 ``````typescript
 // app/admin/index.tsx
-import {AdminModelList} from "@terreno/admin-frontend";
+import {AdminHome} from "@terreno/admin-frontend";
 import {api} from "@/store/openApiSdk";
 
 export default function AdminScreen() {
-  return <AdminModelList baseUrl="/admin" api={api} />;
+  return <AdminHome api={api} apiBase="/admin" routeBase="/admin" />;
 }
 ``````
 
@@ -47,6 +69,7 @@ Features:
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
+- Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. A windowed create or delete never touches the cached REST list, so the form flags the collection through `markAdminWindowMembershipStale` and the changelist refetches membership automatically — whether it stayed mounted behind the form or remounts when the form pops. A create also passes the new id as `awaitId`, because `mutate` only enqueues on the outbox and the first refetch can beat the server; the changelist retries up to three times, 700 ms apart — including after transient list failures — then leaves **Refresh** as the fallback. Passing only `api` keeps the RTK list.
 
 ### AdminModelForm
 
@@ -70,6 +93,53 @@ Auto-generates fields from model schema:
 - `enum` → SelectField with options
 
 System fields (`_id`, `__v`, `created`, `updated`, `deleted`) are automatically skipped.
+
+When `AdminProvider` has `syncDb` plus a fetch client and the model config reports
+`adminBroadcast`, `syncCollection`, and a String `_id`, create/update/delete use the
+syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record so a
+deep-linked form can mutate locally. ObjectId models and hosts without the full
+windowed configuration keep the REST/RTK mutation path.
+
+Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
+Windowed form mutations set their own pending state before any asynchronous work, so
+Save/Delete show loading and duplicate presses cannot enqueue a second mutation.
+
+Windowed tables and forms render `AdminConflictSheet`, filtered to the ids loaded
+on that page or form, and forward **Use server** / **Keep mine** to syncdb's
+resolver. Only the most recently mounted sheet per collection renders, so a form
+stacked over its changelist shows one sheet instead of two.
+This adapter keeps `@terreno/syncdb` optional for admin-frontend.
+Bulk actions remain server operations: windowed models call the host fetch
+client at `{routePath}/bulk-patch`, while API-only/ObjectId hosts retain RTK.
+
+```tsx
+const syncConflicts = useConflicts();
+
+<AdminProvider
+  api={api}
+  apiBase="/admin"
+  syncConflicts={syncConflicts}
+  syncDb={syncDb}
+>
+  {children}
+</AdminProvider>;
+```
+
+### AdminRolesList
+
+Role editing starts with a dedicated **Admin page** toggle for `admin:access`. That is the only
+permission that opens the admin panel. Grant it first; model and tool permissions do nothing until
+the role can enter.
+
+Standard admin model permissions then use one access-level selector:
+
+- No access
+- Read only
+- Read + write owned
+- Read + write all
+
+Other application and screen permissions remain individual toggles. Saving writes the same
+permission JSON used by `rbacRouter`, so no separate configuration format is required.
 
 ### AdminFieldRenderer
 
@@ -112,20 +182,31 @@ Returns model metadata from `{baseUrl}/config`.
 
 ### useAdminApi
 
-Generates RTK Query hooks for CRUD operations.
+> Deprecated in Terreno 57: do not add new admin `injectEndpoints`. Terreno 58
+> removes `useAdminApi` and the required `api` prop. During the compatibility
+> window, continue passing `api` for ObjectId model CRUD and API-only hosts.
+
+Generates compatibility RTK Query hooks for list/read/create/update/delete plus
+`POST {routePath}/bulk-patch`.
+Pass the model's `routePath` from config (for example `/admin/users` or `/admin/todos`), not the admin `baseUrl`.
+
+Admin RPC that is leaving RTK uses native `adminRequest` (`AbortController` timeout, JSON or `FormData`, `credentials` forwarded). Bind host auth with `bindAdminRequest`. Do not add axios.
 
 ``````typescript
 const {
   useListQuery,
-  useGetQuery,
+  useReadQuery,
   useCreateMutation,
   useUpdateMutation,
   useDeleteMutation,
-} = useAdminApi(api, baseUrl, modelName);
+  useBulkPatchMutation,
+} = useAdminApi(api, "/admin/users", "User");
 
-const {data, isLoading} = useListQuery({limit: 20, page: 1});
+const {data, isLoading} = useListQuery({limit: 20, page: 1, q: "Ada", sort: "-created"});
 const [create] = useCreateMutation();
 await create({email: "user@example.com"}).unwrap();
+const [bulkPatch] = useBulkPatchMutation();
+await bulkPatch({ids: ["abc"], patch: {name: "Ada"}}).unwrap();
 ``````
 
 ## Expo Router Setup
@@ -201,5 +282,41 @@ const CustomFieldRenderer = ({value, field, ...props}) => {
 Expects backend to provide:
 1. `GET {baseUrl}/config` — Model metadata
 2. CRUD routes at `{basePath}{routePath}` for each model
-3. Admin authentication (`IsAdmin` permission)
+3. `admin:access` (or `IsAdmin` when RBAC is off) to open the page; per-model RBAC after that
 4. Paginated responses: `{data, page, limit, total, more}`
+
+When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
+`platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
+renders model or custom-screen links returned by the server.
+
+### Custom screen page chrome
+
+Wrap custom admin screen content in `AdminScreenPage`. It renders the standard `Page` header with a back arrow by default; the arrow navigates to `/admin` via `router.push`, not `router.back()`, because sidebar navigation does not always leave a reliable history entry on web. Pass the host's `routeBase` as `backHref` when admin uses a different prefix; an empty standalone-admin base resolves to `/`. Detail screens can target their parent route (for example `/admin/comms`). Pass `backButton={false}` only when the host supplies equivalent navigation.
+
+```typescript
+import {AdminScreenPage} from "@terreno/admin-frontend";
+
+<AdminScreenPage title="Operations" scroll>
+  <OperationsDashboard />
+</AdminScreenPage>
+```
+
+### Comms dashboard
+
+`COMMS_ADMIN_WIDGETS.comms` is registered in the built-in screen registry. `CommsApp` contributes
+custom screen `name: "comms"`. Hosts should also add message detail routes so `/comms/:id` is not
+handled as a generic model form:
+
+```typescript
+import {CommsDashboardScreenWidget, CommsMessageDetail} from "@terreno/admin-frontend";
+
+// list: /admin/comms
+<CommsDashboardScreenWidget api={api} config={config} routeBase="/admin" screenName="comms" />
+
+// detail: /admin/comms/[id]
+<CommsMessageDetail api={api} messageId={id} routeBase="/admin" />
+```
+
+The list screen persists filters in the URL (`channel`, `provider`, `status`, `errorClass`, `q`,
+`startDate`, `endDate`, `page`) and calls `/comms/messages`, `/comms/stats`, and
+`/comms/messages/retryMany`.

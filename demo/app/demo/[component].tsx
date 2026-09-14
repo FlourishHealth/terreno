@@ -1,9 +1,10 @@
-import {ErrorBoundary} from "@components";
+import {ErrorBoundary} from "@components/ErrorBoundary";
 import {
   DemoConfig,
   type DemoConfigStatus,
   type DemoConfiguration,
   type DemoConfigurationProp,
+  findDemoConfig,
 } from "@config";
 import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
@@ -372,24 +373,35 @@ const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
 const ComponentPage: FC = () => {
   const {component} = useLocalSearchParams<{component: string}>();
   const {isEmbedMode} = useEmbedMode();
+  const navigation = useNavigation();
 
-  const config = DemoConfig.find((c) => c.name === component);
+  const config = findDemoConfig(component);
+
+  // Redirect to /demo if the component doesn't exist. This must be an effect (not an
+  // early return before the hooks below) so every render calls the same hooks in the
+  // same order — otherwise switching between two component demos without unmounting
+  // (expo-router reuses this component instance) throws "Rendered fewer hooks than expected."
+  useEffect(() => {
+    if (!component || !config) {
+      router.replace("/demo");
+    }
+  }, [component, config]);
+
+  // Set the title from the configured name so a lowercased deep link still shows real casing
+  useEffect(() => {
+    if (config) {
+      navigation.setOptions({title: config.name});
+    }
+  }, [navigation, config]);
 
   if (!component || !config) {
-    router.replace("/demo");
     return null;
   }
-
-  const navigation = useNavigation();
-  // Set the title
-  useEffect(() => {
-    navigation.setOptions({title: component});
-  }, [navigation, component]);
 
   if (isEmbedMode) {
     return (
       <Box padding={2} width="100%">
-        <ComponentDemo config={config} />
+        <ComponentDemo config={config} key={config.name} />
       </Box>
     );
   }
@@ -405,7 +417,7 @@ const ComponentPage: FC = () => {
         </Box>
         <MarkdownView>{config?.description}</MarkdownView>
       </Box>
-      <ComponentDemo config={config!} />
+      <ComponentDemo config={config!} key={config!.name} />
       <ComponentUsage config={config!} />
       <ComponentA11yNotes config={config!} />
       <ComponentProps props={config?.props?.children} />

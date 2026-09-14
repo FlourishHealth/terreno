@@ -1,0 +1,28 @@
+name: Documentation issue
+description: Report missing or incorrect documentation
+title: "[Docs]: "
+labels:
+  - status:needs-triage
+  - type:docs
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      description: Link to the docs page or file path in the repo
+      placeholder: https://terreno.app/docs/... or docs/how-to/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: Optional — how should the docs read instead?

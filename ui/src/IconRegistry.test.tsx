@@ -86,25 +86,27 @@ describe("IconRegistry", () => {
     ).not.toThrow();
   });
 
-  it("useIconRegistry returns the registered icon map", () => {
+  it("useIconRegistry merges consumer icons over the built-in icons", () => {
     const wrapper = ({children}: {children: React.ReactNode}) => (
       <ThemeProvider>
         <IconRegistryProvider icons={ICONS}>{children}</IconRegistryProvider>
       </ThemeProvider>
     );
     const {result} = renderHook(() => useIconRegistry(), {wrapper});
-    expect(result.current).toBe(ICONS);
     expect(result.current.customStar).toBe(CustomStar);
+    // Built-in icons remain available alongside consumer icons.
+    expect(result.current["bars-filter"]).toBeDefined();
   });
 
-  it("useIconRegistry returns empty registry when no icons are provided", () => {
+  it("useIconRegistry exposes only the built-in icons when none are provided", () => {
     const wrapper = ({children}: {children: React.ReactNode}) => (
       <ThemeProvider>
         <IconRegistryProvider>{children}</IconRegistryProvider>
       </ThemeProvider>
     );
     const {result} = renderHook(() => useIconRegistry(), {wrapper});
-    expect(Object.keys(result.current)).toHaveLength(0);
+    expect(result.current["bars-filter"]).toBeDefined();
+    expect(result.current.customStar).toBeUndefined();
   });
 
   it("useCustomIcon resolves registered names and ignores everything else", () => {

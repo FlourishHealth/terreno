@@ -1,9 +1,13 @@
 import {useMemo} from "react";
+import {withQueryString} from "./adminRpc";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
+import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 
 export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
+  const rpc = useAdminRpc();
   const enhancedApi = useMemo(() => {
-    return api.injectEndpoints({
+    return api.enhanceEndpoints({addTagTypes: ["documentStorage"]}).injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
         documentStorageCreateFolder: build.mutation({
           invalidatesTags: ["documentStorage"],
@@ -81,13 +85,85 @@ export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
           },
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, basePath]);
 
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
+  if (rpc) {
+    return {
+      useCreateFolderMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          ({folderName, prefix}: {folderName: string; prefix?: string}) =>
+            trigger({
+              body: {folderName, prefix},
+              method: "POST",
+              url: `${basePath}/folder`,
+            }),
+          meta,
+        ];
+      },
+      useDeleteFolderMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          (folderPath: string) =>
+            trigger({
+              method: "DELETE",
+              url: `${basePath}/folder/${encodeURIComponent(folderPath)}`,
+            }),
+          meta,
+        ];
+      },
+      useDeleteMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          (filePath: string) =>
+            trigger({
+              method: "DELETE",
+              url: `${basePath}/${encodeURIComponent(filePath)}`,
+            }),
+          meta,
+        ];
+      },
+      useLazyDownloadQuery: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          (filePath: string) =>
+            trigger({
+              method: "GET",
+              parseAs: "blob",
+              url: `${basePath}/download/${encodeURIComponent(filePath)}`,
+            }),
+          meta,
+        ];
+      },
+      useListQuery: (prefix?: string) =>
+        useAdminRpcQuery({
+          rpc,
+          url: withQueryString({
+            params: prefix ? {prefix} : undefined,
+            url: `${basePath}/`,
+          }),
+        }),
+      useUploadMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc);
+        return [
+          ({formData, prefix}: {formData: FormData; prefix?: string}) => {
+            if (prefix) {
+              formData.append("prefix", prefix);
+            }
+            return trigger({
+              body: formData,
+              method: "POST",
+              url: `${basePath}/`,
+            });
+          },
+          meta,
+        ];
+      },
+    };
+  }
   return {
     useCreateFolderMutation: enhanced.useDocumentStorageCreateFolderMutation,
     useDeleteFolderMutation: enhanced.useDocumentStorageDeleteFolderMutation,

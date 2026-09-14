@@ -1,4 +1,4 @@
-import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import type {Tool} from "@modelcontextprotocol/server";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
 import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
@@ -25,6 +25,11 @@ const docSearchTools: Tool[] = [
           description: "Approximate max tokens of markdown to return (default 3000, hard-capped).",
           type: "number",
         },
+        version: {
+          description:
+            "Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current `next` docs. Unmatched versions fall back to the nearest retained snapshot.",
+          type: "string",
+        },
       },
       required: ["queries"],
       type: "object",
@@ -38,6 +43,11 @@ const docSearchTools: Tool[] = [
       properties: {
         component: {
           description: 'Component name as exported by @terreno/ui, e.g. "Button", "TextField".',
+          type: "string",
+        },
+        version: {
+          description:
+            "Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current TypeDoc props. Unmatched versions fall back to the nearest retained snapshot.",
           type: "string",
         },
       },
@@ -413,7 +423,8 @@ const generateRoute = (args: {
         read: [${getPerm(permissions.read)}],
         update: [${getPerm(permissions.update)}],
         delete: [${getPerm(permissions.delete)}],
-      },`
+      },
+      // Or use RBAC: access: { resource: "${lowerName}" }, with TerrenoApp accessControl`
     : `
       permissions: {
         create: [Permissions.IsAuthenticated],
@@ -421,7 +432,8 @@ const generateRoute = (args: {
         read: [Permissions.IsAuthenticated],
         update: [Permissions.IsAuthenticated],
         delete: [Permissions.IsAuthenticated],
-      },`;
+      },
+      // Or use RBAC: access: { resource: "${lowerName}" }, with TerrenoApp accessControl`;
 
   const queryFieldsConfig = queryFields?.length
     ? `\n      queryFields: ${JSON.stringify(queryFields)},`
@@ -1086,7 +1098,7 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "terreno_bootstrap_app" || name === "terreno_bootstrap_ai_rules") {
+  if (name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 
@@ -1108,13 +1120,15 @@ export const handleToolCall = (
       ? args.packages.filter((p): p is string => typeof p === "string")
       : undefined;
     const tokenLimit = typeof args.tokenLimit === "number" ? args.tokenLimit : undefined;
-    result = searchDocs({packages, queries, tokenLimit});
+    const version = typeof args.version === "string" ? args.version : undefined;
+    result = searchDocs({packages, queries, tokenLimit, version});
     return {content: [{text: result, type: "text"}]};
   }
 
   if (name === "terreno_get_component_docs") {
     const component = typeof args.component === "string" ? args.component : "";
-    result = getComponentDocsMarkdown(component);
+    const componentVersion = typeof args.version === "string" ? args.version : undefined;
+    result = getComponentDocsMarkdown(component, componentVersion);
     return {content: [{text: result, type: "text"}]};
   }
 

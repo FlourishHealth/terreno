@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {MarkdownOverview, MarkdownViewDemo} from "@stories";
+import {MarkdownOverview, MarkdownViewDemo} from "@stories/MarkdownView.stories";
 import {MarkdownView} from "@terreno/ui";
 import React from "react";
 

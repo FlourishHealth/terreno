@@ -1,6 +1,6 @@
 # @terreno/ui
 
-React Native UI component library (88+ components). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
+React Native UI component library (a large component library). Layout (Box, Page, Card), forms (TextField, SelectField), display (Text, DataTable), actions (Button), feedback (Modal, Toast), and theming via TerrenoProvider.
 
 ## Key exports
 
@@ -10,8 +10,34 @@ React Native UI component library (88+ components). Layout (Box, Page, Card), fo
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
-- Theming: `TerrenoProvider`, `useTheme`
+- Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
+
+## Performance-sensitive imports
+
+Use a component subpath when startup parse and evaluation cost matters:
+
+```typescript
+import {Box} from "@terreno/ui/Box";
+import {DataTable} from "@terreno/ui/DataTable";
+import {Icon} from "@terreno/ui/Icon";
+```
+
+Every compiled UI module is available through `@terreno/ui/<Module>`. Existing
+`@terreno/ui/dist/<file>` imports still resolve to the compiled `.js` / `.d.ts` files. The root import remains fully
+supported and is convenient when startup cost is not material:
+
+```typescript
+import {Box, DataTable, Icon} from "@terreno/ui";
+```
+
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, and related admin tools) are
+re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
+their implementation modules load on first render instead of during the initial root import. `MarkdownView` and
+`DataTable` header info defer `react-native-markdown-display`; `EmojiSelector` defers `emoji-datasource` until open.
+
+For the smallest cold-start graph, keep using subpaths for screens that only need a few primitives (for example
+`import {Button} from "@terreno/ui/Button"`).
 
 ## Type Re-exports
 
@@ -51,6 +77,43 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 ``````
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
+
+### SplitPage
+
+Master-detail layout. Pass `listViewData` plus `renderListViewItem` for the list, and
+`renderContent` for the detail pane. On large screens both panes stay visible. On small
+screens the detail replaces the list until the user goes back.
+
+```typescript
+import {SplitPage, Text} from "@terreno/ui";
+
+<SplitPage
+  listViewData={[{id: "1", name: "Inbox"}]}
+  renderListViewItem={({item}) => <Text>{item.name}</Text>}
+  renderContent={(index) => <Text>{index === undefined ? "Select an item" : "Detail"}</Text>}
+/>
+```
+
+### Page Back Navigation
+
+Set `backButton` to render the standard header back arrow. By default it calls `router.back()`; provide `onBack` when the screen needs a deterministic destination instead of browser history.
+
+```typescript
+<Page backButton onBack={() => router.push("/admin")} title="Operations">
+  <OperationsDashboard />
+</Page>
+```
+
+### Button Press Animation
+
+Buttons use a scale animation by default. Set `pressAnimation="opacity"` for an opacity response or
+`pressAnimation="none"` when surrounding motion already provides feedback:
+
+``````typescript
+<Button text="Save" onClick={handleSave} pressAnimation="opacity" />
+``````
+
+Disabled and loading buttons use a non-interactive pressable regardless of the selected animation.
 
 ## Authentication Components
 
@@ -149,6 +212,29 @@ describe("MyComponent", () => {
 ``````
 
 **Why:** Most @terreno/ui components require ThemeProvider context to access theme values.
+
+### TapToEdit testIDs
+
+Pass `testID` on `TapToEdit`. The Field input uses that id. Action controls suffix it:
+
+| Control | test id |
+| --- | --- |
+| Edit (pencil) | `{testID}.edit-clickable` |
+| Cancel | `{testID}.cancel` |
+| Clear | `{testID}.clear` |
+| Save | `{testID}.save` |
+
+```typescript
+<TapToEdit
+  testID="profile.name"
+  setValue={setName}
+  onSave={saveName}
+  title="Name"
+  value={name}
+/>
+// Edit:  profile.name.edit-clickable
+// Cancel / Clear / Save: profile.name.cancel, .clear, .save
+```
 
 ### createCommonMocks
 
@@ -305,9 +391,9 @@ import {
   isMobileDevice,
 } from "@terreno/ui";
 
-// Check if matches breakpoint
-if (mediaQuery("md")) {
-  console.log("Medium or larger");
+// Read the current breakpoint
+if (mediaQuery() === "md") {
+  console.info("Medium viewport");
 }
 
 // Greater than breakpoint
@@ -322,33 +408,124 @@ if (mediaQuerySmallerThan("lg")) {
 
 // Detect mobile
 if (isMobileDevice()) {
-  console.log("Running on mobile device");
+  console.info("Running on mobile device");
 }
 ``````
 
-**Breakpoints:**
-- `sm`: 640px
-- `md`: 768px
-- `lg`: 1024px
-- `xl`: 1280px
+**Breakpoints are platform-specific.** `lg` and `xl` do not mean the same width on native and web.
+
+Native (iOS/Android):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `sm` | < 320 | Not supported. Accessible, not optimized. |
+| `sm` | 320–374 | Small phone. Critical workflows stay usable. |
+| `md` | 375–599 | Standard phone. |
+| `lg` | 600–1023 | Large mobile / tablet, including Samsung A11. |
+| `xl` | ≥ 1024 | Not a supported mobile layout. Use the desktop web experience where available. |
+
+Web (desktop staff):
+
+| Token | Width (pt) | Use |
+| --- | --- | --- |
+| Below `lg` | < 1024 | Not a supported desktop experience. Accessible, not optimized. |
+| `lg` | 1024–1279 | Smaller desktop. Collapse secondary content; keep core workflows. |
+| `xl` | ≥ 1280 | Primary desktop (M1/M4 MacBook Air 13"). Full multi-panel layouts. |
+
+On web, `sm` (320) and `md` (375) still classify widths below 1024 so layouts can remain accessible.
+
+`isMobileDevice()` is true below the supported desktop floor: native width < 1024 (`xl`), web width < 1024 (`lg`).
+
+Responsive `Box` direction props update automatically when the window resizes or a device rotates:
+
+``````typescript
+<Box
+  direction="column"
+  smDirection="row"
+  mdDirection="column"
+  lgDirection="row"
+  xlDirection="column"
+/>
+``````
+
+All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
+When multiple direction props match, the largest active breakpoint wins (`xl` over `lg` over `md` over `sm`).
 
 ## Icons
 
+Terreno uses **FontAwesome 6** by default. Pass icon names via `iconName` on `Icon`, `Button`, `IconButton`, form fields, `Badge`, and other icon-aware components.
+
 ### FontAwesome Icons
 
-All 2000+ FontAwesome 6 icons available via the `Icon` component:
+All 2000+ FontAwesome 6 icons are available:
 
 ``````typescript
-import {Icon} from "@terreno/ui";
+import {Icon, Button} from "@terreno/ui";
 
-<Icon name="check" size={24} color="primary" />
-<Icon name="user" size={32} color="secondary" />
-<Icon name="chevron-right" size={16} color="neutral700" />
+<Icon iconName="check" size="md" color="primary" />
+<Icon iconName="user" size="lg" color="secondaryDark" />
+<Icon iconName="chevron-right" size="sm" color="primary" />
+
+<Button text="Save" iconName="check" onClick={handleSave} />
 ``````
 
-### Custom SVG Icons
+**Sizes:** `xs`, `sm`, `md`, `lg`, `xl`, `2xl`
 
-@terreno/ui includes custom status icons:
+**Types:** `solid` (default), `regular`, `brand`, `light`, `thin`, `duotone`, `sharp`, and related variants.
+
+### Custom Icons
+
+Register your own icons (SVGs, etc.) on `TerrenoProvider` and use them by name anywhere `iconName` is accepted. Registered names take precedence over FontAwesome.
+
+**1. Create a custom icon component** that accepts `color`, `size` (pixels), and optional `testID`:
+
+``````typescript
+import type {CustomIconProps} from "@terreno/ui";
+import Svg, {Path} from "react-native-svg";
+
+export const SparkleIcon = ({color, size, testID}: CustomIconProps): React.ReactElement => (
+  <Svg fill="none" height={size} testID={testID} viewBox="0 0 24 24" width={size}>
+    <Path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill={color} />
+  </Svg>
+);
+``````
+
+Terreno resolves theme colors and size tokens before passing them to your component.
+
+**2. Register icons** via the `icons` prop on `TerrenoProvider`:
+
+``````typescript
+import {TerrenoProvider} from "@terreno/ui";
+import {SparkleIcon} from "./components/SparkleIcon";
+
+<TerrenoProvider icons={{sparkle: SparkleIcon}}>
+  {children}
+</TerrenoProvider>
+``````
+
+**3. Use by name** like any built-in icon:
+
+``````typescript
+<Icon iconName="sparkle" color="accent" size="lg" />
+<Button text="Sparkle" iconName="sparkle" onClick={handleClick} />
+<IconButton accessibilityLabel="Sparkle" iconName="sparkle" onClick={handleClick} />
+``````
+
+**TypeScript:** extend `CustomIconRegistry` via declaration merging for autocomplete and type-safe `iconName` values:
+
+``````typescript
+declare module "@terreno/ui" {
+  interface CustomIconRegistry {
+    sparkle: true;
+  }
+}
+``````
+
+See [`demo/components/customIcons.tsx`](https://github.com/flourishhealth/terreno/blob/master/demo/components/customIcons.tsx) for a full working example.
+
+### Built-in Status Icons
+
+@terreno/ui also ships status indicator SVGs as standalone components (not registered via `TerrenoProvider`):
 
 ``````typescript
 import {MobileIcon, OnlineIcon, OfflineIcon, OutOfOfficeIcon} from "@terreno/ui";
@@ -393,7 +570,7 @@ const buttonStyles = toggle(isPressed, pressedStyles, defaultStyles);
 
 @terreno/ui components do not require environment variables. All configuration is done at runtime via:
 
-- **TerrenoProvider props** — Theme customization, error handlers, base URL
+- **TerrenoProvider props** — Theme customization, custom icon registry (`icons`), OpenAPI spec URL
 - **Theme hooks** — `useTheme()`, `setTheme()`, `setPrimitives()`
 - **Component props** — Direct prop overrides for individual components
 
@@ -415,4 +592,5 @@ import {TerrenoProvider} from "@terreno/ui";
 
 ## Related Documentation
 
-See the [ui package source](../../ui/src/) and [.cursor/rules/ui/](../../.cursor/rules/ui/) for props and conventions.
+- [UI performance benchmarks](ui-performance.md)
+- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)

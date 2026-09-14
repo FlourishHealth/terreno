@@ -1,0 +1,19 @@
+{
+  "name": "terreno-plugins",
+  "owner": {
+    "name": "Terreno",
+    "email": "terreno@flourish.health"
+  },
+  "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
+  "version": "2.10.0",
+  "metadata": {
+    "pluginRoot": "plugins"
+  },
+  "plugins": [
+    {
+      "name": "terreno",
+      "source": "./plugins/terreno-claude",
+      "description": "Combined Terreno lifecycle, app-building, documentation, deployment, and verification workflows."
+    }
+  ]
+}

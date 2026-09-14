@@ -1,7 +1,12 @@
-import mongoose, {type Model, model, Schema} from "mongoose";
+import mongoose, {type Model, model, Schema, type StringSchemaDefinition} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
-import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "../plugins";
+import {
+  createdUpdatedPlugin,
+  DateOnly,
+  emailVerificationPlugin,
+  isDisabledPlugin,
+} from "../plugins";
 
 export interface User {
   admin: boolean;
@@ -10,6 +15,9 @@ export interface User {
   email: string;
   age?: number;
   disabled?: boolean;
+  organizationIds?: string[];
+  tokenEpoch?: number;
+  emailVerified?: boolean;
 }
 
 export interface SuperUser extends User {
@@ -41,11 +49,11 @@ export interface Food {
     dateAdded?: string;
   };
   tags: string[];
-  eatenBy: [Schema.Types.ObjectId | User];
+  eatenBy: Array<mongoose.Types.ObjectId | User>;
   lastEatenWith: {[name: string]: Date};
   categories: FoodCategory[];
   expiration: string;
-  likesIds: {userId: string; likes: boolean}[];
+  likesIds: {userId: mongoose.Types.ObjectId | string; likes: boolean}[];
 }
 
 export interface RequiredField {
@@ -57,6 +65,16 @@ const userSchema = new Schema<User>({
   admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
   age: {description: "The user's age", type: Number},
   name: {description: "The user's display name", type: String},
+  organizationIds: {
+    default: [],
+    description: "Organization memberships",
+    type: [String],
+  },
+  tokenEpoch: {
+    default: 0,
+    description: "Incremented on password reset to invalidate outstanding refresh tokens",
+    type: Number,
+  },
   username: {description: "The user's username", type: String},
 });
 
@@ -74,6 +92,7 @@ userSchema.plugin(
 );
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDisabledPlugin);
+userSchema.plugin(emailVerificationPlugin);
 userSchema.methods.postCreate = async function (body: {age?: number}) {
   this.age = body.age;
   return this.save();
@@ -126,8 +145,11 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
-    // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
-    expiration: {description: "Expiration date of the food", type: DateOnly as any},
+    expiration: {
+      description: "Expiration date of the food",
+      // DateOnly is a custom SchemaType registered on Schema.Types; it stores an ISO date string.
+      type: DateOnly as unknown as StringSchemaDefinition,
+    },
     hidden: {
       default: false,
       description: "Whether this food is hidden from listings",

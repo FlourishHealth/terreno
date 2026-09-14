@@ -4,7 +4,9 @@ import {Platform, Pressable, type StyleProp, TextInput, View} from "react-native
 import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {HeightFieldProps, TextStyleWithOutline} from "./Common";
-import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
+import {FieldError} from "./fieldElements/FieldError";
+import {FieldHelperText} from "./fieldElements/FieldHelperText";
+import {FieldTitle} from "./fieldElements/FieldTitle";
 import {HeightActionSheet} from "./HeightActionSheet";
 import {isMobileDevice} from "./MediaQuery";
 import {SelectField} from "./SelectField";

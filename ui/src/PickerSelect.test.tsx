@@ -1,15 +1,29 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
+import {StyleSheet} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
 
 import {RNPickerSelect} from "./PickerSelect";
 import {renderWithTheme} from "./test-utils";
+import {WebDropdownMenu} from "./WebDropdownMenu";
+
+/** Minimal element stub used to fake `document.activeElement` on web. */
+interface MockElement {
+  blur: () => void;
+}
+
+/** Globals the web rendering tests stub out. */
+const globalScope = globalThis as unknown as {
+  document?: unknown;
+  HTMLElement?: new () => MockElement;
+};
 
 // Note: @react-native-picker/picker is mocked globally in bunSetup.ts
 
 describe("PickerSelect", () => {
   const defaultProps = {
+    disableSearch: true,
     items: [
       {label: "Option 1", value: "1"},
       {label: "Option 2", value: "2"},
@@ -17,7 +31,6 @@ describe("PickerSelect", () => {
     ],
     onValueChange: () => {},
     placeholder: {label: "Select an option", value: ""},
-    searchable: false,
   };
 
   it("renders correctly with default props", () => {
@@ -165,22 +178,24 @@ describe("PickerSelect", () => {
 
   describe("web rendering (Platform.OS === 'web')", () => {
     const PlatformModule = require("react-native").Platform;
-    let savedOS: any;
+    let savedOS: unknown;
 
     let hadDocument = false;
-    let savedDocument: any;
+    let savedDocument: unknown;
 
-    const searchableWebProps = {...defaultProps, searchable: true};
+    const searchEnabledWebProps = {...defaultProps, disableSearch: false};
 
     const ensureDocument = () => {
       hadDocument = "document" in globalThis;
-      savedDocument = (globalThis as any).document;
-      if (typeof (globalThis as any).HTMLElement === "undefined") {
-        (globalThis as any).HTMLElement = class HTMLElement {};
+      savedDocument = globalScope.document;
+      if (globalScope.HTMLElement === undefined) {
+        globalScope.HTMLElement = class HTMLElement {
+          blur = (): void => {};
+        };
       }
-      const el = new (globalThis as any).HTMLElement();
+      const el = new globalScope.HTMLElement();
       el.blur = () => {};
-      (globalThis as any).document = {
+      globalScope.document = {
         activeElement: el,
         addEventListener: () => {},
         body: {
@@ -193,9 +208,9 @@ describe("PickerSelect", () => {
 
     const restoreDocument = () => {
       if (hadDocument) {
-        (globalThis as any).document = savedDocument;
+        globalScope.document = savedDocument;
       } else {
-        delete (globalThis as any).document;
+        delete globalScope.document;
       }
     };
 
@@ -220,6 +235,24 @@ describe("PickerSelect", () => {
       }
     });
 
+    it("requests body-portal rendering independently of trigger focus", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {root} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} renderMenuInBodyPortal value="2" />
+        );
+        const menu = root.findByType(WebDropdownMenu);
+
+        assert.isTrue(menu.props.renderInBodyPortal);
+        assert.isFalse(menu.props.keepTriggerFocus);
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
     it("renders web dropdown and opens on focus", async () => {
       ensureDocument();
       savedOS = PlatformModule.OS;
@@ -227,7 +260,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} onOpen={onOpen} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} onOpen={onOpen} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         expect(onOpen).toHaveBeenCalled();
@@ -237,14 +270,14 @@ describe("PickerSelect", () => {
       }
     });
 
-    it("opens web menu on press when searchable is false", async () => {
+    it("opens web menu on press when disableSearch is true", async () => {
       ensureDocument();
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "web";
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onOpen={onOpen} searchable={false} value="1" />
+          <RNPickerSelect {...defaultProps} disableSearch onOpen={onOpen} value="1" />
         );
         await act(async () => {
           fireEvent.press(getByTestId("web_picker"));
@@ -263,7 +296,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} disabled onOpen={onOpen} />
+          <RNPickerSelect {...searchEnabledWebProps} disabled onOpen={onOpen} />
         );
         await act(async () => {
           fireEvent(getByTestId("text_input"), "focus");
@@ -283,7 +316,7 @@ describe("PickerSelect", () => {
         const onClose = mock(() => {});
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} onClose={onClose} onOpen={onOpen} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} onClose={onClose} onOpen={onOpen} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         expect(onOpen).toHaveBeenCalled();
@@ -303,7 +336,7 @@ describe("PickerSelect", () => {
       try {
         PlatformModule.OS = "web";
         const {getByTestId, queryByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         const input = getByTestId("text_input");
@@ -326,7 +359,9 @@ describe("PickerSelect", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "web";
-        const {getByTestId} = renderWithTheme(<RNPickerSelect {...searchableWebProps} value="1" />);
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
+        );
         await openSearchableWebPicker(getByTestId);
         const input = getByTestId("text_input");
         await act(async () => {
@@ -353,7 +388,7 @@ describe("PickerSelect", () => {
       try {
         PlatformModule.OS = "web";
         const {getByTestId, queryByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
         );
         const input = getByTestId("text_input");
         await act(async () => {
@@ -378,7 +413,7 @@ describe("PickerSelect", () => {
           {label: "Melon", value: "m"},
         ];
         const props = {
-          ...searchableWebProps,
+          ...searchEnabledWebProps,
           items: itemsWithHelper,
           placeholder: {label: "Select", value: ""},
         };
@@ -402,7 +437,9 @@ describe("PickerSelect", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "web";
-        const {getByTestId} = renderWithTheme(<RNPickerSelect {...searchableWebProps} value="1" />);
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
+        );
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
           fireEvent.changeText(getByTestId("text_input"), "zzz");
@@ -468,7 +505,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const mockOnValueChange = mock(() => {});
         const {getByTestId, queryByTestId, rerender} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} onValueChange={mockOnValueChange} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
@@ -477,9 +514,46 @@ describe("PickerSelect", () => {
         expect(mockOnValueChange).toHaveBeenCalledWith("2", 2);
         expect(queryByTestId("web_dropdown_backdrop")).toBeNull();
         rerender(
-          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="2" />
+          <RNPickerSelect {...searchEnabledWebProps} onValueChange={mockOnValueChange} value="2" />
         );
         expect(getByTestId("text_input").props.value).toBe("Option 2");
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    // A trigger label that cannot shrink below its intrinsic width overflows narrow
+    // fields (e.g. the am/pm and timezone pickers in DateTimeField) and pushes the
+    // chevron outside the field border.
+    it("lets the searchable trigger input shrink inside a narrow field", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...searchEnabledWebProps} value="1" />
+        );
+        const style = StyleSheet.flatten(getByTestId("text_input").props.style);
+        expect(style.minWidth).toBe(0);
+        expect(style.flex).toBe(1);
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("lets the non-searchable trigger label shrink inside a narrow field", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} disableSearch value="1" />
+        );
+        const style = StyleSheet.flatten(getByTestId("text_input").props.style);
+        expect(style.minWidth).toBe(0);
+        expect(style.flex).toBe(1);
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();
@@ -493,7 +567,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "web";
         const mockOnValueChange = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...searchableWebProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect {...searchEnabledWebProps} onValueChange={mockOnValueChange} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
         await act(async () => {
@@ -512,7 +586,7 @@ describe("PickerSelect", () => {
 
   describe("android rendering", () => {
     const PlatformModule = require("react-native").Platform;
-    let savedOS: any;
+    let savedOS: unknown;
 
     it("renders android headless when useNativeAndroidPickerStyle is false", () => {
       savedOS = PlatformModule.OS;
@@ -592,8 +666,8 @@ describe("PickerSelect", () => {
         const {getByTestId} = renderWithTheme(
           <RNPickerSelect
             {...defaultProps}
+            disableSearch
             onValueChange={mockOnValueChange}
-            searchable={false}
             value="1"
           />
         );
@@ -618,7 +692,7 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "android";
         const onOpen = mock(() => {});
         const {getByTestId, queryByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onOpen={onOpen} searchable value="2" />
+          <RNPickerSelect {...defaultProps} disableSearch={false} onOpen={onOpen} value="2" />
         );
         expect(queryByTestId("android_picker")).toBeNull();
         await act(async () => {
@@ -646,8 +720,8 @@ describe("PickerSelect", () => {
         const {getByTestId} = renderWithTheme(
           <RNPickerSelect
             {...defaultProps}
+            disableSearch={false}
             onValueChange={mockOnValueChange}
-            searchable
             value="1"
           />
         );

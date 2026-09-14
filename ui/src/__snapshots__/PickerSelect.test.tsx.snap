@@ -19,6 +19,7 @@ exports[`PickerSelect renders correctly with default props 1`] = `
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -287,6 +288,7 @@ exports[`PickerSelect renders with selected value 1`] = `
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Option 2",
@@ -555,6 +557,7 @@ exports[`PickerSelect renders disabled state 1`] = `
                 "style": {
                   "color": "#686868",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -825,6 +828,7 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Option 1",
@@ -1083,6 +1087,7 @@ exports[`PickerSelect matches items by itemKey 1`] = `
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Option 2",
@@ -1341,6 +1346,7 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Select an option",
@@ -1530,6 +1536,7 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
                 "style": {
                   "color": "#1C1C1C",
                   "flex": 1,
+                  "minWidth": 0,
                 },
                 "testID": "text_input",
                 "value": "Option 1",

@@ -1,10 +1,9 @@
 import {useMemo} from "react";
+import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
-// biome-ignore lint/suspicious/noExplicitAny: payload bodies vary across admin models — handled at runtime
-type AdminPayload = any;
-// biome-ignore lint/suspicious/noExplicitAny: RTK Query tag callback args have a complex generic shape we erase here
-type TagArg = any;
+type AdminPayload = Record<string, unknown>;
+type TagArg = unknown;
 
 /**
  * Hook that generates RTK Query CRUD hooks for a specific admin model.
@@ -16,7 +15,7 @@ type TagArg = any;
  * @param api - RTK Query API instance to inject endpoints into
  * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
  * @param modelName - Name of the model for cache tag generation (e.g., "User")
- * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`, `useBulkPatchMutation`
  *
  * @example
  * ```typescript
@@ -48,6 +47,8 @@ type TagArg = any;
  *
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
+ * @deprecated Terreno 57 compatibility for ObjectId/API-only model CRUD.
+ * Terreno 58 removes this RTK `injectEndpoints` path and the required admin `api` prop.
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
@@ -126,9 +127,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
   const deleteKey = `adminDelete_${modelName}`;
   const bulkPatchKey = `adminBulkPatch_${modelName}`;
 
-  // noExplicitAny: RTK Query generates hook names dynamically from endpoint keys; not statically expressible
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = asDynamicHookApi(enhancedApi);
   return {
     useBulkPatchMutation: enhanced[`use${capitalize(bulkPatchKey)}Mutation`],
     useCreateMutation: enhanced[`use${capitalize(createKey)}Mutation`],

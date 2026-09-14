@@ -7,7 +7,7 @@ import {
   AiSuggestionMainDemo,
   AiSuggestionNotStarted,
   AiSuggestionReady,
-} from "@stories";
+} from "@stories/AiSuggestionBox.stories";
 import {AiSuggestionBox} from "@terreno/ui";
 
 export const AiSuggestionBoxConfiguration: DemoConfiguration = {
