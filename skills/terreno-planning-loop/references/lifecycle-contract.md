@@ -25,9 +25,11 @@ exit, so they can react to those results. Taste then waits in-process for produc
 with [`product-ci.md`](product-ci.md) on every discovered host, using GitHub CLI or
 CircleCI CLI in a watch loop until jobs are terminal or the wait times out. Before any
 push, Taste always fetches and merges the latest `master`, then spawns a fresh subagent
-with no parent conversation to run lint, typecheck, and the locally affected tests in
-each affected package, then pushes and watches product CI. Hosts and tokens are on the
-product-CI page.
+with no parent conversation. The subagent runs the root package's `prepush` script when
+present; that script is the repository-owned gate for lint, typecheck, static analysis,
+tests, and other local policy. When it is absent, Taste falls back to lint, typecheck,
+and locally affected tests in each affected package. Taste then pushes and watches
+product CI. Hosts and tokens are on the product-CI page.
 
 ## Discover supporting skills
 

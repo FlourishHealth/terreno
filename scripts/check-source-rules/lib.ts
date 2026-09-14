@@ -1,7 +1,7 @@
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
 import {join, relative, resolve} from "node:path";
 
-export const SCOPED_PACKAGES = [
+const SCOPED_PACKAGES = [
   "admin-backend",
   "admin-frontend",
   "ai",
@@ -11,9 +11,9 @@ export const SCOPED_PACKAGES = [
   "ui",
 ] as const;
 
-export const BACKEND_PACKAGES = new Set(["admin-backend", "ai", "api", "example-backend"]);
+const BACKEND_PACKAGES = new Set(["admin-backend", "ai", "api", "example-backend"]);
 
-export type SourceRuleId =
+type SourceRuleId =
   | "as-any"
   | "console-log"
   | "date"
@@ -92,7 +92,7 @@ const shouldSkipDirectory = (dirName: string): boolean => {
   return IGNORED_DIR_NAMES.has(dirName) || dirName.startsWith(".");
 };
 
-export const walkScopedSourceFiles = (repoRoot: string): string[] => {
+const walkScopedSourceFiles = (repoRoot: string): string[] => {
   const files: string[] = [];
 
   const walk = (directory: string): void => {
@@ -121,7 +121,7 @@ export const walkScopedSourceFiles = (repoRoot: string): string[] => {
   return files.sort();
 };
 
-export const blankCommentsAndStrings = (source: string): string => {
+const blankCommentsAndStrings = (source: string): string => {
   let output = "";
   let index = 0;
   let inSingle = false;
@@ -437,7 +437,10 @@ const isImmediateFunctionAssignment = (prefix: string): boolean => {
 };
 
 const isImmediateCallArgument = (prefix: string): boolean => {
-  const withoutAsync = prefix.replace(/\s+$/, "").replace(/async\s*$/, "").replace(/\s+$/, "");
+  const withoutAsync = prefix
+    .replace(/\s+$/, "")
+    .replace(/async\s*$/, "")
+    .replace(/\s+$/, "");
   return /[,(]$/.test(withoutAsync);
 };
 

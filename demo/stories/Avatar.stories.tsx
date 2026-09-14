@@ -2,7 +2,6 @@ import {
   Avatar,
   type AvatarImagePickerEvent,
   type AvatarProps,
-  type AvatarStatus,
   Box,
   Heading,
   Text,
@@ -108,34 +107,6 @@ export const AvatarOutlines = () => {
         src="https://i.ibb.co/ZfCZrY8/keerthi.jpg"
         status="online"
       />
-    </Box>
-  );
-};
-
-export const AvatarStatusDemo = () => {
-  const renderIcon = (
-    text: string,
-    size: "xs" | "sm" | "md" | "lg" | "xl",
-    status: AvatarStatus
-  ) => {
-    return (
-      <Box paddingY={1}>
-        <Text>{text}</Text>
-        <Avatar
-          hasBorder
-          name="Tony Stark"
-          size={size}
-          src="https://i.ibb.co/ZfCZrY8/keerthi.jpg"
-          status={status}
-        />
-      </Box>
-    );
-  };
-  return (
-    <Box color="neutral" direction="column" display="flex" height="100%" width="100%">
-      {renderIcon("Online", "xs", "online")}
-      {renderIcon("Online Mobile", "xl", "online")}
-      {renderIcon("Offline Mobile", "xl", "offline")}
     </Box>
   );
 };

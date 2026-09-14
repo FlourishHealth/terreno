@@ -118,23 +118,29 @@ describe("AdminProvider widget registry", () => {
     ]);
   });
 
-  it("warns once for the deprecated customScreens prop inside a provider", () => {
+  it("warns once per missing widget and for the deprecated customScreens prop", () => {
     const warn = mock(() => {});
     const originalWarn = console.warn;
     console.warn = warn;
     const Probe: React.FC = () => {
+      useHomeWidget("missing-home");
+      useHomeWidget("missing-home");
+      useScreenWidget("missing-screen");
+      useFieldWidget(undefined);
+      useFieldWidget("missing-field");
       useDeprecatedCustomScreensProp([{name: "legacy"}]);
       return null;
     };
 
-    renderWithTheme(
-      <AdminProvider api={{} as AdminApi} baseUrl="/admin">
+    const {toJSON} = renderWithTheme(
+      <AdminProvider api={{} as unknown as AdminApi} baseUrl="/admin">
         <Probe />
       </AdminProvider>
     );
     console.warn = originalWarn;
 
     expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(toJSON()).toBeNull();
   });
 
   it("exposes host-injected credentials and getAuthHeaders on context", () => {

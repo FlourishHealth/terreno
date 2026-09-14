@@ -5,7 +5,7 @@ import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 import {useAdminRpc, useAdminRpcMutation} from "./useAdminRpc";
 
-export interface AdminBackgroundTaskBody {
+interface AdminBackgroundTaskBody {
   ids?: string[];
   kind: string;
   metadata?: Record<string, unknown>;

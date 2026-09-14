@@ -77,5 +77,3 @@ export const emptySplitApi = createApi({
   }),
   reducerPath: "terreno-rtk",
 });
-
-export const {useGetVersionCheckQuery, useLazyGetVersionCheckQuery} = emptySplitApi;

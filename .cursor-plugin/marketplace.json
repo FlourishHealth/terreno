@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-    "version": "2.8.0",
+    "version": "2.10.0",
     "pluginRoot": "plugins"
   },
   "plugins": [

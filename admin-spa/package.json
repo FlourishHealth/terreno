@@ -21,7 +21,6 @@
     "expo-status-bar": "catalog:",
     "express": "catalog:",
     "http-proxy-middleware": "^3.0.3",
-    "luxon": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
@@ -45,6 +44,7 @@
     "@types/react": "catalog:",
     "@types/supertest": "catalog:",
     "babel-preset-expo": "catalog:",
+    "luxon": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:"
   },
@@ -98,10 +98,11 @@
     "test": "bun test ./src ./store ./components",
     "test:agent": "AGENT=1 bun test --only-failures ./src ./store ./components",
     "test:ci": "bun test ./src ./store ./components",
+    "test:coverage": "bun run ../scripts/check-coverage.ts",
     "test:e2e": "playwright test",
     "test:integration": "playwright test --config playwright.integration.config.ts",
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
-  "version": "57.2.0"
+  "version": "57.3.0"
 }

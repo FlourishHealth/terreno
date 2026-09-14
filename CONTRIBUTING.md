@@ -87,6 +87,33 @@ Run these from the repository root:
 | `bun run frontend:web` | Start example frontend (web) |
 | `bun run demo:start` | Start UI component demo |
 
+## Testing and coverage
+
+Published packages must stay at **95% function coverage and 95% line coverage**.
+Pull requests must not drop either metric. CI runs `scripts/check-coverage.ts`
+(`bun run test:coverage` in the package directory) as the live gate.
+
+Run coverage locally from a package directory:
+
+```bash
+cd ui && bun run test:coverage
+```
+
+Replace `ui` with any published package (`api`, `rtk`, `syncdb`, `ai`, `comms`,
+`mcp-server`, `admin-backend`, `admin-frontend`, `admin-spa`, `api-health`,
+`feature-flags`, `test`). The script writes `coverage/lcov.info` for Codecov.
+Isolated `*.isolated.ts(x)` suites are merged into that report.
+
+Codecov uploads per-package flags from CircleCI (and retained GitHub Actions
+twins). The README badge reflects the merged project. Maintainers set
+`CODECOV_TOKEN` in CircleCI project env and as a GitHub Actions secret. Public
+repos still need a token unless the Codecov org disables token authentication
+for public repositories.
+
+When you add a framework capability, exercise it in `example-backend` and/or
+`example-frontend` and update
+[docs/explanation/example-coverage.md](docs/explanation/example-coverage.md).
+
 Package-specific commands are listed in [AGENTS.md](AGENTS.md). You can also use Bun's filter syntax:
 
 ```bash
@@ -187,7 +214,7 @@ Follow the conventions in [AGENTS.md](AGENTS.md). Highlights:
 1. **Ideas** — start in [GitHub Discussions → Ideas](https://github.com/FlourishHealth/terreno/discussions/new?category=ideas); do not open a tracking issue yourself.
 2. **Promotion** — a maintainer promotes an accepted idea to a `Shaping` tracking issue on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md) board (`roadmap-promote`).
 3. **Design** — substantial work gets an [implementation plan](docs/implementationPlans/README.md) (IP) plus a task list before large coding begins. When the IP is approved, the tracking issue moves to `Planned` and gets its `IP` field set (`roadmap-item` — it updates the promoted issue, it does not open a second one).
-4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) ⇄ Roast (prove) until tasks are done → Brew (submit) → Taste (react once). Pick and Roast loop one task at a time. Brew and Taste wait in-process for review bots such as Bugbot and CodeQL. Taste then waits in a loop for product CI using GitHub CLI or CircleCI CLI, and before any push always pulls latest `master`, then runs lint, typecheck, and locally affected tests in affected packages using a no-context subagent, then pushes and watches CI. Taste observes product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. Waits prefer provider CLI watch hooks over timer polling. Outer loops `/terreno-planning-loop` (task list; pass `phases=` to restrict) and `/terreno-taste-sweep` (broken PRs) reinvoke those stages. Read architecture docs first and update them in the same slice. Install skills with `npx skills add FlourishHealth/terreno`, the Cursor plugin `terreno-planning` from `.cursor-plugin/marketplace.json`, the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json` (`$terreno-1-grow`), or the Claude Code plugin `terreno` from `.claude-plugin/marketplace.json` (`/terreno:1-grow`). Regenerate `skills/` and the generated Claude plugin with `bun run skills:sync`.
+4. **Build** — the [`terreno-planning` plugin](plugins/README.md) provides bounded transitions: Grow (shape) → Pick (build) ⇄ Roast (prove) until tasks are done → Brew (submit) → Taste (react once). Pick and Roast loop one task at a time. Brew and Taste wait in-process for review bots such as Bugbot and CodeQL. Taste then waits in a loop for product CI using GitHub CLI or CircleCI CLI, and before any push always pulls latest `master`, then runs the repository root's `prepush` package script when present (otherwise affected-package lint, typecheck, and tests) using a no-context subagent, then pushes and watches CI. Taste observes product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. Waits prefer provider CLI watch hooks over timer polling. Outer loops `/terreno-planning-loop` (task list; pass `phases=` to restrict) and `/terreno-taste-sweep` (broken PRs) reinvoke those stages. Read architecture docs first and update them in the same slice. Install skills with `npx skills add FlourishHealth/terreno`, the Cursor plugin `terreno-planning` from `.cursor-plugin/marketplace.json`, the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json` (`$terreno-1-grow`), or the Claude Code plugin `terreno` from `.claude-plugin/marketplace.json` (`/terreno:1-grow`). Regenerate `skills/` and the generated Claude plugin with `bun run skills:sync`.
 5. **RFC path** — API or package changes that affect consumers start in [RFCs](https://github.com/FlourishHealth/terreno/discussions/new?category=rfcs); accepted RFCs become IPs.
 
 See the [roadmap process](docs/explanation/roadmap-process.md) for the full IP ↔ roadmap lifecycle, the promote-vs-item split, maintainer setup, and the Linear bridge.

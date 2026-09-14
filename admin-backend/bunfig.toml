@@ -4,7 +4,8 @@ root = "./src"
 coveragePathIgnorePatterns = [
   "**/*.test.ts",
   "**/tests/**",
-  "../**",
+  "../api/**",
+  "../test/**",
   "dist/**",
   "**/node_modules/**",
 ]

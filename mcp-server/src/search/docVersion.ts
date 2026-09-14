@@ -25,7 +25,7 @@ const semverKey = (value: string): number[] => {
   return core.split(".").map((part) => Number.parseInt(part, 10) || 0);
 };
 
-export const compareDocSemver = (left: string, right: string): number => {
+const compareDocSemver = (left: string, right: string): number => {
   const leftParts = semverKey(left);
   const rightParts = semverKey(right);
   const length = Math.max(leftParts.length, rightParts.length);
@@ -97,6 +97,7 @@ export const docVersionFromSourcePath = (sourcePath: string): string | undefined
   return match?.[1];
 };
 
+/** @internal */
 export const slugifyComponentName = (name: string): string =>
   name
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -106,6 +107,7 @@ export const slugifyComponentName = (name: string): string =>
     .replace(/^-|-$/g, "");
 
 /** Matches `website/scripts/generate-component-docs.ts`: lowercase only, no camelCase split. */
+/** @internal */
 export const generatorSlugifyComponentName = (name: string): string =>
   name
     .toLowerCase()

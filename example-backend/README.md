@@ -77,7 +77,6 @@ MCP service tokens are on. `TerrenoApp` sets `mcpServiceTokens: {enabled: true, 
 ```
 src/
 ├── api/           # API route handlers
-├── constants/     # Application constants
 ├── models/        # Mongoose models
 ├── scripts/       # Utility scripts
 ├── services/      # Business logic services

@@ -1,29 +1,10 @@
 {
-  "name": "@terreno/mcp",
-  "version": "57.2.0",
-  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
-  "type": "module",
-  "main": "dist/index.js",
   "bin": {
     "terreno-mcp": "./dist/index.js",
     "terreno-mcp-local": "./dist/local/index.js"
   },
-  "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "dev": "bun --watch src/index.ts",
-    "start": "bun dist/index.js",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --write src/",
-    "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile:watch": "tsc -w",
-    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
-    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
-    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
-    "test": "bun test --max-concurrency=1 src/",
-    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
-    "test:ci": "bun test --max-concurrency=1 src/",
-    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/express": "^2.0.0",
@@ -35,6 +16,7 @@
     "minisearch": "^7.2.0",
     "mongoose": "catalog:"
   },
+  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "catalog:",
@@ -46,6 +28,7 @@
     "dist",
     "src/docs"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "mcp",
     "terreno",
@@ -54,15 +37,32 @@
     "code-generation"
   ],
   "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/mcp",
   "publishConfig": {
     "access": "public"
   },
-  "bugs": {
-    "url": "https://github.com/FlourishHealth/terreno/issues"
-  },
-  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
-  }
+  },
+  "scripts": {
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile:watch": "tsc -w",
+    "dev": "bun --watch src/index.ts",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "lint:unsafefix": "biome check --fix --unsafe src/",
+    "start": "bun dist/index.js",
+    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
+    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
+    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
+    "test": "bun test --max-concurrency=1 src/",
+    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
+    "test:ci": "bun test --max-concurrency=1 src/",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  },
+  "type": "module",
+  "version": "57.3.0"
 }
