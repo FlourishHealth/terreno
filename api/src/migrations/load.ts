@@ -12,6 +12,51 @@ import type {LoadedMigration, MigrationModule} from "./types";
 
 export const MIGRATION_FILENAME = /^(\d{14})-[a-z0-9-]+\.ts$/;
 
+/** Bun compile (`bun build --compile`) puts modules on a virtual FS. */
+const isBunVirtualFsPath = (value: string): boolean => {
+  return value.includes("$bunfs");
+};
+
+/**
+ * Pick a real on-disk migrations directory.
+ * `bun build --compile` rewrites `import.meta.url` to `$bunfs`, which is not
+ * scandir-able. Prefer an explicit real `dir`, then `MIGRATIONS_DIR`, then
+ * `<cwd>/migrations`.
+ */
+export const resolveMigrationDir = ({
+  cwd = process.cwd(),
+  dir,
+  envDir = process.env.MIGRATIONS_DIR,
+}: {
+  cwd?: string;
+  dir?: string;
+  envDir?: string;
+}): string => {
+  if (dir && !isBunVirtualFsPath(dir)) {
+    return dir;
+  }
+  if (envDir) {
+    return envDir;
+  }
+  return join(cwd, "migrations");
+};
+
+const readMigrationFilenames = async (dir: string): Promise<string[]> => {
+  try {
+    return await readdir(dir);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      throw new APIError({
+        detail: `No directory at ${dir}`,
+        status: 404,
+        title: "Migration directory not found",
+      });
+    }
+    throw error;
+  }
+};
+
 const checksumOf = (source: string): string => {
   return createHash("sha256").update(source).digest("hex");
 };
@@ -21,7 +66,8 @@ const expectedIdFromFilename = (filename: string): string => {
 };
 
 export const checkMigrationFiles = async ({dir}: {dir: string}): Promise<LoadedMigration[]> => {
-  const entries = await readdir(dir);
+  const resolvedDir = resolveMigrationDir({dir});
+  const entries = await readMigrationFilenames(resolvedDir);
   const files = entries.filter((name) => name.endsWith(".ts")).sort();
   const loaded: LoadedMigration[] = [];
   const seenIds = new Set<string>();
@@ -35,8 +81,8 @@ export const checkMigrationFiles = async ({dir}: {dir: string}): Promise<LoadedM
       });
     }
 
-    const source = await readFile(join(dir, filename), "utf8");
-    const mod = (await import(pathToFileURL(join(dir, filename)).href)) as MigrationModule;
+    const source = await readFile(join(resolvedDir, filename), "utf8");
+    const mod = (await import(pathToFileURL(join(resolvedDir, filename)).href)) as MigrationModule;
     const expectedId = expectedIdFromFilename(filename);
     if (mod.id !== expectedId) {
       throw new APIError({

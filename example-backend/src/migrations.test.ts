@@ -9,7 +9,7 @@ import {
 import {assert} from "chai";
 import mongoose from "mongoose";
 import supertest from "supertest";
-import {EXAMPLE_MIGRATIONS_DIR} from "./migrationsDir";
+import {resolveExampleMigrationsDir} from "./migrationsDir";
 import {seedSteps} from "./scripts/seed-test-data";
 import {start} from "./server";
 
@@ -21,7 +21,7 @@ const migrationsCollection = (): mongoose.Collection<MigrationStoreDoc> => {
 
 describe("example-backend migrations", () => {
   it("loads timestamped files from migrations/", async () => {
-    const loaded = await checkMigrationFiles({dir: EXAMPLE_MIGRATIONS_DIR});
+    const loaded = await checkMigrationFiles({dir: resolveExampleMigrationsDir()});
     assert.deepEqual(
       loaded.map((migration) => migration.id),
       [expectedId]
@@ -33,7 +33,7 @@ describe("example-backend migrations", () => {
   it("applies and reverses the example todos index", async () => {
     const result = await exerciseReversibleMigrations({
       connect: async () => mongoose.connection,
-      dir: EXAMPLE_MIGRATIONS_DIR,
+      dir: resolveExampleMigrationsDir(),
     });
     assert.deepEqual(result.applied, [expectedId]);
     assert.deepEqual(result.reversed, [expectedId]);

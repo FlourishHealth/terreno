@@ -100,6 +100,15 @@ describe("AdminApp migrations routes", () => {
       notAdminAgent = await authAsUser(app, "notAdmin");
     });
 
+    it("returns 404 when the configured directory is missing", async () => {
+      const missingApp = buildApp({
+        migrationsDir: join(tmpdir(), "terreno-admin-migrations-missing"),
+      });
+      const agent = await authAsUser(missingApp, "admin");
+      const res = await agent.get("/admin/migrations/status").expect(404);
+      expect(res.body.title).toBe("Migration directory not found");
+    });
+
     it("returns pending status for admins", async () => {
       const res = await adminAgent.get("/admin/migrations/status").expect(200);
       expect(res.body.data.pending.map((row: {id: string}) => row.id)).toEqual([

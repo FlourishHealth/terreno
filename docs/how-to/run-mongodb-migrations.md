@@ -95,7 +95,7 @@ status list plus Dry run / Apply pending. Task logs poll `GET /admin/scripts/tas
 
 ## Example app
 
-`example-backend` keeps files in `migrations/` and wires the same directory into
+`example-backend` keeps files in `migrations/` and wires `resolveExampleMigrationsDir()` into
 `TerrenoApp` and `AdminApp`. From `example-backend/`:
 
 ```bash
@@ -103,6 +103,11 @@ bun run migrate:check
 bun run migrate:status
 bun run migrate:up
 ```
+
+Compiled deploys (`bun build --compile`, Cloud Run) cannot scandir `$bunfs`. The example
+Dockerfile copies `migrations/` to `/app/migrations` and sets `MIGRATIONS_DIR`. GET
+`/admin/migrations/status` returns **404** `Migration directory not found` when that path is
+missing, not a generic 500.
 
 
 ## Production wet apply

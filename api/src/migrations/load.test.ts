@@ -2,9 +2,12 @@
  * Tests for loading timestamped migration files (order, id match, required `up`).
  */
 import {describe, expect, it} from "bun:test";
+import {mkdir, mkdtemp, rm, writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
 import {join} from "node:path";
 
-import {checkMigrationFiles, loadMigrations} from "./load";
+import {APIError} from "../errors";
+import {checkMigrationFiles, loadMigrations, resolveMigrationDir} from "./load";
 
 const fixtures = (...parts: string[]): string => {
   return join(import.meta.dir, "fixtures", ...parts);
@@ -36,6 +39,56 @@ describe("checkMigrationFiles", () => {
     await expect(checkMigrationFiles({dir: fixtures("missing-up")})).rejects.toThrow(
       "Migration missing up"
     );
+  });
+
+  it("maps a missing directory to a 404 APIError", async () => {
+    try {
+      await checkMigrationFiles({dir: join(tmpdir(), "terreno-migrations-missing-dir")});
+      throw new Error("expected checkMigrationFiles to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      expect((error as APIError).status).toBe(404);
+      expect((error as APIError).message).toBe("Migration directory not found");
+    }
+  });
+
+  it("loads from MIGRATIONS_DIR when dir is on $bunfs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "terreno-migrations-bunfs-"));
+    const dir = join(root, "migrations");
+    await mkdir(dir);
+    await writeFile(
+      join(dir, "20260910120000-from-env.ts"),
+      'export const id = "20260910120000-from-env";\nexport const up = async () => {};\n'
+    );
+    process.env.MIGRATIONS_DIR = dir;
+    try {
+      const loaded = await checkMigrationFiles({dir: "/$bunfs/migrations"});
+      expect(loaded.map((migration) => migration.id)).toEqual(["20260910120000-from-env"]);
+    } finally {
+      Reflect.deleteProperty(process.env, "MIGRATIONS_DIR");
+      await rm(root, {force: true, recursive: true});
+    }
+  });
+});
+
+describe("resolveMigrationDir", () => {
+  it("keeps a real on-disk dir", () => {
+    expect(resolveMigrationDir({dir: "/app/migrations", envDir: "/env/migrations"})).toBe(
+      "/app/migrations"
+    );
+  });
+
+  it("does not keep a $bunfs dir; uses MIGRATIONS_DIR then cwd/migrations", () => {
+    expect(
+      resolveMigrationDir({
+        cwd: "/app",
+        dir: "/$bunfs/migrations",
+        envDir: "/app/migrations",
+      })
+    ).toBe("/app/migrations");
+    expect(
+      resolveMigrationDir({cwd: "/app", dir: "file:///$bunfs/root/src/migrationsDir.ts"})
+    ).toBe("/app/migrations");
   });
 });
 
