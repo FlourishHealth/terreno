@@ -1,3 +1,4 @@
+import {describe, expect, it} from "bun:test";
 import type {BackgroundTask} from "./types";
 
 /**
@@ -10,3 +11,9 @@ export const adminScriptsHarness: {
 } = {
   taskQuery: {data: undefined},
 };
+
+describe("adminScriptsHarness", () => {
+  it("starts with an empty task query", (): void => {
+    expect(adminScriptsHarness.taskQuery.data).toBeUndefined();
+  });
+});

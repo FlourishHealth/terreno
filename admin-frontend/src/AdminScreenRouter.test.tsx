@@ -66,7 +66,7 @@ mock.module("./useAdminScripts", () => ({
 
 import {AdminMigrationsView} from "./AdminMigrationsView";
 import {AdminScreenRouter} from "./AdminScreenRouter";
-import {adminScriptsHarness} from "./adminScriptsHarness";
+import {adminScriptsHarness} from "./adminScriptsHarness.test";
 
 const injectAdminEndpoints = ({
   endpoints,
