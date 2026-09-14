@@ -35,7 +35,11 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
   const prefix = (routeBase ?? "").replace(/\/$/, "");
   const backHref = `${prefix}/ai-evaluators`;
 
-  const {data: promptDetailRaw} = usePromptDetailQuery(judgePromptName, {
+  const {
+    data: promptDetailRaw,
+    isError: isJudgePromptError,
+    isLoading: isJudgePromptLoading,
+  } = usePromptDetailQuery(judgePromptName, {
     skip: type !== "llm-judge" || !judgePromptName.trim(),
   });
   const promptDetail = useMemo(() => unwrapPromptDetail(promptDetailRaw), [promptDetailRaw]);
@@ -50,12 +54,39 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
   }, [promptDetail]);
 
   const schemaMismatchKey = useMemo(() => {
-    if (type !== "llm-judge") {
+    if (
+      type !== "llm-judge" ||
+      !judgePromptName.trim() ||
+      isJudgePromptLoading ||
+      isJudgePromptError ||
+      !promptDetail
+    ) {
       return undefined;
     }
     const missing = judgeSchemaMissingDimensions(dimensions, judgeOutputSchema);
     return missing[0];
-  }, [dimensions, judgeOutputSchema, type]);
+  }, [
+    dimensions,
+    isJudgePromptError,
+    isJudgePromptLoading,
+    judgeOutputSchema,
+    judgePromptName,
+    promptDetail,
+    type,
+  ]);
+
+  const judgePromptStatus = useMemo((): "error" | "idle" | "loading" | "ready" => {
+    if (!judgePromptName.trim()) {
+      return "idle";
+    }
+    if (isJudgePromptLoading) {
+      return "loading";
+    }
+    if (isJudgePromptError || !promptDetail) {
+      return "error";
+    }
+    return "ready";
+  }, [isJudgePromptError, isJudgePromptLoading, judgePromptName, promptDetail]);
 
   const handleAddDimension = useCallback((): void => {
     setDimensions((current) => {
@@ -86,9 +117,29 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
     });
   }, []);
 
-  const handleLiveSampleRateChange = useCallback((value: number): void => {
+  const handleLiveSampleRateChange = useCallback(
+    (value: number): void => {
+      if (type === "human") {
+        setRunModes((current) => {
+          return {...current, liveSampleRate: 0};
+        });
+        return;
+      }
+      setRunModes((current) => {
+        return {...current, liveSampleRate: value};
+      });
+    },
+    [type]
+  );
+
+  const handleTypeChange = useCallback((nextType: EvaluatorRecord["type"]): void => {
+    setType(nextType);
+    setCreateError("");
+    if (nextType !== "human") {
+      return;
+    }
     setRunModes((current) => {
-      return {...current, liveSampleRate: value};
+      return {...current, liveSampleRate: 0};
     });
   }, []);
 
@@ -100,6 +151,18 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
     }
     if (dimensions.some((dimension) => !dimension.key.trim())) {
       setCreateError("Each dimension needs a key.");
+      return;
+    }
+    if (type === "llm-judge" && !judgePromptName.trim()) {
+      setCreateError("Judge prompt name is required.");
+      return;
+    }
+    if (type === "llm-judge" && isJudgePromptLoading) {
+      setCreateError("Wait for the judge prompt schema to load.");
+      return;
+    }
+    if (type === "llm-judge" && (isJudgePromptError || !promptDetail)) {
+      setCreateError("Judge prompt or its production schema could not be loaded.");
       return;
     }
     if (type === "llm-judge" && schemaMismatchKey) {
@@ -132,9 +195,12 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
     createEvaluator,
     dimensions,
     instructions,
+    isJudgePromptError,
+    isJudgePromptLoading,
     judgePromptName,
     name,
     prefix,
+    promptDetail,
     runModes,
     schemaMismatchKey,
     target,
@@ -151,6 +217,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
         instructions={instructions}
         isCreating={createState.isLoading}
         judgePromptName={judgePromptName}
+        judgePromptStatus={judgePromptStatus}
         name={name}
         onAddDimension={handleAddDimension}
         onAssertionConstraintChange={setAssertionConstraint}
@@ -163,7 +230,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
         onNameChange={setName}
         onRemoveDimension={handleRemoveDimension}
         onTargetChange={setTarget}
-        onTypeChange={setType}
+        onTypeChange={handleTypeChange}
         runModes={runModes}
         schemaMismatchKey={schemaMismatchKey}
         target={target}

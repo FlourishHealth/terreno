@@ -78,6 +78,7 @@ export interface AiEvaluatorNewViewProps {
   instructions: string;
   isCreating: boolean;
   judgePromptName: string;
+  judgePromptStatus?: "error" | "idle" | "loading" | "ready";
   name: string;
   onAddDimension: () => void;
   onAssertionConstraintChange: (value: string) => void;
@@ -118,6 +119,7 @@ const renderTypePanel = ({
   judgeOutputSchema,
   instructions,
   judgePromptName,
+  judgePromptStatus,
   onAssertionConstraintChange,
   onAssertionPathChange,
   onInstructionsChange,
@@ -133,6 +135,7 @@ const renderTypePanel = ({
   judgeOutputSchema?: Record<string, unknown>;
   instructions?: string;
   judgePromptName?: string;
+  judgePromptStatus?: "error" | "idle" | "loading" | "ready";
   onAssertionConstraintChange?: (value: string) => void;
   onAssertionPathChange?: (value: string) => void;
   onInstructionsChange?: (value: string) => void;
@@ -145,6 +148,8 @@ const renderTypePanel = ({
   if (type === "llm-judge") {
     const missing = judgeSchemaMissingDimensions(evaluator?.dimensions ?? [], judgeOutputSchema);
     const mismatch = schemaMismatchKey ?? missing[0];
+    const promptStatus =
+      judgePromptStatus ?? (evaluator || judgePromptName?.trim() ? "ready" : "idle");
     return (
       <Box gap={2} testID="ai-evaluator-panel-llm-judge">
         {evaluator ? (
@@ -184,6 +189,18 @@ const renderTypePanel = ({
         {mismatch ? (
           <Text color="error" testID="ai-evaluator-schema-mismatch">
             Judge prompt output schema missing required dimension &quot;{mismatch}&quot;
+          </Text>
+        ) : promptStatus === "loading" ? (
+          <Text color="secondaryDark" size="sm" testID="ai-evaluator-schema-loading">
+            Checking judge prompt schema…
+          </Text>
+        ) : promptStatus === "error" ? (
+          <Text color="error" size="sm" testID="ai-evaluator-schema-error">
+            Judge prompt or its production schema could not be loaded.
+          </Text>
+        ) : promptStatus === "idle" ? (
+          <Text color="secondaryDark" size="sm" testID="ai-evaluator-schema-idle">
+            Enter a judge prompt name to check its production output schema.
           </Text>
         ) : (
           <Text color="success" size="sm">
@@ -348,6 +365,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
   instructions,
   isCreating,
   judgePromptName,
+  judgePromptStatus,
   name,
   onAddDimension,
   onAssertionConstraintChange,
@@ -501,6 +519,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
         evaluatorType: type,
         instructions,
         judgePromptName,
+        judgePromptStatus,
         onAssertionConstraintChange,
         onAssertionPathChange,
         onInstructionsChange,
@@ -510,6 +529,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
       <Box gap={2}>
         <Text bold>Run modes</Text>
         <TextField
+          disabled={type === "human"}
           helperText={EVALUATOR_LIVE_SAMPLE_HELP}
           onChange={(value) => {
             const parsed = Number(value);

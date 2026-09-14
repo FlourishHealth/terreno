@@ -27,7 +27,7 @@ const statusData = {
 
 let createShouldFail = false;
 
-const createMutation = mock(() => ({
+const createMutation = mock((_body?: unknown) => ({
   unwrap: async () => {
     if (createShouldFail) {
       throw {data: {title: "Duplicate name"}};
@@ -108,6 +108,12 @@ describe("AiEvaluatorNewScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-evaluator-type-llm-judge"));
       await Promise.resolve();
     });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-evaluator-submit"));
+      await Promise.resolve();
+    });
+    expect(view.getByText("Judge prompt name is required.")).toBeTruthy();
+    expect(view.getByTestId("ai-evaluator-schema-idle")).toBeTruthy();
     fireEvent.changeText(view.getByTestId("ai-evaluator-judge-prompt"), "judge");
     await act(async () => {
       fireEvent.press(view.getByTestId("ai-evaluator-submit"));
@@ -183,6 +189,7 @@ describe("AiEvaluatorNewScreenWidget", () => {
 
   it("edits dimensions, live sample rate, and creates human evaluators", async () => {
     createShouldFail = false;
+    createMutation.mockClear();
     routerPush.mockClear();
     const view = renderWithTheme(
       <AiEvaluatorNewScreenWidget
@@ -214,5 +221,9 @@ describe("AiEvaluatorNewScreenWidget", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     assert.equal(routerPush.mock.calls.length, 1);
+    const createBody = createMutation.mock.calls[0]?.[0] as
+      | {runModes?: {liveSampleRate?: number}}
+      | undefined;
+    assert.equal(createBody?.runModes?.liveSampleRate, 0);
   });
 });

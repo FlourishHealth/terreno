@@ -386,7 +386,10 @@ or **Queue clear**.
 per-field helper text (name, type, target, dimensions, type-specific config, live sample rate),
 type (human / JSON assert / LLM judge), target, dimension builder, type-specific config (judge
 prompt name, assertion path/constraint, or reviewer instructions), live-sampling rate, and inline
-schema-mismatch errors naming the missing dimension key. `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
+schema-mismatch errors naming the missing dimension key. Choosing Human resets live sampling to
+`0` and disables that field. LLM judge schema feedback stays idle until a prompt is named, then
+shows loading/error states and only checks dimensions after its production schema loads.
+`ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
 badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
 experiments. Its dimension and usage rows use the shared `ObservabilityTable` instead of
 `DataTable`, which sizes to a height-constrained parent and collapses inside a scrolling page.
