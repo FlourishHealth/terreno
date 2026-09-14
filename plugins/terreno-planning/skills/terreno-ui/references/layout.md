@@ -63,12 +63,14 @@ Box wrapper with default rounding and shadow.
 
 ## SplitPage
 
-Two-column layout for master-detail patterns (web-friendly).
+Master-detail layout. On large screens the list and detail sit side by side. On small
+screens, selecting a list item replaces the list with the detail pane.
 
 ```tsx
 <SplitPage
-  master={<ItemList />}
-  detail={<ItemDetail />}
+  listViewData={items}
+  renderListViewItem={({item}) => <Text>{item.name}</Text>}
+  renderContent={(index) => <ItemDetail index={index} />}
 />
 ```
 

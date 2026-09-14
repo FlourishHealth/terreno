@@ -109,8 +109,47 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 
 ## Coverage gates
 
-Package CI uses `scripts/check-coverage.ts` to enforce the package-wide thresholds
-declared in `bunfig.toml`.
+Package CI uses `scripts/check-coverage.ts` (`bun run test:coverage`, default 95%
+functions and lines) as the live gate. Dedicated CircleCI jobs (`api-ci`, `ai-ci`,
+`rtk-ci`, `ui-ci`, `syncdb-ci`, `comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run
+that script. Published packages without a dedicated workflow
+(`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `@terreno/test`)
+run the same lint, compile, and coverage commands via the parameterized
+`packages-ci` job. Retained GitHub Actions twins stay in lockstep (`on: []`),
+including `.github/workflows/packages-ci.yml`.
+
+Each of those jobs then uploads `coverage/lcov.info` to Codecov with a distinct
+flag (`api`, `ui`, `rtk`, …) via `scripts/upload-codecov.sh`. The script
+downloads the linux uploader over HTTPS and refuses to run it unless the
+SHA-256 digest matches the pin in the script (`CODECOV_UPLOADER_SHA256`).
+`codecov.yml` sets per-package flags, `target: auto` with a 1% threshold so
+trivial deltas do not fail PRs, and PR comments for the coverage diff. Uploads
+skip when `CODECOV_TOKEN` is unset. Maintainers set that token in CircleCI
+project env and as a GitHub Actions secret. For a public repo, Codecov still
+requires a token unless the org disables token authentication for public
+repositories (see [Codecov tokens](https://docs.codecov.com/docs/codecov-tokens)).
+
+Demo CI uses `scripts/check-demo-coverage.ts` to fail when a PascalCase component
+exported from `ui/src/index.tsx` has neither a `demo/story-config` registration nor
+an allowlist reason in `DEMO_COVERAGE_ALLOWLIST`. Run it from the repo root:
+
+```bash
+bun run check:demo-coverage
+```
+
+The `demo_lint_and_typecheck` CircleCI command (and the retained
+`.github/workflows/ui-demo-ci.yml` job) runs the unit tests and this check after
+the demo compiles. Add a story plus `demoConfig.tsx` registration for new
+components, or an allowlist entry with a specific reason — not "hard to demo".
+The allowlist is limited to shell/providers, React context objects, thin RN
+list wrappers, and subcomponents already exercised by a parent story
+(Filter, Table, DateTimeField, HeightField, ConsentFormScreen).
+Standalone picker sheets (`NumberPickerActionSheet`, `DecimalRangeActionSheet`)
+have their own demo stories.
+
+`demo/package.json` `test:ci` runs Bun tests, including a smoke suite that mounts every
+registered `DemoConfig` demo and story through `renderWithTheme` from
+`@terreno/ui`'s test utilities (`demo/storiesSmoke.test.tsx`).
 
 Pull requests also run the `New file coverage` workflow. Every newly added workspace
 `.ts` or `.tsx` implementation file must have at least 90% function coverage and 90%

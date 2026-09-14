@@ -438,6 +438,57 @@ describe("EmojiSelector", () => {
     }
   });
 
+  it("re-renders the grid when layout changes after emoji data has loaded", async () => {
+    const {root, UNSAFE_getAllByType} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.emotion}
+        columns={6}
+        onEmojiSelected={mock(() => {})}
+        placeholder="Search"
+        showHistory={false}
+        showSearchBar={false}
+        showSectionTitles
+        showTabs={false}
+        theme="#007AFF"
+      />
+    );
+    await waitForEmojiData(() => root as LayoutRoot);
+
+    // A second layout pass after the data resolved goes through the prerender branch directly.
+    await act(async () => {
+      (root as LayoutRoot).props.onLayout?.({
+        nativeEvent: {layout: {height: 600, width: 720, x: 0, y: 0}},
+      });
+    });
+
+    const {FlatList} = require("react-native");
+    const [list] = UNSAFE_getAllByType(FlatList);
+    expect(list.props.data.length).toBeGreaterThan(0);
+    const cell = list.props.renderItem({index: 0, item: list.props.data[0]});
+    expect(cell.props.colSize).toBe(120);
+  });
+
+  it("ignores emoji data that resolves after unmount", async () => {
+    const {unmount, toJSON} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.emotion}
+        columns={6}
+        onEmojiSelected={mock(() => {})}
+        placeholder="Search"
+        showHistory={false}
+        showSearchBar={false}
+        showSectionTitles
+        showTabs={false}
+        theme="#007AFF"
+      />
+    );
+    unmount();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(toJSON()).toBeNull();
+  });
+
   it("filters the emoji list when a search query is entered", async () => {
     const {getByPlaceholderText, UNSAFE_getAllByType, root} = renderWithTheme(
       <EmojiSelector
