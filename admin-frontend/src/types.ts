@@ -79,6 +79,17 @@ export interface AdminModelConfig {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
+  /**
+   * From `GET /admin/config`: true when the app collection registered
+   * `sync.adminBroadcast`. Windowed TinyBase lists require this plus
+   * {@link AdminProviderValue.syncDb} and a fetch client.
+   */
+  adminBroadcast?: boolean;
+  /**
+   * Sync collection tag (`todos`, not `/admin/todos`) when `adminBroadcast`
+   * is true. Omitted on other models.
+   */
+  syncCollection?: string;
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
@@ -211,10 +222,62 @@ export interface AdminWidgetRegistry {
   screens: Record<string, ScreenWidgetComponent>;
 }
 
+import type {AdminRpc} from "./adminRpc";
+
+export type AdminGetAuthHeaders = () => HeadersInit | Promise<HeadersInit>;
+
+/** Narrow syncdb surface admin collection CRUD uses. Hosts pass `createSyncDb()` as this. */
+export interface AdminSyncDbEntity {
+  data: unknown;
+  deleted?: boolean;
+  id: string;
+}
+
+export interface AdminSyncConflict {
+  collection: string;
+  entityId: string;
+  localData: string;
+  mutationId: string;
+  serverData: string;
+}
+
+export interface AdminSyncConflicts {
+  conflicts: AdminSyncConflict[];
+  resolve: (args: {mutationId: string; strategy: "useServer" | "keepMine"}) => void;
+}
+
+export interface AdminSyncDb {
+  hydrateWindow: (args: {
+    collection: string;
+    ids: string[];
+    restRows?: Record<string, unknown>;
+  }) => Promise<{hydratedIds: string[]}>;
+  mutate: (args: {
+    collection: string;
+    data?: Record<string, unknown>;
+    id?: string;
+    operation: "create" | "update" | "delete";
+  }) => {id: string; mutationId: string};
+  store: {
+    getEntity: (args: {collection: string; id: string}) => AdminSyncDbEntity | undefined;
+    raw: {
+      addTableListener: (tableId: string, listener: () => void) => string;
+      delListener: (listenerId: string) => void;
+    };
+  };
+}
+
 export interface AdminProviderValue {
+  adminRpc?: AdminRpc;
   api: AdminApi;
   apiBase: string;
+  /** API origin for cross-origin embedded RPC (`http://localhost:4000`). */
+  apiOrigin?: string;
+  credentials?: RequestCredentials;
+  getAuthHeaders?: AdminGetAuthHeaders;
   routeBase: string;
+  syncConflicts?: AdminSyncConflicts;
+  syncDb?: AdminSyncDb;
   widgets: AdminWidgetRegistry;
 }
 
@@ -280,7 +343,24 @@ export interface AdminScreenProps {
   apiBase?: string;
   /** Base path used for in-app navigation. Falls back to `baseUrl`. */
   routeBase?: string;
+  /**
+   * @deprecated Terreno 57 compatibility for ObjectId/API-only CRUD. Do not add
+   * new admin `injectEndpoints`; Terreno 58 removes the required `api` prop.
+   */
   api: AdminApi;
+  /**
+   * Fetch credentials mode for {@link adminRequest}. SPA cookie sessions use
+   * `"same-origin"`; omit when the host only sends Bearer headers.
+   */
+  credentials?: RequestCredentials;
+  /** Extra headers for {@link adminRequest} (embedded hosts return `Authorization: Bearer …`). */
+  getAuthHeaders?: AdminGetAuthHeaders;
+  /**
+   * Backend origin for native `fetch` RPC when the Expo app and API are on
+   * different hosts. Do not put this in `apiBase` — that stays a path prefix
+   * (`/admin`) so navigation `routeBase` is not rewritten to the API origin.
+   */
+  apiOrigin?: string;
 }
 
 /**

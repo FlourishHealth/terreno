@@ -21,6 +21,12 @@ parameters:
   run-ui:
     type: boolean
     default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
   run-ui-demo:
     type: boolean
     default: false
@@ -28,6 +34,9 @@ parameters:
     type: boolean
     default: false
   run-mcp-server:
+    type: boolean
+    default: false
+  run-create-terreno-app:
     type: boolean
     default: false
   run-example-frontend:
@@ -559,6 +568,44 @@ jobs:
             bun run test:coverage
             bash ../scripts/upload-codecov.sh ui
 
+  admin-backend-ci:
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test admin-backend
+          working_directory: ~/project/admin-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  admin-frontend-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: ui
+      - run:
+          name: Lint / compile / test admin-frontend
+          working_directory: ~/project/admin-frontend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
   syncdb-ci:
     executor: node22
     steps:
@@ -658,6 +705,23 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh mcp-server
+
+  create-terreno-app-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / test create-terreno-app
+          working_directory: ~/project/create-terreno-app
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh create-terreno-app
 
   mcp-server-docker:
     executor: node22
@@ -955,6 +1019,9 @@ jobs:
       - run:
           name: Test lifecycle validator
           command: bun test scripts/planning/
+      - run:
+          name: Test release tooling
+          command: bun run test:ci-tools
 
   license-coverage:
     executor: node22
@@ -1680,7 +1747,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags mcp-server syncdb
+              api-health comms feature-flags create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1698,7 +1765,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');
@@ -1790,6 +1857,16 @@ workflows:
       - ui-ci
       - ui-demo-typecheck
 
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - admin-backend-ci
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - admin-frontend-ci
+
   # Mirror GHA ui-demo-ci: only when demo changed and ui did not.
   ui-demo:
     when:
@@ -1811,6 +1888,11 @@ workflows:
       - mcp-server-docker:
           requires:
             - mcp-server-ci
+
+  create-terreno-app:
+    when: << pipeline.parameters.run-create-terreno-app >>
+    jobs:
+      - create-terreno-app-ci
 
   example-frontend:
     when: << pipeline.parameters.run-example-frontend >>
@@ -1900,6 +1982,13 @@ workflows:
                 - todos
                 - profile
                 - admin
+                - admin-home
+                - admin-form
+                - admin-todo-crud
+                - admin-table-search-filter
+                - admin-table-bulk-actions
+                - admin-custom-screens
+                - admin-comms-back
                 - consents
                 - ai-chat
                 - realtime

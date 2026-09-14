@@ -1,15 +1,8 @@
 import type {Locator, Page} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
+import {adminModelEntry} from "./helpers/adminUi";
 import {loginAs} from "./helpers/login";
-
-/** AdminHome grid and legacy model cards use @terreno/ui Box `onClick`, which exposes `${testID}-clickable`. */
-const adminModelEntry = (page: Page, modelName: string) =>
-  page
-    .getByTestId(`admin-home-models-grid-${modelName}-clickable`)
-    .or(page.getByTestId(`admin-model-card-${modelName}-clickable`))
-    .or(page.getByTestId(`admin-home-models-grid-${modelName}`))
-    .or(page.getByTestId(`admin-model-card-${modelName}`));
 
 const permissionControl = (page: Page, resource: string, action: string): Locator => {
   const testID = `admin-role-permission-${resource}-${action}`;

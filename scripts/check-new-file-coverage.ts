@@ -7,8 +7,8 @@ import {Glob} from "bun";
 
 import {
   type CoverageSummary,
-  type FileCoverage,
   evaluateCoverage,
+  type FileCoverage,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";
@@ -122,11 +122,10 @@ const getWorkspaceNames = (repoRoot: string): Set<string> => {
 };
 
 const getAddedSourceFiles = (repoRoot: string, base: string): string[] => {
-  const output = execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`],
-    {cwd: repoRoot, encoding: "utf8"}
-  );
+  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
   return output
     .split("\n")
     .map((path) => path.trim())
