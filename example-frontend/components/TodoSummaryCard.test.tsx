@@ -31,6 +31,16 @@ const hasText = (root: ReactTestInstance, text: string): boolean => {
 };
 
 describe("TodoSummaryCard", () => {
+  it("uses the app hooks by default", async () => {
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<TodoSummaryCard />);
+    });
+
+    assert.isDefined(renderer);
+    assert.isTrue(hasText(renderer.root, "Add a todo to summarize."));
+  });
+
   it("disables summarize when there are no todos", async () => {
     todos = [];
     summarizeError = undefined;
