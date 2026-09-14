@@ -9,16 +9,40 @@ import {
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
-import {Job, JobsApp, unregisterJobsService} from "@terreno/jobs";
+import {Job, type JobDefinition, JobsApp, unregisterJobsService} from "@terreno/jobs";
 
 import {
   ADMIN_SCRIPT_JOB_NAME,
+  type AdminScriptJobTarget,
   defineAdminScriptJob,
-  parseAdminScriptJobPayload,
   runRegisteredScriptTask,
   tryCancelAdminScriptJob,
   tryEnqueueAdminScriptJob,
 } from "./adminScriptJob";
+
+const getAdminScriptHandler = (
+  getScript: (name: string) => AdminScriptJobTarget | undefined = () => echoScript
+): JobDefinition["handler"] => {
+  let handler: JobDefinition["handler"] | undefined;
+  defineAdminScriptJob(
+    {
+      define: (_name, definition) => {
+        handler = definition.handler;
+      },
+    },
+    getScript
+  );
+  if (!handler) {
+    throw new Error("admin/script handler was not registered");
+  }
+  return handler;
+};
+
+const mockJobContext = {
+  attempt: 1,
+  jobId: "job-test",
+  signal: new AbortController().signal,
+};
 
 const echoScript = {
   description: "Echo",
@@ -41,39 +65,59 @@ describe("admin/script durable job adapter", () => {
     unregisterJobsService();
   });
 
-  it("parses a valid payload and rejects malformed ones", () => {
-    expect(
-      parseAdminScriptJobPayload({
+  it("parses a valid payload and rejects malformed ones", async () => {
+    const handler = getAdminScriptHandler();
+    const task = await BackgroundTask.create({
+      isDryRun: true,
+      logs: [],
+      status: "pending",
+      taskType: "echo",
+    });
+    await handler(
+      {
         args: {model: "todos"},
         createdByName: "Ada",
         scriptName: "echo",
-        taskId: "abc",
+        taskId: String(task._id),
         wetRun: false,
-      })
-    ).toEqual({
-      args: {model: "todos"},
-      createdByName: "Ada",
-      scriptName: "echo",
-      taskId: "abc",
-      wetRun: false,
+      },
+      mockJobContext
+    );
+    const completed = await BackgroundTask.findById(task._id);
+    expect(completed?.status).toBe("completed");
+
+    await expect(handler(null, mockJobContext)).rejects.toThrow("Invalid admin/script job payload");
+
+    const omittedArgsTask = await BackgroundTask.create({
+      isDryRun: true,
+      logs: [],
+      status: "pending",
+      taskType: "echo",
     });
-    expect(parseAdminScriptJobPayload(null)).toBeUndefined();
-    expect(
-      parseAdminScriptJobPayload({
+    await handler(
+      {
         scriptName: "echo",
-        taskId: "abc",
+        taskId: String(omittedArgsTask._id),
         wetRun: false,
-      })?.args
-    ).toEqual({});
-    expect(parseAdminScriptJobPayload({scriptName: "echo"})).toBeUndefined();
-    expect(
-      parseAdminScriptJobPayload({
-        args: {bad: {nested: true}},
-        scriptName: "echo",
-        taskId: "abc",
-        wetRun: true,
-      })
-    ).toBeUndefined();
+      },
+      mockJobContext
+    );
+    expect((await BackgroundTask.findById(omittedArgsTask._id))?.status).toBe("completed");
+
+    await expect(handler({scriptName: "echo"}, mockJobContext)).rejects.toThrow(
+      "Invalid admin/script job payload"
+    );
+    await expect(
+      handler(
+        {
+          args: {bad: {nested: true}},
+          scriptName: "echo",
+          taskId: "abc",
+          wetRun: true,
+        },
+        mockJobContext
+      )
+    ).rejects.toThrow("Invalid admin/script job payload");
   });
 
   it("does not enqueue when JobsApp is unregistered", async () => {
@@ -143,32 +187,45 @@ describe("admin/script durable job adapter", () => {
     expect(current?.result).toContain("dry");
   });
 
-  it("treats omitted args as empty and rejects empty script names", () => {
-    expect(
-      parseAdminScriptJobPayload({
+  it("treats omitted args as empty and rejects empty script names", async () => {
+    const handler = getAdminScriptHandler();
+    const taggedTask = await BackgroundTask.create({
+      isDryRun: true,
+      logs: [],
+      status: "pending",
+      taskType: "echo",
+    });
+    await handler(
+      {
         args: {tags: ["a", "b"]},
         scriptName: "echo",
-        taskId: "abc",
+        taskId: String(taggedTask._id),
         wetRun: true,
-      })?.args
-    ).toEqual({tags: ["a", "b"]});
-    expect(
-      parseAdminScriptJobPayload({
-        args: [],
-        scriptName: "echo",
-        taskId: "abc",
-        wetRun: true,
-      })
-    ).toBeUndefined();
-    expect(
-      parseAdminScriptJobPayload({scriptName: "", taskId: "abc", wetRun: true})
-    ).toBeUndefined();
-    expect(
-      parseAdminScriptJobPayload({scriptName: "echo", taskId: "", wetRun: true})
-    ).toBeUndefined();
-    expect(
-      parseAdminScriptJobPayload({scriptName: "echo", taskId: "abc", wetRun: "yes"})
-    ).toBeUndefined();
+      },
+      mockJobContext
+    );
+    expect((await BackgroundTask.findById(taggedTask._id))?.result).toContain("wet");
+
+    await expect(
+      handler(
+        {
+          args: [],
+          scriptName: "echo",
+          taskId: "abc",
+          wetRun: true,
+        },
+        mockJobContext
+      )
+    ).rejects.toThrow("Invalid admin/script job payload");
+    await expect(
+      handler({scriptName: "", taskId: "abc", wetRun: true}, mockJobContext)
+    ).rejects.toThrow("Invalid admin/script job payload");
+    await expect(
+      handler({scriptName: "echo", taskId: "", wetRun: true}, mockJobContext)
+    ).rejects.toThrow("Invalid admin/script job payload");
+    await expect(
+      handler({scriptName: "echo", taskId: "abc", wetRun: "yes"}, mockJobContext)
+    ).rejects.toThrow("Invalid admin/script job payload");
   });
 
   it("marks the BackgroundTask cancelled when the job signal is aborted", async () => {

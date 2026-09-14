@@ -44,7 +44,7 @@ const isScriptArgValue = (value: unknown): value is ScriptArgValue => {
   return value.every((entry) => typeof entry === "string");
 };
 
-export const parseAdminScriptJobPayload = (payload: unknown): AdminScriptJobPayload | undefined => {
+const parseAdminScriptJobPayload = (payload: unknown): AdminScriptJobPayload | undefined => {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return undefined;
   }
