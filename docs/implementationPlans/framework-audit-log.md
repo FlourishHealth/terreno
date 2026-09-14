@@ -35,7 +35,7 @@ Opt-in `AuditApp` in `@terreno/api` persists append-only `AuditEvent` rows for s
 | Q4 | Mutability / retention | HTTP list+read only. Create only via framework writers. No PATCH/DELETE. **Default retain forever.** Optional `retentionDays > 0` Mongo TTL. |
 | Q5 | Diffs | Changed fields only. Auto-redact `password`, `hash`, `salt`, `token`, `secret`, `refreshToken` (case-insensitive last path segment) plus per-router `redact`. Never log full request bodies. |
 
-**Recorded assumptions (not grilled):** No default-connection singleton (same as `RbacAudit`: `createAuditEventModel(connection)`). Example-backend **replaces** `AdminAuditLog` with `AuditEvent`. `onAdminAudit` remains an extra sink. Writes are best-effort (`logger.error`, mutation still succeeds). `AuditEvent` is never audited. `audit: true` without `AuditApp` skips the write and logs an error once per process. Array mutations use `verb: "updated"` and `operation` `arrayPush` / `arrayUpdate` / `arrayRemove`. `organizationId` is stored as string. Admin list uses `Permissions.IsAdmin` until org RBAC lands.
+**Recorded assumptions (not grilled):** No default-connection singleton (same as `RbacAudit`: `createAuditEventModel(connection)`). Example-backend **replaces** `AdminAuditLog` with `AuditEvent`. `onAdminAudit` remains an extra sink. Writes are best-effort (`logger.error`, mutation still succeeds). Persist is fire-and-forget on the request path. Optional Cloud Tasks enqueue (`GCP_TASKS_AUDIT_QUEUE` + `AUDIT_TASKS_URL`) writes Mongo on a worker via `POST /internal/audit-events`. `AuditEvent` is never audited. `audit: true` without `AuditApp` skips the write and logs an error once per process. Array mutations use `verb: "updated"` and `operation` `arrayPush` / `arrayUpdate` / `arrayRemove`. `organizationId` is stored as string. Admin list uses `Permissions.IsAdmin` until org RBAC lands.
 
 ## Architecture
 
@@ -65,6 +65,9 @@ createAccess({auditSink: persistRbacAuditToAuditEvent})
 
 ```typescript
 interface AuditAppOptions {
+  enqueue?: (write: AuditEventWrite) => Promise<void>;
+  processQueuePath?: string;
+  processQueueSecret?: string;
   /** Mongo TTL in days. Omit or 0 = forever (no TTL index). */
   retentionDays?: number;
 }

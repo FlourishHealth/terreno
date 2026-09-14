@@ -8,6 +8,7 @@ import {
   BackgroundTask,
   createAccess,
   findOneOrNoneFor,
+  flushAuditRecorderForTests,
   modelRouter,
   Permissions,
   resetAuditRecorderForTests,
@@ -1393,6 +1394,7 @@ describe("AdminApp AuditEvent auto-write", () => {
     const localApp = buildAppWithAuditPlugin();
     const agent = await authAsUser(localApp, "admin");
     await agent.post("/admin/foods").send({calories: 5, name: "AuditedFood"}).expect(201);
+    await flushAuditRecorderForTests();
     const events = await mongoose.connection.collection("auditevents").find({}).toArray();
     assert.equal(events.length, 1);
     assert.equal(events[0]?.source, "admin");
@@ -1410,6 +1412,7 @@ describe("AdminApp AuditEvent auto-write", () => {
     });
     const agent = await authAsUser(localApp, "admin");
     await agent.post("/admin/foods").send({calories: 8, name: "BothSinks"}).expect(201);
+    await flushAuditRecorderForTests();
     assert.equal(extra.length, 1);
     assert.equal(extra[0]?.verb, "created");
     const events = await mongoose.connection.collection("auditevents").find({}).toArray();
@@ -1428,6 +1431,7 @@ describe("AdminApp AuditEvent auto-write", () => {
       .post("/admin/foods")
       .send({calories: 5, name: "StillCreated"})
       .expect(201);
+    await flushAuditRecorderForTests();
     createSpy.mockRestore();
     const stored = await FoodModel.findById(res.body.data._id).lean();
     assert.equal(stored?.name, "StillCreated");

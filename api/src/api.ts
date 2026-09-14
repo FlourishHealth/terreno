@@ -793,7 +793,7 @@ const _buildModelRouter = <T>(
         req,
         user: req.user,
       });
-      await maybeRecordModelRouterAudit({
+      void maybeRecordModelRouterAudit({
         after: doc,
         audit: options.audit,
         modelName: model.modelName,
@@ -1079,7 +1079,7 @@ const _buildModelRouter = <T>(
         throw error;
       }
 
-      await maybeRecordModelRouterAudit({
+      void maybeRecordModelRouterAudit({
         after: doc,
         audit: options.audit,
         before: previous,
@@ -1124,7 +1124,7 @@ const _buildModelRouter = <T>(
         user: req.user,
       });
 
-      await maybeRecordModelRouterAudit({
+      void maybeRecordModelRouterAudit({
         audit: options.audit,
         before: previous,
         modelName: model.modelName,
@@ -1320,7 +1320,7 @@ const _buildModelRouter = <T>(
 
     const arrayAuditOperation =
       operation === "POST" ? "arrayPush" : operation === "PATCH" ? "arrayUpdate" : "arrayRemove";
-    await maybeRecordModelRouterAudit({
+    void maybeRecordModelRouterAudit({
       after: doc,
       audit: options.audit,
       before: prevDoc,

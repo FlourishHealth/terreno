@@ -88,8 +88,7 @@ OpenAPI or behind JWT. Do not skip rate-limit paths. Operator guide:
 on the default connection — use `createAuditEventModel(connection)` or the plugin.
 Set `audit: true` or `audit: {redact: ["ssn"]}` on `modelRouter` after successful HTTP
 CRUD and array mutations. AdminApp auto-writes when the plugin is registered.
-RBAC uses `persistRbacAuditToAuditEvent` as `createAccess({auditSink})`. HTTP is
-admin list/read at `GET /audit-events`; empty CUD perms are **405**. Never audit
+RBAC uses `persistRbacAuditToAuditEvent` as `createAccess({auditSink})`. HTTP handlers do not await persist. Diffs still run inline. Optional `enqueue` (Cloud Tasks when `GCP_TASKS_AUDIT_QUEUE` and `AUDIT_TASKS_URL` are set) writes Mongo off the request process via `POST /internal/audit-events`. Empty CUD perms are **405**. Never audit
 `AuditEvent`. Writes are best-effort. Default retain forever. Operator guide:
 `docs/how-to/audit-log.md`.
 

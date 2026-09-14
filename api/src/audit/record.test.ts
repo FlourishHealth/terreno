@@ -8,7 +8,7 @@ import {logger} from "../logger";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
-import type {AuditEventModel} from "./auditEventModel";
+import {type AuditEventModel, createAuditEventModel} from "./auditEventModel";
 import {
   installAuditRecorder,
   isAuditRecorderInstalled,
@@ -275,6 +275,24 @@ describe("audit record helpers", () => {
       source: "admin",
       verb: "created",
     });
+    assert.equal(await mongoose.connection.collection("auditevents").countDocuments(), 0);
+  });
+
+  it("delegates persist to enqueue instead of Mongo", async () => {
+    const queued: {modelName: string}[] = [];
+    const model = createAuditEventModel(mongoose.connection);
+    installAuditRecorder(model, {
+      enqueue: async (write): Promise<void> => {
+        queued.push({modelName: write.modelName});
+      },
+    });
+    await recordAuditEvent({
+      modelName: "Note",
+      operation: "create",
+      source: "modelRouter",
+      verb: "created",
+    });
+    assert.equal(queued.length, 1);
     assert.equal(await mongoose.connection.collection("auditevents").countDocuments(), 0);
   });
 });

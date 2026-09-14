@@ -30,7 +30,7 @@ export const persistRbacAuditToAuditEvent = async (record: RbacAuditWrite): Prom
     after.gained = record.permissionDelta.gained;
   }
   const before = record.permissionDelta?.lost ? {lost: record.permissionDelta.lost} : undefined;
-  await recordAuditEvent({
+  void recordAuditEvent({
     actorId: mongoose.isValidObjectId(record.actorId) ? record.actorId : undefined,
     after,
     before,

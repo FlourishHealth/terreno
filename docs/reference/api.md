@@ -148,9 +148,9 @@ new TerrenoApp({userModel: User})
 
 HTTP is list+read only: `GET /audit-events` with `Permissions.IsAdmin`. Empty create/update/delete permission arrays mean POST/PATCH/DELETE return **405**, including `/admin/audit-events` (`admin.adminPermissions`). Non-admin list is also **405** (`permissionMiddleware`). There is no `isDeletedPlugin`; rows are not soft-deleted.
 
-`createAuditEventModel(connection, {retentionDays?})` is the factory for tests and scripts. Never audit `AuditEvent` itself. Recorder failures (including serialization) log and leave the mutation 2xx. Secret field names are stripped at every object and array depth.
+`createAuditEventModel(connection, {retentionDays?})` is the factory for tests and scripts. Never audit `AuditEvent` itself. Diffs run on the request; persist is fire-and-forget (the HTTP handler does not await Mongo). Recorder failures (including serialization) log and leave the mutation 2xx. Secret field names are stripped at every object and array depth.
 
-Default retention is forever (no TTL index). `new AuditApp({retentionDays: n})` for `n > 0` replaces the plugin `{created: 1}` index with `{created: 1, expireAfterSeconds: n * 86400}`. Drop that index yourself if you later remove TTL. Operator steps: [Enable the framework audit log](../how-to/audit-log.md).
+When `GCP_TASKS_AUDIT_QUEUE`, `AUDIT_TASKS_URL`, `GCP_PROJECT`, `GCP_LOCATION`, and `AUDIT_TASKS_SECRET` are set, `AuditApp` enqueues the write with Cloud Tasks (`@google-cloud/tasks` optional install) instead of writing Mongo in-process, and mounts `POST /internal/audit-events` (header `X-Terreno-Audit-Secret`) so the worker persists. Pass `enqueue` yourself to use any other queue. Default retention is forever (no TTL index). `new AuditApp({retentionDays: n})` for `n > 0` replaces the plugin `{created: 1}` index with `{created: 1, expireAfterSeconds: n * 86400}`. Drop that index yourself if you later remove TTL. Operator steps: [Enable the framework audit log](../how-to/audit-log.md).
 
 ### setupServer (Legacy)
 
@@ -1527,6 +1527,9 @@ Complete reference of environment variables used by @terreno/api:
 | `GCP_SERVICE_ACCOUNT_EMAIL` | No | — | Service account email for authentication |
 | `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Cloud Tasks queue name for notifications |
 | `GCP_TASK_PROCESSOR_QUEUE` | No | — | Cloud Tasks queue name for background jobs |
+| `GCP_TASKS_AUDIT_QUEUE` | No | — | Cloud Tasks queue name for off-process `AuditEvent` writes |
+| `AUDIT_TASKS_URL` | No | — | Worker URL Cloud Tasks POSTs audit writes to |
+| `AUDIT_TASKS_SECRET` | No | — | Shared secret for `X-Terreno-Audit-Secret` on the audit worker route |
 
 ### Other
 

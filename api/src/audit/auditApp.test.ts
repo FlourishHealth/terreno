@@ -1,12 +1,16 @@
 import {afterEach, beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
+import type express from "express";
 import mongoose from "mongoose";
+import supertest from "supertest";
 
 import type {UserModel as AuthUserModel} from "../auth";
 import {TerrenoApp} from "../terrenoApp";
 import {authAsUser, setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
 import {createAuditEventModel} from "./auditEventModel";
+import {AUDIT_SECRET_HEADER} from "./cloudTasksEnqueue";
+import {resetAuditRecorderForTests} from "./record";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
 
@@ -16,14 +20,29 @@ const deleteAuditEventModel = (): void => {
   }
 };
 
+const fetchWorker = async (
+  app: express.Application,
+  {
+    body,
+    secret,
+  }: {
+    body: Record<string, unknown>;
+    secret: string;
+  }
+): Promise<supertest.Response> => {
+  return supertest(app).post("/internal/audit-events").set(AUDIT_SECRET_HEADER, secret).send(body);
+};
+
 describe("AuditApp", () => {
   beforeEach(async () => {
     deleteAuditEventModel();
+    resetAuditRecorderForTests();
     await setupDb();
     await mongoose.connection.collection("auditevents").deleteMany({});
   });
 
   afterEach(() => {
+    resetAuditRecorderForTests();
     deleteAuditEventModel();
   });
 
@@ -128,5 +147,93 @@ describe("AuditApp", () => {
       delete: [],
       update: [],
     });
+  });
+
+  it("persists an enqueued write on POST /internal/audit-events", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(
+        new AuditApp({
+          enqueue: async (): Promise<void> => {
+            throw new Error("must not enqueue from the worker");
+          },
+          processQueuePath: "/internal/audit-events",
+          processQueueSecret: "queue-secret",
+        })
+      )
+      .build();
+    const res = await fetchWorker(app, {
+      body: {
+        modelName: "Note",
+        operation: "create",
+        source: "modelRouter",
+        verb: "created",
+      },
+      secret: "queue-secret",
+    });
+    assert.equal(res.status, 204);
+    const count = await mongoose.connection.collection("auditevents").countDocuments();
+    assert.equal(count, 1);
+  });
+
+  it("rejects enqueued writes with a bad secret", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(
+        new AuditApp({
+          enqueue: async (): Promise<void> => undefined,
+          processQueuePath: "/internal/audit-events",
+          processQueueSecret: "queue-secret",
+        })
+      )
+      .build();
+    const res = await fetchWorker(app, {
+      body: {modelName: "Note", operation: "create", source: "modelRouter", verb: "created"},
+      secret: "wrong",
+    });
+    assert.equal(res.status, 401);
+  });
+
+  it("rejects enqueued writes with an invalid payload", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(
+        new AuditApp({
+          enqueue: async (): Promise<void> => undefined,
+          processQueuePath: "/internal/audit-events",
+          processQueueSecret: "queue-secret",
+        })
+      )
+      .build();
+    const res = await fetchWorker(app, {body: {operation: "create"}, secret: "queue-secret"});
+    assert.equal(res.status, 400);
+  });
+
+  it("rejects enqueued writes with no secret header", async () => {
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(
+        new AuditApp({
+          enqueue: async (): Promise<void> => undefined,
+          processQueuePath: "/internal/audit-events",
+          processQueueSecret: "queue-secret",
+        })
+      )
+      .build();
+    const res = await supertest(app).post("/internal/audit-events").send({
+      modelName: "Note",
+      operation: "create",
+      source: "modelRouter",
+      verb: "created",
+    });
+    assert.equal(res.status, 401);
   });
 });

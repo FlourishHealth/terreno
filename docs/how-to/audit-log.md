@@ -50,6 +50,22 @@ RBAC mutations fan into the same collection when `createAccess({auditSink: persi
 
 `organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
 
-### 4. Retention
+### 4. Fire-and-forget persist
+
+HTTP handlers do not await Mongo. Diffs still run before the response so `before` / `after` are captured. Failures log; the mutation stays 2xx.
+
+To persist completely off the API process, set Cloud Tasks env (`GCP_PROJECT`, `GCP_LOCATION`, `GCP_TASKS_AUDIT_QUEUE`, `AUDIT_TASKS_URL`, `AUDIT_TASKS_SECRET`) and `bun add @google-cloud/tasks`. `AuditApp` then enqueues the write and handles `POST /internal/audit-events` with header `X-Terreno-Audit-Secret`. Or pass `enqueue` yourself:
+
+```typescript
+new AuditApp({
+  enqueue: async (write) => {
+    await myQueue.push(write);
+  },
+  processQueuePath: "/internal/audit-events",
+  processQueueSecret: process.env.AUDIT_TASKS_SECRET,
+});
+```
+
+### 5. Retention
 
 Omit `retentionDays` or set `0` to keep events forever (no TTL index). `new AuditApp({retentionDays: 90})` creates a Mongo TTL index on `created` with `expireAfterSeconds = 90 * 86400`, replacing the default `{created: 1}` field index so Mongo does not reject a duplicate key pattern. Mongo expires documents in the background; lowering or removing TTL later requires dropping that index yourself (`db.auditevents.dropIndex(...)`) — Mongoose will not remove it.

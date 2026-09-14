@@ -748,19 +748,14 @@ export class AdminApp {
       if (modelName === "AuditEvent") {
         return;
       }
-      try {
-        await maybeRecordAdminAudit({
-          after,
-          before,
-          modelName,
-          recordLabel,
-          req: request,
-          verb,
-        });
-      } catch (err: unknown) {
-        const detail = err instanceof Error ? err.message : String(err);
-        logger.error(`AuditEvent write failed after ${verb} on ${modelName}: ${detail}`);
-      }
+      void maybeRecordAdminAudit({
+        after,
+        before,
+        modelName,
+        recordLabel,
+        req: request,
+        verb,
+      });
     };
 
     // Build config response with field metadata from Mongoose schemas

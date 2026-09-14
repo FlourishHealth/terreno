@@ -14,6 +14,7 @@ import {AuditApp} from "./auditApp";
 import {createAuditEventModel} from "./auditEventModel";
 import {changedFieldDiff} from "./diff";
 import {
+  flushAuditRecorderForTests,
   maybeRecordAdminAudit,
   maybeRecordModelRouterAudit,
   resetAuditRecorderForTests,
@@ -133,6 +134,7 @@ describe("modelRouter audit", () => {
       .post("/notes")
       .send({password: "hunter2", title: "Hello"})
       .expect(201);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.equal(list.body.data.length, 1);
@@ -154,6 +156,7 @@ describe("modelRouter audit", () => {
     const agent = await authAsUser(app, "notAdmin");
     const created = await agent.post("/notes").send({calories: 1, title: "One"}).expect(201);
     await agent.patch(`/notes/${created.body.data._id}`).send({title: "Two"}).expect(200);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events?verb=updated").expect(200);
     assert.equal(list.body.data.length, 1);
@@ -168,6 +171,7 @@ describe("modelRouter audit", () => {
     const app = buildApp({redact: ["ssn"]});
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({ssn: "123-45-6789", title: "Pii"}).expect(201);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.isUndefined(list.body.data[0].after.ssn);
@@ -179,6 +183,7 @@ describe("modelRouter audit", () => {
     const agent = await authAsUser(app, "notAdmin");
     const created = await agent.post("/notes").send({title: "Gone"}).expect(201);
     await agent.delete(`/notes/${created.body.data._id}`).expect(204);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events?verb=deleted").expect(200);
     assert.equal(list.body.data.length, 1);
@@ -194,6 +199,7 @@ describe("modelRouter audit", () => {
     });
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({title: "Keep"}).expect(201);
+    await flushAuditRecorderForTests();
     createSpy.mockRestore();
   });
 
@@ -208,6 +214,7 @@ describe("modelRouter audit", () => {
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({title: "A"}).expect(201);
     await agent.post("/notes").send({title: "B"}).expect(201);
+    await flushAuditRecorderForTests();
     assert.isUndefined(mongoose.connection.models.AuditEvent);
     const auditLogs = errorSpy.mock.calls.filter((call) =>
       String(call[0]).includes("requires AuditApp")
@@ -249,6 +256,7 @@ describe("modelRouter audit", () => {
     await agent.post(`/notes/${id}/tags`).send({tags: "b"}).expect(200);
     await agent.patch(`/notes/${id}/tags/a`).send({tags: "alpha"}).expect(200);
     await agent.delete(`/notes/${id}/tags/b`).expect(200);
+    await flushAuditRecorderForTests();
 
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
@@ -266,6 +274,7 @@ describe("modelRouter audit", () => {
     const app = buildApp();
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({organizationId: "org-doc", title: "Tenant"}).expect(201);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.equal(list.body.data[0].organizationId, "org-doc");
@@ -286,9 +295,39 @@ describe("modelRouter audit", () => {
     app.use("/notes", modelRouter(NoteModel, {audit: true, permissions: notePermissions}));
     const agent = await authAsUser(app, "notAdmin");
     await agent.post("/notes").send({organizationId: "org-doc", title: "Both"}).expect(201);
+    await flushAuditRecorderForTests();
     const admin = await authAsUser(app, "admin");
     const list = await admin.get("/audit-events").expect(200);
     assert.equal(list.body.data[0].organizationId, "org-req");
+  });
+
+  it("returns 201 without waiting for enqueue to finish", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued: {modelName: string}[] = [];
+    const NoteModel = mongoose.model<Note>("Note", noteSchema);
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(
+        new AuditApp({
+          enqueue: async (write): Promise<void> => {
+            queued.push({modelName: write.modelName});
+            await held;
+          },
+        })
+      )
+      .build();
+    app.use("/notes", modelRouter(NoteModel, {audit: true, permissions: notePermissions}));
+    const agent = await authAsUser(app, "notAdmin");
+    await agent.post("/notes").send({title: "Async"}).expect(201);
+    assert.equal(queued.length, 1);
+    assert.equal(await mongoose.connection.collection("auditevents").countDocuments(), 0);
+    release();
+    await flushAuditRecorderForTests();
   });
 });
 

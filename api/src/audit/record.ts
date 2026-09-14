@@ -11,6 +11,13 @@ export interface ModelRouterAuditOptions {
 
 export type ModelRouterAuditConfig = boolean | ModelRouterAuditOptions;
 
+/** Off-process persist (Cloud Tasks). When set, Mongo is not written in this process. */
+export type AuditEnqueue = (write: AuditEventWrite) => Promise<void>;
+
+export interface AuditRecorderOptions {
+  enqueue?: AuditEnqueue;
+}
+
 export interface AuditEventWrite {
   actorId?: string;
   after?: Record<string, unknown>;
@@ -28,17 +35,29 @@ const MISSING_PLUGIN_MESSAGE =
   "modelRouter audit: true requires AuditApp to be registered; skipping AuditEvent write";
 
 let auditEventModel: AuditEventModel | undefined;
+let auditEnqueue: AuditEnqueue | undefined;
 let missingPluginLogged = false;
+const inflightWrites = new Set<Promise<void>>();
 
-export const installAuditRecorder = (model: AuditEventModel): void => {
+export const installAuditRecorder = (
+  model: AuditEventModel,
+  options: AuditRecorderOptions = {}
+): void => {
   auditEventModel = model;
+  auditEnqueue = options.enqueue;
 };
 
 export const isAuditRecorderInstalled = (): boolean => Boolean(auditEventModel);
 
 export const resetAuditRecorderForTests = (): void => {
   auditEventModel = undefined;
+  auditEnqueue = undefined;
   missingPluginLogged = false;
+  inflightWrites.clear();
+};
+
+export const flushAuditRecorderForTests = async (): Promise<void> => {
+  await Promise.all([...inflightWrites]);
 };
 
 const operationFromVerb = (verb: AuditEventVerb): AuditEventOperation => {
@@ -176,12 +195,29 @@ const persistAuditEvent = async (write: AuditEventWrite): Promise<void> => {
   });
 };
 
-export const recordAuditEvent = async (write: AuditEventWrite): Promise<void> => {
+const runAuditWrite = async (write: AuditEventWrite): Promise<void> => {
   try {
+    if (auditEnqueue) {
+      await auditEnqueue(write);
+      return;
+    }
     await persistAuditEvent(write);
   } catch (error: unknown) {
     logger.error("Failed to persist AuditEvent", error);
   }
+};
+
+export const persistEnqueuedAuditEvent = async (write: AuditEventWrite): Promise<void> => {
+  await persistAuditEvent(write);
+};
+
+export const recordAuditEvent = (write: AuditEventWrite): Promise<void> => {
+  const run = runAuditWrite(write);
+  inflightWrites.add(run);
+  void run.finally(() => {
+    inflightWrites.delete(run);
+  });
+  return run;
 };
 
 export const maybeRecordModelRouterAudit = async ({

@@ -7,7 +7,7 @@ import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
 import {persistRbacAuditToAuditEvent} from "./rbacSink";
-import {resetAuditRecorderForTests} from "./record";
+import {flushAuditRecorderForTests, resetAuditRecorderForTests} from "./record";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
 
@@ -44,6 +44,7 @@ describe("persistRbacAuditToAuditEvent", () => {
       permissionDelta: {gained: {todo: ["read"]}, lost: {}},
       targetRoleName: "manager",
     });
+    await flushAuditRecorderForTests();
     const events = await mongoose.connection.collection("auditevents").find({}).toArray();
     assert.equal(events.length, 1);
     assert.equal(events[0]?.source, "rbac");
@@ -63,6 +64,7 @@ describe("persistRbacAuditToAuditEvent", () => {
       permissionDelta: {gained: {todo: ["delete"]}, lost: {}},
       targetUserId: actorId,
     });
+    await flushAuditRecorderForTests();
     const events = await mongoose.connection.collection("auditevents").find({}).toArray();
     assert.equal(events[0]?.verb, "updated");
     assert.equal(events[0]?.source, "rbac");
