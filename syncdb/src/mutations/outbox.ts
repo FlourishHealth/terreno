@@ -359,6 +359,7 @@ export const createOutbox = ({
       enqueueOrder: row.enqueueOrder ?? 0,
       entityId: row.entityId ?? "",
       errorNackCount: 0,
+      ...(row.mutationMode !== undefined ? {mutationMode: row.mutationMode} : {}),
       operation: row.operation ?? "update",
       status: "queued",
       userId: row.userId ?? "",

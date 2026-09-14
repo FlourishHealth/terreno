@@ -350,7 +350,7 @@ In React, prefer `useConflicts()`.
 | Strategy | Behavior |
 |----------|----------|
 | `"useServer"` | Overwrite local entity with canonical server data/seq; clear pending state; discard conflicted outbox row. Writes a **tombstone** when the server side is deleted. |
-| `"keepMine"` | Re-enqueue the mutation under a **fresh** `mutationId` with `baseVersion` set to the server's seq; local optimistic data is kept. |
+| `"keepMine"` | Re-enqueue the mutation under a **fresh** `mutationId` with `baseVersion` set to the server's seq; local optimistic data is kept. All durable mutation metadata, including `mutationMode: "adminWindow"`, is preserved so retried admin-window writes receive the same RBAC, protected-field, hook, and audit handling. |
 
 Resolve via `client.resolveConflict({mutationId, strategy})` or `useConflicts().resolve(...)`.
 
