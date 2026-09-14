@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/bun";
 import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
+import {AnnouncementsApp} from "@terreno/announcements";
 import {
   BetterAuthApp,
   backfillAdmins,
@@ -429,6 +430,19 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           auditTrail: true,
           resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
           supportedLocales: ["en", "es"],
+        })
+      )
+      .register(
+        new AnnouncementsApp({
+          acknowledgementMode: "admin",
+          help: {enabled: true},
+          matchAudience: (_user, announcement) => {
+            const audience = announcement.audience as {tiers?: string[]} | undefined;
+            if (!audience?.tiers?.length) {
+              return true;
+            }
+            return true;
+          },
         })
       );
 

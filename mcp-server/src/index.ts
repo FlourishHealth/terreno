@@ -62,7 +62,7 @@ const createServer = (): McpServer => {
 
   server.server.setRequestHandler("tools/call", async (request) => {
     logger.info("MCP CallTool", {arguments: request.params.arguments, name: request.params.name});
-    return handleToolCall(request.params.name, request.params.arguments ?? {});
+    return await handleToolCall(request.params.name, request.params.arguments ?? {});
   });
 
   server.server.setRequestHandler("prompts/list", async () => {

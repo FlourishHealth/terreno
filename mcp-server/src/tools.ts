@@ -1,5 +1,6 @@
 import type {Tool} from "@modelcontextprotocol/server";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
+import {askUpdateHelp, getUpdateNote, searchUpdateNotes} from "./help/updateNotes.js";
 import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
 import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
 
@@ -77,9 +78,88 @@ const docSearchTools: Tool[] = [
   },
 ];
 
+const helpTools: Tool[] = [
+  {
+    description:
+      "Search Terreno update notes: bundled @terreno/* upgrade markdown and, when TERRENO_HELP_API_URL is set, product announcements from a Terreno backend help API. Use before answering what changed in a release.",
+    inputSchema: {
+      properties: {
+        includeArchived: {
+          description:
+            "When true, include archived announcement notes from the help API (published-only by default).",
+          type: "boolean",
+        },
+        limit: {
+          description: "Maximum number of matches to return (default 10).",
+          type: "number",
+        },
+        queries: {
+          description: 'Keyword phrases, e.g. ["billing", "syncdb offline"].',
+          items: {type: "string"},
+          type: "array",
+        },
+        question: {
+          description: "Optional natural-language question; treated as an extra search phrase.",
+          type: "string",
+        },
+        source: {
+          description: 'Where to search: "auto" (default), "bundled", or "announcement".',
+          enum: ["auto", "bundled", "announcement"],
+          type: "string",
+        },
+      },
+      type: "object",
+    },
+    name: "terreno_search_update_notes",
+  },
+  {
+    description:
+      "Return the full text of one update note by id (upgrade:57.3.0 or announcement:<mongoId>) or upgrade semver.",
+    inputSchema: {
+      properties: {
+        id: {
+          description: 'Update id from terreno_search_update_notes, e.g. "upgrade:57.3.0".',
+          type: "string",
+        },
+        includeArchived: {
+          description: "Allow archived announcement notes when fetching from the help API.",
+          type: "boolean",
+        },
+      },
+      required: ["id"],
+      type: "object",
+    },
+    name: "terreno_get_update_note",
+  },
+  {
+    description:
+      "Ask a natural-language question against update notes; returns ranked excerpts and ids to fetch with terreno_get_update_note.",
+    inputSchema: {
+      properties: {
+        includeArchived: {
+          description: "Include archived announcement notes when the help API is configured.",
+          type: "boolean",
+        },
+        limit: {
+          description: "Maximum matches to include in the answer (default 5).",
+          type: "number",
+        },
+        question: {
+          description: "Question about what changed, e.g. How do I migrate billing webhooks?",
+          type: "string",
+        },
+      },
+      required: ["question"],
+      type: "object",
+    },
+    name: "terreno_ask_update_help",
+  },
+];
+
 export const tools: Tool[] = [
   ...bootstrapTools,
   ...docSearchTools,
+  ...helpTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -1093,10 +1173,10 @@ ${stepsText}
 ${code}`;
 };
 
-export const handleToolCall = (
+export const handleToolCall = async (
   name: string,
   args: Record<string, unknown>
-): {content: Array<{type: "text"; text: string}>} => {
+): Promise<{content: Array<{type: "text"; text: string}>}> => {
   // Handle bootstrap tools
   if (name === "terreno_bootstrap_app" || name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
@@ -1147,6 +1227,46 @@ export const handleToolCall = (
     }
     result = getUpgradeGuideMarkdown(fromVersion, toVersion);
     return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_search_update_notes") {
+    const queries = Array.isArray(args.queries)
+      ? args.queries.filter((query): query is string => typeof query === "string")
+      : [];
+    const question = typeof args.question === "string" ? args.question : undefined;
+    const includeArchived = args.includeArchived === true;
+    const limit = typeof args.limit === "number" ? args.limit : 10;
+    const source =
+      args.source === "bundled" || args.source === "announcement" || args.source === "auto"
+        ? args.source
+        : "auto";
+    const payload = await searchUpdateNotes({includeArchived, limit, queries, question, source});
+    return {content: [{text: JSON.stringify(payload, null, 2), type: "text"}]};
+  }
+
+  if (name === "terreno_get_update_note") {
+    const id = typeof args.id === "string" ? args.id.trim() : "";
+    if (!id) {
+      return {
+        content: [
+          {
+            text: 'Provide an `id` such as "upgrade:57.3.0" or "announcement:<mongoId>".',
+            type: "text",
+          },
+        ],
+      };
+    }
+    const includeArchived = args.includeArchived === true;
+    const detail = await getUpdateNote({id, includeArchived});
+    return {content: [{text: JSON.stringify(detail, null, 2), type: "text"}]};
+  }
+
+  if (name === "terreno_ask_update_help") {
+    const question = typeof args.question === "string" ? args.question : "";
+    const includeArchived = args.includeArchived === true;
+    const limit = typeof args.limit === "number" ? args.limit : 5;
+    const answer = await askUpdateHelp({includeArchived, limit, question});
+    return {content: [{text: answer, type: "text"}]};
   }
 
   switch (name) {

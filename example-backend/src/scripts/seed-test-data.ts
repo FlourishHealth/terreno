@@ -38,6 +38,7 @@ import type {UserDocument} from "../types/models/userTypes";
 import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
+import {seedAnnouncements} from "./seed-announcements";
 import {seedFeatureFlags} from "./seed-feature-flags";
 
 interface SeedUser {
@@ -596,6 +597,16 @@ export const seedSteps: SeedStep[] = [
     },
     run: async (context) => {
       await seedFeatureFlags(context);
+    },
+  },
+  {
+    name: "announcements",
+    reset: async (context) => {
+      const {Announcement} = await import("@terreno/announcements");
+      await context.deleteMany(Announcement);
+    },
+    run: async (context) => {
+      await seedAnnouncements(context);
     },
   },
   {

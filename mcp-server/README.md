@@ -21,6 +21,9 @@ Code generation tools:
 - `terreno_search_docs` - Search bundled Terreno documentation (call before guessing APIs). Optional `version` selects a retained docs snapshot; omit for current `next` docs.
 - `terreno_get_component_docs` - Full `@terreno/ui` props table for one component
 - `terreno_get_upgrade_guide` - Lockstep upgrade notes between two `@terreno/*` versions
+- `terreno_search_update_notes` - Search bundled upgrade markdown and optional backend announcement help API
+- `terreno_get_update_note` - Fetch one full update note by id (`upgrade:<semver>` or `announcement:<mongoId>`)
+- `terreno_ask_update_help` - Ask a natural-language question; returns ranked matches with full update bodies
 - `terreno_bootstrap_app` - Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP)
 - `terreno_bootstrap_ai_rules` - Scaffold AI assistant rules files for Cursor, Claude Code, etc.
 - `terreno_generate_model` - Generate a Mongoose model with proper Terreno conventions
@@ -83,6 +86,10 @@ Add to your project's `.claude/settings.json`:
   }
 }
 ```
+
+### Update help (optional)
+
+When `TERRENO_HELP_API_URL` points at a Terreno backend with `AnnouncementsApp({help: {enabled: true}})`, the update-note tools also search live product announcements (published by default; pass `includeArchived: true` for archived notes). Set `TERRENO_HELP_API_TOKEN` when the help routes require authentication.
 
 ## Development
 

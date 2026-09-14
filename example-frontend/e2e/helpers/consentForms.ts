@@ -25,6 +25,7 @@ export const createConsentForm = async (
       slug,
       title: "E2E Test Consent",
       type: "custom",
+      version: 1,
       ...(options?.checkboxes ? {checkboxes: options.checkboxes} : {}),
     },
     headers: {authorization: `Bearer ${token}`},

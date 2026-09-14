@@ -87,7 +87,9 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/isolated/**/*.isolated.{ts,tsx}"
+        "src/isolated/**/*.isolated.{ts,tsx}",
+        // `bunfig.toml` test preload for shared RTK doubles; not imported from package entry.
+        "src/testing/useAdminApiDouble.ts"
       ]
     },
     "admin-backend": {
@@ -232,6 +234,18 @@
         "fingerprint.config.js"
       ]
     },
+    "announcements": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        // `bunfig.toml` test preload; not imported from the package entry graph.
+        "src/tests/bunSetup.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
     "comms": {
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -291,6 +305,7 @@
         "@terreno/admin-backend!",
         "@terreno/admin-spa!",
         "@terreno/ai!",
+        "@terreno/announcements!",
         "@terreno/api!",
         "@terreno/api-health!",
         "@terreno/comms!",

@@ -282,6 +282,23 @@ describe("AdminApp /admin/config", () => {
     expect(res.body.models[0].fields.values.itemEnum).toEqual(["alpha", "beta"]);
   });
 
+  it("accepts enum array values on admin create", async () => {
+    const enumApp = buildApp([
+      {
+        displayName: "Enum arrays",
+        listFields: ["values"],
+        model: EnumArrayModel,
+        routePath: "/enum-arrays",
+      },
+    ]);
+    const enumAgent = await authAsUser(enumApp, "admin");
+    const res = await enumAgent
+      .post("/admin/enum-arrays")
+      .send({values: ["alpha", "beta"]})
+      .expect(201);
+    expect(res.body.data.values).toEqual(["alpha", "beta"]);
+  });
+
   it("extracts itemType and itemRef for arrays of ObjectId references", async () => {
     const res = await adminAgent.get("/admin/config").expect(200);
     const [foodMeta] = res.body.models;

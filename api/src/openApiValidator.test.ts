@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type {ErrorObject} from "ajv";
 import type {NextFunction, Request, Response} from "express";
+import mongoose from "mongoose";
 
 import {modelRouter} from "./api";
 import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
@@ -732,6 +733,65 @@ describe("openApiValidator", () => {
       const schema = getSchemaFromModel(RequiredModel);
       expect(schema.name).toBeDefined();
       expect(schema.about).toBeDefined();
+    });
+
+    it("puts enum constraints on array items, not the array property", () => {
+      const enumArraySchema = new mongoose.Schema({
+        values: {
+          default: ["alpha", "beta"],
+          enum: ["alpha", "beta"],
+          type: [String],
+        },
+      });
+      const EnumArrayModel =
+        mongoose.models.OpenApiValidatorEnumArray ??
+        mongoose.model("OpenApiValidatorEnumArray", enumArraySchema);
+
+      const schema = getSchemaFromModel(EnumArrayModel);
+      expect(schema.values).toEqual({
+        items: {enum: ["alpha", "beta"], type: "string"},
+        type: "array",
+      });
+    });
+  });
+
+  describe("enum array request bodies", () => {
+    const enumArraySchema = new mongoose.Schema({
+      label: {required: true, type: String},
+      values: {
+        enum: ["alpha", "beta"],
+        type: [String],
+      },
+    });
+    const EnumArrayModel =
+      mongoose.models.OpenApiValidatorEnumArrayRoute ??
+      mongoose.model("OpenApiValidatorEnumArrayRoute", enumArraySchema);
+
+    const enumArrayRouterOptions = {
+      permissions: {
+        create: [Permissions.IsAuthenticated],
+        delete: [Permissions.IsAdmin],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsAuthenticated],
+        update: [Permissions.IsAuthenticated],
+      },
+      queryFields: ["label"],
+      sort: "-label" as const,
+    };
+
+    it("accepts enum array values on create when validation is enabled", async () => {
+      configureOpenApiValidator();
+
+      const freshApp = await setupFreshApp();
+      freshApp.use("/enum-arrays", modelRouter(EnumArrayModel, enumArrayRouterOptions));
+      const admin = await authAsUser(freshApp, "admin");
+
+      const res = await admin
+        .post("/enum-arrays")
+        .send({label: "sample", values: ["alpha", "beta"]})
+        .expect(201);
+
+      expect(res.body.data.values).toEqual(["alpha", "beta"]);
     });
   });
 
