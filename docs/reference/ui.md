@@ -451,6 +451,10 @@ Responsive `Box` direction props update automatically when the window resizes or
 All responsive Boxes share one dimension listener; non-responsive Boxes do not subscribe.
 When multiple direction props match, the largest active breakpoint wins (`xl` over `lg` over `md` over `sm`).
 
+`Box.style` accepts a universal React Native `ViewStyle` and merges after the named Box layout
+props. Prefer named props for supported tokens; use `style` for React Native layout properties such
+as `flexBasis` that Box does not expose directly.
+
 ## Icons
 
 Terreno uses **FontAwesome 6** by default. Pass icon names via `iconName` on `Icon`, `Button`, `IconButton`, form fields, `Badge`, and other icon-aware components.

@@ -947,6 +947,18 @@ describe("Box", () => {
       expect(view.props.style.backgroundColor).toBe("red");
     });
 
+    it("merges the universal style prop after Box layout props", () => {
+      const {root} = renderWithTheme(
+        <Box color="primary" style={{backgroundColor: "red", flexBasis: 0, flexGrow: 1}} />
+      );
+      const view = root.findByType("View");
+      assert.deepInclude(view.props.style, {
+        backgroundColor: "red",
+        flexBasis: 0,
+        flexGrow: 1,
+      });
+    });
+
     it("handles rounding='circle' with width/height", () => {
       const {root} = renderWithTheme(<Box height={40} rounding="circle" width={40} />);
       const view = root.findByType("View");

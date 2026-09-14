@@ -1,10 +1,21 @@
 import {describe, expect, it} from "bun:test";
-import {Button} from "@terreno/ui";
+import {Box, Button} from "@terreno/ui";
 import {within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
+import {View, type ViewStyle} from "react-native";
 import {renderWithTheme} from "../../../../../ui/src/test-utils";
 import {ObservabilityTable} from "./ObservabilityTable";
+
+const flattenStyle = (style: ViewStyle | ViewStyle[] | undefined): ViewStyle => {
+  if (!style) {
+    return {};
+  }
+  if (Array.isArray(style)) {
+    return Object.assign({}, ...style.map((entry) => flattenStyle(entry)));
+  }
+  return style;
+};
 
 describe("ObservabilityTable", () => {
   it("renders headers, string cells, and node cells in flow-height rows", () => {
@@ -32,5 +43,49 @@ describe("ObservabilityTable", () => {
     assert.equal(longCell.props.numberOfLines, 3);
     expect(table.getByText("short")).toBeTruthy();
     expect(table.getByText("—")).toBeTruthy();
+  });
+
+  it("shrink-wraps the bordered shell and avoids flex-grow display flex on cells", () => {
+    let tableHeight = 0;
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <Box direction="column" height={240}>
+        <Box flex="grow" gap={2}>
+          <Box
+            onLayout={(event) => {
+              tableHeight = event.nativeEvent.layout.height;
+            }}
+          >
+            <ObservabilityTable
+              columns={[
+                {title: "KEY"},
+                {title: "DATA TYPE"},
+                {title: "RANGE"},
+                {title: "REQUIRED"},
+              ]}
+              rows={[{cells: ["correct", "boolean", "—", "Yes"], key: "dimension"}]}
+              testID="observability-table"
+            />
+          </Box>
+        </Box>
+      </Box>
+    );
+
+    const table = getByTestId("observability-table");
+    const tableStyle = flattenStyle(table.props.style as ViewStyle);
+    expect(tableStyle.alignSelf).toBe("flex-start");
+    expect(tableStyle.width).toBe("100%");
+
+    const headerCellElement = table.props.children[0].props.children[0];
+    expect(headerCellElement.props.flex).toBeUndefined();
+    const headerCellInputStyle = flattenStyle(headerCellElement.props.style as ViewStyle);
+    expect(headerCellInputStyle.flexGrow).toBe(1);
+    expect(headerCellInputStyle.flexBasis).toBe(0);
+    expect(headerCellInputStyle.minWidth).toBe(120);
+
+    const renderedFlexGrowCells = UNSAFE_root.findAllByType(View).filter(
+      (view) => flattenStyle(view.props.style as ViewStyle).flexGrow === 1
+    );
+    assert.isAtLeast(renderedFlexGrowCells.length, 1);
+    assert.isBelow(tableHeight, 120);
   });
 });

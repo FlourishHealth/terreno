@@ -405,7 +405,9 @@ overlap adjacent rows.
 
 `ObservabilityTable` (`widgets/aiObservability/shell/ObservabilityTable.tsx`) is the shared
 flow-height table for these screens. Columns take a `title` and optional `minWidth`; rows take a
-`key` and `cells`, where a string cell renders truncated text and a node cell renders as-is.
+`key` and `cells`, where a string cell renders truncated text and a node cell renders as-is. Its
+bordered shell shrink-wraps the rows inside flex/scroll parents so its bottom border cannot stretch
+into the following section.
 
 `ai-experiments` lists experiments with status, running progress, and cost. **New experiment**
 opens a four-step wizard (dataset with counts, prompt versions tagged latest/production/superseded,
