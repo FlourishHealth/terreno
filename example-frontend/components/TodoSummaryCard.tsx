@@ -35,7 +35,7 @@ export const TodoSummaryCard: React.FC = () => {
         apiKey: geminiApiKey || undefined,
         text: summaryInput,
       }).unwrap();
-      setSummary(result.data.output);
+      setSummary(result.output);
     } catch (error) {
       console.warn("example-summarize failed", error);
       setSummary("");

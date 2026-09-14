@@ -157,7 +157,7 @@ export interface GetGptHistoriesArgs {
 }
 
 export interface SummarizeExampleTextResponse {
-  data: {output: string};
+  output: string;
 }
 
 export const terrenoApi = openapi

@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import {DateTime} from "luxon";
 
 import {ObservabilityApp, resetObservabilityApp} from "../observabilityApp";
@@ -173,5 +174,22 @@ describe("LocalPromptStore", () => {
       {content: "System Ada", role: "system"},
       {content: "Hello Ada", role: "user"},
     ]);
+
+    const latest = await store.runPlayground({
+      generator: {
+        generate: async () => {
+          return {output: "latest"};
+        },
+      },
+      name: "playground",
+      variables: {name: "Grace"},
+    });
+    assert.equal(latest.output, "latest");
+    assert.deepEqual(latest.compiledMessages, [
+      {content: "System Grace", role: "system"},
+      {content: "Hello Grace", role: "user"},
+    ]);
+    assert.isUndefined(await store.get({name: "missing"}));
+    assert.isUndefined(await store.getVersionByNumber("missing", 1));
   });
 });

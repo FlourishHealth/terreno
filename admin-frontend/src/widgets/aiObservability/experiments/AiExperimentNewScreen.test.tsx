@@ -159,6 +159,44 @@ const advanceToReview = async (view: ReturnType<typeof renderWithTheme>): Promis
 };
 
 describe("AiExperimentNewScreenWidget", () => {
+  it("requires an experiment name before running", async () => {
+    const view = renderWithTheme(
+      <AiExperimentNewScreenWidget
+        api={stableApi}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-experiment-new"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-next"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByLabelText("Version 1"));
+      fireEvent.press(view.getByLabelText("Version 2"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-next"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByLabelText("quality"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-next"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-experiment-run"));
+      await Promise.resolve();
+    });
+
+    assert.exists(view.getByText("Experiment name is required."));
+  });
+
   it("walks the wizard, estimates on review, and runs experiment", async () => {
     estimateShouldFail = false;
     createShouldFail = false;
