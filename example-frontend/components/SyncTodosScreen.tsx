@@ -16,7 +16,7 @@ import {DateTime} from "luxon";
 import type React from "react";
 import {memo, useCallback, useMemo, useState} from "react";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {NotificationCenter} from "@/components/NotificationCenter";
+import {NotificationCenterBell} from "@/components/NotificationCenter";
 import {useSyncConflictsController} from "@/components/SyncConflictsController";
 import {SyncDevPanel} from "@/components/SyncDevPanel";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
@@ -397,7 +397,7 @@ const SyncTodosScreen: React.FC = () => {
               Local-first via @terreno/syncdb
             </Text>
           </Box>
-          <NotificationCenter />
+          <NotificationCenterBell />
         </Box>
         <Box marginBottom={6}>
           <Text color="secondaryLight" size="sm" testID="todos-count">

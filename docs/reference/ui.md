@@ -73,7 +73,7 @@ Presentational only — no syncdb import. Wire data from your app's sync layer.
 
 ### `NotificationInbox`
 
-List-only; wrap in `Modal` or a sheet in the host screen.
+List-only; wrap in `SideDrawer`, `Modal`, or a sheet in the host screen.
 
 | Prop | Type | Description |
 |---|---|---|
@@ -82,6 +82,9 @@ List-only; wrap in `Modal` or a sheet in the host screen.
 | `onMarkRead` / `onMarkUnread` | `(item) => void` | Toggle `readAt` via syncdb |
 | `onDismiss` | `(item) => void` | Soft-delete row |
 | `onOpen` | `(item) => void` | Tap handler (e.g. Expo Router for `href`) |
+
+`NotificationInboxItem.archived` is optional. Archived rows receive an `Archived` label
+and do not expose dismiss or read-state actions.
 
 ### `NotificationPreferences`
 

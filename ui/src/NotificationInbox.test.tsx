@@ -81,6 +81,28 @@ describe("NotificationInbox", () => {
     assert.equal(markedUnread?.id, "n2");
   });
 
+  it("labels archived items and hides mutation actions", () => {
+    const archivedItem: NotificationInboxItem = {
+      ...items[1],
+      archived: true,
+      id: "archived",
+    };
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <NotificationInbox
+        items={[archivedItem]}
+        onDismiss={() => {}}
+        onMarkRead={() => {}}
+        onMarkUnread={() => {}}
+        onOpen={() => {}}
+      />
+    );
+
+    assert.isOk(getByTestId("notification-inbox-item-archived"));
+    assert.isOk(getByText("Archived"));
+    assert.isNull(queryByTestId("notification-inbox-dismiss-archived"));
+    assert.isNull(queryByTestId("notification-inbox-mark-unread-archived"));
+  });
+
   it("shows loading and empty states", () => {
     const loading = renderWithTheme(
       <NotificationInbox
