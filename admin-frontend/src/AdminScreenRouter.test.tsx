@@ -45,8 +45,28 @@ mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [mock(() => ({unwrap: async () => ({taskId: "t1"})}))],
 }));
 
+mock.module("./useAdminScripts", () => ({
+  useAdminScripts: () => ({
+    useCancelScriptTaskMutation: () => [
+      mock(() => ({unwrap: async () => ({})})),
+      {isLoading: false},
+    ],
+    useGetScriptTaskQuery: () => adminScriptsHarness.taskQuery,
+    useListScriptRunsQuery: () => ({
+      data: undefined,
+      error: null,
+      isLoading: false,
+    }),
+    useRunScriptMutation: () => [
+      mock(() => ({unwrap: async () => ({taskId: ""})})),
+      {isLoading: false},
+    ],
+  }),
+}));
+
 import {AdminMigrationsView} from "./AdminMigrationsView";
 import {AdminScreenRouter} from "./AdminScreenRouter";
+import {adminScriptsHarness} from "./adminScriptsHarness";
 
 const injectAdminEndpoints = ({
   endpoints,
@@ -209,6 +229,7 @@ describe("AdminMigrationsView", () => {
     mockRun.mockClear();
     mockRefetch.mockClear();
     mockTask.data = undefined;
+    adminScriptsHarness.taskQuery = mockTask;
     resetQueryState();
   });
 

@@ -1,6 +1,6 @@
 import {Banner, Box, Button, Card, Heading, Spinner, Text} from "@terreno/ui";
 import {DateTime} from "luxon";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import type {AdminApi, AdminConfigResponse, BackgroundTask} from "./types";
 import {useAdminMigrations} from "./useAdminMigrations";
 import {useAdminScripts} from "./useAdminScripts";
@@ -39,7 +39,11 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
 }) => {
   const migrationsEnabled = Boolean(config?.migrations?.enabled);
   const {useGetMigrationsQuery, useRunMigrationsMutation} = useAdminMigrations(api, apiBase);
-  const {useGetScriptTaskQuery} = useAdminScripts(api, apiBase);
+  const scripts = useAdminScripts(api, apiBase);
+  const useGetScriptTaskQuery =
+    typeof scripts.useGetScriptTaskQuery === "function"
+      ? scripts.useGetScriptTaskQuery
+      : () => ({data: undefined, error: null, isLoading: false});
   const {
     data: status,
     error: statusError,
@@ -50,25 +54,29 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
   const [taskId, setTaskId] = useState<string | null>(null);
   const [runKind, setRunKind] = useState<"dry" | "wet" | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const taskStatusRef = useRef<string | undefined>(undefined);
 
   const {data: taskPayload} = useGetScriptTaskQuery(taskId ?? "", {
-    pollingInterval: taskId ? POLL_INTERVAL_MS : 0,
+    pollingInterval: taskId && !isTerminalStatus(taskStatusRef.current) ? POLL_INTERVAL_MS : 0,
     skip: !taskId,
   });
   const task = taskPayload?.task as BackgroundTask | undefined;
+  taskStatusRef.current = task?.status;
 
   // Refresh status after a batch finishes so applied/pending lists match history.
+  // Depend on status string, not the task object, so later polls do not refetch.
   useEffect(() => {
-    if (!task || !isTerminalStatus(task.status) || !refetch) {
+    if (!taskId || !isTerminalStatus(task?.status) || !refetch) {
       return;
     }
     void refetch();
-  }, [refetch, task]);
+  }, [refetch, task?.status, taskId]);
 
   const handleRun = useCallback(
     async (wetRun: boolean): Promise<void> => {
       setRunKind(wetRun ? "wet" : "dry");
       setTaskId(null);
+      taskStatusRef.current = undefined;
       setStartError(null);
       try {
         const result = await runMigrations({wetRun}).unwrap();
