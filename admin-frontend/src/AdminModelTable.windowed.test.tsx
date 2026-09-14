@@ -80,6 +80,24 @@ const windowedConfig: AdminConfigResponse = {
   scripts: [],
 };
 
+const collectRefreshFailedLogs = (logged: unknown[][]): boolean[] => {
+  return logged.map((entry) => entry.some((part) => String(part).includes("Refresh failed")));
+};
+
+const withConsoleErrorCapture = async (run: () => Promise<void>): Promise<unknown[][]> => {
+  const logged: unknown[][] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]): void => {
+    logged.push(args);
+  };
+  try {
+    await run();
+    return logged;
+  } finally {
+    console.error = originalError;
+  }
+};
+
 const collectTitleTexts = (root: ReactTestInstance): string[] => {
   const tables = root.findAll(
     (node: ReactTestInstance) =>
@@ -391,6 +409,68 @@ describe("AdminModelTable windowed path", () => {
 
     assert.equal(refetchCount, 2);
     assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Accepted after retry"]);
+  });
+
+  it("does not toast a settle refresh failure that a later attempt recovers", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    let refetchCount = 0;
+    listRefetch.mockImplementation(async () => {
+      refetchCount += 1;
+      if (refetchCount === 1) {
+        throw new Error("temporary network failure");
+      }
+      listState.data = {
+        data: [
+          {_id: "todo-1", title: "Alpha"},
+          {_id: "todo-2", title: "Accepted after retry"},
+        ],
+        total: 2,
+      };
+      return {data: listState.data};
+    });
+    const {UNSAFE_root} = renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const logged = await withConsoleErrorCapture(async () => {
+      await act(async () => {
+        markAdminWindowMembershipStale({awaitId: "todo-2", collection: "todos"});
+        await new Promise((resolve) => setTimeout(resolve, 1_600));
+      });
+    });
+
+    assert.equal(refetchCount, 2);
+    assert.deepEqual(collectTitleTexts(UNSAFE_root), ["Alpha", "Accepted after retry"]);
+    assert.isFalse(collectRefreshFailedLogs(logged).includes(true));
+  });
+
+  it("toasts Refresh failed once when settle retries exhaust on list errors", async () => {
+    const {syncDb} = createFakeSyncDb();
+    listState.data = {
+      data: [{_id: "todo-1", title: "Alpha"}],
+      total: 1,
+    };
+    listRefetch.mockImplementation(async () => {
+      throw new Error("network down");
+    });
+    renderWindowed(syncDb);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const logged = await withConsoleErrorCapture(async () => {
+      await act(async () => {
+        markAdminWindowMembershipStale({awaitId: "todo-2", collection: "todos"});
+        await new Promise((resolve) => setTimeout(resolve, 2_600));
+      });
+    });
+
+    assert.equal(collectRefreshFailedLogs(logged).filter(Boolean).length, 1);
   });
 
   it("gives up retrying after the attempt budget and leaves Refresh available", async () => {

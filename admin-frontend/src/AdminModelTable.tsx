@@ -78,6 +78,11 @@ const ACTIONS_COLUMN_TYPE = "adminActions";
 const LINK_COLUMN_TYPE = "adminLink";
 const SELECT_COLUMN_TYPE = "adminSelect";
 const INLINE_BOOL_COLUMN_TYPE = "adminInlineBool";
+
+interface RefreshMembershipOptions {
+  /** When false, skip the Refresh-failed toast. Settle retries stay silent until the last attempt. */
+  reportError?: boolean;
+}
 const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
 
 /** A windowed create is queued in the outbox, so membership may need a few tries to catch up. */
@@ -520,49 +525,68 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   }, [adminContext?.syncDb, isWindowed, membershipRows, syncCollection]);
 
   /** Resolves to the refetched membership ids, or undefined when the refresh was abandoned. */
-  const handleRefresh = useCallback(async (): Promise<string[] | undefined> => {
-    if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
-      return undefined;
-    }
-    const generation = refreshGenerationRef.current + 1;
-    refreshGenerationRef.current = generation;
-    const paramsAtStart = listParamsRef.current;
-    try {
-      const result = (await refetch()) as
-        | {data?: AdminListEnvelope; error?: unknown; isError?: boolean}
-        | undefined;
-      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
+  const handleRefresh = useCallback(
+    async (options?: RefreshMembershipOptions): Promise<string[] | undefined> => {
+      if (!isWindowed || !adminContext?.syncDb || !syncCollection) {
         return undefined;
       }
-      if (result?.isError || result?.error) {
-        toast.catch(result.error ?? new Error("Refresh failed"), "Refresh failed");
-        return undefined;
-      }
-      const rows = (result?.data?.data ?? membershipRows) as Array<Record<string, AdminFieldValue>>;
-      const ids: string[] = [];
-      const restRows: Record<string, unknown> = {};
-      for (const row of rows) {
-        const id = String(row._id ?? "");
-        if (id.length === 0) {
-          continue;
+      const shouldReportError = options?.reportError !== false;
+      const generation = refreshGenerationRef.current + 1;
+      refreshGenerationRef.current = generation;
+      const paramsAtStart = listParamsRef.current;
+      try {
+        const result = (await refetch()) as
+          | {data?: AdminListEnvelope; error?: unknown; isError?: boolean}
+          | undefined;
+        if (
+          generation !== refreshGenerationRef.current ||
+          paramsAtStart !== listParamsRef.current
+        ) {
+          return undefined;
         }
-        ids.push(id);
-        restRows[id] = row;
-      }
-      await adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows});
-      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
+        if (result?.isError || result?.error) {
+          if (shouldReportError) {
+            toast.catch(result.error ?? new Error("Refresh failed"), "Refresh failed");
+          }
+          return undefined;
+        }
+        const rows = (result?.data?.data ?? membershipRows) as Array<
+          Record<string, AdminFieldValue>
+        >;
+        const ids: string[] = [];
+        const restRows: Record<string, unknown> = {};
+        for (const row of rows) {
+          const id = String(row._id ?? "");
+          if (id.length === 0) {
+            continue;
+          }
+          ids.push(id);
+          restRows[id] = row;
+        }
+        await adminContext.syncDb.hydrateWindow({collection: syncCollection, ids, restRows});
+        if (
+          generation !== refreshGenerationRef.current ||
+          paramsAtStart !== listParamsRef.current
+        ) {
+          return undefined;
+        }
+        setStoreEpoch((n) => n + 1);
+        return ids;
+      } catch (err) {
+        if (
+          generation !== refreshGenerationRef.current ||
+          paramsAtStart !== listParamsRef.current
+        ) {
+          return undefined;
+        }
+        if (shouldReportError) {
+          toast.catch(err, "Refresh failed");
+        }
         return undefined;
       }
-      setStoreEpoch((n) => n + 1);
-      return ids;
-    } catch (err) {
-      if (generation !== refreshGenerationRef.current || paramsAtStart !== listParamsRef.current) {
-        return undefined;
-      }
-      toast.catch(err, "Refresh failed");
-      return undefined;
-    }
-  }, [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]);
+    },
+    [adminContext?.syncDb, isWindowed, membershipRows, refetch, syncCollection, toast]
+  );
 
   const handleRefreshRef = useRef(handleRefresh);
   handleRefreshRef.current = handleRefresh;
@@ -591,7 +615,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const awaitId = membershipStale.awaitId;
     const settleMembership = async (): Promise<void> => {
       for (let attempt = 0; attempt < MEMBERSHIP_SETTLE_ATTEMPTS; attempt += 1) {
-        const ids = await handleRefreshRef.current();
+        const isLastAttempt = attempt === MEMBERSHIP_SETTLE_ATTEMPTS - 1;
+        const ids = await handleRefreshRef.current({reportError: isLastAttempt});
         if (!awaitId || ids?.includes(awaitId)) {
           return;
         }
