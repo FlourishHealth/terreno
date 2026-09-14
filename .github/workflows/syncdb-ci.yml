@@ -39,14 +39,14 @@ jobs:
         run: bun run compile
         working-directory: syncdb
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         working-directory: syncdb
         env:
           CI: true
-
-      - name: Isolated tests
-        run: bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
-        working-directory: syncdb
-        env:
-          CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: syncdb
+          flag: syncdb
+          token: ${{ secrets.CODECOV_TOKEN }}
