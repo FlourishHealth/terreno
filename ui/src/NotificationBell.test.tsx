@@ -24,12 +24,33 @@ describe("NotificationBell", () => {
     assert.include(StyleSheet.flatten(getByTestId("bell").props.style), {
       position: "relative",
     });
-    assert.include(StyleSheet.flatten(getByTestId("bell-badge-container").props.style), {
-      position: "absolute",
-      right: -4,
-      top: -4,
-    });
     assert.equal(getByTestId("bell-badge-container").props.pointerEvents, "none");
+  });
+
+  it("keeps the badge inside the bell bounds so ancestors cannot clip it", () => {
+    const {getByTestId} = renderWithTheme(
+      <NotificationBell onPress={() => {}} testID="bell" unreadCount={3} />
+    );
+
+    const wrapper = StyleSheet.flatten(getByTestId("bell").props.style);
+    const badgeContainer = StyleSheet.flatten(getByTestId("bell-badge-container").props.style);
+
+    assert.isAtLeast(Number(wrapper.width), 40);
+    assert.isAtLeast(Number(wrapper.height), 40);
+    assert.include(badgeContainer, {position: "absolute", right: 0, top: 0});
+  });
+
+  it("announces the unread count to assistive technology", () => {
+    const {getByTestId, rerender} = renderWithTheme(
+      <NotificationBell onPress={() => {}} testID="bell" unreadCount={1} />
+    );
+    assert.equal(
+      getByTestId("bell-button").props.accessibilityLabel,
+      "Notifications, 1 unread notification"
+    );
+
+    rerender(<NotificationBell onPress={() => {}} testID="bell" unreadCount={0} />);
+    assert.equal(getByTestId("bell-button").props.accessibilityLabel, "Notifications");
   });
 
   it("calls onPress when tapped", () => {

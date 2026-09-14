@@ -10,20 +10,29 @@ export interface NotificationBellProps {
   unreadCount: number;
 }
 
+/**
+ * Tap target size. Also reserves room for the badge so it never needs negative
+ * offsets, which an ancestor with clipped overflow would slice off.
+ */
+const BELL_SIZE = 40;
+
 export const NotificationBell: FC<NotificationBellProps> = ({
   onPress,
   testID = "notification-bell",
   unreadCount,
 }) => {
   const showBadge = unreadCount > 0;
+  const unreadLabel =
+    unreadCount === 1 ? "1 unread notification" : `${unreadCount} unread notifications`;
 
   return (
-    <View style={{position: "relative"}} testID={testID}>
+    <View style={{height: BELL_SIZE, position: "relative", width: BELL_SIZE}} testID={testID}>
       <Pressable
         accessibilityHint="Opens your notification inbox"
-        accessibilityLabel="Notifications"
+        accessibilityLabel={showBadge ? `Notifications, ${unreadLabel}` : "Notifications"}
         accessibilityRole="button"
         onPress={onPress}
+        style={{alignItems: "center", flex: 1, justifyContent: "center"}}
         testID={`${testID}-button`}
       >
         <Icon iconName="bell" size="md" testID={`${testID}-icon`} />
@@ -31,7 +40,7 @@ export const NotificationBell: FC<NotificationBellProps> = ({
       {showBadge ? (
         <View
           pointerEvents="none"
-          style={{position: "absolute", right: -4, top: -4}}
+          style={{position: "absolute", right: 0, top: 0}}
           testID={`${testID}-badge-container`}
         >
           <Badge
