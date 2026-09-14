@@ -226,6 +226,7 @@ describe("AdminShell", () => {
     restoreWindowWidth = setWindowWidth(1024);
     configState.config = {
       ...buildConfig(),
+      customScreens: [{displayName: "Jobs", name: "jobs"}],
       models: [
         ...buildConfig().models,
         platformModel({
@@ -269,11 +270,13 @@ describe("AdminShell", () => {
       "admin-shell-nav-version",
       "admin-shell-nav-audit-log",
       "admin-shell-nav-feature-flags",
+      "admin-shell-nav-jobs",
       "admin-shell-nav-configuration",
     ]);
     expect(queryByText("Tools")).toBeNull();
     expect(queryByTestId("admin-shell-nav-model-AdminAuditLog")).toBeNull();
     expect(queryByTestId("admin-shell-nav-model-FeatureFlag")).toBeNull();
+    expect(queryByTestId("admin-shell-nav-screen-jobs")).toBeNull();
 
     await act(async () => {
       fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
@@ -382,5 +385,34 @@ describe("AdminShell", () => {
     expect(queryByText("Screens")).toBeNull();
     expect(queryByText("Tools")).toBeNull();
     expect(getByText("Platform")).toBeTruthy();
+  });
+
+  it("lifts the jobs custom screen into Platform and keeps other screens", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "Comms", name: "comms"},
+        {displayName: "Jobs", name: "jobs"},
+      ],
+      scripts: [],
+    };
+
+    const {getByTestId, queryByTestId, queryByText} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-jobs-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-comms-clickable"));
+    assert.isNull(queryByTestId("admin-shell-nav-screen-jobs"));
+    assert.isNotNull(queryByText("Screens"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-jobs-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/jobs");
   });
 });

@@ -27,7 +27,7 @@ them puts nav on the wrong URL.
 | --- | --- | --- |
 | Model changelist / form | `modelRouter({admin: ...})` or plugin `adminContribution()` | `AdminScreenRouter` → `AdminModelTable` / `AdminModelForm` |
 | Custom screen | `AdminApp.customScreens` or plugin `customScreens` (`name` + `displayName`) | Matching `AdminProvider.widgets.screens[name]`, or a dedicated Expo route |
-| Platform tool | Built-in (`scripts`, `roles`, `version`, `configuration`, audit log, feature flags) | Sidebar **Platform** section; visibility from `/admin/config.platformTools` |
+| Platform tool | Built-in (`scripts`, `roles`, `version`, `configuration`, audit log, feature flags, jobs) | Sidebar **Platform** section; visibility from `/admin/config.platformTools` (jobs is lifted from `customScreens`) |
 | Home widget | `AdminApp.home.slots` IDs | `AdminProvider.widgets.home` (built-ins already registered) |
 
 `GET /admin/config` is caller-specific. Models and custom screens without read
@@ -43,10 +43,11 @@ Order in the rail:
 1. **Home** → `{routeBase}/`
 2. **Models** grouped by `admin.group` (ungrouped models land in **General**)
 3. **Screens** from config `customScreens` (plus optional host extras)
-4. **Platform** — Scripts (`/__scripts`), Roles, Version, Audit Log, Feature Flags, Configuration
+4. **Platform** — Scripts (`/__scripts`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
-operators do not hunt for them among business collections.
+operators do not hunt for them among business collections. Jobs is a custom screen
+(`name: "jobs"`); the shell lifts it the same way.
 
 Below 768px the rail becomes a hamburger drawer. The main column is a body-style
 canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and

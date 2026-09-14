@@ -100,6 +100,19 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/settings/gcs"]).toBeDefined();
   });
 
+  it("includes jobs admin routes", async (): Promise<void> => {
+    const server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+
+    assert.property(res.body.paths, "/jobs");
+    assert.property(res.body.paths, "/jobs/{id}");
+    assert.property(res.body.paths, "/jobs/stats");
+    assert.property(res.body.paths, "/jobs/schedules");
+    assert.property(res.body.paths["/jobs/{id}/retry"], "post");
+    assert.property(res.body.paths["/jobs/{id}/requeue"], "post");
+    assert.property(res.body.paths["/jobs/{id}/cancel"], "post");
+  });
+
   it("has list/create/read/patch operations on admin todo routes", async () => {
     const server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);

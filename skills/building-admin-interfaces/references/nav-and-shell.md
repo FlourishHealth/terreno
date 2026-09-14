@@ -18,11 +18,12 @@ Canonical shape: [How admin interfaces are shaped](../../../docs/explanation/adm
 2. Models, grouped by `admin.group` (empty group → **General**, sorted last)
 3. Screens from `customScreens`
 4. Platform, filtered by `platformTools`: Scripts (`/__scripts`), Roles, Version,
-   Audit Log, Feature Flags, Configuration
+   Audit Log, Feature Flags, Jobs, Configuration
 
 Pass `configurationPath`, `rolesPath`, and `versionConfigPath` on
 `AdminShellLayout`. Audit log and Feature Flags are still models; the shell
-relocates those two into Platform.
+relocates those two into Platform. Jobs is a custom screen (`name: "jobs"`);
+the shell relocates it the same way.
 
 ## Chrome
 

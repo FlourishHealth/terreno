@@ -21,7 +21,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
@@ -46,7 +46,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -79,7 +79,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -129,7 +129,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "catalog:",
@@ -168,7 +168,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@modelcontextprotocol/node": "catalog:",
@@ -244,7 +244,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
@@ -260,7 +260,7 @@
     },
     "comms": {
       "name": "@terreno/comms",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "libphonenumber-js": "catalog:",
@@ -384,6 +384,7 @@
         "@terreno/api-health": "workspace:*",
         "@terreno/comms": "workspace:*",
         "@terreno/feature-flags": "workspace:*",
+        "@terreno/jobs": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
         "expo-server-sdk": "^6.0.0",
@@ -466,7 +467,7 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@openfeature/server-sdk": "catalog:",
         "@terreno/api": "workspace:*",
@@ -487,9 +488,39 @@
         "mongoose": "^8.0.0 || ^9.0.0",
       },
     },
+    "jobs": {
+      "name": "@terreno/jobs",
+      "version": "57.2.0",
+      "dependencies": {
+        "@terreno/api": "workspace:*",
+        "cron": "^4.3.4",
+        "express": "catalog:",
+        "luxon": "catalog:",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@terreno/test": "workspace:*",
+        "@types/bun": "catalog:",
+        "@types/express": "catalog:",
+        "@types/luxon": "catalog:",
+        "@types/supertest": "catalog:",
+        "chai": "catalog:",
+        "supertest": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@google-cloud/tasks": "7.1.0",
+        "@vercel/queue": "^0.5.1",
+        "mongoose": "^8.0.0 || ^9.0.0",
+      },
+      "optionalPeers": [
+        "@google-cloud/tasks",
+        "@vercel/queue",
+      ],
+    },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -513,7 +544,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@ai-sdk/react": "^3.0.118",
         "@better-auth/expo": "^1.6.25",
@@ -560,7 +591,7 @@
     },
     "syncdb": {
       "name": "@terreno/syncdb",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "bin": {
         "terreno-syncdb-codegen": "./src/codegen/cli.ts",
       },
@@ -594,7 +625,7 @@
     },
     "test": {
       "name": "@terreno/test",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "express": "catalog:",
         "luxon": "catalog:",
@@ -620,7 +651,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "57.2.0",
+      "version": "57.3.0",
       "dependencies": {
         "@expo-google-fonts/caveat": "^0.4.2",
         "@expo-google-fonts/dancing-script": "^0.4.2",
@@ -2235,6 +2266,8 @@
     "@terreno/example-frontend": ["@terreno/example-frontend@workspace:example-frontend"],
 
     "@terreno/feature-flags": ["@terreno/feature-flags@workspace:feature-flags"],
+
+    "@terreno/jobs": ["@terreno/jobs@workspace:jobs"],
 
     "@terreno/mcp": ["@terreno/mcp@workspace:mcp-server"],
 

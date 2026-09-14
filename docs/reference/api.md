@@ -1402,6 +1402,13 @@ cronjob("0 * * * *", async () => {
 - `"0 0 * * *"` — Daily at midnight
 - `"0 */6 * * *"` — Every 6 hours
 
+**Process-local only:** `cronjob()` runs inside the current Node process. It does not
+persist work, retry across crashes, or share state between API and worker replicas. For
+durable queues, retries, dead-lettering, cron schedules stored in MongoDB, and admin
+visibility, use [`@terreno/jobs`](jobs.md) — see
+[Durable background jobs](../how-to/background-jobs.md). Use `wrapScript` (above) for
+one-shot CLI entrypoints, not queued work.
+
 ## Deprecations
 
 ### transformer (modelRouter option)
@@ -1489,8 +1496,8 @@ Complete reference of environment variables used by @terreno/api:
 | `GCP_PROJECT` | No | — | Google Cloud project ID (for Cloud Tasks, etc.) |
 | `GCP_LOCATION` | No | — | GCP region (e.g., "us-central1") |
 | `GCP_SERVICE_ACCOUNT_EMAIL` | No | — | Service account email for authentication |
-| `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Cloud Tasks queue name for notifications |
-| `GCP_TASK_PROCESSOR_QUEUE` | No | — | Cloud Tasks queue name for background jobs |
+| `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Legacy name in docs/tests only — **not** read by `@terreno/api` or `@terreno/jobs` |
+| `GCP_TASK_PROCESSOR_QUEUE` | No | — | Legacy name in docs/tests only — configure Cloud Tasks via `GcpCloudTasksRunner` options |
 
 ### Other
 

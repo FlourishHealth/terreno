@@ -295,6 +295,7 @@
         "@terreno/api-health!",
         "@terreno/comms!",
         "@terreno/feature-flags!",
+        "@terreno/jobs!",
         "@thream/socketio-jwt!",
         "ai!",
         "expo-server-sdk!",
@@ -310,6 +311,7 @@
       ],
       "entry": [
         "src/index.ts!",
+        "src/jobsWorker.ts!",
         "src/**/*.test.ts",
         "src/tests/setup.ts",
         "src/scripts/runAdminScript.ts",
@@ -325,6 +327,16 @@
       ]
     },
     "feature-flags": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "jobs": {
+      // Cloud runner SDKs are optional peers loaded only when an app supplies them.
+      "ignoreDependencies": ["@google-cloud/tasks", "@vercel/queue"],
+      // Mongoose method/static interfaces and runner option types are used in-file.
+      "ignoreExportsUsedInFile": {"interface": true, "type": true},
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "!src/tests/**!"

@@ -14,5 +14,6 @@ describe("example-backend access statements", () => {
     assert.deepEqual([...appStatements.adminTodo], ["read", "write", "writeOwned"]);
     assert.deepEqual([...appStatements.adminUser], ["read", "write", "writeOwned"]);
     assert.includeMembers([...appStatements.adminScreen], ["showcase", "syncLab"]);
+    assert.includeMembers([...appStatements.admin], ["access", "jobs"]);
   });
 });

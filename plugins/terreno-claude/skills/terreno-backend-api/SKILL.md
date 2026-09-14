@@ -231,6 +231,15 @@ Need server-side logic?
   |-- One-off endpoint (stats, webhook, action)?
   |   \-- custom-routes.md (createOpenApiBuilder)
   |
+  |-- Durable async work (retries, schedules, DLQ, admin queue UI)?
+  |   \-- @terreno/jobs JobsApp — docs/how-to/background-jobs.md
+  |
+  |-- In-process recurring timer (dies with the process)?
+  |   \-- @terreno/api cronjob()
+  |
+  |-- One-shot CLI / script entry?
+  |   \-- @terreno/api wrapScript()
+  |
   |-- Admin CRUD?
   |   \-- AdminApp + admin-frontend
   |
