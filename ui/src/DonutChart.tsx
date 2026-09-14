@@ -79,7 +79,13 @@ export const DonutChart: FC<DonutChartProps> = ({
       testID={testID}
       tooltipText={tooltipText}
     >
-      <Box onLayout={handleLayout} width="100%">
+      <Box
+        minWidth={0}
+        onLayout={handleLayout}
+        overflow="hidden"
+        testID={resolveTestID(testID, "plot")}
+        width="100%"
+      >
         <Box height={size} width={size}>
           <Svg height={size} width={size}>
             {slices.map((slice, index) => (

@@ -89,6 +89,36 @@ describe("LineChart", () => {
     expect(getByText("Sales")).toBeTruthy();
   });
 
+  it("resizes the plot to a measured container narrower than the default width", async () => {
+    const {getByTestId} = renderWithTheme(<LineChart data={POINTS} testID="chart" />);
+
+    await act(async () => {
+      fireEvent(getByTestId("chart.plot"), "layout", {
+        nativeEvent: {layout: {height: 200, width: 120}},
+      });
+    });
+
+    const markStyle = getByTestId("chart.point.2-clickable").props.style;
+    const styles = Array.isArray(markStyle) ? markStyle : [markStyle];
+    const positioned = styles.find(
+      (entry: {left?: number} | undefined) => typeof entry?.left === "number"
+    ) as {left: number};
+
+    expect(positioned.left).toBeLessThan(120);
+  });
+
+  it("keeps x-axis labels absolutely positioned so a long label cannot widen the chart", () => {
+    const {getByTestId} = renderWithTheme(
+      <LineChart data={[{label: "A very long axis label", value: 10}]} testID="chart" />
+    );
+    const slotStyle = getByTestId("chart.xtick.0").props.style;
+    const styles = Array.isArray(slotStyle) ? slotStyle : [slotStyle];
+
+    expect(styles).toEqual(
+      expect.arrayContaining([expect.objectContaining({position: "absolute"})])
+    );
+  });
+
   it("does not open URLs from x-axis labels", async () => {
     const openURLSpy = spyOn(Linking, "openURL").mockImplementation(() => Promise.resolve(true));
     const {getByText} = renderWithTheme(

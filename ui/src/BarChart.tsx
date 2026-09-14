@@ -6,6 +6,13 @@ import {Box} from "./Box";
 import type {BarChartProps, LayoutChangeEvent} from "./Common";
 import {getBarLayout} from "./charts/bars";
 import {ChartFrame} from "./charts/ChartFrame";
+import {
+  CHART_X_AXIS_HEIGHT,
+  getChartAxisWidth,
+  getChartPlot,
+  getXTickStyle,
+  getYTickStyle,
+} from "./charts/layout";
 import {createCartesianScales, getYTickValues} from "./charts/scales";
 import {getChartPaint} from "./charts/theme";
 import type {ChartPoint} from "./charts/types/chartTypes";
@@ -15,11 +22,6 @@ import {resolveTestID} from "./testing/resolveTestId";
 
 const DEFAULT_HEIGHT = 200;
 const DEFAULT_WIDTH = 300;
-const Y_AXIS_WIDTH = 40;
-const PLOT_LEFT = 8;
-const PLOT_TOP = 8;
-const PLOT_RIGHT = 8;
-const PLOT_BOTTOM = 8;
 const BAR_FILL = 0.7;
 
 const formatChartTooltip = ({
@@ -58,12 +60,9 @@ export const BarChart: FC<BarChartProps> = ({
     setActivePoint(point);
   }, []);
 
-  const plot = {
-    height: Math.max(height - PLOT_TOP - PLOT_BOTTOM, 1),
-    left: PLOT_LEFT,
-    top: PLOT_TOP,
-    width: Math.max(chartWidth - PLOT_LEFT - PLOT_RIGHT, 1),
-  };
+  const axisWidth = getChartAxisWidth(chartWidth);
+  const plot = getChartPlot({chartWidth, height});
+  const plotWidth = chartWidth - axisWidth;
   const scales = createCartesianScales({plot, points: data});
   const yTicks = getYTickValues(data);
   const baselineY = scales.y(0);
@@ -84,29 +83,22 @@ export const BarChart: FC<BarChartProps> = ({
       testID={testID}
       tooltipText={tooltipText}
     >
-      <Box width="100%">
+      <Box minWidth={0} onLayout={handleLayout} testID={resolveTestID(testID, "plot")} width="100%">
         <Box direction="row" height={height}>
-          <Box height={height} position="relative" width={Y_AXIS_WIDTH}>
+          <Box height={height} position="relative" width={axisWidth}>
             {yTicks.map((tick) => (
               <Box
-                dangerouslySetInlineStyle={{
-                  __style: {
-                    left: 0,
-                    position: "absolute",
-                    top: scales.y(tick) - 7,
-                    width: Y_AXIS_WIDTH,
-                  },
-                }}
+                dangerouslySetInlineStyle={{__style: getYTickStyle({axisWidth, y: scales.y(tick)})}}
                 key={`ytick-${tick}`}
               >
-                <Text align="right" color="secondaryDark" size="sm" skipLinking>
+                <Text align="right" color="secondaryDark" size="sm" skipLinking truncate>
                   {formatValue(tick)}
                 </Text>
               </Box>
             ))}
           </Box>
-          <Box flex="grow" height={height} onLayout={handleLayout} overflow="hidden">
-            <Svg height={height} width={chartWidth}>
+          <Box flex="grow" height={height} minWidth={0} overflow="hidden" position="relative">
+            <Svg height={height} width={plotWidth}>
               {yTicks.map((tick) => {
                 const y = scales.y(tick);
                 return (
@@ -177,18 +169,32 @@ export const BarChart: FC<BarChartProps> = ({
             })}
           </Box>
         </Box>
-        <Box
-          dangerouslySetInlineStyle={{
-            __style: {paddingLeft: Y_AXIS_WIDTH},
-          }}
-          direction="row"
-          justifyContent="between"
-        >
-          {data.map((point) => (
-            <Text color="secondaryDark" key={`xtick-${point.label}`} size="sm" skipLinking>
-              {point.label}
-            </Text>
-          ))}
+        <Box direction="row">
+          <Box width={axisWidth} />
+          <Box
+            flex="grow"
+            height={CHART_X_AXIS_HEIGHT}
+            minWidth={0}
+            overflow="hidden"
+            position="relative"
+          >
+            {data.map((point, index) => (
+              <Box
+                dangerouslySetInlineStyle={{
+                  __style: getXTickStyle({
+                    bandwidth: scales.bandwidth,
+                    xCenter: scales.xCenter(point.label),
+                  }),
+                }}
+                key={`xtick-${point.label}`}
+                testID={resolveTestID(testID, `xtick.${index}`)}
+              >
+                <Text align="center" color="secondaryDark" size="sm" skipLinking truncate>
+                  {point.label}
+                </Text>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
     </ChartFrame>
