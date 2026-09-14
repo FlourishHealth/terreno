@@ -1,7 +1,10 @@
-import {Box, Card, DashboardGrid, LineChart} from "@terreno/ui";
+import {BarChart, Box, Card, DashboardGrid, LineChart} from "@terreno/ui";
 import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
+
+/** The home screen preview tile is only 300x176, so it shows two compact cards instead of three. */
+const PREVIEW_CHART_HEIGHT = 104;
 
 const SAMPLE_POINTS = [
   {label: "Mon", value: 12},
@@ -9,7 +12,20 @@ const SAMPLE_POINTS = [
   {label: "Wed", value: 9},
 ];
 
-export const DashboardGridDemo = (): React.ReactElement => {
+export const DashboardGridDemo = ({preview}: {preview?: boolean}): React.ReactElement => {
+  if (preview) {
+    return (
+      <DashboardGrid columns={{lg: 2, md: 2, sm: 1}} gap={2} testID="dashboard-grid-preview">
+        <Card padding={2}>
+          <LineChart data={SAMPLE_POINTS} height={PREVIEW_CHART_HEIGHT} />
+        </Card>
+        <Card padding={2}>
+          <BarChart data={SAMPLE_POINTS} height={PREVIEW_CHART_HEIGHT} />
+        </Card>
+      </DashboardGrid>
+    );
+  }
+
   return (
     <DashboardGrid testID="dashboard-grid-demo">
       <Card>

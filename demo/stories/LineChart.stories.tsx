@@ -3,6 +3,9 @@ import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
+/** Fits the home screen preview tile, which is a fixed-height box. */
+const PREVIEW_HEIGHT = 140;
+
 const SAMPLE_POINTS = [
   {label: "Mon", value: 12},
   {label: "Tue", value: 18},
@@ -11,10 +14,19 @@ const SAMPLE_POINTS = [
   {label: "Fri", value: 15},
 ];
 
-export const LineChartDemo = (props: Partial<LineChartProps>): React.ReactElement => {
+export const LineChartDemo = ({
+  preview,
+  ...props
+}: Partial<LineChartProps> & {preview?: boolean}): React.ReactElement => {
   return (
     <Box width="100%">
-      <LineChart data={SAMPLE_POINTS} legendLabel="Signups" testID="line-chart-demo" {...props} />
+      <LineChart
+        data={SAMPLE_POINTS}
+        height={preview ? PREVIEW_HEIGHT : undefined}
+        legendLabel="Signups"
+        testID="line-chart-demo"
+        {...props}
+      />
     </Box>
   );
 };
