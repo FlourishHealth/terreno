@@ -118,7 +118,7 @@ describe("OrgDirectoryScreen", () => {
     expect(screen.getByTestId("org-directory-table")).toBeTruthy();
   });
 
-  it("opens and disables an organization from its row", async () => {
+  it("opens, disables, and re-enables an organization from its row", async () => {
     const onEnterOrganization = mock(() => {});
     queryState.data = {
       data: [{_id: "org-1", disabled: false, name: "Acme", slug: "acme"}],
@@ -139,6 +139,21 @@ describe("OrgDirectoryScreen", () => {
     });
     expect(updateOrganization).toHaveBeenCalledWith({
       body: {disabled: true},
+      id: "org-1",
+    });
+
+    screen.unmount();
+    queryState.data = {
+      data: [{_id: "org-1", disabled: true, name: "Acme", slug: "acme"}],
+    };
+    const disabledScreen = renderWithTheme(
+      <OrgDirectoryScreen api={api} isOperator onEnterOrganization={onEnterOrganization} />
+    );
+    await act(async () => {
+      fireEvent(disabledScreen.getByLabelText("Re-enable"), "click");
+    });
+    expect(updateOrganization).toHaveBeenCalledWith({
+      body: {disabled: false},
       id: "org-1",
     });
   });

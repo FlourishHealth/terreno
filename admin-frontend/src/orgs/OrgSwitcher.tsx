@@ -14,6 +14,13 @@ export interface OrgSwitcherProps {
   routeBase?: string;
 }
 
+const isForbiddenMineQuery = (error: unknown): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  return (error as {status?: number}).status === 403;
+};
+
 export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBase = "/admin"}) => {
   const {organization, selectOrganization} = useOrgContext();
   const {useMineQuery} = useOrganizationsApi(api, basePath);
@@ -44,6 +51,9 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
     return <Spinner size="sm" />;
   }
   if (error) {
+    if (isForbiddenMineQuery(error)) {
+      return null;
+    }
     return (
       <Text color="error" size="sm">
         Organizations unavailable

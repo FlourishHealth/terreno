@@ -7,5 +7,6 @@ coveragePathIgnorePatterns = [
   "src/dist/**",
   "**/node_modules/**",
   "../api/**",
+  "../ui/**",
 ]
 coverageThreshold = { line = 95, function = 95 }

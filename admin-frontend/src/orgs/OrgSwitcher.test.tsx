@@ -75,6 +75,32 @@ describe("OrgSwitcher", () => {
     expect(changed).toHaveBeenCalledWith({_id: "org-1", name: "Only Org"});
   });
 
+  it("renders nothing when /orgs/mine returns 403", () => {
+    mineState.error = {status: 403};
+    mineState.data = undefined;
+    const screen = renderWithTheme(
+      <OrgContextProvider onOrganizationChange={mock(() => {})}>
+        <OrgSwitcher api={api} />
+      </OrgContextProvider>
+    );
+
+    expect(screen.queryByText("Organizations unavailable")).toBeNull();
+    expect(screen.queryByTestId("org-switcher")).toBeNull();
+    expect(screen.queryByTestId("org-switcher-single")).toBeNull();
+  });
+
+  it("shows unavailable text for non-403 /orgs/mine errors", () => {
+    mineState.error = {status: 500};
+    mineState.data = undefined;
+    const screen = renderWithTheme(
+      <OrgContextProvider onOrganizationChange={mock(() => {})}>
+        <OrgSwitcher api={api} />
+      </OrgContextProvider>
+    );
+
+    expect(screen.getByText("Organizations unavailable")).toBeTruthy();
+  });
+
   it("selects an organization and navigates to its URL", async () => {
     mineState.data = {
       data: [

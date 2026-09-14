@@ -75,16 +75,18 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
     }
   }, [createOrganization, handleDismissCreate, name]);
 
-  const handleDisable = useCallback(
-    async (organization: OrganizationSummary): Promise<void> => {
+  const handleSetDisabled = useCallback(
+    async (organization: OrganizationSummary, disabled: boolean): Promise<void> => {
       try {
         setActionError(undefined);
         await updateOrganization({
-          body: {disabled: true},
+          body: {disabled},
           id: organization._id,
         }).unwrap();
       } catch {
-        setActionError("Could not disable organization.");
+        setActionError(
+          disabled ? "Could not disable organization." : "Could not re-enable organization."
+        );
       }
     },
     [updateOrganization]
@@ -105,18 +107,18 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
             variant="outline"
           />
           <Button
-            disabled={organization.disabled || isUpdating}
+            disabled={isUpdating}
             onClick={() => {
-              void handleDisable(organization);
+              void handleSetDisabled(organization, !organization.disabled);
             }}
             size="sm"
-            text={organization.disabled ? "Disabled" : "Disable"}
+            text={organization.disabled ? "Re-enable" : "Disable"}
             variant="ghost"
           />
         </Box>
       );
     },
-    [handleDisable, isUpdating, onEnterOrganization]
+    [handleSetDisabled, isUpdating, onEnterOrganization]
   );
 
   const customColumns: DataTableCustomComponentMap = useMemo(
