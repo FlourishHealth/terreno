@@ -1,8 +1,8 @@
 import {describe, it} from "bun:test";
-import {assert} from "chai";
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
+import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
@@ -235,10 +235,10 @@ describe("coverageRunArgs", () => {
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
       []
     );
-    assert.deepEqual(
-      coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}),
-      ["./**/*.test.ts", "./**/*.test.tsx"]
-    );
+    assert.deepEqual(coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}), [
+      "./**/*.test.ts",
+      "./**/*.test.tsx",
+    ]);
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1"]

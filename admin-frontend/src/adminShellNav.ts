@@ -10,6 +10,9 @@ export interface AdminModelGroup {
  * Models without a group go under "General", which is sorted last.
  */
 export const groupAdminModelsByGroup = (models: AdminModelConfig[]): AdminModelGroup[] => {
+  if (!Array.isArray(models)) {
+    return [];
+  }
   const map = new Map<string, AdminModelConfig[]>();
   for (const model of models) {
     const group = model.group?.trim() || "General";

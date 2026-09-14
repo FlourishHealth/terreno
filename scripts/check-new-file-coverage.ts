@@ -8,8 +8,8 @@ import ts from "typescript";
 
 import {
   type CoverageSummary,
-  type FileCoverage,
   evaluateCoverage,
+  type FileCoverage,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";

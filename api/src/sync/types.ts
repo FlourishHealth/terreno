@@ -39,6 +39,13 @@ export type SyncScope = SyncScopeOwner | SyncScopeTenant | SyncScopeBroadcast | 
  * (seq stamping) — validated at registration.
  */
 export interface SyncConfig {
+  /**
+   * When true, change-stream `sync:delta` emission also fans in to `{collection}|admin`
+   * in addition to the owner/tenant/broadcast/custom stream. Default false. App clients
+   * keep their existing scope; only admin window subscribers join `|admin`. Join
+   * permission is admin-only (same checks as `/admin/*`), not owner-stream membership.
+   */
+  adminBroadcast?: boolean;
   /** Which stream a document belongs to. Multi-tenant by default via the tenant scope. */
   scope: SyncScope;
   /**
@@ -64,6 +71,12 @@ export interface SyncConfig {
 }
 
 export type SyncMutationOperation = "create" | "update" | "delete";
+
+/** Explicit client marker for admin-panel windowed sync writes. */
+export type SyncMutationMode = "adminWindow";
+
+/** `sync:subscribe` / `sync:subscribed` window mode for admin fan-in (no snapshot paging). */
+export type SyncSubscribeMode = "window";
 
 /** A single entity in a snapshot response. */
 export interface SyncEntityPayload {
@@ -138,6 +151,13 @@ export interface SyncMutateRequest {
   data?: Record<string, unknown>;
   /** The `_syncSeq` the client last saw for this document; enables LWW conflict detection. */
   baseVersion?: number;
+  /**
+   * When `"adminWindow"`, the server applies AdminApp write semantics (RBAC,
+   * writeOwned, readonly/hidden stripping, audit) instead of product sync
+   * permissions. Ignored unless the collection is `adminBroadcast`, the caller
+   * has admin-window access, and AdminApp registered a write scope.
+   */
+  mutationMode?: SyncMutationMode;
 }
 
 /** Successful mutation acknowledgement. */

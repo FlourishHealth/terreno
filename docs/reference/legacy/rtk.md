@@ -2,7 +2,11 @@
 
 > **Deprecated for data synchronization.** `@terreno/rtk` remains published through the **56.x** line (and the stable **0.x** line) with a deprecation notice. It will **not** be published in the next major Terreno release. For collection reads/writes, offline sync, and realtime convergence, use [`@terreno/syncdb`](../syncdb.md) and the [migration guide](../../how-to/migrate-rtk-to-syncdb.md).
 >
-> RTK Query is still the correct tool for **non-synced** endpoints: generated OpenAPI hooks (`/auth/me`, admin RPC, AI routes), Better Auth session Redux wiring, feature flags, and sockets.
+> RTK Query remains the correct tool for **non-synced** generated OpenAPI routes
+> such as `/auth/me` and AI APIs, Better Auth session Redux wiring, feature
+> flags, and sockets. Built-in admin RPC uses host-bound fetch; ObjectId/API-only
+> admin CRUD keeps RTK compatibility in Terreno 57, then `useAdminApi` and the
+> required admin `api` prop are removed in Terreno 58.
 
 Redux Toolkit Query utilities for frontends using @terreno/api backends. JWT auth, token storage, SDK code generation from OpenAPI, and real-time WebSocket connections.
 
