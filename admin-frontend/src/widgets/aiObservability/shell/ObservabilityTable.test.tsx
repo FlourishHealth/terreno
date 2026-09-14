@@ -1,6 +1,6 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
 import {Box, Button} from "@terreno/ui";
-import {within} from "@testing-library/react-native";
+import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {View, type ViewStyle} from "react-native";
@@ -87,5 +87,35 @@ describe("ObservabilityTable", () => {
     );
     assert.isAtLeast(renderedFlexGrowCells.length, 1);
     assert.isBelow(tableHeight, 120);
+  });
+
+  it("weights columns and opens clickable rows", async () => {
+    const onClick = mock(() => undefined);
+    const {getByTestId} = renderWithTheme(
+      <ObservabilityTable
+        columns={[
+          {grow: 2.5, minWidth: 220, title: "Input"},
+          {grow: 1, minWidth: 100, title: "Metadata"},
+        ]}
+        rows={[
+          {
+            accessibilityLabel: "Open dataset item item-1",
+            cells: ["full input", "manual"],
+            key: "item-1",
+            onClick,
+          },
+        ]}
+        testID="weighted-table"
+      />
+    );
+    const table = getByTestId("weighted-table");
+    const inputCellStyle = flattenStyle(table.props.children[0].props.children[0].props.style);
+    assert.equal(inputCellStyle.flexGrow, 2.5);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("weighted-table-row-item-1-clickable"));
+      await Promise.resolve();
+    });
+    assert.equal(onClick.mock.calls.length, 1);
   });
 });

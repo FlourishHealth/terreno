@@ -401,11 +401,14 @@ for CSV. `ai-dataset-detail?id=` shows counts, schema binding, tabs **All / Huma
 review**, an items table (input, expected, provenance, trace link), **Add item**, and **Run
 experiment** navigation. The items table uses `ObservabilityTable`: rows grow with their content
 and cells wrap to three lines before truncating, so long inputs and expected outputs no longer
-overlap adjacent rows.
+overlap adjacent rows. Input and Expected receive 2.5× the flexible width of metadata columns.
+Selecting a row opens a scrollable modal with the complete input, expected output, provenance,
+annotation ids, tags, timestamps, metadata, and an **Open source trace** action when linked.
 
 `ObservabilityTable` (`widgets/aiObservability/shell/ObservabilityTable.tsx`) is the shared
-flow-height table for these screens. Columns take a `title` and optional `minWidth`; rows take a
-`key` and `cells`, where a string cell renders truncated text and a node cell renders as-is. Its
+flow-height table for these screens. Columns take a `title`, optional `minWidth`, and optional
+relative `grow`; rows take a `key`, `cells`, and optional click/accessibility properties. A string
+cell renders truncated text and a node cell renders as-is. Its
 bordered shell shrink-wraps the rows inside flex/scroll parents so its bottom border cannot stretch
 into the following section.
 

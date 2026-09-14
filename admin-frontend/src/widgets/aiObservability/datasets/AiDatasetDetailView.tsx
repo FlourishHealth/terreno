@@ -1,4 +1,5 @@
-import {Badge, Box, Button, Modal, SegmentedControl, Text, TextArea} from "@terreno/ui";
+import {Badge, Box, Button, Heading, Modal, SegmentedControl, Text, TextArea} from "@terreno/ui";
+import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useState} from "react";
 import {
   ObservabilityTable,
@@ -41,11 +42,33 @@ const tabLabel = (tab: DatasetItemTab, needsReviewCount: number): string => {
 };
 
 const COLUMNS: ObservabilityTableColumn[] = [
-  {minWidth: 200, title: "Input"},
-  {minWidth: 200, title: "Expected"},
-  {minWidth: 150, title: "Provenance"},
-  {minWidth: 110, title: "Trace"},
+  {grow: 2.5, minWidth: 220, title: "Input"},
+  {grow: 2.5, minWidth: 220, title: "Expected"},
+  {minWidth: 140, title: "Provenance"},
+  {grow: 0.7, minWidth: 90, title: "Trace"},
 ];
+
+const formatFullJson = (value: unknown): string => {
+  if (value === undefined || value === null) {
+    return "—";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+const formatTimestamp = (value: string): string => {
+  const timestamp = DateTime.fromISO(value);
+  if (!timestamp.isValid) {
+    return value;
+  }
+  return timestamp.toLocal().toLocaleString(DateTime.DATETIME_MED);
+};
 
 export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   dataset,
@@ -60,6 +83,7 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [inputText, setInputText] = useState("{}");
   const [expectedText, setExpectedText] = useState("{}");
+  const [selectedItem, setSelectedItem] = useState<DatasetItemRecord | undefined>();
 
   const filtered = useMemo(() => {
     return filterDatasetItemsByTab(items, tab);
@@ -72,27 +96,20 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
       const attribution = item.annotatedBy?.label ?? (item.proofread ? "Human" : "Needs review");
       const traceId = item.sourceTraceId;
       return {
+        accessibilityLabel: `Open dataset item ${item.id}`,
         cells: [
           summarizeJson(item.input),
           summarizeJson(item.expectedOutput),
           `${item.origin} · ${attribution}`,
-          traceId && onOpenTrace ? (
-            <Button
-              onClick={() => {
-                onOpenTrace(traceId);
-              }}
-              size="sm"
-              text="Open trace"
-              variant="ghost"
-            />
-          ) : (
-            "—"
-          ),
+          traceId ? "Linked" : "—",
         ],
         key: item.id,
+        onClick: () => {
+          setSelectedItem(item);
+        },
       };
     });
-  }, [filtered, onOpenTrace]);
+  }, [filtered]);
 
   const selectedIndex = TAB_OPTIONS.indexOf(tab);
   const handleAddItem = useCallback(async (): Promise<void> => {
@@ -106,6 +123,17 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
     }
     setAddOpen(false);
   }, [expectedText, inputText, onAddItem]);
+
+  const handleDismissItem = useCallback((): void => {
+    setSelectedItem(undefined);
+  }, []);
+
+  const handleOpenSelectedTrace = useCallback((): void => {
+    if (!selectedItem?.sourceTraceId || !onOpenTrace) {
+      return;
+    }
+    onOpenTrace(selectedItem.sourceTraceId);
+  }, [onOpenTrace, selectedItem]);
 
   return (
     <Box gap={4} testID="ai-dataset-detail">
@@ -158,8 +186,64 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
           <Text color="secondaryDark">No items in this tab.</Text>
         </Box>
       ) : (
-        <ObservabilityTable columns={COLUMNS} rows={rows} testID="ai-dataset-items-table" />
+        <Box gap={2}>
+          <Text color="secondaryDark" size="sm">
+            Select an item to view its complete input, expected output, and metadata.
+          </Text>
+          <ObservabilityTable columns={COLUMNS} rows={rows} testID="ai-dataset-items-table" />
+        </Box>
       )}
+      <Modal
+        onDismiss={handleDismissItem}
+        title="Dataset item details"
+        visible={Boolean(selectedItem)}
+      >
+        {selectedItem ? (
+          <Box gap={3} maxHeight={600} padding={3} scroll testID="ai-dataset-item-modal">
+            <Box gap={1}>
+              <Heading size="sm">Input</Heading>
+              <Box color="baseAlternate" padding={3} rounding="md">
+                <Text>{formatFullJson(selectedItem.input)}</Text>
+              </Box>
+            </Box>
+            <Box gap={1}>
+              <Heading size="sm">Expected output</Heading>
+              <Box color="baseAlternate" padding={3} rounding="md">
+                <Text>{formatFullJson(selectedItem.expectedOutput)}</Text>
+              </Box>
+            </Box>
+            <Box gap={1}>
+              <Heading size="sm">Item details</Heading>
+              <Text>ID: {selectedItem.id}</Text>
+              <Text>Dataset ID: {selectedItem.datasetId}</Text>
+              <Text>Origin: {selectedItem.origin}</Text>
+              <Text>Proofread: {selectedItem.proofread ? "Yes" : "No"}</Text>
+              <Text>Outcome: {selectedItem.outcomeClass ?? "—"}</Text>
+              <Text>Source trace: {selectedItem.sourceTraceId ?? "—"}</Text>
+              <Text>Annotated by: {selectedItem.annotatedBy?.label ?? "—"}</Text>
+              <Text>Annotator user: {selectedItem.annotatedBy?.userId ?? "—"}</Text>
+              <Text>Review item: {selectedItem.annotatedBy?.reviewItemId ?? "—"}</Text>
+              <Text>Tags: {selectedItem.tags.join(", ") || "—"}</Text>
+              <Text>Created: {formatTimestamp(selectedItem.created)}</Text>
+              <Text>Updated: {formatTimestamp(selectedItem.updated)}</Text>
+            </Box>
+            <Box gap={1}>
+              <Heading size="sm">Metadata</Heading>
+              <Box color="baseAlternate" padding={3} rounding="md">
+                <Text>{formatFullJson(selectedItem.metadata)}</Text>
+              </Box>
+            </Box>
+            {selectedItem.sourceTraceId && onOpenTrace ? (
+              <Button
+                onClick={handleOpenSelectedTrace}
+                testID="ai-dataset-item-open-trace"
+                text="Open source trace"
+                variant="secondary"
+              />
+            ) : undefined}
+          </Box>
+        ) : undefined}
+      </Modal>
       <Modal
         onDismiss={() => {
           setAddOpen(false);

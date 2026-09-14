@@ -43,14 +43,22 @@ const items: DatasetItemRecord[] = [
 ];
 
 describe("AiDatasetDetailView items table", () => {
-  it("keeps long inputs readable and shows a dash when an item has no trace", () => {
+  it("opens complete item details from a row while keeping wide content readable", async () => {
+    const baseItem = items[0];
+    assert.exists(baseItem);
+    const fullQuestion =
+      "How does the universal app run on web, iOS, and Android from one React Native codebase without duplicating screens?";
     const longItems: DatasetItemRecord[] = [
       {
-        ...items[0]!,
+        ...baseItem,
+        annotatedBy: {label: "Reviewer", reviewItemId: "review-1", userId: "user-1"},
         expectedOutput: {
           text: "One React Native codebase ships to web, iOS, and Android from one project.",
         },
-        input: {question: "How does the universal app run on web, iOS, and Android?"},
+        input: {question: fullQuestion},
+        metadata: {source: "gold import"},
+        outcomeClass: "tp",
+        tags: ["gold", "universal"],
       },
     ];
     const {getByTestId} = renderWithTheme(
@@ -66,8 +74,20 @@ describe("AiDatasetDetailView items table", () => {
     const table = within(getByTestId("ai-dataset-items-table"));
     expect(table.getByText(/How does the universal app run/)).toBeTruthy();
     expect(table.getByText(/One React Native codebase ships/)).toBeTruthy();
-    expect(table.getByText("manual · reviewer")).toBeTruthy();
+    expect(table.getByText("manual · Reviewer")).toBeTruthy();
     expect(table.getByText("—")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("ai-dataset-items-table-row-item-1-clickable"));
+      await Promise.resolve();
+    });
+    const modal = within(getByTestId("ai-dataset-item-modal"));
+    expect(modal.getByText(/without duplicating screens/)).toBeTruthy();
+    expect(modal.getByText(/One React Native codebase ships/)).toBeTruthy();
+    expect(modal.getByText(/gold import/)).toBeTruthy();
+    expect(modal.getByText("Outcome: tp")).toBeTruthy();
+    expect(modal.getByText("Annotator user: user-1")).toBeTruthy();
+    expect(modal.getByText("Review item: review-1")).toBeTruthy();
   });
 });
 
@@ -129,7 +149,11 @@ describe("AiDatasetDetailView tabs", () => {
       await Promise.resolve();
     });
     await act(async () => {
-      fireEvent.press(view.getByText("Open trace"));
+      fireEvent.press(view.getByTestId("ai-dataset-items-table-row-item-2-clickable"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByText("Open source trace"));
       await Promise.resolve();
     });
     assert.equal(onOpenTrace.mock.calls.length, 1);
