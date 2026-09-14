@@ -1,6 +1,6 @@
 export type {JobsAppOptions} from "./jobsApp";
 export {JobsApp} from "./jobsApp";
-export {getJobsService} from "./jobsService";
+export {getJobsService, tryGetJobsService, unregisterJobsService} from "./jobsService";
 export {Job} from "./models/job";
 export {JobSchedule} from "./models/jobSchedule";
 export type {

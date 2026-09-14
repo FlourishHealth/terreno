@@ -18,7 +18,7 @@ Peers: `mongoose ^8.0.0 || ^9.0.0`; optional `@google-cloud/tasks`, `@vercel/que
 
 | Import | Contents |
 | --- | --- |
-| `@terreno/jobs` | `JobsApp`, `getJobsService`, `Job`, `JobSchedule`, types, `MongoJobRunner` |
+| `@terreno/jobs` | `JobsApp`, `getJobsService`, `tryGetJobsService`, `unregisterJobsService`, `Job`, `JobSchedule`, types, `MongoJobRunner` |
 | `@terreno/jobs/runners/gcpCloudTasks` | `GcpCloudTasksRunner`, client seams |
 | `@terreno/jobs/runners/vercelQueues` | `VercelQueuesRunner`, `createVercelQueuesConsumer`, limits/helpers |
 
@@ -82,7 +82,16 @@ interface JobDefinition {
 | `idempotencyKey` | no | Dedupes per `name` |
 | `scheduleId` | no | Set by scheduler for cron children |
 
-`getJobsService().enqueue(...)` after `JobsApp.register()`.
+`getJobsService().enqueue(...)` after `JobsApp.register()`. `tryGetJobsService()` returns
+`undefined` when `JobsApp` is not mounted. `unregisterJobsService()` clears the process
+singleton (tests).
+
+### Admin scripts (`admin/script`)
+
+`@terreno/admin-backend` `defineAdminScriptJob` registers handler name `admin/script` with
+`retry.maxAttempts: 1`. Payload: `{scriptName, taskId, wetRun, args, createdByName?}`.
+The Scripts UI still polls `BackgroundTask` by `taskId`. Without `JobsApp`, script HTTP
+runs stay in-process.
 
 ## JobRunner
 

@@ -1,7 +1,15 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {getJobsService, Job, JobSchedule, JobsApp, MongoJobRunner} from "../index";
+import {
+  getJobsService,
+  Job,
+  JobSchedule,
+  JobsApp,
+  MongoJobRunner,
+  tryGetJobsService,
+  unregisterJobsService,
+} from "../index";
 
 describe("package public exports", () => {
   it("re-exports JobsApp, models, MongoJobRunner, and getJobsService", (): void => {
@@ -10,5 +18,7 @@ describe("package public exports", () => {
     assert.equal(Job.modelName, "Job");
     assert.equal(JobSchedule.modelName, "JobSchedule");
     assert.equal(typeof getJobsService, "function");
+    assert.equal(typeof tryGetJobsService, "function");
+    assert.equal(typeof unregisterJobsService, "function");
   });
 });
