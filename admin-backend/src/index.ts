@@ -29,6 +29,8 @@ export type {
   AdminScriptConfig,
 } from "./adminApp";
 export {AdminApp, adminOwnedBy} from "./adminApp";
+export type {AdminScriptJobPayload, AdminScriptJobTarget} from "./adminScriptJob";
+export {ADMIN_SCRIPT_JOB_NAME, defineAdminScriptJob} from "./adminScriptJob";
 export * from "./adminUiV2";
 export type {AggregatedAdminContributions} from "./aggregateAdmin";
 export {

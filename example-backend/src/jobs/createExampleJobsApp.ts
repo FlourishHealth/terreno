@@ -1,6 +1,8 @@
+import {defineAdminScriptJob} from "@terreno/admin-backend";
 import type {AnyTerrenoAccess} from "@terreno/api";
 import {JobsApp, MongoJobRunner} from "@terreno/jobs";
 
+import {adminScripts} from "../adminScripts";
 import {defineExampleJobs} from "./defineExampleJobs";
 
 export interface CreateExampleJobsAppOptions {
@@ -17,5 +19,6 @@ export const createExampleJobsApp = (options?: CreateExampleJobsAppOptions): Job
     timezone: "UTC",
   });
   defineExampleJobs(jobsApp);
+  defineAdminScriptJob(jobsApp, (name) => adminScripts.find((script) => script.name === name));
   return jobsApp;
 };

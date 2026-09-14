@@ -26,7 +26,8 @@ bun run compile        # In jobs/ package
 | Recurring work with crash/restart safety | `JobsApp` + `schedule` on `define` |
 | Cloud dispatch (GCP / Vercel) | `GcpCloudTasksRunner` / `VercelQueuesRunner` |
 | In-process timer, dies with the process | `@terreno/api` `cronjob()` |
-| One-shot CLI script | `@terreno/api` `wrapScript()` |
+| One-shot CLI script | `@terreno/api` `wrapScript()` / `runScriptCli` |
+| Admin panel HTTP script | `defineAdminScriptJob` + `JobsApp` (`admin/script`) |
 
 ## Quick start
 

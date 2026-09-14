@@ -4,7 +4,7 @@ Use `@terreno/jobs` when work must survive process restarts, retry with backoff,
 schedule, or dispatch through Cloud Tasks / Vercel Queues. Register `JobsApp`, define
 handlers, enqueue rows in MongoDB, then start a worker explicitly.
 
-For one-off scripts or in-process timers, keep `@terreno/api` [`wrapScript` / `cronjob`](../reference/api.md#wrapscript) — they are process-local and not durable. See [Jobs reference](../reference/jobs.md) for exports, routes, and defaults.
+For one-off **CLI** scripts or in-process timers, keep `@terreno/api` [`wrapScript` / `cronjob`](../reference/api.md#wrapscript) — they are process-local. Admin panel **HTTP** script runs go through `admin/script` when `JobsApp` is registered (see below). See [Jobs reference](../reference/jobs.md) for exports, routes, and defaults.
 
 ## Install and register
 
@@ -40,6 +40,28 @@ new TerrenoApp({userModel: User})
 `JobsApp.register()` wires admin routes and optional `POST /jobs/execute`. It does **not**
 start a worker. Call `jobsApp.startWorker()` from the API process or a dedicated worker
 entrypoint.
+
+## Admin scripts
+
+When `JobsApp` is registered **before** `AdminApp`, `POST {adminBase}/scripts/:name/run`
+enqueues job `admin/script` (`maxAttempts: 1`) and still returns `{taskId}` for the existing
+Scripts poll UI (`BackgroundTask`). Progress, logs, dry/wet, and cancel stay on that row.
+Cancel also cancels the job so `ctx.signal` aborts.
+
+Apps without `JobsApp` keep the previous in-process `void` runner. The CLI
+(`runScriptCli` / `bun run script`) stays process-local.
+
+Register the same script catalog on the worker:
+
+```typescript
+import {defineAdminScriptJob} from "@terreno/admin-backend";
+
+defineAdminScriptJob(jobsApp, (name) => adminScripts.find((script) => script.name === name));
+```
+
+`AdminApp` also binds `admin/script` from its `scripts` list at register time. Cloud Tasks
+uses this path automatically when `JobsApp` is constructed with `GcpCloudTasksRunner` — the
+worker/execute process must load the same script definitions.
 
 ## Enqueue
 

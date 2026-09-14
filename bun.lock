@@ -25,6 +25,7 @@
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
+        "@terreno/jobs": "workspace:*",
         "express": "catalog:",
         "luxon": "catalog:",
         "multer": "catalog:",

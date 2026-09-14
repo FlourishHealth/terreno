@@ -3,6 +3,7 @@ import {TerrenoApp, type UserModel as UserModelType} from "@terreno/api";
 import {setupDb, UserModel} from "@terreno/api/testing";
 
 import {JobsApp} from "../jobsApp";
+import {tryGetJobsService, unregisterJobsService} from "../jobsService";
 import {Job} from "../models/job";
 import {JobSchedule} from "../models/jobSchedule";
 
@@ -26,6 +27,21 @@ describe("JobsApp", () => {
 
     expect(expressApp).toBeDefined();
     expect(jobsApp.isWorkerActive()).toBe(false);
+  });
+
+  it("exposes tryGetJobsService only after register", () => {
+    unregisterJobsService();
+    expect(tryGetJobsService()).toBeUndefined();
+    const jobsApp = new JobsApp();
+    new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(jobsApp)
+      .build();
+    expect(tryGetJobsService()).toBeDefined();
+    unregisterJobsService();
+    expect(tryGetJobsService()).toBeUndefined();
   });
 
   it("uses the configured base path", () => {

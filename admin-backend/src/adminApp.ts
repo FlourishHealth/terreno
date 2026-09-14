@@ -23,20 +23,25 @@ import {
   type PopulatePath,
   type ScriptArgDef,
   type ScriptArgValue,
-  type ScriptContext,
-  type ScriptResult,
   type ScriptRunner,
   scrubAdminFields,
-  TaskCancelledError,
   type TerrenoApp,
   type User,
   VersionConfig,
 } from "@terreno/api";
+import {tryGetJobsService} from "@terreno/jobs";
 import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
 import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
+import {
+  ADMIN_SCRIPT_JOB_NAME,
+  defineAdminScriptJob,
+  runRegisteredScriptTask,
+  tryCancelAdminScriptJob,
+  tryEnqueueAdminScriptJob,
+} from "./adminScriptJob";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -1790,6 +1795,10 @@ export class AdminApp {
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
     const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
     const scriptNames = scripts.map((s) => s.name);
+    const jobs = tryGetJobsService();
+    if (jobs) {
+      defineAdminScriptJob(jobs, (name) => scriptsByName.get(name));
+    }
 
     // GET /admin/scripts/runs — Paginated history of script runs (BackgroundTasks)
     router.get(
@@ -1904,6 +1913,7 @@ export class AdminApp {
         }
 
         const now = DateTime.now().toJSDate();
+        const queuedViaJobs = Boolean(tryGetJobsService()?.getDefinition(ADMIN_SCRIPT_JOB_NAME));
 
         let task: BackgroundTaskDocument;
         try {
@@ -1913,9 +1923,13 @@ export class AdminApp {
             logs: [
               {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
             ],
-            progress: {message: "Starting...", percentage: 0, stage: "Queued"},
-            startedAt: now,
-            status: "running",
+            progress: {
+              message: queuedViaJobs ? "Queued" : "Starting...",
+              percentage: 0,
+              stage: queuedViaJobs ? "Queued" : "Queued",
+            },
+            startedAt: queuedViaJobs ? undefined : now,
+            status: queuedViaJobs ? "pending" : "running",
             taskType: script.name,
           })) as BackgroundTaskDocument;
         } catch (err: unknown) {
@@ -1928,67 +1942,26 @@ export class AdminApp {
           });
         }
 
-        // Build context for cancellation, progress reporting, and arguments
-        const ctx: ScriptContext = {
-          addLog: async (level, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.addLog(level, message);
-            }
-          },
+        const taskId = task._id.toString();
+        const enqueued = await tryEnqueueAdminScriptJob({
+          args: args.raw,
+          createdByName: user.name,
+          scriptName: script.name,
+          taskId,
+          wetRun: isWetRun,
+        });
+        if (enqueued) {
+          return res.status(201).json({taskId});
+        }
+
+        void runRegisteredScriptTask({
           args,
-          checkCancellation: async () => {
-            await BackgroundTask.checkCancellation(task._id.toString());
-          },
-          updateProgress: async (percentage, stage, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.updateProgress(percentage, stage, message);
-            }
-          },
-        };
+          script,
+          taskId,
+          wetRun: isWetRun,
+        });
 
-        // Run the script asynchronously — use atomic updates to avoid overwriting
-        // cancellation or other intermediate state changes.
-        void (async () => {
-          try {
-            const result: ScriptResult = await script.runner(isWetRun, ctx);
-
-            // Atomically update only if still running (don't overwrite cancellation)
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  progress: {message: "Done", percentage: 100, stage: "Complete"},
-                  result: result.results,
-                  status: result.success ? "completed" : "failed",
-                },
-              }
-            );
-          } catch (err: unknown) {
-            if (err instanceof TaskCancelledError) {
-              return;
-            }
-            const message = err instanceof Error ? err.message : String(err);
-            logger.error(`Script ${script.name} failed: ${message}`);
-
-            // Atomically update only if still running
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  error: message,
-                  result: [message],
-                  status: "failed",
-                },
-              }
-            );
-          }
-        })();
-
-        return res.status(201).json({taskId: task._id.toString()});
+        return res.status(201).json({taskId});
       })
     );
 
@@ -2068,6 +2041,8 @@ export class AdminApp {
             title: "Task already completed or cancelled",
           });
         }
+
+        await tryCancelAdminScriptJob(task._id.toString());
 
         return res.json({message: "Task cancelled", task: cancelled.toObject()});
       })

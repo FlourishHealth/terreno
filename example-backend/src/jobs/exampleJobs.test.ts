@@ -63,6 +63,8 @@ describe("example JobsApp integration", () => {
     assert.isDefined(jobsApp.getDefinition("example/log-message"));
     assert.isDefined(jobsApp.getDefinition("example/heartbeat"));
     assert.isDefined(jobsApp.getDefinition("example/dlq-demo"));
+    assert.isDefined(jobsApp.getDefinition("admin/script"));
+    assert.equal(jobsApp.getDefinition("admin/script")?.retry?.maxAttempts, 1);
     assert.isDefined(jobsApp.getDefinition("example/heartbeat")?.schedule);
   });
 

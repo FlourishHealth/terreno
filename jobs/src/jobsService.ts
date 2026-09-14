@@ -382,6 +382,14 @@ export const getJobsService = (): JobsService => {
   return registeredJobsService;
 };
 
+/** Returns the registered jobs service when `JobsApp` is mounted; otherwise `undefined`. */
+export const tryGetJobsService = (): JobsService | undefined => registeredJobsService;
+
 export const registerJobsService = (service: JobsService): void => {
   registeredJobsService = service;
+};
+
+/** Clears the process-wide jobs service. Tests use this so AdminApp falls back to in-process runs. */
+export const unregisterJobsService = (): void => {
+  registeredJobsService = undefined;
 };
