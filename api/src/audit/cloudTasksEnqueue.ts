@@ -1,7 +1,7 @@
 import {APIError} from "../errors";
 import type {AuditEnqueue, AuditEventWrite} from "./record";
 
-export interface CloudTasksClient {
+interface CloudTasksClient {
   createTask: (request: {
     parent: string;
     task: {
@@ -15,7 +15,7 @@ export interface CloudTasksClient {
   }) => Promise<unknown>;
 }
 
-export interface CloudTasksModule {
+interface CloudTasksModule {
   CloudTasksClient?: new () => CloudTasksClient;
   default?: {CloudTasksClient?: new () => CloudTasksClient};
 }

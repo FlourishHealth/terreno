@@ -7,7 +7,7 @@ import {AUDIT_SECRET_HEADER} from "./cloudTasksEnqueue";
 import type {AuditEventWrite} from "./record";
 import {persistEnqueuedAuditEvent} from "./record";
 
-export const secretsMatch = (provided: string | undefined, expected: string): boolean => {
+const secretsMatch = (provided: string | undefined, expected: string): boolean => {
   if (!provided) {
     return false;
   }
