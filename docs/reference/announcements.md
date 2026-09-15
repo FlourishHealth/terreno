@@ -9,16 +9,47 @@ import {AnnouncementsApp} from "@terreno/announcements";
 
 new TerrenoApp({ userModel: User })
   .register(new AnnouncementsApp({
-    acknowledgementMode: "admin",
+    defaultAcknowledgementPolicy: "dismiss-only",
     help: {enabled: true},
     matchAudience: (user, announcement) => true,
   }))
   .start();
 ```
 
+### Plugin options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `basePath` | `string` | `"/announcements"` | Mount path for user and admin routes |
+| `defaultAcknowledgementPolicy` | `"required" \| "dismiss-only"` | `"dismiss-only"` | Fills omitted per-announcement `acknowledgementPolicy` at read time and pre-fills the admin editor |
+| `help.enabled` | `boolean` | `false` | Registers help search/detail routes for MCP and in-app help |
+| `matchAudience` | `(user, announcement) => boolean` | always `true` | Opaque audience JSON filter composed with `audienceType` (see surfaces IP) |
+| `permissions` | partial CRUD overrides | admin-only | Overrides default `IsAdmin` permissions on announcement CRUD |
+
+## Acknowledgement policy
+
+Per-announcement `acknowledgementPolicy` controls whether users must acknowledge or may dismiss with an impression only.
+
+| Policy | Pending queue advancement | Public DTO `requiresAcknowledgement` |
+|--------|---------------------------|--------------------------------------|
+| `required` | User must POST `/acknowledge` for the current `version` | `true` |
+| `dismiss-only` | User may dismiss; POST `/impression` clears the item | `false` |
+
+**Resolution order** (pending, feed, help, public DTO):
+
+```
+policy = announcement.acknowledgementPolicy
+  ?? (legacy requiresAcknowledgement === true ? "required" : undefined)
+  ?? defaultAcknowledgementPolicy
+  ?? "dismiss-only"
+requiresAcknowledgement = policy === "required"
+```
+
+Legacy MongoDB documents that still store `requiresAcknowledgement: true` map to `"required"` on read. The boolean field is not part of the schema or admin create/update payloads.
+
 ## Models
 
-- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `requiresAcknowledgement`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
+- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `acknowledgementPolicy`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
 - **AnnouncementAcknowledgement** — per-user acknowledgement at a specific `version`
 - **AnnouncementImpression** — per-view analytics row
 
@@ -30,6 +61,8 @@ new TerrenoApp({ userModel: User })
 | GET | `/announcements/feed` | Paginated published changelog (`platform` query as above) |
 | POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version) |
 | POST | `/announcements/:id/impression` | Record a view |
+
+`current` and feed items include resolved `requiresAcknowledgement` (boolean) derived from policy resolution above.
 
 ## Admin routes
 
@@ -71,6 +104,6 @@ Set these environment variables on the MCP server to include live announcements:
 `@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `useAnnouncements`, and `useAcknowledgeAnnouncement`.
 
 - Pending and feed requests send the current client platform (`ios`, `android`, or `web`) automatically.
-- `requiresAcknowledgement` on pending/feed items is resolved server-side from `acknowledgementMode`; the navigator trusts that flag.
+- `requiresAcknowledgement` on pending/feed items is resolved server-side from `acknowledgementPolicy` and `defaultAcknowledgementPolicy`; the navigator trusts that flag.
 - Feed failures do not block the modal queue — only pending errors surface in `AnnouncementNavigator`.
 - Markdown bodies support YouTube and Loom embeds via `MarkdownView`; ordinary links open with `Linking.openURL`.

@@ -16,8 +16,8 @@ import {AnnouncementAcknowledgement} from "../models/announcementAcknowledgement
 import {AnnouncementImpression} from "../models/announcementImpression";
 
 const buildApp = (options?: {
-  acknowledgementMode?: "admin" | "always" | "never";
   basePath?: string;
+  defaultAcknowledgementPolicy?: "required" | "dismiss-only";
   matchAudience?: (user: unknown, announcement: unknown) => boolean;
 }): express.Application => {
   const app = getBaseServer();
@@ -63,8 +63,8 @@ describe("AnnouncementsApp", () => {
     const createRes = await adminAgent
       .post("/announcements")
       .send({
+        acknowledgementPolicy: "required",
         body: "## Welcome\n\nCheck out the new feature.",
-        requiresAcknowledgement: true,
         title: "New feature",
       })
       .expect(201);
@@ -74,14 +74,83 @@ describe("AnnouncementsApp", () => {
 
     const pendingRes = await userAgent.get("/announcements/pending?platform=web").expect(200);
     expect(pendingRes.body.data.current?.id).toBe(announcementId);
+    expect(pendingRes.body.data.current?.requiresAcknowledgement).toBe(true);
     expect(pendingRes.body.data.remainingCount).toBe(0);
+  });
+
+  it("resolves requiresAcknowledgement on GET pending for each policy case", async () => {
+    const requiredApp = buildApp();
+    const requiredUser = await authAsUser(requiredApp, "notAdmin");
+
+    const requiredAnnouncement = await Announcement.create({
+      acknowledgementPolicy: "required",
+      body: "Required body",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Required ack",
+      version: 1,
+    });
+
+    const requiredRes = await requiredUser.get("/announcements/pending?platform=web").expect(200);
+    expect(requiredRes.body.data.current?.id).toBe(requiredAnnouncement._id.toString());
+    expect(requiredRes.body.data.current?.requiresAcknowledgement).toBe(true);
+
+    await Announcement.deleteMany({});
+
+    const dismissAnnouncement = await Announcement.create({
+      acknowledgementPolicy: "dismiss-only",
+      body: "Dismiss body",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Dismiss only",
+      version: 1,
+    });
+
+    const dismissRes = await requiredUser.get("/announcements/pending?platform=web").expect(200);
+    expect(dismissRes.body.data.current?.id).toBe(dismissAnnouncement._id.toString());
+    expect(dismissRes.body.data.current?.requiresAcknowledgement).toBe(false);
+
+    await Announcement.deleteMany({});
+
+    const defaultApp = buildApp({defaultAcknowledgementPolicy: "required"});
+    const defaultUser = await authAsUser(defaultApp, "notAdmin");
+    const omittedAnnouncement = await Announcement.create({
+      body: "Default policy body",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Omitted policy",
+      version: 1,
+    });
+
+    const defaultRes = await defaultUser.get("/announcements/pending?platform=web").expect(200);
+    expect(defaultRes.body.data.current?.id).toBe(omittedAnnouncement._id.toString());
+    expect(defaultRes.body.data.current?.requiresAcknowledgement).toBe(true);
+
+    await Announcement.deleteMany({});
+
+    const legacyAnnouncement = await Announcement.collection.insertOne({
+      body: "Legacy body",
+      created: DateTime.utc().toJSDate(),
+      platforms: ["web"],
+      priority: 0,
+      publishedAt: DateTime.utc().toJSDate(),
+      requiresAcknowledgement: true,
+      status: "published",
+      title: "Legacy boolean",
+      updated: DateTime.utc().toJSDate(),
+      version: 1,
+    });
+
+    const legacyRes = await requiredUser.get("/announcements/pending?platform=web").expect(200);
+    expect(legacyRes.body.data.current?.id).toBe(legacyAnnouncement.insertedId.toString());
+    expect(legacyRes.body.data.current?.requiresAcknowledgement).toBe(true);
   });
 
   it("clears pending after acknowledgement", async () => {
     const announcement = await Announcement.create({
+      acknowledgementPolicy: "required",
       body: "Body",
       publishedAt: DateTime.utc().toJSDate(),
-      requiresAcknowledgement: true,
       status: "published",
       title: "Shipped",
       version: 1,
@@ -96,9 +165,9 @@ describe("AnnouncementsApp", () => {
 
   it("bumps version when published title/body changes", async () => {
     const announcement = await Announcement.create({
+      acknowledgementPolicy: "required",
       body: "Body v1",
       publishedAt: DateTime.utc().toJSDate(),
-      requiresAcknowledgement: true,
       status: "published",
       title: "Title v1",
       version: 1,
@@ -140,9 +209,9 @@ describe("AnnouncementsApp", () => {
 
   it("records impressions and keeps duplicate acknowledgements idempotent", async () => {
     const announcement = await Announcement.create({
+      acknowledgementPolicy: "required",
       body: "Body",
       publishedAt: DateTime.utc().toJSDate(),
-      requiresAcknowledgement: true,
       status: "published",
       title: "Track views",
       version: 1,
@@ -181,19 +250,19 @@ describe("AnnouncementsApp", () => {
     const targetedUserAgent = await authAsUser(targetedApp, "notAdmin");
 
     await Announcement.create({
+      acknowledgementPolicy: "required",
       audience: {include: true},
       body: "Visible",
       publishedAt: DateTime.utc().toJSDate(),
-      requiresAcknowledgement: true,
       status: "published",
       title: "Included",
       version: 1,
     });
     await Announcement.create({
+      acknowledgementPolicy: "required",
       audience: {include: false},
       body: "Hidden",
       publishedAt: DateTime.utc().toJSDate(),
-      requiresAcknowledgement: true,
       status: "published",
       title: "Excluded",
       version: 1,

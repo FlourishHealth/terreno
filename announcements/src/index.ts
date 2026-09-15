@@ -14,11 +14,12 @@ export {
   isAnnouncementPendingForUser,
   isAnnouncementVisibleNow,
   requiresAcknowledgementForAnnouncement,
+  resolveAcknowledgementPolicy,
   selectPendingAnnouncements,
   sortAnnouncementsForQueue,
 } from "./pending";
 export type {
-  AcknowledgementMode,
+  AcknowledgementPolicy,
   AnnouncementDocument,
   AnnouncementPlatform,
   AnnouncementPrimaryAction,

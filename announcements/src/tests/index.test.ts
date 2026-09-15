@@ -5,6 +5,7 @@ import {
   AnnouncementsApp,
   excerptBody,
   isAnnouncementPendingForUser,
+  resolveAcknowledgementPolicy,
   toAnnouncementPublic,
 } from "../index";
 
@@ -15,14 +16,13 @@ describe("@terreno/announcements package exports", () => {
     expect(excerptBody("hello world")).toBe("hello world");
     expect(
       isAnnouncementPendingForUser({
-        acknowledgementMode: "always",
         acknowledgements: [],
         announcement: {
           _id: "a",
+          acknowledgementPolicy: "required",
           body: "Body",
           priority: 1,
           publishedAt: new Date(),
-          requiresAcknowledgement: true,
           status: "published",
           title: "Title",
           version: 1,
@@ -30,18 +30,28 @@ describe("@terreno/announcements package exports", () => {
         impressions: [],
       })
     ).toBe(true);
-    const announcement = {
+    const dismissOnly = {
       _id: "a",
+      acknowledgementPolicy: "dismiss-only",
       body: "Body",
       priority: 1,
       publishedAt: new Date(),
-      requiresAcknowledgement: false,
       status: "published",
       title: "Title",
       version: 1,
     } as never;
-    expect(toAnnouncementPublic(announcement).id).toBe("a");
-    expect(toAnnouncementPublic(announcement, "always").requiresAcknowledgement).toBe(true);
-    expect(toAnnouncementPublic(announcement, "never").requiresAcknowledgement).toBe(false);
+    const omittedPolicy = {
+      _id: "b",
+      body: "Body",
+      priority: 1,
+      publishedAt: new Date(),
+      status: "published",
+      title: "Title",
+      version: 1,
+    } as never;
+    expect(toAnnouncementPublic(dismissOnly).id).toBe("a");
+    expect(toAnnouncementPublic(dismissOnly).requiresAcknowledgement).toBe(false);
+    expect(toAnnouncementPublic(omittedPolicy, "required").requiresAcknowledgement).toBe(true);
+    expect(resolveAcknowledgementPolicy({announcement: dismissOnly})).toBe("dismiss-only");
   });
 });

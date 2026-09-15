@@ -12,11 +12,11 @@ describe("announcement help helpers", () => {
   it("builds excerpts and summaries", () => {
     const summary = toHelpSummary({
       _id: "507f1f77bcf86cd799439011",
+      acknowledgementPolicy: "dismiss-only",
       body: "Line one\n\nLine two",
       created: new Date(),
       platforms: ["web"],
       priority: 1,
-      requiresAcknowledgement: false,
       status: "published",
       title: "Hello",
       updated: new Date(),

@@ -1,4 +1,5 @@
-import type {AnnouncementDocument, AnnouncementStatus} from "./types";
+import {requiresAcknowledgementForAnnouncement} from "./pending";
+import type {AcknowledgementPolicy, AnnouncementDocument, AnnouncementStatus} from "./types";
 
 export interface AnnouncementHelpSummary {
   archivedAt?: string;
@@ -74,7 +75,10 @@ export const toHelpSummary = (doc: AnnouncementDocument): AnnouncementHelpSummar
   version: doc.version,
 });
 
-export const toHelpDetail = (doc: AnnouncementDocument): AnnouncementHelpDetail => ({
+export const toHelpDetail = (
+  doc: AnnouncementDocument,
+  defaultAcknowledgementPolicy: AcknowledgementPolicy = "dismiss-only"
+): AnnouncementHelpDetail => ({
   archivedAt: doc.archivedAt?.toISOString(),
   body: doc.body,
   expiresAt: doc.expiresAt?.toISOString(),
@@ -84,7 +88,10 @@ export const toHelpDetail = (doc: AnnouncementDocument): AnnouncementHelpDetail 
   priority: doc.priority,
   publishAt: doc.publishAt?.toISOString(),
   publishedAt: doc.publishedAt?.toISOString(),
-  requiresAcknowledgement: doc.requiresAcknowledgement,
+  requiresAcknowledgement: requiresAcknowledgementForAnnouncement({
+    announcement: doc,
+    defaultAcknowledgementPolicy,
+  }),
   status: doc.status,
   title: doc.title,
   version: doc.version,

@@ -3,7 +3,7 @@ import {type Request, type Response, Router} from "express";
 import {buildHelpStatusFilter, matchesHelpQueries, toHelpDetail, toHelpSummary} from "./help";
 import {Announcement} from "./models/announcement";
 import {isAnnouncementVisibleNow} from "./pending";
-import type {AnnouncementDocument, MatchAudienceFunction} from "./types";
+import type {AcknowledgementPolicy, AnnouncementDocument, MatchAudienceFunction} from "./types";
 
 const parseHelpQueries = (req: Request): string[] => {
   const raw = req.query.q;
@@ -52,10 +52,12 @@ const sortHelpResults = (docs: AnnouncementDocument[]): AnnouncementDocument[] =
 export const registerAnnouncementHelpRoutes = ({
   app,
   basePath,
+  defaultAcknowledgementPolicy = "dismiss-only",
   matchAudience,
 }: {
   app: import("express").Application;
   basePath: string;
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   matchAudience?: MatchAudienceFunction;
 }): void => {
   const audienceMatcher = matchAudience ?? (() => true);
@@ -75,7 +77,9 @@ export const registerAnnouncementHelpRoutes = ({
       const limit = parseLimit(req);
       const statuses = buildHelpStatusFilter(includeArchived);
 
-      const candidates = await Announcement.find({status: {$in: statuses}});
+      const candidates = (await Announcement.find({status: {$in: statuses}}).lean()) as Array<
+        AnnouncementDocument & {requiresAcknowledgement?: boolean}
+      >;
       const matched: AnnouncementDocument[] = [];
       for (const doc of candidates) {
         if (!isAnnouncementHelpVisible(doc)) {
@@ -108,7 +112,9 @@ export const registerAnnouncementHelpRoutes = ({
 
       const includeArchived = parseIncludeArchived(req);
       const statuses = buildHelpStatusFilter(includeArchived);
-      const announcement = await Announcement.findById(req.params.id);
+      const announcement = (await Announcement.findById(req.params.id).lean()) as
+        | (AnnouncementDocument & {requiresAcknowledgement?: boolean})
+        | null;
       if (!announcement || !statuses.includes(announcement.status)) {
         throw new APIError({status: 404, title: "Update note not found"});
       }
@@ -119,7 +125,7 @@ export const registerAnnouncementHelpRoutes = ({
       if (!matchesAudience) {
         throw new APIError({status: 404, title: "Update note not found"});
       }
-      return res.json({data: toHelpDetail(announcement)});
+      return res.json({data: toHelpDetail(announcement, defaultAcknowledgementPolicy)});
     })
   );
 

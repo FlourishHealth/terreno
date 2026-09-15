@@ -20,7 +20,7 @@ import {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement"
 import {AnnouncementImpression, isValidPlatform} from "./models/announcementImpression";
 import {isAnnouncementVisibleNow, matchesPlatform, selectPendingAnnouncements} from "./pending";
 import type {
-  AcknowledgementMode,
+  AcknowledgementPolicy,
   AnnouncementDocument,
   AnnouncementPlatform,
   AnnouncementsOptions,
@@ -81,7 +81,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
               "version",
               "publishedAt",
               "expiresAt",
-              "requiresAcknowledgement",
+              "acknowledgementPolicy",
             ],
             searchFields: ["title"],
             sortableFields: ["title", "status", "priority", "version", "publishedAt", "created"],
@@ -113,7 +113,8 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
   register(app: Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? DEFAULT_BASE_PATH;
-    const acknowledgementMode: AcknowledgementMode = this.options.acknowledgementMode ?? "admin";
+    const defaultAcknowledgementPolicy: AcknowledgementPolicy =
+      this.options.defaultAcknowledgementPolicy ?? "dismiss-only";
     const matchAudience = this.options.matchAudience ?? (() => true);
 
     const routerOptions: ModelRouterOptions<AnnouncementDocument> = {
@@ -143,7 +144,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
         const userId = getUserId(user as {_id?: unknown; id?: string});
         const platform = parsePlatform(req);
-        const published = await Announcement.find({status: "published"});
+        const published = (await Announcement.find({status: "published"}).lean()) as Array<
+          AnnouncementDocument & {requiresAcknowledgement?: boolean}
+        >;
         const audienceFiltered: AnnouncementDocument[] = [];
         for (const announcement of published) {
           const matches = await matchAudience(user, announcement);
@@ -160,12 +163,12 @@ export class AnnouncementsApp implements TerrenoPlugin {
         );
 
         const pending = selectPendingAnnouncements({
-          acknowledgementMode,
           acknowledgements: acknowledgements.map((ack) => ({
             announcementId: ack.announcementId.toString(),
             version: ack.version,
           })),
           announcements: audienceFiltered,
+          defaultAcknowledgementPolicy,
           impressions: impressions.map((impression) => ({
             announcementId: impression.announcementId.toString(),
             version: impression.version,
@@ -173,7 +176,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
           platform,
         });
 
-        const current = pending[0] ? toAnnouncementPublic(pending[0], acknowledgementMode) : null;
+        const current = pending[0]
+          ? toAnnouncementPublic(pending[0], defaultAcknowledgementPolicy)
+          : null;
         const remainingCount = Math.max(pending.length - (current ? 1 : 0), 0);
 
         logger.info("Pending announcements fetched", {
@@ -199,7 +204,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
         const platform = parsePlatform(req);
         const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
         const page = Math.max(Number(req.query.page ?? 1), 1);
-        const published = await Announcement.find({status: "published"});
+        const published = (await Announcement.find({status: "published"}).lean()) as Array<
+          AnnouncementDocument & {requiresAcknowledgement?: boolean}
+        >;
         const visible: AnnouncementDocument[] = [];
 
         for (const announcement of published) {
@@ -228,7 +235,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
         const start = (page - 1) * limit;
         const pageItems = sorted
           .slice(start, start + limit)
-          .map((announcement) => toAnnouncementPublic(announcement, acknowledgementMode));
+          .map((announcement) => toAnnouncementPublic(announcement, defaultAcknowledgementPolicy));
 
         return res.json({
           data: pageItems,
@@ -357,7 +364,12 @@ export class AnnouncementsApp implements TerrenoPlugin {
     app.use(basePath, userRouter);
     app.use(basePath, adminRouter);
     if (this.options.help?.enabled) {
-      registerAnnouncementHelpRoutes({app, basePath, matchAudience});
+      registerAnnouncementHelpRoutes({
+        app,
+        basePath,
+        defaultAcknowledgementPolicy,
+        matchAudience,
+      });
     }
     app.use(basePath, modelRouter(Announcement as Model<AnnouncementDocument>, routerOptions));
 
@@ -395,6 +407,6 @@ export class AnnouncementsApp implements TerrenoPlugin {
       })
     );
 
-    logger.info("AnnouncementsApp registered", {acknowledgementMode, basePath});
+    logger.info("AnnouncementsApp registered", {basePath, defaultAcknowledgementPolicy});
   }
 }

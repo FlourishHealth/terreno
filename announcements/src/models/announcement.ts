@@ -8,7 +8,7 @@ import {
 import mongoose from "mongoose";
 import {requiresAcknowledgementForAnnouncement} from "../pending";
 import type {
-  AcknowledgementMode,
+  AcknowledgementPolicy,
   AnnouncementDocument,
   AnnouncementModel,
   AnnouncementPlatform,
@@ -20,6 +20,12 @@ const ALL_PLATFORMS: AnnouncementPlatform[] = ["ios", "android", "web"];
 
 const announcementSchema = new mongoose.Schema<AnnouncementDocument, AnnouncementModel>(
   {
+    acknowledgementPolicy: {
+      description:
+        "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+      enum: ["required", "dismiss-only"],
+      type: String,
+    },
     archivedAt: {
       description: "When the announcement was archived",
       type: Date,
@@ -67,11 +73,6 @@ const announcementSchema = new mongoose.Schema<AnnouncementDocument, Announcemen
     publishedAt: {
       description: "When the announcement was first published",
       type: Date,
-    },
-    requiresAcknowledgement: {
-      default: false,
-      description: "When acknowledgementMode is admin, users must acknowledge before dismissal",
-      type: Boolean,
     },
     status: {
       default: "draft",
@@ -151,17 +152,17 @@ export const Announcement =
 
 export const toAnnouncementPublic = (
   doc: AnnouncementDocument,
-  acknowledgementMode?: AcknowledgementMode
+  defaultAcknowledgementPolicy: AcknowledgementPolicy = "dismiss-only"
 ): AnnouncementPublic => ({
   body: doc.body,
   id: doc._id.toString(),
   primaryAction: doc.primaryAction,
   priority: doc.priority,
   publishedAt: doc.publishedAt?.toISOString(),
-  requiresAcknowledgement:
-    acknowledgementMode !== undefined
-      ? requiresAcknowledgementForAnnouncement({acknowledgementMode, announcement: doc})
-      : doc.requiresAcknowledgement,
+  requiresAcknowledgement: requiresAcknowledgementForAnnouncement({
+    announcement: doc,
+    defaultAcknowledgementPolicy,
+  }),
   title: doc.title,
   version: doc.version,
 });

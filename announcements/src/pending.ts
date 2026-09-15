@@ -1,5 +1,5 @@
 import {DateTime} from "luxon";
-import type {AcknowledgementMode, AnnouncementDocument, AnnouncementPlatform} from "./types";
+import type {AcknowledgementPolicy, AnnouncementDocument, AnnouncementPlatform} from "./types";
 
 export interface AnnouncementAckState {
   announcementId: string;
@@ -11,20 +11,38 @@ export interface AnnouncementImpressionState {
   version: number;
 }
 
-export const requiresAcknowledgementForAnnouncement = ({
-  acknowledgementMode,
+type AnnouncementWithLegacyAck = AnnouncementDocument & {
+  requiresAcknowledgement?: boolean;
+};
+
+export const resolveAcknowledgementPolicy = ({
   announcement,
+  defaultAcknowledgementPolicy = "dismiss-only",
 }: {
-  acknowledgementMode: AcknowledgementMode;
   announcement: AnnouncementDocument;
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
+}): AcknowledgementPolicy => {
+  if (announcement.acknowledgementPolicy) {
+    return announcement.acknowledgementPolicy;
+  }
+
+  const legacyRequiresAck = (announcement as AnnouncementWithLegacyAck).requiresAcknowledgement;
+  if (legacyRequiresAck === true) {
+    return "required";
+  }
+
+  return defaultAcknowledgementPolicy;
+};
+
+export const requiresAcknowledgementForAnnouncement = ({
+  announcement,
+  defaultAcknowledgementPolicy = "dismiss-only",
+}: {
+  announcement: AnnouncementDocument;
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
 }): boolean => {
-  if (acknowledgementMode === "always") {
-    return true;
-  }
-  if (acknowledgementMode === "never") {
-    return false;
-  }
-  return announcement.requiresAcknowledgement;
+  const policy = resolveAcknowledgementPolicy({announcement, defaultAcknowledgementPolicy});
+  return policy === "required";
 };
 
 export const isAnnouncementVisibleNow = ({
@@ -69,18 +87,21 @@ export const matchesPlatform = ({
 };
 
 export const isAnnouncementPendingForUser = ({
-  acknowledgementMode,
   acknowledgements,
   announcement,
+  defaultAcknowledgementPolicy = "dismiss-only",
   impressions,
 }: {
-  acknowledgementMode: AcknowledgementMode;
   acknowledgements: AnnouncementAckState[];
   announcement: AnnouncementDocument;
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   impressions: AnnouncementImpressionState[];
 }): boolean => {
   const announcementId = announcement._id.toString();
-  const needsAck = requiresAcknowledgementForAnnouncement({acknowledgementMode, announcement});
+  const needsAck = requiresAcknowledgementForAnnouncement({
+    announcement,
+    defaultAcknowledgementPolicy,
+  });
 
   if (needsAck) {
     const hasAck = acknowledgements.some(
@@ -109,16 +130,16 @@ export const sortAnnouncementsForQueue = (
   });
 
 export const selectPendingAnnouncements = ({
-  acknowledgementMode,
   acknowledgements,
   announcements,
+  defaultAcknowledgementPolicy = "dismiss-only",
   impressions,
   now,
   platform,
 }: {
-  acknowledgementMode: AcknowledgementMode;
   acknowledgements: AnnouncementAckState[];
   announcements: AnnouncementDocument[];
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   impressions: AnnouncementImpressionState[];
   now?: DateTime;
   platform: AnnouncementPlatform;
@@ -131,9 +152,9 @@ export const selectPendingAnnouncements = ({
       return false;
     }
     return isAnnouncementPendingForUser({
-      acknowledgementMode,
       acknowledgements,
       announcement,
+      defaultAcknowledgementPolicy,
       impressions,
     });
   });

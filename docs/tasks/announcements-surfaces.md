@@ -1,6 +1,6 @@
 # Task List: Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** Approved — not started  
+**Status:** In progress
 **IP:** `docs/implementationPlans/announcements-surfaces.md`  
 **Parent IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-15  
@@ -10,7 +10,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
 
 ## Phase 1: Backend contracts
 
-- [ ] **Task 1.1**: Acknowledgement policy + plugin default
+- [x] **Task 1.1**: Acknowledgement policy + plugin default
   - Delivers: Per-announcement `acknowledgementPolicy` with consumer `defaultAcknowledgementPolicy`; `acknowledgementMode` and `requiresAcknowledgement` removed from schema/options; public DTO still exposes resolved `requiresAcknowledgement`
   - Files: `announcements/src/models/announcement.ts`, `announcements/src/types.ts`, `announcements/src/pending.ts`, `announcements/src/announcementsApp.ts`, `announcements/src/tests/*.test.ts`, `example-backend/src/server.ts`
   - Docs: `docs/reference/announcements.md` (plugin options + policy table)

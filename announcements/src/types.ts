@@ -3,7 +3,7 @@ import type {Model, Types} from "mongoose";
 
 export type AnnouncementStatus = "draft" | "published" | "archived";
 export type AnnouncementPlatform = "ios" | "android" | "web";
-export type AcknowledgementMode = "admin" | "always" | "never";
+export type AcknowledgementPolicy = "required" | "dismiss-only";
 
 export interface AnnouncementPrimaryAction {
   label: string;
@@ -17,7 +17,7 @@ export interface AnnouncementDocument {
   status: AnnouncementStatus;
   version: number;
   priority: number;
-  requiresAcknowledgement: boolean;
+  acknowledgementPolicy?: AcknowledgementPolicy;
   audience: unknown;
   publishAt?: Date;
   expiresAt?: Date;
@@ -78,8 +78,8 @@ export interface AnnouncementsHelpOptions {
 }
 
 export interface AnnouncementsOptions {
-  acknowledgementMode?: AcknowledgementMode;
   basePath?: string;
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   help?: AnnouncementsHelpOptions;
   matchAudience?: MatchAudienceFunction;
   permissions?: Partial<{

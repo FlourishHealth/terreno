@@ -5,6 +5,7 @@ import {
   isAnnouncementPendingForUser,
   isAnnouncementVisibleNow,
   requiresAcknowledgementForAnnouncement,
+  resolveAcknowledgementPolicy,
   selectPendingAnnouncements,
 } from "../pending";
 import type {AnnouncementDocument} from "../types";
@@ -19,7 +20,6 @@ const makeAnnouncement = (overrides: Partial<AnnouncementDocument> = {}): Announ
   priority: 0,
   publishAt: undefined,
   publishedAt: DateTime.utc().minus({days: 1}).toJSDate(),
-  requiresAcknowledgement: true,
   status: "published",
   title: "Title",
   updated: new Date(),
@@ -28,17 +28,64 @@ const makeAnnouncement = (overrides: Partial<AnnouncementDocument> = {}): Announ
 });
 
 describe("pending helpers", () => {
-  it("requires acknowledgement based on mode and announcement flag", () => {
-    const announcement = makeAnnouncement({requiresAcknowledgement: false});
+  it("resolves acknowledgement policy from field, default, and legacy boolean", () => {
     expect(
-      requiresAcknowledgementForAnnouncement({acknowledgementMode: "admin", announcement})
-    ).toBe(false);
+      resolveAcknowledgementPolicy({
+        announcement: makeAnnouncement({acknowledgementPolicy: "required"}),
+      })
+    ).toBe("required");
     expect(
-      requiresAcknowledgementForAnnouncement({acknowledgementMode: "always", announcement})
+      resolveAcknowledgementPolicy({
+        announcement: makeAnnouncement({acknowledgementPolicy: "dismiss-only"}),
+      })
+    ).toBe("dismiss-only");
+    expect(
+      resolveAcknowledgementPolicy({
+        announcement: makeAnnouncement({}),
+        defaultAcknowledgementPolicy: "required",
+      })
+    ).toBe("required");
+    expect(
+      resolveAcknowledgementPolicy({
+        announcement: makeAnnouncement({}),
+      })
+    ).toBe("dismiss-only");
+
+    const legacyRequired = makeAnnouncement({}) as AnnouncementDocument & {
+      requiresAcknowledgement: boolean;
+    };
+    legacyRequired.requiresAcknowledgement = true;
+    expect(resolveAcknowledgementPolicy({announcement: legacyRequired})).toBe("required");
+
+    const legacyFalse = makeAnnouncement({}) as AnnouncementDocument & {
+      requiresAcknowledgement: boolean;
+    };
+    legacyFalse.requiresAcknowledgement = false;
+    expect(
+      resolveAcknowledgementPolicy({
+        announcement: legacyFalse,
+        defaultAcknowledgementPolicy: "required",
+      })
+    ).toBe("required");
+  });
+
+  it("maps resolved policy to requiresAcknowledgement boolean", () => {
+    expect(
+      requiresAcknowledgementForAnnouncement({
+        announcement: makeAnnouncement({acknowledgementPolicy: "required"}),
+      })
     ).toBe(true);
     expect(
-      requiresAcknowledgementForAnnouncement({acknowledgementMode: "never", announcement})
+      requiresAcknowledgementForAnnouncement({
+        announcement: makeAnnouncement({acknowledgementPolicy: "dismiss-only"}),
+      })
     ).toBe(false);
+    expect(
+      requiresAcknowledgementForAnnouncement({
+        announcement: makeAnnouncement({}),
+        defaultAcknowledgementPolicy: "required",
+      })
+    ).toBe(true);
   });
 
   it("filters announcements outside the publish window", () => {
@@ -54,12 +101,11 @@ describe("pending helpers", () => {
   });
 
   it("returns pending announcements until acknowledged or impressed", () => {
-    const announcement = makeAnnouncement({requiresAcknowledgement: true});
+    const announcement = makeAnnouncement({acknowledgementPolicy: "required"});
     const announcementId = announcement._id.toString();
 
     expect(
       isAnnouncementPendingForUser({
-        acknowledgementMode: "admin",
         acknowledgements: [],
         announcement,
         impressions: [],
@@ -68,18 +114,16 @@ describe("pending helpers", () => {
 
     expect(
       isAnnouncementPendingForUser({
-        acknowledgementMode: "admin",
         acknowledgements: [{announcementId, version: 1}],
         announcement,
         impressions: [],
       })
     ).toBe(false);
 
-    const dismissOnly = makeAnnouncement({requiresAcknowledgement: false});
+    const dismissOnly = makeAnnouncement({acknowledgementPolicy: "dismiss-only"});
     const dismissId = dismissOnly._id.toString();
     expect(
       isAnnouncementPendingForUser({
-        acknowledgementMode: "admin",
         acknowledgements: [],
         announcement: dismissOnly,
         impressions: [{announcementId: dismissId, version: 1}],
@@ -89,15 +133,16 @@ describe("pending helpers", () => {
 
   it("sorts by priority then publishedAt", () => {
     const low = makeAnnouncement({
+      acknowledgementPolicy: "required",
       priority: 1,
       publishedAt: DateTime.utc().minus({days: 1}).toJSDate(),
     });
     const high = makeAnnouncement({
+      acknowledgementPolicy: "required",
       priority: 10,
       publishedAt: DateTime.utc().minus({days: 2}).toJSDate(),
     });
     const pending = selectPendingAnnouncements({
-      acknowledgementMode: "always",
       acknowledgements: [],
       announcements: [low, high],
       impressions: [],
