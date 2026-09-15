@@ -224,8 +224,8 @@ module "tasks_service" {
   cpu                   = "1"
   min_instances         = var.tasks_min_instances
   max_instances         = var.tasks_max_instances
-  concurrency           = 80
-  timeout_seconds       = 300
+  concurrency           = 20
+  timeout_seconds       = 1800
   allow_unauthenticated = false
   labels                = local.common_labels
 
