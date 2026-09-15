@@ -198,6 +198,17 @@ to `{publicUrl}/jobs/execute` with body `{jobId}` (base64) and an OIDC token. De
 use Cloud Tasks `scheduleTime`. `@terreno/jobs` does **not** read `GCP_TASK_*` env vars —
 pass explicit constructor config.
 
+The deployed example backend selects this runner with `JOBS_RUNNER=gcp-cloud-tasks`.
+Infra Manager creates one queue and a callback-only service account; the CD script supplies
+the remaining `GCP_TASKS_*` values. The tasks Cloud Run service is the execution pool:
+Cloud Tasks pushes authenticated callbacks to it, and queue rate limits bound concurrency.
+Do not run `jobs:worker` in this mode—Cloud Tasks has no pull API and
+`GcpCloudTasksRunner.start()` is intentionally absent.
+
+PR previews use the same queue but different callback URLs and databases. A task created
+by PR 123 targets the `pr-123` tasks-service tag and reads
+`terreno-example-pr-123`; it cannot execute against another PR or production.
+
 ## Vercel Queues runner
 
 Optional peer: `@vercel/queue`.

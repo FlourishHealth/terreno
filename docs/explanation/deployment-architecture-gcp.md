@@ -11,6 +11,8 @@ flowchart TD
   U["User<br/>iOS / Android / Web"]
   CDN["Cloud CDN + GCS bucket<br/>expo export -p web output"]
   CR["Cloud Run<br/>@terreno/api backend"]
+  CT["Cloud Tasks<br/>durable jobs push queue"]
+  JW["Cloud Run<br/>private jobs worker service"]
   SM["Secret Manager<br/>auth secrets, MONGO_URI"]
   AT["MongoDB Atlas<br/>replica set (change streams)"]
   GCS["GCS bucket<br/>user file uploads"]
@@ -21,6 +23,9 @@ flowchart TD
   CR --> SM
   CR --> AT
   CR --> GCS
+  CR -->|"enqueue"| CT
+  CT -->|"OIDC POST /jobs/execute"| JW
+  JW --> AT
   AR --> CR
 ```
 
@@ -30,6 +35,8 @@ flowchart TD
 |-----------|------|
 | **Artifact Registry** | Stores versioned backend container images built from `example-backend/Dockerfile` |
 | **Cloud Run** | Runs the long-lived `@terreno/api` process (HTTP + Socket.io) |
+| **Cloud Tasks** | Dispatches persisted `@terreno/jobs` rows to an authenticated HTTP worker with queue-level concurrency limits |
+| **Jobs worker service** | Runs the same example-backend image and job definitions; exposes only the Cloud Tasks execute callback through Cloud Run IAM |
 | **Secret Manager** | Holds `MONGO_URI`, JWT secrets, and other credentials — mounted as env vars |
 | **MongoDB Atlas** | Primary database; must be a replica set for change streams (realtime, feature flags) |
 | **GCS (web bucket)** | Serves static web export; CDN caches at the edge |
@@ -58,6 +65,19 @@ flowchart TD
 | **Node/Bun server (SSR)** | Better SEO and API routes — requires Expo SDK ≥ 55; not available in the current `~54` catalog |
 
 Native iOS and Android apps call Cloud Run directly; only the web client uses the CDN origin.
+
+## Durable jobs and PR isolation
+
+Cloud Tasks is a push service; it does not expose a pull-consumer API. Cloud Run worker
+pools do not have HTTP ingress, so the example uses a private Cloud Run service as the
+execution pool. Queue rate limits bound dispatch concurrency and Cloud Run scales the
+worker instances.
+
+Production and PR revisions share one queue safely because every task stores its complete
+callback URL. A PR backend targets the matching `pr-<number>` worker tag and uses
+`terreno-example-pr-<number>` as its Mongo database. Removing a preview removes both
+service tags. An old callback then fails closed instead of reaching production or another
+PR.
 
 ## Related
 

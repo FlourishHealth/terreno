@@ -19,6 +19,7 @@ locals {
       description  = "Impersonated by Infra Manager to apply terraform/. Project-admin scope."
       roles = [
         "roles/artifactregistry.admin",
+        "roles/cloudtasks.admin",
         "roles/config.admin",
         "roles/iam.serviceAccountAdmin",
         # actAs is needed to update Cloud Run services whose runtime SA is
@@ -225,7 +226,7 @@ module "tasks_service" {
   max_instances         = var.tasks_max_instances
   concurrency           = 80
   timeout_seconds       = 300
-  allow_unauthenticated = true
+  allow_unauthenticated = false
   labels                = local.common_labels
 
   env = {
@@ -238,6 +239,60 @@ module "tasks_service" {
     module.backend_secret_langfuse_secret_key,
     module.backend_secret_langfuse_public_key,
   ]
+}
+
+# Cloud Tasks is a push queue. The queue controls the worker concurrency pool and
+# sends authenticated callbacks to the tasks Cloud Run service. A task's callback
+# URL is selected by the enqueuing revision, so PR tags share this queue without
+# sharing a callback target or Mongo database.
+resource "google_cloud_tasks_queue" "example_jobs" {
+  project  = var.project_id
+  location = var.backend_region
+  name     = var.jobs_queue_name
+
+  rate_limits {
+    max_concurrent_dispatches = var.jobs_queue_max_concurrent_dispatches
+    max_dispatches_per_second = var.jobs_queue_max_dispatches_per_second
+  }
+
+  retry_config {
+    max_attempts       = 5
+    max_backoff        = "300s"
+    max_doublings      = 4
+    min_backoff        = "5s"
+    max_retry_duration = "3600s"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
+resource "google_service_account" "jobs_tasks_invoker" {
+  project      = var.project_id
+  account_id   = "terreno-jobs-invoker"
+  display_name = "Terreno jobs Cloud Tasks invoker"
+  description  = "OIDC identity used only for Cloud Tasks callbacks to the example jobs worker."
+}
+
+resource "google_cloud_tasks_queue_iam_member" "runtime_enqueuer" {
+  project  = google_cloud_tasks_queue.example_jobs.project
+  location = google_cloud_tasks_queue.example_jobs.location
+  name     = google_cloud_tasks_queue.example_jobs.name
+  role     = "roles/cloudtasks.enqueuer"
+  member   = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_service_account_iam_member" "runtime_can_attach_jobs_identity" {
+  service_account_id = google_service_account.jobs_tasks_invoker.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "jobs_tasks_invoker" {
+  project  = var.project_id
+  location = var.backend_region
+  name     = module.tasks_service.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.jobs_tasks_invoker.email}"
 }
 
 # ---------------------------------------------------------------------------

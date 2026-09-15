@@ -12,6 +12,9 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
+- Cloud Tasks queue `terreno-example-jobs`, its queue-level dispatch pool limits, and a
+  callback-only OIDC service account. The private tasks Cloud Run service executes
+  callbacks; Cloud Run worker pools are not used because they have no HTTP ingress.
 - Secret Manager containers for backend sensitive env vars. Values are seeded out-of-band; CircleCI deploy jobs mount them by secret reference.
 
 The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.
@@ -153,6 +156,28 @@ terraform import 'module.tasks_service.google_cloud_run_v2_service.this' \
 terraform import 'module.tasks_artifact_registry.google_artifact_registry_repository.this' \
   projects/flourish-terreno/locations/us-central1/repositories/terreno-backend-example-tasks
 ```
+
+The Cloud Tasks queue and callback identity are also Terraform-owned. Import manually
+created copies before the first apply:
+
+```bash
+terraform import google_cloud_tasks_queue.example_jobs \
+  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs
+terraform import google_service_account.jobs_tasks_invoker \
+  projects/flourish-terreno/serviceAccounts/terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
+```
+
+## Durable jobs deployment
+
+The API and private tasks service run the same image and register the same job handlers.
+The API persists a `Job`, then Cloud Tasks sends an OIDC-authenticated
+`POST /jobs/execute` to the tasks service. Queue rate limits cap the dispatch pool at 20
+callbacks and 20 dispatches per second by default.
+
+PR previews do not create global infrastructure. The CD script deploys matching
+`pr-<number>` tags for both services and configures the API to target that exact tasks
+tag. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
+workers nor job rows. Cleanup removes both tags.
 
 ## Adding a third service account
 
