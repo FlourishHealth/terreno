@@ -82,9 +82,12 @@ when grilling settled none. Paths to the IP and task files come last.
 GitHub communication follows a fixed attention budget. The PR title is
 `[ticket] Short feature title` (Linear `TEAM-n` or GitHub `#n`; omit brackets when
 no ticket is attached) and names the feature only — never `feat:`, `IP Approved`,
-or `Task list`. `Why`, `What changed`, and `Verification` are the only visible PR
-sections; optional detail is expandable; comments are reserved for blocked
-decisions or non-obvious review resolutions.
+or `Task list`. `Why` preserves the IP's initial justification, `What changed`
+briefly describes the approved IP and intended outcomes, and `Verification` always
+contains reproducible testing instructions. Brew updates verification as testing
+changes but otherwise keeps the body stable instead of summarizing the latest turn.
+These are the only visible PR sections; optional detail is expandable; comments are
+reserved for blocked decisions or non-obvious review resolutions.
 
 Every stage follows the
 [documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):
