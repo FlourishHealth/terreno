@@ -4,6 +4,8 @@
 **IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-08
 
+**Follow-up tasks (same PR):** [`docs/tasks/announcements-surfaces.md`](announcements-surfaces.md)
+
 Structured task breakdown for automated implementation. Each task should be independently implementable and testable.
 
 ## Phase 1: `@terreno/announcements` package + API

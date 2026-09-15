@@ -6,6 +6,8 @@
 **Created:** 2026-09-08  
 **Linear:** https://linear.app/flourish-health/project/product-update-announcements-in-app-944f756c05c9/overview
 
+**Follow-up (same PR):** [Announcement surfaces, targeting, and click tracking](announcements-surfaces.md) — display modes, `audienceType`, acknowledgement policy, client frequency caps, min build, CTA clicks. That IP overrides the v1 non-goals “no role targeting built into Terreno” and “no CTA tracking” for the slice listed there.
+
 ## Goal
 
 Ship a **core Terreno feature** for admin-managed, in-app product update announcements — similar in scope to feature flags and consent forms. Admins create markdown announcements with scheduling, targeting metadata, and lifecycle controls. Authenticated users see a **priority-ordered modal queue** (one at a time) and can browse a **changelog feed**. Consumers (e.g. Flourish) configure audience matching and acknowledgement policy without forking the package.
@@ -253,11 +255,12 @@ No Terreno activity-log integration in v1. `AnnouncementAcknowledgement` and `An
 
 ## Not Included / Future Work
 
+Surfaces, `audienceType`, per-announcement acknowledgement policy, frequency caps, min build, and CTA click tracking are specified in **[announcements-surfaces.md](announcements-surfaces.md)** (same PR). Remaining later:
+
 - Terreno media upload / CDN for inline images.
 - Multi-locale `title` / `body` maps.
 - Socket live push when announcements publish.
 - Snooze / remind-later.
-- Per-announcement RBAC beyond admin.
 - A/B variants of announcement content.
 - Email digest of changelog.
 
