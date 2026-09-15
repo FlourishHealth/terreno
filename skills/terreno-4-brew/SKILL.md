@@ -11,6 +11,7 @@ records bot outcomes but does not implement fixes.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md),
 [`product CI`](references/product-ci.md),
 [`async review bots`](references/async-review-bots.md),
 [`independent review procedure`](references/independent-review.md), and
@@ -75,7 +76,8 @@ must follow the [`GitHub attention contract`](references/github-attention-contra
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
     - required host untriggered after grace → `FAIL` with `next: brew`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
-    Collapse per the lifecycle contract. Brew itself never executes Taste.
+    Collapse per the lifecycle contract. Close the chat with PR deployment URLs when
+    the PR has them. Brew itself never executes Taste.
 
 ## Supporting skills
 

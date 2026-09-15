@@ -86,7 +86,8 @@ Rules for the body:
   informs the decision.
 - Cap the round at **five** questions. Park the rest as "later, after these".
 - End the message. Do not write files, do not start Pick, do not summarize the whole
-  plan yet.
+  plan yet. If this branch already has a PR with GitHub Deployments, the last visible
+  section is Demo (see the PR deployments procedure).
 
 ### After the user replies
 
@@ -111,7 +112,8 @@ Shared understanding:
 Confirm and I will write the plan. Change any bullet if I have it wrong.
 ```
 
-Do not write the IP until they confirm.
+If a PR on this branch has GitHub Deployments, print those Demo URLs after this block,
+then wait. Do not write the IP until they confirm.
 
 ## Approval brief
 
@@ -183,6 +185,7 @@ Rules for the brief:
 - Every acceptance criterion in the plan table names how it is proved. "Manual check" is
   not a verification method.
 - Do not restate the IP. The brief orients and points; the IP holds the detail.
+- If a PR has GitHub Deployments, print those Demo URLs after the brief.
 
 ## Anti-patterns
 
