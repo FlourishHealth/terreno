@@ -1,6 +1,24 @@
-import {describe, it} from "bun:test";
+import {describe, it, mock} from "bun:test";
 import {assert} from "chai";
 import {DateTime} from "luxon";
+
+mock.module("google-auth-library", () => ({
+  GoogleAuth: class MockGoogleAuth {
+    getClient = async (): Promise<{
+      request: (options: {
+        data: unknown;
+        method: string;
+        url: string;
+      }) => Promise<{data: {name: string}}>;
+    }> => ({
+      request: async (options: {data: unknown; method: string; url: string}) => {
+        assert.equal(options.method, "POST");
+        assert.include(options.url, "/tasks");
+        return {data: {name: "projects/p/locations/l/queues/q/tasks/default-auth"}};
+      },
+    });
+  },
+}));
 
 import {createGcpCloudTasksHttpClient} from "./createGcpCloudTasksHttpClient";
 
@@ -94,5 +112,23 @@ describe("createGcpCloudTasksHttpClient", (): void => {
       client.queuePath("my-project", "us-central1", "jobs"),
       "projects/my-project/locations/us-central1/queues/jobs"
     );
+  });
+
+  it("uses GoogleAuth default credentials when no auth seam is injected", async (): Promise<void> => {
+    const client = createGcpCloudTasksHttpClient();
+    const [created] = await client.createTask({
+      parent: "projects/p/locations/l/queues/q",
+      task: {
+        httpRequest: {
+          httpMethod: "POST",
+          url: "https://tasks.example.com/jobs/execute",
+        },
+        scheduleTime: {
+          seconds: Math.floor(DateTime.fromISO("2026-09-15T19:10:00Z", {zone: "utc"}).toSeconds()),
+        },
+      },
+    });
+
+    assert.equal(created.name, "projects/p/locations/l/queues/q/tasks/default-auth");
   });
 });
