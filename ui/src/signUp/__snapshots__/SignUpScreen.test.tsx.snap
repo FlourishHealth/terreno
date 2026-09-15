@@ -344,7 +344,9 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                         "hitSlop": 8,
                                         "onPress": [Function],
                                         "style": {
+                                          "alignItems": "center",
                                           "marginLeft": 8,
+                                          "width": 20,
                                         },
                                         "testID": "signup-screen-password-input.visibility-toggle",
                                       },

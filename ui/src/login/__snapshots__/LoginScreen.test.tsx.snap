@@ -238,7 +238,9 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                         "hitSlop": 8,
                                         "onPress": [Function],
                                         "style": {
+                                          "alignItems": "center",
                                           "marginLeft": 8,
+                                          "width": 20,
                                         },
                                         "testID": "login-screen-password-input.visibility-toggle",
                                       },

@@ -315,7 +315,8 @@ export const TextField: FC<TextFieldProps> = ({
               disabled={disabled}
               hitSlop={8}
               onPress={toggleValueRevealed}
-              style={{marginLeft: 8}}
+              // Fixed width keeps the input from reflowing: the eye-slash glyph is wider than the eye.
+              style={{alignItems: "center", marginLeft: 8, width: 20}}
               testID={fieldTestIDs.visibilityToggle}
             >
               <Icon

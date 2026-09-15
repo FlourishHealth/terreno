@@ -254,7 +254,9 @@ exports[`Field renders password field 1`] = `
                 "hitSlop": 8,
                 "onPress": [Function],
                 "style": {
+                  "alignItems": "center",
                   "marginLeft": 8,
+                  "width": 20,
                 },
                 "testID": undefined,
               },
