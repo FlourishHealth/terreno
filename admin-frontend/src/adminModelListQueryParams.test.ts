@@ -96,7 +96,7 @@ describe("buildAdminListQueryParams", () => {
     assert.equal(params.sort, "-created");
     assert.equal(params.created_gte, "2026-01-01");
     assert.equal(params.created_lte, "2026-01-31");
-    assert.deepEqual(params.status, {$in: ["open"]});
+    assert.equal(params.status, "open");
     assert.deepEqual(params.title, {$options: "i", $regex: "hello"});
     assert.equal(params.ownerId, "abc");
     assert.equal(params.q, "q");
@@ -150,5 +150,38 @@ describe("buildAdminListQueryParams", () => {
     assert.equal(params.completed, true);
     assert.isUndefined(params.created_gte);
     assert.isUndefined(params.created_lte);
+  });
+
+  it("forwards allowEmpty priority filters as scalar or empty sentinel", () => {
+    const modelConfig = {
+      filters: [
+        {
+          allowEmpty: true,
+          choices: [
+            {label: "High", value: "high"},
+            {label: "Low", value: "low"},
+          ],
+          field: "priority",
+          kind: "choice",
+        },
+      ],
+    } as AdminModelConfig;
+    const highOnly = buildAdminListQueryParams({
+      filterState: {priority: ["high"]},
+      limit: 25,
+      modelConfig,
+      page: 1,
+      searchDebounced: "",
+    });
+    assert.equal(highOnly.priority, "high");
+
+    const emptyOnly = buildAdminListQueryParams({
+      filterState: {priority: ["__empty__"]},
+      limit: 25,
+      modelConfig,
+      page: 1,
+      searchDebounced: "",
+    });
+    assert.deepEqual(emptyOnly.priority, {$in: ["__empty__"]});
   });
 });

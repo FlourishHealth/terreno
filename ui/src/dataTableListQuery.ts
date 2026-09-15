@@ -3,6 +3,14 @@ import type {DataTableColumn, DataTableColumnFilter, DataTableQueryParams} from 
 /** Debounce delay for DataTable toolbar search before emitting query params. */
 export const DATA_TABLE_SEARCH_DEBOUNCE_MS = 250;
 
+/**
+ * Wire-format sentinel for optional choice filters meaning "field is null or unset".
+ * Must match `ADMIN_LIST_CHOICE_EMPTY_VALUE` in `@terreno/api`.
+ */
+export const DATA_TABLE_CHOICE_EMPTY_VALUE = "__empty__";
+
+export const DATA_TABLE_CHOICE_EMPTY_LABEL = "Empty";
+
 /** Escape user input for case-insensitive MongoDB $regex literals. */
 export const escapeRegexLiteral = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -49,6 +57,46 @@ const parseChoiceValues = (value: unknown): string[] => {
     return [value.trim()];
   }
   return [];
+};
+
+const splitChoiceValues = (
+  values: string[],
+  allowEmpty: boolean
+): {concrete: string[]; includeEmpty: boolean} => {
+  const includeEmpty = allowEmpty && values.includes(DATA_TABLE_CHOICE_EMPTY_VALUE);
+  const concrete = values.filter(
+    (entry) => entry !== DATA_TABLE_CHOICE_EMPTY_VALUE && entry !== ""
+  );
+  return {concrete, includeEmpty};
+};
+
+/**
+ * Builds a modelRouter-compatible choice filter value.
+ *
+ * Contract:
+ * - concrete only, one value → scalar equality
+ * - concrete only, many values → `{ $in: concrete[] }`
+ * - empty only → `{ $in: [DATA_TABLE_CHOICE_EMPTY_VALUE] }` (parsed server-side to null)
+ * - empty + concrete → `{ $in: [...concrete, DATA_TABLE_CHOICE_EMPTY_VALUE] }`
+ */
+export const buildChoiceFilterQueryValue = (
+  values: string[],
+  allowEmpty = false
+): string | {$in: string[]} | undefined => {
+  const {concrete, includeEmpty} = splitChoiceValues(values, allowEmpty);
+  if (!includeEmpty && concrete.length === 0) {
+    return undefined;
+  }
+  if (includeEmpty && concrete.length === 0) {
+    return {$in: [DATA_TABLE_CHOICE_EMPTY_VALUE]};
+  }
+  if (!includeEmpty && concrete.length === 1) {
+    return concrete[0];
+  }
+  if (!includeEmpty) {
+    return {$in: concrete};
+  }
+  return {$in: [...concrete, DATA_TABLE_CHOICE_EMPTY_VALUE]};
 };
 
 /**
@@ -111,8 +159,9 @@ export const buildDataTableListQuery = ({
 
     if (filter.kind === "choice") {
       const values = parseChoiceValues(filterValues[field]);
-      if (values.length > 0) {
-        params[field] = {$in: values};
+      const queryValue = buildChoiceFilterQueryValue(values, filter.allowEmpty === true);
+      if (queryValue !== undefined) {
+        params[field] = queryValue;
       }
     }
   }

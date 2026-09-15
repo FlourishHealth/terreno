@@ -611,7 +611,10 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 | Boolean column filter | `{field: true \| false}`; unset omits the key |
 | Date range | `field_gte` / `field_lte` ISO strings |
 | Number range | `{field: {$gte?, $lte?}}` |
-| Choice (one or many) | `{field: {$in: string[]}}` |
+| Choice (one value) | `{field: string}` scalar equality |
+| Choice (many values) | `{field: {$in: string[]}}` |
+| Choice **Empty** (optional fields) | `{field: {$in: ["__empty__"]}}` on the wire; server maps to `null` (matches missing and null) |
+| Choice **Empty** + concrete | `{field: {$in: [...values, "__empty__"]}}` |
 
 `onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
 (250ms, same delay as admin list search).

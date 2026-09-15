@@ -1,7 +1,9 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type {ErrorObject} from "ajv";
 import type {NextFunction, Request, Response} from "express";
+import mongoose from "mongoose";
 
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "./adminTypes";
 import {modelRouter} from "./api";
 import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import type {OpenApiSchemaProperty} from "./openApiBuilder";
@@ -269,6 +271,53 @@ describe("openApiValidator", () => {
     it("marks query fields as not required", () => {
       const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
       expect(schema.name.required).toBe(false);
+    });
+  });
+
+  describe("choice list query validation", () => {
+    const priorityListSchema = new mongoose.Schema({
+      name: {required: true, type: String},
+      priority: {enum: ["low", "high"], type: String},
+    });
+    const PriorityListModel =
+      mongoose.models.OpenApiPriorityList ??
+      mongoose.model("OpenApiPriorityList", priorityListSchema);
+
+    const assertQueryAccepted = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true});
+      const schema = buildQuerySchemaFromFields(PriorityListModel, ["priority"]);
+      const middleware = validateQueryParams(schema);
+      let nextCalled = false;
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+      middleware(req, {} as Response, () => {
+        nextCalled = true;
+      });
+      expect(nextCalled).toBe(true);
+    };
+
+    it("accepts scalar and $in choice query shapes", () => {
+      assertQueryAccepted({limit: "25", page: "1", priority: "high"});
+      assertQueryAccepted({limit: "25", page: "1", priority: {$in: ["high"]}});
+      assertQueryAccepted({
+        limit: "25",
+        page: "1",
+        priority: {$in: ["high", ADMIN_LIST_CHOICE_EMPTY_VALUE]},
+      });
+    });
+
+    it("rejects invalid choice query shapes", () => {
+      configureOpenApiValidator({coerceTypes: true});
+      const schema = buildQuerySchemaFromFields(PriorityListModel, ["priority"]);
+      const middleware = validateQueryParams(schema);
+      const req = {
+        method: "GET",
+        path: "/test",
+        query: {limit: "25", page: "1", priority: {$in: ["high", "missing"]}},
+      } as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
     });
   });
 

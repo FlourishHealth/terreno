@@ -42,6 +42,9 @@ Common fields:
   mobile **Filters** sheet. `text` filters are case-insensitive contains (`$regex`);
   `choice` filters support multi-select (`$in`); `ref` stays a single ObjectId. The
   backend accepts only escaped literal regex patterns and rejects extra nested operators.
+  Optional choice fields (Mongoose path not `required`) automatically expose an **Empty**
+  filter option; set `allowEmpty: false` on the filter config to hide it, or
+  `allowEmpty: true` on required fields when you intentionally want unset matching.
 - `fieldsets`: grouped form sections.
 - `readonlyFields` / `hiddenFields`: display-only or omitted form fields.
 - `adminPermissions`: optional admin-specific permission methods.

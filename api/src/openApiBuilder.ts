@@ -118,19 +118,28 @@ const composeRequestHandlers = (handlers: express.RequestHandler[]): express.Req
  */
 export interface OpenApiSchemaProperty {
   /** The JSON Schema type (e.g., "string", "number", "boolean", "object", "array") */
-  type: string;
+  type?: string;
+  /** JSON Schema oneOf for query operators (scalar or Mongo-style object). */
+  oneOf?: OpenApiSchemaProperty[];
   /** Human-readable description of the property */
   description?: string;
+  /** Allowed values for string/number enums in query validation. */
+  enum?: string[];
   /** Format hint for the type (e.g., "date-time", "email", "uri", "uuid") */
   format?: string;
   /** Schema for array items when type is "array" */
   items?: OpenApiSchemaProperty;
+  /** Minimum array length when type is "array". */
+  minItems?: number;
   /** Nested properties when type is "object" */
   properties?: Record<string, OpenApiSchemaProperty>;
   /** Schema for additional properties or boolean to allow/disallow them */
   additionalProperties?: OpenApiSchemaProperty | boolean;
-  /** Whether this property is required in the parent object */
-  required?: boolean;
+  /**
+   * Property-level required flag, or object-schema required key list for nested
+   * operator shapes (`{$in: ...}`, `{$regex: ...}`).
+   */
+  required?: boolean | string[];
 }
 
 /**

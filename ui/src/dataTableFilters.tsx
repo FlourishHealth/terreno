@@ -7,6 +7,7 @@ import {Box} from "./Box";
 import {Button} from "./Button";
 import type {DataTableColumnFilter} from "./Common";
 import {DateTimeField} from "./DateTimeField";
+import {DATA_TABLE_CHOICE_EMPTY_LABEL, DATA_TABLE_CHOICE_EMPTY_VALUE} from "./dataTableListQuery";
 import {Filter} from "./Filter";
 import {MultiselectField} from "./MultiselectField";
 import {NumberField} from "./NumberField";
@@ -187,11 +188,17 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
         continue;
       }
       if (filter.kind === "choice") {
+        const choiceOptions = filter.allowEmpty
+          ? [
+              {label: DATA_TABLE_CHOICE_EMPTY_LABEL, value: DATA_TABLE_CHOICE_EMPTY_VALUE},
+              ...(filter.options ?? []),
+            ]
+          : (filter.options ?? []);
         nodes.push(
           <Box key={field} width="100%">
             <MultiselectField
               onChange={(next: string[]) => setField(field, next)}
-              options={filter.options ?? []}
+              options={choiceOptions}
               testID={`data-table-filter-${field}`}
               title={label}
               value={toChoiceValue(draftValues[field])}

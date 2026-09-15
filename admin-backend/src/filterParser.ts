@@ -1,5 +1,5 @@
-import type {AdminFilter} from "@terreno/api";
-import {logger} from "@terreno/api";
+import type {AdminFilter, AdminFilterChoice} from "@terreno/api";
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE, logger} from "@terreno/api";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
@@ -120,27 +120,63 @@ const parseTextRegexFilter = (
   return {ok: true, value: {$options: "i", $regex: regex}};
 };
 
+type ChoiceMongoValue = null | string | {$in: (null | string)[]};
+
+const normalizeChoiceMongoValue = (values: (null | string)[]): ChoiceMongoValue => {
+  if (values.length === 1) {
+    return values[0];
+  }
+  return {$in: values};
+};
+
+const parseChoiceWireValue = (
+  field: string,
+  wireValue: string,
+  choices: {label: string; value: string}[],
+  allowEmpty: boolean
+): {ok: true; value: null | string} | {ok: false; error: string} => {
+  if (wireValue === ADMIN_LIST_CHOICE_EMPTY_VALUE) {
+    if (!allowEmpty) {
+      return {
+        error: `${field} must be one of: ${choices.map((choice) => choice.value).join(", ")}`,
+        ok: false,
+      };
+    }
+    return {ok: true, value: null};
+  }
+  const allowed = new Set(choices.map((choice) => choice.value));
+  if (!allowed.has(wireValue)) {
+    return {error: `${field} must be one of: ${[...allowed].join(", ")}`, ok: false};
+  }
+  return {ok: true, value: wireValue};
+};
+
 const parseChoiceFilter = (
   field: string,
   value: unknown,
-  choices: {label: string; value: string}[]
-): {ok: true; value: string} | {ok: false; error: string} => {
+  declared: AdminFilterChoice
+): {ok: true; value: ChoiceMongoValue} | {ok: false; error: string} => {
   const parsed = parseTextFilter(field, value);
   if (!parsed.ok) {
     return parsed;
   }
-  const allowed = new Set(choices.map((choice) => choice.value));
-  if (!allowed.has(parsed.value)) {
-    return {error: `${field} must be one of: ${[...allowed].join(", ")}`, ok: false};
+  const wire = parseChoiceWireValue(
+    field,
+    parsed.value,
+    declared.choices,
+    declared.allowEmpty === true
+  );
+  if (!wire.ok) {
+    return wire;
   }
-  return parsed;
+  return {ok: true, value: wire.value};
 };
 
 const parseChoiceInFilter = (
   field: string,
   value: unknown,
-  choices: {label: string; value: string}[]
-): {ok: true; value: {$in: string[]}} | {ok: false; error: string} => {
+  declared: AdminFilterChoice
+): {ok: true; value: ChoiceMongoValue} | {ok: false; error: string} => {
   if (value == null || typeof value !== "object" || Array.isArray(value)) {
     return {error: `${field} must be a multi-value choice filter`, ok: false};
   }
@@ -151,22 +187,27 @@ const parseChoiceInFilter = (
   if (!Array.isArray(record.$in)) {
     return {error: `${field} must use $in with string values`, ok: false};
   }
-  const allowed = new Set(choices.map((choice) => choice.value));
-  const values: string[] = [];
+  const mongoValues: (null | string)[] = [];
   for (const entry of record.$in) {
     const scalar = scalarString(entry);
     if (!scalar) {
       return {error: `${field} must use $in with string values`, ok: false};
     }
-    if (!allowed.has(scalar)) {
-      return {error: `${field} must be one of: ${[...allowed].join(", ")}`, ok: false};
+    const wire = parseChoiceWireValue(
+      field,
+      scalar,
+      declared.choices,
+      declared.allowEmpty === true
+    );
+    if (!wire.ok) {
+      return wire;
     }
-    values.push(scalar);
+    mongoValues.push(wire.value);
   }
-  if (values.length === 0) {
+  if (mongoValues.length === 0) {
     return {error: `${field} must include at least one choice`, ok: false};
   }
-  return {ok: true, value: {$in: values}};
+  return {ok: true, value: normalizeChoiceMongoValue(mongoValues)};
 };
 
 const parseRefFilter = (
@@ -263,12 +304,12 @@ export const parseAdminListFilters = (
       }
       consumedKeys.add(field);
       const raw = safeQuery[field];
-      const inParsed = parseChoiceInFilter(field, raw, declared.choices);
+      const inParsed = parseChoiceInFilter(field, raw, declared);
       if (inParsed.ok) {
         filter[field] = inParsed.value;
         continue;
       }
-      const parsed = parseChoiceFilter(field, raw, declared.choices);
+      const parsed = parseChoiceFilter(field, raw, declared);
       if (!parsed.ok) {
         errors[field] = parsed.error;
         continue;

@@ -1,5 +1,7 @@
 import {describe, expect, it} from "bun:test";
 
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "@terreno/api";
+
 import type {AdminListFilter} from "./adminUiV2";
 import {parseAdminListFilters} from "./filterParser";
 
@@ -117,5 +119,45 @@ describe("parseAdminListFilters", () => {
 
     expect(errors).toEqual({});
     expect(filter.admin).toBe(true);
+  });
+
+  it("maps empty sentinel to null for optional choice filters", () => {
+    const priorityFilter: AdminListFilter = {
+      allowEmpty: true,
+      choices: [
+        {label: "High", value: "high"},
+        {label: "Low", value: "low"},
+      ],
+      field: "priority",
+      kind: "choice",
+    };
+
+    const emptyOnly = parseAdminListFilters({priority: {$in: [ADMIN_LIST_CHOICE_EMPTY_VALUE]}}, [
+      priorityFilter,
+    ]);
+    expect(emptyOnly.errors).toEqual({});
+    expect(emptyOnly.filter.priority).toBeNull();
+
+    const highOnly = parseAdminListFilters({priority: "high"}, [priorityFilter]);
+    expect(highOnly.errors).toEqual({});
+    expect(highOnly.filter.priority).toBe("high");
+
+    const combined = parseAdminListFilters(
+      {priority: {$in: ["high", ADMIN_LIST_CHOICE_EMPTY_VALUE]}},
+      [priorityFilter]
+    );
+    expect(combined.errors).toEqual({});
+    expect(combined.filter.priority).toEqual({$in: ["high", null]});
+  });
+
+  it("rejects empty sentinel when allowEmpty is false", () => {
+    const {errors} = parseAdminListFilters({priority: {$in: [ADMIN_LIST_CHOICE_EMPTY_VALUE]}}, [
+      {
+        choices: [{label: "High", value: "high"}],
+        field: "priority",
+        kind: "choice",
+      },
+    ]);
+    expect(errors.priority).toBeDefined();
   });
 });

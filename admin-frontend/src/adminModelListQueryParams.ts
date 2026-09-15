@@ -78,6 +78,7 @@ const toDataTableFilter = (
   }
   if (filter.kind === "choice") {
     return {
+      allowEmpty: filter.allowEmpty === true,
       field: filter.field,
       kind: "choice",
       options: filter.choices ?? [],

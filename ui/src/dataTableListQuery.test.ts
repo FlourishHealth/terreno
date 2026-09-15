@@ -1,7 +1,12 @@
 import {describe, expect, it} from "bun:test";
 
 import type {DataTableColumn} from "./Common";
-import {buildDataTableListQuery, escapeRegexLiteral} from "./dataTableListQuery";
+import {
+  buildChoiceFilterQueryValue,
+  buildDataTableListQuery,
+  DATA_TABLE_CHOICE_EMPTY_VALUE,
+  escapeRegexLiteral,
+} from "./dataTableListQuery";
 
 describe("escapeRegexLiteral", () => {
   it("escapes regex metacharacters", () => {
@@ -91,15 +96,15 @@ describe("buildDataTableListQuery", () => {
     expect(params.created_gte).toBe("2024-01-01T00:00:00.000Z");
     expect(params.created_lte).toBe("2024-12-31T23:59:59.999Z");
     expect(params.age).toEqual({$gte: 18, $lte: 65});
-    expect(params.role).toEqual({$in: ["staff"]});
+    expect(params.role).toBe("staff");
   });
 
-  it("emits choice $in for a single selected value", () => {
+  it("emits scalar equality for a single selected choice value", () => {
     const params = buildDataTableListQuery({
       columns,
       filterValues: {role: "staff"},
     });
-    expect(params.role).toEqual({$in: ["staff"]});
+    expect(params.role).toBe("staff");
   });
 
   it("includes toolbar-only filters that are not visible columns", () => {
@@ -110,5 +115,60 @@ describe("buildDataTableListQuery", () => {
     });
 
     expect(params.status).toEqual({$in: ["open", "closed"]});
+  });
+});
+
+describe("buildChoiceFilterQueryValue", () => {
+  it("uses scalar equality for one concrete value", () => {
+    expect(buildChoiceFilterQueryValue(["high"], false)).toBe("high");
+  });
+
+  it("uses $in for multiple concrete values", () => {
+    expect(buildChoiceFilterQueryValue(["high", "low"], false)).toEqual({$in: ["high", "low"]});
+  });
+
+  it("uses empty sentinel for empty-only optional filters", () => {
+    expect(buildChoiceFilterQueryValue([DATA_TABLE_CHOICE_EMPTY_VALUE], true)).toEqual({
+      $in: [DATA_TABLE_CHOICE_EMPTY_VALUE],
+    });
+  });
+
+  it("combines empty sentinel with concrete values in $in", () => {
+    expect(buildChoiceFilterQueryValue(["high", DATA_TABLE_CHOICE_EMPTY_VALUE], true)).toEqual({
+      $in: ["high", DATA_TABLE_CHOICE_EMPTY_VALUE],
+    });
+  });
+});
+
+describe("buildDataTableListQuery optional choice empty", () => {
+  const priorityColumn: DataTableColumn = {
+    columnType: "text",
+    filter: {
+      allowEmpty: true,
+      field: "priority",
+      kind: "choice",
+      options: [
+        {label: "High", value: "high"},
+        {label: "Low", value: "low"},
+      ],
+    },
+    title: "Priority",
+    width: 100,
+  };
+
+  it("emits scalar high for a single concrete priority", () => {
+    const params = buildDataTableListQuery({
+      columns: [priorityColumn],
+      filterValues: {priority: ["high"]},
+    });
+    expect(params.priority).toBe("high");
+  });
+
+  it("emits empty sentinel when only Empty is selected", () => {
+    const params = buildDataTableListQuery({
+      columns: [priorityColumn],
+      filterValues: {priority: [DATA_TABLE_CHOICE_EMPTY_VALUE]},
+    });
+    expect(params.priority).toEqual({$in: [DATA_TABLE_CHOICE_EMPTY_VALUE]});
   });
 });

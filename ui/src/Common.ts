@@ -2659,6 +2659,8 @@ export interface DataTableColumnFilter {
   field: string;
   kind: "text" | "boolean" | "numberRange" | "dateRange" | "choice";
   label?: string;
+  /** When true, choice filters include an Empty option for null/unset field values. */
+  allowEmpty?: boolean;
   options?: DataTableColumnFilterChoiceOption[];
   renderFilter?: (args: DataTableColumnFilterRenderArgs) => React.ReactNode;
 }

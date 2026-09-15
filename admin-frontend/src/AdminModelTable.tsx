@@ -93,6 +93,7 @@ const toColumnFilter = (
   }
   if (filter.kind === "choice") {
     return {
+      allowEmpty: filter.allowEmpty === true,
       field: filter.field,
       kind: "choice",
       label,
