@@ -13,6 +13,7 @@ and exits; this skill **is** the outer loop, one instance per PR.
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`loop engineering`](references/loop-engineering.md),
 [`product CI`](references/product-ci.md),
+[`PR deployments`](references/pr-deployments.md),
 [`async review bots`](references/async-review-bots.md), and
 [`GitHub attention contract`](references/github-attention-contract.md).
 
@@ -115,6 +116,9 @@ invokes Taste, waits, and reports.
    - Draft PRs skipped (count; titles only if few)
    - PRs discarded because they were already clean (count)
    - Anything `blocked-*` with the specific decision or action needed
+
+   Close the report with each qualifying PR's deployment URLs when GitHub Deployments
+   exist.
 
 ## Supporting skills
 

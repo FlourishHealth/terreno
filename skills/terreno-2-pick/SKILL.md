@@ -11,6 +11,7 @@ replace Roast's independent proof. Pick never skips Roast.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md),
 [`pick-roast loop`](references/pick-roast-loop.md),
 [`testing guidance`](references/testing.md),
 [`mocking guidance`](references/mocking.md), and
