@@ -331,7 +331,6 @@ export const {
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   useResetPasswordMutation,
-  useGetNotificationsArchivedQuery,
   useGetMeQuery,
   usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,

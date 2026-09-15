@@ -109,6 +109,12 @@ export const assertValidNotificationReadAt = (readAt: unknown): void => {
   }
 };
 
+export const assertValidNotificationArchivedAt = (archivedAt: unknown): void => {
+  if (!isValidReadAt(archivedAt)) {
+    throw new APIError({status: 400, title: "archivedAt must be a date or null"});
+  }
+};
+
 export const createNotificationService = (
   options: NotificationServiceOptions = {}
 ): NotificationService => {

@@ -10,6 +10,12 @@ const notificationSchema = new mongoose.Schema<NotificationDocument, Notificatio
       description: "The document id (string so offline sync clients can mint ids)",
       type: String,
     },
+    archivedAt: {
+      default: null,
+      description:
+        "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+      type: Date,
+    },
     body: {
       description: "Main notification message text shown in the inbox",
       required: true,

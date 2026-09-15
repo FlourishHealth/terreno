@@ -36,7 +36,11 @@ describe("seedDefaultData", () => {
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
     assert.equal(await Notification.countDocuments({kind: "seed", ownerId: user._id}), 3);
     assert.equal(
-      await Notification.countDocuments({deleted: true, kind: "seed", ownerId: user._id}),
+      await Notification.countDocuments({
+        archivedAt: {$ne: null},
+        kind: "seed",
+        ownerId: user._id,
+      }),
       1
     );
     assert.equal(await ConsentForm.countDocuments({}), 3);

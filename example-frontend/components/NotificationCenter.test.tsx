@@ -6,6 +6,7 @@ import {act, create, type ReactTestInstance, type ReactTestRenderer} from "react
 
 interface MockNotification {
   _id: string;
+  archivedAt?: string | null;
   body: string;
   created: string;
   deleted?: boolean;
@@ -31,14 +32,11 @@ const createHostComponent = (name: string): React.FC<Record<string, unknown>> =>
 };
 
 const notificationRows: MockNotification[] = [];
-const archivedNotificationRows: MockNotification[] = [];
 const preferenceRows: MockPreference[] = [];
 let isSyncDbReady = true;
 
 const createPreference = mock((): void => {});
-const deleteNotification = mock((): void => {});
 const reconcile = mock(async (): Promise<void> => {});
-const refetchArchived = mock(async (): Promise<void> => {});
 const routerBack = mock((): void => {});
 const routerPush = mock((): void => {});
 const sendTestNotification = mock(() => ({unwrap: async (): Promise<void> => {}}));
@@ -98,11 +96,6 @@ mock.module("@/hooks/useSyncDbReady", () => ({
 }));
 
 mock.module("@/store/sdk", () => ({
-  useGetNotificationsArchivedQuery: () => ({
-    data: archivedNotificationRows,
-    isFetching: false,
-    refetch: refetchArchived,
-  }),
   usePostNotificationsDevNotifyMutation: () => [sendTestNotification, {isLoading: false}],
 }));
 
@@ -112,7 +105,6 @@ mock.module("@/store/syncdb", () => ({
 
 mock.module("@/store/syncDbSdk", () => ({
   useCreateNotificationPreference: () => [createPreference],
-  useDeleteNotification: () => [deleteNotification],
   useUpdateNotificationPreference: () => [updatePreference],
 }));
 
@@ -145,7 +137,6 @@ describe("NotificationCenter", () => {
     );
     preferenceRows.splice(0);
     createPreference.mockClear();
-    deleteNotification.mockClear();
     reconcile.mockClear();
     routerPush.mockClear();
     sendTestNotification.mockClear();
@@ -192,7 +183,11 @@ describe("NotificationCenter", () => {
     assert.deepInclude(syncMutate.mock.calls[1]?.[0], {
       data: {readAt: null},
     });
-    assert.equal(deleteNotification.mock.calls[0]?.[0].id, "notification-1");
+    assert.deepInclude(syncMutate.mock.calls[2]?.[0], {
+      collection: "notifications",
+      operation: "update",
+    });
+    assert.equal(typeof syncMutate.mock.calls[2]?.[0].data.archivedAt, "string");
     assert.equal(routerPush.mock.calls[0]?.[0], "/profile");
 
     assert.isFalse(findHost(renderer, "SideDrawer").props.isOpen);
@@ -229,13 +224,14 @@ describe("NotificationCenter", () => {
       );
     });
 
-    act(() => {
+    await act(async () => {
       const viewAllButton = renderer.root
         .findAllByType("Button")
         .find((button) => button.props.testID === "notification-view-all-button");
-      viewAllButton?.props.onClick();
+      await viewAllButton?.props.onClick();
     });
 
+    assert.equal(reconcile.mock.calls.length, 1);
     assert.equal(routerPush.mock.calls[0]?.[0], "/notifications");
     assert.isFalse(findHost(renderer, "SideDrawer").props.isOpen);
   });
@@ -244,20 +240,24 @@ describe("NotificationCenter", () => {
 describe("AllNotificationsScreen", () => {
   beforeEach(() => {
     isSyncDbReady = true;
-    notificationRows.splice(0, notificationRows.length, {
-      _id: "active-notification",
-      body: "Active body",
-      created: "2026-09-11T12:00:00.000Z",
-      title: "Active",
-    });
-    archivedNotificationRows.splice(0, archivedNotificationRows.length, {
-      _id: "archived-notification",
-      body: "Archived body",
-      created: "2026-09-10T12:00:00.000Z",
-      deleted: true,
-      readAt: "2026-09-10T13:00:00.000Z",
-      title: "Archived",
-    });
+    notificationRows.splice(
+      0,
+      notificationRows.length,
+      {
+        _id: "active-notification",
+        body: "Active body",
+        created: "2026-09-11T12:00:00.000Z",
+        title: "Active",
+      },
+      {
+        _id: "archived-notification",
+        archivedAt: "2026-09-10T13:00:00.000Z",
+        body: "Archived body",
+        created: "2026-09-10T12:00:00.000Z",
+        readAt: "2026-09-10T13:00:00.000Z",
+        title: "Archived",
+      }
+    );
   });
 
   it("shows active and archived notifications separately", async (): Promise<void> => {

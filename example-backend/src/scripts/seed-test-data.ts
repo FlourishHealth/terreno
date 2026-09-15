@@ -449,6 +449,7 @@ const seedNotifications = async (context: SeedContext, owner: UserDocument): Pro
   const seededAt = DateTime.utc();
   for (const notification of SEED_NOTIFICATIONS) {
     const values = {
+      archivedAt: notification.archived ? seededAt.toJSDate() : null,
       body: notification.body,
       created: seededAt.minus({minutes: notification.minutesAgo}).toJSDate(),
       href: "/",
@@ -458,15 +459,6 @@ const seedNotifications = async (context: SeedContext, owner: UserDocument): Pro
       title: notification.title,
     };
     await context.upsert(Notification, {ownerId: owner._id, title: notification.title}, values);
-    if (context.dryRun || !notification.archived) {
-      continue;
-    }
-    const seededNotification = await Notification.findExactlyOne({
-      ownerId: owner._id,
-      title: notification.title,
-    });
-    seededNotification.deleted = true;
-    await seededNotification.save();
   }
 };
 

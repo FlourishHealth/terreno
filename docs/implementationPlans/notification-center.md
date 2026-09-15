@@ -38,7 +38,7 @@ through syncdb in the example app.
 | Package | **`NotificationsApp` in `@terreno/api`** (ConsentApp pattern). UI in `@terreno/ui`. No new workspace package. Comms stays outbound adapters. |
 | Inbox transport | Synced collections, `sync: {scope: {type: "owner"}}`. Live updates via existing `RealtimeApp` `sync:delta`. Hooks: `useQuery` / `useMutate`. |
 | Create | Router `create: []`. Only `getNotificationService().notify(...)` (and tests) insert rows. Direct `Model.create` from app code is not the public seam. |
-| Owner patch | `preUpdate` keeps `readAt` (set or `null` to unread). Dismiss uses `delete` (soft-delete / `isDeletedPlugin`). |
+| Owner patch | `preUpdate` keeps `readAt` and `archivedAt` (set or `null`). Dismiss archives via `archivedAt` so the row stays in syncdb. `deleted` is retention-only. |
 | Preferences | One `NotificationPreference` per user: `inapp`, `mail`, `push`, `sms`. Missing row = all **on**. |
 | `notify()` | Writes inbox if `inapp` is on; then `sendMail` / `sendSms` / `sendPushToUser` when that channel is on **and** a destination exists. Missing email/phone/tokens skip that channel; inbox write still succeeds. Direct `sendMail` still works; prefs apply only if the app registers `notificationsBeforeSend`. |
 | Comms hook | `@terreno/api` exports a duck-typed `notificationsBeforeSend({channel, userId})` (no import of comms types). Apps pass it as `CommsApp({beforeSend})`. Compose if the app already has a hook. |

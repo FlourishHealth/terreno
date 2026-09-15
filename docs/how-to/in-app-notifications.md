@@ -123,10 +123,12 @@ Customize the bell without reimplementing its tap target or unread accessibility
 />
 ```
 
-Treat dismissed rows as archived sync tombstones in the active inbox. Sync bootstrap
-delivers tombstones without payload data, so a full history screen should load archived
-rows from `GET /notifications/archived` via the generated RTK Query hook (owner-scoped,
-authenticated). Map each row with `deleted: true` to `NotificationInboxItem.archived`.
+Treat dismissed rows as archived, not deleted. Dismiss PATCHes `archivedAt` through
+syncdb so the row stays in the owner snapshot with its payload. The active inbox
+filters `archivedAt` out; the full history page uses the same `useQuery("notifications")`
+and splits on `archivedAt`. Retention (`retainDays`) still tombstones old rows with
+`deleted: true`; those drop out of history after compaction. Map `archivedAt` (or a
+legacy `deleted` tombstone still in the local store) to `NotificationInboxItem.archived`.
 Archived rows remain readable but `NotificationInbox` hides their dismiss and read-state
 actions.
 

@@ -85,7 +85,7 @@ List-only; wrap in `SideDrawer`, `Modal`, or a sheet in the host screen.
 | `items` | `NotificationInboxItem[]` | Rows to render |
 | `isLoading` | `boolean` | Shows spinner |
 | `onMarkRead` / `onMarkUnread` | `(item) => void` | Toggle `readAt` via syncdb |
-| `onDismiss` | `(item) => void` | Soft-delete row |
+| `onDismiss` | `(item) => void` | Archive the row (`archivedAt` via syncdb) |
 | `onOpen` | `(item) => void` | Tap handler (e.g. Expo Router for `href`) |
 
 `NotificationInboxItem.archived` is optional. Archived rows receive an `Archived` label

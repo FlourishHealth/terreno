@@ -285,37 +285,29 @@ describe("NotificationsApp", () => {
     assert.equal(list.body.data.length, 0);
   });
 
-  it("rejects unauthenticated archived list", async () => {
-    const app = buildApp();
-    await supertest(app).get("/notifications/archived").expect(401);
-  });
-
-  it("GET /notifications/archived returns owner-scoped soft-deleted rows with full fields", async () => {
+  it("PATCH archivedAt archives a notification without tombstoning it", async () => {
     const id = await getNotificationService().notify({
-      body: "Archived body",
-      title: "Archived example",
+      body: "Archive me",
+      title: "Archive me",
       userId,
     });
+    const archivedAt = DateTime.now().toISO();
+    await userAgent.patch(`/notifications/${id}`).send({archivedAt}).expect(200);
     const row = await Notification.findExactlyOne({_id: id});
-    row.deleted = true;
-    await row.save();
+    assert.isOk(row.archivedAt);
+    assert.isFalse(row.deleted);
+    const list = await userAgent.get("/notifications").expect(200);
+    assert.equal(list.body.data.length, 1);
+    assert.equal(list.body.data[0]?._id, id);
+  });
 
-    const otherUserId = String((await UserModel.findOne({email: "admin@example.com"}))?._id);
-    const otherId = await getNotificationService().notify({
-      body: "Other archived",
-      title: "Other archived",
-      userId: otherUserId,
+  it("rejects invalid archivedAt values", async () => {
+    const id = await getNotificationService().notify({
+      body: "Body",
+      title: "Invalid archivedAt",
+      userId,
     });
-    const otherRow = await Notification.findExactlyOne({_id: otherId});
-    otherRow.deleted = true;
-    await otherRow.save();
-
-    const response = await userAgent.get("/notifications/archived").expect(200);
-    assert.equal(response.body.data.length, 1);
-    assert.equal(response.body.data[0]?._id, id);
-    assert.equal(response.body.data[0]?.title, "Archived example");
-    assert.equal(response.body.data[0]?.body, "Archived body");
-    assert.isTrue(response.body.data[0]?.deleted);
+    await userAgent.patch(`/notifications/${id}`).send({archivedAt: "not-a-date"}).expect(400);
   });
 
   it("notificationsBeforeSend cancels mail when mail pref is false", async () => {

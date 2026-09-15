@@ -19,6 +19,7 @@ import type {TerrenoPlugin} from "../terrenoPlugin";
 import type {NotificationDocument} from "../types/notification";
 import type {NotificationPreferenceDocument} from "../types/notificationPreference";
 import {
+  assertValidNotificationArchivedAt,
   assertValidNotificationReadAt,
   configureNotificationService,
   type NotificationServiceOptions,
@@ -33,7 +34,7 @@ export interface NotificationsAppOptions extends NotificationServiceOptions {
 
 const PREFERENCE_CHANNELS = ["inapp", "mail", "push", "sms"] as const;
 
-const parseReadAt = (value: unknown): Date | null => {
+const parseNotificationDate = (value: unknown, fieldName: "archivedAt" | "readAt"): Date | null => {
   if (value === null || value === undefined) {
     return null;
   }
@@ -43,11 +44,28 @@ const parseReadAt = (value: unknown): Date | null => {
   if (typeof value === "string") {
     const parsed = DateTime.fromISO(value);
     if (!parsed.isValid) {
-      throw new APIError({status: 400, title: "readAt must be a date or null"});
+      throw new APIError({status: 400, title: `${fieldName} must be a date or null`});
     }
     return parsed.toJSDate();
   }
-  throw new APIError({status: 400, title: "readAt must be a date or null"});
+  throw new APIError({status: 400, title: `${fieldName} must be a date or null`});
+};
+
+const sanitizeNotificationUpdate = (body: unknown): NotificationDocument => {
+  const payload = body as Partial<Pick<NotificationDocument, "archivedAt" | "readAt">> & {
+    archivedAt?: unknown;
+    readAt?: unknown;
+  };
+  const update: Partial<NotificationDocument> = {};
+  if (payload.readAt !== undefined) {
+    assertValidNotificationReadAt(payload.readAt);
+    update.readAt = parseNotificationDate(payload.readAt, "readAt");
+  }
+  if (payload.archivedAt !== undefined) {
+    assertValidNotificationArchivedAt(payload.archivedAt);
+    update.archivedAt = parseNotificationDate(payload.archivedAt, "archivedAt");
+  }
+  return update as NotificationDocument;
 };
 
 const sanitizePreferenceUpdate = (body: unknown): NotificationPreferenceDocument => {
@@ -91,47 +109,6 @@ export class NotificationsApp implements TerrenoPlugin {
     const notificationsRouter = modelRouter<NotificationDocument>("/notifications", Notification, {
       ...sharedRouterOptions,
       endpoints: (router) => {
-        router.get(
-          "/archived",
-          [
-            authenticateMiddleware(),
-            createOpenApiBuilder(sharedRouterOptions as Partial<ModelRouterOptions<unknown>>)
-              .withTags(["notifications"])
-              .withSummary("List archived notifications for the authenticated owner")
-              .withResponse(200, {
-                data: {
-                  items: {
-                    properties: {
-                      _id: {type: "string"},
-                      body: {type: "string"},
-                      created: {format: "date-time", type: "string"},
-                      deleted: {type: "boolean"},
-                      href: {type: "string"},
-                      kind: {type: "string"},
-                      ownerId: {type: "string"},
-                      readAt: {format: "date-time", type: "string"},
-                      title: {type: "string"},
-                      updated: {format: "date-time", type: "string"},
-                    },
-                    type: "object",
-                  },
-                  type: "array",
-                },
-              })
-              .build(),
-          ],
-          asyncHandler(async (req, res) => {
-            const user = req.user as User | undefined;
-            if (!user?.id) {
-              throw new APIError({status: 401, title: "Authentication required"});
-            }
-
-            const rows = await Notification.find({deleted: true, ownerId: user.id}).sort({
-              created: -1,
-            });
-            return res.json({data: rows.map((row) => row.toJSON())});
-          })
-        );
         router.post(
           "/mark-all-read",
           [
@@ -177,15 +154,8 @@ export class NotificationsApp implements TerrenoPlugin {
         read: [Permissions.IsOwner],
         update: [Permissions.IsOwner],
       },
-      preUpdate: (body) => {
-        const readAt = (body as {readAt?: unknown}).readAt;
-        if (readAt === undefined) {
-          return {} as NotificationDocument;
-        }
-        assertValidNotificationReadAt(readAt);
-        return {readAt: parseReadAt(readAt)} as NotificationDocument;
-      },
-      queryFields: ["_id", "ownerId", "readAt", "kind"],
+      preUpdate: sanitizeNotificationUpdate,
+      queryFields: ["_id", "ownerId", "readAt", "archivedAt", "kind"],
       queryFilter: OwnerQueryFilter,
       sort: "-created",
       sync: {scope: {type: "owner"}},

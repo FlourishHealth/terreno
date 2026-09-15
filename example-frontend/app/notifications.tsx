@@ -12,50 +12,34 @@ import {type Href, useRouter} from "expo-router";
 import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo} from "react";
-import {sortNotificationsByCreatedDesc, toInboxItem} from "@/components/NotificationCenter";
+import {
+  isNotificationArchived,
+  sortNotificationsByCreatedDesc,
+  toInboxItem,
+} from "@/components/NotificationCenter";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
-import {useGetNotificationsArchivedQuery} from "@/store/sdk";
-import {type Notification, useDeleteNotification} from "@/store/syncDbSdk";
+import type {Notification} from "@/store/syncDbSdk";
 import {syncDb} from "@/store/syncdb";
 
 const AllNotificationsScreen: React.FC = () => {
   const router = useRouter();
   const isSyncDbReady = useSyncDbReady();
-  const [deleteNotification] = useDeleteNotification();
   const notifications = useQuery<Notification>("notifications", {
     filter: (notification) => !notification.deleted,
     sort: sortNotificationsByCreatedDesc,
   });
-  const {
-    data: archivedResponse,
-    isFetching: isArchivedLoading,
-    refetch: refetchArchived,
-  } = useGetNotificationsArchivedQuery();
 
   const activeItems = useMemo(
-    (): NotificationInboxItem[] => notifications.map(toInboxItem),
+    (): NotificationInboxItem[] =>
+      notifications
+        .filter((notification) => !isNotificationArchived(notification))
+        .map(toInboxItem),
     [notifications]
   );
-  const archivedItems = useMemo((): NotificationInboxItem[] => {
-    // @terreno/rtk unwraps non-list `{data}` envelopes at runtime, while OpenAPI
-    // describes the HTTP envelope. Support both so generated types and runtime agree.
-    const rows = Array.isArray(archivedResponse)
-      ? archivedResponse
-      : (archivedResponse?.data ?? []);
-    return [...rows]
-      .sort((left, right) =>
-        sortNotificationsByCreatedDesc(left as Notification, right as Notification)
-      )
-      .map((row) =>
-        toInboxItem({
-          ...row,
-          _id: row._id ?? "",
-          body: row.body ?? "",
-          deleted: true,
-          title: row.title ?? "",
-        } as Notification)
-      );
-  }, [archivedResponse]);
+  const archivedItems = useMemo(
+    (): NotificationInboxItem[] => notifications.filter(isNotificationArchived).map(toInboxItem),
+    [notifications]
+  );
 
   const handleBack = useCallback((): void => {
     router.back();
@@ -96,17 +80,14 @@ const AllNotificationsScreen: React.FC = () => {
       if (!isSyncDbReady) {
         return;
       }
-      deleteNotification({id: item.id});
-      void syncDb
-        .reconcile()
-        .then(async (): Promise<void> => {
-          await refetchArchived();
-        })
-        .catch((error: unknown): void => {
-          console.error("Failed to refresh archived notifications", error);
-        });
+      syncDb.mutate({
+        collection: "notifications",
+        data: {archivedAt: DateTime.now().toISO()},
+        id: item.id,
+        operation: "update",
+      });
     },
-    [deleteNotification, isSyncDbReady, refetchArchived]
+    [isSyncDbReady]
   );
 
   const handleOpen = useCallback(
@@ -146,9 +127,8 @@ const AllNotificationsScreen: React.FC = () => {
         </Box>
         <Box gap={3}>
           <Heading size="lg">Archived</Heading>
-          {isArchivedLoading || archivedItems.length > 0 ? (
+          {archivedItems.length > 0 ? (
             <NotificationInbox
-              isLoading={isArchivedLoading}
               items={archivedItems}
               onDismiss={handleDismiss}
               onMarkRead={handleMarkRead}

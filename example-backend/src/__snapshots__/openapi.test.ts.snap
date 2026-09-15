@@ -12877,6 +12877,44 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "archivedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "kind",
             "schema": {
               "oneOf": [
@@ -12940,6 +12978,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "_syncSeq": {
                             "description": "Monotonic per-stream sequence stamped on every synced write",
                             "type": "number",
+                          },
+                          "archivedAt": {
+                            "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                            "format": "date-time",
+                            "type": "string",
                           },
                           "body": {
                             "description": "Main notification message text shown in the inbox",
@@ -13329,6 +13372,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Monotonic per-stream sequence stamped on every synced write",
                       "type": "number",
                     },
+                    "archivedAt": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
+                    },
                     "body": {
                       "description": "Main notification message text shown in the inbox",
                       "type": "string",
@@ -13460,6 +13508,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Monotonic per-stream sequence stamped on every synced write",
                     "type": "number",
                   },
+                  "archivedAt": {
+                    "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                    "format": "date-time",
+                    "type": "string",
+                  },
                   "body": {
                     "description": "Main notification message text shown in the inbox",
                     "type": "string",
@@ -13524,6 +13577,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_syncSeq": {
                       "description": "Monotonic per-stream sequence stamped on every synced write",
                       "type": "number",
+                    },
+                    "archivedAt": {
+                      "description": "When the owner archived (dismissed) this notification; null means it is still in the active inbox",
+                      "format": "date-time",
+                      "type": "string",
                     },
                     "body": {
                       "description": "Main notification message text shown in the inbox",

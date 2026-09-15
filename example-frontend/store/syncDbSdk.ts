@@ -49,6 +49,7 @@ export interface UpdateTodoBody {
 
 export interface Notification {
   _id: string;
+  archivedAt?: string | null;
   body: string;
   href?: string;
   kind?: string;
@@ -66,6 +67,7 @@ export type CreateNotificationBody = {};
 
 export interface UpdateNotificationBody {
   _id?: string;
+  archivedAt?: string | null;
   body?: string;
   href?: string;
   kind?: string;

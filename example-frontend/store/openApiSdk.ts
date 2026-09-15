@@ -471,13 +471,6 @@ const injectedRtkApi = api
           url: `/notifications/`,
         }),
       }),
-      getNotificationsArchived: build.query<
-        GetNotificationsArchivedRes,
-        GetNotificationsArchivedArgs
-      >({
-        providesTags: ["notifications"],
-        query: () => ({url: `/notifications/archived`}),
-      }),
       getNotificationsById: build.query<GetNotificationsByIdRes, GetNotificationsByIdArgs>({
         providesTags: ["notifications"],
         query: (queryArg) => ({url: `/notifications/${queryArg}`}),
@@ -4019,21 +4012,6 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
-export type GetNotificationsArchivedRes = /** status 200 Success */ {
-  data?: {
-    _id?: string;
-    body?: string;
-    created?: string;
-    deleted?: boolean;
-    href?: string;
-    kind?: string;
-    ownerId?: string;
-    readAt?: string;
-    title?: string;
-    updated?: string;
-  }[];
-};
-export type GetNotificationsArchivedArgs = undefined;
 export type PostNotificationsMarkAllReadRes = /** status 200 Success */ {
   data?: {
     modified?: number;
@@ -4504,7 +4482,6 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
-  useGetNotificationsArchivedQuery,
   usePostNotificationsMarkAllReadMutation,
   useGetNotificationsQuery,
   useGetNotificationsByIdQuery,

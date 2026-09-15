@@ -13,7 +13,7 @@ import {DateTime} from "luxon";
 import React, {useCallback, useContext, useMemo, useState} from "react";
 import {useSyncDbReady} from "@/hooks/useSyncDbReady";
 import {usePostNotificationsDevNotifyMutation} from "@/store/sdk";
-import {type Notification, useDeleteNotification} from "@/store/syncDbSdk";
+import type {Notification} from "@/store/syncDbSdk";
 import {syncDb} from "@/store/syncdb";
 
 interface NotificationCenterContextValue {
@@ -23,6 +23,13 @@ interface NotificationCenterContextValue {
 
 const NotificationCenterContext = React.createContext<NotificationCenterContextValue | null>(null);
 
+export const isNotificationArchived = (
+  notification: Pick<Notification, "archivedAt" | "deleted">
+): boolean => Boolean(notification.archivedAt) || notification.deleted === true;
+
+export const isActiveNotification = (notification: Notification): boolean =>
+  !isNotificationArchived(notification);
+
 export const sortNotificationsByCreatedDesc = (left: Notification, right: Notification): number => {
   const leftMillis = left.created ? DateTime.fromISO(left.created).toMillis() : 0;
   const rightMillis = right.created ? DateTime.fromISO(right.created).toMillis() : 0;
@@ -30,7 +37,7 @@ export const sortNotificationsByCreatedDesc = (left: Notification, right: Notifi
 };
 
 export const toInboxItem = (notification: Notification): NotificationInboxItem => ({
-  archived: notification.deleted === true,
+  archived: isNotificationArchived(notification),
   body: notification.body,
   created: notification.created,
   href: notification.href,
@@ -57,12 +64,11 @@ export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}
   const router = useRouter();
   const isSyncDbReady = useSyncDbReady();
   const [inboxVisible, setInboxVisible] = useState<boolean>(false);
-  const [deleteNotification] = useDeleteNotification();
   const [sendTestNotification, {isLoading: isSendingTest}] =
     usePostNotificationsDevNotifyMutation();
 
   const notifications = useQuery<Notification>("notifications", {
-    filter: (row) => !row.deleted,
+    filter: isActiveNotification,
     sort: sortNotificationsByCreatedDesc,
   });
 
@@ -119,9 +125,14 @@ export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}
       if (!isSyncDbReady) {
         return;
       }
-      deleteNotification({id: item.id});
+      syncDb.mutate({
+        collection: "notifications",
+        data: {archivedAt: DateTime.now().toISO()},
+        id: item.id,
+        operation: "update",
+      });
     },
-    [deleteNotification, isSyncDbReady]
+    [isSyncDbReady]
   );
 
   const handleOpen = useCallback(
@@ -138,10 +149,17 @@ export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}
     [router]
   );
 
-  const handleViewAll = useCallback((): void => {
+  const handleViewAll = useCallback(async (): Promise<void> => {
     setInboxVisible(false);
+    if (isSyncDbReady) {
+      try {
+        await syncDb.reconcile();
+      } catch (error: unknown) {
+        console.warn("Notification history reconcile failed", error);
+      }
+    }
     router.push("/notifications");
-  }, [router]);
+  }, [isSyncDbReady, router]);
 
   const handleSendTest = useCallback(async (): Promise<void> => {
     try {

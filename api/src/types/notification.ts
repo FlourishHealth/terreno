@@ -13,6 +13,7 @@ export interface NotificationModel
 
 export interface NotificationDocument extends mongoose.Document<string>, NotificationMethods {
   _id: string;
+  archivedAt: Date | null;
   body: string;
   href?: string;
   kind?: string;
