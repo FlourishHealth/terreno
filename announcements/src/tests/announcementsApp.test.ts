@@ -10,10 +10,12 @@ import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testin
 import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
+import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {AnnouncementsApp} from "../announcementsApp";
 import {Announcement} from "../models/announcement";
 import {AnnouncementAcknowledgement} from "../models/announcementAcknowledgement";
+import {AnnouncementClickEvent} from "../models/announcementClickEvent";
 import {AnnouncementImpression} from "../models/announcementImpression";
 
 const buildApp = (options?: {
@@ -44,6 +46,7 @@ describe("AnnouncementsApp", () => {
     await Announcement.deleteMany({});
     await AnnouncementAcknowledgement.deleteMany({});
     await AnnouncementImpression.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
     app = buildApp();
     adminAgent = await authAsUser(app, "admin");
     userAgent = await authAsUser(app, "notAdmin");
@@ -53,11 +56,12 @@ describe("AnnouncementsApp", () => {
     await Announcement.deleteMany({});
     await AnnouncementAcknowledgement.deleteMany({});
     await AnnouncementImpression.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
   });
 
   it("contributes announcement admin models", () => {
     const contribution = new AnnouncementsApp().adminContribution();
-    expect(contribution.models?.length).toBe(3);
+    expect(contribution.models?.length).toBe(4);
     expect(contribution.models?.[0]?.routePath).toBe("/announcements");
   });
 
@@ -411,5 +415,309 @@ describe("AnnouncementsApp", () => {
       .get("/announcements/pending?platform=web")
       .expect(200);
     assert.strictEqual(patientPending.body.data.current?.title, "Patient modal");
+  });
+
+  it("POST click records primaryAction with version and optional platform", async () => {
+    const announcement = await Announcement.create({
+      body: "Body",
+      platforms: ["web"],
+      primaryAction: {label: "Learn more", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Clickable",
+      version: 3,
+    });
+
+    const announcementId = announcement._id.toString();
+    await userAgent
+      .post(`/announcements/${announcementId}/click`)
+      .send({action: "primaryAction", platform: "web"})
+      .expect(200);
+
+    const clicks = await AnnouncementClickEvent.find({announcementId: announcement._id});
+    assert.lengthOf(clicks, 1);
+    assert.strictEqual(clicks[0]?.action, "primaryAction");
+    assert.strictEqual(clicks[0]?.version, 3);
+    assert.strictEqual(clicks[0]?.platform, "web");
+    assert.isOk(clicks[0]?.clickedAt);
+  });
+
+  it("POST click inserts a new row on each repeat click", async () => {
+    const announcement = await Announcement.create({
+      body: "Body",
+      primaryAction: {label: "Go", url: "https://example.com/go"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Repeat clicks",
+      version: 1,
+    });
+
+    const announcementId = announcement._id.toString();
+    await userAgent
+      .post(`/announcements/${announcementId}/click`)
+      .send({action: "primaryAction"})
+      .expect(200);
+    await userAgent
+      .post(`/announcements/${announcementId}/click`)
+      .send({action: "primaryAction"})
+      .expect(200);
+
+    const clicks = await AnnouncementClickEvent.find({announcementId: announcement._id});
+    assert.lengthOf(clicks, 2);
+  });
+
+  it("POST click returns 400 when primaryAction is missing or action is unknown", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
+
+    const withoutPrimary = await Announcement.create({
+      body: "Body",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "No CTA",
+      version: 1,
+    });
+
+    await userAgent
+      .post(`/announcements/${withoutPrimary._id.toString()}/click`)
+      .send({action: "primaryAction"})
+      .expect(400);
+
+    const withPrimary = await Announcement.create({
+      body: "Body",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Has CTA",
+      version: 1,
+    });
+
+    await userAgent
+      .post(`/announcements/${withPrimary._id.toString()}/click`)
+      .send({action: "secondaryAction"})
+      .expect(400);
+  });
+
+  it("POST click returns 404 for non-visible announcements before validating action or CTA", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
+
+    const visibilityApp = buildApp({
+      isStaff: (user) => (user as {admin?: boolean}).admin === true,
+    });
+    const patientAgent = await authAsUser(visibilityApp, "notAdmin");
+
+    const staffOnly = await Announcement.create({
+      audienceType: "staff",
+      body: "Staff",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff only",
+      version: 1,
+    });
+
+    const invalidActionRes = await patientAgent
+      .post(`/announcements/${staffOnly._id.toString()}/click?platform=web`)
+      .send({action: "secondaryAction"});
+    assert.strictEqual(invalidActionRes.status, 404);
+
+    const staffOnlyNoCta = await Announcement.create({
+      audienceType: "staff",
+      body: "Staff no CTA",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff no CTA",
+      version: 1,
+    });
+
+    const missingCtaRes = await patientAgent
+      .post(`/announcements/${staffOnlyNoCta._id.toString()}/click?platform=web`)
+      .send({action: "primaryAction"});
+    assert.strictEqual(missingCtaRes.status, 404);
+  });
+
+  it("POST click returns 400 when platform is supplied but invalid", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
+
+    const announcement = await Announcement.create({
+      body: "Body",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Visible",
+      version: 1,
+    });
+
+    await userAgent
+      .post(`/announcements/${announcement._id.toString()}/click`)
+      .send({action: "primaryAction", platform: "desktop"})
+      .expect(400);
+
+    const clicks = await AnnouncementClickEvent.find({announcementId: announcement._id});
+    assert.lengthOf(clicks, 0);
+  });
+
+  it("POST click requires authentication", async () => {
+    const announcement = await Announcement.create({
+      body: "Body",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Auth required",
+      version: 1,
+    });
+
+    await supertest(app)
+      .post(`/announcements/${announcement._id.toString()}/click`)
+      .send({action: "primaryAction"})
+      .expect(401);
+  });
+
+  it("POST click returns 404 when announcement is not visible to the user", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
+
+    const visibilityApp = buildApp({
+      isStaff: (user) => (user as {admin?: boolean}).admin === true,
+      matchAudience: (_user, announcement) => {
+        const audience = announcement as {audience?: {include?: boolean}};
+        return audience.audience?.include !== false;
+      },
+    });
+    const staffAgent = await authAsUser(visibilityApp, "admin");
+    const patientAgent = await authAsUser(visibilityApp, "notAdmin");
+
+    const draft = await Announcement.create({
+      body: "Draft",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      status: "draft",
+      title: "Draft",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${draft._id.toString()}/click`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const expired = await Announcement.create({
+      body: "Expired",
+      expiresAt: DateTime.utc().minus({days: 1}).toJSDate(),
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().minus({days: 2}).toJSDate(),
+      status: "published",
+      title: "Expired",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${expired._id.toString()}/click`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const scheduled = await Announcement.create({
+      body: "Future",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishAt: DateTime.utc().plus({days: 1}).toJSDate(),
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Scheduled",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${scheduled._id.toString()}/click`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const iosOnly = await Announcement.create({
+      body: "iOS",
+      platforms: ["ios"],
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "iOS only",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${iosOnly._id.toString()}/click?platform=web`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const gated = await Announcement.create({
+      body: "Gated",
+      minBuildNumber: 10,
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Min build",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${gated._id.toString()}/click?platform=web&version=9`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const staffOnly = await Announcement.create({
+      audience: {include: true},
+      audienceType: "staff",
+      body: "Staff",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff only",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${staffOnly._id.toString()}/click?platform=web`)
+      .send({action: "primaryAction"})
+      .expect(404);
+
+    const excluded = await Announcement.create({
+      audience: {include: false},
+      audienceType: "all",
+      body: "Hidden",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Custom excluded",
+      version: 1,
+    });
+    await staffAgent
+      .post(`/announcements/${excluded._id.toString()}/click?platform=web`)
+      .send({action: "primaryAction"})
+      .expect(404);
+  });
+
+  it("admin can list announcement click events and non-admins cannot", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementClickEvent.deleteMany({});
+
+    const announcement = await Announcement.create({
+      body: "Body",
+      primaryAction: {label: "Go", url: "https://example.com"},
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Tracked click",
+      version: 2,
+    });
+
+    await userAgent
+      .post(`/announcements/${announcement._id.toString()}/click`)
+      .send({action: "primaryAction", platform: "web"})
+      .expect(200);
+
+    const listRes = await adminAgent.get("/announcement-click-events").expect(200);
+    assert.isAtLeast(listRes.body.data.length, 1);
+    const listed = listRes.body.data.find((row: {announcementId: string | {_id: string}}) => {
+      const announcementRef = row.announcementId;
+      const id =
+        typeof announcementRef === "string" ? announcementRef : announcementRef?._id?.toString();
+      return id === announcement._id.toString();
+    });
+    assert.isOk(listed);
+    assert.strictEqual(listed.action, "primaryAction");
+    assert.strictEqual(listed.version, 2);
+
+    await userAgent.get("/announcement-click-events").expect(405);
   });
 });

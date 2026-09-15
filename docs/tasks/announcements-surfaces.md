@@ -24,7 +24,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: 1.1
   - Acceptance: Pending omits `displayMode: "feed"`. Feed includes feed-only. `minBuildNumber: 10` hidden when `?version=9`, visible when `?version=10` or when `version` omitted. `matchAudienceByType` matrix: all/staff/patient. Schema field `description`s present. Missing new fields on old docs default modal + all.
 
-- [ ] **Task 1.3**: CTA click events
+- [x] **Task 1.3**: CTA click events
   - Delivers: `AnnouncementClickEvent` model, `POST /announcements/:id/click`, admin list/read
   - Files: `announcements/src/models/announcementClickEvent.ts`, `announcements/src/types.ts`, `announcements/src/announcementsApp.ts`, `announcements/src/tests/announcementsApp.test.ts`
   - Docs: `docs/reference/announcements.md` (click route + model)

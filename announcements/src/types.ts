@@ -61,6 +61,22 @@ export interface AnnouncementImpressionDocument {
 
 export type AnnouncementImpressionModel = Model<AnnouncementImpressionDocument>;
 
+export type AnnouncementClickAction = "primaryAction";
+
+export interface AnnouncementClickEventDocument {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  announcementId: Types.ObjectId;
+  version: number;
+  action: AnnouncementClickAction;
+  clickedAt: Date;
+  platform?: AnnouncementPlatform;
+  created: Date;
+  updated: Date;
+}
+
+export type AnnouncementClickEventModel = Model<AnnouncementClickEventDocument>;
+
 export interface AnnouncementPublic {
   id: string;
   title: string;

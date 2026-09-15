@@ -53,6 +53,7 @@ Legacy MongoDB documents that still store `requiresAcknowledgement: true` map to
 - **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `displayMode` (`modal` | `banner` | `feed`, default `modal`), `audienceType` (`staff` | `patient` | `all`, default `all`), `acknowledgementPolicy`, optional `minBuildNumber`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
 - **AnnouncementAcknowledgement** — per-user acknowledgement at a specific `version`
 - **AnnouncementImpression** — per-view analytics row
+- **AnnouncementClickEvent** — per-click analytics row (`action: "primaryAction"`, `version` at click time, optional `platform`)
 
 Legacy MongoDB documents without `displayMode` or `audienceType` behave as `modal` and `all` at read time.
 
@@ -81,6 +82,7 @@ The plugin applies `matchAudienceByType` before `matchAudience`. When `isStaff` 
 | GET | `/announcements/feed` | Paginated published changelog — all display modes (`platform` and optional `version` as above) |
 | POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version) |
 | POST | `/announcements/:id/impression` | Record a view |
+| POST | `/announcements/:id/click` | Record a primary-action click (`{ action: "primaryAction", platform? }`; optional `?version=` for min-build visibility). Returns **404** when not visible (checked before action/CTA validation). **400** when `action` is invalid, `primaryAction` is absent, or an explicit `platform` value is invalid. |
 
 `current` and feed items include resolved `requiresAcknowledgement` (boolean) and `displayMode` derived from policy resolution and stored fields above.
 
@@ -92,6 +94,8 @@ Optional integer build number on `GET /pending`, `GET /feed`, and help routes. W
 - `?version=10` (or higher) shows it
 - omitting `version` does **not** hide gated items
 
+`POST /announcements/:id/click` uses the same visibility rules as pending/feed (schedule, expiry, platform, min build, `audienceType`, and `matchAudience`). Returns **404** when the announcement is not visible to the caller (checked before action/CTA validation, to avoid leaking targeted rows). Returns **400** when `action` is not `"primaryAction"`, the announcement has no `primaryAction`, or an explicit body `platform` is not `ios` / `android` / `web` (omit `platform` to use query/user-agent resolution). Each click inserts a new row (not idempotent).
+
 ## Admin routes
 
 Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
@@ -99,7 +103,7 @@ Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
 - `POST /announcements/:id/publish` — draft → published
 - `POST /announcements/:id/archive` — published → archived
 
-Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressions`.
+Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressions`, `/announcement-click-events`.
 
 ## Help API (optional)
 

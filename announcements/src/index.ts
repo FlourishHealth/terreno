@@ -9,10 +9,12 @@ export {
 } from "./help";
 export {Announcement, toAnnouncementPublic} from "./models/announcement";
 export {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement";
+export {AnnouncementClickEvent} from "./models/announcementClickEvent";
 export {AnnouncementImpression} from "./models/announcementImpression";
 export {
   isAnnouncementPendingForUser,
   isAnnouncementVisibleNow,
+  isAnnouncementVisibleToUser,
   isInterruptDisplayMode,
   matchAudienceByType,
   parseQueryVersion,
@@ -27,6 +29,7 @@ export {
 export type {
   AcknowledgementPolicy,
   AnnouncementAudienceType,
+  AnnouncementClickAction,
   AnnouncementDisplayMode,
   AnnouncementDocument,
   AnnouncementPlatform,

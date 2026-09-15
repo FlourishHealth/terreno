@@ -252,3 +252,35 @@ export const selectPendingAnnouncements = ({
 
   return sortAnnouncementsForQueue(visible);
 };
+
+export const isAnnouncementVisibleToUser = async ({
+  announcement,
+  isStaff,
+  matchAudience,
+  now,
+  platform,
+  queryVersion,
+  user,
+}: {
+  announcement: AnnouncementDocument;
+  isStaff: (user: unknown) => boolean;
+  matchAudience: (user: unknown, announcement: AnnouncementDocument) => boolean | Promise<boolean>;
+  now?: DateTime;
+  platform: AnnouncementPlatform;
+  queryVersion?: number;
+  user: unknown;
+}): Promise<boolean> => {
+  if (!isAnnouncementVisibleNow({announcement, now})) {
+    return false;
+  }
+  if (!matchesPlatform({announcement, platform})) {
+    return false;
+  }
+  if (!passesMinBuildNumber({announcement, queryVersion})) {
+    return false;
+  }
+  if (!matchAudienceByType({announcement, isStaff, user})) {
+    return false;
+  }
+  return matchAudience(user, announcement);
+};

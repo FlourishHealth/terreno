@@ -17,9 +17,11 @@ import type {Model} from "mongoose";
 import {registerAnnouncementHelpRoutes} from "./helpRoutes";
 import {Announcement, toAnnouncementPublic} from "./models/announcement";
 import {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement";
+import {AnnouncementClickEvent, isValidClickAction} from "./models/announcementClickEvent";
 import {AnnouncementImpression, isValidPlatform} from "./models/announcementImpression";
 import {
   isAnnouncementVisibleNow,
+  isAnnouncementVisibleToUser,
   matchAudienceByType,
   matchesPlatform,
   parseQueryVersion,
@@ -65,6 +67,22 @@ const getUserId = (user: {_id?: unknown; id?: string}): string => {
     throw new APIError({status: 401, title: "Authentication required"});
   }
   return String(userId);
+};
+
+const hasPrimaryAction = (announcement: AnnouncementDocument): boolean => {
+  const label = announcement.primaryAction?.label?.trim();
+  const url = announcement.primaryAction?.url?.trim();
+  return Boolean(label && url);
+};
+
+const resolveClickPlatform = (req: Request, bodyPlatform: unknown): AnnouncementPlatform => {
+  if (bodyPlatform !== undefined && bodyPlatform !== null) {
+    if (!isValidPlatform(bodyPlatform)) {
+      throw new APIError({status: 400, title: "Invalid platform"});
+    }
+    return bodyPlatform;
+  }
+  return parsePlatform(req);
 };
 
 export class AnnouncementsApp implements TerrenoPlugin {
@@ -115,6 +133,15 @@ export class AnnouncementsApp implements TerrenoPlugin {
           },
           model: AnnouncementImpression as Model<unknown>,
           routePath: "/announcement-impressions",
+        },
+        {
+          admin: {
+            defaultSort: "-clickedAt",
+            displayName: "Announcement Click Events",
+            listFields: ["userId", "announcementId", "version", "action", "clickedAt", "platform"],
+          },
+          model: AnnouncementClickEvent as Model<unknown>,
+          routePath: "/announcement-click-events",
         },
       ],
     };
@@ -335,6 +362,58 @@ export class AnnouncementsApp implements TerrenoPlugin {
       })
     );
 
+    userRouter.post(
+      "/:id/click",
+      authenticateMiddleware(),
+      asyncHandler(async (req: Request, res: Response) => {
+        const user = req.user;
+        if (!user) {
+          throw new APIError({status: 401, title: "Authentication required"});
+        }
+
+        const userId = getUserId(user as {_id?: unknown; id?: string});
+        const announcement = await Announcement.findById(req.params.id);
+        if (!announcement) {
+          throw new APIError({status: 404, title: "Announcement not found"});
+        }
+
+        const body = req.body as {action?: unknown; platform?: unknown};
+        const platform = resolveClickPlatform(req, body.platform);
+        const queryVersion = parseQueryVersion(req.query.version);
+
+        const visible = await isAnnouncementVisibleToUser({
+          announcement,
+          isStaff,
+          matchAudience,
+          platform,
+          queryVersion,
+          user,
+        });
+        if (!visible) {
+          throw new APIError({status: 404, title: "Announcement not found"});
+        }
+
+        if (!isValidClickAction(body.action)) {
+          throw new APIError({status: 400, title: "Invalid click action"});
+        }
+
+        if (!hasPrimaryAction(announcement)) {
+          throw new APIError({status: 400, title: "Announcement has no primary action"});
+        }
+
+        await AnnouncementClickEvent.create({
+          action: body.action,
+          announcementId: announcement._id,
+          clickedAt: DateTime.utc().toJSDate(),
+          platform,
+          userId,
+          version: announcement.version,
+        });
+
+        return res.json({data: {recorded: true}});
+      })
+    );
+
     const adminRouter = Router();
 
     adminRouter.post(
@@ -420,6 +499,23 @@ export class AnnouncementsApp implements TerrenoPlugin {
     app.use(
       "/announcement-impressions",
       modelRouter(AnnouncementImpression as Model<unknown>, {
+        permissions: {
+          create: [],
+          delete: [],
+          list: [Permissions.IsAdmin],
+          read: [Permissions.IsAdmin],
+          update: [],
+        },
+        populatePaths: [
+          {fields: ["title", "version", "status"], path: "announcementId"},
+          {fields: ["email", "name"], path: "userId"},
+        ],
+      })
+    );
+
+    app.use(
+      "/announcement-click-events",
+      modelRouter(AnnouncementClickEvent as Model<unknown>, {
         permissions: {
           create: [],
           delete: [],
