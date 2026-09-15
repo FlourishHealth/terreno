@@ -71,6 +71,11 @@ describe("seedAnnouncements", () => {
     assert.equal(staffModal.audienceType, "staff");
     assert.equal(staffModal.displayMode, "modal");
     assert.equal(staffModal.acknowledgementPolicy, "required");
+    assert.include(staffModal.body, "## Announcements are ready");
+    assert.include(staffModal.body, "https://www.youtube.com/watch");
+    assert.include(staffModal.body, "/img/announcements/admin-overview.png");
+    assert.include(staffModal.body, "/img/announcements/admin-editor-platforms.png");
+    assert.equal(staffModal.primaryAction?.label, "Read the announcement docs");
     assert.equal(patientBanner.audienceType, "patient");
     assert.equal(patientBanner.displayMode, "banner");
     assert.equal(patientBanner.acknowledgementPolicy, "dismiss-only");

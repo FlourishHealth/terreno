@@ -94,8 +94,8 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Acceptance: Admin can open overview, see totals cards and paginated rows with metrics; frontend verification artifacts captured
 
 - [x] **Task 4.3**: Nav and media wiring
-  - Delivers: Admin nav link to overview; example-frontend admin route; optional media/thumbnail column when announcements store media refs
-  - Files: `announcements/src/announcementsApp.ts` (`adminContribution`), `example-frontend/app/admin/announcements/`, admin shell nav config
+  - Delivers: Grouped Announcements nav with overview + audit models; example-frontend admin route; launch seed with markdown, YouTube, screenshots, and tracked CTA
+  - Files: `announcements/src/announcementsApp.ts` (`adminContribution`), `admin-frontend/src/AdminShell.tsx`, `example-frontend/app/admin/announcements/`, `example-backend/src/scripts/seed-announcements.ts`, `website/static/img/announcements/`
   - Docs: `docs/how-to/product-announcements.md`
   - Blocked by: 4.2
-  - Acceptance: Overview reachable from admin home/nav in example app; list row media renders when present
+  - Acceptance: Overview reachable from the Announcements sidebar group in the example app; related audit pages share that group; seeded staff modal renders markdown with YouTube and screenshot media

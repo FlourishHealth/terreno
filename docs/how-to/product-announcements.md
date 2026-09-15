@@ -48,6 +48,7 @@ For Flourish-style surfaces on one collection:
 | `audienceType` | Select | `all`, `staff`, or `patient` — composed with `matchAudience` |
 | `acknowledgementPolicy` | Select | `required` or `dismiss-only`. On **create**, pre-filled from `GET /announcements/config` (`defaultAcknowledgementPolicy`); defaults to `dismiss-only` when config is unavailable |
 | `minBuildNumber` | Number (optional) | Minimum client build; cleared with `null` on edit when empty |
+| `platforms` | Multiselect | One or more of iOS, Android, and web; at least one is required |
 | `audience` | JSON textarea (advanced) | Opaque metadata for `matchAudience`; use audience type for staff/patient/all |
 
 ### Admin overview
@@ -64,6 +65,10 @@ Register the screen through `AnnouncementsApp.adminContribution()` (`customScree
 `AnnouncementList` remains available for a CRUD-style list; the overview is the launch dashboard.
 
 `AnnouncementEditor` uses `MultiselectField` for platforms and requires at least one platform before save.
+
+![Announcement overview with delivery metrics](/img/announcements/admin-overview.png)
+
+![Platform multiselect in the announcement editor](/img/announcements/admin-editor-platforms.png)
 
 ## Frontend
 
@@ -139,4 +144,4 @@ Paste YouTube or Loom URLs in the announcement `body` using markdown links or im
 - **Staff modal (required)** — `audienceType: "staff"`, `displayMode: "modal"`, `acknowledgementPolicy: "required"` (`Example staff operations bulletin`)
 - **Patient banner (dismiss-only)** — `audienceType: "patient"`, `displayMode: "banner"`, `acknowledgementPolicy: "dismiss-only"` (`Example patient care tip`)
 
-An existing legacy welcome row (`Welcome to Terreno announcements`) is archived idempotently on seed so it no longer blocks the patient banner. `example-frontend` wraps authenticated users with `AnnouncementNavigator` (`skipFirstLaunch: false`, `userId` from the profile); non-staff users therefore see only the patient banner interrupt under the default session cap of `1`.
+The staff launch example is rich markdown with a YouTube embed, overview/editor screenshots, and a tracked docs CTA. Re-running the seed updates that example in place. An existing legacy welcome row (`Welcome to Terreno announcements`) is archived idempotently so it no longer blocks the patient banner. `example-frontend` wraps authenticated users with `AnnouncementNavigator` (`skipFirstLaunch: false`, `userId` from the profile); non-staff users therefore see only the patient banner interrupt under the default session cap of `1`.

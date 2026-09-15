@@ -11,6 +11,32 @@ export const STAFF_MODAL_ANNOUNCEMENT_TITLE = "Example staff operations bulletin
 /** Stable title for the patient-only dismiss-only banner seeded in the example app. */
 export const PATIENT_BANNER_ANNOUNCEMENT_TITLE = "Example patient care tip";
 
+const ANNOUNCEMENTS_DOCS_URL = "https://terreno-docs.netlify.app/docs/reference/announcements";
+const ANNOUNCEMENTS_OVERVIEW_IMAGE_URL =
+  "https://terreno-docs.netlify.app/img/announcements/admin-overview.png";
+const ANNOUNCEMENTS_PLATFORMS_IMAGE_URL =
+  "https://terreno-docs.netlify.app/img/announcements/admin-editor-platforms.png";
+const ANNOUNCEMENTS_VIDEO_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+const STAFF_MODAL_BODY = `## Announcements are ready
+
+Launch updates for staff and patients from one admin workflow.
+
+### Watch the launch
+
+[Product announcement walkthrough](${ANNOUNCEMENTS_VIDEO_URL})
+
+### See performance at a glance
+
+![Announcement overview with impressions and acknowledgements](${ANNOUNCEMENTS_OVERVIEW_IMAGE_URL})
+
+### Target every surface
+
+![Announcement editor platform selection](${ANNOUNCEMENTS_PLATFORMS_IMAGE_URL})
+
+Use **modal**, **banner**, or **feed** delivery with audience targeting, acknowledgement policy, version gating, and CTA analytics.`;
+const PATIENT_BANNER_BODY =
+  "## A calmer way to share updates\n\nPatient announcements can stay non-blocking while the app remains fully usable.";
+
 const archiveLegacyWelcomeAnnouncement = async (): Promise<void> => {
   const existing = await findOneOrNoneFor(Announcement, {
     title: LEGACY_WELCOME_ANNOUNCEMENT_TITLE,
@@ -34,15 +60,22 @@ const seedStaffModalAnnouncement = async (): Promise<void> => {
     title: STAFF_MODAL_ANNOUNCEMENT_TITLE,
   });
   if (existing) {
-    logger.info("Skipping announcement seed — staff modal already exists");
+    existing.acknowledgementPolicy = "required";
+    existing.audienceType = "staff";
+    existing.body = STAFF_MODAL_BODY;
+    existing.displayMode = "modal";
+    existing.primaryAction = {label: "Read the announcement docs", url: ANNOUNCEMENTS_DOCS_URL};
+    await existing.save();
+    logger.info("Updated staff announcement launch example");
     return;
   }
 
   await Announcement.create({
     acknowledgementPolicy: "required",
     audienceType: "staff",
-    body: "## Staff-only modal\n\nThis interrupt requires acknowledgement and is visible only when `audienceType` is **staff** (example: `user.admin === true`).",
+    body: STAFF_MODAL_BODY,
     displayMode: "modal",
+    primaryAction: {label: "Read the announcement docs", url: ANNOUNCEMENTS_DOCS_URL},
     priority: 20,
     publishedAt: DateTime.utc().toJSDate(),
     status: "published",
@@ -58,14 +91,19 @@ const seedPatientBannerAnnouncement = async (): Promise<void> => {
     title: PATIENT_BANNER_ANNOUNCEMENT_TITLE,
   });
   if (existing) {
-    logger.info("Skipping announcement seed — patient banner already exists");
+    existing.acknowledgementPolicy = "dismiss-only";
+    existing.audienceType = "patient";
+    existing.body = PATIENT_BANNER_BODY;
+    existing.displayMode = "banner";
+    await existing.save();
+    logger.info("Updated patient announcement launch example");
     return;
   }
 
   await Announcement.create({
     acknowledgementPolicy: "dismiss-only",
     audienceType: "patient",
-    body: "## Patient banner\n\nThis non-blocking banner is dismiss-only and targets `audienceType: patient`.",
+    body: PATIENT_BANNER_BODY,
     displayMode: "banner",
     priority: 5,
     publishedAt: DateTime.utc().toJSDate(),
