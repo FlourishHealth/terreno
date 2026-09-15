@@ -75,4 +75,14 @@ describe("CircleCI credit gates", () => {
     const backendWhen = block.slice(block.indexOf("run-cd-backend"));
     assert.match(backendWhen, /setup_remote_docker/);
   });
+
+  it("installs workspace deps on preview-cleanup after the GCP skip so mongodb import works", () => {
+    const block = jobCommandBlock(continueConfig, "preview-cleanup");
+    assert.ok(block);
+    const skipAt = block.indexOf("skip_if_gcp_unconfigured");
+    const bunAt = block.indexOf("install_bun_and_deps");
+    assert.notEqual(skipAt, -1);
+    assert.notEqual(bunAt, -1);
+    assert.ok(skipAt < bunAt);
+  });
 });

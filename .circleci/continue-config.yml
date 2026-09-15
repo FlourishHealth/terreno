@@ -1747,6 +1747,7 @@ jobs:
     steps:
       - skip_if_gcp_unconfigured
       - checkout
+      - install_bun_and_deps
       - gcp-cli/install
       - run:
           name: Clean Cloud Run tag and preview database
