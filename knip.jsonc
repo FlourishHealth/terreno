@@ -300,6 +300,7 @@
         "ai!",
         "expo-server-sdk!",
         "express!",
+        "google-auth-library!",
         "ioredis!",
         "luxon!",
         "mongoose!",

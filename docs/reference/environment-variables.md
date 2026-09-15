@@ -262,6 +262,14 @@ example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
 | `OTEL_SERVICE_NAME` | OpenTelemetry (example-backend) | ❌ | `example-backend` | No | server |
 | `PR_NUMBER` | PR preview deploy | ❌ | — | No | server |
 | `PR_SERVICE_URL` | PR preview deploy | ❌ | — | No | server |
+| `JOBS_RUNNER` | example-backend | ❌ | `mongo` | No | server |
+| `JOBS_START_WORKER` | example-backend | ❌ | `true` with Mongo | No | server |
+| `GCP_TASKS_PROJECT` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_LOCATION` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_QUEUE` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_PUBLIC_URL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_OIDC_AUDIENCE` | example-backend Cloud Tasks runner | ❌ | `{publicUrl}/jobs/execute`; deployed Cloud Run uses the canonical tasks-service root URL so tagged PR callbacks pass platform IAM | No | server |
+| `GCP_TASKS_SERVICE_ACCOUNT_EMAIL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
 | `DEFAULT_PAGE_SIZE` | Configuration model | ❌ | `20` | No | server |
 | `CRON_SECRET_KEY` | tests | ❌ | — | Yes | tooling |
 | `WIDGET_CLIENT_SECRET` | widgets | ❌ | — | Yes | server |

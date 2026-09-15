@@ -25,6 +25,7 @@
     "ai": "catalog:",
     "expo-server-sdk": "^6.0.0",
     "express": "catalog:",
+    "google-auth-library": "catalog:",
     "ioredis": "^5.11.0",
     "luxon": "catalog:",
     "mongoose": "catalog:",

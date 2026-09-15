@@ -3,7 +3,7 @@ import {createRequire} from "node:module";
 import {DateTime} from "luxon";
 
 import type {JobDocument} from "../modelTypes";
-import type {JobRunner} from "../types";
+import type {JobRunner, JobRunnerStartOptions} from "../types";
 
 export interface GcpTimestamp {
   nanos?: number;
@@ -138,9 +138,34 @@ const buildScheduleTime = (runAt: Date): GcpTimestamp | undefined => {
   };
 };
 
+const waitForAbortOrTimeout = (signal: AbortSignal, timeoutMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, timeoutMs);
+
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+
+    signal.addEventListener("abort", onAbort, {once: true});
+  });
+
+const DEFAULT_SCHEDULE_POLL_INTERVAL_MS = 1_000;
+
 /**
  * Dispatch-only runner that enqueues Cloud Tasks HTTP POST callbacks to
  * `{publicUrl}{basePath}/execute` with an OIDC token.
+ *
+ * `start()` ticks Mongo schedules so cron rows enqueue Cloud Tasks. It does not
+ * claim job rows — execution happens on POST /jobs/execute.
  */
 export class GcpCloudTasksRunner implements JobRunner {
   readonly id = "gcp-cloud-tasks";
@@ -148,6 +173,9 @@ export class GcpCloudTasksRunner implements JobRunner {
 
   private readonly client: GcpCloudTasksClient;
   private readonly config: ResolvedGcpCloudTasksRunnerConfig;
+  private pollIntervalMs = DEFAULT_SCHEDULE_POLL_INTERVAL_MS;
+  private running = false;
+  private stopResolve: (() => void) | undefined;
 
   constructor(config: GcpCloudTasksRunnerConfig) {
     this.config = resolveConfig(config);
@@ -184,5 +212,35 @@ export class GcpCloudTasksRunner implements JobRunner {
     );
 
     await this.client.createTask({parent, task});
+  }
+
+  async start(options: JobRunnerStartOptions): Promise<void> {
+    this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_SCHEDULE_POLL_INTERVAL_MS;
+    this.running = true;
+
+    try {
+      while (!options.signal.aborted) {
+        await options.jobs.reconcileSchedulesIfDirty();
+        await options.jobs.tickSchedules();
+        if (options.signal.aborted) {
+          break;
+        }
+        await waitForAbortOrTimeout(options.signal, this.pollIntervalMs);
+      }
+    } finally {
+      this.running = false;
+      this.stopResolve?.();
+      this.stopResolve = undefined;
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (!this.running) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      this.stopResolve = resolve;
+    });
   }
 }

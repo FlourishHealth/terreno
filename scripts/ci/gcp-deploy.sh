@@ -20,6 +20,8 @@ export GCP_PROJECT_ID="${GCP_PROJECT_ID:-flourish-terreno}"
 export GCP_BACKEND_REGION="${GCP_BACKEND_REGION:-us-central1}"
 export GCP_BACKEND_SERVICE="${GCP_BACKEND_SERVICE:-terreno-backend-example}"
 export GCP_TASKS_SERVICE="${GCP_TASKS_SERVICE:-terreno-backend-example-tasks}"
+export GCP_TASKS_QUEUE="${GCP_TASKS_QUEUE:-terreno-example-jobs}"
+export GCP_TASKS_INVOKER_SA="${GCP_TASKS_INVOKER_SA:-terreno-jobs-invoker@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 export GCP_MCP_REGION="${GCP_MCP_REGION:-us-east1}"
 export GCP_MCP_SERVICE="${GCP_MCP_SERVICE:-terreno-mcp}"
 export TF_DEPLOYMENT="${TF_DEPLOYMENT:-terreno-prod}"
@@ -33,37 +35,32 @@ configure_registry() {
   gcloud auth configure-docker "${region}-docker.pkg.dev" --quiet
 }
 
-deploy_tasks() {
-  local tag="$1"
-  local image="${GCP_BACKEND_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_TASKS_SERVICE}/${GCP_TASKS_SERVICE}:${CIRCLE_SHA1}"
-  configure_registry "$GCP_BACKEND_REGION"
-  docker build --file example-backend/Dockerfile --tag "$image" .
-  docker push "$image"
+service_url() {
+  local service="$1"
+  gcloud run services describe "$service" \
+    "--project=$GCP_PROJECT_ID" \
+    "--region=$GCP_BACKEND_REGION" \
+    --format='value(status.url)'
+}
 
-  local env_vars="NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE}"
-  local args=(
-    run deploy "$GCP_TASKS_SERVICE"
-    "--project=$GCP_PROJECT_ID"
-    "--region=$GCP_BACKEND_REGION"
-    "--image=$image"
-    "--tag=$tag"
-    "--port=3000"
-    "--memory=512Mi"
-    "--min-instances=0"
-    "--max-instances=10"
-    "--concurrency=20"
-    "--timeout=1800"
-    --no-allow-unauthenticated
-  )
+tagged_service_url() {
+  local service="$1"
+  local tag="$2"
+  local canonical_url
+  canonical_url="$(service_url "$service")"
+  echo "https://${tag}---${canonical_url#https://}"
+}
+
+jobs_env_vars() {
+  local tag="$1"
+  local canonical_tasks_url
+  local target_tasks_url
+  canonical_tasks_url="$(service_url "$GCP_TASKS_SERVICE")"
+  target_tasks_url="$canonical_tasks_url"
   if [ "$tag" != "prod" ]; then
-    args+=(--no-traffic)
-    env_vars+=",MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},PR_NUMBER=${PR_NUMBER}"
+    target_tasks_url="$(tagged_service_url "$GCP_TASKS_SERVICE" "$tag")"
   fi
-  args+=(
-    "--set-env-vars=$env_vars"
-    "--set-secrets=MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
-  )
-  gcloud "${args[@]}"
+  echo "JOBS_RUNNER=gcp-cloud-tasks,GCP_TASKS_PROJECT=${GCP_PROJECT_ID},GCP_TASKS_LOCATION=${GCP_BACKEND_REGION},GCP_TASKS_QUEUE=${GCP_TASKS_QUEUE},GCP_TASKS_PUBLIC_URL=${target_tasks_url},GCP_TASKS_OIDC_AUDIENCE=${canonical_tasks_url},GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${GCP_TASKS_INVOKER_SA}"
 }
 
 deploy_backend() {
@@ -79,7 +76,7 @@ deploy_backend() {
   docker push "$image"
 
   secrets="MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
-  env_vars="NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true"
+  env_vars="NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true,JOBS_START_WORKER=true,$(jobs_env_vars "$tag")"
   args=(
     run deploy "$GCP_BACKEND_SERVICE"
     "--project=$GCP_PROJECT_ID"
@@ -113,6 +110,39 @@ deploy_backend() {
     env_vars+=",CORS_ORIGINS=https://pr-${PR_NUMBER}--terreno-frontend.netlify.app,MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},SEED_DEFAULTS=true"
   fi
   args+=("--set-secrets=$secrets" "--set-env-vars=$env_vars")
+  gcloud "${args[@]}"
+}
+
+deploy_tasks() {
+  local tag="$1"
+  local image="${GCP_BACKEND_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_TASKS_SERVICE}/${GCP_TASKS_SERVICE}:${CIRCLE_SHA1}"
+  configure_registry "$GCP_BACKEND_REGION"
+  docker build --file example-backend/Dockerfile --tag "$image" .
+  docker push "$image"
+
+  local env_vars="NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE},JOBS_START_WORKER=false,$(jobs_env_vars "$tag")"
+  local args=(
+    run deploy "$GCP_TASKS_SERVICE"
+    "--project=$GCP_PROJECT_ID"
+    "--region=$GCP_BACKEND_REGION"
+    "--image=$image"
+    "--tag=$tag"
+    "--port=3000"
+    "--memory=512Mi"
+    "--min-instances=0"
+    "--max-instances=10"
+    "--concurrency=20"
+    "--timeout=1800"
+    --no-allow-unauthenticated
+  )
+  if [ "$tag" != "prod" ]; then
+    args+=(--no-traffic)
+    env_vars+=",MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},PR_NUMBER=${PR_NUMBER}"
+  fi
+  args+=(
+    "--set-env-vars=$env_vars"
+    "--set-secrets=MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
+  )
   gcloud "${args[@]}"
 }
 
@@ -156,8 +186,8 @@ case "$action" in
     scripts/ci/validate-env.sh PR_NUMBER
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    deploy_backend "pr-${PR_NUMBER}"
     deploy_tasks "pr-${PR_NUMBER}"
+    deploy_backend "pr-${PR_NUMBER}"
     ;;
   tasks-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
