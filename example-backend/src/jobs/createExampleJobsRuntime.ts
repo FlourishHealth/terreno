@@ -1,3 +1,4 @@
+import {APIError} from "@terreno/api";
 import {type JobRunner, type JobsAppOptions, MongoJobRunner} from "@terreno/jobs";
 import {type GcpCloudTasksClient, GcpCloudTasksRunner} from "@terreno/jobs/runners/gcpCloudTasks";
 import type {Request} from "express";
@@ -32,7 +33,10 @@ export interface ExampleJobsRuntime {
 const requireEnvironmentValue = (environment: NodeJS.ProcessEnv, name: string): string => {
   const value = environment[name]?.trim();
   if (!value) {
-    throw new Error(`${name} is required when JOBS_RUNNER=${GCP_CLOUD_TASKS_RUNNER}`);
+    throw new APIError({
+      status: 500,
+      title: `${name} is required when JOBS_RUNNER=${GCP_CLOUD_TASKS_RUNNER}`,
+    });
   }
   return value;
 };
@@ -76,7 +80,7 @@ export const createExampleJobsRuntime = (
     return {runner: new MongoJobRunner()};
   }
   if (runnerName !== GCP_CLOUD_TASKS_RUNNER) {
-    throw new Error(`Unsupported JOBS_RUNNER: ${runnerName}`);
+    throw new APIError({status: 500, title: `Unsupported JOBS_RUNNER: ${runnerName}`});
   }
 
   const project = requireEnvironmentValue(environment, "GCP_TASKS_PROJECT");
