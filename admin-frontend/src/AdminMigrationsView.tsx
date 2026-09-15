@@ -160,12 +160,15 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
             {applied.length === 0 ? (
               <Text color="secondaryDark">None applied yet.</Text>
             ) : (
-              applied.map((item) => (
-                <Text key={item.id}>
-                  {item.id}
-                  {item.appliedAt ? ` · ${formatAppliedAt(item.appliedAt)}` : ""}
-                </Text>
-              ))
+              applied.map((item) => {
+                const appliedAtLabel = formatAppliedAt(item.appliedAt);
+                return (
+                  <Text key={item.id}>
+                    {item.id}
+                    {appliedAtLabel ? ` · ${appliedAtLabel}` : ""}
+                  </Text>
+                );
+              })
             )}
           </Card>
           {status?.lock ? (

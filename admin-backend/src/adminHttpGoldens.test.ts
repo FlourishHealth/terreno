@@ -27,6 +27,7 @@ const ADMIN_CONFIG_TOP_KEYS = [
   "capabilities",
   "customScreens",
   "home",
+  "migrations",
   "models",
   "platformTools",
   "schemaVersion",

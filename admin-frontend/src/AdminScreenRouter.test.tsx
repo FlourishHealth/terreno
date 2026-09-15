@@ -317,6 +317,34 @@ describe("AdminMigrationsView", () => {
     const {getByText} = renderView();
     expect(getByText("Lock held by api-1")).toBeTruthy();
     expect(getByText(/20260910110000-todos-title-index/)).toBeTruthy();
+    expect(getByText(/2026-09-10 12:00:00 UTC/)).toBeTruthy();
+  });
+
+  it("omits appliedAt when the timestamp is missing", () => {
+    queryState.data = {
+      applied: [{checksum: "def", id: "20260910110000-todos-title-index"}],
+      lock: null,
+      pending: [],
+    };
+    const {getByText, queryByText} = renderView();
+    expect(getByText("20260910110000-todos-title-index")).toBeTruthy();
+    expect(queryByText(/UTC/)).toBeNull();
+  });
+
+  it("renders an invalid appliedAt timestamp as-is", () => {
+    queryState.data = {
+      applied: [
+        {
+          appliedAt: "not-a-date",
+          checksum: "ghi",
+          id: "20260910100000-invalid-applied-at",
+        },
+      ],
+      lock: null,
+      pending: [],
+    };
+    const {getByText} = renderView();
+    expect(getByText(/20260910100000-invalid-applied-at · not-a-date/)).toBeTruthy();
   });
 
   it("renders an empty pending list", () => {
