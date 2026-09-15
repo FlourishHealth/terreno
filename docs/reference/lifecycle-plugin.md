@@ -79,9 +79,12 @@ verification, out of scope, risks). A Decisions table follows the plan with no r
 pairing every settled human decision with the question that prompted it; it is omitted
 when grilling settled none. Paths to the IP and task files come last.
 
-GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
-`Verification` are the only visible PR sections; optional detail is expandable; comments
-are reserved for blocked decisions or non-obvious review resolutions.
+GitHub communication follows a fixed attention budget. The PR title is
+`[ticket] Short feature title` (Linear `TEAM-n` or GitHub `#n`; omit brackets when
+no ticket is attached) and names the feature only — never `feat:`, `IP Approved`,
+or `Task list`. `Why`, `What changed`, and `Verification` are the only visible PR
+sections; optional detail is expandable; comments are reserved for blocked
+decisions or non-obvious review resolutions.
 
 Every stage follows the
 [documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):

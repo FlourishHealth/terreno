@@ -6,9 +6,34 @@ decision or preserve context that the diff cannot.
 
 ## Pull request title
 
-- Describe the outcome in plain language.
-- Use at most 72 characters.
-- Do not use category prefixes, implementation detail, ticket IDs, or status words.
+Format: `[ticket] Short feature title`
+
+- `ticket` is the attached tracker id, copied in that tracker’s own form:
+  Linear `TEAM-n` (`[FH-1632]`) or GitHub `#n` (`[#412]`).
+- Prefer Linear when both are attached. If none is attached, omit the brackets
+  and use only the feature title.
+- The feature title names what the change does, short and memorable.
+- Use at most 72 characters including the ticket prefix.
+- Do not use conventional-commit prefixes (`feat:`, `docs:`, `fix:`, `chore:`).
+- Do not use lifecycle labels (`IP Approved`, `Task list`) or other status words.
+- Do not put implementation detail in the title.
+
+Use:
+
+```text
+[FH-1632] Standardize planning PR titles
+[#412] Windowed admin table sync
+Rate-limit Better Auth sign-in
+```
+
+Do not use:
+
+```text
+IP Approved: Task list for syncdb
+feat: add PR title format
+[FH-1632] IP Approved — Grow artifacts
+docs: update attention contract
+```
 
 ## Pull request body
 

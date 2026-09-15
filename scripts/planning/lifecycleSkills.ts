@@ -279,6 +279,9 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Brew must load the GitHub attention contract`);
     }
+    if (!content.includes("[ticket] Short feature title")) {
+      errors.push(`${prefix}: Brew must set PR titles to [ticket] Short feature title`);
+    }
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
@@ -456,6 +459,18 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   }
   if (!content.includes("<details>")) {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
+  }
+  if (!content.includes("[FH-1632]")) {
+    errors.push("GitHub attention contract must show Linear ticket title format [FH-1632]");
+  }
+  if (!content.includes("[#412]")) {
+    errors.push("GitHub attention contract must show GitHub issue title format [#412]");
+  }
+  if (!content.includes("IP Approved")) {
+    errors.push("GitHub attention contract must forbid lifecycle labels such as IP Approved");
+  }
+  if (!content.includes("feat:")) {
+    errors.push("GitHub attention contract must forbid conventional-commit prefixes such as feat:");
   }
 
   return errors;

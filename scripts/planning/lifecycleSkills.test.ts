@@ -401,6 +401,10 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
     assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
     assert.isTrue(errors.some((error) => error.includes("preview URLs")));
+    assert.isTrue(errors.some((error) => error.includes("[FH-1632]")));
+    assert.isTrue(errors.some((error) => error.includes("[#412]")));
+    assert.isTrue(errors.some((error) => error.includes("IP Approved")));
+    assert.isTrue(errors.some((error) => error.includes("feat:")));
   });
 
   it("rejects a documentation contract that does not require reading and updating docs", (): void => {
