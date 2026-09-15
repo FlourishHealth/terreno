@@ -1141,21 +1141,25 @@ export const GPTChat = ({
         <AttachmentSection attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
         {/* Input */}
-        <Box alignItems="center" direction="row" gap={2} testID="gpt-composer">
-          <AttachButton
-            handleFilesSelected={handleFilesSelected}
-            isStreaming={isStreaming}
-            onAttachFiles={onAttachFiles}
-          />
-          {mcpTools && mcpTools.length > 0 && (
-            <IconButton
-              accessibilityLabel="Show available tools"
-              iconName="hammer"
-              onClick={() => setIsToolsModalVisible(true)}
-              testID="gpt-tools-button"
+        <Box direction="row" gap={2} testID="gpt-composer">
+          <Box justifyContent="center" testID="gpt-composer-attach">
+            <AttachButton
+              handleFilesSelected={handleFilesSelected}
+              isStreaming={isStreaming}
+              onAttachFiles={onAttachFiles}
             />
+          </Box>
+          {mcpTools && mcpTools.length > 0 && (
+            <Box justifyContent="center" testID="gpt-composer-tools">
+              <IconButton
+                accessibilityLabel="Show available tools"
+                iconName="hammer"
+                onClick={() => setIsToolsModalVisible(true)}
+                testID="gpt-tools-button"
+              />
+            </Box>
           )}
-          <Box flex="grow">
+          <Box flex="grow" justifyContent="center">
             <TextArea
               blurOnSubmit={false}
               disabled={isStreaming}
@@ -1166,13 +1170,15 @@ export const GPTChat = ({
               value={inputValue}
             />
           </Box>
-          <Button
-            disabled={!inputValue.trim() || isStreaming}
-            iconName="paper-plane"
-            onClick={handleSubmit}
-            testID="gpt-submit"
-            text="Send"
-          />
+          <Box justifyContent="center" testID="gpt-composer-send">
+            <Button
+              disabled={!inputValue.trim() || isStreaming}
+              iconName="paper-plane"
+              onClick={handleSubmit}
+              testID="gpt-submit"
+              text="Send"
+            />
+          </Box>
         </Box>
       </Box>
 

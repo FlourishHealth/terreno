@@ -285,13 +285,16 @@ describe("GPTChat", () => {
     assert.isNull(queryByTestId("gpt-empty-state"));
   });
 
-  it("vertically centers the composer controls beside the input", () => {
+  it("vertically centers each composer control beside the input", () => {
     const {getByTestId} = renderChat({
       mcpTools: [{name: "readFile"}],
       onAttachFiles: () => {},
     });
 
-    assert.equal(getByTestId("gpt-composer").props.style.alignItems, "center");
+    // Button hard-codes alignSelf, so each control sits in a full-height cell that centers it.
+    for (const cell of ["gpt-composer-attach", "gpt-composer-tools", "gpt-composer-send"]) {
+      assert.equal(getByTestId(cell).props.style.justifyContent, "center");
+    }
   });
 
   it("hides the mascot after messages exist", () => {
