@@ -68,6 +68,38 @@ describe("AnnouncementBanner", () => {
     assert.strictEqual(onDismiss.mock.calls.length, 1);
   });
 
+  it("shows primary CTA and Got it when acknowledgement is required", async () => {
+    const onAcknowledge = mock(() => Promise.resolve());
+    const openUrl = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = openUrl;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+          requiresAcknowledgement: true,
+        })}
+        onAcknowledge={onAcknowledge}
+        onDismiss={() => {}}
+        requiresAcknowledgement
+      />
+    );
+
+    assert.ok(result.getByText("Read docs"));
+    assert.ok(result.getByText("Got it"));
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+    expect(openUrl).toHaveBeenCalledWith("https://example.com/docs");
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+    assert.strictEqual(onAcknowledge.mock.calls.length, 1);
+  });
+
   it("opens the primary action URL and exposes a dismiss control", async () => {
     const openUrl = mock(() => Promise.resolve(true));
     Linking.canOpenURL = openUrl;
