@@ -176,11 +176,13 @@ The example API still executes jobs with `MongoJobRunner` until a follow-up sets
 Queue rate limits cap the future dispatch pool at 20 callbacks and 20 dispatches per
 second by default. The tasks service is private (`run.invoker` for the callback SA only)
 and uses a 30-minute request timeout with concurrency 20 so long script jobs are not
-killed by a later Terraform apply.
+killed by a later Terraform apply. Keep `.github/workflows/cd.yml` `tasks-deploy-prod`
+on those same flags so a GitHub Actions roll cannot reopen the worker.
 
 PR previews do not create global infrastructure. The CD script deploys matching
 `pr-<number>` tags for the API and tasks services and uses
-`terreno-example-pr-<number>` for Mongo. Cleanup removes both tags.
+`terreno-example-pr-<number>` for Mongo. CircleCI cleanup and
+`.github/workflows/preview-cleanup.yml` both remove the API and tasks tags.
 
 ## Adding a third service account
 
