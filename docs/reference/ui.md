@@ -82,9 +82,9 @@ Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to pr
 
 Streaming chat surface for `@terreno/ai`. Histories, messages, submit, and optional MCP/tools stay under consumer control.
 
-Pass `mascot` when the app owns a character. Terreno ships none. The node renders only while `currentMessages` is empty, centered in the chat panel above the suggested prompts. Omit the prop for the default empty chat.
+Pass `mascot` when the app owns a character. Terreno ships none. The node renders only while `currentMessages` is empty, centered in the chat panel above the suggested prompts. The empty state stays in the message scroller, so oversized consumer content remains reachable, and streaming feedback shares the centered hero instead of creating a second pane. Omit the prop for the default empty chat.
 
-The composer row (attachment picker, tools, input, Send) is vertically centered, so controls stay aligned with the input as it grows.
+The composer row (attachment picker, tools, input, Send) is vertically centered, so controls stay aligned with the input as it grows. The attachment cell is omitted when `onAttachFiles` is not provided.
 
 ```tsx
 <GPTChat

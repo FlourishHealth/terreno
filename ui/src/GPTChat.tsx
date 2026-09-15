@@ -592,15 +592,17 @@ const AssistantActions = ({
 
 const EmptyChatHero = ({
   handleSuggestedPrompt,
+  isStreaming,
   mascot,
   suggestedPrompts,
 }: {
   handleSuggestedPrompt: (prompt: string) => void;
+  isStreaming: boolean;
   mascot?: React.ReactNode;
   suggestedPrompts?: string[];
 }): React.ReactElement | null => {
   const hasSuggestedPrompts = Boolean(suggestedPrompts && suggestedPrompts.length > 0);
-  if (!mascot && !hasSuggestedPrompts) {
+  if (!mascot && !hasSuggestedPrompts && !isStreaming) {
     return null;
   }
   return (
@@ -641,6 +643,7 @@ const EmptyChatHero = ({
           </Box>
         ) : null}
       </Box>
+      <StreamingIndicator isStreaming={isStreaming} />
     </Box>
   );
 };
@@ -705,7 +708,7 @@ const StreamingIndicator = ({isStreaming}: {isStreaming: boolean}): React.ReactE
     return null;
   }
   return (
-    <Box alignItems="start" padding={2}>
+    <Box alignItems="start" padding={2} testID="gpt-streaming-indicator">
       <Spinner size="sm" />
     </Box>
   );
@@ -1110,31 +1113,27 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
-          {isEmptyChat ? (
-            <EmptyChatHero
-              handleSuggestedPrompt={handleSuggestedPrompt}
-              mascot={mascot}
-              suggestedPrompts={suggestedPrompts}
-            />
-          ) : null}
-          {isEmptyChat && !isStreaming ? null : (
-            <Box
-              flex="grow"
-              gap={3}
-              onScroll={handleScroll}
-              scroll={true}
-              scrollRef={scrollViewRef}
-            >
-              <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
-                <MessageList
-                  currentMessages={currentMessages}
-                  handleCopyMessage={handleCopyMessage}
-                  onRateFeedback={onRateFeedback}
+          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
+            <Box flex="grow" gap={3} onLayout={handleContentLayout} testID="gpt-messages">
+              {isEmptyChat ? (
+                <EmptyChatHero
+                  handleSuggestedPrompt={handleSuggestedPrompt}
+                  isStreaming={isStreaming}
+                  mascot={mascot}
+                  suggestedPrompts={suggestedPrompts}
                 />
-                <StreamingIndicator isStreaming={isStreaming} />
-              </Box>
+              ) : (
+                <>
+                  <MessageList
+                    currentMessages={currentMessages}
+                    handleCopyMessage={handleCopyMessage}
+                    onRateFeedback={onRateFeedback}
+                  />
+                  <StreamingIndicator isStreaming={isStreaming} />
+                </>
+              )}
             </Box>
-          )}
+          </Box>
         </Box>
 
         <ScrollToBottomButton isScrolledUp={isScrolledUp} scrollToBottom={scrollToBottom} />
@@ -1142,13 +1141,15 @@ export const GPTChat = ({
 
         {/* Input */}
         <Box direction="row" gap={2} testID="gpt-composer">
-          <Box justifyContent="center" testID="gpt-composer-attach">
-            <AttachButton
-              handleFilesSelected={handleFilesSelected}
-              isStreaming={isStreaming}
-              onAttachFiles={onAttachFiles}
-            />
-          </Box>
+          {onAttachFiles ? (
+            <Box justifyContent="center" testID="gpt-composer-attach">
+              <AttachButton
+                handleFilesSelected={handleFilesSelected}
+                isStreaming={isStreaming}
+                onAttachFiles={onAttachFiles}
+              />
+            </Box>
+          ) : null}
           {mcpTools && mcpTools.length > 0 && (
             <Box justifyContent="center" testID="gpt-composer-tools">
               <IconButton

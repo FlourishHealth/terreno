@@ -275,6 +275,24 @@ describe("GPTChat", () => {
     assert.equal(emptyState.props.style.alignItems, "center");
   });
 
+  it("keeps the empty state inside the scrollable message content", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isOk(getByTestId("gpt-messages").findByProps({testID: "gpt-empty-state"}));
+  });
+
+  it("keeps empty-chat streaming feedback in the centered hero", () => {
+    const {getByTestId} = renderChat({
+      isStreaming: true,
+      mascot: <Text>App fox</Text>,
+    });
+
+    assert.isOk(getByTestId("gpt-empty-state").findByProps({testID: "gpt-streaming-indicator"}));
+  });
+
   it("drops the centered empty state once messages exist", () => {
     const {queryByTestId} = renderChat({
       currentMessages: [{content: "Hi there", role: "user"}],
@@ -295,6 +313,12 @@ describe("GPTChat", () => {
     for (const cell of ["gpt-composer-attach", "gpt-composer-tools", "gpt-composer-send"]) {
       assert.equal(getByTestId(cell).props.style.justifyContent, "center");
     }
+  });
+
+  it("omits the attachment composer cell when attachments are unavailable", () => {
+    const {queryByTestId} = renderChat();
+
+    assert.isNull(queryByTestId("gpt-composer-attach"));
   });
 
   it("hides the mascot after messages exist", () => {
