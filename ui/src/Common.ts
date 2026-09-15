@@ -2,15 +2,15 @@ import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
 import type {FC, ReactElement, ReactNode} from "react";
 import type {
+  DimensionValue,
   ImageStyle,
   ListRenderItemInfo,
-  ScrollView,
+  ScrollViewInstance,
   StyleProp,
-  TextInput,
+  TextInputInstance,
   TextStyle,
   ViewStyle,
 } from "react-native";
-import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {Styles} from "react-native-google-places-autocomplete";
 import type {SvgProps} from "react-native-svg";
 
@@ -723,7 +723,8 @@ export interface BoxPropsBase extends WithTestID {
 
   avoidKeyboard?: boolean;
   keyboardOffset?: number;
-  scrollRef?: React.RefObject<ScrollView | null>;
+  /** Native ScrollView instance (RN 0.87 `ScrollViewInstance`). */
+  scrollRef?: React.RefObject<ScrollViewInstance | null>;
   onScroll?: (offsetY: number) => void;
   onLayout?: (event: LayoutChangeEvent) => void;
 }
@@ -942,7 +943,8 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
   multiline?: boolean;
   rows?: number;
 
-  inputRef?: (ref: TextInput | null) => void;
+  /** Native TextInput instance (RN 0.87 `TextInputInstance`). */
+  inputRef?: (ref: TextInputInstance | null) => void;
   trimOnBlur?: boolean;
 
   aiSuggestion?: AiSuggestionProps;
@@ -3589,6 +3591,9 @@ export interface SidebarNavigationProps {
   onNavigate?: (route: string) => void;
   /**
    * The route to show when the navigator first renders.
+   *
+   * Expo Router 58 ignores this on `Navigator`. Set
+   * `unstable_settings.initialRouteName` on the layout file instead.
    */
   initialRouteName?: string;
   /**

@@ -6,6 +6,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  type ScrollViewInstance,
   View,
   type ViewStyle,
 } from "react-native";
@@ -115,7 +116,7 @@ const boxStyleMapCache = new WeakMap<object, BoxStyleMap>();
 const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
   const resolvedTestID = props.testID;
-  const internalScrollRef = useRef<ScrollView>(null);
+  const internalScrollRef = useRef<ScrollViewInstance>(null);
   const scrollRef = props.scrollRef ?? internalScrollRef;
   const hasResponsiveDirection = Boolean(
     props.smDirection || props.mdDirection || props.lgDirection || props.xlDirection
