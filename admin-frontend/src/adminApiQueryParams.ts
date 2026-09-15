@@ -4,12 +4,12 @@ import qs from "qs";
  * Serializes admin list query params for modelRouter-compatible GET requests.
  * Uses bracket notation for nested operators (`$in`, `$regex`, ranges).
  */
-export const serializeAdminApiQueryParams = (params: Record<string, unknown>): string => {
+const serializeAdminApiQueryParams = (params: Record<string, unknown>): string => {
   return qs.stringify(params);
 };
 
 /** Builds a list URL with a pre-serialized query string (avoids base-query object coercion). */
-export const buildAdminApiListQueryUrl = (
+const buildAdminApiListQueryUrl = (
   routePath: string,
   params: Record<string, unknown> | undefined
 ): string => {
