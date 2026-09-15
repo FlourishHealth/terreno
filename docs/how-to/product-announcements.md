@@ -11,15 +11,30 @@ import {AnnouncementsApp} from "@terreno/announcements";
 
 new AnnouncementsApp({
   defaultAcknowledgementPolicy: "dismiss-only",
+  // audienceType staff/patient/all is applied inside the plugin via matchAudienceByType.
+  isStaff: (user) => (user as {admin?: boolean}).admin === true,
   matchAudience: (user, announcement) => {
-    const audience = announcement.audience as {roles?: string[]};
-    if (!audience.roles?.length) {
+    const audience = announcement.audience as {organizationIds?: string[]};
+    if (!audience.organizationIds?.length) {
       return true;
     }
-    return audience.roles.includes((user as {role?: string}).role ?? "");
+    const userOrganizationIds = (user as {organizationIds?: string[]}).organizationIds ?? [];
+    return audience.organizationIds.some((organizationId) =>
+      userOrganizationIds.includes(organizationId)
+    );
   },
 });
 ```
+
+Use admin `audienceType` for staff vs patient vs all. Reserve the `audience` JSON field for custom segments (orgs, tiers, feature cohorts) in `matchAudience`. Do **not** call `matchAudienceByType` in your app — the plugin composes it before your callback.
+
+For Flourish-style surfaces on one collection:
+
+| Audience | Typical `displayMode` | `acknowledgementPolicy` |
+|----------|----------------------|-------------------------|
+| `staff` | `modal` (blocking) | `required` |
+| `patient` | `banner` or `feed` | `dismiss-only` |
+| `all` | any | per announcement or `defaultAcknowledgementPolicy` |
 
 2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the surface to users who only acknowledged the previous version.
 
@@ -78,15 +93,16 @@ Interrupt frequency is enforced **client-side** in `AnnouncementNavigator` befor
 <AnnouncementNavigator
   api={terrenoApi}
   frequency={{
-    maxInterruptionsPerSession: 1,
     cooldownHours: 24,
-    skipFirstLaunch: true,
+    skipFirstLaunch: false,
     userId: currentUser?.id,
   }}
 >
   <AppTabs />
 </AnnouncementNavigator>
 ```
+
+`maxInterruptionsPerSession` defaults to `1` when omitted. The example app sets `skipFirstLaunch: false` so seeded interrupts still appear on first launch.
 
 | Prop | Default | Behavior |
 |------|---------|----------|
@@ -105,4 +121,9 @@ Paste YouTube or Loom URLs in the announcement `body` using markdown links or im
 
 ## Example app
 
-`example-backend` registers `AnnouncementsApp` and seeds a welcome announcement via `bun run backend:seed`.
+`example-backend` registers `AnnouncementsApp` with `isStaff: (user) => user.admin === true` and an optional `matchAudience` org filter. `bun run backend:seed` idempotently seeds:
+
+- **Staff modal (required)** — `audienceType: "staff"`, `displayMode: "modal"`, `acknowledgementPolicy: "required"` (`Example staff operations bulletin`)
+- **Patient banner (dismiss-only)** — `audienceType: "patient"`, `displayMode: "banner"`, `acknowledgementPolicy: "dismiss-only"` (`Example patient care tip`)
+
+An existing legacy welcome row (`Welcome to Terreno announcements`) is archived idempotently on seed so it no longer blocks the patient banner. `example-frontend` wraps authenticated users with `AnnouncementNavigator` (`skipFirstLaunch: false`, `userId` from the profile); non-staff users therefore see only the patient banner interrupt under the default session cap of `1`.

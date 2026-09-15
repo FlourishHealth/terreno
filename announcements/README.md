@@ -21,6 +21,7 @@ new TerrenoApp({userModel: User})
     new AnnouncementsApp({
       defaultAcknowledgementPolicy: "dismiss-only",
       help: {enabled: true},
+      isStaff: (user) => user.admin === true,
       matchAudience: (user, announcement) => true,
     })
   )
@@ -31,9 +32,11 @@ Wrap authenticated app content with `AnnouncementNavigator` from `@terreno/ui` o
 
 ## What's included
 
-- `AnnouncementsApp` — user routes (`/pending`, `/feed`, acknowledge, impression) plus admin CRUD
+- `AnnouncementsApp` — user routes (`/pending`, `/feed`, acknowledge, impression, click) plus admin CRUD
 - Optional help API for MCP and agent search (`/announcements/help/*`)
-- Audience targeting via `matchAudience` and `audience` JSON on each announcement
+- First-class `audienceType` (`staff` | `patient` | `all`) composed via exported `matchAudienceByType` and optional `isStaff`
+- Custom segments via `matchAudience` and opaque `audience` JSON on each announcement
+- Per-announcement `acknowledgementPolicy` with consumer `defaultAcknowledgementPolicy`
 - Platform targeting (`ios`, `android`, `web`) with user-agent fallback when `platform` is omitted
 
 ## Documentation

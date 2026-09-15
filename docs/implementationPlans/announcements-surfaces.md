@@ -1,6 +1,6 @@
 # Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** Approved  
+**Status:** In progress — implementation complete; pending Roast/Brew
 **Parent IP:** [announcements](announcements.md)  
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  

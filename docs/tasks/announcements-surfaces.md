@@ -1,6 +1,6 @@
 # Task List: Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** In progress
+**Status:** Complete (pending Roast/Brew)
 **IP:** `docs/implementationPlans/announcements-surfaces.md`  
 **Parent IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-15  
@@ -70,7 +70,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: 1.2, 1.4
   - Acceptance: Create form pre-fills policy from config. Save persists new fields (no `requiresAcknowledgement`). Tests cover create payload shape and edit omitting status (existing editor rule).
 
-- [ ] **Task 3.2**: Example app + architecture docs
+- [x] **Task 3.2**: Example app + architecture docs
   - Delivers: Example backend `defaultAcknowledgementPolicy` + `matchAudienceByType` using `user.admin`; seeds one staff modal (required) and one patient banner (dismiss-only); example-frontend navigator frequency documented; parent IP pointer accurate
   - Files: `example-backend/src/server.ts`, `example-backend/src/scripts/seed-announcements.ts` (and any seed caller), `example-frontend` layout using `AnnouncementNavigator`, `docs/reference/announcements.md`, `docs/how-to/product-announcements.md`, `docs/implementationPlans/announcements.md`, `announcements/README.md`
   - Docs: listed files — Diátaxis in place, one minimal wiring example

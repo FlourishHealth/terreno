@@ -11,6 +11,7 @@ new TerrenoApp({ userModel: User })
   .register(new AnnouncementsApp({
     defaultAcknowledgementPolicy: "dismiss-only",
     help: {enabled: true},
+    isStaff: (user) => user.admin === true,
     matchAudience: (user, announcement) => true,
   }))
   .start();

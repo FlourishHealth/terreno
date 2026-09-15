@@ -60,6 +60,7 @@ import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
 import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
+import type {UserDocument} from "./types/models/userTypes";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {createExampleInboundWebhooks} from "./webhooksExample";
@@ -436,12 +437,18 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         new AnnouncementsApp({
           defaultAcknowledgementPolicy: "dismiss-only",
           help: {enabled: true},
-          matchAudience: (_user, announcement) => {
-            const audience = announcement.audience as {tiers?: string[]} | undefined;
-            if (!audience?.tiers?.length) {
+          // audienceType staff/patient/all is composed inside the plugin via matchAudienceByType.
+          isStaff: (user) => (user as UserDocument).admin === true,
+          matchAudience: (user, announcement) => {
+            const audience = announcement.audience as {organizationIds?: string[]} | undefined;
+            const requiredOrganizationIds = audience?.organizationIds;
+            if (!requiredOrganizationIds?.length) {
               return true;
             }
-            return true;
+            const userOrganizationIds = (user as UserDocument).organizationIds ?? [];
+            return requiredOrganizationIds.some((organizationId) =>
+              userOrganizationIds.includes(organizationId)
+            );
           },
         })
       );

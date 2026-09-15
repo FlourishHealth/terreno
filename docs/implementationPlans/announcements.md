@@ -1,6 +1,6 @@
 # Product Update Announcements — In-App Core Feature
 
-**Status:** In progress  
+**Status:** In progress — v1 shipped on branch; surfaces follow-up in [announcements-surfaces.md](announcements-surfaces.md) (implementation complete, pending Roast/Brew)
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
 **Created:** 2026-09-08  
@@ -30,7 +30,7 @@ Ship a **core Terreno feature** for admin-managed, in-app product update announc
 | Q1 — Package placement | New workspace package **`@terreno/announcements`** (plugin pattern like `@terreno/feature-flags`). |
 | Q2 — Consumer UI | Ship **`AnnouncementNavigator`** + **`AnnouncementScreen`** in **`@terreno/ui`** (mirror `ConsentNavigator`). |
 | Q3 — Targeting | `audience: Mixed` on `Announcement` + consumer **`matchAudience(user, announcement)`** callback. |
-| Q4 — Acknowledgement | Per-announcement **`requiresAcknowledgement`** (admin) + consumer **`acknowledgementMode: "admin" \| "always" \| "never"`** (default **`"admin"`**). |
+| Q4 — Acknowledgement | **Superseded** by [announcements-surfaces.md](announcements-surfaces.md): per-announcement **`acknowledgementPolicy`** (`required` \| `dismiss-only`) + consumer **`defaultAcknowledgementPolicy`** (default `dismiss-only`). Legacy v1 `requiresAcknowledgement` / `acknowledgementMode` are removed. |
 | Q5 — Lifecycle | **`draft` → `published` → `archived`**; priority queue; **one modal at a time**. |
 | Q6 — Media (defaults) | **URL-only markdown** in v1 — no upload/CDN pipeline. |
 | Q7 — Re-show on edit (defaults) | **Auto `version` bump** when a **published** announcement's `title` or `body` changes; acknowledgements are per `(userId, announcementId, version)`. |
@@ -61,8 +61,8 @@ Ship a **core Terreno feature** for admin-managed, in-app product update announc
   └─ AnnouncementList
 
 Consumer app (example-frontend, later Flourish)
-  └─ AnnouncementsApp({ matchAudience, acknowledgementMode })
-       + <AnnouncementNavigator api={terrenoApi} />
+  └─ AnnouncementsApp({ isStaff, defaultAcknowledgementPolicy, matchAudience })
+       + <AnnouncementNavigator api={terrenoApi} frequency={{ skipFirstLaunch: false, userId }} />
 ```
 
 Mirror existing patterns:
@@ -88,7 +88,7 @@ Admin-managed product update definition.
   status: "draft" | "published" | "archived";
   version: number;                  // default 1; auto-increment on published title/body edit
   priority: number;                 // higher = shown first in modal queue; default 0
-  requiresAcknowledgement: boolean; // admin flag; honored when acknowledgementMode === "admin"
+  acknowledgementPolicy: "required" | "dismiss-only"; // per-announcement; see announcements-surfaces.md
   audience: Mixed;                  // opaque JSON for consumer matchAudience (roles, segments, etc.)
   publishAt?: Date;                 // optional scheduled publish (null = immediate when published)
   expiresAt?: Date;                 // optional; excluded from pending/feed after expiry
@@ -163,11 +163,12 @@ Base path configurable (default **`/announcements`**). All routes behind `authen
 ```typescript
 interface AnnouncementsOptions {
   basePath?: string;  // default "/announcements"
+  defaultAcknowledgementPolicy?: "required" | "dismiss-only";  // default "dismiss-only"
+  isStaff?: (user: User) => boolean;  // default user.admin === true
   matchAudience?: (
     user: User,
     announcement: AnnouncementDocument
   ) => boolean | Promise<boolean>;
-  acknowledgementMode?: "admin" | "always" | "never";  // default "admin"
   permissions?: Partial<ModelRouterPermissions>;       // override IsAdmin defaults
 }
 
@@ -178,13 +179,7 @@ class AnnouncementsApp implements TerrenoPlugin {
 }
 ```
 
-**Acknowledgement resolution:**
-
-| `acknowledgementMode` | Behavior |
-|-----------------------|----------|
-| `"admin"` | Require ack only when `announcement.requiresAcknowledgement === true` |
-| `"always"` | Require ack for every pending announcement |
-| `"never"` | Modal is dismiss-only; `POST /acknowledge` optional / no-op for queue advancement |
+**Acknowledgement resolution:** per-announcement `acknowledgementPolicy` with consumer `defaultAcknowledgementPolicy`. Legacy `requiresAcknowledgement: true` maps to `"required"` on read. See [announcements-surfaces.md](announcements-surfaces.md) and `docs/reference/announcements.md`.
 
 ## Notifications
 
@@ -206,8 +201,8 @@ None in v1. Queue is fetched on app launch / navigator mount and on RTK refetch 
 
 | Component | Description |
 |-----------|-------------|
-| `AnnouncementEditor` | Create/edit: title, body (`MarkdownEditor`), priority, requiresAcknowledgement, audience JSON editor, publishAt/expiresAt, platforms multi-select, primaryAction fields. Live preview pane. Actions: Save draft, Publish, Archive. |
-| `AnnouncementList` | Table: title, status, priority, version, publishedAt, expiresAt. Row → editor. |
+| `AnnouncementEditor` | Create/edit: title, body (`MarkdownEditor`), priority, `displayMode`, `audienceType`, `acknowledgementPolicy` (pre-filled from config), optional `minBuildNumber`, advanced `audience` JSON, publishAt/expiresAt, platforms multi-select, primaryAction fields. Live preview pane. Actions: Save draft, Publish, Archive. |
+| `AnnouncementList` | Table: title, status, displayMode, audienceType, acknowledgement policy, priority, version, publishedAt, expiresAt. Row → editor. |
 
 Register via `AnnouncementsApp.adminContribution()` with custom routes pointing at these screens (same pattern as consent admin overrides).
 
@@ -220,8 +215,9 @@ import {AnnouncementsApp} from "@terreno/announcements";
 // server.ts
 new TerrenoApp({ userModel: User })
   .register(new AnnouncementsApp({
-    matchAudience: (user, a) => myRoleMatcher(user, a.audience),
-    acknowledgementMode: "admin",
+    defaultAcknowledgementPolicy: "dismiss-only",
+    isStaff: (user) => user.admin === true,
+    matchAudience: (user, a) => mySegmentMatcher(user, a.audience),
   }))
   .start();
 
