@@ -1,5 +1,5 @@
 import {Badge, Box, Button, Heading, Link, Text, TextField} from "@terreno/ui";
-import React, {useMemo} from "react";
+import React, {useCallback, useMemo} from "react";
 import {
   ObservabilityTable,
   type ObservabilityTableColumn,
@@ -20,49 +20,86 @@ import {
 type JudgePromptStatus = "error" | "idle" | "loading" | "ready";
 
 const EVALUATOR_NEW_INTRO =
-  "An evaluator scores traces and experiment outputs. Each score is a named dimension (boolean, numeric, or categorical). Attach the same evaluator to experiments, live sampling, or the human review queue.";
+  "Evaluators turn AI results into consistent scores you can compare, filter, and review. Set up who decides the score, what they can see, and which score fields are saved.";
 
 const EVALUATOR_TYPE_HELP: Record<EvaluatorRecord["type"], string> = {
   human:
-    "A person scores items in Human review. Scores wait in the queue until a reviewer submits them. Live sampling is not allowed.",
+    "A reviewer decides the score. Send traces to this evaluator from Traces; they wait in Human review until someone submits the score.",
   "json-assert":
-    "Terreno checks a JSON path on the target against a constraint. No model call. Use for schema presence, enums, or numeric thresholds.",
+    "Terreno reads one value from the JSON and checks a rule. This is fast, deterministic, and has no model cost.",
   "llm-judge":
-    "Terreno calls a registered prompt whose outputSchema must include every required dimension key. Each run is a billed model call.",
+    "A scoring prompt asks a model to judge quality or meaning that code cannot reliably check. Each evaluation is a billed model call.",
 };
 
 const EVALUATOR_TARGET_HELP: Record<EvaluatorRecord["target"], string> = {
   "dataset item":
-    "Score one dataset row during an experiment (input, expected output, and model output).",
-  "full trace": "Score the whole trace: nested spans, the compiled prompt, and the final output.",
-  "generation span": "Score one generation span (one model call) instead of the whole trace.",
+    "The evaluator sees one experiment case: its input, expected output, and the model's actual output.",
+  "full trace":
+    "The evaluator sees the complete interaction, including nested steps, the compiled prompt, and final output.",
+  "generation span":
+    "The evaluator sees one model call. Choose this when each response should be scored independently.",
 };
 
 const EVALUATOR_NAME_HELP =
-  "Stable id used in lists, experiments, and score rows. Lowercase kebab-case, unique in this app.";
+  "Use a short, unique name such as answer-correctness or safe-response. This name also identifies its scores.";
+
+const EVALUATOR_DESCRIPTION_HELP =
+  "Explain what a good result means and when your team should use this evaluator.";
 
 const EVALUATOR_DIMENSIONS_HELP =
-  "Each dimension is one score written onto traces and experiment items. Keys must match llm-judge outputSchema properties. At least one dimension is required.";
+  "Each dimension becomes a separate saved score. Start with one score unless reviewers or experiments need to compare different qualities separately.";
 
-const EVALUATOR_DIMENSION_KEY_HELP = "Score name stored on results, e.g. correct or toxicity.";
+const EVALUATOR_DIMENSION_KEY_HELP =
+  "The score label shown on traces and experiment results, such as correct, helpful, or toxicity.";
 
 const EVALUATOR_DIMENSION_RANGE_HELP =
-  "Optional. For numeric scores, e.g. 0-1. Leave blank for boolean.";
+  "Numeric: 0-1 or 1-5. Categorical: pass, partial, fail. Boolean scores ignore this field.";
 
 const EVALUATOR_INSTRUCTIONS_HELP =
-  "Shown at the top of the review item. Tell the reviewer what pass/fail means and which failure modes to watch for.";
+  "Reviewers see these instructions above the score fields. Define what each score means and include examples of borderline or failing results.";
 
 const EVALUATOR_ASSERTION_PATH_HELP =
-  "Dot path into the target JSON, e.g. output.text or output.score. The value at this path is what the constraint checks.";
+  "Enter the field to inspect, such as output.text or output.score.";
 
 const EVALUATOR_ASSERTION_CONSTRAINT_HELP =
-  "How to check the path. Use exists, a literal match, or a numeric compare such as gte 0.8.";
+  "Enter the rule for that field: exists, an exact value, or a numeric comparison such as gte 0.8.";
 
 const EVALUATOR_JUDGE_PROMPT_HELP =
-  "Name of a prompt already saved in Observability. Its production outputSchema must declare every required dimension key.";
+  "Use a prompt from AI Observability → Prompts that tells the model how to score. Its production output schema must return every required score name above.";
 
 const EVALUATOR_LIVE_SAMPLE_HELP =
-  "0 means off. Greater than 0 runs this evaluator on that percent of matching production traffic. Human evaluators must stay at 0.";
+  "Choose what percentage of production traces to score automatically. Use 0 to keep live scoring off.";
+
+interface EvaluatorSetupStepProps {
+  children: React.ReactNode;
+  description?: string;
+  number: number;
+  testID: string;
+  title: string;
+}
+
+const EvaluatorSetupStep: React.FC<EvaluatorSetupStepProps> = ({
+  children,
+  description,
+  number,
+  testID,
+  title,
+}) => {
+  return (
+    <Box border="default" gap={3} padding={4} rounding="md" testID={testID}>
+      <Box direction="row" gap={2}>
+        <Badge status="neutral" value={String(number)} />
+        <Box flex="grow" gap={1}>
+          <Heading size="sm">{title}</Heading>
+          <Text color="secondaryDark" size="sm">
+            {description}
+          </Text>
+        </Box>
+      </Box>
+      {children}
+    </Box>
+  );
+};
 
 export interface AiEvaluatorDetailViewProps {
   evaluator: EvaluatorRecord;
@@ -77,6 +114,7 @@ export interface AiEvaluatorNewViewProps {
   assertionConstraint: string;
   assertionPath: string;
   createError?: string;
+  description: string;
   dimensions: EvaluatorDimension[];
   instructions: string;
   isCreating: boolean;
@@ -87,6 +125,7 @@ export interface AiEvaluatorNewViewProps {
   onAssertionConstraintChange: (value: string) => void;
   onAssertionPathChange: (value: string) => void;
   onCreate: () => void;
+  onDescriptionChange?: (value: string) => void;
   onDimensionChange: (index: number, dimension: EvaluatorDimension) => void;
   onInstructionsChange: (value: string) => void;
   onJudgePromptNameChange: (value: string) => void;
@@ -323,7 +362,10 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
         </Box>
       </Box>
       <Box gap={2}>
-        <Heading size="sm">Dimensions</Heading>
+        <Heading size="sm">Scores this evaluator saves</Heading>
+        <Text color="secondaryDark" size="sm">
+          Each row is stored as a separate score on the trace or experiment result.
+        </Text>
         <ObservabilityTable
           columns={DIMENSION_COLUMNS}
           rows={dimensionRows}
@@ -331,7 +373,7 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
         />
       </Box>
       <Box gap={2}>
-        <Heading size="sm">Type-specific config</Heading>
+        <Heading size="sm">How scoring works</Heading>
         {renderTypePanel({
           evaluator,
           judgeOutputSchema,
@@ -341,11 +383,18 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
         })}
       </Box>
       <Box gap={2}>
-        <Heading size="sm">Run modes</Heading>
-        <Text size="sm">
-          Live sampling at {Math.round(evaluator.runModes.liveSampleRate)}% bills judge calls on
-          matching traffic.
-        </Text>
+        <Heading size="sm">Where it runs</Heading>
+        {evaluator.type === "human" ? (
+          <Text size="sm">
+            Reviewers apply this evaluator in Human review. It never runs automatically on live
+            traffic.
+          </Text>
+        ) : (
+          <Text size="sm">
+            Available for manual runs and experiments. Live sampling scores{" "}
+            {Math.round(evaluator.runModes.liveSampleRate)}% of matching production traffic.
+          </Text>
+        )}
       </Box>
       <Box gap={2}>
         <Heading size="sm">Used by (30 days)</Heading>
@@ -369,6 +418,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
   assertionConstraint,
   assertionPath,
   createError,
+  description,
   dimensions,
   instructions,
   isCreating,
@@ -379,6 +429,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
   onAssertionConstraintChange,
   onAssertionPathChange,
   onCreate,
+  onDescriptionChange,
   onDimensionChange,
   onInstructionsChange,
   onJudgePromptNameChange,
@@ -392,25 +443,37 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
   target,
   type,
 }) => {
-  const handleTypeSelect = (next: EvaluatorRecord["type"]): void => {
-    onTypeChange(next);
-  };
+  const handleTypeSelect = useCallback(
+    (next: EvaluatorRecord["type"]): void => {
+      onTypeChange(next);
+    },
+    [onTypeChange]
+  );
+
+  const methodStepDescription =
+    type === "human"
+      ? "Write the guidance a reviewer needs to apply the scores consistently."
+      : type === "json-assert"
+        ? "Point to one JSON value and define the rule it must satisfy."
+        : "Connect the prompt that will read the data and return the scores.";
+
+  const runStepDescription =
+    type === "human"
+      ? "Human evaluators appear in the review queue and never score live traffic automatically."
+      : "Automatic evaluators are available in experiments and manual runs. Live sampling is optional.";
 
   return (
     <Box gap={4} testID="ai-evaluator-new">
       <Box border="default" gap={2} padding={4} rounding="md" testID="ai-evaluator-help-intro">
-        <Heading size="sm">What is an evaluator?</Heading>
+        <Heading size="sm">Create a reusable scoring rule</Heading>
         <Text color="secondaryDark">{EVALUATOR_NEW_INTRO}</Text>
       </Box>
-      <TextField
-        helperText={EVALUATOR_NAME_HELP}
-        onChange={onNameChange}
-        testID="ai-evaluator-name"
-        title="Name"
-        value={name}
-      />
-      <Box gap={2}>
-        <Text bold>Type</Text>
+      <EvaluatorSetupStep
+        description="Choose whether a person, a deterministic JSON rule, or another model decides the score."
+        number={1}
+        testID="ai-evaluator-step-method"
+        title="Choose how scoring happens"
+      >
         <Box direction="row" gap={2} wrap>
           {(["human", "json-assert", "llm-judge"] as const).map((entry) => {
             return (
@@ -429,9 +492,13 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
         <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-type">
           {EVALUATOR_TYPE_HELP[type]}
         </Text>
-      </Box>
-      <Box gap={2}>
-        <Text bold>Target</Text>
+      </EvaluatorSetupStep>
+      <EvaluatorSetupStep
+        description="Select how much context is available when the evaluator makes its decision."
+        number={2}
+        testID="ai-evaluator-step-target"
+        title="Choose what it evaluates"
+      >
         <Box direction="row" gap={2} wrap>
           {EVALUATOR_TARGET_OPTIONS.map((option) => {
             return (
@@ -450,10 +517,15 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
         <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-target">
           {EVALUATOR_TARGET_HELP[target]}
         </Text>
-      </Box>
-      <Box gap={2}>
+      </EvaluatorSetupStep>
+      <EvaluatorSetupStep
+        description="Define exactly what appears in results. Each dimension is saved independently."
+        number={3}
+        testID="ai-evaluator-step-scores"
+        title="Define the scores it returns"
+      >
         <Box direction="row" gap={2} justifyContent="between">
-          <Text bold>Dimensions</Text>
+          <Text bold>Score fields</Text>
           <Button
             onClick={onAddDimension}
             testID="ai-evaluator-add-dimension"
@@ -479,7 +551,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
                 onChange={(value) => {
                   onDimensionChange(index, {...dimension, key: value});
                 }}
-                title="Key"
+                title="Score name"
                 value={dimension.key}
               />
               <Box gap={1}>
@@ -507,7 +579,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
                 onChange={(value) => {
                   onDimensionChange(index, {...dimension, range: value});
                 }}
-                title="Range"
+                title="Scale or labels (optional)"
                 value={dimension.range ?? ""}
               />
               <Button
@@ -520,41 +592,82 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
             </Box>
           );
         })}
-      </Box>
-      {renderTypePanel({
-        assertionConstraint,
-        assertionPath,
-        evaluatorType: type,
-        instructions,
-        judgePromptName,
-        judgePromptStatus,
-        onAssertionConstraintChange,
-        onAssertionPathChange,
-        onInstructionsChange,
-        onJudgePromptNameChange,
-        schemaMismatchKey,
-      })}
-      <Box gap={2}>
-        <Text bold>Run modes</Text>
-        <TextField
-          disabled={type === "human"}
-          helperText={EVALUATOR_LIVE_SAMPLE_HELP}
-          onChange={(value) => {
-            const parsed = Number(value);
-            if (!Number.isNaN(parsed)) {
-              onLiveSampleRateChange(Math.min(100, Math.max(0, parsed)));
-            }
-          }}
-          testID="ai-evaluator-live-sample"
-          title="Live sample rate (%)"
-          value={String(Math.round(runModes.liveSampleRate))}
-        />
-        {runModes.liveSampleRate > 0 ? (
-          <Text color="warning" size="sm">
-            Live sampling bills judge calls on production traffic.
+      </EvaluatorSetupStep>
+      <EvaluatorSetupStep
+        description={methodStepDescription}
+        number={4}
+        testID="ai-evaluator-step-config"
+        title="Configure the scoring method"
+      >
+        {renderTypePanel({
+          assertionConstraint,
+          assertionPath,
+          evaluatorType: type,
+          instructions,
+          judgePromptName,
+          judgePromptStatus,
+          onAssertionConstraintChange,
+          onAssertionPathChange,
+          onInstructionsChange,
+          onJudgePromptNameChange,
+          schemaMismatchKey,
+        })}
+      </EvaluatorSetupStep>
+      <EvaluatorSetupStep
+        description={runStepDescription}
+        number={5}
+        testID="ai-evaluator-step-run"
+        title="Choose where it runs"
+      >
+        {type === "human" ? (
+          <Text color="secondaryDark" size="sm">
+            To use it, select traces and choose Send to human review.
           </Text>
-        ) : undefined}
-      </Box>
+        ) : (
+          <>
+            <TextField
+              helperText={EVALUATOR_LIVE_SAMPLE_HELP}
+              onChange={(value) => {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) {
+                  onLiveSampleRateChange(Math.min(100, Math.max(0, parsed)));
+                }
+              }}
+              testID="ai-evaluator-live-sample"
+              title="Production traces to score (%)"
+              value={String(Math.round(runModes.liveSampleRate))}
+            />
+            {runModes.liveSampleRate > 0 ? (
+              <Text color="warning" size="sm">
+                Live scoring creates a billed judge call for each sampled trace.
+              </Text>
+            ) : undefined}
+          </>
+        )}
+      </EvaluatorSetupStep>
+      <EvaluatorSetupStep
+        description="Give teammates enough context to recognize and reuse this evaluator."
+        number={6}
+        testID="ai-evaluator-step-name"
+        title="Name the evaluator"
+      >
+        <TextField
+          helperText={EVALUATOR_NAME_HELP}
+          onChange={onNameChange}
+          testID="ai-evaluator-name"
+          title="Name"
+          value={name}
+        />
+        <TextField
+          helperText={EVALUATOR_DESCRIPTION_HELP}
+          multiline
+          onChange={onDescriptionChange ?? (() => undefined)}
+          rows={3}
+          testID="ai-evaluator-description"
+          title="Purpose (optional)"
+          value={description ?? ""}
+        />
+      </EvaluatorSetupStep>
       {createError ? (
         <Text color="error" testID="ai-evaluator-create-error">
           {createError}

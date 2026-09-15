@@ -387,16 +387,18 @@ dimensions (numeric slider, boolean Pass / Fail, categorical pills). Actions are
 or **Queue clear**.
 
 `ai-evaluators` lists evaluators with type badge, dimension summary, target, and run-mode chips.
-**Create evaluator** opens `ai-evaluator-new` with an intro that explains what an evaluator is,
-per-field helper text (name, type, target, dimensions, type-specific config, live sample rate),
-type (human / JSON assert / LLM judge), target, dimension builder, type-specific config (judge
-prompt name, assertion path/constraint, or reviewer instructions), live-sampling rate, and inline
-schema-mismatch errors naming the missing dimension key. Choosing Human resets live sampling to
-`0` and disables that field. LLM judge schema feedback stays idle until a prompt is named, then
-shows loading/error states and only checks dimensions after its production schema loads.
+**Create evaluator** opens `ai-evaluator-new` as a six-step scoring setup: choose how scoring
+happens (human / JSON assert / LLM judge), choose what context the evaluator sees, define the saved
+score fields, configure the selected method, choose where it runs, then name and describe it.
+Decision-focused helper text explains the outcome and tradeoffs of each choice instead of exposing
+framework terminology alone. Human setup points operators to **Send to human review** and omits
+live sampling because it never applies; automatic evaluators explain experiment/manual availability
+and the billed-call impact of production sampling. The optional purpose is saved as the evaluator
+description and appears on its detail screen. LLM judge schema feedback stays idle until a prompt is
+named, then shows loading/error states and only checks dimensions after its production schema loads.
 `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
-badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
-experiments. Its dimension and usage rows use the shared `ObservabilityTable` instead of
+badges, then explains the saved scores, how scoring works, where it runs, and a **Used by** list
+derived from recent experiments. Its dimension and usage rows use the shared `ObservabilityTable` instead of
 `DataTable`, which sizes to a height-constrained parent and collapses inside a scrolling page. LLM
 judge details show loading or load-failed feedback while resolving the judge prompt; schema
 mismatches appear only after its production schema loads.

@@ -78,13 +78,18 @@ describe("AiEvaluatorNewView helper text", () => {
         type="human"
       />
     );
-    expect(getByTestId("ai-evaluator-help-intro")).toHaveTextContent(/An evaluator scores traces/);
-    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/person scores items/);
-    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/Score the whole trace/);
-    expect(getByText(/Stable id used in lists/)).toBeTruthy();
-    expect(getByText(/Each dimension is one score/)).toBeTruthy();
-    expect(getByText(/Shown at the top of the review item/)).toBeTruthy();
-    expect(getByText(/Human evaluators must stay at 0/)).toBeTruthy();
+    expect(getByTestId("ai-evaluator-help-intro")).toHaveTextContent(
+      /Evaluators turn AI results into consistent scores/
+    );
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/reviewer decides the score/);
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/complete interaction/);
+    expect(getByTestId("ai-evaluator-step-method")).toHaveTextContent(/Choose how scoring happens/);
+    expect(getByTestId("ai-evaluator-step-scores")).toHaveTextContent(
+      /Each dimension becomes a separate saved score/
+    );
+    expect(getByTestId("ai-evaluator-step-run")).toHaveTextContent(/Send to human review/);
+    expect(getByText(/Use a short, unique name/)).toBeTruthy();
+    expect(getByText(/Reviewers see these instructions/)).toBeTruthy();
 
     rerender(
       <AiEvaluatorNewView
@@ -112,10 +117,10 @@ describe("AiEvaluatorNewView helper text", () => {
         type="json-assert"
       />
     );
-    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/checks a JSON path/);
-    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/one generation span/);
-    expect(getByText(/Dot path into the target JSON/)).toBeTruthy();
-    expect(getByText(/How to check the path/)).toBeTruthy();
+    expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/reads one value/);
+    expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/one model call/);
+    expect(getByText(/Enter the field to inspect/)).toBeTruthy();
+    expect(getByText(/Enter the rule for that field/)).toBeTruthy();
   });
 });
 
@@ -230,7 +235,7 @@ describe("AiEvaluatorNewView panels", () => {
       await Promise.resolve();
     });
     expect(getByTestId("ai-evaluator-create-error")).toBeTruthy();
-    expect(getByText(/Live sampling bills judge calls/)).toBeTruthy();
+    expect(getByText(/Live scoring creates a billed judge call/)).toBeTruthy();
   });
 });
 

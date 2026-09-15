@@ -26,6 +26,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
   const [type, setType] = useState<EvaluatorRecord["type"]>("human");
   const [target, setTarget] = useState<EvaluatorRecord["target"]>("full trace");
   const [dimensions, setDimensions] = useState<EvaluatorDimension[]>(initialNewEvaluatorDimensions);
+  const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [judgePromptName, setJudgePromptName] = useState("");
   const [assertionPath, setAssertionPath] = useState("");
@@ -177,6 +178,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
           type === "json-assert"
             ? {constraint: assertionConstraint, path: assertionPath}
             : undefined,
+        description: description.trim() || undefined,
         dimensions,
         instructions: type === "human" ? instructions : undefined,
         judgePromptName: type === "llm-judge" ? judgePromptName : undefined,
@@ -193,6 +195,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
     assertionConstraint,
     assertionPath,
     createEvaluator,
+    description,
     dimensions,
     instructions,
     isJudgePromptError,
@@ -213,6 +216,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
         assertionConstraint={assertionConstraint}
         assertionPath={assertionPath}
         createError={createError}
+        description={description}
         dimensions={dimensions}
         instructions={instructions}
         isCreating={createState.isLoading}
@@ -223,6 +227,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
         onAssertionConstraintChange={setAssertionConstraint}
         onAssertionPathChange={setAssertionPath}
         onCreate={handleCreate}
+        onDescriptionChange={setDescription}
         onDimensionChange={handleDimensionChange}
         onInstructionsChange={setInstructions}
         onJudgePromptNameChange={setJudgePromptName}

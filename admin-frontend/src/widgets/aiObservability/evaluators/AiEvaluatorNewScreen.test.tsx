@@ -187,7 +187,7 @@ describe("AiEvaluatorNewScreenWidget", () => {
     assert.equal(routerPush.mock.calls.length, 1);
   });
 
-  it("edits dimensions, live sample rate, and creates human evaluators", async () => {
+  it("edits scores and purpose, then creates a human evaluator with live scoring off", async () => {
     createShouldFail = false;
     createMutation.mockClear();
     routerPush.mockClear();
@@ -200,13 +200,16 @@ describe("AiEvaluatorNewScreenWidget", () => {
       />
     );
     fireEvent.changeText(view.getByTestId("ai-evaluator-name"), "human-review");
+    fireEvent.changeText(
+      view.getByTestId("ai-evaluator-description"),
+      "Use when a person must judge answer quality."
+    );
     setDimensionKey(view, "pass");
     await act(async () => {
       fireEvent.press(view.getByTestId("ai-evaluator-type-human"));
       await Promise.resolve();
     });
     fireEvent.changeText(view.getByTestId("ai-evaluator-instructions"), "Rate quality");
-    fireEvent.changeText(view.getByTestId("ai-evaluator-live-sample"), "15");
     await act(async () => {
       fireEvent.press(view.getByTestId("ai-evaluator-add-dimension"));
       await Promise.resolve();
@@ -222,8 +225,9 @@ describe("AiEvaluatorNewScreenWidget", () => {
     });
     assert.equal(routerPush.mock.calls.length, 1);
     const createBody = createMutation.mock.calls[0]?.[0] as
-      | {runModes?: {liveSampleRate?: number}}
+      | {description?: string; runModes?: {liveSampleRate?: number}}
       | undefined;
+    assert.equal(createBody?.description, "Use when a person must judge answer quality.");
     assert.equal(createBody?.runModes?.liveSampleRate, 0);
   });
 });
