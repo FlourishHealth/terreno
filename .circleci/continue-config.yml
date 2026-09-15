@@ -579,7 +579,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api
+          packages: api jobs
       - run:
           name: Lint / compile / test admin-backend
           working_directory: ~/project/admin-backend
