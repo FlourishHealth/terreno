@@ -33,6 +33,9 @@ interface AnnouncementListItem {
   _id: string;
   title?: string;
   status?: string;
+  displayMode?: string;
+  audienceType?: string;
+  acknowledgementPolicy?: string;
   priority?: number;
   version?: number;
   publishedAt?: string;
@@ -45,15 +48,28 @@ const DEFAULT_LIMIT = 20;
 const ACTIONS_COLUMN_TYPE = "announcementActions";
 
 const DATA_COLUMNS: DataTableColumn[] = [
-  {columnType: "text", sortable: true, title: "Title", width: 220},
-  {columnType: "text", sortable: true, title: "Status", width: 100},
-  {columnType: "number", sortable: true, title: "Priority", width: 90},
-  {columnType: "number", sortable: true, title: "Version", width: 90},
-  {columnType: "text", sortable: true, title: "Published", width: 150},
-  {columnType: "text", sortable: true, title: "Expires", width: 150},
+  {columnType: "text", sortable: true, title: "Title", width: 200},
+  {columnType: "text", sortable: true, title: "Status", width: 90},
+  {columnType: "text", sortable: true, title: "Display", width: 80},
+  {columnType: "text", sortable: true, title: "Audience", width: 90},
+  {columnType: "text", sortable: true, title: "Policy", width: 100},
+  {columnType: "number", sortable: true, title: "Priority", width: 80},
+  {columnType: "number", sortable: true, title: "Version", width: 80},
+  {columnType: "text", sortable: true, title: "Published", width: 140},
+  {columnType: "text", sortable: true, title: "Expires", width: 140},
 ];
 
-const DATA_COLUMN_KEYS = ["title", "status", "priority", "version", "publishedAt", "expiresAt"];
+const DATA_COLUMN_KEYS = [
+  "title",
+  "status",
+  "displayMode",
+  "audienceType",
+  "acknowledgementPolicy",
+  "priority",
+  "version",
+  "publishedAt",
+  "expiresAt",
+];
 
 const formatDateCell = (value: unknown): string => {
   if (!value) {

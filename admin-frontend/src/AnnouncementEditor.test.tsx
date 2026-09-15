@@ -1,7 +1,9 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {SelectField} from "@terreno/ui";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
@@ -28,6 +30,14 @@ let publishImpl: (id: string) => Promise<unknown> = async () => ({data: {status:
 let archiveImpl: (id: string) => Promise<unknown> = async () => ({data: {status: "archived"}});
 
 const mutationSpecs: unknown[] = [];
+const querySpecs: unknown[] = [];
+interface ConfigState {
+  data: {defaultAcknowledgementPolicy?: string} | undefined;
+  error: unknown;
+  isLoading: boolean;
+}
+const configState: ConfigState = {data: undefined, error: null, isLoading: false};
+
 const makeApi = () => ({
   injectEndpoints: ({endpoints}: {endpoints: (b: unknown) => Record<string, unknown>}) => {
     endpoints({
@@ -37,9 +47,24 @@ const makeApi = () => ({
         }
         return spec;
       },
-      query: (spec: unknown) => spec,
+      query: (spec: Record<string, unknown>) => {
+        if (typeof spec?.query === "function") {
+          querySpecs.push(spec.query());
+        }
+        return spec;
+      },
     });
     return {
+      useAnnouncementConfigQuery: (_arg: unknown, opts?: {skip?: boolean}) => {
+        if (opts?.skip) {
+          return {data: undefined, error: null, isLoading: false};
+        }
+        return {
+          data: configState.data,
+          error: configState.error,
+          isLoading: configState.isLoading,
+        };
+      },
       useArchiveAnnouncementMutation: () => [
         (id: string) => ({
           unwrap: async () => {
@@ -107,6 +132,10 @@ describe("AnnouncementEditor", () => {
     publishCalls.length = 0;
     archiveCalls.length = 0;
     mutationSpecs.length = 0;
+    querySpecs.length = 0;
+    configState.data = undefined;
+    configState.error = null;
+    configState.isLoading = false;
     createImpl = async (b) => ({_id: "new-id", ...(b as Record<string, unknown>)});
     updateImpl = async (a) => ({_id: (a as Record<string, unknown>).id});
     publishImpl = async () => ({data: {status: "published"}});
@@ -392,5 +421,162 @@ describe("AnnouncementEditor", () => {
     await press(getByTestId("announcement-save-button"));
     expect(updateCalls.length).toBe(1);
     expect(getByTestId("announcement-title-input")).toBeDefined();
+  });
+
+  it("wires the config query to GET /announcements/config", () => {
+    renderWithTheme(<AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />);
+    assert.isAtLeast(querySpecs.length, 1);
+    assert.deepEqual(querySpecs[0], {method: "GET", url: "/announcements/config"});
+  });
+
+  it("pre-fills acknowledgement policy from plugin config on create", async () => {
+    configState.data = {defaultAcknowledgementPolicy: "required"};
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const policySelect = UNSAFE_root.findAllByType(SelectField).find(
+      (node: ReactTestInstance) => node.props.testID === "announcement-acknowledgement-policy-input"
+    );
+    assert.equal(policySelect?.props.value, "required");
+  });
+
+  it("defaults acknowledgement policy to dismiss-only when config fetch fails", async () => {
+    configState.error = new Error("config unavailable");
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const policySelect = UNSAFE_root.findAllByType(SelectField).find(
+      (node: ReactTestInstance) => node.props.testID === "announcement-acknowledgement-policy-input"
+    );
+    assert.equal(policySelect?.props.value, "dismiss-only");
+  });
+
+  it("does not overwrite user-changed acknowledgement policy when config arrives late", async () => {
+    configState.isLoading = true;
+    const {UNSAFE_root, rerender} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    const policySelect = () =>
+      UNSAFE_root.findAllByType(SelectField).find(
+        (node: ReactTestInstance) =>
+          node.props.testID === "announcement-acknowledgement-policy-input"
+      );
+    await act(async () => {
+      policySelect()?.props.onChange("required");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    configState.isLoading = false;
+    configState.data = {defaultAcknowledgementPolicy: "dismiss-only"};
+    await act(async () => {
+      rerender(<AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    assert.equal(policySelect()?.props.value, "required");
+  });
+
+  it("loads structured targeting fields in edit mode", async () => {
+    state.formData = {
+      acknowledgementPolicy: "required",
+      audienceType: "staff",
+      body: "Body",
+      displayMode: "banner",
+      minBuildNumber: 42,
+      platforms: ["web"],
+      priority: 2,
+      status: "draft",
+      title: "Staff banner",
+      version: 1,
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="a1" />
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const selectByTestId = (testID: string): ReactTestInstance | undefined =>
+      UNSAFE_root.findAllByType(SelectField).find(
+        (node: ReactTestInstance) => node.props.testID === testID
+      );
+    assert.equal(selectByTestId("announcement-display-mode-input")?.props.value, "banner");
+    assert.equal(selectByTestId("announcement-audience-type-input")?.props.value, "staff");
+    assert.equal(
+      selectByTestId("announcement-acknowledgement-policy-input")?.props.value,
+      "required"
+    );
+    const minBuild = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props.testID === "announcement-min-build-input"
+    )[0];
+    assert.equal(minBuild?.props.value, "42");
+  });
+
+  it("persists structured targeting fields on create without requiresAcknowledgement", async () => {
+    configState.data = {defaultAcknowledgementPolicy: "dismiss-only"};
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("announcement-title-input"), "New");
+      fireEvent.changeText(getByTestId("announcement-body-input-input"), "Body");
+      UNSAFE_root.findAllByType(SelectField)
+        .find((node: ReactTestInstance) => node.props.testID === "announcement-display-mode-input")
+        ?.props.onChange("banner");
+      UNSAFE_root.findAllByType(SelectField)
+        .find((node: ReactTestInstance) => node.props.testID === "announcement-audience-type-input")
+        ?.props.onChange("patient");
+      UNSAFE_root.findAllByType(SelectField)
+        .find(
+          (node: ReactTestInstance) =>
+            node.props.testID === "announcement-acknowledgement-policy-input"
+        )
+        ?.props.onChange("required");
+      fireEvent.changeText(getByTestId("announcement-min-build-input"), "10");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    await press(getByTestId("announcement-save-button"));
+    assert.equal(createCalls.length, 1);
+    const payload = createCalls[0] as Record<string, unknown>;
+    assert.equal(payload.displayMode, "banner");
+    assert.equal(payload.audienceType, "patient");
+    assert.equal(payload.acknowledgementPolicy, "required");
+    assert.equal(payload.minBuildNumber, 10);
+    assert.isUndefined(payload.requiresAcknowledgement);
+  });
+
+  it("omits status on edit save and clears minBuildNumber with null", async () => {
+    state.formData = {
+      acknowledgementPolicy: "dismiss-only",
+      audience: {},
+      audienceType: "all",
+      body: "Body",
+      displayMode: "modal",
+      minBuildNumber: 5,
+      platforms: ["ios", "web"],
+      priority: 2,
+      status: "published",
+      title: "Draft",
+      version: 1,
+    };
+    const {getByTestId} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="a1" />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("announcement-min-build-input"), "");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    await press(getByTestId("announcement-save-button"));
+    assert.equal(updateCalls.length, 1);
+    const updateBody = (updateCalls[0] as Record<string, unknown>).body as Record<string, unknown>;
+    assert.isUndefined(updateBody.status);
+    assert.equal(updateBody.displayMode, "modal");
+    assert.equal(updateBody.audienceType, "all");
+    assert.equal(updateBody.acknowledgementPolicy, "dismiss-only");
+    assert.isNull(updateBody.minBuildNumber);
+    assert.isUndefined(updateBody.requiresAcknowledgement);
   });
 });

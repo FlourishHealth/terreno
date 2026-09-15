@@ -23,6 +23,20 @@ new AnnouncementsApp({
 
 2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the surface to users who only acknowledged the previous version.
 
+### Admin editor fields
+
+`AnnouncementEditor` exposes structured targeting controls (no raw `requiresAcknowledgement` boolean):
+
+| Field | Control | Notes |
+|-------|---------|-------|
+| `displayMode` | Select | `modal`, `banner`, or `feed` |
+| `audienceType` | Select | `all`, `staff`, or `patient` — composed with `matchAudience` |
+| `acknowledgementPolicy` | Select | `required` or `dismiss-only`. On **create**, pre-filled from `GET /announcements/config` (`defaultAcknowledgementPolicy`); defaults to `dismiss-only` when config is unavailable |
+| `minBuildNumber` | Number (optional) | Minimum client build; cleared with `null` on edit when empty |
+| `audience` | JSON textarea (advanced) | Opaque metadata for `matchAudience`; use audience type for staff/patient/all |
+
+`AnnouncementList` shows status, display mode, audience type, and acknowledgement policy columns alongside priority and version.
+
 ## Frontend
 
 Wrap authenticated app content:

@@ -61,6 +61,9 @@ describe("AnnouncementList", () => {
       data: [
         {
           _id: "a",
+          acknowledgementPolicy: "required",
+          audienceType: "staff",
+          displayMode: "modal",
           priority: 1,
           publishedAt: "2026-01-01T12:00:00.000Z",
           status: "published",

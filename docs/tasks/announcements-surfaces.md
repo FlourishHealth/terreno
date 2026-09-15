@@ -63,7 +63,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
 
 ## Phase 3: Admin, example, docs
 
-- [ ] **Task 3.1**: Admin editor structured targeting
+- [x] **Task 3.1**: Admin editor structured targeting
   - Delivers: Selects for displayMode, audienceType, acknowledgementPolicy (from config), number field for minBuildNumber; list columns; audience JSON remains advanced
   - Files: `admin-frontend/src/AnnouncementEditor.tsx`, `admin-frontend/src/AnnouncementEditor.test.tsx`, `admin-frontend/src/AnnouncementList.tsx`
   - Docs: `docs/how-to/product-announcements.md` (admin fields)

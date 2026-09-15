@@ -1,5 +1,4 @@
 import {
-  BooleanField,
   Box,
   Button,
   CheckBox,
@@ -8,23 +7,31 @@ import {
   MarkdownEditor,
   NumberField,
   Page,
+  SelectField,
   Spinner,
   Text,
   TextField,
   useToast,
 } from "@terreno/ui";
 import {DateTime} from "luxon";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 type AnnouncementPlatform = "ios" | "android" | "web";
 type AnnouncementStatus = "draft" | "published" | "archived";
+type AnnouncementDisplayMode = "modal" | "banner" | "feed";
+type AnnouncementAudienceType = "staff" | "patient" | "all";
+type AcknowledgementPolicy = "required" | "dismiss-only";
 
 interface AnnouncementPrimaryAction {
   label: string;
   url: string;
+}
+
+interface AnnouncementConfigResponse {
+  defaultAcknowledgementPolicy?: AcknowledgementPolicy;
 }
 
 /** Announcement document — shape comes from the consumer's Mongoose model. */
@@ -35,6 +42,10 @@ interface AnnouncementDocument {
   status?: AnnouncementStatus;
   version?: number;
   priority?: number;
+  displayMode?: AnnouncementDisplayMode;
+  audienceType?: AnnouncementAudienceType;
+  acknowledgementPolicy?: AcknowledgementPolicy;
+  minBuildNumber?: number | null;
   requiresAcknowledgement?: boolean;
   audience?: unknown;
   publishAt?: string;
@@ -59,11 +70,30 @@ interface AnnouncementEditorProps {
 
 const ANNOUNCEMENT_ADMIN_ROUTE = "/announcements";
 const ANNOUNCEMENT_ACTION_ROUTE = "/announcements";
+const ANNOUNCEMENT_CONFIG_ROUTE = "/announcements/config";
+const DEFAULT_ACKNOWLEDGEMENT_POLICY: AcknowledgementPolicy = "dismiss-only";
 
 const PLATFORM_OPTIONS: {label: string; value: AnnouncementPlatform}[] = [
   {label: "iOS", value: "ios"},
   {label: "Android", value: "android"},
   {label: "Web", value: "web"},
+];
+
+const DISPLAY_MODE_OPTIONS: {label: string; value: AnnouncementDisplayMode}[] = [
+  {label: "Modal (blocking)", value: "modal"},
+  {label: "Banner (non-blocking)", value: "banner"},
+  {label: "Feed only (changelog)", value: "feed"},
+];
+
+const AUDIENCE_TYPE_OPTIONS: {label: string; value: AnnouncementAudienceType}[] = [
+  {label: "All users", value: "all"},
+  {label: "Staff", value: "staff"},
+  {label: "Patients", value: "patient"},
+];
+
+const ACKNOWLEDGEMENT_POLICY_OPTIONS: {label: string; value: AcknowledgementPolicy}[] = [
+  {label: "Required (Got it)", value: "required"},
+  {label: "Dismiss only", value: "dismiss-only"},
 ];
 
 const toIsoOrEmpty = (value: unknown): string => {
@@ -85,6 +115,18 @@ const parseAudienceJson = (raw: string): unknown => {
   return JSON.parse(trimmed) as unknown;
 };
 
+const parseMinBuildNumber = (raw: string): number | null | undefined => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return null;
+  }
+  return parsed;
+};
+
 const enhancedApiCache = new WeakMap<AdminApi, unknown>();
 
 const getEnhancedApi = (api: AdminApi): unknown => {
@@ -94,6 +136,12 @@ const getEnhancedApi = (api: AdminApi): unknown => {
   }
   const enhanced = api.injectEndpoints({
     endpoints: (build: EndpointBuilder) => ({
+      announcementConfig: build.query({
+        query: () => ({
+          method: "GET",
+          url: ANNOUNCEMENT_CONFIG_ROUTE,
+        }),
+      }),
       archiveAnnouncement: build.mutation({
         invalidatesTags: ["admin_Announcement"],
         query: (announcementId: string) => ({
@@ -133,13 +181,20 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
   const [status, setStatus] = useState<AnnouncementStatus>("draft");
   const [version, setVersion] = useState(1);
   const [priority, setPriority] = useState("0");
-  const [requiresAcknowledgement, setRequiresAcknowledgement] = useState(false);
+  const [displayMode, setDisplayMode] = useState<AnnouncementDisplayMode>("modal");
+  const [audienceType, setAudienceType] = useState<AnnouncementAudienceType>("all");
+  const [acknowledgementPolicy, setAcknowledgementPolicy] = useState<AcknowledgementPolicy>(
+    DEFAULT_ACKNOWLEDGEMENT_POLICY
+  );
+  const [minBuildNumber, setMinBuildNumber] = useState("");
   const [audienceJson, setAudienceJson] = useState("{}");
   const [publishAt, setPublishAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [platforms, setPlatforms] = useState<AnnouncementPlatform[]>(["ios", "android", "web"]);
   const [primaryActionLabel, setPrimaryActionLabel] = useState("");
   const [primaryActionUrl, setPrimaryActionUrl] = useState("");
+
+  const acknowledgementPolicyTouchedRef = useRef(false);
 
   const routePath = `${resolvedApiBase}${ANNOUNCEMENT_ADMIN_ROUTE}`;
 
@@ -153,6 +208,11 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
   const [publishAnnouncement, {isLoading: isPublishing}] =
     enhanced.usePublishAnnouncementMutation();
   const [archiveAnnouncement, {isLoading: isArchiving}] = enhanced.useArchiveAnnouncementMutation();
+  const {
+    data: configData,
+    isLoading: isConfigLoading,
+    error: configError,
+  } = enhanced.useAnnouncementConfigQuery(undefined, {skip: isEditMode});
 
   const {data: announcementData, isLoading: isAnnouncementLoading} = useReadQuery(id ?? "", {
     skip: !isEditMode || !id,
@@ -160,6 +220,30 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
 
   const [createAnnouncement, {isLoading: isCreating}] = useCreateMutation();
   const [updateAnnouncement, {isLoading: isUpdating}] = useUpdateMutation();
+
+  const handleAcknowledgementPolicyChange = useCallback((value: string) => {
+    acknowledgementPolicyTouchedRef.current = true;
+    setAcknowledgementPolicy(value as AcknowledgementPolicy);
+  }, []);
+
+  // Pre-fill acknowledgement policy from plugin config on create (never overwrite user edits)
+  useEffect(() => {
+    if (isEditMode || acknowledgementPolicyTouchedRef.current) {
+      return;
+    }
+    if (configError) {
+      setAcknowledgementPolicy(DEFAULT_ACKNOWLEDGEMENT_POLICY);
+      return;
+    }
+    if (isConfigLoading || !configData) {
+      return;
+    }
+    const config = configData as AnnouncementConfigResponse;
+    const policy = config.defaultAcknowledgementPolicy;
+    if (policy === "required" || policy === "dismiss-only") {
+      setAcknowledgementPolicy(policy);
+    }
+  }, [configData, configError, isConfigLoading, isEditMode]);
 
   // Populate form state when editing an existing announcement
   useEffect(() => {
@@ -171,7 +255,41 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
     setStatus((announcementData.status as AnnouncementStatus | undefined) ?? "draft");
     setVersion(typeof announcementData.version === "number" ? announcementData.version : 1);
     setPriority(String(announcementData.priority ?? 0));
-    setRequiresAcknowledgement(Boolean(announcementData.requiresAcknowledgement));
+    const loadedDisplayMode = announcementData.displayMode as AnnouncementDisplayMode | undefined;
+    if (
+      loadedDisplayMode === "modal" ||
+      loadedDisplayMode === "banner" ||
+      loadedDisplayMode === "feed"
+    ) {
+      setDisplayMode(loadedDisplayMode);
+    }
+    const loadedAudienceType = announcementData.audienceType as
+      | AnnouncementAudienceType
+      | undefined;
+    if (
+      loadedAudienceType === "staff" ||
+      loadedAudienceType === "patient" ||
+      loadedAudienceType === "all"
+    ) {
+      setAudienceType(loadedAudienceType);
+    }
+    const loadedPolicy = announcementData.acknowledgementPolicy as
+      | AcknowledgementPolicy
+      | undefined;
+    if (loadedPolicy === "required" || loadedPolicy === "dismiss-only") {
+      acknowledgementPolicyTouchedRef.current = true;
+      setAcknowledgementPolicy(loadedPolicy);
+    } else if (announcementData.requiresAcknowledgement === true) {
+      acknowledgementPolicyTouchedRef.current = true;
+      setAcknowledgementPolicy("required");
+    } else if (announcementData.requiresAcknowledgement === false) {
+      acknowledgementPolicyTouchedRef.current = true;
+      setAcknowledgementPolicy("dismiss-only");
+    }
+    const loadedMinBuild = announcementData.minBuildNumber;
+    setMinBuildNumber(
+      typeof loadedMinBuild === "number" && loadedMinBuild > 0 ? String(loadedMinBuild) : ""
+    );
     setAudienceJson(
       announcementData.audience != null ? JSON.stringify(announcementData.audience, null, 2) : "{}"
     );
@@ -211,23 +329,31 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
       throw new Error("Primary action requires both label and URL");
     }
 
+    const parsedMinBuild = parseMinBuildNumber(minBuildNumber);
+
     const payload: Record<string, unknown> = {
+      acknowledgementPolicy,
       audience,
+      audienceType,
       body: body.trim(),
+      displayMode,
       platforms: platforms.length > 0 ? platforms : ["ios", "android", "web"],
       priority: parseInt(priority, 10) || 0,
-      requiresAcknowledgement,
       title: title.trim(),
     };
 
     if (isEditMode) {
       payload.expiresAt = expiresAt.trim() ? DateTime.fromISO(expiresAt).toUTC().toJSDate() : null;
+      payload.minBuildNumber = parsedMinBuild;
       payload.primaryAction = primaryAction ?? null;
       payload.publishAt = publishAt.trim() ? DateTime.fromISO(publishAt).toUTC().toJSDate() : null;
     } else {
       payload.status = status;
       if (expiresAt.trim()) {
         payload.expiresAt = DateTime.fromISO(expiresAt).toUTC().toJSDate();
+      }
+      if (parsedMinBuild != null) {
+        payload.minBuildNumber = parsedMinBuild;
       }
       if (primaryAction) {
         payload.primaryAction = primaryAction;
@@ -239,16 +365,19 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
 
     return payload;
   }, [
+    acknowledgementPolicy,
     audienceJson,
+    audienceType,
     body,
+    displayMode,
     expiresAt,
+    isEditMode,
+    minBuildNumber,
     platforms,
     primaryActionLabel,
     primaryActionUrl,
     priority,
-    isEditMode,
     publishAt,
-    requiresAcknowledgement,
     status,
     title,
   ]);
@@ -430,6 +559,52 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
         </Box>
 
         <Box gap={3}>
+          <Heading size="sm">Targeting</Heading>
+          <SelectField
+            onChange={(value) => setDisplayMode(value as AnnouncementDisplayMode)}
+            options={DISPLAY_MODE_OPTIONS}
+            requireValue
+            testID="announcement-display-mode-input"
+            title="Display mode"
+            value={displayMode}
+          />
+          <SelectField
+            onChange={(value) => setAudienceType(value as AnnouncementAudienceType)}
+            options={AUDIENCE_TYPE_OPTIONS}
+            requireValue
+            testID="announcement-audience-type-input"
+            title="Audience type"
+            value={audienceType}
+          />
+          <SelectField
+            onChange={handleAcknowledgementPolicyChange}
+            options={ACKNOWLEDGEMENT_POLICY_OPTIONS}
+            requireValue
+            testID="announcement-acknowledgement-policy-input"
+            title="Acknowledgement policy"
+            value={acknowledgementPolicy}
+          />
+          <NumberField
+            helperText="Optional minimum client build number for this announcement"
+            onChange={setMinBuildNumber}
+            testID="announcement-min-build-input"
+            title="Minimum build number (optional)"
+            type="number"
+            value={minBuildNumber}
+          />
+          <TextField
+            helperText="Advanced: opaque JSON passed to matchAudience. Use audience type above for staff/patient/all."
+            multiline
+            onChange={setAudienceJson}
+            placeholder='{"roles": ["premium"]}'
+            rows={4}
+            testID="announcement-audience-input"
+            title="Audience JSON (advanced)"
+            value={audienceJson}
+          />
+        </Box>
+
+        <Box gap={3}>
           <Heading size="sm">Delivery</Heading>
           <NumberField
             onChange={setPriority}
@@ -437,12 +612,6 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
             title="Priority"
             type="number"
             value={priority}
-          />
-          <BooleanField
-            onChange={setRequiresAcknowledgement}
-            title="Requires acknowledgement"
-            value={requiresAcknowledgement}
-            variant="title"
           />
           <DateTimeField
             onChange={setPublishAt}
@@ -476,19 +645,6 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
               </Box>
             ))}
           </Box>
-        </Box>
-
-        <Box gap={3}>
-          <Heading size="sm">Targeting</Heading>
-          <TextField
-            multiline
-            onChange={setAudienceJson}
-            placeholder='{"tiers": ["premium"]}'
-            rows={4}
-            testID="announcement-audience-input"
-            title="Audience JSON"
-            value={audienceJson}
-          />
         </Box>
 
         <Box gap={3}>
