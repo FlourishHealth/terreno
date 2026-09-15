@@ -1,6 +1,6 @@
 # Agent UI Blocks — a strict YAML DSL for agent-rendered Terreno components
 
-**Status:** Draft — awaiting approval (Grow ran unattended; every Decisions row marked `assumed` is a recommended default, not a confirmed choice)  
+**Status:** Draft — awaiting approval (D1, D4, D6 confirmed in grilling round 1; rows marked `assumed` are recommended defaults, not confirmed choices)  
 **Branch:** `cursor/agent-ui-blocks-grow-e5c0`  
 **Owner:** unassigned  
 **Created:** 2026-09-15  
@@ -66,13 +66,13 @@ list with ids, caps, and a `validate` call (D) — without importing a moving de
 
 | ID | Question | Decision | Status |
 | --- | --- | --- | --- |
-| D1 | Own the grammar or adopt json-render / A2UI? | Own it (Approach A). Ship the contract as a tiny dependency-free-ish package so an adapter to json-render or A2UI can be added later without touching the renderer. | assumed |
+| D1 | Own the grammar or adopt json-render / A2UI? (Q1: A / B / C / D) | Own it (Approach A). Ship the contract as a tiny dependency-free-ish package so an adapter to json-render or A2UI can be added later without touching the renderer. | **confirmed** 2026-09-15 |
 | D2 | Wire format on the model side? | YAML inside a fenced ` ```terreno-ui ` block in the normal markdown reply, interleaved with prose. The parser also accepts JSON (YAML superset), which is what the structured-output path emits. Whole-reply-is-YAML is rejected: it kills interleaving and streaming of prose. | assumed |
 | D3 | Nested tree or flat adjacency list? | Nested, depth-capped at 2 (`blocks` → `columns`/`card` → leaf). Nested YAML mirrors the rendered layout and is what humans review; the depth cap keeps LLM error rates near flat-list levels. Ids are optional except on interactive blocks and elements. | assumed |
-| D4 | Where does chart/table data live? | In a top-level `datasets:` map: `columns: [{name, type: string\|number\|date}]` plus `rows: [[...]]`. Charts and tables reference `data: <name>` and column names (`x`, `y`, `columns`). One dataset can feed a chart and a table; lint checks refs and types. Per-chart inline `points` is also accepted for one-off charts. | assumed |
+| D4 | Where does chart/table data live, and how do thousands of points work? (Q6: inline only / inline + `ref`) | In a top-level `datasets:` map. Each dataset is one of two sources. **`inline`**: `columns: [{name, type: string\|number\|date}]` plus `rows: [[...]]`, capped at 500 rows — for numbers the agent already has. **`ref`**: `{source: ref, id, grain?, limit?}` pointing at a server-side `AIDataset` handle that a tool returned (the model sees `{datasetId, columns, rowCount, preview}` instead of rows); the renderer fetches an aggregated or paginated slice from `GET /gpt/datasets/:id`. Charts and tables reference `data: <name>` and column names (`x`, `y`, `columns`); one dataset can feed a chart and a table; lint checks refs, types, and rendered-point caps. Per-chart inline `points` is also accepted for one-off charts. | **confirmed** 2026-09-15 (Q6 = b) |
 | D5 | v1 block catalog? | `heading`, `text` (markdown), `metric`, `badge`, `divider`, `context`, `chart` (`kind: line\|bar\|area\|donut`), `table`, `actions`, `columns` (2–4 children), `card`. Maps 1:1 onto `Heading`, `MarkdownView`, `Text`+`Heading`, `Badge`, `SectionDivider`, `Text size=sm color=secondaryLight`, chart components, `DataTable`, `Button`/`SegmentedControl`, `Box direction=row`, `Card`. | assumed |
-| D6 | Interaction model? | Elements carry an `action` with a closed `kind`: `reply` (post `text` to the chat as the user's next message), `open` (`url` or app `route`; host may allowlist), `select` (client-local: switch a target chart/table's `data` to another dataset), `callback` (`name` + `payload`, host-registered). The renderer emits one `onAction({blockId, elementId, action})`; it never executes code from the document. | assumed |
-| D7 | Hard limits (strict mode)? | Unknown keys fail. ≤ 50 blocks total, depth ≤ 2, ≤ 25 elements per `actions`, ≤ 4 columns, ≤ 8 datasets, ≤ 500 rows × 12 columns per dataset, ≤ 8 donut slices, ≤ 60 x-categories, text ≤ 4,000 chars per block, ≤ 20,000 chars per document. Same numbers everywhere (schema, prompt, docs). | assumed |
+| D6 | Interaction model, and how do Block Kit-style server callbacks work? (Q7: reserve `callback` / ship it) | Elements carry an `action` with a closed `kind`: `reply` (post `text` to the chat as the user's next message), `open` (`url` or app `route`; host may allowlist), `select` (client-local: switch a target chart/table's `data` to another dataset), `callback` (`name` + `payload`). The renderer emits one `onAction({blockId, elementId, messageId, action})`; it never executes code from the document. **`callback` ships in v1** with the Slack `block_actions` analog: hosts register `hostActions: {name: {payload: zodSchema, handler}}` on `addGptRoutes`; the client posts to `POST /gpt/actions`; the payload is validated against the host schema before the handler runs; the handler may return `text` (appended assistant message), `blocks` with `replace: block \| message` (in-place re-render, the `chat.update` analog), or nothing (button shows `loading` then success). Registered names are injected into the system prompt; an unregistered name fails validation (`UNKNOWN_HOST_ACTION`) and renders disabled. | **confirmed** 2026-09-15 (Q7 = b) |
+| D7 | Hard limits (strict mode)? | Unknown keys fail. ≤ 50 blocks total, depth ≤ 2, ≤ 25 elements per `actions`, ≤ 4 columns, ≤ 8 datasets, inline ≤ 500 rows × 12 columns, `ref` `limit` ≤ 1,000 rendered rows (≤ 60 categories for bar/donut), ≤ 8 donut slices, text ≤ 4,000 chars per block, ≤ 20,000 chars per document. Same numbers everywhere (schema, prompt, docs). | assumed |
 | D8 | Where does the contract live? | New workspace package `blocks/` → `@terreno/blocks` (schema, parse, validate, lint, JSON Schema, prompt section, fence extraction). Deps: `zod` (catalog) and `yaml` (already in `api`). No React, no Express. `@terreno/ui`, `@terreno/ai`, `@terreno/mcp` depend on it. | assumed |
 | D9 | Styling vocabulary exposed to the agent? | Only semantic enums already on `@terreno/ui` props: `Text`/`Heading` `size`, `Badge` `status`, `Button` `variant`, `metric.trend: up\|down\|flat`, `Box` `color` surface names. No numbers for spacing, no hex. | assumed |
 | D10 | Rendering while streaming? | Render on fence close. While the fence is open, `GPTChat` shows a `Spinner` row labelled "Rendering…". Invalid documents render a compact error `Banner` listing the first three errors and collapse the raw YAML behind an `Accordion`; the chat never crashes (wrapped in `ErrorBoundary`). | assumed |
@@ -82,6 +82,9 @@ list with ids, caps, and a `validate` call (D) — without importing a moving de
 | D14 | Where is it demonstrated first? | `demo` gets a `BlocksView` story and a **Blocks Playground** (YAML editor → live render + error list, the Block Kit Builder analog). `example-frontend` AI tab turns on `uiBlocks` and handles `reply`/`open`. `example-backend` passes `uiBlocks: true` to `addGptRoutes`. | assumed |
 | D15 | Dependency on PR #1302 charts? | `chart` block lands after #1302 merges and targets its single-series `{label, value}[]` API exactly. Multi-series stays rejected by the schema until the chart components grow it. | assumed |
 | D16 | Multi-fence documents per message? | Allowed. Each fence is independent (own `v`, own datasets). Cross-fence dataset references are an error. | assumed |
+| D17 | Who can create `AIDataset` handles? | Only server code: tools call `registerAiDataset({rows, columns, userId, historyId})` from `@terreno/ai`; the agent cannot mint handles or point a `ref` at a collection. `GET /gpt/datasets/:id` is `IsOwner` (the user who ran the tool) and scoped to the history. A `collection` source that lets the agent query models directly is out of scope (see Q8). | assumed |
+| D18 | `AIDataset` retention and shape? | Mongoose model `AIDataset` (`userId`, `historyId`, `columns`, `rows` as Mixed, `rowCount`, `created`) with a TTL index of 7 days and a hard cap of 50,000 rows × 12 columns per handle; `grain` buckets a `date` column server-side (`hour\|day\|week\|month`), `limit` + `page` paginate tables, and line/area over `limit` are downsampled with LTTB. | assumed |
+| D19 | Callback transport and logging? | `POST /gpt/actions` body `{historyId, messageId, blockId, elementId, name, payload}`, `IsAuthenticated` + owner-of-history check, shares the `/gpt` rate-limit bucket, logs an `AIRequest` with `requestType: "ui_action"`. Handler timeout 10 s; on timeout the button shows an error `Toast` and stays enabled. | assumed |
 
 ## Architecture
 
@@ -91,16 +94,21 @@ list with ids, caps, and a `validate` call (D) — without importing a moving de
         │
         ▼  markdown + ```terreno-ui fences (YAML)          (or Output.object(schema) JSON)
    @terreno/ai  /gpt/prompt  ── streams text-delta SSE ──────────────────────┐
+        │  tools: registerAiDataset(rows) → {datasetId, columns, rowCount, preview}
         │  on fence close: extractBlockFences → parseBlocks → validateBlocks │
         │  emits SSE {blocks: {index, ok, errors[]}}  + AIRequest.metadata   │
         ▼                                                                    ▼
-   @terreno/ui  GPTChat ── MarkdownView(fenceRenderers) ── BlocksView(doc, onAction)
+   @terreno/ui  GPTChat ── MarkdownView(fenceRenderers) ── BlocksView(doc, onAction, resolveDataset)
                                                             │
                           Heading · MarkdownView · Badge · DataTable · Card · Box
                           BarChart · LineChart · AreaChart · DonutChart (#1302)
-                          Button · SegmentedControl  ──►  onAction({blockId, elementId, action})
+                          Button · SegmentedControl  ──►  onAction({blockId, elementId, messageId, action})
                                                             │
-                          host: reply → onSubmit(text) · open → router · callback → app handler
+                          host: reply → onSubmit(text) · open → router
+                                select → local dataset switch
+                                callback → POST /gpt/actions → hostActions[name].handler
+                                              └─► {text?, blocks?, replace?} → re-render block/message
+                          ref datasets → GET /gpt/datasets/:id?grain=&limit=&page=
 ```
 
 Layers and ownership:
@@ -109,7 +117,7 @@ Layers and ownership:
 | --- | --- | --- |
 | Contract | `@terreno/blocks` | Zod schema (`strict()`), `parseBlocks`, `validateBlocks` (structure + semantic lint), `blocksJsonSchema`, `blocksPromptSection`, `extractBlockFences`, error codes, limits, fixtures |
 | Renderer | `@terreno/ui` | `BlocksView` (lazy, `heavyOptionalExports`), `MarkdownView.fenceRenderers`, `GPTChat.onBlockAction`, error/placeholder states |
-| Producer | `@terreno/ai` | `TERRENO_UI_BLOCKS_SYSTEM_PROMPT`, `addGptRoutes({uiBlocks})`, post-stream validation SSE, `AIService.generateBlocks`, repair pass, request logging |
+| Producer | `@terreno/ai` | `TERRENO_UI_BLOCKS_SYSTEM_PROMPT`, `addGptRoutes({uiBlocks: {hostActions}})`, post-stream validation SSE, `AIService.generateBlocks`, repair pass, `AIDataset` model + `registerAiDataset` + `GET /gpt/datasets/:id`, `POST /gpt/actions`, request logging |
 | Tooling | `@terreno/mcp`, `blocks/bin` | `terreno_validate_ui_blocks` tool, `terreno-blocks validate` CLI |
 | Proof | `demo`, `example-*` | Stories, playground, AI tab wiring, e2e mock |
 
@@ -118,7 +126,7 @@ Layers and ownership:
 ```yaml
 v: 1
 datasets:
-  signups:
+  signups:                      # inline: the agent already has the numbers (≤ 500 rows)
     columns:
       - {name: month, type: string}
       - {name: count, type: number}
@@ -126,6 +134,11 @@ datasets:
       - [Jan, 120]
       - [Feb, 145]
       - [Mar, 138]
+  signups_daily:                # ref: a tool returned a handle; rows never pass through the model
+    source: ref
+    id: ds_8f2c1
+    grain: week
+    limit: 200
 blocks:
   - type: heading
     text: Signups this quarter
@@ -191,8 +204,11 @@ Element reference: `button {id, text, action, variant?, iconName?}`,
 3. Zod `strict()` structural pass → all structural errors at once, not first-failure.
 4. Semantic lint pass: dataset refs, column existence and type (`y` numeric, `x`
    string/date), row arity, id uniqueness, `select` targets exist and are charts/tables,
-   limits from D7, chart heuristics (`BAR_TOO_MANY_CATEGORIES` > 60, `DONUT_TOO_MANY_SLICES`
-   > 8, `LINE_SINGLE_POINT`, `TABLE_TOO_WIDE` > 12 columns).
+   `callback` names in the host allowlist (`UNKNOWN_HOST_ACTION`, server-side only),
+   limits from D7 including `ref` `limit` caps (`TOO_MANY_POINTS — set grain to a coarser
+   bucket`), chart heuristics (`BAR_TOO_MANY_CATEGORIES` > 60, `DONUT_TOO_MANY_SLICES` > 8,
+   `LINE_SINGLE_POINT`, `TABLE_TOO_WIDE` > 12 columns). `ref` column checks run
+   server-side where the handle's columns are known; client-side they defer to fetch time.
 5. Result: `{ok: true, doc, warnings}` or `{ok: false, errors, warnings}`. Pure, sync,
    no I/O, target < 5 ms for a 50-block document (asserted in a test).
 
@@ -206,18 +222,53 @@ Element reference: `button {id, text, action, variant?, iconName?}`,
 | `reply` | calls `onSubmit(action.text)` | same |
 | `open` | calls `onBlockAction`; no default navigation | `router.push(route)` or `Linking.openURL(url)` after allowlist |
 | `select` | handled inside `BlocksView` (local state), then reported | reported only |
-| `callback` | calls `onBlockAction` | app handler map by `name` |
+| `callback` | calls `onBlockAction`; button enters `loading` until the host resolves | `POST /gpt/actions`; on `{blocks, replace}` the message/block re-renders; on `{text}` an assistant message is appended |
+
+Server callback contract (Block Kit `block_actions` analog, typed):
+
+```ts
+addGptRoutes(router, {
+  aiService,
+  openApiOptions: options,
+  uiBlocks: {
+    hostActions: {
+      exportDataset: {
+        payload: z.object({dataset: z.string()}).strict(),
+        handler: async ({payload, user, history}) => ({
+          replace: "block",
+          blocks: {v: 1, blocks: [{type: "badge", text: "Exporting…", status: "info"}]},
+        }),
+      },
+    },
+  },
+});
+```
+
+Datasets from tools (`ref` source):
+
+```ts
+const handle = await registerAiDataset({userId, historyId, columns, rows}); // server only
+// tool result seen by the model:
+// {datasetId: "ds_8f2c1", columns: [...], rowCount: 12480, preview: rows.slice(0, 20), stats: {...}}
+```
 
 ## Models
 
-None. `AIRequest.metadata` gains `uiBlocks: {fences, valid, invalid, errorCodes[]}` for
-observability; no schema change (Mixed).
+| Model | Fields | Notes |
+| --- | --- | --- |
+| `AIDataset` (new, `@terreno/ai`) | `userId` (ref User, required), `historyId` (ref GptHistory), `columns: [{name, type}]`, `rows: Mixed[]`, `rowCount: number`, `created` | TTL index 7 days on `created`; cap 50,000 × 12; `isDeletedPlugin`, `createdUpdatedPlugin`; every field has a `description` |
+
+`AIRequest.metadata` gains `uiBlocks: {fences, valid, invalid, errorCodes[]}` for
+observability; `requestType` gains `"ui_blocks"` and `"ui_action"`.
 
 ## APIs
 
 | Surface | Change |
 | --- | --- |
-| `addGptRoutes(router, {aiService, openApiOptions, uiBlocks?: boolean \| {hostActions?: string[]}})` | When enabled, appends `TERRENO_UI_BLOCKS_SYSTEM_PROMPT` (with host `callback` names) to the effective system prompt; after the text stream ends, validates every fence and emits SSE `{blocks: {index, ok, errors, warnings}}` before `{done}`. |
+| `addGptRoutes(router, {aiService, openApiOptions, uiBlocks?: boolean \| {hostActions?: Record<string, HostAction>}})` | When enabled, appends `TERRENO_UI_BLOCKS_SYSTEM_PROMPT` (with host `callback` names) to the effective system prompt; after the text stream ends, validates every fence and emits SSE `{blocks: {index, ok, errors, warnings}}` before `{done}`; mounts the two routes below. |
+| `POST /gpt/actions` | Body `{historyId, messageId, blockId, elementId, name, payload}`; validates `payload` with `hostActions[name].payload`; runs the handler (10 s timeout); returns `{text?, blocks?, replace?}`; `IsAuthenticated` + history owner; logged as `ui_action`. |
+| `GET /gpt/datasets/:id` | Query `grain?`, `limit?`, `page?`; `IsOwner`; returns `{columns, rows, rowCount, page, more}` after server-side bucketing / LTTB / pagination. |
+| `registerAiDataset({userId, historyId, columns, rows})` | Server-only helper for tools; returns the tool-result shape the model sees (`datasetId`, `columns`, `rowCount`, `preview`, `stats`). |
 | `AIService.generateBlocks({prompt, systemPrompt?, userId?, repair?: boolean})` | `Output.object(blocksJsonSchema)` → `validateBlocks`; on failure and `repair !== false`, one retry with errors appended; logs `requestType: "ui_blocks"`. |
 | `@terreno/blocks` exports | `parseBlocks`, `validateBlocks`, `extractBlockFences`, `blocksSchema` (Zod), `blocksJsonSchema`, `blocksPromptSection`, `BLOCK_LIMITS`, `BLOCK_ERROR_CODES`, types. |
 | MCP | `terreno_validate_ui_blocks({document: string})` → text report identical to CLI output. |
@@ -227,7 +278,7 @@ observability; no schema change (Mixed).
 
 | Component | Package | Notes |
 | --- | --- | --- |
-| `BlocksView` | `@terreno/ui` (lazy) | Props: `document: string \| BlocksDocument`, `onAction?`, `hostActions?`, `testID?`. Validates when given a string; renders error `Banner` + collapsed raw when invalid. |
+| `BlocksView` | `@terreno/ui` (lazy) | Props: `document: string \| BlocksDocument`, `onAction?`, `hostActions?` (names), `resolveDataset?: (ref) => Promise<Dataset>`, `pendingElementIds?`, `testID?`. Validates when given a string; renders error `Banner` + collapsed raw when invalid; `ref` datasets show chart `loading` until resolved. |
 | `MarkdownView.fenceRenderers` | `@terreno/ui` | `Record<lang, (code: string) => ReactNode>`; unknown langs keep current fence styling. |
 | `GPTChat.onBlockAction` | `@terreno/ui` | Wires `fenceRenderers["terreno-ui"]` → `BlocksView`; `reply` → `onSubmit`; open fences → placeholder `Spinner` row. |
 | Blocks Playground | `demo` | Story with `TextArea` (YAML) → live `BlocksView` + error list; ships the golden fixtures as presets. |
@@ -238,7 +289,7 @@ observability; no schema change (Mixed).
 | --- | --- | --- |
 | 1 | `@terreno/blocks` contract: schema, parse, validate, lint, JSON Schema, prompt, fences, CLI | Golden fixtures: every valid fixture parses; every invalid fixture yields the expected code at the expected path; < 5 ms |
 | 2 | `@terreno/ui` renderer: leaf blocks → chart/table → layout + actions → `GPTChat` wiring + playground | Bun tests per block; demo screenshots; playground video |
-| 3 | `@terreno/ai` producer: `uiBlocks` route option, validation SSE, `generateBlocks`, repair | supertest with mock model emitting fences; SSE `blocks` event asserted; repair retry asserted |
+| 3 | `@terreno/ai` producer: `uiBlocks` route option, validation SSE, `generateBlocks`, repair, `AIDataset` + `GET /gpt/datasets/:id`, `POST /gpt/actions` | supertest with mock model emitting fences; SSE `blocks` event asserted; repair retry asserted; dataset bucketing and action payload validation asserted |
 | 4 | Tooling + examples + docs: MCP tool, example-frontend AI tab, example-backend option, how-to | e2e `ai-chat.spec.ts` renders a chart from mocked SSE; MCP tool test |
 
 ## Feature Flags & Migrations
@@ -249,7 +300,8 @@ None. `uiBlocks` is off unless the consumer passes it. No data migration.
 
 - Progressive rendering via streaming YAML patches (json-render `@json-render/yaml`
   style) once the fence-close path is stable.
-- Live datasets (`data: {source: tool, name}`) and pagination for large tables.
+- A `collection` dataset source that lets the agent query Mongoose models directly
+  through permission-scoped aggregation (Q8, deferred).
 - Multi-series / stacked charts when #1302 grows them.
 - Form elements (`select`, `date`, `text input`) with a `submit` action.
 - Adapters: emit A2UI or json-render specs from a validated `BlocksDocument`.
@@ -261,7 +313,7 @@ None. `uiBlocks` is off unless the consumer passes it. No data migration.
 | --- | --- |
 | `blocks/` (new) | `package.json`, `tsconfig.json`, `biome.jsonc`, `src/index.ts`, `src/schema.ts`, `src/limits.ts`, `src/errors.ts`, `src/parse.ts`, `src/validate.ts`, `src/lint.ts`, `src/fences.ts`, `src/prompt.ts`, `src/jsonSchema.ts`, `src/cli.ts`, `src/fixtures/valid/*.yaml`, `src/fixtures/invalid/*.yaml`, `*.test.ts` |
 | `ui/` | `src/blocks/BlocksView.tsx`, `src/blocks/blockRenderers.tsx`, `src/blocks/BlocksError.tsx`, `src/MarkdownView.tsx` (`fenceRenderers`), `src/GPTChat.tsx` (`onBlockAction`, placeholder), `src/lazyBoundaries/heavyOptionalExports.tsx`, `src/index.tsx`, `src/Common.ts` (props), tests |
-| `ai/` | `src/service/prompts.ts` (`TERRENO_UI_BLOCKS_SYSTEM_PROMPT`), `src/service/aiService.ts` (`generateBlocks`), `src/routes/gpt.ts` (`uiBlocks`, SSE `blocks`), `src/types/index.ts`, tests |
+| `ai/` | `src/service/prompts.ts` (`TERRENO_UI_BLOCKS_SYSTEM_PROMPT`), `src/service/aiService.ts` (`generateBlocks`), `src/routes/gpt.ts` (`uiBlocks`, SSE `blocks`), `src/routes/gptActions.ts` (`POST /gpt/actions`), `src/routes/gptDatasets.ts` (`GET /gpt/datasets/:id`), `src/models/aiDataset.ts`, `src/service/aiDatasets.ts` (`registerAiDataset`, bucketing, LTTB), `src/types/index.ts`, tests |
 | `mcp-server/` | `src/tools.ts` (`terreno_validate_ui_blocks`), test |
 | `demo/` | `stories/BlocksView.stories.tsx`, `story-config/BlocksView.config.tsx`, `stories/BlocksPlayground.stories.tsx`, `demoConfig.tsx` |
 | `example-frontend/` | `app/(tabs)/ai.tsx`, `e2e/helpers/mockGpt.ts`, `e2e/ai-chat.spec.ts` |
@@ -292,3 +344,7 @@ None. `uiBlocks` is off unless the consumer passes it. No data migration.
 | AC13 | example-frontend AI tab renders a bar chart from a mocked SSE reply containing a `terreno-ui` fence and a follow-up button sends a reply | `example-frontend/e2e/ai-chat.spec.ts` + recording |
 | AC14 | Docs: explanation, reference, how-to pages exist and are linked from their READMEs; `docs/reference/ai.md`, `ui.md`, `mcp-server.md` updated | `bun run website:build` + reviewer read |
 | AC15 | `bun run prepush` green (lint, knip, no-barrel-imports, source rules, demo coverage) | CI |
+| AC16 | `GET /gpt/datasets/:id` returns ≤ `limit` rows for a 12,480-row handle: `grain=week` buckets a `date` column, line/area over `limit` are LTTB-downsampled, tables paginate with `more`; another user gets 404 | `ai/src/routes/gptDatasets.test.ts` |
+| AC17 | `POST /gpt/actions` rejects an unregistered `name` (404), a payload failing the host Zod schema (400 with `fields`), and a non-owner (403); a valid call returns the handler's `{blocks, replace}` and logs `ui_action` | `ai/src/routes/gptActions.test.ts` |
+| AC18 | A `ref` dataset whose `limit` exceeds the cap fails validation with `TOO_MANY_POINTS` and a `grain` fix; a `callback` with an unregistered name fails server-side with `UNKNOWN_HOST_ACTION` | `blocks/src/lint.test.ts`, `ai/src/routes/gpt.test.ts` |
+| AC19 | In `GPTChat`, a `callback` button shows `loading` until the host resolves; a `{blocks, replace: "block"}` response replaces only that block; `{text}` appends an assistant message | `GPTChat.test.tsx`, `BlocksView.test.tsx` |
