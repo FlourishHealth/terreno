@@ -224,6 +224,26 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                       },
                                       "type": "TextInput",
                                     },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "accessibilityLabel": "Show password",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": true,
+                                          "expanded": false,
+                                        },
+                                        "disabled": true,
+                                        "hitSlop": 8,
+                                        "onPress": [Function],
+                                        "style": {
+                                          "marginLeft": 8,
+                                        },
+                                        "testID": "login-screen-password-input.visibility-toggle",
+                                      },
+                                      "type": "Pressable",
+                                    },
                                   ],
                                   "props": {
                                     "style": {

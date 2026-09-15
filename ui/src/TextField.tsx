@@ -76,6 +76,7 @@ export const TextField: FC<TextFieldProps> = ({
   onIconClick,
   trimOnBlur = true,
   type = "text",
+  showVisibilityToggle = true,
   autoComplete,
   inputRef,
   multiline,
@@ -102,6 +103,17 @@ export const TextField: FC<TextFieldProps> = ({
 
   const [focused, setFocused] = useState(false);
   const [height, setHeight] = useState(rows * 40);
+  const [isValueRevealed, setIsValueRevealed] = useState(false);
+
+  const isPasswordField = type === "password";
+  const hasVisibilityToggle = isPasswordField && showVisibilityToggle;
+
+  const toggleValueRevealed = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
+    setIsValueRevealed((previous) => !previous);
+  }, [disabled]);
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -283,7 +295,7 @@ export const TextField: FC<TextFieldProps> = ({
                 inputRef(ref);
               }
             }}
-            secureTextEntry={type === "password"}
+            secureTextEntry={isPasswordField && !isValueRevealed}
             style={defaultTextInputStyles}
             testID={fieldTestIDs.input}
             textContentType={textContentType}
@@ -293,6 +305,24 @@ export const TextField: FC<TextFieldProps> = ({
           {Boolean(iconName) && (
             <Pressable aria-role="button" onPress={onIconClick}>
               <Icon iconName={iconName!} size="md" />
+            </Pressable>
+          )}
+          {hasVisibilityToggle && (
+            <Pressable
+              accessibilityLabel={isValueRevealed ? "Hide password" : "Show password"}
+              accessibilityRole="button"
+              accessibilityState={{disabled, expanded: isValueRevealed}}
+              disabled={disabled}
+              hitSlop={8}
+              onPress={toggleValueRevealed}
+              style={{marginLeft: 8}}
+              testID={fieldTestIDs.visibilityToggle}
+            >
+              <Icon
+                color={disabled ? "extraLight" : "secondaryDark"}
+                iconName={isValueRevealed ? "eye-slash" : "eye"}
+                size="md"
+              />
             </Pressable>
           )}
         </View>

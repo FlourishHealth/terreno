@@ -62,6 +62,7 @@ export const resolveFieldTestIDs = (
     helper: testIDs?.helper ?? resolveTestID(baseTestID, "helper"),
     input: testIDs?.input ?? baseTestID,
     label: testIDs?.label ?? resolveTestID(baseTestID, "label"),
+    visibilityToggle: testIDs?.visibilityToggle ?? resolveTestID(baseTestID, "visibility-toggle"),
   };
 };
 
