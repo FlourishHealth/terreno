@@ -336,6 +336,7 @@ jobs:
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
           tag: prod
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
@@ -526,6 +527,7 @@ jobs:
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
           tag: pr-${{ github.event.pull_request.number }}
           no_traffic: true
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
@@ -664,6 +666,7 @@ jobs:
           image: ${{ steps.docker-build.outputs.image }}
           tag: pr-${{ github.event.pull_request.number }}
           no_traffic: true
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             BACKEND_SERVICE=tasks
@@ -756,6 +759,7 @@ jobs:
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
           tag: prod
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             BACKEND_SERVICE=tasks
