@@ -9,6 +9,7 @@ interface CapturedEndpoint {
   providesTags?: unknown;
   query: (arg: never) => {
     body?: unknown;
+    headers?: Record<string, string>;
     method: string;
     params?: Record<string, unknown>;
     url: string;
@@ -105,6 +106,12 @@ describe("useAiObservabilityTracesApi", () => {
       body: {input: "Compare two perspectives on local-first AI observability."},
       method: "POST",
       url: "/ai/observability/traces/test-multi-stage",
+    });
+    expect(
+      endpoints.runAiObservabilityTestMultiStage.query({apiKey: "saved-key"} as never).headers
+    ).toEqual({"x-ai-api-key": "saved-key"});
+    expect(endpoints.runAiObservabilityTestMultiStage.query(undefined as never).body).toEqual({
+      input: "Compare two perspectives on local-first AI observability.",
     });
     expect(endpoints.aiObservabilityStatus.query({} as never)).toEqual({
       method: "GET",

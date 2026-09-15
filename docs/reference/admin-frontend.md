@@ -363,7 +363,12 @@ before creating one review-queue item per trace. When local trace storage is on,
 **Run multi-stage trace test** calls the admin-only smoke endpoint and
 opens the resulting detail: two schema-validated LLM stages, one deterministic tool span, and a
 final schema-validated combining LLM stage under one CHAIN root. LLM span input includes
-`outputSchema`. Rows show a status dot (primary for successful runs, accent for failed runs),
+`outputSchema`. That run needs AI the same way the playground does: hosts may pass `apiKey`,
+`apiKeyLoading`, and `apiKeyHint` to `AiTracesScreenWidget`, which forwards the key as
+`x-ai-api-key`. When `GET /ai/observability/status` reports `playgroundAi.source: "request-key"`
+and no trimmed key is available, the button is disabled and the hint explains where to save one;
+`unavailable` instead reports that the backend must configure `aiService` or
+`requestAiServiceFactory`. The example admin supplies the Gemini key saved from Profile. Rows show a status dot (primary for successful runs, accent for failed runs),
 `sensitive` badge, error line, numeric prompt count, span count, tokens, cost, latency, score count, and
 **Open**. Pagination uses `page` / `limit` / `more` / `total`.
 `ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),

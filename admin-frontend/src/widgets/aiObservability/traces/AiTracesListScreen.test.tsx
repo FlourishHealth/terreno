@@ -58,10 +58,13 @@ const addTracesMutation = mock(() => ({
   },
 }));
 
-const testMultiStageMutation = mock(() => ({
+const MISSING_AI_SERVICE_TITLE =
+  "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.";
+
+const testMultiStageMutation = mock((_args?: {apiKey?: string}) => ({
   unwrap: async () => {
     if (multiStageShouldFail) {
-      throw {data: {title: "AIService is not configured for observability"}};
+      throw {data: {title: MISSING_AI_SERVICE_TITLE}};
     }
     return {output: {sentence: "combined"}, stages: [], traceId: "trace-multi-stage"};
   },
@@ -123,6 +126,31 @@ const stableApi: AdminApi = {
   injectEndpoints: () => injectedHooks,
 } as unknown as AdminApi;
 
+const apiWithPlaygroundSource = (source: "request-key" | "server" | "unavailable"): AdminApi => {
+  const api: AdminApi = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: () => ({
+      ...injectedHooks,
+      useAiObservabilityStatusQuery: () => ({
+        data: {
+          localOn: true,
+          playgroundAi: {source},
+          plugins: [],
+          primaries: {
+            datasets: "local",
+            experiments: "local",
+            prompts: "local",
+            reviewQueue: "local",
+          },
+        },
+        isError: false,
+        isLoading: false,
+      }),
+    }),
+  } as unknown as AdminApi;
+  return api;
+};
+
 const emptyConfig: AdminConfigResponse = {customScreens: [], models: [], scripts: []};
 const widgetProps = {
   api: stableApi,
@@ -171,8 +199,48 @@ describe("AiTracesScreenWidget", () => {
     });
 
     expect(view.getByTestId("ai-traces-multi-stage-error")).toHaveTextContent(
-      "AIService is not configured for observability"
+      MISSING_AI_SERVICE_TITLE
     );
+  });
+
+  it("forwards a saved api key when the backend runs on request keys", async () => {
+    multiStageShouldFail = false;
+    testMultiStageMutation.mockClear();
+    const view = renderWithTheme(
+      <AiTracesScreenWidget
+        {...widgetProps}
+        api={apiWithPlaygroundSource("request-key")}
+        apiKey="saved-key"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-run-multi-stage"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    assert.deepEqual(testMultiStageMutation.mock.calls[0]?.[0], {apiKey: "saved-key"});
+  });
+
+  it("blocks the multi-stage test with a hint when no request key is saved", async () => {
+    multiStageShouldFail = false;
+    testMultiStageMutation.mockClear();
+    const view = renderWithTheme(
+      <AiTracesScreenWidget
+        {...widgetProps}
+        api={apiWithPlaygroundSource("request-key")}
+        apiKeyHint="Save a Gemini API key on Profile."
+      />
+    );
+
+    expect(view.getByTestId("ai-traces-multi-stage-blocked")).toHaveTextContent(
+      "Save a Gemini API key on Profile."
+    );
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-traces-run-multi-stage"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    assert.equal(testMultiStageMutation.mock.calls.length, 0);
   });
 
   it("selects traces, enqueues review, and adds to a dataset", async () => {

@@ -7,6 +7,7 @@ import {unwrapPromptList} from "../prompts/promptTypes";
 import {useAiObservabilityPromptsApi} from "../prompts/useAiObservabilityPromptsApi";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {unwrapObservabilityStatus} from "../shell/aiObservabilityNav";
+import {resolveAiRunBlockedMessage, resolveAiRunError} from "../shell/aiRunAccess";
 import {AiTracesListView} from "./AiTracesListView";
 import {
   emptyTraceFilters,
@@ -17,8 +18,19 @@ import {
 } from "./traceTypes";
 import {useAiObservabilityTracesApi} from "./useAiObservabilityTracesApi";
 
-export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) => {
-  const {api, routeBase} = props;
+export interface AiTracesScreenWidgetProps extends AdminScreenWidgetProps {
+  /** Provider key forwarded as `x-ai-api-key` when the backend has no server AI service. */
+  apiKey?: string;
+  /** When true, the host is still reading a saved API key (for example from AsyncStorage). */
+  apiKeyLoading?: boolean;
+  /** Shown when the backend expects `x-ai-api-key` and no key is available yet. */
+  apiKeyHint?: string;
+}
+
+const MULTI_STAGE_FEATURE_LABEL = "Multi-stage trace test";
+
+export const AiTracesScreenWidget: React.FC<AiTracesScreenWidgetProps> = (props) => {
+  const {api, apiKey, apiKeyHint, apiKeyLoading = false, routeBase} = props;
   const {
     useEnqueueReviewMutation,
     useEvaluatorsQuery,
@@ -47,7 +59,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const {data: evaluatorsRaw} = useEvaluatorsQuery();
   const {data: datasetsRaw} = useDatasetsQuery();
   const {data: promptsRaw} = usePromptsQuery({});
-  const {data: statusRaw} = useStatusQuery();
+  const {data: statusRaw, isLoading: isStatusLoading} = useStatusQuery();
   const [enqueueReview, enqueueState] = useEnqueueReviewMutation();
   const [addTraces, addTracesState] = useAddTracesMutation();
   const [runTestMultiStage, testMultiStageState] = useTestMultiStageMutation();
@@ -58,6 +70,18 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   const prompts = useMemo(() => unwrapPromptList(promptsRaw), [promptsRaw]);
   const status = useMemo(() => unwrapObservabilityStatus(statusRaw), [statusRaw]);
   const prefix = (routeBase ?? "").replace(/\/$/, "");
+  const playgroundAiSource = status?.playgroundAi?.source;
+  const multiStageBlockedMessage = useMemo(
+    () =>
+      resolveAiRunBlockedMessage({
+        apiKey,
+        apiKeyHint,
+        apiKeyLoading: apiKeyLoading || isStatusLoading,
+        featureLabel: MULTI_STAGE_FEATURE_LABEL,
+        playgroundAiSource,
+      }),
+    [apiKey, apiKeyHint, apiKeyLoading, isStatusLoading, playgroundAiSource]
+  );
 
   // Preselect the first human evaluator while keeping the scorecard choice visible in the modal.
   useEffect(() => {
@@ -146,22 +170,30 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
   }, [addTraces, datasetId, selectedIds]);
 
   const handleRunTestMultiStage = useCallback(async (): Promise<void> => {
+    if (multiStageBlockedMessage) {
+      setMultiStageError(multiStageBlockedMessage);
+      return;
+    }
     setMultiStageError("");
     try {
-      const result = await runTestMultiStage().unwrap();
+      const result = await runTestMultiStage({apiKey}).unwrap();
       if (!result.traceId) {
         setMultiStageError("The workflow ran, but no local trace id was returned.");
         return;
       }
       router.push(`${prefix}/ai-trace-detail?id=${encodeURIComponent(result.traceId)}`);
     } catch (error) {
-      const title =
-        error && typeof error === "object" && "data" in error
-          ? (error as {data?: {title?: string}}).data?.title
-          : undefined;
-      setMultiStageError(title ?? "Could not run the multi-stage trace test.");
+      setMultiStageError(
+        resolveAiRunError({
+          apiKey,
+          apiKeyHint,
+          error,
+          featureLabel: MULTI_STAGE_FEATURE_LABEL,
+          playgroundAiSource,
+        })
+      );
     }
-  }, [prefix, runTestMultiStage]);
+  }, [apiKey, apiKeyHint, multiStageBlockedMessage, playgroundAiSource, prefix, runTestMultiStage]);
 
   return (
     <AiObservabilityChrome {...props} screenName="ai-traces">
@@ -180,6 +212,7 @@ export const AiTracesScreenWidget: React.FC<AdminScreenWidgetProps> = (props) =>
         isRunningMultiStage={testMultiStageState.isLoading}
         loadError={isError ? "Failed to load traces." : undefined}
         more={listed.more}
+        multiStageBlockedMessage={multiStageBlockedMessage}
         multiStageError={multiStageError}
         onAddToDataset={handleAddToDataset}
         onClearSelection={handleClearSelection}

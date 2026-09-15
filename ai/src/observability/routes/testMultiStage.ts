@@ -1,10 +1,15 @@
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
 import type mongoose from "mongoose";
 
 import {requireAdmin} from "../../langfuseRoutesMiddleware";
 import {runTestMultiStageWorkflow} from "../testMultiStageWorkflow";
-import type {ObservabilityGenerateClient, TraceRecord} from "../types";
+import type {
+  ObservabilityGenerateClient,
+  ObservabilityRequestAiServiceFactory,
+  TraceRecord,
+} from "../types";
+import {resolveRequestAiService} from "./requestAiService";
 
 const BASE_PATH = "/ai/observability";
 
@@ -12,6 +17,7 @@ export interface ObservabilityTestMultiStageRouteOptions {
   aiService?: ObservabilityGenerateClient;
   exportTrace: (trace: TraceRecord) => Promise<string | undefined>;
   openApi?: unknown;
+  requestAiServiceFactory?: ObservabilityRequestAiServiceFactory;
 }
 
 export const addObservabilityTestMultiStageRoutes = (
@@ -65,9 +71,11 @@ export const addObservabilityTestMultiStageRoutes = (
         .build(),
     ],
     asyncHandler(async (req, res) => {
-      if (!options.aiService) {
-        throw new APIError({status: 503, title: "AIService is not configured for observability"});
-      }
+      const aiService = resolveRequestAiService({
+        aiService: options.aiService,
+        req,
+        requestAiServiceFactory: options.requestAiServiceFactory,
+      });
       const input =
         typeof req.body?.input === "string" && req.body.input.length > 0
           ? req.body.input
@@ -75,7 +83,7 @@ export const addObservabilityTestMultiStageRoutes = (
       const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       const result = await runTestMultiStageWorkflow({
-        aiService: options.aiService,
+        aiService,
         exportTrace: options.exportTrace,
         input,
         userId,

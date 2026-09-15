@@ -16,6 +16,11 @@ export interface TraceListQueryArgs extends TraceListFilters {
   page?: number;
 }
 
+export interface TestMultiStageArgs {
+  /** Forwarded as `x-ai-api-key` so backends without a server AI service can still run. */
+  apiKey?: string;
+}
+
 export interface TestMultiStageTraceResult {
   output: {
     keywords: string[];
@@ -101,8 +106,9 @@ const createTracesApi = (api: AdminApi) => {
       }),
       [TEST_MULTI_STAGE_KEY]: build.mutation({
         invalidatesTags: ["aiObservabilityTraces"],
-        query: () => ({
+        query: ({apiKey}: TestMultiStageArgs = {}) => ({
           body: {input: "Compare two perspectives on local-first AI observability."},
+          headers: apiKey ? {"x-ai-api-key": apiKey} : undefined,
           method: "POST",
           url: "/ai/observability/traces/test-multi-stage",
         }),
@@ -159,8 +165,8 @@ export const useAiObservabilityTracesApi = (api: AdminApi) => {
       isLoading: boolean;
     },
     useTestMultiStageMutation: hooks.useRunAiObservabilityTestMultiStageMutation as () => [
-      () => {unwrap: () => Promise<TestMultiStageTraceResult>},
-      {isError: boolean; isLoading: boolean},
+      (args?: TestMultiStageArgs) => {unwrap: () => Promise<TestMultiStageTraceResult>},
+      {error?: unknown; isError: boolean; isLoading: boolean},
     ],
   };
 };

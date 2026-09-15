@@ -15,6 +15,7 @@ import type {
   ObservabilityGenerateClient,
   ObservabilityRequestAiServiceFactory,
 } from "../types";
+import {resolveRequestAiService} from "./requestAiService";
 
 const BASE_PATH = "/ai/observability";
 
@@ -223,19 +224,12 @@ export const addObservabilityPromptRoutes = (
         variables?: Record<string, string>;
         version?: number;
       };
-      const aiService =
-        options.aiService ??
-        options.requestAiServiceFactory?.({
-          apiKey: req.header("x-ai-api-key"),
-          modelId: body.modelId,
-        });
-      if (!aiService) {
-        throw new APIError({
-          status: 503,
-          title:
-            "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.",
-        });
-      }
+      const aiService = resolveRequestAiService({
+        aiService: options.aiService,
+        modelId: body.modelId,
+        req,
+        requestAiServiceFactory: options.requestAiServiceFactory,
+      });
       const data = await options.store.runPlayground({
         generator: createPlaygroundGenerator(aiService),
         modelId: aiService.modelId,

@@ -3,6 +3,7 @@ import {
   type AdminScreenWidgetProps,
   AdminShellLayout,
   AiPromptEditorScreenWidget,
+  AiTracesScreenWidget,
 } from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
@@ -19,6 +20,9 @@ import SyncLabScreen from "./SyncLabScreen";
 const PLAYGROUND_GEMINI_KEY_HINT =
   "Save a Gemini API key on the Profile tab, then return here to run the playground.";
 
+const MULTI_STAGE_GEMINI_KEY_HINT =
+  "Save a Gemini API key on the Profile tab, then return here to run the multi-stage trace test.";
+
 const ExamplePromptEditorScreen: React.FC<AdminScreenWidgetProps> = (props) => {
   const [geminiApiKey, , isGeminiApiKeyLoading] = useStoredState<string>("geminiApiKey", "");
   return (
@@ -27,6 +31,18 @@ const ExamplePromptEditorScreen: React.FC<AdminScreenWidgetProps> = (props) => {
       apiKey={geminiApiKey || undefined}
       apiKeyLoading={isGeminiApiKeyLoading}
       playgroundApiKeyHint={PLAYGROUND_GEMINI_KEY_HINT}
+    />
+  );
+};
+
+const ExampleTracesScreen: React.FC<AdminScreenWidgetProps> = (props) => {
+  const [geminiApiKey, , isGeminiApiKeyLoading] = useStoredState<string>("geminiApiKey", "");
+  return (
+    <AiTracesScreenWidget
+      {...props}
+      apiKey={geminiApiKey || undefined}
+      apiKeyHint={MULTI_STAGE_GEMINI_KEY_HINT}
+      apiKeyLoading={isGeminiApiKeyLoading}
     />
   );
 };
@@ -122,6 +138,7 @@ const AdminLayoutContent: React.FC = () => {
       widgets={{
         screens: {
           "ai-prompt-editor": ExamplePromptEditorScreen,
+          "ai-traces": ExampleTracesScreen,
           "sync-lab": SyncLabScreen,
         },
       }}

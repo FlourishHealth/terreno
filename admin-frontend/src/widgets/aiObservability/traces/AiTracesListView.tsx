@@ -74,6 +74,8 @@ export interface AiTracesListViewProps {
   isRunningMultiStage?: boolean;
   loadError?: string;
   more?: boolean;
+  /** Set when the smoke test cannot run yet, for example because no AI API key is saved. */
+  multiStageBlockedMessage?: string;
   multiStageError?: string;
   onAddToDataset: () => void;
   onClearSelection: () => void;
@@ -132,6 +134,7 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
   isRunningMultiStage,
   loadError,
   more,
+  multiStageBlockedMessage,
   multiStageError,
   onAddToDataset,
   onClearSelection,
@@ -250,8 +253,14 @@ export const AiTracesListView: React.FC<AiTracesListViewProps> = ({
               Runs two schema-validated GPT calls, a tool stage, and a final schema-validated
               combining GPT call as one nested trace.
             </Text>
+            {multiStageBlockedMessage ? (
+              <Text color="secondaryDark" size="sm" testID="ai-traces-multi-stage-blocked">
+                {multiStageBlockedMessage}
+              </Text>
+            ) : undefined}
           </Box>
           <Button
+            disabled={Boolean(multiStageBlockedMessage)}
             loading={isRunningMultiStage}
             onClick={onRunTestMultiStage}
             testID="ai-traces-run-multi-stage"

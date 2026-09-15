@@ -15,6 +15,9 @@ import {
 } from "../testMultiStageSchemas";
 import type {ObservabilityGenerateClient, SpanKind} from "../types";
 
+const MISSING_AI_SERVICE_TITLE =
+  "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.";
+
 const call1Output = {phrase: "alpha phrase"};
 const call2Output = {keywords: ["beta", "gamma"]};
 const finalOutput = {
@@ -120,7 +123,7 @@ describe("observability test-multi-stage route", () => {
     expect(res.status).toBe(403);
   });
 
-  it("returns 503 when aiService is not configured", async () => {
+  it("returns 503 when no server or request AI service is available", async () => {
     const plugin = createLocalObservabilityPlugin();
     const noAiApp = new TerrenoApp({skipListen: true, userModel: UserModel})
       .register(new ObservabilityApp({plugins: [plugin]}))
@@ -130,6 +133,27 @@ describe("observability test-multi-stage route", () => {
       input: "missing service",
     });
     expect(res.status).toBe(503);
+    assert.equal(res.body.title, MISSING_AI_SERVICE_TITLE);
+  });
+
+  it("builds an AI service from the request api key when the server has none", async () => {
+    const requestAiServiceFactory = mock(({apiKey}: {apiKey?: string}) => {
+      return apiKey === "request-key" ? createFakeAiService() : undefined;
+    });
+    const plugin = createLocalObservabilityPlugin();
+    const requestKeyApp = new TerrenoApp({skipListen: true, userModel: UserModel})
+      .register(new ObservabilityApp({plugins: [plugin], requestAiServiceFactory}))
+      .build();
+    const agent = await authAsUser(requestKeyApp, "admin");
+
+    const res = await agent
+      .post("/ai/observability/traces/test-multi-stage")
+      .set("x-ai-api-key", "request-key")
+      .send({input: "request key smoke test"});
+
+    expect(res.status).toBe(200);
+    assert.isString(res.body.data.traceId);
+    assert.equal(requestAiServiceFactory.mock.calls[0]?.[0].apiKey, "request-key");
   });
 
   it("exports an error trace and rethrows when a child LLM stage fails", async () => {

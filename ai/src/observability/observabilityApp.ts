@@ -175,6 +175,7 @@ export class ObservabilityApp implements TerrenoPlugin {
           return this.exportTrace(trace);
         },
         openApi,
+        requestAiServiceFactory: this.requestAiServiceFactory,
       });
     }
   }

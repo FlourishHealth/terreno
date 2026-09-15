@@ -4,8 +4,8 @@ import React, {useCallback, useMemo, useState} from "react";
 import type {AdminScreenWidgetProps} from "../../../types";
 import {AiObservabilityChrome} from "../shell/AiObservabilityChrome";
 import {unwrapObservabilityStatus} from "../shell/aiObservabilityNav";
+import {resolveAiRunBlockedMessage, resolveAiRunError} from "../shell/aiRunAccess";
 import {AiPromptEditorView} from "./AiPromptEditorView";
-import {resolvePlaygroundBlockedMessage, resolvePlaygroundRunError} from "./playgroundAccess";
 import {
   latestVersionFromDetail,
   type PlaygroundRunResult,
@@ -82,7 +82,7 @@ export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProp
   const isPlaygroundAccessLoading = apiKeyLoading || statusQuery.isLoading;
   const playgroundBlockedMessage = useMemo(
     () =>
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         apiKey,
         apiKeyHint: playgroundApiKeyHint,
         apiKeyLoading: isPlaygroundAccessLoading,
@@ -103,7 +103,7 @@ export const AiPromptEditorScreenWidget: React.FC<AiPromptEditorScreenWidgetProp
 
   const playgroundResult = unwrapPromptPayload<PlaygroundRunResult>(playgroundState.data);
   const playgroundError = playgroundState.isError
-    ? resolvePlaygroundRunError({
+    ? resolveAiRunError({
         apiKey,
         apiKeyHint: playgroundApiKeyHint,
         error: playgroundState.error,

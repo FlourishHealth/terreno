@@ -125,6 +125,32 @@ describe("AiTracesListView", () => {
     assert.equal(onRunTestMultiStage.mock.calls.length, 1);
   });
 
+  it("disables the multi-stage action and explains why when it is blocked", () => {
+    const onRunTestMultiStage = mock(() => undefined);
+    const {getByTestId} = renderWithTheme(
+      <AiTracesListView
+        {...datasetDefaults}
+        evaluatorId=""
+        evaluators={[]}
+        filters={emptyTraceFilters()}
+        multiStageBlockedMessage="Save a Gemini API key on Profile."
+        page={1}
+        selectedIds={[]}
+        showMultiStageTest
+        total={0}
+        traces={[]}
+        {...idleHandlers}
+        onRunTestMultiStage={onRunTestMultiStage}
+      />
+    );
+
+    expect(getByTestId("ai-traces-multi-stage-blocked")).toHaveTextContent(
+      "Save a Gemini API key on Profile."
+    );
+    expect(getByTestId("ai-traces-run-multi-stage")).toBeDisabled();
+    assert.equal(onRunTestMultiStage.mock.calls.length, 0);
+  });
+
   it("hides the multi-stage smoke action without local trace storage", () => {
     const {queryByTestId} = renderWithTheme(
       <AiTracesListView

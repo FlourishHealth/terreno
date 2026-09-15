@@ -1,16 +1,16 @@
 import {describe, expect, it} from "bun:test";
-import {resolvePlaygroundBlockedMessage, resolvePlaygroundRunError} from "./playgroundAccess";
+import {resolveAiRunBlockedMessage, resolveAiRunError} from "./aiRunAccess";
 
-const DEFAULT_PLAYGROUND_API_KEY_HINT = "Add an AI API key in your app settings, then try again.";
+const DEFAULT_API_KEY_HINT = "Add an AI API key in your app settings, then try again.";
 const PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE =
   "Playground is unavailable. Configure ObservabilityApp.aiService or requestAiServiceFactory on the backend.";
-const PLAYGROUND_MISSING_API_KEY_ERROR_TITLE =
+const MISSING_API_KEY_ERROR_TITLE =
   "No AI service is available. Configure ObservabilityApp.aiService or provide an AI API key.";
 
-describe("resolvePlaygroundBlockedMessage", () => {
+describe("resolveAiRunBlockedMessage", () => {
   it("returns undefined while the host is still loading a saved key", () => {
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         apiKeyLoading: true,
         playgroundAiSource: "request-key",
       })
@@ -19,13 +19,13 @@ describe("resolvePlaygroundBlockedMessage", () => {
 
   it("returns a hint when the backend expects a request key and none is available", () => {
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         playgroundAiSource: "request-key",
       })
-    ).toBe(DEFAULT_PLAYGROUND_API_KEY_HINT);
+    ).toBe(DEFAULT_API_KEY_HINT);
 
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         apiKeyHint: "Save a key on Profile.",
         playgroundAiSource: "request-key",
       })
@@ -34,14 +34,14 @@ describe("resolvePlaygroundBlockedMessage", () => {
 
   it("does not block when a trimmed key is present or the server provides AI", () => {
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         apiKey: "  saved-key  ",
         playgroundAiSource: "request-key",
       })
     ).toBeUndefined();
 
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         playgroundAiSource: "server",
       })
     ).toBeUndefined();
@@ -49,26 +49,37 @@ describe("resolvePlaygroundBlockedMessage", () => {
 
   it("reports backend misconfiguration only when playground AI is unavailable", () => {
     expect(
-      resolvePlaygroundBlockedMessage({
+      resolveAiRunBlockedMessage({
         playgroundAiSource: "unavailable",
       })
     ).toBe(PLAYGROUND_BACKEND_UNAVAILABLE_MESSAGE);
   });
+
+  it("names the calling feature in the backend misconfiguration message", () => {
+    expect(
+      resolveAiRunBlockedMessage({
+        featureLabel: "Multi-stage trace test",
+        playgroundAiSource: "unavailable",
+      })
+    ).toBe(
+      "Multi-stage trace test is unavailable. Configure ObservabilityApp.aiService or requestAiServiceFactory on the backend."
+    );
+  });
 });
 
-describe("resolvePlaygroundRunError", () => {
+describe("resolveAiRunError", () => {
   it("maps the missing-key 503 title to the host hint for request-key backends", () => {
     expect(
-      resolvePlaygroundRunError({
-        error: {data: {title: PLAYGROUND_MISSING_API_KEY_ERROR_TITLE}},
+      resolveAiRunError({
+        error: {data: {title: MISSING_API_KEY_ERROR_TITLE}},
         playgroundAiSource: "request-key",
       })
-    ).toBe(DEFAULT_PLAYGROUND_API_KEY_HINT);
+    ).toBe(DEFAULT_API_KEY_HINT);
 
     expect(
-      resolvePlaygroundRunError({
+      resolveAiRunError({
         apiKeyHint: "Save a key on Profile.",
-        error: {data: {title: PLAYGROUND_MISSING_API_KEY_ERROR_TITLE}},
+        error: {data: {title: MISSING_API_KEY_ERROR_TITLE}},
         playgroundAiSource: "request-key",
       })
     ).toBe("Save a key on Profile.");
@@ -76,27 +87,35 @@ describe("resolvePlaygroundRunError", () => {
 
   it("keeps the backend title when a key was supplied or the server owns AI", () => {
     expect(
-      resolvePlaygroundRunError({
+      resolveAiRunError({
         apiKey: "saved-key",
-        error: {data: {title: PLAYGROUND_MISSING_API_KEY_ERROR_TITLE}},
+        error: {data: {title: MISSING_API_KEY_ERROR_TITLE}},
         playgroundAiSource: "request-key",
       })
-    ).toBe(PLAYGROUND_MISSING_API_KEY_ERROR_TITLE);
+    ).toBe(MISSING_API_KEY_ERROR_TITLE);
 
     expect(
-      resolvePlaygroundRunError({
-        error: {data: {title: PLAYGROUND_MISSING_API_KEY_ERROR_TITLE}},
+      resolveAiRunError({
+        error: {data: {title: MISSING_API_KEY_ERROR_TITLE}},
         playgroundAiSource: "server",
       })
-    ).toBe(PLAYGROUND_MISSING_API_KEY_ERROR_TITLE);
+    ).toBe(MISSING_API_KEY_ERROR_TITLE);
   });
 
-  it("falls back to a generic message when the error has no title", () => {
+  it("falls back to a feature-specific message when the error has no title", () => {
     expect(
-      resolvePlaygroundRunError({
+      resolveAiRunError({
         error: new Error("network"),
         playgroundAiSource: "request-key",
       })
     ).toBe("Playground run failed. Try again or check your AI configuration.");
+
+    expect(
+      resolveAiRunError({
+        error: new Error("network"),
+        featureLabel: "Multi-stage trace test",
+        playgroundAiSource: "request-key",
+      })
+    ).toBe("Multi-stage trace test run failed. Try again or check your AI configuration.");
   });
 });

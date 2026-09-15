@@ -73,7 +73,10 @@ Langfuse plugin is registered. Review is hidden when the local plugin is off.
 
 On **Traces**, **Run multi-stage trace test** (local sink only) runs two schema-backed
 `generateJsonObject` calls, a deterministic tool stage, and a final schema-backed combine
-call, then opens the nested trace. Each LLM span input includes `outputSchema`.
+call, then opens the nested trace. Each LLM span input includes `outputSchema`. It uses the
+server `aiService` when one is configured; otherwise it sends the admin's saved key as
+`x-ai-api-key` to `requestAiServiceFactory`, and the button stays disabled with a hint until
+that key exists.
 
 ## Run the example locally
 
@@ -153,7 +156,8 @@ curl -X POST "$API/ai/observability/prompts/example-summarize/labels" \
 The example backend registers `requestAiServiceFactory` but no server `aiService`, so status reports
 `playgroundAi.source: "request-key"`. In **AI Observability → Prompts → Playground**, save a Gemini
 API key on **Profile** first; the admin UI blocks **Run once** with that hint until the key loads
-from storage and is sent as `x-ai-api-key`.
+from storage and is sent as `x-ai-api-key`. **Traces → Run multi-stage trace test** uses the same
+saved key and is blocked the same way.
 
 ## Review a trace
 
