@@ -8,10 +8,10 @@ Template: `.rulesync/skills/track-upstream-expo/references/loop-log.md`.
 ## Status
 
 - sdkLine: 58.0.0
-- expoVersion: 58.0.0-preview.0
+- expoVersion: 58.0.0-preview.1
 - releaseBranch: release-58.0.0
 - loopStatus: open
-- updatedAt: 2026-09-14T12:09:18.000Z
+- updatedAt: 2026-09-15T12:11:14.000Z
 
 ## Next
 
@@ -23,6 +23,18 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 - [ ] `mcp-server/src/bootstrap.ts` still scaffolds Expo `~57.0.14` (published `@terreno/*` is still 57.x)
 
 ## Tried (newest first)
+
+### 2026-09-15T12:11:14.000Z — 58.0.0-preview.1
+- Action: Pin catalog Expo `58.0.0-preview.1`, RN `0.88.0-rc.0`, and Expo 58.0.1–58.0.3 module patches from `bundledNativeModules.json`. Update `@terreno/ui` peer to `0.88.0-rc.0`. Skip TinyBase 10 (still peers `expo-sqlite ^57`).
+- Result: worked
+- Evidence: `bun run compile` exit 0; `bun run lint` exit 0; `bun run frontend:lint` exit 0; `bun run ui:test` 2257 pass / 0 fail; `cd example-frontend && bunx expo-doctor` 20/20; `cd demo && bunx expo-doctor` 20/20; `bunx expo install --check` "Dependencies are up to date". TinyBase 9.7.1 peers `expo-sqlite ^57.0.2`; TinyBase `10.0.0-beta.1` peers `expo-sqlite ^57.0.3`.
+- Follow-up: see Open
+
+### 2026-09-15T12:03:05.000Z — probe
+- Action: `bun run expo:track-probe` from `origin/master`
+- Result: worked
+- Evidence: exit 0, `action: continue-branch`, `expoVersion: 58.0.0-preview.1`, `releaseBranch: release-58.0.0`, `loopStatus: open`. Merged `origin/master` into `release-58.0.0` (bun.lock conflict regenerated).
+- Follow-up: see Open
 
 ### 2026-09-14T12:09:18.000Z — 58.0.0-preview.0
 - Action: After master merge + `bun install`, confirm catalog Expo `58.0.0-preview.0`. `cd example-frontend && bunx expo install --check`. `npm view tinybase@9.7.1` and `tinybase@10.0.0-beta.1` peerDependencies.
@@ -110,8 +122,8 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 
 ## Worked
 
-- Catalog Expo `58.0.0-preview.0` (`npmTag: next`); RN `0.87.1`; RNGH `~3.2.1`; webview `14.0.1`; reanimated `4.6.0` + worklets `0.12.2`; screens `~4.27.0`; safe-area `~5.9.1`; svg `15.15.5`; drawer-layout `4.2.10`; skia `2.11.2`; sentry-native `~7.11.0` (Expo bundled, not 8.x); datetimepicker `9.2.1`; slider `5.2.1`; flash-list `2.0.2`; async-storage `2.2.0`. Overrides pin `expo`, `expo-sqlite`, and `expo-image-loader@58.0.1`. Catalog `expo-image-manipulator` `~58.0.1`.
-- `@terreno/ui` peer `react-native` `~0.87.0`.
+- Catalog Expo `58.0.0-preview.1` (`npmTag: next`); RN `0.88.0-rc.0`; RNGH `~3.2.1`; webview `14.0.1`; reanimated `4.6.0` + worklets `0.12.2`; screens `~4.27.0`; safe-area `~5.9.1`; svg `15.15.5`; drawer-layout `4.2.10`; skia `2.11.2`; sentry-native `~7.11.0` (Expo bundled, not 8.x); datetimepicker `9.2.1`; slider `5.2.1`; flash-list `2.0.2`; async-storage `2.2.0`. Overrides pin `expo`, `expo-sqlite@58.0.2`, and `expo-image-loader@58.0.1`. Catalog `expo-image-manipulator` `~58.0.2`.
+- `@terreno/ui` peer `react-native` `0.88.0-rc.0`.
 - Expo Router 58: `initialRouteName` moved off `<Navigator>` / `<Slot>` to layout `unstable_settings` (`demo/app/_layout.tsx`, `demo/app/demo/sidebar-navigation/_layout.tsx`). `SidebarNavigation` stopped passing the prop.
 - ActionSheet maps boolean `keyboardShouldPersistTaps` to `"always"` / `"never"` (RN 0.87 FlatList).
 - `useUpgradeCheck` coalesces `AppState.current` with `?? ""`.
@@ -124,7 +136,7 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 
 ### Breaking
 
-- Expo SDK 58 / React Native 0.87. `@terreno/ui` peer is `react-native` `~0.87.0`.
+- Expo SDK 58 / React Native 0.88 RC. `@terreno/ui` peer is `react-native` `0.88.0-rc.0`.
 - `react-native-gesture-handler` major 2 → 3 (`~3.2.1`).
 - `react-native-webview` major 13 → 14 (`14.0.1`).
 - Expo Router: `initialRouteName` is no longer a `<Navigator>` / `<Slot>` prop. Set `export const unstable_settings = { initialRouteName: "..." }` on the layout. `SidebarNavigation` `initialRouteName` is ignored. In-repo layouts set this (`demo/app/_layout.tsx`, `demo/app/demo/sidebar-navigation/_layout.tsx`, `example-frontend/app/_layout.tsx`).
@@ -132,8 +144,8 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 
 ### Native fingerprint
 
-- `expo` `58.0.0-preview.0`
-- `react-native` `0.87.1`
+- `expo` `58.0.0-preview.1`
+- `react-native` `0.88.0-rc.0`
 - `react-native-gesture-handler` `~3.2.1`
 - `react-native-reanimated` `4.6.0` + `react-native-worklets` `0.12.2`
 - `react-native-screens` `~4.27.0`
@@ -147,9 +159,15 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 - `@react-native-community/slider` `5.2.1`
 - `@shopify/flash-list` `2.0.2`
 - `@react-native-async-storage/async-storage` `2.2.0`
-- `expo-image-manipulator` `~58.0.1`
-- `expo-image-loader` `58.0.1` (override; picker still `@next` 58.0.0)
-- All other catalog `expo-*` / `@expo/*` / `babel-preset-expo` on `~58.0.0`
+- `expo-image-manipulator` `~58.0.2`
+- `expo-image-loader` `58.0.1` (override)
+- `expo-image-picker` `~58.0.1`
+- `expo-router` `~58.0.2`
+- `expo-sqlite` `~58.0.2`
+- `expo-updates` `~58.0.3`
+- `expo-sharing` `~58.0.3`
+- `babel-preset-expo` / `@expo/metro-runtime` `~58.0.1`
+- Remaining catalog `expo-*` / `@expo/*` on `~58.0.0` or `~58.0.1` per `bundledNativeModules.json`
 
 ### Expo API
 
@@ -158,7 +176,7 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.1` still pe
 
 ### Other
 
-- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0` (`npmTag: next`). Do not merge to master until the loop is `ready`.
+- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0`; continued to `58.0.0-preview.1` on 2026-09-15 (`npmTag: next`). Do not merge to master until the loop is `ready`.
 - `mcp-server` app bootstrap still emits Expo 57 until Terreno 58 is cut.
 - TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.1`).
 - example-frontend / demo `expo.doctor.reactNativeDirectoryCheck.exclude`: `@react-native-community/blur`.
