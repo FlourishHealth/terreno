@@ -1,7 +1,12 @@
 import {CloudTasksClient} from "@google-cloud/tasks";
 import {APIError} from "@terreno/api";
 import {type JobRunner, type JobsAppOptions, MongoJobRunner} from "@terreno/jobs";
-import {type GcpCloudTasksClient, GcpCloudTasksRunner} from "@terreno/jobs/runners/gcpCloudTasks";
+import {
+  type GcpCloudTasksClient,
+  GcpCloudTasksRunner,
+  type GcpCreateTaskRequest,
+  type GcpCreateTaskResponse,
+} from "@terreno/jobs/runners/gcpCloudTasks";
 import type {Request} from "express";
 import {OAuth2Client} from "google-auth-library";
 
@@ -72,6 +77,18 @@ const createExecuteAuth = ({
   };
 };
 
+const createDefaultGcpCloudTasksClient = (): GcpCloudTasksClient => {
+  const client = new CloudTasksClient();
+  return {
+    createTask: async (request: GcpCreateTaskRequest): Promise<[GcpCreateTaskResponse]> => {
+      const [task] = await client.createTask(request);
+      return [{name: task.name ?? undefined}];
+    },
+    queuePath: (project: string, location: string, queue: string): string =>
+      client.queuePath(project, location, queue),
+  };
+};
+
 export const createExampleJobsRuntime = (
   options: CreateExampleJobsRuntimeOptions = {}
 ): ExampleJobsRuntime => {
@@ -103,7 +120,7 @@ export const createExampleJobsRuntime = (
       verifier,
     }),
     runner: new GcpCloudTasksRunner({
-      client: options.cloudTasksClient ?? (new CloudTasksClient() as GcpCloudTasksClient),
+      client: options.cloudTasksClient ?? createDefaultGcpCloudTasksClient(),
       location,
       oidcAudience,
       project,
