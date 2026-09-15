@@ -1,4 +1,5 @@
 import {afterEach, describe, expect, it, spyOn} from "bun:test";
+import {assert} from "chai";
 import type {Socket} from "socket.io-client";
 
 import type {RealtimeEvent} from "./realtime";
@@ -204,6 +205,23 @@ describe("realtimeDocument", () => {
     });
 
     expect(socket.emitted).toEqual([]);
+  });
+
+  it("waits for a socket without an abort signal when cacheEntryRemoved is missing", async () => {
+    setRealtimeSocket(null);
+    const task = realtimeDocument("todos")("doc-1", {
+      cacheDataLoaded: Promise.resolve(),
+      cacheEntryRemoved: undefined as unknown as Promise<void>,
+      updateCachedData: () => undefined,
+    });
+    await Promise.resolve();
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    await task;
+    assert.deepEqual(socket.emitted[0], {
+      event: "subscribe:document",
+      payload: {collection: "todos", id: "doc-1"},
+    });
   });
 
   it("returns early when socket resolves to null before subscribing", async () => {
