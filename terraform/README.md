@@ -172,12 +172,15 @@ terraform import google_service_account.jobs_tasks_invoker \
 The API and private tasks service run the same image and register the same job handlers.
 The API persists a `Job`, then Cloud Tasks sends an OIDC-authenticated
 `POST /jobs/execute` to the tasks service. Queue rate limits cap the dispatch pool at 20
-callbacks and 20 dispatches per second by default.
+callbacks and 20 dispatches per second by default. Keep `.github/workflows/cd.yml`
+`tasks-deploy-prod` on a 30-minute timeout, concurrency 20, and
+`--no-allow-unauthenticated` so a GitHub Actions roll cannot reopen the worker.
 
 PR previews do not create global infrastructure. The CD script deploys matching
 `pr-<number>` tags for both services and configures the API to target that exact tasks
 tag. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
-workers nor job rows. Cleanup removes both tags.
+workers nor job rows. CircleCI cleanup and `.github/workflows/preview-cleanup.yml`
+both remove the API and tasks tags.
 
 ## Adding a third service account
 

@@ -615,9 +615,9 @@ jobs:
             --memory=512Mi
             --min-instances=0
             --max-instances=10
-            --concurrency=80
-            --timeout=300
-            --allow-unauthenticated
+            --concurrency=20
+            --timeout=1800
+            --no-allow-unauthenticated
 
   # ───────────────────────────── MCP server ─────────────────────────────
 
