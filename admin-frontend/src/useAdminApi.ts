@@ -1,4 +1,5 @@
 import {useMemo} from "react";
+import {buildAdminApiListQueryRequest} from "./adminApiQueryParams";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
@@ -62,11 +63,8 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
       endpoints: (build: EndpointBuilder) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
-          query: (params: Record<string, unknown> | undefined) => ({
-            method: "GET",
-            params: params ?? {},
-            url: routePath,
-          }),
+          query: (params: Record<string, unknown> | undefined) =>
+            buildAdminApiListQueryRequest(routePath, params),
         }),
         [readKey]: build.query({
           providesTags: (_result: TagArg, _error: TagArg, id: string) => [

@@ -126,12 +126,10 @@ describe("useAdminApi", () => {
     const listDef = injected.adminList_User;
     expect(listDef.query({limit: 1})).toEqual({
       method: "GET",
-      params: {limit: 1},
-      url: "/admin/users",
+      url: "/admin/users?limit=1",
     });
     expect(listDef.query(undefined)).toEqual({
       method: "GET",
-      params: {},
       url: "/admin/users",
     });
 

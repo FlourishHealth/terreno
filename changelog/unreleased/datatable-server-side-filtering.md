@@ -6,7 +6,8 @@ category: Added
   modelRouter-shaped query params via `onQueryChange` and `buildDataTableListQuery`
   (web per-column `Filter` popovers; native Filters sheet).
 - **@terreno/admin-frontend `AdminModelTable`**: adopts DataTable filter/search UI;
-  list search still uses `q`; choice filters support multi-value `$in`.
+  list search still uses `q`; choice filters support multi-value `$in`. Admin list
+  URLs use `qs` bracket serialization so nested filters work with any RTK base query.
 - **@terreno/admin-backend**: `parseAdminListFilters` accepts choice `{$in: string[]}`
   and escaped-literal text `{$regex, $options: "i"}` while rejecting extra operators.
   Optional choice filters auto-enable an **Empty** option (`__empty__` wire sentinel → Mongo
