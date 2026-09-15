@@ -110,9 +110,9 @@ const AiScreen: React.FC = () => {
       <Box alignItems="center" gap={3} testID="example-gpt-mascot">
         <RNImage
           accessibilityLabel="Terreno plant robot mascot"
-          resizeMode="contain"
+          resizeMode="cover"
           source={GPT_MASCOT_IMAGES[mascotIndex]}
-          style={{height: 192, width: 192}}
+          style={{borderRadius: 112, height: 224, width: 224}}
           testID={`example-gpt-mascot-${mascotIndex + 1}`}
         />
         <Heading align="center" size="md">

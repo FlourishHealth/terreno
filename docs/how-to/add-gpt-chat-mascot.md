@@ -43,9 +43,9 @@ const ChatScreen: React.FC = (): React.ReactElement => {
         <Box alignItems="center" gap={3}>
           <Image
             accessibilityLabel="App mascot"
-            resizeMode="contain"
+            resizeMode="cover"
             source={mascot}
-            style={{height: 192, width: 192}}
+            style={{borderRadius: 112, height: 224, width: 224}}
           />
           <Heading align="center" size="md">Ask anything.</Heading>
         </Box>
