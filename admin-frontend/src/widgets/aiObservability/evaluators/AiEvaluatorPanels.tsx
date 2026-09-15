@@ -17,6 +17,8 @@ import {
   judgeSchemaMissingDimensions,
 } from "./evaluatorTypes";
 
+type JudgePromptStatus = "error" | "idle" | "loading" | "ready";
+
 const EVALUATOR_NEW_INTRO =
   "An evaluator scores traces and experiment outputs. Each score is a named dimension (boolean, numeric, or categorical). Attach the same evaluator to experiments, live sampling, or the human review queue.";
 
@@ -65,6 +67,7 @@ const EVALUATOR_LIVE_SAMPLE_HELP =
 export interface AiEvaluatorDetailViewProps {
   evaluator: EvaluatorRecord;
   judgeOutputSchema?: Record<string, unknown>;
+  judgePromptStatus?: JudgePromptStatus;
   onOpenPrompt?: (name: string) => void;
   routeBase: string;
   usageRows: EvaluatorUsageRow[];
@@ -78,7 +81,7 @@ export interface AiEvaluatorNewViewProps {
   instructions: string;
   isCreating: boolean;
   judgePromptName: string;
-  judgePromptStatus?: "error" | "idle" | "loading" | "ready";
+  judgePromptStatus?: JudgePromptStatus;
   name: string;
   onAddDimension: () => void;
   onAssertionConstraintChange: (value: string) => void;
@@ -135,7 +138,7 @@ const renderTypePanel = ({
   judgeOutputSchema?: Record<string, unknown>;
   instructions?: string;
   judgePromptName?: string;
-  judgePromptStatus?: "error" | "idle" | "loading" | "ready";
+  judgePromptStatus?: JudgePromptStatus;
   onAssertionConstraintChange?: (value: string) => void;
   onAssertionPathChange?: (value: string) => void;
   onInstructionsChange?: (value: string) => void;
@@ -146,10 +149,13 @@ const renderTypePanel = ({
 }): React.ReactNode => {
   const type = evaluator?.type ?? evaluatorType;
   if (type === "llm-judge") {
-    const missing = judgeSchemaMissingDimensions(evaluator?.dimensions ?? [], judgeOutputSchema);
-    const mismatch = schemaMismatchKey ?? missing[0];
     const promptStatus =
       judgePromptStatus ?? (evaluator || judgePromptName?.trim() ? "ready" : "idle");
+    const missing =
+      promptStatus === "ready"
+        ? judgeSchemaMissingDimensions(evaluator?.dimensions ?? [], judgeOutputSchema)
+        : [];
+    const mismatch = schemaMismatchKey ?? missing[0];
     return (
       <Box gap={2} testID="ai-evaluator-panel-llm-judge">
         {evaluator ? (
@@ -265,6 +271,7 @@ const renderTypePanel = ({
 export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
   evaluator,
   judgeOutputSchema,
+  judgePromptStatus,
   onOpenPrompt,
   routeBase,
   usageRows,
@@ -328,6 +335,7 @@ export const AiEvaluatorDetailView: React.FC<AiEvaluatorDetailViewProps> = ({
         {renderTypePanel({
           evaluator,
           judgeOutputSchema,
+          judgePromptStatus,
           onOpenPrompt,
           routeBase,
         })}

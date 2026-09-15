@@ -392,7 +392,9 @@ shows loading/error states and only checks dimensions after its production schem
 `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode
 badges, then dimensions, type-specific config, run modes, and a **Used by** list derived from recent
 experiments. Its dimension and usage rows use the shared `ObservabilityTable` instead of
-`DataTable`, which sizes to a height-constrained parent and collapses inside a scrolling page.
+`DataTable`, which sizes to a height-constrained parent and collapses inside a scrolling page. LLM
+judge details show loading or load-failed feedback while resolving the judge prompt; schema
+mismatches appear only after its production schema loads.
 
 `ai-datasets` lists datasets with item counts, provenance bar, input-schema binding, and updated
 time. **New dataset** creates a dataset; **Import** on each row accepts `.json` or `.csv` via
@@ -405,6 +407,8 @@ overlap adjacent rows. Input and Expected receive 2.5× the flexible width of me
 Selecting a row opens a scrollable modal with the complete input, expected output, provenance,
 annotation ids, tags, timestamps, metadata, and an **Open source trace** action when linked.
 Opening the source trace dismisses the item modal before navigation.
+Item-query loading and failures render dedicated states with Retry; they never appear as an empty
+dataset.
 
 `ObservabilityTable` (`widgets/aiObservability/shell/ObservabilityTable.tsx`) is the shared
 flow-height table for these screens. Columns take a `title`, optional `minWidth`, and optional

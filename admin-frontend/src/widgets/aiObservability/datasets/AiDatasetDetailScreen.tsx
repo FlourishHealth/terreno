@@ -14,7 +14,12 @@ export const AiDatasetDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
   const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const {useCreateItemMutation, useDetailQuery, useItemsQuery} = useAiObservabilityDatasetsApi(api);
   const {data, isError, isLoading} = useDetailQuery(id ?? "", {skip: !id});
-  const {data: itemsRaw, refetch: refetchItems} = useItemsQuery(id ?? "", {skip: !id});
+  const {
+    data: itemsRaw,
+    isError: isItemsError,
+    isLoading: isItemsLoading,
+    refetch: refetchItems,
+  } = useItemsQuery(id ?? "", {skip: !id});
   const [createItem] = useCreateItemMutation();
   const dataset = useMemo(() => unwrapDatasetRecord(data), [data]);
   const items = useMemo(() => unwrapDatasetItems(itemsRaw), [itemsRaw]);
@@ -104,11 +109,14 @@ export const AiDatasetDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (pr
   return (
     <AiObservabilityChrome {...props} backHref={backHref} screenName="ai-dataset-detail">
       <AiDatasetDetailView
+        {...(isItemsError ? {itemsLoadError: "Failed to load dataset items."} : {})}
         dataset={dataset}
+        isItemsLoading={isItemsLoading}
         items={items}
         onAddItem={handleAddItem}
         onOpenExperiment={handleOpenExperiment}
         onOpenTrace={handleOpenTrace}
+        onRetryItems={refetchItems}
         routeBase={prefix}
       />
     </AiObservabilityChrome>

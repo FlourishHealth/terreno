@@ -195,6 +195,41 @@ describe("AiDatasetDetailScreenWidget", () => {
     expect(itemsState.refetch).toHaveBeenCalled();
   });
 
+  it("distinguishes item loading and load errors from an empty dataset", async () => {
+    detailState.data = dataset;
+    detailState.isError = false;
+    itemsState.isLoading = true;
+    const loading = renderWithTheme(
+      <AiDatasetDetailScreenWidget
+        api={createApi()}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-dataset-detail"
+      />
+    );
+    expect(loading.getByTestId("ai-dataset-items-loading")).toBeTruthy();
+    loading.unmount();
+
+    itemsState.isLoading = false;
+    itemsState.isError = true;
+    itemsState.refetch.mockClear();
+    const errored = renderWithTheme(
+      <AiDatasetDetailScreenWidget
+        api={createApi()}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-dataset-detail"
+      />
+    );
+    expect(errored.getByTestId("ai-dataset-items-error")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(errored.getByText("Retry"));
+      await Promise.resolve();
+    });
+    assert.equal(itemsState.refetch.mock.calls.length, 1);
+    itemsState.isError = false;
+  });
+
   it("shows missing dataset id and load error with retry", async () => {
     datasetId = "";
     const missing = renderWithTheme(

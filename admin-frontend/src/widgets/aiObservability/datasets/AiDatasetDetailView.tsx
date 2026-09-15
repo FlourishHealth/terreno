@@ -1,4 +1,14 @@
-import {Badge, Box, Button, Heading, Modal, SegmentedControl, Text, TextArea} from "@terreno/ui";
+import {
+  Badge,
+  Box,
+  Button,
+  Heading,
+  Modal,
+  SegmentedControl,
+  Spinner,
+  Text,
+  TextArea,
+} from "@terreno/ui";
 import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useState} from "react";
 import {
@@ -16,10 +26,13 @@ import {
 
 export interface AiDatasetDetailViewProps {
   dataset: DatasetRecord;
+  isItemsLoading?: boolean;
   items: DatasetItemRecord[];
+  itemsLoadError?: string;
   onAddItem: (body: {expectedOutput: string; input: string}) => Promise<string | undefined>;
   onOpenExperiment: () => void;
   onOpenTrace?: (traceId: string) => void;
+  onRetryItems?: () => void;
   routeBase: string;
 }
 
@@ -72,10 +85,13 @@ const formatTimestamp = (value: string): string => {
 
 export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
   dataset,
+  isItemsLoading,
   items,
+  itemsLoadError,
   onAddItem,
   onOpenExperiment,
   onOpenTrace,
+  onRetryItems,
 }) => {
   const [tab, setTab] = useState<DatasetItemTab>("all");
   const [addOpen, setAddOpen] = useState(false);
@@ -183,7 +199,16 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
           value={`${needsReviewCount} need review`}
         />
       ) : undefined}
-      {filtered.length === 0 ? (
+      {isItemsLoading ? (
+        <Box alignItems="center" padding={4} testID="ai-dataset-items-loading">
+          <Spinner />
+        </Box>
+      ) : itemsLoadError ? (
+        <Box gap={2} padding={4} testID="ai-dataset-items-error">
+          <Text color="error">{itemsLoadError}</Text>
+          {onRetryItems ? <Button onClick={onRetryItems} text="Retry" variant="secondary" /> : null}
+        </Box>
+      ) : filtered.length === 0 ? (
         <Box padding={4} testID="ai-dataset-items-empty">
           <Text color="secondaryDark">No items in this tab.</Text>
         </Box>

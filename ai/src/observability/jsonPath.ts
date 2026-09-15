@@ -1,3 +1,5 @@
+import {APIError} from "@terreno/api";
+
 const UNSAFE_PATH_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
 
 const pathSegments = (path: string): string[] => {
@@ -9,7 +11,10 @@ const pathSegments = (path: string): string[] => {
 const assertSafePath = (segments: string[]): void => {
   const unsafe = segments.find((segment) => UNSAFE_PATH_SEGMENTS.has(segment));
   if (unsafe) {
-    throw new Error(`Unsafe JSON path segment "${unsafe}"`);
+    throw new APIError({
+      status: 400,
+      title: `Unsafe JSON path segment "${unsafe}"`,
+    });
   }
 };
 

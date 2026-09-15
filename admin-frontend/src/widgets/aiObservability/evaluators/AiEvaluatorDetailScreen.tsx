@@ -26,10 +26,19 @@ export const AiEvaluatorDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (
   const prefix = (routeBase ?? "").replace(/\/$/, "");
   const backHref = `${prefix}/ai-evaluators`;
 
-  const {data: promptDetailRaw} = usePromptDetailQuery(evaluator?.judgePromptName ?? "", {
+  const {
+    data: promptDetailRaw,
+    isError: isPromptError,
+    isLoading: isPromptLoading,
+  } = usePromptDetailQuery(evaluator?.judgePromptName ?? "", {
     skip: !evaluator?.judgePromptName,
   });
   const promptDetail = useMemo(() => unwrapPromptDetail(promptDetailRaw), [promptDetailRaw]);
+  const judgePromptStatus = isPromptLoading
+    ? ("loading" as const)
+    : isPromptError || !promptDetail
+      ? ("error" as const)
+      : ("ready" as const);
   const judgeOutputSchema = useMemo(() => {
     if (!promptDetail) {
       return undefined;
@@ -100,6 +109,7 @@ export const AiEvaluatorDetailScreenWidget: React.FC<AdminScreenWidgetProps> = (
       <AiEvaluatorDetailView
         evaluator={evaluator}
         judgeOutputSchema={judgeOutputSchema}
+        judgePromptStatus={judgePromptStatus}
         routeBase={prefix}
         usageRows={usageRows}
       />

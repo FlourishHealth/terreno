@@ -78,6 +78,8 @@ const experimentsState = {
   isLoading: false,
   refetch: mock(() => {}),
 };
+let promptIsError = false;
+let promptIsLoading = false;
 
 const createApi = (): AdminApi => {
   const api = {
@@ -86,24 +88,27 @@ const createApi = (): AdminApi => {
       useAiObservabilityEvaluatorQuery: () => detailState,
       useAiObservabilityExperimentsQuery: () => experimentsState,
       useAiObservabilityPromptQuery: () => ({
-        data: {
-          folder: "ops",
-          labels: [{label: "production", version: 1}],
-          name: "judge",
-          tags: [],
-          versions: [
-            {
-              outputSchema: {properties: {correct: {type: "boolean"}}},
-              sensitive: false,
-              template: "Judge",
-              type: "text",
-              variables: [],
-              version: 1,
-            },
-          ],
-        },
-        isError: false,
-        isLoading: false,
+        data:
+          promptIsError || promptIsLoading
+            ? undefined
+            : {
+                folder: "ops",
+                labels: [{label: "production", version: 1}],
+                name: "judge",
+                tags: [],
+                versions: [
+                  {
+                    outputSchema: {properties: {correct: {type: "boolean"}}},
+                    sensitive: false,
+                    template: "Judge",
+                    type: "text",
+                    variables: [],
+                    version: 1,
+                  },
+                ],
+              },
+        isError: promptIsError,
+        isLoading: promptIsLoading,
       }),
       useAiObservabilityStatusQuery: () => ({
         data: statusData,
@@ -144,6 +149,38 @@ describe("AiEvaluatorDetailScreenWidget", () => {
     expect(loaded.getByTestId("ai-evaluator-detail")).toBeTruthy();
     expect(loaded.getByTestId("ai-evaluator-used-by")).toBeTruthy();
     assert.notInclude(loaded.getByText("recent").props.children, "old");
+  });
+
+  it("shows judge prompt loading and error states without a false schema mismatch", () => {
+    detailState.data = evaluator;
+    detailState.isError = false;
+    detailState.isLoading = false;
+    promptIsLoading = true;
+    const loading = renderWithTheme(
+      <AiEvaluatorDetailScreenWidget
+        api={createApi()}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-evaluator-detail"
+      />
+    );
+    expect(loading.getByTestId("ai-evaluator-schema-loading")).toBeTruthy();
+    assert.notExists(loading.queryByTestId("ai-evaluator-schema-mismatch"));
+    loading.unmount();
+
+    promptIsLoading = false;
+    promptIsError = true;
+    const errored = renderWithTheme(
+      <AiEvaluatorDetailScreenWidget
+        api={createApi()}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-evaluator-detail"
+      />
+    );
+    expect(errored.getByTestId("ai-evaluator-schema-error")).toBeTruthy();
+    assert.notExists(errored.queryByTestId("ai-evaluator-schema-mismatch"));
+    promptIsError = false;
   });
 
   it("shows missing id and load error states", () => {
