@@ -12,6 +12,7 @@ export interface AnnouncementBannerProps {
   isSubmitting?: boolean;
   onAcknowledge: () => void | Promise<void>;
   onDismiss: () => void | Promise<void>;
+  onPrimaryAction?: () => void | Promise<void>;
   requiresAcknowledgement: boolean;
   testID?: string;
 }
@@ -21,6 +22,7 @@ export const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({
   isSubmitting = false,
   onAcknowledge,
   onDismiss,
+  onPrimaryAction,
   requiresAcknowledgement,
   testID = "announcement-banner",
 }) => {
@@ -28,11 +30,15 @@ export const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({
     if (!announcement.primaryAction?.url) {
       return;
     }
+    if (onPrimaryAction) {
+      await onPrimaryAction();
+      return;
+    }
     const canOpen = await Linking.canOpenURL(announcement.primaryAction.url);
     if (canOpen) {
       await Linking.openURL(announcement.primaryAction.url);
     }
-  }, [announcement.primaryAction?.url]);
+  }, [announcement.primaryAction?.url, onPrimaryAction]);
 
   const handleAcknowledgeOrDismiss = useCallback(async (): Promise<void> => {
     if (requiresAcknowledgement) {

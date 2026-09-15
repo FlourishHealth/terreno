@@ -12,6 +12,7 @@ interface AnnouncementScreenProps {
   isSubmitting?: boolean;
   onAcknowledge: () => void | Promise<void>;
   onDismiss: () => void | Promise<void>;
+  onPrimaryAction?: () => void | Promise<void>;
   requiresAcknowledgement: boolean;
 }
 
@@ -20,17 +21,22 @@ export const AnnouncementScreen: React.FC<AnnouncementScreenProps> = ({
   isSubmitting = false,
   onAcknowledge,
   onDismiss,
+  onPrimaryAction,
   requiresAcknowledgement,
 }) => {
   const handlePrimaryAction = useCallback(async (): Promise<void> => {
     if (!announcement.primaryAction?.url) {
       return;
     }
+    if (onPrimaryAction) {
+      await onPrimaryAction();
+      return;
+    }
     const canOpen = await Linking.canOpenURL(announcement.primaryAction.url);
     if (canOpen) {
       await Linking.openURL(announcement.primaryAction.url);
     }
-  }, [announcement.primaryAction?.url]);
+  }, [announcement.primaryAction?.url, onPrimaryAction]);
 
   const primaryButtonText = requiresAcknowledgement ? "Got it" : "Dismiss";
   const secondaryButtonText = announcement.primaryAction?.label;

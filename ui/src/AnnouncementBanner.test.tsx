@@ -100,6 +100,32 @@ describe("AnnouncementBanner", () => {
     assert.strictEqual(onAcknowledge.mock.calls.length, 1);
   });
 
+  it("calls onPrimaryAction once per press instead of opening the URL directly", async () => {
+    const onPrimaryAction = mock(() => Promise.resolve());
+    const openUrl = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = openUrl;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+        })}
+        onAcknowledge={() => {}}
+        onDismiss={() => {}}
+        onPrimaryAction={onPrimaryAction}
+        requiresAcknowledgement={false}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+
+    assert.strictEqual(onPrimaryAction.mock.calls.length, 1);
+    assert.strictEqual(openUrl.mock.calls.length, 0);
+  });
+
   it("opens the primary action URL and exposes a dismiss control", async () => {
     const openUrl = mock(() => Promise.resolve(true));
     Linking.canOpenURL = openUrl;

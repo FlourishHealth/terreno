@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {Linking} from "react-native";
 import {AnnouncementScreen} from "./AnnouncementScreen";
@@ -53,5 +54,44 @@ describe("AnnouncementScreen", () => {
     });
 
     expect(openUrl).toHaveBeenCalledWith("https://example.com/docs");
+  });
+
+  it("calls onPrimaryAction once per press instead of opening the URL directly", async () => {
+    const onPrimaryAction = mock(() => Promise.resolve());
+    const openUrl = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = openUrl;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const result = renderWithTheme(
+      <AnnouncementScreen
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+        })}
+        onAcknowledge={() => {}}
+        onDismiss={() => {}}
+        onPrimaryAction={onPrimaryAction}
+        requiresAcknowledgement
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+
+    assert.strictEqual(onPrimaryAction.mock.calls.length, 1);
+    assert.strictEqual(openUrl.mock.calls.length, 0);
+  });
+
+  it("does not render a primary action button when primaryAction is absent", () => {
+    const result = renderWithTheme(
+      <AnnouncementScreen
+        announcement={makeAnnouncement()}
+        onAcknowledge={() => {}}
+        onDismiss={() => {}}
+        requiresAcknowledgement
+      />
+    );
+
+    assert.isNull(result.queryByText("Read docs"));
   });
 });

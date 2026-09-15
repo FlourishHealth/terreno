@@ -54,7 +54,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: 2.1
   - Acceptance: With `maxInterruptionsPerSession: 1`, second pending item this session is not shown until remount of a new session helper. `skipFirstLaunch: true` skips on first launch then stores launched flag. `cooldownHours` skips when last interrupt is inside the window. Defaults: max 1 / session, cooldown off, skipFirstLaunch false. Caps do not filter `useAnnouncements` feed.
 
-- [ ] **Task 2.3**: Primary-action click tracking
+- [x] **Task 2.3**: Primary-action click tracking
   - Delivers: Modal and banner primary buttons call `POST /announcements/:id/click` then open the URL
   - Files: `ui/src/useAcknowledgeAnnouncement.ts`, `ui/src/AnnouncementScreen.tsx`, `ui/src/AnnouncementScreen.test.tsx`, `ui/src/AnnouncementBanner.tsx`, `ui/src/AnnouncementBanner.test.tsx`
   - Docs: `docs/reference/announcements.md` (consumer hook)

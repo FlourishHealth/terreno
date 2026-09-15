@@ -134,9 +134,21 @@ Set these environment variables on the MCP server to include live announcements:
 
 ## Consumer UI
 
-`@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `useAnnouncements`, and `useAcknowledgeAnnouncement`.
+`@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `AnnouncementBanner`, `useAnnouncements`, and `useAcknowledgeAnnouncement`.
 
-- Pending and feed requests send the current client platform (`ios`, `android`, or `web`) automatically.
+- Pending and feed requests send the current client platform (`ios`, `android`, or `web`) and, when available, the app build number from `Constants.expoConfig.extra.buildNumber` (same source as `useUpgradeCheck`).
 - `requiresAcknowledgement` on pending/feed items is resolved server-side from `acknowledgementPolicy` and `defaultAcknowledgementPolicy`; the navigator trusts that flag.
 - Feed failures do not block the modal queue — only pending errors surface in `AnnouncementNavigator`.
 - Markdown bodies support YouTube and Loom embeds via `MarkdownView`; ordinary links open with `Linking.openURL`.
+
+### `useAcknowledgeAnnouncement`
+
+Injects RTK Query mutations for acknowledgement, impression, and primary-action click tracking:
+
+| Method | Route | Notes |
+|--------|-------|-------|
+| `acknowledge(id)` | `POST /announcements/:id/acknowledge` | Invalidates pending queue |
+| `recordImpression(id)` | `POST /announcements/:id/impression` | Sends current `platform` in body |
+| `recordClick(id)` | `POST /announcements/:id/click` | Body `{ action: "primaryAction", platform }`; appends `?version=` when build number is a finite integer (same visibility gate as pending/feed) |
+
+`AnnouncementNavigator` wires `onPrimaryAction` for modal and banner surfaces: it calls `recordClick` once per primary CTA press (only when `primaryAction` is present), then opens the URL with `Linking`. Click POST failures log `console.warn` and do not block navigation. Standalone `AnnouncementScreen` / `AnnouncementBanner` usage without `onPrimaryAction` still opens the URL directly.

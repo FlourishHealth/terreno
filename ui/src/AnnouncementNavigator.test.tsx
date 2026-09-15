@@ -3,7 +3,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
-import {Text} from "react-native";
+import {Linking, Text} from "react-native";
 import {AnnouncementNavigator} from "./AnnouncementNavigator";
 import {
   buildFrequencyStorageKey,
@@ -32,7 +32,8 @@ const makeAnnouncement = (overrides: Partial<AnnouncementPublic> = {}): Announce
 const createMockApi = (
   pending: PendingAnnouncementsResponse | (() => PendingAnnouncementsResponse),
   refetchOverride?: () => Promise<void>,
-  feedItems: AnnouncementPublic[] = []
+  feedItems: AnnouncementPublic[] = [],
+  clickUnwrap: () => Promise<unknown> = async () => ({data: {recorded: true}})
 ) => {
   const getPending =
     typeof pending === "function" ? pending : (): PendingAnnouncementsResponse => pending;
@@ -42,6 +43,9 @@ const createMockApi = (
   }));
   const impressionMutation = mock(() => ({
     unwrap: mock(() => Promise.resolve({data: {recorded: true}})),
+  }));
+  const clickMutation = mock(() => ({
+    unwrap: mock(clickUnwrap),
   }));
 
   const innerApi = {
@@ -62,6 +66,10 @@ const createMockApi = (
         isLoading: false,
         refetch,
       })),
+      useRecordAnnouncementClickMutation: mock(() => [
+        clickMutation,
+        {error: undefined, isLoading: false},
+      ]),
       useRecordAnnouncementImpressionMutation: mock(() => [
         impressionMutation,
         {error: undefined, isLoading: false},
@@ -74,6 +82,7 @@ const createMockApi = (
     api: {
       enhanceEndpoints: mock(() => innerApi),
     },
+    clickMutation,
     impressionMutation,
     refetch,
   };
@@ -225,6 +234,10 @@ describe("AnnouncementNavigator", () => {
           isLoading: true,
           refetch: mock(() => Promise.resolve()),
         })),
+        useRecordAnnouncementClickMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
         useRecordAnnouncementImpressionMutation: mock(() => [
           mock(),
           {error: undefined, isLoading: false},
@@ -261,6 +274,10 @@ describe("AnnouncementNavigator", () => {
           isLoading: false,
           refetch,
         })),
+        useRecordAnnouncementClickMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
         useRecordAnnouncementImpressionMutation: mock(() => [
           mock(),
           {error: undefined, isLoading: false},
@@ -298,6 +315,10 @@ describe("AnnouncementNavigator", () => {
           isLoading: false,
           refetch: mock(() => Promise.resolve()),
         })),
+        useRecordAnnouncementClickMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
         useRecordAnnouncementImpressionMutation: mock(() => [
           mock(),
           {error: undefined, isLoading: false},
@@ -596,5 +617,99 @@ describe("AnnouncementNavigator", () => {
     });
     expect(impressionMutation).toHaveBeenCalled();
     expect(acknowledgeMutation).not.toHaveBeenCalled();
+  });
+
+  it("records a click and opens the primary action URL from the modal", async () => {
+    const openUrl = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = openUrl;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const {api, clickMutation} = createMockApi({
+      current: makeAnnouncement({
+        primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+      }),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await waitForFrequencyCheck();
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+
+    assert.strictEqual(clickMutation.mock.calls.length, 1);
+    assert.deepEqual(clickMutation.mock.calls[0], [{announcementId: "announcement-1"}]);
+    expect(openUrl).toHaveBeenCalledWith("https://example.com/docs");
+  });
+
+  it("still opens the primary action URL when click tracking fails", async () => {
+    const warnSpy = mock(() => undefined);
+    const originalWarn = console.warn;
+    console.warn = warnSpy;
+
+    const openUrl = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = openUrl;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const {api, clickMutation} = createMockApi(
+      {
+        current: makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+        }),
+        remainingCount: 0,
+      },
+      undefined,
+      [],
+      async () => {
+        throw new Error("click failed");
+      }
+    );
+
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await waitForFrequencyCheck();
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+      await Promise.resolve();
+    });
+
+    assert.strictEqual(clickMutation.mock.calls.length, 1);
+    assert.isAtLeast(warnSpy.mock.calls.length, 1);
+    expect(openUrl).toHaveBeenCalledWith("https://example.com/docs");
+
+    console.warn = originalWarn;
+  });
+
+  it("does not record a click when the announcement has no primary action", async () => {
+    const {api, clickMutation} = createMockApi({
+      current: makeAnnouncement(),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await waitForFrequencyCheck();
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+
+    assert.strictEqual(clickMutation.mock.calls.length, 0);
   });
 });

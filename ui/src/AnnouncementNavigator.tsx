@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {Linking} from "react-native";
 
 import {AnnouncementBanner} from "./AnnouncementBanner";
 import {AnnouncementScreen} from "./AnnouncementScreen";
@@ -36,7 +37,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     api as Parameters<typeof useAnnouncements>[0],
     baseUrl
   );
-  const {acknowledge, recordImpression, isSubmitting} = useAcknowledgeAnnouncement(
+  const {acknowledge, recordClick, recordImpression, isSubmitting} = useAcknowledgeAnnouncement(
     api as Parameters<typeof useAcknowledgeAnnouncement>[0],
     baseUrl
   );
@@ -189,6 +190,32 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     await handleAcknowledge();
   }, [handleAcknowledge]);
 
+  const handlePrimaryAction = useCallback(async (): Promise<void> => {
+    const url = visibleCurrent?.primaryAction?.url;
+    if (!url) {
+      return;
+    }
+
+    if (currentAnnouncementId && visibleCurrent?.primaryAction) {
+      try {
+        await recordClick(currentAnnouncementId);
+      } catch (clickError) {
+        console.warn("[AnnouncementNavigator] Failed to record primary-action click", {
+          clickError,
+        });
+      }
+    }
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      }
+    } catch (linkError) {
+      console.warn("[AnnouncementNavigator] Failed to open primary-action URL", {linkError});
+    }
+  }, [currentAnnouncementId, recordClick, visibleCurrent?.primaryAction]);
+
   if (isLoading) {
     return (
       <Box
@@ -239,6 +266,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
           isSubmitting={isSubmitting}
           onAcknowledge={handleAcknowledge}
           onDismiss={handleDismiss}
+          onPrimaryAction={handlePrimaryAction}
           requiresAcknowledgement={requiresAcknowledgement}
         />
         {children}
@@ -252,6 +280,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
       isSubmitting={isSubmitting}
       onAcknowledge={handleAcknowledge}
       onDismiss={handleDismiss}
+      onPrimaryAction={handlePrimaryAction}
       requiresAcknowledgement={requiresAcknowledgement}
     />
   );

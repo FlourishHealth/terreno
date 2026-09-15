@@ -45,7 +45,7 @@ Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The na
 | `banner` | Keeps children mounted and renders `AnnouncementBanner` above them (one interrupt at a time). |
 | `feed` | Changelog-only; never shown by `AnnouncementNavigator` even if it appears unexpectedly in `pending.current`. |
 
-`AnnouncementBanner` composes the existing `Banner` component: title text, a dismiss or acknowledgement action, and an optional primary-action button (URL opens on press; click analytics land in a later slice).
+`AnnouncementBanner` composes the existing `Banner` component: title text, a dismiss or acknowledgement action, and an optional primary-action button. When used inside `AnnouncementNavigator`, primary CTA presses call `POST /announcements/:id/click` (via `useAcknowledgeAnnouncement().recordClick`) and then open the URL; tracking failures never block navigation.
 
 Acknowledgement policy still resolves to `requiresAcknowledgement` on the public DTO:
 

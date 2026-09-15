@@ -1,5 +1,6 @@
 import {useCallback, useRef} from "react";
 
+import {getAnnouncementBuildVersion} from "./announcementBuildVersion";
 import {getAnnouncementPlatform} from "./announcementPlatform";
 
 interface AcknowledgeAnnouncementMutationResult {
@@ -15,7 +16,7 @@ interface AcknowledgeAnnouncementMutationBuilder {
   mutation: (options: {
     invalidatesTags: string[];
     query: (args: {announcementId: string; platform?: string}) => {
-      body?: {platform?: string};
+      body?: {action?: string; platform?: string};
       method: "POST";
       url: string;
     };
@@ -25,6 +26,10 @@ interface AcknowledgeAnnouncementMutationBuilder {
 interface AcknowledgeAnnouncementEnhancedApi {
   useAcknowledgeAnnouncementMutation: () => [
     (args: {announcementId: string; platform?: string}) => AcknowledgeAnnouncementMutationResult,
+    AcknowledgeAnnouncementMutationHookState,
+  ];
+  useRecordAnnouncementClickMutation: () => [
+    (args: {announcementId: string}) => AcknowledgeAnnouncementMutationResult,
     AcknowledgeAnnouncementMutationHookState,
   ];
   useRecordAnnouncementImpressionMutation: () => [
@@ -37,6 +42,7 @@ interface AcknowledgeAnnouncementApiWithTags {
   injectEndpoints: (options: {
     endpoints: (build: AcknowledgeAnnouncementMutationBuilder) => {
       acknowledgeAnnouncement: unknown;
+      recordAnnouncementClick: unknown;
       recordAnnouncementImpression: unknown;
     };
     overrideExisting: boolean;
@@ -51,6 +57,12 @@ const enhancedApiCache = new WeakMap<
   AcknowledgeAnnouncementApi,
   Map<string, AcknowledgeAnnouncementEnhancedApi>
 >();
+
+const buildAnnouncementClickUrl = (base: string, announcementId: string): string => {
+  const version = getAnnouncementBuildVersion();
+  const versionParam = version === undefined ? "" : `?version=${version}`;
+  return `${base}/announcements/${announcementId}/click${versionParam}`;
+};
 
 const getEnhancedApi = (
   api: AcknowledgeAnnouncementApi,
@@ -75,6 +87,17 @@ const getEnhancedApi = (
           url: `${base}/announcements/${announcementId}/acknowledge`,
         }),
       }),
+      recordAnnouncementClick: build.mutation({
+        invalidatesTags: [],
+        query: ({announcementId}: {announcementId: string}) => ({
+          body: {
+            action: "primaryAction",
+            platform: getAnnouncementPlatform(),
+          },
+          method: "POST",
+          url: buildAnnouncementClickUrl(base, announcementId),
+        }),
+      }),
       recordAnnouncementImpression: build.mutation({
         invalidatesTags: [],
         query: ({announcementId, platform}: {announcementId: string; platform?: string}) => ({
@@ -96,16 +119,24 @@ export const useAcknowledgeAnnouncement = (api: AcknowledgeAnnouncementApi, base
 
   const [acknowledgeMutation, {isLoading: isAcknowledging, error: acknowledgeError}] =
     enhancedApi.useAcknowledgeAnnouncementMutation();
+  const [clickMutation, {isLoading: isRecordingClick, error: clickError}] =
+    enhancedApi.useRecordAnnouncementClickMutation();
   const [impressionMutation, {isLoading: isRecordingImpression, error: impressionError}] =
     enhancedApi.useRecordAnnouncementImpressionMutation();
 
   const acknowledgeMutationRef = useRef(acknowledgeMutation);
   acknowledgeMutationRef.current = acknowledgeMutation;
+  const clickMutationRef = useRef(clickMutation);
+  clickMutationRef.current = clickMutation;
   const impressionMutationRef = useRef(impressionMutation);
   impressionMutationRef.current = impressionMutation;
 
   const acknowledge = useCallback(async (announcementId: string): Promise<void> => {
     await acknowledgeMutationRef.current({announcementId}).unwrap();
+  }, []);
+
+  const recordClick = useCallback(async (announcementId: string): Promise<void> => {
+    await clickMutationRef.current({announcementId}).unwrap();
   }, []);
 
   const recordImpression = useCallback(async (announcementId: string): Promise<void> => {
@@ -119,10 +150,12 @@ export const useAcknowledgeAnnouncement = (api: AcknowledgeAnnouncementApi, base
 
   return {
     acknowledge,
-    error: acknowledgeError ?? impressionError,
+    error: acknowledgeError ?? clickError ?? impressionError,
     isAcknowledging,
+    isRecordingClick,
     isRecordingImpression,
-    isSubmitting: isAcknowledging || isRecordingImpression,
+    isSubmitting: isAcknowledging || isRecordingClick || isRecordingImpression,
+    recordClick,
     recordImpression,
   };
 };
