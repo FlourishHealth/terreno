@@ -393,7 +393,8 @@ score fields, configure the selected method, choose where it runs, then name and
 Decision-focused helper text explains the outcome and tradeoffs of each choice instead of exposing
 framework terminology alone. Human setup points operators to **Send to human review** and omits
 live sampling because it never applies; automatic evaluators explain experiment/manual availability
-and the billed-call impact of production sampling. The optional purpose is saved as the evaluator
+and production sampling, while LLM judges call out the billed model-call impact. The optional
+purpose is saved as the evaluator
 description and appears on its detail screen. LLM judge schema feedback stays idle until a prompt is
 named, then shows loading/error states and only checks dimensions after its production schema loads.
 `ai-evaluator-detail?id=` leads with the evaluator name, description, and type/target/run-mode

@@ -177,7 +177,7 @@ describe("AiEvaluatorNewScreenWidget", () => {
       fireEvent.press(view.getByTestId("ai-evaluator-submit"));
       await Promise.resolve();
     });
-    expect(view.getByText("Each dimension needs a key.")).toBeTruthy();
+    expect(view.getByText("Each score needs a name.")).toBeTruthy();
 
     setDimensionKey(view, "pass");
     await act(async () => {

@@ -86,7 +86,14 @@ const EvaluatorSetupStep: React.FC<EvaluatorSetupStepProps> = ({
   title,
 }) => {
   return (
-    <Box border="default" gap={3} padding={4} rounding="md" testID={testID}>
+    <Box
+      accessibilityLabel={`Step ${number} of 6: ${title}`}
+      border="default"
+      gap={3}
+      padding={4}
+      rounding="md"
+      testID={testID}
+    >
       <Box direction="row" gap={2}>
         <Badge status="neutral" value={String(number)} />
         <Box flex="grow" gap={1}>
@@ -526,11 +533,7 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
       >
         <Box direction="row" gap={2} justifyContent="between">
           <Text bold>Score fields</Text>
-          <Button
-            onClick={onAddDimension}
-            testID="ai-evaluator-add-dimension"
-            text="Add dimension"
-          />
+          <Button onClick={onAddDimension} testID="ai-evaluator-add-dimension" text="Add score" />
         </Box>
         <Text color="secondaryDark" size="sm" testID="ai-evaluator-help-dimensions">
           {EVALUATOR_DIMENSIONS_HELP}
@@ -639,7 +642,9 @@ export const AiEvaluatorNewView: React.FC<AiEvaluatorNewViewProps> = ({
             />
             {runModes.liveSampleRate > 0 ? (
               <Text color="warning" size="sm">
-                Live scoring creates a billed judge call for each sampled trace.
+                {type === "llm-judge"
+                  ? "Live scoring creates a billed judge call for each sampled trace."
+                  : "Live scoring checks each sampled trace automatically without a model call."}
               </Text>
             ) : undefined}
           </>

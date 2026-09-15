@@ -151,7 +151,7 @@ export const AiEvaluatorNewScreenWidget: React.FC<AdminScreenWidgetProps> = (pro
       return;
     }
     if (dimensions.some((dimension) => !dimension.key.trim())) {
-      setCreateError("Each dimension needs a key.");
+      setCreateError("Each score needs a name.");
       return;
     }
     if (type === "llm-judge" && !judgePromptName.trim()) {

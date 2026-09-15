@@ -84,10 +84,16 @@ describe("AiEvaluatorNewView helper text", () => {
     expect(getByTestId("ai-evaluator-help-type")).toHaveTextContent(/reviewer decides the score/);
     expect(getByTestId("ai-evaluator-help-target")).toHaveTextContent(/complete interaction/);
     expect(getByTestId("ai-evaluator-step-method")).toHaveTextContent(/Choose how scoring happens/);
+    expect(getByTestId("ai-evaluator-step-target")).toHaveTextContent(/Choose what it evaluates/);
     expect(getByTestId("ai-evaluator-step-scores")).toHaveTextContent(
       /Each dimension becomes a separate saved score/
     );
+    expect(getByTestId("ai-evaluator-step-config")).toHaveTextContent(
+      /Configure the scoring method/
+    );
     expect(getByTestId("ai-evaluator-step-run")).toHaveTextContent(/Send to human review/);
+    expect(getByTestId("ai-evaluator-step-name")).toHaveTextContent(/Name the evaluator/);
+    expect(getByTestId("ai-evaluator-description")).toBeTruthy();
     expect(getByText(/Use a short, unique name/)).toBeTruthy();
     expect(getByText(/Reviewers see these instructions/)).toBeTruthy();
 
@@ -191,6 +197,7 @@ describe("AiEvaluatorNewView panels", () => {
     const onAddDimension = mock(() => undefined);
     const onRemoveDimension = mock(() => undefined);
     const onLiveSampleRateChange = mock(() => undefined);
+    const onDescriptionChange = mock(() => undefined);
     const onCreate = mock(() => undefined);
     const {getByTestId, getAllByText, getByText} = renderWithTheme(
       <AiEvaluatorNewView
@@ -209,6 +216,7 @@ describe("AiEvaluatorNewView panels", () => {
         onAssertionConstraintChange={() => undefined}
         onAssertionPathChange={() => undefined}
         onCreate={onCreate}
+        onDescriptionChange={onDescriptionChange}
         onDimensionChange={() => undefined}
         onInstructionsChange={() => undefined}
         onJudgePromptNameChange={() => undefined}
@@ -231,11 +239,13 @@ describe("AiEvaluatorNewView panels", () => {
         fireEvent.press(removeButtons[removeButtons.length - 1]!);
       }
       fireEvent.changeText(getByTestId("ai-evaluator-live-sample"), "25");
+      fireEvent.changeText(getByTestId("ai-evaluator-description"), "Checks response shape.");
       fireEvent.press(getByTestId("ai-evaluator-submit"));
       await Promise.resolve();
     });
     expect(getByTestId("ai-evaluator-create-error")).toBeTruthy();
-    expect(getByText(/Live scoring creates a billed judge call/)).toBeTruthy();
+    expect(getByText(/without a model call/)).toBeTruthy();
+    assert.equal(onDescriptionChange.mock.calls[0]?.[0], "Checks response shape.");
   });
 });
 
@@ -295,6 +305,10 @@ describe("AiEvaluatorDetailView", () => {
       />
     );
     expect(human.getByTestId("ai-evaluator-panel-human")).toBeTruthy();
+    expect(human.getByText("Scores this evaluator saves")).toBeTruthy();
+    expect(human.getByText("How scoring works")).toBeTruthy();
+    expect(human.getByText("Where it runs")).toBeTruthy();
+    expect(human.getByText(/never runs automatically/)).toBeTruthy();
 
     const jsonAssert = renderWithTheme(
       <AiEvaluatorDetailView
