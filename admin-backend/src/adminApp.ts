@@ -748,6 +748,7 @@ export class AdminApp {
     const safeFrameworkAdminAudit = async ({
       after,
       before,
+      extraRedact,
       modelName,
       recordLabel,
       request,
@@ -755,6 +756,7 @@ export class AdminApp {
     }: {
       after?: unknown;
       before?: unknown;
+      extraRedact?: string[];
       modelName: string;
       recordLabel?: string;
       request: express.Request;
@@ -766,6 +768,7 @@ export class AdminApp {
       void maybeRecordAdminAudit({
         after,
         before,
+        extraRedact,
         modelName,
         recordLabel,
         req: request,
@@ -1485,6 +1488,7 @@ export class AdminApp {
           const recordLabel = auditLabelFromListFields(doc, config.listFields);
           await safeFrameworkAdminAudit({
             after: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
             modelName: config.model.modelName,
             recordLabel,
             request,
@@ -1507,6 +1511,7 @@ export class AdminApp {
           const recordLabel = auditLabelFromListFields(doc, config.listFields);
           await safeFrameworkAdminAudit({
             before: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
             modelName: config.model.modelName,
             recordLabel,
             request,
@@ -1535,6 +1540,7 @@ export class AdminApp {
           await safeFrameworkAdminAudit({
             after: value,
             before: prev,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
             modelName: config.model.modelName,
             recordLabel,
             request,

@@ -73,6 +73,7 @@ const operationFromVerb = (verb: AuditEventVerb): AuditEventOperation => {
 export const maybeRecordAdminAudit = async ({
   after,
   before,
+  extraRedact = [],
   modelName,
   recordLabel,
   req,
@@ -80,6 +81,7 @@ export const maybeRecordAdminAudit = async ({
 }: {
   after?: unknown;
   before?: unknown;
+  extraRedact?: string[];
   modelName: string;
   recordLabel?: string;
   req: Request;
@@ -94,7 +96,7 @@ export const maybeRecordAdminAudit = async ({
     }
     const beforePlain = toAuditPlain(before);
     const afterPlain = toAuditPlain(after);
-    const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact: []});
+    const diff = changedFieldDiff({after: afterPlain, before: beforePlain, extraRedact});
     const recordIdValue = afterPlain?._id ?? beforePlain?._id;
     await recordAuditEvent({
       actorId: actorIdFromRequest(req),

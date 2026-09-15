@@ -13,9 +13,23 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 
 const DEFAULT_REDACT_LOWER = DEFAULT_AUDIT_REDACT_SEGMENTS.map((segment) => segment.toLowerCase());
 
+/** Split camelCase / snake_case keys so `tokenHash` matches default `token` and `hash`. */
+const fieldNameParts = (name: string): string[] => {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.toLowerCase());
+};
+
 const isRedactedSegment = (name: string, extraRedact: string[] = []): boolean => {
   const lower = name.toLowerCase();
-  if (DEFAULT_REDACT_LOWER.includes(lower)) {
+  const parts = fieldNameParts(name);
+  if (
+    DEFAULT_REDACT_LOWER.includes(lower) ||
+    parts.some((part) => DEFAULT_REDACT_LOWER.includes(part))
+  ) {
     return true;
   }
   return extraRedact.some((segment) => segment.toLowerCase() === lower);

@@ -93,6 +93,22 @@ describe("audit record helpers", () => {
     assert.equal(events[0]?.source, "admin");
   });
 
+  it("omits hidden fields from admin diffs", async () => {
+    registerAuditApp();
+    await maybeRecordAdminAudit({
+      after: {_id: "food-2", name: "Soup", ssn: "111-11-1111", tokenHash: "abc"},
+      extraRedact: ["ssn"],
+      modelName: "Food",
+      req: {user: {id: new mongoose.Types.ObjectId().toString()}} as express.Request,
+      verb: "created",
+    });
+    const event = await mongoose.connection.collection("auditevents").findOne({});
+    const after = event?.after as Record<string, unknown> | undefined;
+    assert.equal(after?.name, "Soup");
+    assert.isUndefined(after?.ssn);
+    assert.isUndefined(after?.tokenHash);
+  });
+
   it("uses user._id when user.id is missing", async () => {
     registerAuditApp();
     const actorId = new mongoose.Types.ObjectId();

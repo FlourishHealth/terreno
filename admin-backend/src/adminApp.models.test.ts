@@ -1403,6 +1403,28 @@ describe("AdminApp AuditEvent auto-write", () => {
     assert.equal(events[0]?.recordLabel, "AuditedFood");
   });
 
+  it("omits hiddenFields from admin AuditEvent diffs", async () => {
+    const hiddenApp = getBaseServer();
+    setupAuth(hiddenApp, UserModel as unknown as UserModelType);
+    addAuthRoutes(hiddenApp, UserModel as unknown as UserModelType);
+    new AuditApp().register(hiddenApp);
+    new AdminApp({
+      basePath: "/admin",
+      models: [{...foodModelConfig, hiddenFields: ["calories"]}],
+    }).register(hiddenApp);
+    hiddenApp.use(apiUnauthorizedMiddleware);
+    hiddenApp.use(apiErrorMiddleware);
+    const agent = await authAsUser(hiddenApp, "admin");
+    const food = await FoodModel.create({calories: 42, name: "HiddenCals"});
+    await agent.delete(`/admin/foods/${food._id}`).expect(204);
+    await flushAuditRecorderForTests();
+    const events = await mongoose.connection.collection("auditevents").find({}).toArray();
+    assert.equal(events.length, 1);
+    const before = events[0]?.before as Record<string, unknown> | undefined;
+    assert.equal(before?.name, "HiddenCals");
+    assert.isUndefined(before?.calories);
+  });
+
   it("runs onAdminAudit and persists AuditEvent when both are configured", async () => {
     const extra: AdminAuditEvent[] = [];
     const localApp = buildAppWithAuditPlugin({

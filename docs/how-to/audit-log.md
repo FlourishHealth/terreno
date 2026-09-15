@@ -38,13 +38,16 @@ modelRouter("/todos", Todo, {
 | PATCH `/:id/:field/:itemId` | `updated` | `arrayUpdate` | Changed fields; `recordId` set |
 | DELETE `/:id/:field/:itemId` | `updated` | `arrayRemove` | Changed fields; `recordId` set |
 
-`source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are omitted at every object and array depth; extra `redact` names merge with that list.
+`source` is `modelRouter` for these writes. Secrets (`password`, `hash`, `salt`, `token`,
+`secret`, `refreshToken`) are omitted at every object and array depth, including compound
+keys such as `tokenHash`. Extra `redact` names merge with that list as exact field names.
 
 ### 3. Admin mutations
 
 When `AuditApp` is registered, AdminApp writes the same `AuditEvent` collection with
 `source: "admin"` after successful admin POST/PATCH/DELETE. You do not need `onAdminAudit` for
 that. `onAdminAudit` remains an extra sink if the app still wants a second destination.
+Admin diffs also omit each model's `hiddenFields` and `excludeFields`.
 
 RBAC mutations fan into the same collection when `createAccess({auditSink: persistRbacAuditToAuditEvent})` is set. `source` is `rbac`.
 

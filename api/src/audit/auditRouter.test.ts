@@ -110,6 +110,23 @@ describe("changedFieldDiff", () => {
       settings: {auth: {mode: "b"}},
     });
   });
+
+  it("redacts compound secret keys such as tokenHash", () => {
+    const diff = changedFieldDiff({
+      after: {title: "New", tokenHash: "abc"},
+      before: {title: "Old", tokenHash: "xyz"},
+    });
+    assert.deepEqual(diff, {after: {title: "New"}, before: {title: "Old"}});
+  });
+
+  it("does not treat extra redact names as substrings", () => {
+    const diff = changedFieldDiff({
+      after: {lesson: "keep", ssn: "999"},
+      extraRedact: ["ssn"],
+    });
+    assert.equal(diff.after?.lesson, "keep");
+    assert.isUndefined(diff.after?.ssn);
+  });
 });
 
 describe("modelRouter audit", () => {
