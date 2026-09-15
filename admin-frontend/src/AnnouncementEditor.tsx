@@ -1,10 +1,10 @@
 import {
   Box,
   Button,
-  CheckBox,
   DateTimeField,
   Heading,
   MarkdownEditor,
+  MultiselectField,
   NumberField,
   Page,
   SelectField,
@@ -191,6 +191,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
   const [publishAt, setPublishAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [platforms, setPlatforms] = useState<AnnouncementPlatform[]>(["ios", "android", "web"]);
+  const [platformsError, setPlatformsError] = useState("");
   const [primaryActionLabel, setPrimaryActionLabel] = useState("");
   const [primaryActionUrl, setPrimaryActionUrl] = useState("");
 
@@ -303,13 +304,15 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
     setPrimaryActionUrl(action?.url ?? "");
   }, [announcementData]);
 
-  const handlePlatformToggle = useCallback((platform: AnnouncementPlatform) => {
-    setPlatforms((prev) => {
-      if (prev.includes(platform)) {
-        return prev.filter((item) => item !== platform);
-      }
-      return [...prev, platform];
-    });
+  const handlePlatformsChange = useCallback((values: string[]) => {
+    const next = values.filter(
+      (value): value is AnnouncementPlatform =>
+        value === "ios" || value === "android" || value === "web"
+    );
+    setPlatforms(next);
+    if (next.length > 0) {
+      setPlatformsError("");
+    }
   }, []);
 
   const buildPayload = useCallback(() => {
@@ -337,7 +340,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
       audienceType,
       body: body.trim(),
       displayMode,
-      platforms: platforms.length > 0 ? platforms : ["ios", "android", "web"],
+      platforms,
       priority: parseInt(priority, 10) || 0,
       title: title.trim(),
     };
@@ -391,6 +394,11 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
       toast.error("Body is required");
       return;
     }
+    if (platforms.length === 0) {
+      setPlatformsError("Select at least one platform");
+      toast.error("Select at least one platform");
+      return;
+    }
 
     let payload: ReturnType<typeof buildPayload>;
     try {
@@ -419,6 +427,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
     id,
     isEditMode,
     onSave,
+    platforms.length,
     title,
     toast,
     updateAnnouncement,
@@ -561,6 +570,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
         <Box gap={3}>
           <Heading size="sm">Targeting</Heading>
           <SelectField
+            helperText="Modal blocks the app; banner is non-blocking; feed is changelog-only."
             onChange={(value) => setDisplayMode(value as AnnouncementDisplayMode)}
             options={DISPLAY_MODE_OPTIONS}
             requireValue
@@ -569,6 +579,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
             value={displayMode}
           />
           <SelectField
+            helperText="Staff and patient are composed with your matchAudience callback on the server."
             onChange={(value) => setAudienceType(value as AnnouncementAudienceType)}
             options={AUDIENCE_TYPE_OPTIONS}
             requireValue
@@ -577,6 +588,7 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
             value={audienceType}
           />
           <SelectField
+            helperText="Required shows a Got it action; dismiss-only records an impression when closed."
             onChange={handleAcknowledgementPolicyChange}
             options={ACKNOWLEDGEMENT_POLICY_OPTIONS}
             requireValue
@@ -627,24 +639,15 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
             type="datetime"
             value={expiresAt}
           />
-          <Box gap={2}>
-            <Text size="sm">Platforms</Text>
-            {PLATFORM_OPTIONS.map((option) => (
-              <Box
-                accessibilityHint={`Toggle ${option.label} platform`}
-                accessibilityLabel={option.label}
-                alignItems="center"
-                direction="row"
-                gap={1}
-                key={option.value}
-                onClick={() => handlePlatformToggle(option.value)}
-                testID={`announcement-platform-${option.value}`}
-              >
-                <CheckBox selected={platforms.includes(option.value)} />
-                <Text>{option.label}</Text>
-              </Box>
-            ))}
-          </Box>
+          <MultiselectField
+            errorText={platformsError}
+            helperText="Users only see the announcement on selected platforms."
+            onChange={handlePlatformsChange}
+            options={PLATFORM_OPTIONS}
+            testID="announcement-platforms-input"
+            title="Platforms"
+            value={platforms}
+          />
         </Box>
 
         <Box gap={3}>

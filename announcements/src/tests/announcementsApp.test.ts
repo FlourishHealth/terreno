@@ -59,10 +59,20 @@ describe("AnnouncementsApp", () => {
     await AnnouncementClickEvent.deleteMany({});
   });
 
-  it("contributes announcement admin models", () => {
+  it("contributes announcement admin models and grouped overview screen", () => {
     const contribution = new AnnouncementsApp().adminContribution();
     expect(contribution.models?.length).toBe(4);
     expect(contribution.models?.[0]?.routePath).toBe("/announcements");
+    expect(contribution.models?.[0]?.admin.displayName).toBe("All announcements");
+    expect(contribution.models?.every((entry) => entry.admin.group === "Announcements")).toBe(true);
+    expect(contribution.customScreens).toEqual([
+      {
+        displayName: "Overview",
+        group: "Announcements",
+        icon: "bullhorn",
+        name: "announcements",
+      },
+    ]);
   });
 
   it("publishes draft announcements and returns them as pending", async () => {

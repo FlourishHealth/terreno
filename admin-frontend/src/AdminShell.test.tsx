@@ -734,6 +734,41 @@ describe("AdminShell", () => {
     assert.equal(mockRouterPush.mock.calls.at(-1)?.[0], "/admin/Trail");
   });
 
+  it("renders grouped custom screens inside matching model groups before model links", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "Overview", group: "Work", name: "announcements"},
+        {displayName: "Ungrouped", name: "ungrouped"},
+      ],
+      models: [
+        {
+          ...buildConfig().models[0],
+          group: "Work",
+        },
+      ],
+      platformTools: {
+        configuration: false,
+        roles: false,
+        scripts: false,
+        version: false,
+      },
+      scripts: [],
+    };
+
+    const {getByTestId} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-announcements-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-model-Todo-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-ungrouped-clickable"));
+  });
+
   it("groups models under their configured sidebar group labels", () => {
     restoreWindowWidth?.();
     restoreWindowWidth = setWindowWidth(1024);

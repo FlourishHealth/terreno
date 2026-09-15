@@ -390,11 +390,14 @@ describe("AnnouncementEditor", () => {
     expect(createCalls.length).toBe(0);
   });
 
-  it("toggles delivery platforms", async () => {
-    const {getByTestId} = renderWithTheme(
+  it("updates delivery platforms through the multiselect field", async () => {
+    const {getByLabelText, getByTestId} = renderWithTheme(
       <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
-    await press(getByTestId("announcement-platform-ios-clickable"));
+    await act(async () => {
+      fireEvent.press(getByLabelText("iOS"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
     await act(async () => {
       fireEvent.changeText(getByTestId("announcement-title-input"), "Title");
       fireEvent.changeText(getByTestId("announcement-body-input-input"), "Body");
@@ -402,9 +405,27 @@ describe("AnnouncementEditor", () => {
     });
     await press(getByTestId("announcement-save-button"));
     const platforms = (createCalls[0] as {platforms?: string[]}).platforms ?? [];
-    expect(platforms.includes("ios")).toBe(false);
-    expect(platforms.includes("android")).toBe(true);
-    expect(platforms.includes("web")).toBe(true);
+    assert.deepEqual(platforms, ["android", "web"]);
+  });
+
+  it("requires at least one platform before save", async () => {
+    const {getByLabelText, getByTestId} = renderWithTheme(
+      <AnnouncementEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("announcement-title-input"), "Title");
+      fireEvent.changeText(getByTestId("announcement-body-input-input"), "Body");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    for (const label of ["iOS", "Android", "Web"]) {
+      await act(async () => {
+        fireEvent.press(getByLabelText(label));
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
+    await press(getByTestId("announcement-save-button"));
+    expect(createCalls.length).toBe(0);
+    expect(getByTestId("announcement-platforms-input.error")).toBeDefined();
   });
 
   it("ignores invalid schedule dates when loading an announcement", async () => {

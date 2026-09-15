@@ -36,7 +36,7 @@ For Flourish-style surfaces on one collection:
 | `patient` | `banner` or `feed` | `dismiss-only` |
 | `all` | any | per announcement or `defaultAcknowledgementPolicy` |
 
-2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the surface to users who only acknowledged the previous version.
+2. Create announcements in admin (draft → publish). Use `AnnouncementOverview`, `AnnouncementEditor`, and (optionally) `AnnouncementList` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). The built-in admin screen widget key `announcements` renders the overview when your host uses `AdminScreenRouter` for custom screens. Published `title`/`body` edits auto-increment `version`, which re-shows the surface to users who only acknowledged the previous version.
 
 ### Admin editor fields
 
@@ -50,7 +50,20 @@ For Flourish-style surfaces on one collection:
 | `minBuildNumber` | Number (optional) | Minimum client build; cleared with `null` on edit when empty |
 | `audience` | JSON textarea (advanced) | Opaque metadata for `matchAudience`; use audience type for staff/patient/all |
 
-`AnnouncementList` shows status, display mode, audience type, and acknowledgement policy columns alongside priority and version.
+### Admin overview
+
+`AnnouncementOverview` calls `GET /announcements/overview` (via RTK `injectEndpoints`) and shows:
+
+- Launch workflow guidance (draft → targeting → preview → publish) with a primary **Create announcement** action
+- Summary cards for published, drafts, impressions, acknowledgements, and CTA clicks
+- A paginated table with per-row metrics and an edit action
+- Optional quick links to the raw acknowledgement, impression, and click-event admin tables
+
+Register the screen through `AnnouncementsApp.adminContribution()` (`customScreens: [{ name: "announcements", displayName: "Overview", group: "Announcements" }]`) and rely on `ANNOUNCEMENTS_ADMIN_WIDGETS` from `@terreno/admin-frontend` (merged into `BUILT_IN_SCREEN_WIDGETS`). Grouped custom screens appear in the **Announcements** sidebar group before model links; ungrouped screens stay under **Screens**.
+
+`AnnouncementList` remains available for a CRUD-style list; the overview is the launch dashboard.
+
+`AnnouncementEditor` uses `MultiselectField` for platforms and requires at least one platform before save.
 
 ## Frontend
 

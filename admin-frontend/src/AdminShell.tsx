@@ -6,7 +6,7 @@ import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {type AdminSidebarGroup, buildAdminSidebarGroups} from "./adminShellNav";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -71,43 +71,46 @@ const isFeatureFlagModel = (model: AdminModelConfig): boolean => {
 };
 
 interface AdminShellSidebarNavProps {
-  allCustomScreens: AdminCustomScreen[];
   configurationPath?: string;
   footer?: React.ReactNode;
-  grouped: ReturnType<typeof groupAdminModelsByGroup>;
   navigate: (path: string) => void;
   onNavigate?: () => void;
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
+  sidebarGroups: AdminSidebarGroup[];
   sidebarVariant: AdminShellSidebarVariant;
+  ungroupedScreens: AdminCustomScreen[];
   versionConfigPath: string;
 }
 
 const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
-  allCustomScreens,
   configurationPath,
   footer,
-  grouped,
   navigate,
   onNavigate,
   platformTools,
   rolesPath,
   scripts,
+  sidebarGroups,
   sidebarVariant,
+  ungroupedScreens,
   versionConfigPath,
 }) => {
   const sidebarIsColorful = sidebarVariant === "colorful";
   const sectionLabelColor = sidebarIsColorful ? "inverted" : "secondaryDark";
-  const models = grouped.flatMap(({models: groupModels}) => groupModels);
+  const models = sidebarGroups.flatMap(({models: groupModels}) => groupModels);
   const auditLogModel = models.find(isAuditLogModel);
   const featureFlagModel = models.find(isFeatureFlagModel);
-  const visibleGrouped = grouped
-    .map(({group, models: groupModels}) => ({
+  const visibleSidebarGroups = sidebarGroups
+    .map(({customScreens, group, models: groupModels}) => ({
+      customScreens,
       group,
       models: groupModels.filter((model) => !isAuditLogModel(model) && !isFeatureFlagModel(model)),
     }))
-    .filter(({models: groupModels}) => groupModels.length > 0);
+    .filter(
+      ({customScreens, models: groupModels}) => customScreens.length > 0 || groupModels.length > 0
+    );
   const hasPlatformLinks = Boolean(
     (platformTools.scripts && scripts.length > 0) ||
       (platformTools.roles && rolesPath) ||
@@ -140,16 +143,29 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             testID="admin-shell-nav-home"
           />
         </Box>
-        {visibleGrouped.length > 0 ? (
+        {visibleSidebarGroups.length > 0 ? (
           <Box direction="column" gap={3} testID="admin-shell-nav-models">
             <Text bold color={sectionLabelColor} size="sm">
               Models
             </Text>
-            {visibleGrouped.map(({group, models: groupModels}) => (
+            {visibleSidebarGroups.map(({customScreens, group, models: groupModels}) => (
               <Box direction="column" gap={1} key={group}>
                 <Text bold color={sectionLabelColor} size="sm">
                   {group}
                 </Text>
+                {customScreens.map((screen) => (
+                  <NavButton
+                    key={screen.name}
+                    label={screen.displayName}
+                    onPress={() => {
+                      runNav(() => {
+                        navigate(`/${screen.name}`);
+                      });
+                    }}
+                    sidebarVariant={sidebarVariant}
+                    testID={`admin-shell-nav-screen-${screen.name}`}
+                  />
+                ))}
                 {groupModels.map((model) => (
                   <NavButton
                     key={model.name}
@@ -167,12 +183,12 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {allCustomScreens.length > 0 ? (
+        {ungroupedScreens.length > 0 ? (
           <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
-            {allCustomScreens.map((screen) => (
+            {ungroupedScreens.map((screen) => (
               <NavButton
                 key={screen.name}
                 label={screen.displayName}
@@ -381,21 +397,24 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     scripts: true,
     version: true,
   };
-  const grouped = groupAdminModelsByGroup(config.models as AdminModelConfig[]);
+  const {groups: sidebarGroups, ungroupedScreens} = buildAdminSidebarGroups({
+    customScreens: allCustomScreens,
+    models: config.models as AdminModelConfig[],
+  });
 
   const sidebarIsColorful = sidebarVariant === "colorful";
   const showTopBar = Boolean(headerActions) || Boolean(breadcrumbs && breadcrumbs.length > 0);
 
   const sidebarNavProps: AdminShellSidebarNavProps = {
-    allCustomScreens,
     configurationPath,
     footer,
-    grouped,
     navigate,
     platformTools,
     rolesPath,
     scripts,
+    sidebarGroups,
     sidebarVariant,
+    ungroupedScreens,
     versionConfigPath,
   };
 

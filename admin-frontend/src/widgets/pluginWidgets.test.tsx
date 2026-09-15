@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {ANNOUNCEMENTS_ADMIN_WIDGETS} from "../AnnouncementOverviewScreenWidget";
 import {COMMS_ADMIN_WIDGETS} from "../comms/CommsDashboardScreenWidget";
 import {AI_ADMIN_WIDGETS} from "./AIRequestsScreenWidget";
 import {CONSENT_ADMIN_WIDGETS} from "./consentWidgets";
@@ -23,9 +24,10 @@ describe("plugin admin widget registries", () => {
     ]);
   });
 
-  it("exports documents, AI request, and comms screen widgets by custom screen name", () => {
+  it("exports documents, AI request, comms, and announcements screen widgets by custom screen name", () => {
     expect(DOCUMENT_STORAGE_ADMIN_WIDGETS.documents).toBeDefined();
     expect(AI_ADMIN_WIDGETS["ai-requests"]).toBeDefined();
     expect(COMMS_ADMIN_WIDGETS.comms).toBeDefined();
+    expect(ANNOUNCEMENTS_ADMIN_WIDGETS.announcements).toBeDefined();
   });
 });

@@ -96,12 +96,20 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
   adminContribution(): AdminContribution {
     return {
+      customScreens: [
+        {
+          displayName: "Overview",
+          group: "Announcements",
+          icon: "bullhorn",
+          name: "announcements",
+        },
+      ],
       models: [
         {
           admin: {
             defaultSort: "-priority,-publishedAt",
-            displayName: "Announcements",
-            group: "Content",
+            displayName: "All announcements",
+            group: "Announcements",
             listDisplayLinks: ["title"],
             listFields: [
               "title",
@@ -121,7 +129,8 @@ export class AnnouncementsApp implements TerrenoPlugin {
         {
           admin: {
             defaultSort: "-acknowledgedAt",
-            displayName: "Announcement Acknowledgements",
+            displayName: "Acknowledgements",
+            group: "Announcements",
             listFields: ["userId", "announcementId", "version", "acknowledgedAt"],
           },
           model: AnnouncementAcknowledgement as Model<unknown>,
@@ -130,7 +139,8 @@ export class AnnouncementsApp implements TerrenoPlugin {
         {
           admin: {
             defaultSort: "-viewedAt",
-            displayName: "Announcement Impressions",
+            displayName: "Impressions",
+            group: "Announcements",
             listFields: ["userId", "announcementId", "version", "viewedAt", "platform"],
           },
           model: AnnouncementImpression as Model<unknown>,
@@ -139,7 +149,8 @@ export class AnnouncementsApp implements TerrenoPlugin {
         {
           admin: {
             defaultSort: "-clickedAt",
-            displayName: "Announcement Click Events",
+            displayName: "Click events",
+            group: "Announcements",
             listFields: ["userId", "announcementId", "version", "action", "clickedAt", "platform"],
           },
           model: AnnouncementClickEvent as Model<unknown>,

@@ -86,14 +86,14 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: Phase 3
   - Acceptance: Admin 200 with exact row metrics and totals; non-admin 403; unauth 401; deleted docs excluded; default limit 20 cap 100; `bun test announcements/src/tests/overview.test.ts`
 
-- [ ] **Task 4.2**: Admin overview UI
+- [x] **Task 4.2**: Admin overview UI
   - Delivers: `@terreno/admin-frontend` overview screen with summary cards and metrics table backed by generated SDK hook for `/announcements/overview`
   - Files: `admin-frontend/src/AnnouncementOverview.tsx`, tests, `admin-frontend/src/index.tsx`
   - Docs: `docs/how-to/product-announcements.md` (admin overview)
   - Blocked by: 4.1
   - Acceptance: Admin can open overview, see totals cards and paginated rows with metrics; frontend verification artifacts captured
 
-- [ ] **Task 4.3**: Nav and media wiring
+- [x] **Task 4.3**: Nav and media wiring
   - Delivers: Admin nav link to overview; example-frontend admin route; optional media/thumbnail column when announcements store media refs
   - Files: `announcements/src/announcementsApp.ts` (`adminContribution`), `example-frontend/app/admin/announcements/`, admin shell nav config
   - Docs: `docs/how-to/product-announcements.md`
