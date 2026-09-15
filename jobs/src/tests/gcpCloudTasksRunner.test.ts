@@ -1,4 +1,5 @@
 import {beforeEach, describe, it} from "bun:test";
+import {createRequire} from "node:module";
 import {setupDb} from "@terreno/api/testing";
 import {assert} from "chai";
 import {DateTime} from "luxon";
@@ -132,6 +133,19 @@ describe("GcpCloudTasksRunner", () => {
 
   it("throws when the Cloud Tasks client is not injected and the peer is missing", (): void => {
     const {client: _client, ...configWithoutClient} = baseConfig();
+    let isPeerAvailable = true;
+    try {
+      createRequire(import.meta.url)("@google-cloud/tasks");
+    } catch {
+      isPeerAvailable = false;
+    }
+
+    if (isPeerAvailable) {
+      const runner = new GcpCloudTasksRunner(configWithoutClient);
+      assert.equal(runner.requiresExecuteRoute, true);
+      return;
+    }
+
     assert.throws(
       () => new GcpCloudTasksRunner(configWithoutClient),
       /optional peer dependency @google-cloud\/tasks/
