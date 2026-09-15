@@ -429,7 +429,9 @@ import type express from "express";
 import {access} from "./access";
 import {userRouter} from "./api/users";
 import {AppConfiguration} from "./models/appConfiguration";
+import {organizationSettingsSchema} from "./models/organizationSettings";
 import {User} from "./models/user";
+import "./types/models/organizationSettingsTypes";
 import {buildBetterAuthConfig, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 
@@ -465,7 +467,9 @@ export async function start(skipListen = false): Promise<express.Application> {
       level: "debug",
       logRequests: !isDeployed,
     },
-    organizations: true,
+    organizations: {
+      settingsSchema: organizationSettingsSchema,
+    },
     skipListen,
     // noExplicitAny: User model type mismatch
     // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
@@ -891,6 +895,7 @@ export const AppConfiguration = mongoose.model<AppConfigDocument>(
 
 const generateBackendModelsIndex = (): string => {
   return `export * from "./appConfiguration";
+export * from "./organizationSettings";
 export * from "./user";
 `;
 };
@@ -919,7 +924,31 @@ const generateBackendTypes = (): string => {
 };
 
 const generateBackendTypesModels = (): string => {
-  return `export * from "./userTypes";
+  return `export * from "./organizationSettingsTypes";
+export * from "./userTypes";
+`;
+};
+
+const generateBackendOrganizationSettingsTypes = (): string => {
+  return `export interface AppOrganizationSettings {
+  timezone?: string;
+}
+
+declare module "@terreno/api" {
+  interface OrganizationSettings extends AppOrganizationSettings {}
+}
+`;
+};
+
+const generateBackendOrganizationSettings = (): string => {
+  return `import {createOrganizationSettingsSchema} from "@terreno/api";
+
+export const organizationSettingsSchema = createOrganizationSettingsSchema({
+  timezone: {
+    description: "IANA timezone used for organization-local dates",
+    type: String,
+  },
+});
 `;
 };
 
@@ -2858,6 +2887,10 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendModelPlugins(), path: `${backendDir}/src/models/modelPlugins.ts`},
     {content: generateBackendUserModel(), path: `${backendDir}/src/models/user.ts`},
     {
+      content: generateBackendOrganizationSettings(),
+      path: `${backendDir}/src/models/organizationSettings.ts`,
+    },
+    {
       content: generateBackendAppConfiguration(args),
       path: `${backendDir}/src/models/appConfiguration.ts`,
     },
@@ -2866,6 +2899,10 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendTypes(), path: `${backendDir}/src/types/index.ts`},
     {content: generateBackendTypesModels(), path: `${backendDir}/src/types/models/index.ts`},
     {content: generateBackendUserTypes(), path: `${backendDir}/src/types/models/userTypes.ts`},
+    {
+      content: generateBackendOrganizationSettingsTypes(),
+      path: `${backendDir}/src/types/models/organizationSettingsTypes.ts`,
+    },
 
     // Frontend files
     {content: generateFrontendPackageJson(args), path: `${frontendDir}/package.json`},

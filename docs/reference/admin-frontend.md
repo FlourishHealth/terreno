@@ -92,6 +92,10 @@ Use `OrgSettingsScreen` at `/admin/orgs/:orgId` and `OrgMembersScreen` at
 `/admin/orgs/:orgId/members`. Both send the selected organization header.
 
 `OrgSettingsScreen` edits the organization name and app-defined settings JSON.
+Type settings in the host app by augmenting `OrganizationSettings` (exported from
+this package and from `@terreno/api`) and reading them with
+`organizationSettingsOf(organization)`. The JSON editor still sends a full
+settings object on save; the backend schema rejects unknown keys.
 It includes a Billing card marked unavailable; billing is outside the
 organization-management feature.
 

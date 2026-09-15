@@ -62,6 +62,10 @@ export {
 export {OrgMembersScreen, type OrgMembersScreenProps} from "./orgs/OrgMembersScreen";
 export {OrgSettingsScreen, type OrgSettingsScreenProps} from "./orgs/OrgSettingsScreen";
 export {OrgSwitcher, type OrgSwitcherProps} from "./orgs/OrgSwitcher";
+export {
+  type OrganizationSettings,
+  organizationSettingsOf,
+} from "./orgs/organizationSettings";
 export {useOrganizationsApi} from "./orgs/useOrganizationsApi";
 export {
   OrgContextProvider,

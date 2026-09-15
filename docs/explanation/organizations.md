@@ -74,6 +74,8 @@ existing apps merely because they upgraded `@terreno/api`. Instead:
 - `TerrenoApp` does not mount `/orgs` unless organizations are enabled;
 - `AdminApp` does not scope models unless organizations are enabled;
 - Organization and Membership Mongoose models register lazily on first use.
+  Apps add fields to `Organization.settings` with `createOrganizationSettingsSchema`
+  and `registerOrganizationSettings`, not by replacing the Organization model.
 
 This keeps upgrades backward compatible while letting bootstrap generate
 multi-tenant-ready apps.

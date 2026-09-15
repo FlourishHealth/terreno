@@ -109,7 +109,8 @@ export interface TerrenoAppOptions {
   /**
    * Multi-tenant organizations. Default off so existing single-tenant apps stay unchanged.
    * New apps from `terreno_bootstrap_app` pass `true`. Requires `accessControl` from
-   * `createAccess({ organizations: true })`.
+   * `createAccess({ organizations: true })`. Pass `{ settingsSchema }` to type and
+   * validate `Organization.settings`.
    */
   organizations?: boolean | Omit<OrgsAppOptions, "access" | "userModel">;
   /**

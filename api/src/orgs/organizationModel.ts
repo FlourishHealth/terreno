@@ -4,6 +4,7 @@ import {APIError, ConflictError} from "../errors";
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 import type {MembershipDocument, MembershipModel} from "../types/membership";
 import type {OrganizationDocument, OrganizationModel} from "../types/organization";
+import {applyOrganizationSettings} from "./organizationSettings";
 
 export type {
   MembershipDocument,
@@ -19,6 +20,7 @@ export type {
   OrganizationMethods,
   OrganizationModel,
   OrganizationSchema,
+  OrganizationSettings,
   OrganizationStatics,
 } from "../types/organization";
 
@@ -101,10 +103,13 @@ organizationSchema.plugin(findOneOrNone);
 organizationSchema.plugin(findExactlyOne);
 
 organizationSchema.pre("validate", function (this: OrganizationDocument): void {
-  if (this.slug) {
+  if (!this.slug) {
+    this.slug = organizationSlugFromName(this.name);
+  }
+  if (!this.isModified("settings")) {
     return;
   }
-  this.slug = organizationSlugFromName(this.name);
+  this.settings = applyOrganizationSettings(this.settings);
 });
 
 const membershipSchema = new mongoose.Schema<MembershipDocument, MembershipModel>(

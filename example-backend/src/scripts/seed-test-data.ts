@@ -12,6 +12,7 @@ import {
   logger,
   Membership,
   Organization,
+  registerOrganizationSettings,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -32,6 +33,7 @@ import mongoose from "mongoose";
 import "../api/projects";
 import "../api/todos";
 import {Configuration} from "../models/configuration";
+import {organizationSettingsSchema} from "../models/organizationSettings";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
@@ -411,6 +413,7 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
 };
 
 const seedOrganizations = async (context: SeedContext): Promise<void> => {
+  registerOrganizationSettings(organizationSettingsSchema);
   const owner = seededUsers.find((user) => user.email === "operator@example.com");
   if (!owner) {
     throw new APIError({status: 500, title: "Seed operator not found"});

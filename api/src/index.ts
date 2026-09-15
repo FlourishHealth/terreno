@@ -62,6 +62,7 @@ export * from "./openApiCompat";
 export * from "./openApiEtag";
 export * from "./openApiValidator";
 export * from "./orgs/organizationModel";
+export * from "./orgs/organizationSettings";
 export * from "./orgs/orgContext";
 export * from "./orgs/orgPermissions";
 export * from "./orgs/orgPlugin";
