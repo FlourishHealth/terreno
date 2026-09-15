@@ -235,6 +235,8 @@
         "jspdf-native-stub.js",
         "fingerprint.config.js",
         "chartVisual/ChartVisualGallery.tsx",
+        "chartVisual/fixtureCatalog.ts",
+        "chartVisual/**/*.test.ts",
         "chartVisual/fixtures.tsx",
         "app/demo/chart-visual-gallery.tsx"
       ]
@@ -394,7 +396,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/theme/DocItem/Footer/index.tsx"
+        "src/theme/DocItem/Footer/index.tsx",
+        "scripts/docs-audit.test.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

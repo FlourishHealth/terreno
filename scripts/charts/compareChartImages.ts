@@ -7,7 +7,7 @@ export interface ChartImageDiff {
   width: number;
 }
 
-export const MAX_CHART_VISUAL_DIFF_RATIO = 0.004;
+const MAX_CHART_VISUAL_DIFF_RATIO = 0.004;
 
 export const diffPngBuffers = ({
   actual,
