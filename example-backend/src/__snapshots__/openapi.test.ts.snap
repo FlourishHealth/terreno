@@ -72,7 +72,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/admin/audit-logs/": {
+    "/admin/audit-events/": {
       "get": {
         "parameters": [
           {
@@ -110,11 +110,49 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "created",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When this document was created",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "verb",
             "schema": {
               "oneOf": [
                 {
-                  "description": "Mutation kind",
+                  "description": "Widget-compatible mutation verb",
                   "enum": [
                     "created",
                     "deleted",
@@ -142,7 +180,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "schema": {
               "oneOf": [
                 {
-                  "description": "Mongoose model name affected",
+                  "description": "Mongoose model name of the affected document",
                   "type": "string",
                 },
                 {
@@ -165,7 +203,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "schema": {
               "oneOf": [
                 {
-                  "description": "Human-readable label for the record",
+                  "description": "Short human-readable label for the affected record",
                   "type": "string",
                 },
                 {
@@ -184,34 +222,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
-            "name": "recordId",
-            "schema": {
-              "oneOf": [
-                {
-                  "description": "Primary key of the affected document",
-                  "type": "schemaobjectid",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "schemaobjectid",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
             "name": "actorId",
             "schema": {
               "oneOf": [
                 {
-                  "description": "User who performed the action",
+                  "description": "User who performed the mutation, when known",
                   "type": "schemaobjectid",
                 },
                 {
@@ -221,39 +236,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         "type": "schemaobjectid",
                       },
                       "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
-            "name": "createdAt",
-            "schema": {
-              "oneOf": [
-                {
-                  "format": "date-time",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$gt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$gte": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$lt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$lte": {
-                      "format": "date-time",
-                      "type": "string",
                     },
                   },
                   "type": "object",
@@ -296,34 +278,56 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "actorId": {
-                            "description": "User who performed the action",
+                            "description": "User who performed the mutation, when known",
                             "format": "objectid",
                             "type": "string",
+                          },
+                          "after": {
+                            "description": "Redacted changed fields after the mutation",
+                          },
+                          "before": {
+                            "description": "Redacted changed fields before the mutation",
                           },
                           "created": {
                             "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
-                          "createdAt": {
-                            "format": "date-time",
+                          "modelName": {
+                            "description": "Mongoose model name of the affected document",
                             "type": "string",
                           },
-                          "deleted": {
-                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                            "type": "boolean",
+                          "operation": {
+                            "description": "Fine-grained mutation kind",
+                            "enum": [
+                              "arrayPush",
+                              "arrayRemove",
+                              "arrayUpdate",
+                              "create",
+                              "delete",
+                              "update",
+                            ],
+                            "type": "string",
                           },
-                          "modelName": {
-                            "description": "Mongoose model name affected",
+                          "organizationId": {
+                            "description": "Tenant organization id when known",
                             "type": "string",
                           },
                           "recordId": {
                             "description": "Primary key of the affected document",
-                            "format": "objectid",
                             "type": "string",
                           },
                           "recordLabel": {
-                            "description": "Human-readable label for the record",
+                            "description": "Short human-readable label for the affected record",
+                            "type": "string",
+                          },
+                          "source": {
+                            "description": "Which framework surface wrote this event",
+                            "enum": [
+                              "admin",
+                              "modelRouter",
+                              "rbac",
+                            ],
                             "type": "string",
                           },
                           "updated": {
@@ -331,12 +335,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "format": "date-time",
                             "type": "string",
                           },
-                          "updatedAt": {
-                            "format": "date-time",
-                            "type": "string",
-                          },
                           "verb": {
-                            "description": "Mutation kind",
+                            "description": "Widget-compatible mutation verb",
                             "enum": [
                               "created",
                               "deleted",
@@ -347,6 +347,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         },
                         "required": [
                           "modelName",
+                          "operation",
+                          "source",
                           "verb",
                           "_id",
                           "created",
@@ -420,11 +422,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "adminauditlogs",
+          "auditevents",
         ],
       },
     },
-    "/admin/audit-logs/bulk-patch": {
+    "/admin/audit-events/bulk-patch": {
       "post": {
         "requestBody": {
           "content": {
@@ -518,13 +520,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "description": "The user is not allowed to perform this action on any document",
           },
         },
-        "summary": "Bulk patch AdminAuditLog documents",
+        "summary": "Bulk patch AuditEvent documents",
         "tags": [
           "admin",
         ],
       },
     },
-    "/admin/audit-logs/{id}": {
+    "/admin/audit-events/{id}": {
       "get": {
         "parameters": [
           {
@@ -546,34 +548,56 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "actorId": {
-                      "description": "User who performed the action",
+                      "description": "User who performed the mutation, when known",
                       "format": "objectid",
                       "type": "string",
+                    },
+                    "after": {
+                      "description": "Redacted changed fields after the mutation",
+                    },
+                    "before": {
+                      "description": "Redacted changed fields before the mutation",
                     },
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
-                    "createdAt": {
-                      "format": "date-time",
+                    "modelName": {
+                      "description": "Mongoose model name of the affected document",
                       "type": "string",
                     },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
+                    "operation": {
+                      "description": "Fine-grained mutation kind",
+                      "enum": [
+                        "arrayPush",
+                        "arrayRemove",
+                        "arrayUpdate",
+                        "create",
+                        "delete",
+                        "update",
+                      ],
+                      "type": "string",
                     },
-                    "modelName": {
-                      "description": "Mongoose model name affected",
+                    "organizationId": {
+                      "description": "Tenant organization id when known",
                       "type": "string",
                     },
                     "recordId": {
                       "description": "Primary key of the affected document",
-                      "format": "objectid",
                       "type": "string",
                     },
                     "recordLabel": {
-                      "description": "Human-readable label for the record",
+                      "description": "Short human-readable label for the affected record",
+                      "type": "string",
+                    },
+                    "source": {
+                      "description": "Which framework surface wrote this event",
+                      "enum": [
+                        "admin",
+                        "modelRouter",
+                        "rbac",
+                      ],
                       "type": "string",
                     },
                     "updated": {
@@ -581,12 +605,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "format": "date-time",
                       "type": "string",
                     },
-                    "updatedAt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
                     "verb": {
-                      "description": "Mutation kind",
+                      "description": "Widget-compatible mutation verb",
                       "enum": [
                         "created",
                         "deleted",
@@ -597,6 +617,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "required": [
                     "modelName",
+                    "operation",
+                    "source",
                     "verb",
                     "_id",
                     "created",
@@ -653,7 +675,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "adminauditlogs",
+          "auditevents",
         ],
       },
     },

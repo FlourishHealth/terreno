@@ -2,24 +2,29 @@ import type {AdminScriptConfig} from "@terreno/admin-backend";
 import {
   ConsentForm,
   ConsentResponse,
+  createAuditEventModel,
   type ScriptContext,
   type ScriptResult,
   syncConsents,
 } from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
+import mongoose from "mongoose";
 
 import {consentDefinitions} from "./consentDefinitions";
-import {AdminAuditLog} from "./models/adminAuditLog";
 import {Project} from "./models/project";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {seedDefaultData} from "./scripts/seed-test-data";
 
+const auditEventModel = (): ReturnType<typeof createAuditEventModel> => {
+  return createAuditEventModel(mongoose.connection);
+};
+
 const getResetRecordCounts = async (): Promise<Record<string, number>> => {
-  const [adminAuditLogs, consentForms, consentResponses, featureFlags, projects, todos] =
+  const [auditEvents, consentForms, consentResponses, featureFlags, projects, todos] =
     await Promise.all([
-      AdminAuditLog.countDocuments(),
+      auditEventModel().countDocuments(),
       ConsentForm.countDocuments(),
       ConsentResponse.countDocuments(),
       FeatureFlag.countDocuments(),
@@ -27,7 +32,7 @@ const getResetRecordCounts = async (): Promise<Record<string, number>> => {
       Todo.countDocuments({deleted: {$ne: true}}),
     ]);
   return {
-    adminAuditLogs,
+    auditEvents,
     consentForms,
     consentResponses,
     featureFlags,
@@ -48,7 +53,7 @@ const clearResettableData = async (): Promise<void> => {
   }
 
   await Promise.all([
-    AdminAuditLog.deleteMany({}),
+    auditEventModel().deleteMany({}),
     ConsentResponse.deleteMany({}),
     FeatureFlag.deleteMany({}),
   ]);

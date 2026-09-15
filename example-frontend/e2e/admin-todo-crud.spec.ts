@@ -1,7 +1,9 @@
 import {DateTime} from "luxon";
 import {expect, test} from "./fixtures/test";
-import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
+import {ADMIN_USER} from "./fixtures/testUsers";
+import {getAdminToken, loginAsAdmin, setUserAdmin} from "./helpers/adminAuth";
 import {waitForAdminTable} from "./helpers/adminUi";
+import {listAuditEventsForRecord, waitForAuditEvent} from "./helpers/auditEvents";
 
 /**
  * Task 1.7: Todos changelist create → edit → delete.
@@ -20,6 +22,7 @@ test.describe("Admin Todo CRUD smoke", () => {
     consoleGuard.allow("Failed to load resource: the server responded with a status of 404");
     const apiUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
+    await setUserAdmin(ADMIN_USER.email);
     const createdTitle = `Admin CRUD ${DateTime.now().toMillis()}`;
     const refreshedTitle = `${createdTitle} refreshed`;
     const editedTitle = `${refreshedTitle} edited`;
@@ -32,6 +35,20 @@ test.describe("Admin Todo CRUD smoke", () => {
     const created = (await createResponse.json()) as {data?: {_id?: string}};
     const createdId = created.data?._id;
     expect(createdId).toBeTruthy();
+
+    const createdAudit = await waitForAuditEvent({
+      match: {
+        modelName: "Todo",
+        recordId: createdId,
+        recordLabel: createdTitle,
+        source: "modelRouter",
+        verb: "created",
+      },
+      request,
+      token,
+    });
+    expect(createdAudit.after?.title).toBe(createdTitle);
+    expect(createdAudit.before).toBeUndefined();
 
     await loginAsAdmin(page);
     await page.goto("/admin/Todo");
@@ -46,6 +63,19 @@ test.describe("Admin Todo CRUD smoke", () => {
       headers: {authorization: `Bearer ${token}`},
     });
     expect(updateResponse.ok()).toBeTruthy();
+    const apiUpdateAudit = await waitForAuditEvent({
+      match: {
+        modelName: "Todo",
+        recordId: createdId,
+        source: "modelRouter",
+        verb: "updated",
+      },
+      request,
+      token,
+    });
+    expect(apiUpdateAudit.before?.title).toBe(createdTitle);
+    expect(apiUpdateAudit.after?.title).toBe(refreshedTitle);
+
     // A known admin-window id receives the live `{collection}|admin` delta.
     await expect(page.getByText(refreshedTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
@@ -66,6 +96,19 @@ test.describe("Admin Todo CRUD smoke", () => {
     await expect(page.getByText(refreshedTitle, {exact: true}).locator("visible=true")).toHaveCount(
       0
     );
+    const adminUpdateAudit = await waitForAuditEvent({
+      match: {
+        modelName: "Todo",
+        recordId: createdId,
+        recordLabel: editedTitle,
+        source: "admin",
+        verb: "updated",
+      },
+      request,
+      token,
+    });
+    expect(adminUpdateAudit.before?.title).toBe(refreshedTitle);
+    expect(adminUpdateAudit.after?.title).toBe(editedTitle);
 
     await page.getByText(editedTitle).locator("visible=true").first().click();
     await page.getByTestId("admin-delete-button").waitFor({state: "visible", timeout: 15_000});
@@ -87,5 +130,40 @@ test.describe("Admin Todo CRUD smoke", () => {
     await expect
       .poll(() => membershipRequestsAfterDelete, {timeout: 15_000})
       .toBeGreaterThanOrEqual(1);
+
+    const deleteAudit = await waitForAuditEvent({
+      match: {
+        modelName: "Todo",
+        recordId: createdId,
+        recordLabel: editedTitle,
+        source: "admin",
+        verb: "deleted",
+      },
+      request,
+      token,
+    });
+    expect(deleteAudit.before?.title).toBe(editedTitle);
+    expect(deleteAudit.after).toBeUndefined();
+
+    if (!createdId) {
+      throw new Error("Todo create response did not include _id");
+    }
+    const recordAudits = await listAuditEventsForRecord({
+      recordId: createdId,
+      request,
+      token,
+    });
+    expect(recordAudits).toHaveLength(4);
+    expect(recordAudits.map((event) => `${event.source}:${event.verb}`).sort()).toEqual(
+      ["admin:deleted", "admin:updated", "modelRouter:created", "modelRouter:updated"].sort()
+    );
+
+    await page.goto("/admin/AuditEvent");
+    await expect(page.getByTestId("admin-table-search")).toBeVisible({timeout: 15_000});
+    await expect(page.getByText(editedTitle).locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText("deleted").locator("visible=true").first()).toBeVisible();
+    await expect(page.getByText("Todo").locator("visible=true").first()).toBeVisible();
   });
 });
