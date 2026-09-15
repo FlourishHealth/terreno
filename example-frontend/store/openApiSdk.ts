@@ -108,6 +108,13 @@ const injectedRtkApi = api
           url: `/admin/mcp-service-tokens/${queryArg}`,
         }),
       }),
+      deleteAdminTodosById: build.mutation<DeleteAdminTodosByIdRes, DeleteAdminTodosByIdArgs>({
+        invalidatesTags: ["todos"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/todos/${queryArg}`,
+        }),
+      }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
         invalidatesTags: ["users"],
         query: (queryArg) => ({
@@ -461,6 +468,19 @@ const injectedRtkApi = api
       getAnnouncementsConfig: build.query<GetAnnouncementsConfigRes, GetAnnouncementsConfigArgs>({
         providesTags: ["announcements"],
         query: () => ({url: `/announcements/config`}),
+      }),
+      getAnnouncementsOverview: build.query<
+        GetAnnouncementsOverviewRes,
+        GetAnnouncementsOverviewArgs
+      >({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/announcements/overview`,
+        }),
       }),
       getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
         providesTags: ["admin", "comms"],
@@ -2527,6 +2547,8 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   customScreens?: {
     description?: string;
     displayName?: string;
+    group?: string;
+    icon?: string;
     name?: string;
   }[];
   home?: object;
@@ -4647,6 +4669,8 @@ export type PatchAdminTodosByIdArgs = {
     _syncSeq?: number;
   };
 };
+export type DeleteAdminTodosByIdRes = unknown;
+export type DeleteAdminTodosByIdArgs = string;
 export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -4895,6 +4919,42 @@ export type GetAnnouncementsConfigRes = /** status 200 Success */ {
   };
 };
 export type GetAnnouncementsConfigArgs = undefined;
+export type GetAnnouncementsOverviewRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    acknowledgementPolicy?: string;
+    audienceType?: string;
+    displayMode?: string;
+    expiresAt?: string;
+    metrics?: {
+      acknowledgements?: number;
+      clicks?: number;
+      impressions?: number;
+    };
+    priority?: number;
+    publishedAt?: string;
+    status?: string;
+    title?: string;
+    version?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+  totals?: {
+    acknowledgements?: number;
+    announcements?: number;
+    archived?: number;
+    clicks?: number;
+    draft?: number;
+    impressions?: number;
+    published?: number;
+  };
+};
+export type GetAnnouncementsOverviewArgs = {
+  page?: number;
+  limit?: number;
+};
 export type PostAnnouncementsRes = /** status 201 Successful create */ {
   /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
   acknowledgementPolicy?: "required" | "dismiss-only";
@@ -5368,6 +5428,7 @@ export const {
   useGetAdminTodosQuery,
   useGetAdminTodosByIdQuery,
   usePatchAdminTodosByIdMutation,
+  useDeleteAdminTodosByIdMutation,
   usePostAdminUsersBulkPatchMutation,
   usePostAdminUsersMutation,
   useGetAdminUsersQuery,
@@ -5375,6 +5436,7 @@ export const {
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
   useGetAnnouncementsConfigQuery,
+  useGetAnnouncementsOverviewQuery,
   usePostAnnouncementsMutation,
   useGetAnnouncementsQuery,
   useGetAnnouncementsByIdQuery,

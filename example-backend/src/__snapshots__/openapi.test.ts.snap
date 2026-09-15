@@ -4302,6 +4302,12 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "displayName": {
                             "type": "string",
                           },
+                          "group": {
+                            "type": "string",
+                          },
+                          "icon": {
+                            "type": "string",
+                          },
                           "name": {
                             "type": "string",
                           },
@@ -11676,6 +11682,179 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "summary": "Get announcement plugin configuration",
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
+    "/announcements/overview": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "acknowledgementPolicy": {
+                            "type": "string",
+                          },
+                          "audienceType": {
+                            "type": "string",
+                          },
+                          "displayMode": {
+                            "type": "string",
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                          },
+                          "metrics": {
+                            "properties": {
+                              "acknowledgements": {
+                                "type": "number",
+                              },
+                              "clicks": {
+                                "type": "number",
+                              },
+                              "impressions": {
+                                "type": "number",
+                              },
+                            },
+                            "type": "object",
+                          },
+                          "priority": {
+                            "type": "number",
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                          },
+                          "status": {
+                            "type": "string",
+                          },
+                          "title": {
+                            "type": "string",
+                          },
+                          "version": {
+                            "type": "number",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                    "totals": {
+                      "properties": {
+                        "acknowledgements": {
+                          "type": "number",
+                        },
+                        "announcements": {
+                          "type": "number",
+                        },
+                        "archived": {
+                          "type": "number",
+                        },
+                        "clicks": {
+                          "type": "number",
+                        },
+                        "draft": {
+                          "type": "number",
+                        },
+                        "impressions": {
+                          "type": "number",
+                        },
+                        "published": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Admin overview of announcements with aggregate metrics",
         "tags": [
           "announcements",
         ],
