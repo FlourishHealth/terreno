@@ -153,4 +153,115 @@ describe("AnnouncementBanner", () => {
     });
     assert.strictEqual(onDismiss.mock.calls.length, 1);
   });
+
+  it("no-ops primary action when the URL is missing at click time", async () => {
+    const canOpen = mock(() => Promise.resolve(true));
+    const openLink = mock(() => Promise.resolve());
+    Linking.canOpenURL = canOpen;
+    Linking.openURL = openLink;
+
+    const primaryAction = {label: "Read docs", url: "https://example.com/docs"};
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction,
+          requiresAcknowledgement: true,
+        })}
+        onAcknowledge={() => {}}
+        onDismiss={() => {}}
+        requiresAcknowledgement
+      />
+    );
+
+    primaryAction.url = "";
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+
+    assert.strictEqual(canOpen.mock.calls.length, 0);
+    assert.strictEqual(openLink.mock.calls.length, 0);
+  });
+
+  it("does not open the URL when Linking.canOpenURL returns false", async () => {
+    const canOpen = mock(() => Promise.resolve(false));
+    const openLink = mock(() => Promise.resolve());
+    Linking.canOpenURL = canOpen;
+    Linking.openURL = openLink;
+
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+        })}
+        onAcknowledge={() => {}}
+        onDismiss={() => {}}
+        requiresAcknowledgement={false}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+    });
+
+    assert.strictEqual(canOpen.mock.calls.length, 1);
+    assert.strictEqual(openLink.mock.calls.length, 0);
+  });
+
+  it("no-ops required primary-action controls while submitting", async () => {
+    const onAcknowledge = mock(() => Promise.resolve());
+    const onPrimaryAction = mock(() => Promise.resolve());
+    const canOpen = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = canOpen;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+          requiresAcknowledgement: true,
+        })}
+        isSubmitting
+        onAcknowledge={onAcknowledge}
+        onDismiss={() => {}}
+        onPrimaryAction={onPrimaryAction}
+        requiresAcknowledgement
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+      fireEvent.press(result.getByText("Got it"));
+    });
+
+    assert.strictEqual(onPrimaryAction.mock.calls.length, 0);
+    assert.strictEqual(onAcknowledge.mock.calls.length, 0);
+    assert.strictEqual(canOpen.mock.calls.length, 0);
+  });
+
+  it("no-ops optional primary-action and dismiss controls while submitting", async () => {
+    const onDismiss = mock(() => Promise.resolve());
+    const canOpen = mock(() => Promise.resolve(true));
+    Linking.canOpenURL = canOpen;
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const result = renderWithTheme(
+      <AnnouncementBanner
+        announcement={makeAnnouncement({
+          primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+        })}
+        isSubmitting
+        onAcknowledge={() => {}}
+        onDismiss={onDismiss}
+        requiresAcknowledgement={false}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Read docs"));
+      fireEvent.press(result.getByLabelText("Dismiss announcement"));
+    });
+
+    assert.strictEqual(onDismiss.mock.calls.length, 0);
+    assert.strictEqual(canOpen.mock.calls.length, 0);
+  });
 });
