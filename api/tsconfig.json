@@ -55,6 +55,6 @@
     /* Basic Options */
     "target": "es5" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017','ES2018' or 'ESNEXT'. */
   },
-  "exclude": ["node_modules", "**/*.test.ts", "src/tests"],
+  "exclude": ["node_modules", "**/*.test.ts", "src/tests", "src/migrations/cli.ts"],
   "include": ["src/**/*.ts*", "src/*.ts", "src/**/*.js", "src/**/*.d.ts"]
 }

@@ -16,6 +16,10 @@ const ModelTableScreen: React.FC = () => {
       trail.push({label: "Scripts"});
       return trail;
     }
+    if (model === "__migrations") {
+      trail.push({label: "Migrations"});
+      return trail;
+    }
     if (model === "version-config") {
       trail.push({label: "Version configuration"});
       return trail;
