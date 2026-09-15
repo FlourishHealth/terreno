@@ -41,5 +41,4 @@ Admin HTTP script runs (`POST /admin/scripts/:name/run`) enqueue `@terreno/jobs`
 - Cancel marks `BackgroundTask` cancelled and cancels the job when present
 - Example worker defines `admin/script`
 - Deployed example backend selects `GcpCloudTasksRunner` and rejects unverified callbacks
-- Infra Manager owns the queue, IAM, callback identity, and execution service scaling
 - Concurrent PR previews target only their matching tasks-service tag and database
