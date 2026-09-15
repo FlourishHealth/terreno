@@ -28,8 +28,8 @@ wiring in this slice.
 - Comms admin stats charts (comms IP already defers to this item; a later comms task consumes these primitives).
 - Zoom, pan, brush, stacked/grouped multi-series cartesian, combo charts, maps, heatmaps.
 - A new `DashboardCard` (reuse `Card`).
-- A full visualization grammar (scales as a public API, plugins, annotations).
 - Dark-mode palette work (`dark-mode-theme`); charts read `useTheme()` so they follow when that ships.
+- Implementing the approved composition grammar in the visual-regression slice (Phase 6).
 
 ## Decisions
 
@@ -48,7 +48,7 @@ wiring in this slice.
 | Colors | Theme tokens: series/slice fills from `primary` / `secondary` / `accent` / `error` (and tints). Grid/axis from `border` / `text.secondaryDark`. Optional `color` on a donut slice overrides. |
 | Packaging | Chart components join the existing lazy root boundary (`heavyOptionalExports`). `DashboardGrid` stays eager (layout only). Subpaths `@terreno/ui/LineChart` etc. remain direct. |
 | Dates | `label` is a display string. Callers format with Luxon before passing. No `Date` objects in props. |
-| A11y | Container `accessibilityLabel` (caller or generated summary). Each mark/slice has `accessibilityLabel` `{label}: {value}` and a `testID`. |
+| Visual proof | Rendered PNG goldens via `bun run ui:charts:compare`, not React JSON snapshots. |
 
 ## Architecture
 
@@ -129,6 +129,17 @@ only. Do not add `victory-native`. Import-benchmark and `RootImportRegression` m
 chart implementation modules off the cold `@terreno/ui` root graph (same pattern as
 `GPTChat`).
 
+### Chart visual regression
+
+JSON snapshots of the React tree do not prove paint. The demo hosts
+`/demo/chart-visual-gallery` (easy → hard fixtures in
+`demo/chartVisual/fixtureCatalog.ts`). `bun run ui:charts:compare` launches Chromium,
+screenshots each `[data-testid=chart-visual-<id>]`, and pixel-diffs against
+`demo/rendered-snapshots/<id>.png`. Failures write
+`demo/chart-visual-output/{actual,diff,report.json}`. Agents follow
+`review-chart-visuals`. `bun run ui:charts:update-snapshots` rewrites goldens after an
+intentional visual change.
+
 ### Testing
 
 Bun + `@testing-library/react-native` + `renderWithTheme`. Assert:
@@ -166,6 +177,12 @@ consumer, not this IP.
 3. **DashboardGrid** + composing demo story.
 4. **Packaging + docs:** lazy root exports, import regression, Diátaxis pages, TypeDoc,
    changelog fragment, seed links, rules/skill mentions.
+5. **Rendered visual regression:** gallery + compare command + `review-chart-visuals` skill.
+6. **Composition grammar (approved, not this slice):** declarative children (`Chart`,
+   `ChartTitle`, cartesian/polar, series, axes, grid, legend, tooltip, data labels,
+   reference line/band). Keyed rows + `dataKey`. Facades stay additive `{label,value}`.
+   Tooltip overlay + footer (facades keep footer). Colors: theme tokens + hex.
+   `data`/`xKey` on `Chart`/`ChartCartesian`/`ChartPolar`. Grouped bars unless `stackId`.
 
 ## Feature Flags & Migrations
 
@@ -177,7 +194,8 @@ None.
 
 ## Not Included / Future Work
 
-- Multi-series cartesian and stacked bars.
+- Composition grammar (Phase 6) — recorded Grow decisions; implement on a follow-up Pick.
+- Multi-series cartesian beyond `dataKey` / `stackId` once the grammar ships.
 - Wiring `CommsDashboardScreen` charts to the stats endpoint.
 - Example-frontend dashboard.
 - Zoom/pan.
@@ -216,6 +234,7 @@ See the task list. Docs created or updated in-slice:
 - [ ] How-to, explanation, and `docs/reference/ui.md` describe the API; TypeDoc props exist.
 - [ ] `bun test` (ui affected files), `bun run compile` in `ui`, and demo compile succeed.
 - [ ] Frontend verification: demo stories exercised on web; artifacts on the implementation PR.
+- [x] `bun run ui:charts:compare` matches `demo/rendered-snapshots/` for the gallery.
 
 ## Risks
 
