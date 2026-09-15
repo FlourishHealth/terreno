@@ -1,7 +1,13 @@
-import React, {useCallback, useEffect, useRef} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
 import {AnnouncementBanner} from "./AnnouncementBanner";
 import {AnnouncementScreen} from "./AnnouncementScreen";
+import {
+  type AnnouncementFrequencyConfig,
+  recordInterruptShown,
+  resolveFrequencyConfig,
+  shouldSuppressInterrupt,
+} from "./announcementFrequency";
 import {Box} from "./Box";
 import {Button} from "./Button";
 import {Spinner} from "./Spinner";
@@ -9,10 +15,13 @@ import {Text} from "./Text";
 import {useAcknowledgeAnnouncement} from "./useAcknowledgeAnnouncement";
 import {useAnnouncements} from "./useAnnouncements";
 
+export type {AnnouncementFrequencyConfig} from "./announcementFrequency";
+
 interface AnnouncementNavigatorProps {
   api: unknown;
   baseUrl?: string;
   children: React.ReactNode;
+  frequency?: AnnouncementFrequencyConfig;
   onError?: (error: unknown) => void;
 }
 
@@ -20,6 +29,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
   api,
   baseUrl,
   children,
+  frequency,
   onError,
 }) => {
   const {pending, isLoading, error, refetch} = useAnnouncements(
@@ -31,15 +41,81 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     baseUrl
   );
 
+  const frequencyConfig = useMemo(() => resolveFrequencyConfig(frequency), [frequency]);
+
   const rawCurrent = pending?.current ?? null;
   const current = rawCurrent?.displayMode === "feed" ? null : rawCurrent;
-  const displayMode = current?.displayMode ?? "modal";
   const currentAnnouncementId = current?.id;
   const currentAnnouncementVersion = current?.version;
-  const requiresAcknowledgement = current?.requiresAcknowledgement ?? false;
+  const impressionKey =
+    currentAnnouncementId && currentAnnouncementVersion !== undefined
+      ? `${currentAnnouncementId}:${currentAnnouncementVersion}`
+      : null;
+
+  const [isFrequencySuppressed, setIsFrequencySuppressed] = useState(false);
+  const [isFrequencyChecked, setIsFrequencyChecked] = useState(false);
+
+  const visibleCurrent = current && isFrequencyChecked && !isFrequencySuppressed ? current : null;
+  const displayMode = visibleCurrent?.displayMode ?? "modal";
+  const requiresAcknowledgement = visibleCurrent?.requiresAcknowledgement ?? false;
   const recordedImpressionKeysRef = useRef<Set<string>>(new Set());
 
-  const isShowingAnnouncement = !isLoading && !error && Boolean(current);
+  const isShowingAnnouncement = !isLoading && !error && Boolean(visibleCurrent);
+
+  // Apply client-side frequency caps before showing an interrupt surface.
+  useEffect(() => {
+    if (!current || !impressionKey) {
+      setIsFrequencySuppressed(false);
+      setIsFrequencyChecked(true);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFrequencyChecked(false);
+
+    const evaluateFrequency = async (): Promise<void> => {
+      try {
+        const suppress = await shouldSuppressInterrupt(frequencyConfig, impressionKey);
+        if (!cancelled) {
+          setIsFrequencySuppressed(suppress);
+          setIsFrequencyChecked(true);
+        }
+      } catch (frequencyError) {
+        console.warn("[AnnouncementNavigator] Frequency check failed; allowing interrupt", {
+          frequencyError,
+        });
+        if (!cancelled) {
+          setIsFrequencySuppressed(false);
+          setIsFrequencyChecked(true);
+        }
+      }
+    };
+
+    void evaluateFrequency();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [current, frequencyConfig, impressionKey]);
+
+  // Record session/cooldown state once per announcement version when the interrupt is visible.
+  useEffect(() => {
+    if (!isShowingAnnouncement || !impressionKey) {
+      return;
+    }
+
+    const recordFrequencyInterrupt = async (): Promise<void> => {
+      try {
+        await recordInterruptShown(frequencyConfig, impressionKey);
+      } catch (frequencyError) {
+        console.warn("[AnnouncementNavigator] Failed to record interrupt for frequency", {
+          frequencyError,
+        });
+      }
+    };
+
+    void recordFrequencyInterrupt();
+  }, [frequencyConfig, impressionKey, isShowingAnnouncement]);
 
   // Record one impression per announcement version only while the surface is visible.
   useEffect(() => {
@@ -50,11 +126,10 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     ) {
       return;
     }
-    const impressionKey = `${currentAnnouncementId}:${currentAnnouncementVersion}`;
-    if (recordedImpressionKeysRef.current.has(impressionKey)) {
+    if (recordedImpressionKeysRef.current.has(impressionKey ?? "")) {
       return;
     }
-    recordedImpressionKeysRef.current.add(impressionKey);
+    recordedImpressionKeysRef.current.add(impressionKey ?? "");
 
     const recordCurrentImpression = async (): Promise<void> => {
       try {
@@ -65,7 +140,13 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     };
 
     void recordCurrentImpression();
-  }, [currentAnnouncementId, currentAnnouncementVersion, isShowingAnnouncement, recordImpression]);
+  }, [
+    currentAnnouncementId,
+    currentAnnouncementVersion,
+    impressionKey,
+    isShowingAnnouncement,
+    recordImpression,
+  ]);
 
   const handleAcknowledge = useCallback(async (): Promise<void> => {
     if (!currentAnnouncementId) {
@@ -132,7 +213,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     );
   }
 
-  if (!current) {
+  if (!visibleCurrent) {
     return <>{children}</>;
   }
 
@@ -140,7 +221,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     return (
       <Box direction="column" flex="grow" width="100%">
         <AnnouncementBanner
-          announcement={current}
+          announcement={visibleCurrent}
           isSubmitting={isSubmitting}
           onAcknowledge={handleAcknowledge}
           onDismiss={handleDismiss}
@@ -153,7 +234,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
 
   return (
     <AnnouncementScreen
-      announcement={current}
+      announcement={visibleCurrent}
       isSubmitting={isSubmitting}
       onAcknowledge={handleAcknowledge}
       onDismiss={handleDismiss}

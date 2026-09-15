@@ -47,7 +47,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: 1.2
   - Acceptance: Tests: empty queue renders children; modal hides children; banner keeps children and shows `AnnouncementBanner`. Query string includes `platform` and `version` when build number is a finite integer. Public type includes `displayMode`. Feed-only items never appear as `pending.current` (server contract; navigator still ignores unexpected `feed`).
 
-- [ ] **Task 2.2**: Client frequency caps
+- [x] **Task 2.2**: Client frequency caps
   - Delivers: Session max, cooldown, skip-first-launch applied to interrupts before show
   - Files: `ui/src/announcementFrequency.ts`, `ui/src/announcementFrequency.test.ts`, `ui/src/AnnouncementNavigator.tsx`, `ui/src/AnnouncementNavigator.test.tsx`
   - Docs: `docs/how-to/product-announcements.md` (frequency props)

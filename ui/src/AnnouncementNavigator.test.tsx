@@ -1,12 +1,22 @@
-import {describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
+import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Text} from "react-native";
 import {AnnouncementNavigator} from "./AnnouncementNavigator";
+import {
+  buildFrequencyStorageKey,
+  resetFrequencySessionStateForTests,
+} from "./announcementFrequency";
 import {Box} from "./Box";
 import {renderWithTheme} from "./test-utils";
-import type {AnnouncementPublic, PendingAnnouncementsResponse} from "./useAnnouncements";
+import {Unifier} from "./Unifier";
+import {
+  type AnnouncementPublic,
+  type PendingAnnouncementsResponse,
+  useAnnouncements,
+} from "./useAnnouncements";
 
 const makeAnnouncement = (overrides: Partial<AnnouncementPublic> = {}): AnnouncementPublic => ({
   body: "## Update\n\nWe shipped announcements.",
@@ -21,7 +31,8 @@ const makeAnnouncement = (overrides: Partial<AnnouncementPublic> = {}): Announce
 
 const createMockApi = (
   pending: PendingAnnouncementsResponse | (() => PendingAnnouncementsResponse),
-  refetchOverride?: () => Promise<void>
+  refetchOverride?: () => Promise<void>,
+  feedItems: AnnouncementPublic[] = []
 ) => {
   const getPending =
     typeof pending === "function" ? pending : (): PendingAnnouncementsResponse => pending;
@@ -40,7 +51,7 @@ const createMockApi = (
         {error: undefined, isLoading: false},
       ]),
       useGetAnnouncementFeedQuery: mock(() => ({
-        data: {data: []},
+        data: {data: feedItems},
         error: undefined,
         isLoading: false,
         refetch,
@@ -80,7 +91,33 @@ const announcementQueue: PendingAnnouncementsResponse[] = [
   {current: null, remainingCount: 0},
 ];
 
+const waitForFrequencyCheck = async (): Promise<void> => {
+  await act(async () => {
+    await Promise.resolve();
+  });
+};
+
+const createNavigatorStorageMock = (): {
+  getItem: ReturnType<typeof mock>;
+  setItem: ReturnType<typeof mock>;
+} => {
+  const store = new Map<string, unknown>();
+  return {
+    getItem: mock(async (key: string) => store.get(key) ?? null),
+    setItem: mock(async (key: string, value: unknown) => {
+      store.set(key, value);
+    }),
+  };
+};
+
 describe("AnnouncementNavigator", () => {
+  beforeEach(() => {
+    resetFrequencySessionStateForTests();
+    const storage = createNavigatorStorageMock();
+    Unifier.storage.getItem = storage.getItem;
+    Unifier.storage.setItem = storage.setItem;
+  });
+
   it("renders children when no announcements are pending", () => {
     const {api} = createMockApi({current: null, remainingCount: 0});
     const result = renderWithTheme(
@@ -105,12 +142,9 @@ describe("AnnouncementNavigator", () => {
         </Box>
       </AnnouncementNavigator>
     );
+    await waitForFrequencyCheck();
     expect(result.getByTestId("announcement-screen")).toBeTruthy();
     assert.isNull(result.queryByTestId("app-content"));
-
-    await act(async () => {
-      await Promise.resolve();
-    });
     expect(impressionMutation).toHaveBeenCalledTimes(1);
   });
 
@@ -127,6 +161,7 @@ describe("AnnouncementNavigator", () => {
       </AnnouncementNavigator>
     );
 
+    await waitForFrequencyCheck();
     await act(async () => {
       fireEvent.press(result.getByText("Got it"));
     });
@@ -144,7 +179,7 @@ describe("AnnouncementNavigator", () => {
       const {api} = createMockApi(() => announcementQueue[queueIndex], refetch);
 
       return (
-        <AnnouncementNavigator api={api}>
+        <AnnouncementNavigator api={api} frequency={{maxInterruptionsPerSession: 5}}>
           <Box testID="app-content">
             <Text>App</Text>
           </Box>
@@ -153,11 +188,13 @@ describe("AnnouncementNavigator", () => {
     };
 
     const result = renderWithTheme(<QueueHarness />);
+    await waitForFrequencyCheck();
     expect(result.getByText("First update")).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(result.getByText("Got it"));
     });
+    await waitForFrequencyCheck();
 
     expect(result.getByText("Second update")).toBeTruthy();
 
@@ -291,13 +328,10 @@ describe("AnnouncementNavigator", () => {
       </AnnouncementNavigator>
     );
 
+    await waitForFrequencyCheck();
     expect(result.getByTestId("app-content")).toBeTruthy();
     expect(result.getByTestId("announcement-banner")).toBeTruthy();
     expect(result.queryByTestId("announcement-screen")).toBeNull();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
     expect(impressionMutation).toHaveBeenCalledTimes(1);
   });
 
@@ -319,6 +353,201 @@ describe("AnnouncementNavigator", () => {
     assert.isNull(result.queryByTestId("announcement-screen"));
   });
 
+  it("does not show a second interrupt in the same session when maxInterruptionsPerSession is 1", async () => {
+    const QueueHarness: React.FC = () => {
+      const [queueIndex, setQueueIndex] = useState(0);
+      const refetch = useCallback(async (): Promise<void> => {
+        setQueueIndex((currentIndex) => Math.min(currentIndex + 1, announcementQueue.length - 1));
+      }, []);
+      const {api} = createMockApi(() => announcementQueue[queueIndex], refetch);
+
+      return (
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const result = renderWithTheme(<QueueHarness />);
+    await waitForFrequencyCheck();
+    expect(result.getByText("First update")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+    });
+    await waitForFrequencyCheck();
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByText("Second update"));
+    assert.isNull(result.queryByTestId("announcement-screen"));
+  });
+
+  it("shows the next interrupt after remounting with a fresh session", async () => {
+    const FirstSessionHarness: React.FC = () => {
+      const {api} = createMockApi({
+        current: makeAnnouncement({id: "announcement-1", title: "First update"}),
+        remainingCount: 1,
+      });
+
+      return (
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const firstSession = renderWithTheme(<FirstSessionHarness />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(firstSession.getByText("First update")).toBeTruthy();
+    firstSession.unmount();
+    resetFrequencySessionStateForTests();
+
+    const SecondSessionHarness: React.FC = () => {
+      const {api} = createMockApi({
+        current: makeAnnouncement({id: "announcement-2", title: "Second update"}),
+        remainingCount: 0,
+      });
+
+      return (
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const secondSession = renderWithTheme(<SecondSessionHarness />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(secondSession.getByText("Second update")).toBeTruthy();
+  });
+
+  it("skips interrupts on first launch when skipFirstLaunch is true", async () => {
+    const {api} = createMockApi({
+      current: makeAnnouncement({title: "Welcome"}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api} frequency={{skipFirstLaunch: true, userId: "user-1"}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByTestId("announcement-screen"));
+  });
+
+  it("skips interrupts inside the cooldown window", async () => {
+    const lastInterruptKey = buildFrequencyStorageKey("anon", "lastInterruptAt");
+    const recentInterruptAt = DateTime.now().minus({hours: 1}).toISO() ?? "";
+    Unifier.storage.getItem = mock(async (key: string) => {
+      if (key === lastInterruptKey) {
+        return recentInterruptAt;
+      }
+      return null;
+    });
+    Unifier.storage.setItem = mock(async () => undefined);
+
+    const {api, impressionMutation} = createMockApi({
+      current: makeAnnouncement({title: "Cooldown blocked"}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api} frequency={{cooldownHours: 24}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByTestId("announcement-screen"));
+    expect(impressionMutation).not.toHaveBeenCalled();
+  });
+
+  it("does not apply frequency caps to feed data from useAnnouncements", async () => {
+    const feedItem = makeAnnouncement({
+      displayMode: "feed",
+      id: "feed-item",
+      title: "Changelog entry",
+    });
+    const {api} = createMockApi(
+      {
+        current: makeAnnouncement({title: "Blocked interrupt"}),
+        remainingCount: 0,
+      },
+      undefined,
+      [feedItem]
+    );
+
+    const FeedHarness: React.FC = () => {
+      const {feed} = useAnnouncements(api);
+      return (
+        <AnnouncementNavigator api={api} frequency={{maxInterruptionsPerSession: 0}}>
+          <Box testID="app-content">
+            <Text testID="feed-title">{feed[0]?.title ?? "missing"}</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const result = renderWithTheme(<FeedHarness />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.getByTestId("feed-title")).toHaveTextContent("Changelog entry");
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByTestId("announcement-screen"));
+  });
+
+  it("fails open when frequency storage reads fail", async () => {
+    Unifier.storage.getItem = mock(async () => {
+      throw new Error("storage read failed");
+    });
+    Unifier.storage.setItem = mock(async () => {
+      throw new Error("storage write failed");
+    });
+
+    const {api, impressionMutation} = createMockApi({
+      current: makeAnnouncement({title: "Still visible"}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api} frequency={{cooldownHours: 12, skipFirstLaunch: true}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.getByTestId("announcement-screen")).toBeTruthy();
+    expect(impressionMutation).toHaveBeenCalledTimes(1);
+  });
+
   it("records an impression instead of acknowledging when the API marks dismiss-only", async () => {
     const {api, impressionMutation, acknowledgeMutation} = createMockApi({
       current: makeAnnouncement({requiresAcknowledgement: false}),
@@ -331,6 +560,7 @@ describe("AnnouncementNavigator", () => {
         </Box>
       </AnnouncementNavigator>
     );
+    await waitForFrequencyCheck();
     await act(async () => {
       fireEvent.press(result.getByText("Dismiss"));
     });

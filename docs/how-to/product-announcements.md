@@ -56,6 +56,33 @@ Acknowledgement policy still resolves to `requiresAcknowledgement` on the public
 
 Impressions are recorded once per announcement version while the modal or banner is visible.
 
+## Client frequency caps
+
+Interrupt frequency is enforced **client-side** in `AnnouncementNavigator` before a modal or banner is shown. The server still returns the full pending queue; caps never filter `useAnnouncements` feed data.
+
+```tsx
+<AnnouncementNavigator
+  api={terrenoApi}
+  frequency={{
+    maxInterruptionsPerSession: 1,
+    cooldownHours: 24,
+    skipFirstLaunch: true,
+    userId: currentUser?.id,
+  }}
+>
+  <AppTabs />
+</AnnouncementNavigator>
+```
+
+| Prop | Default | Behavior |
+|------|---------|----------|
+| `maxInterruptionsPerSession` | `1` | In-memory session counter. After the cap is reached, pending interrupts are skipped until the app remounts (new session). |
+| `cooldownHours` | off | When set, skips interrupts if the last shown interrupt was within this many hours. Timestamp is persisted in AsyncStorage when an interrupt becomes visible. |
+| `skipFirstLaunch` | `false` | When `true`, the first app launch ever (no `hasLaunched` key) records the flag and skips interrupts for that launch only. |
+| `userId` | `"anon"` | AsyncStorage namespace for frequency keys when a signed-in user id is available. |
+
+When a cap applies, the navigator renders children (does not block the app) and does **not** record an impression. AsyncStorage read/write failures fail open with a `console.warn` and allow the interrupt to show.
+
 ## Media in markdown
 
 Paste YouTube or Loom URLs in the announcement `body` using markdown links or images, for example `[Watch the demo](https://www.youtube.com/watch?v=...)`. `MarkdownView` renders them as embeds (iframe on web, WebView on native). Banner surfaces show the title only; use modal mode or the feed when the full body should be visible.
