@@ -40,7 +40,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
 
 ## Phase 2: Consumer UI
 
-- [ ] **Task 2.1**: Banner surface + version query
+- [x] **Task 2.1**: Banner surface + version query
   - Delivers: `AnnouncementBanner`; navigator blocks only for `modal`; banner overlays children; pending/feed requests send build `version`
   - Files: `ui/src/AnnouncementBanner.tsx`, `ui/src/AnnouncementBanner.test.tsx`, `ui/src/AnnouncementNavigator.tsx`, `ui/src/AnnouncementNavigator.test.tsx`, `ui/src/useAnnouncements.ts`, `ui/src/useAnnouncements.test.ts` (if present), `ui/src/index.tsx`
   - Docs: `docs/how-to/product-announcements.md` (modal vs banner)

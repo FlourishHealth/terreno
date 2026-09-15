@@ -1,4 +1,7 @@
+import {getAnnouncementBuildVersion} from "./announcementBuildVersion";
 import {getAnnouncementPlatform} from "./announcementPlatform";
+
+export type AnnouncementDisplayMode = "banner" | "feed" | "modal";
 
 export interface AnnouncementPublic {
   id: string;
@@ -6,6 +9,7 @@ export interface AnnouncementPublic {
   body: string;
   version: number;
   priority: number;
+  displayMode?: AnnouncementDisplayMode;
   requiresAcknowledgement: boolean;
   primaryAction?: {
     label: string;
@@ -61,6 +65,13 @@ interface AnnouncementsApi {
 
 const enhancedApiCache = new WeakMap<AnnouncementsApi, Map<string, AnnouncementsEnhancedApi>>();
 
+const buildAnnouncementQuerySuffix = (): string => {
+  const platform = getAnnouncementPlatform();
+  const version = getAnnouncementBuildVersion();
+  const versionParam = version === undefined ? "" : `&version=${version}`;
+  return `platform=${platform}${versionParam}`;
+};
+
 const getEnhancedApi = (api: AnnouncementsApi, base: string): AnnouncementsEnhancedApi => {
   let byBase = enhancedApiCache.get(api);
   if (!byBase) {
@@ -81,15 +92,13 @@ const getEnhancedApi = (api: AnnouncementsApi, base: string): AnnouncementsEnhan
         query: (args?: {page?: number; limit?: number}) => {
           const page = args?.page ?? 1;
           const limit = args?.limit ?? 20;
-          const platform = getAnnouncementPlatform();
-          return `${base}/announcements/feed?page=${page}&limit=${limit}&platform=${platform}`;
+          return `${base}/announcements/feed?page=${page}&limit=${limit}&${buildAnnouncementQuerySuffix()}`;
         },
       }),
       getPendingAnnouncements: build.query({
         providesTags: ["PendingAnnouncements"],
         query: () => {
-          const platform = getAnnouncementPlatform();
-          return `${base}/announcements/pending?platform=${platform}`;
+          return `${base}/announcements/pending?${buildAnnouncementQuerySuffix()}`;
         },
       }),
     }),

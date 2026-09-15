@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef} from "react";
 
+import {AnnouncementBanner} from "./AnnouncementBanner";
 import {AnnouncementScreen} from "./AnnouncementScreen";
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -30,7 +31,9 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     baseUrl
   );
 
-  const current = pending?.current ?? null;
+  const rawCurrent = pending?.current ?? null;
+  const current = rawCurrent?.displayMode === "feed" ? null : rawCurrent;
+  const displayMode = current?.displayMode ?? "modal";
   const currentAnnouncementId = current?.id;
   const currentAnnouncementVersion = current?.version;
   const requiresAcknowledgement = current?.requiresAcknowledgement ?? false;
@@ -38,7 +41,7 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
 
   const isShowingAnnouncement = !isLoading && !error && Boolean(current);
 
-  // Record one impression per announcement version only while the modal is visible.
+  // Record one impression per announcement version only while the surface is visible.
   useEffect(() => {
     if (
       !isShowingAnnouncement ||
@@ -133,16 +136,28 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     return <>{children}</>;
   }
 
+  if (displayMode === "banner") {
+    return (
+      <Box direction="column" flex="grow" width="100%">
+        <AnnouncementBanner
+          announcement={current}
+          isSubmitting={isSubmitting}
+          onAcknowledge={handleAcknowledge}
+          onDismiss={handleDismiss}
+          requiresAcknowledgement={requiresAcknowledgement}
+        />
+        {children}
+      </Box>
+    );
+  }
+
   return (
-    <>
-      <AnnouncementScreen
-        announcement={current}
-        isSubmitting={isSubmitting}
-        onAcknowledge={handleAcknowledge}
-        onDismiss={handleDismiss}
-        requiresAcknowledgement={requiresAcknowledgement}
-      />
-      {children}
-    </>
+    <AnnouncementScreen
+      announcement={current}
+      isSubmitting={isSubmitting}
+      onAcknowledge={handleAcknowledge}
+      onDismiss={handleDismiss}
+      requiresAcknowledgement={requiresAcknowledgement}
+    />
   );
 };

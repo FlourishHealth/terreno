@@ -1,6 +1,6 @@
 # Product announcements
 
-Use `@terreno/announcements` on the backend and `AnnouncementNavigator` on the frontend to show admin-managed update modals.
+Use `@terreno/announcements` on the backend and `AnnouncementNavigator` on the frontend to show admin-managed update surfaces.
 
 ## Backend
 
@@ -10,7 +10,7 @@ Use `@terreno/announcements` on the backend and `AnnouncementNavigator` on the f
 import {AnnouncementsApp} from "@terreno/announcements";
 
 new AnnouncementsApp({
-  acknowledgementMode: "admin",
+  defaultAcknowledgementPolicy: "dismiss-only",
   matchAudience: (user, announcement) => {
     const audience = announcement.audience as {roles?: string[]};
     if (!audience.roles?.length) {
@@ -21,7 +21,7 @@ new AnnouncementsApp({
 });
 ```
 
-2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the modal to users who only acknowledged the previous version.
+2. Create announcements in admin (draft → publish). Use `AnnouncementList` and `AnnouncementEditor` from `@terreno/admin-frontend` with dedicated Expo routes (see `example-frontend/app/admin/announcements/`). Published `title`/`body` edits auto-increment `version`, which re-shows the surface to users who only acknowledged the previous version.
 
 ## Frontend
 
@@ -35,19 +35,30 @@ import {AnnouncementNavigator} from "@terreno/ui";
 </AnnouncementNavigator>
 ```
 
-Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The navigator sends the native platform (`ios` / `android` / `web`) on pending requests and only blocks the app when pending fails — changelog feed errors are non-fatal.
+Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The navigator sends the native platform (`ios` / `android` / `web`) and, when available, the app build number from `Constants.expoConfig.extra.buildNumber` (same source as `useUpgradeCheck`) on pending and feed requests. Only pending failures block the app — changelog feed errors are non-fatal.
 
-## Acknowledgement modes
+## Modal vs banner
 
-| Mode | Behavior |
-|------|----------|
-| `admin` (default) | Honour per-announcement `requiresAcknowledgement` |
-| `always` | Every pending announcement requires acknowledgement |
-| `never` | Dismiss records an impression only |
+| `displayMode` | Navigator behavior |
+|---------------|-------------------|
+| `modal` | Renders `AnnouncementScreen` and hides children until the announcement is cleared. |
+| `banner` | Keeps children mounted and renders `AnnouncementBanner` above them (one interrupt at a time). |
+| `feed` | Changelog-only; never shown by `AnnouncementNavigator` even if it appears unexpectedly in `pending.current`. |
+
+`AnnouncementBanner` composes the existing `Banner` component: title text, a dismiss or acknowledgement action, and an optional primary-action button (URL opens on press; click analytics land in a later slice).
+
+Acknowledgement policy still resolves to `requiresAcknowledgement` on the public DTO:
+
+| Policy | Banner / modal behavior |
+|--------|-------------------------|
+| `required` | Primary action is **Got it**, which acknowledges through the existing handler. |
+| `dismiss-only` | Dismiss records an impression only. |
+
+Impressions are recorded once per announcement version while the modal or banner is visible.
 
 ## Media in markdown
 
-Paste YouTube or Loom URLs in the announcement `body` using markdown links or images, for example `[Watch the demo](https://www.youtube.com/watch?v=...)`. `MarkdownView` renders them as embeds (iframe on web, WebView on native).
+Paste YouTube or Loom URLs in the announcement `body` using markdown links or images, for example `[Watch the demo](https://www.youtube.com/watch?v=...)`. `MarkdownView` renders them as embeds (iframe on web, WebView on native). Banner surfaces show the title only; use modal mode or the feed when the full body should be visible.
 
 ## Example app
 

@@ -1,5 +1,18 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it, mock} from "bun:test";
 import {renderHook} from "@testing-library/react-native";
+import {assert} from "chai";
+
+const constantsState = {
+  expoConfig: {
+    extra: {
+      buildNumber: undefined as number | string | undefined,
+    },
+  },
+};
+
+mock.module("expo-constants", () => ({
+  default: constantsState,
+}));
 
 import {useAnnouncements} from "./useAnnouncements";
 
@@ -14,6 +27,10 @@ interface MockInjectOpts {
 }
 
 describe("useAnnouncements", () => {
+  afterEach(() => {
+    constantsState.expoConfig.extra.buildNumber = undefined;
+  });
+
   const buildApi = ({
     feedData,
     pendingData,
@@ -131,5 +148,79 @@ describe("useAnnouncements", () => {
     );
     rerender(undefined);
     expect(injectCount).toBe(1);
+  });
+
+  it("includes platform and version query params when build number is valid", () => {
+    constantsState.expoConfig.extra.buildNumber = 42;
+    const capturedUrls: string[] = [];
+    const api = {
+      enhanceEndpoints: () => ({
+        injectEndpoints: (opts: MockInjectOpts) => {
+          const build = {
+            query: (def: MockQueryDef) => {
+              capturedUrls.push(def.query());
+              capturedUrls.push(def.query({limit: 5, page: 2}));
+              return "query";
+            },
+          };
+          opts.endpoints(build);
+          return {
+            useGetAnnouncementFeedQuery: () => ({
+              data: [],
+              error: undefined,
+              isLoading: false,
+              refetch: () => Promise.resolve(),
+            }),
+            useGetPendingAnnouncementsQuery: () => ({
+              data: undefined,
+              error: undefined,
+              isLoading: false,
+              refetch: () => Promise.resolve(),
+            }),
+          };
+        },
+      }),
+    };
+
+    renderHook(() => useAnnouncements(api as unknown as AnnouncementsApi, "/api"));
+
+    assert.ok(capturedUrls.some((url) => url.includes("platform=ios")));
+    assert.ok(capturedUrls.some((url) => url.includes("version=42")));
+  });
+
+  it("omits version when build number is invalid", () => {
+    constantsState.expoConfig.extra.buildNumber = "invalid";
+    const capturedUrls: string[] = [];
+    const api = {
+      enhanceEndpoints: () => ({
+        injectEndpoints: (opts: MockInjectOpts) => {
+          const build = {
+            query: (def: MockQueryDef) => {
+              capturedUrls.push(def.query());
+              return "query";
+            },
+          };
+          opts.endpoints(build);
+          return {
+            useGetAnnouncementFeedQuery: () => ({
+              data: [],
+              error: undefined,
+              isLoading: false,
+              refetch: () => Promise.resolve(),
+            }),
+            useGetPendingAnnouncementsQuery: () => ({
+              data: undefined,
+              error: undefined,
+              isLoading: false,
+              refetch: () => Promise.resolve(),
+            }),
+          };
+        },
+      }),
+    };
+
+    renderHook(() => useAnnouncements(api as unknown as AnnouncementsApi, "/api"));
+
+    assert.ok(capturedUrls.every((url) => !url.includes("version=")));
   });
 });

@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React, {useCallback, useState} from "react";
 import {Text} from "react-native";
 import {AnnouncementNavigator} from "./AnnouncementNavigator";
@@ -9,6 +10,7 @@ import type {AnnouncementPublic, PendingAnnouncementsResponse} from "./useAnnoun
 
 const makeAnnouncement = (overrides: Partial<AnnouncementPublic> = {}): AnnouncementPublic => ({
   body: "## Update\n\nWe shipped announcements.",
+  displayMode: "modal",
   id: "announcement-1",
   priority: 1,
   requiresAcknowledgement: true,
@@ -91,9 +93,9 @@ describe("AnnouncementNavigator", () => {
     expect(result.getByTestId("app-content")).toBeTruthy();
   });
 
-  it("shows announcement modal when pending", async () => {
+  it("hides children while a modal announcement is pending", async () => {
     const {api, impressionMutation} = createMockApi({
-      current: makeAnnouncement(),
+      current: makeAnnouncement({displayMode: "modal"}),
       remainingCount: 0,
     });
     const result = renderWithTheme(
@@ -104,6 +106,7 @@ describe("AnnouncementNavigator", () => {
       </AnnouncementNavigator>
     );
     expect(result.getByTestId("announcement-screen")).toBeTruthy();
+    assert.isNull(result.queryByTestId("app-content"));
 
     await act(async () => {
       await Promise.resolve();
@@ -273,6 +276,47 @@ describe("AnnouncementNavigator", () => {
     );
     expect(result.getByTestId("app-content")).toBeTruthy();
     expect(result.queryByTestId("announcement-navigator-error")).toBeNull();
+  });
+
+  it("keeps children mounted and shows a banner for banner announcements", async () => {
+    const {api, impressionMutation} = createMockApi({
+      current: makeAnnouncement({displayMode: "banner", requiresAcknowledgement: false}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    expect(result.getByTestId("announcement-banner")).toBeTruthy();
+    expect(result.queryByTestId("announcement-screen")).toBeNull();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(impressionMutation).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores unexpected feed displayMode items in pending.current", () => {
+    const {api} = createMockApi({
+      current: makeAnnouncement({displayMode: "feed"}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByTestId("announcement-banner"));
+    assert.isNull(result.queryByTestId("announcement-screen"));
   });
 
   it("records an impression instead of acknowledging when the API marks dismiss-only", async () => {
