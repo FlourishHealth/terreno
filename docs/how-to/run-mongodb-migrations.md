@@ -72,6 +72,9 @@ If generate prints `No schema changes`, there is nothing to apply. Replace any f
 | Remove field | No | Fail-closed stub |
 | Same-path type change | No | Fail-closed stub |
 
+A file with any unsafe op is still a throw stub (dry-run and wet). Safe `createIndex` /
+`dropIndex` calls are kept as comments in that stub and listed in the throw message.
+
 Do not inspect the live database during generate. Baseline is the last `schemaAfter` snapshot in `migrations/`.
 
 ## Admin HTTP

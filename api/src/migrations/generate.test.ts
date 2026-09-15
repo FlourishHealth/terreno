@@ -230,6 +230,26 @@ describe("generateMigration", () => {
     }
   });
 
+  it("keeps safe index calls as comments when any op is unsafe", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
+    try {
+      const result = await generateMigration({
+        dir,
+        models: makeModels({}),
+        name: "init",
+        now: () => DateTime.fromISO("2026-09-10T12:00:00.000Z"),
+      });
+      expect(result.noop).toBe(false);
+      const source = await readFile(result.path as string, "utf8");
+      expect(source).toContain("throw new Error(");
+      expect(source).toContain("Keep these safe index operations when replacing the stub");
+      expect(source).toContain("createIndex");
+      expect(source).toContain("addIndex");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
   it("emits a unique-index stub that is valid JavaScript", async () => {
     const dir = await mkdtemp(join(tmpdir(), "migrate-gen-"));
     try {

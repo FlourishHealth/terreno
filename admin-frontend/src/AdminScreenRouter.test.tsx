@@ -175,7 +175,10 @@ const queryState: MigrationQueryState = {
   refetch: mockRefetch,
 };
 
-const mockTask: {data: {task?: BackgroundTask} | undefined} = {data: undefined};
+const mockTask: {data: {task?: BackgroundTask} | undefined; error: unknown} = {
+  data: undefined,
+  error: null,
+};
 
 const createApiDouble = (): AdminApi => {
   const api = {
@@ -229,6 +232,7 @@ describe("AdminMigrationsView", () => {
     mockRun.mockClear();
     mockRefetch.mockClear();
     mockTask.data = undefined;
+    mockTask.error = null;
     adminScriptsHarness.taskQuery = mockTask;
     resetQueryState();
   });
@@ -366,6 +370,17 @@ describe("AdminMigrationsView", () => {
       fireEvent.press(getByText("Dry run"));
     });
     expect(getByTestId("admin-migrations-apply").props.accessibilityState.disabled).toBe(true);
+  });
+
+  it("re-enables dry-run when task polling fails", async () => {
+    mockTask.data = undefined;
+    mockTask.error = new Error("forbidden");
+    const {getByTestId, getByText} = renderView();
+    await act(async () => {
+      fireEvent.press(getByText("Dry run"));
+    });
+    expect(getByTestId("admin-migrations-task-error")).toBeTruthy();
+    expect(getByTestId("admin-migrations-dry-run").props.accessibilityState.disabled).toBe(false);
   });
 
   it("surfaces unwrap errors from run", async () => {

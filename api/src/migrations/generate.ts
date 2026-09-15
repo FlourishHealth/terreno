@@ -53,12 +53,8 @@ export const lastSchemaAfter = (
   return undefined;
 };
 
-const renderUnsafeUp = (ops: SchemaDiffOp[]): string => {
-  const detail = ops
-    .filter((op) => !op.safe)
-    .map((op) => `${op.kind} ${op.modelName} ${op.path ?? op.toPath ?? JSON.stringify(op.keys)}`)
-    .join("; ");
-  return `  throw new Error(${JSON.stringify(`Unsafe migration stub: ${detail}. Replace this stub with a backfill before applying.`)});`;
+const describeOp = (op: SchemaDiffOp): string => {
+  return `${op.kind} ${op.modelName} ${op.path ?? op.toPath ?? JSON.stringify(op.keys)}`;
 };
 
 const mongoIndexName = (keys: Record<string, number | string>): string => {
@@ -81,6 +77,38 @@ const renderIndexCall = ({
     return `  await ctx.mongoose.connection.collection(${JSON.stringify(collection)}).dropIndex(${JSON.stringify(name)});`;
   }
   return `  await ctx.mongoose.connection.collection(${JSON.stringify(collection)}).createIndex(${JSON.stringify(keys)}, {name: ${JSON.stringify(name)}});`;
+};
+
+const renderUnsafeBody = ({
+  catalog,
+  ops,
+  reverse,
+}: {
+  catalog: SchemaCatalog;
+  ops: SchemaDiffOp[];
+  reverse: boolean;
+}): string => {
+  const detail = ops.map(describeOp).join("; ");
+  const ordered = reverse ? [...ops].reverse() : ops;
+  const safeIndexComments: string[] = [];
+  for (const op of ordered) {
+    if (!op.safe || !op.keys || (op.kind !== "addIndex" && op.kind !== "dropIndex")) {
+      continue;
+    }
+    const collection = catalog.models[op.modelName]?.collection ?? op.modelName;
+    let kind: "createIndex" | "dropIndex";
+    if (op.kind === "addIndex") {
+      kind = reverse ? "dropIndex" : "createIndex";
+    } else {
+      kind = reverse ? "createIndex" : "dropIndex";
+    }
+    safeIndexComments.push(`  // ${renderIndexCall({collection, keys: op.keys, kind}).trim()}`);
+  }
+  const commentBlock =
+    safeIndexComments.length > 0
+      ? `  // Keep these safe index operations when replacing the stub:\n${safeIndexComments.join("\n")}\n`
+      : "";
+  return `${commentBlock}  throw new Error(${JSON.stringify(`Unsafe migration stub: ${detail}. Replace this stub with a backfill before applying.`)});`;
 };
 
 const renderSafeUp = (ops: SchemaDiffOp[], catalog: SchemaCatalog): string => {
@@ -129,8 +157,12 @@ const renderFile = ({
   ops: SchemaDiffOp[];
 }): string => {
   const unsafe = ops.some((op) => !op.safe);
-  const upBody = unsafe ? renderUnsafeUp(ops) : renderSafeUp(ops, catalog);
-  const downBody = unsafe ? renderUnsafeUp(ops) : renderSafeDown(ops, catalog);
+  const upBody = unsafe
+    ? renderUnsafeBody({catalog, ops, reverse: false})
+    : renderSafeUp(ops, catalog);
+  const downBody = unsafe
+    ? renderUnsafeBody({catalog, ops, reverse: true})
+    : renderSafeDown(ops, catalog);
   return `export const id = ${JSON.stringify(id)};
 
 export const schemaAfter = ${JSON.stringify(catalog)};

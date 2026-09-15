@@ -55,13 +55,18 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
   const [runKind, setRunKind] = useState<"dry" | "wet" | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const taskStatusRef = useRef<string | undefined>(undefined);
+  const taskPollErrorRef = useRef(false);
 
-  const {data: taskPayload} = useGetScriptTaskQuery(taskId ?? "", {
-    pollingInterval: taskId && !isTerminalStatus(taskStatusRef.current) ? POLL_INTERVAL_MS : 0,
+  const {data: taskPayload, error: taskPollError} = useGetScriptTaskQuery(taskId ?? "", {
+    pollingInterval:
+      taskId && !isTerminalStatus(taskStatusRef.current) && !taskPollErrorRef.current
+        ? POLL_INTERVAL_MS
+        : 0,
     skip: !taskId,
   });
   const task = taskPayload?.task as BackgroundTask | undefined;
   taskStatusRef.current = task?.status;
+  taskPollErrorRef.current = Boolean(taskPollError);
 
   // Refresh status after a batch finishes so applied/pending lists match history.
   // Depend on status string, not the task object, so later polls do not refetch.
@@ -77,6 +82,7 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
       setRunKind(wetRun ? "wet" : "dry");
       setTaskId(null);
       taskStatusRef.current = undefined;
+      taskPollErrorRef.current = false;
       setStartError(null);
       try {
         const result = await runMigrations({wetRun}).unwrap();
@@ -129,7 +135,9 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
   const pending = status?.pending ?? [];
   const applied = status?.applied ?? [];
   const canRunMigrations = config.platformTools?.runScripts ?? true;
-  const isBusy = isStarting || Boolean(taskId && (!task || !isTerminalStatus(task.status)));
+  const pollFailed = Boolean(taskId && taskPollError);
+  const isBusy =
+    isStarting || Boolean(taskId && !pollFailed && (!task || !isTerminalStatus(task.status)));
 
   return (
     <Box gap={4} testID="admin-migrations">
@@ -188,6 +196,11 @@ export const AdminMigrationsView: React.FC<AdminMigrationsViewProps> = ({
       {startError ? (
         <Text color="error" testID="admin-migrations-start-error">
           {startError}
+        </Text>
+      ) : null}
+      {pollFailed ? (
+        <Text color="error" testID="admin-migrations-task-error">
+          Failed to load migration task status.
         </Text>
       ) : null}
       {task ? (
