@@ -1,4 +1,4 @@
-export const GPT_MASCOT_COUNT = 4;
+const GPT_MASCOT_COUNT = 4;
 
 export const selectGptMascotIndex = (randomValue: number): number => {
   if (randomValue < 0 || randomValue >= 1) {
