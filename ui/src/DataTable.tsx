@@ -1162,6 +1162,7 @@ const DataTableComponent: FC<DataTableProps> = ({
               onDraftChange={setNativeDraftValues}
               onSearchDraftChange={setNativeSearchDraft}
               search={nativeSearchDraft}
+              showFieldClear
               showSearch={showSearch}
             />
             <Button onClick={handleClearNativeFilters} text="Clear all" variant="ghost" />

@@ -11,3 +11,6 @@ category: Added
   and escaped-literal text `{$regex, $options: "i"}` while rejecting extra operators.
 - **@terreno/ui `Filter`**: new `iconOnly` and `triggerSize` props render a compact
   icon trigger for dense chrome; DataTable column headers use it.
+- **@terreno/ui `DataTable`**: single-column filter popovers no longer duplicate the
+  popover's own Clear with a per-field **Clear filter**; the boolean per-field clear
+  now appears only where one surface hosts several filters.

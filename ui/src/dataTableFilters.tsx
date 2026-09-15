@@ -19,6 +19,12 @@ export interface DataTableFilterFieldsProps {
   search?: string;
   onSearchDraftChange?: (search: string) => void;
   showSearch?: boolean;
+  /**
+   * Render a per-field clear control for filters whose input cannot express "unset"
+   * (booleans). Only needed when one surface hosts several filters, because the
+   * surface-level clear would otherwise reset all of them.
+   */
+  showFieldClear?: boolean;
 }
 
 const parseNumberRangeDraft = (value: unknown): {$gte?: number; $lte?: number} => {
@@ -54,6 +60,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
   onDraftChange,
   onSearchDraftChange,
   search = "",
+  showFieldClear = false,
   showSearch = false,
 }) => {
   const draftValuesRef = useRef(draftValues);
@@ -108,7 +115,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
               title={label}
               value={boolValue}
             />
-            {raw !== undefined ? (
+            {showFieldClear && raw !== undefined ? (
               <Button
                 onClick={() => setField(field, undefined)}
                 testID={`data-table-filter-${field}-clear`}
@@ -205,7 +212,7 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
       );
     }
     return nodes;
-  }, [draftValues, filters, onSearchDraftChange, search, setField, showSearch]);
+  }, [draftValues, filters, onSearchDraftChange, search, setField, showFieldClear, showSearch]);
 
   return (
     <Box direction="column" gap={3} width="100%">
@@ -415,6 +422,7 @@ export const DataTableAdditionalFiltersWeb: FC<DataTableAdditionalFiltersWebProp
         draftValues={draftValues}
         filters={filters}
         onDraftChange={setDraftValuesSync}
+        showFieldClear
       />
     </Filter>
   );

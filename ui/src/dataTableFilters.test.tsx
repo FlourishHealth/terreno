@@ -102,6 +102,7 @@ describe("DataTableFilterFields", () => {
         draftValues={{active: true}}
         filters={[{field: "active", kind: "boolean", label: "Active"}]}
         onDraftChange={onDraftChange}
+        showFieldClear
       />
     );
     fireEvent.press(getByTestId("data-table-filter-active-clear"));
@@ -310,6 +311,32 @@ describe("DataTableColumnFilterWeb", () => {
       created_gte: "2024-01-01T00:00:00.000Z",
       created_lte: "2024-02-01T00:00:00.000Z",
     });
+  });
+
+  it("relies on the popover clear instead of a per-field clear", async () => {
+    const onApply = mock(() => {});
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <DataTableColumnFilterWeb
+        appliedValues={{admin: true}}
+        columnTitle="Admin user"
+        filter={{field: "admin", kind: "boolean", label: "Admin user"}}
+        onApply={onApply}
+        testID="admin-filter"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter.trigger"));
+    });
+    await waitFor(() => {
+      expect(getByTestId("admin-filter.clear")).toBeTruthy();
+    });
+    expect(queryByTestId("data-table-filter-admin-clear")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-filter.clear"));
+      fireEvent.press(getByTestId("admin-filter.apply"));
+    });
+    expect(onApply).toHaveBeenCalledWith({});
   });
 
   it("returns null on native platforms", () => {

@@ -632,6 +632,11 @@ Column headers use `Filter` with `iconOnly`, which renders a compact icon trigge
 (24px at the default `triggerSize="sm"`, 32px with `triggerSize="default"`) instead
 of a labeled button. Give it an accessible name with `triggerAccessibilityLabel`.
 
+A single-column popover offers only its own **Clear**, so it needs no per-field clear.
+The surfaces that host several filters at once — the **More filters** popover and the
+native **Filters** sheet — add a per-field **Clear filter** for booleans, whose toggle
+cannot otherwise express "unset".
+
 Omit `column.filter`, `searchFields`, and the related callbacks to keep today's
 sort/page-only table.
 
