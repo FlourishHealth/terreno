@@ -22,6 +22,8 @@ export interface ApplyDeltaResult {
  *   optimistic state is protected until conflict resolution decides;
  * - create/update writes data + seq; tombstones set `deleted: true` (keeping
  *   the last known data for conflict UIs);
+ * - `{collection}|admin` window streams skip inserts for unknown ids (no surprise
+ *   rows); Refresh is a REST re-query plus `hydrateWindow`, not a snapshot;
  * - the cursor for `delta.stream` advances in every case (including skips), so
  *   a skipped delta is never re-fetched on catch-up.
  */
@@ -62,6 +64,14 @@ export const applyDelta = ({
         missedSeq: delta.seq,
         stream: delta.stream,
       });
+      advanceCursor();
+      return {applied: false, seqJump};
+    }
+
+    // Admin window (`{collection}|admin`): apply update/delete only for ids already
+    // in the local window. Unknown ids wait for REST membership + hydrateWindow
+    // (Refresh / load more). Cursor still advances so live seq is not replayed.
+    if (!existing && delta.stream.endsWith("|admin")) {
       advanceCursor();
       return {applied: false, seqJump};
     }

@@ -179,6 +179,34 @@ import {
 } from "@terreno/api";
 ```
 
+#### Custom endpoints (modelRouter actions)
+
+Do **not** use `app.get` / `app.post` / `router.get` / `router.post` for application
+APIs. Use `collectionActions` and `instanceActions` on `modelRouter`:
+
+```typescript
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      handler: async ({body, user}) => ({matched: 0, modified: 0}),
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => doc,
+    },
+  },
+  permissions: { /* CRUD */ },
+});
+```
+
+See `docs/explanation/model-router-actions.md`. Exceptions: `WebhooksApp`, static SPA,
+auth/health/version plugins, SSE.
+
 ### @terreno/ui
 
 React Native UI component library (a large component library):

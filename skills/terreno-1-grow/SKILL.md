@@ -9,7 +9,8 @@ Turn a request, ticket, or specification into approved artifacts a fresh Pick ag
 execute without conversation history.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
-[`documentation contract`](references/documentation-contract.md), and
+[`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md), and
 [`grilling procedure`](references/grilling.md) before acting. Follow grilling for every
 human decision until the answer is executable.
 
@@ -47,7 +48,8 @@ human decision until the answer is executable.
 5. **Grill.** Follow the grilling procedure. Work the current decision frontier in
    numbered rounds with recommended answers. Get to the bottom of each reply: vague,
    partial, or conflicting answers stay on the frontier. Wait for explicit
-   shared-understanding confirmation before writing.
+   shared-understanding confirmation before writing. Every wait-for-human or done
+   message closes with PR deployment URLs when a PR has them.
 6. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
    Define scope, non-scope, architecture decisions, risks, human gates, rollout, and
    dependencies.

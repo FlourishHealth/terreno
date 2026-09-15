@@ -26,7 +26,12 @@ CircleCI `run-preview-cleanup` parameter.
    Copy Netlify and GCP values from GitHub Actions secrets/vars. Until they
    are set, CircleCI deploy jobs skip with exit 0 and GHA remains the live
    deployer.
-5. Build forked PRs if you want DCO + rulesync on forks.
+5. Set project Environment Variable `CODECOV_TOKEN` (Codecov upload token) so
+   package CI can upload `coverage/lcov.info`. Uploads skip when it is unset.
+   Mirror the same secret as GitHub Actions `CODECOV_TOKEN` for retained twins.
+   Public repos need a token unless the Codecov org disables token auth for
+   public repositories.
+6. Build forked PRs if you want DCO + rulesync on forks.
 
 GitHub App org/project slug (API and CLI):
 `circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.
@@ -45,6 +50,8 @@ list pipelines on the slug above.
 
 Smoke job `config-ok` and fork-only `dco` always run on continuation.
 `rulesync-check` runs only when generated-rule sources change (`run-rulesync`).
+`admin-backend/**` starts `admin-backend-ci`; `admin-frontend/**` starts
+`admin-frontend-ci`. Both jobs lint, compile, and run `test:coverage`.
 
 `.circleci/**` sets `run-circleci-config`. On **config-only** PRs that workflow
 runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
@@ -130,6 +137,16 @@ ambient OIDC token for GCP impersonation.
 Branch protection must require the CircleCI job names below. Remove disabled
 GitHub check names or pull requests will wait for checks that can no longer run.
 
+Dedicated package jobs (`api-ci`, `ai-ci`, `rtk-ci`, `ui-ci`, `syncdb-ci`,
+`comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run `bun run test:coverage`
+(`scripts/check-coverage.ts`, 95% functions and lines). Isolated `syncdb` tests
+are included by that script. Published packages without a dedicated workflow
+(`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) run
+the same commands through the parameterized `packages-ci` job, gated by
+`run-admin-backend`, `run-admin-frontend`, `run-api-health`,
+`run-feature-flags`, and `run-test-package`. The retained
+`.github/workflows/packages-ci.yml` matrix twin stays `on: []`.
+
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
 | Repository policies / No barrel imports | `no-barrel-imports` |
@@ -139,6 +156,8 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Verify rules are in sync | `rulesync-check` |
 | `dco` | `dco` |
 | Run all tests (API CI) | `api-ci` |
+| _(new)_ Admin backend lint, compile, coverage | `admin-backend-ci` |
+| _(new)_ Admin frontend lint, compile, coverage | `admin-frontend-ci` |
 | Run all tests (AI CI) | `ai-ci` |
 | RTK Lint and Build | `rtk-ci` |
 | Syncdb Lint, Build, and Tests | `syncdb-ci` |
@@ -147,13 +166,15 @@ GitHub check names or pull requests will wait for checks that can no longer run.
 | Demo Lint and TypeScript Check | `ui-demo-ci` |
 | Lint, compile, and test communications | `comms-ci` |
 | Lint, Build, and Test (MCP) | `mcp-server-ci` |
+| Lint, compile, and coverage (create-terreno-app) | `create-terreno-app-ci` |
 | Build Docker Image (MCP) | `mcp-server-docker` |
 | Example Frontend Lint and Test | `example-frontend-ci` |
 | Example Backend Lint, Build, and Test | `example-backend-ci` |
 | Run admin script CLI | `example-backend-script-runner` |
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
-| E2E · `<spec>` | `e2e` (matrix `spec`) |
+| Lint, compile, and coverage (matrix package) | `packages-ci` (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) |
+| E2E · `<spec>` | `e2e` (matrix `spec`, including `admin` plus `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, `admin-comms-back`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
 | _(new)_ CircleCI path-filter parity | `circleci-parity` |

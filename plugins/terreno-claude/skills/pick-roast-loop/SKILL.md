@@ -11,7 +11,8 @@ continue task by task; reinvoke only when Pick or Roast had to exit with actiona
 engineering work remaining.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
-[`pick-roast inner loop`](../../references/pick-roast-loop.md), and
+[`pick-roast inner loop`](../../references/pick-roast-loop.md),
+[`PR deployments`](../../references/pr-deployments.md), and
 [`subagent briefing`](../../references/subagent-briefing.md). The ledger must conform
 to [`execution-state.schema.json`](../../references/execution-state.schema.json).
 
@@ -100,8 +101,9 @@ Before the question, provide this overview in plain language:
 4. **Options:** two to four concrete choices with impact and risk.
 5. **Recommendation:** one default and its rationale.
 
-End with **one exact question** the human can answer in one message. Do not expose
-chain-of-thought, raw transcripts, or unexplained stage YAML.
+End with **one exact question** the human can answer in one message. Then close with
+PR deployment URLs when a PR has them. Do not expose chain-of-thought, raw transcripts,
+or unexplained stage YAML.
 
 ## Completion report
 
@@ -119,7 +121,8 @@ Then report:
 - `Next`: `4-brew`
 
 When stopped, use the same report plus `Blocker`. Include everything from the ledger
-once; do not duplicate per-cycle narration.
+once; do not duplicate per-cycle narration. Close wait-for-human and done reports with
+PR deployment URLs when a PR has them.
 
 ## Stop conditions
 

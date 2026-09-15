@@ -137,6 +137,40 @@ Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI). H
 
 `modelRouter("/path", Model, options)` writes one catalog record per route path. MCP, realtime, and sync surfaces read that record; TerrenoApp calls `replaceCollectionOptions` once when access control is injected. Test helpers `clearMCPRegistry`, `clearRealtimeRegistry`, and `clearSyncRegistry` clear the entire catalog.
 
+## modelRouter actions
+
+Named GET/POST operations on a collection or document. Use these instead of `app.get` /
+`app.post` / `router.get` / `router.post` for application APIs.
+
+See [modelRouter actions](../explanation/model-router-actions.md). Example:
+
+```typescript
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => {
+        return doc;
+      },
+    },
+  },
+  permissions: { /* CRUD */ },
+});
+```
+
+Do not add `endpoints: (router) => { router.get(...) }` when an action fits.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.

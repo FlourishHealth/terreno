@@ -17,6 +17,7 @@ export const WORKFLOW_PARAMETERS: Record<string, string> = {
   "ai-ci": "run-ai",
   "api-ci": "run-api",
   "comms-ci": "run-comms",
+  "create-terreno-app-ci": "run-create-terreno-app",
   "e2e-ci": "run-e2e",
   "example-backend-ci": "run-example-backend",
   "example-backend-docker": "run-example-backend-docker",

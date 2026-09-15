@@ -21,6 +21,12 @@ parameters:
   run-ui:
     type: boolean
     default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
   run-ui-demo:
     type: boolean
     default: false
@@ -31,6 +37,9 @@ parameters:
     type: boolean
     default: false
   run-mcp-server:
+    type: boolean
+    default: false
+  run-create-terreno-app:
     type: boolean
     default: false
   run-example-frontend:
@@ -61,6 +70,21 @@ parameters:
     type: boolean
     default: false
   run-syncdb:
+    type: boolean
+    default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
+  run-api-health:
+    type: boolean
+    default: false
+  run-feature-flags:
+    type: boolean
+    default: false
+  run-test-package:
     type: boolean
     default: false
   run-new-file-coverage:
@@ -204,7 +228,7 @@ commands:
             done
 
   demo_lint_and_typecheck:
-    description: Compile ui, then lint and typecheck demo
+    description: Compile ui, then lint, typecheck, and smoke-test demo, then check story coverage
     steps:
       - compile_packages:
           packages: ui
@@ -214,6 +238,13 @@ commands:
             set -euo pipefail
             (cd demo && bun run lint)
             (cd demo && bun run compile)
+            (cd demo && bun run test:ci)
+      - run:
+          name: Check demo story coverage
+          command: |
+            set -euo pipefail
+            bun test scripts/check-demo-coverage.test.ts
+            bun run check:demo-coverage
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -481,6 +512,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh api
 
   ai-ci:
     executor: node22_mongo
@@ -499,7 +531,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ai
 
   rtk-ci:
     executor: node22
@@ -518,6 +551,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh rtk
 
   ui-ci:
     executor: node22
@@ -534,7 +568,46 @@ jobs:
             bun run lint
             bun run compile
             bun run types
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ui
+
+  admin-backend-ci:
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test admin-backend
+          working_directory: ~/project/admin-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  admin-frontend-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: ui
+      - run:
+          name: Lint / compile / test admin-frontend
+          working_directory: ~/project/admin-frontend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
 
   syncdb-ci:
     executor: node22
@@ -549,8 +622,8 @@ jobs:
           command: |
             bun run lint
             bun run compile
-            bun run test
-            bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh syncdb
 
   new-file-coverage:
     executor: node22_mongo
@@ -573,7 +646,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
@@ -608,7 +681,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh comms
 
   jobs-ci:
     executor: node22
@@ -651,6 +725,24 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh mcp-server
+
+  create-terreno-app-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / test create-terreno-app
+          working_directory: ~/project/create-terreno-app
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh create-terreno-app
 
   mcp-server-docker:
     executor: node22
@@ -815,7 +907,8 @@ jobs:
             bun run lint
             bun run compile
             bunx tsc --noEmit -p tsconfig.json
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
       - run:
@@ -835,6 +928,44 @@ jobs:
       - store_artifacts:
           path: admin-spa/test-results
           destination: admin-spa-playwright-results
+
+  packages-ci:
+    parameters:
+      package:
+        type: string
+      compile-deps:
+        type: string
+        default: ""
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile workspace dependencies
+          command: |
+            set -euo pipefail
+            deps="<< parameters.compile-deps >>"
+            if [ -z "$deps" ]; then
+              echo "no compile deps"
+              exit 0
+            fi
+            for pkg in $deps; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+      - run:
+          name: Lint / compile / coverage (<< parameters.package >>)
+          working_directory: ~/project/<< parameters.package >>
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh "<< parameters.package >>"
 
   no-barrel-imports:
     executor: node22
@@ -909,6 +1040,9 @@ jobs:
       - run:
           name: Test lifecycle validator
           command: bun test scripts/planning/
+      - run:
+          name: Test release tooling
+          command: bun run test:ci-tools
 
   license-coverage:
     executor: node22
@@ -1634,7 +1768,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags jobs mcp-server syncdb
+              api-health comms feature-flags jobs create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1652,7 +1786,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');
@@ -1744,6 +1878,16 @@ workflows:
       - ui-ci
       - ui-demo-typecheck
 
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - admin-backend-ci
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - admin-frontend-ci
+
   # Mirror GHA ui-demo-ci: only when demo changed and ui did not.
   ui-demo:
     when:
@@ -1771,6 +1915,11 @@ workflows:
           requires:
             - mcp-server-ci
 
+  create-terreno-app:
+    when: << pipeline.parameters.run-create-terreno-app >>
+    jobs:
+      - create-terreno-app-ci
+
   example-frontend:
     when: << pipeline.parameters.run-example-frontend >>
     jobs:
@@ -1795,6 +1944,40 @@ workflows:
     when: << pipeline.parameters.run-admin-spa >>
     jobs:
       - admin-spa-ci
+
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - packages-ci:
+          package: admin-backend
+          compile-deps: api
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - packages-ci:
+          package: admin-frontend
+          compile-deps: ui
+
+  api-health:
+    when: << pipeline.parameters.run-api-health >>
+    jobs:
+      - packages-ci:
+          package: api-health
+          compile-deps: api
+
+  feature-flags:
+    when: << pipeline.parameters.run-feature-flags >>
+    jobs:
+      - packages-ci:
+          package: feature-flags
+          compile-deps: api
+
+  test-package:
+    when: << pipeline.parameters.run-test-package >>
+    jobs:
+      - packages-ci:
+          package: test
 
   repo-policies:
     when: << pipeline.parameters.run-repo-policies >>
@@ -1825,6 +2008,13 @@ workflows:
                 - todos
                 - profile
                 - admin
+                - admin-home
+                - admin-form
+                - admin-todo-crud
+                - admin-table-search-filter
+                - admin-table-bulk-actions
+                - admin-custom-screens
+                - admin-comms-back
                 - consents
                 - ai-chat
                 - realtime
