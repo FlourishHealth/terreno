@@ -7,6 +7,7 @@ import {
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
+import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
 import type TestAgent from "supertest/lib/agent";
@@ -18,6 +19,7 @@ import {AnnouncementImpression} from "../models/announcementImpression";
 const buildApp = (options?: {
   basePath?: string;
   defaultAcknowledgementPolicy?: "required" | "dismiss-only";
+  isStaff?: (user: unknown) => boolean;
   matchAudience?: (user: unknown, announcement: unknown) => boolean;
 }): express.Application => {
   const app = getBaseServer();
@@ -291,5 +293,123 @@ describe("AnnouncementsApp", () => {
     expect(feedRes.body.data.length).toBeGreaterThanOrEqual(1);
     expect(feedRes.body.total).toBeGreaterThanOrEqual(1);
     expect(feedRes.body.page).toBe(1);
+  });
+
+  it("GET pending omits feed displayMode and GET feed includes feed-only items", async () => {
+    await Announcement.deleteMany({});
+
+    const modal = await Announcement.create({
+      acknowledgementPolicy: "required",
+      body: "Modal body",
+      displayMode: "modal",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Modal item",
+      version: 1,
+    });
+    await Announcement.create({
+      acknowledgementPolicy: "required",
+      body: "Feed body",
+      displayMode: "feed",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Feed only",
+      version: 1,
+    });
+
+    const pendingRes = await userAgent.get("/announcements/pending?platform=web").expect(200);
+    assert.strictEqual(pendingRes.body.data.current?.id, modal._id.toString());
+    assert.strictEqual(pendingRes.body.data.current?.displayMode, "modal");
+
+    const feedRes = await userAgent
+      .get("/announcements/feed?page=1&limit=10&platform=web")
+      .expect(200);
+    const feedTitles = feedRes.body.data.map((item: {title: string}) => item.title);
+    assert.include(feedTitles, "Modal item");
+    assert.include(feedTitles, "Feed only");
+  });
+
+  it("GET pending and feed honor minBuildNumber when version query is present", async () => {
+    await Announcement.deleteMany({});
+
+    const visible = await Announcement.create({
+      acknowledgementPolicy: "required",
+      body: "Visible body",
+      minBuildNumber: 10,
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Visible at 10",
+      version: 1,
+    });
+    await Announcement.create({
+      acknowledgementPolicy: "required",
+      body: "Hidden body",
+      minBuildNumber: 20,
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Hidden below 20",
+      version: 1,
+    });
+
+    const pendingHidden = await userAgent
+      .get("/announcements/pending?platform=web&version=9")
+      .expect(200);
+    assert.isNull(pendingHidden.body.data.current);
+
+    const pendingVisible = await userAgent
+      .get("/announcements/pending?platform=web&version=10")
+      .expect(200);
+    assert.strictEqual(pendingVisible.body.data.current?.id, visible._id.toString());
+
+    const feedHidden = await userAgent
+      .get("/announcements/feed?platform=web&version=9")
+      .expect(200);
+    assert.lengthOf(feedHidden.body.data, 0);
+
+    const feedOmitted = await userAgent.get("/announcements/feed?platform=web").expect(200);
+    assert.isAtLeast(feedOmitted.body.data.length, 2);
+  });
+
+  it("filters pending by audienceType composed with matchAudience", async () => {
+    await Announcement.deleteMany({});
+
+    const audienceApp = buildApp({
+      isStaff: (user) => (user as {admin?: boolean}).admin === true,
+      matchAudience: (_user, announcement) => {
+        const audience = announcement as {audience?: {include?: boolean}};
+        return audience.audience?.include !== false;
+      },
+    });
+    const staffAgent = await authAsUser(audienceApp, "admin");
+    const patientAgent = await authAsUser(audienceApp, "notAdmin");
+
+    await Announcement.create({
+      acknowledgementPolicy: "required",
+      audience: {include: true},
+      audienceType: "staff",
+      body: "Staff only",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff modal",
+      version: 1,
+    });
+    await Announcement.create({
+      acknowledgementPolicy: "required",
+      audience: {include: true},
+      audienceType: "patient",
+      body: "Patient only",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Patient modal",
+      version: 1,
+    });
+
+    const staffPending = await staffAgent.get("/announcements/pending?platform=web").expect(200);
+    assert.strictEqual(staffPending.body.data.current?.title, "Staff modal");
+
+    const patientPending = await patientAgent
+      .get("/announcements/pending?platform=web")
+      .expect(200);
+    assert.strictEqual(patientPending.body.data.current?.title, "Patient modal");
   });
 });

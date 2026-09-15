@@ -18,7 +18,14 @@ import {registerAnnouncementHelpRoutes} from "./helpRoutes";
 import {Announcement, toAnnouncementPublic} from "./models/announcement";
 import {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement";
 import {AnnouncementImpression, isValidPlatform} from "./models/announcementImpression";
-import {isAnnouncementVisibleNow, matchesPlatform, selectPendingAnnouncements} from "./pending";
+import {
+  isAnnouncementVisibleNow,
+  matchAudienceByType,
+  matchesPlatform,
+  parseQueryVersion,
+  passesMinBuildNumber,
+  selectPendingAnnouncements,
+} from "./pending";
 import type {
   AcknowledgementPolicy,
   AnnouncementDocument,
@@ -27,6 +34,8 @@ import type {
 } from "./types";
 
 const DEFAULT_BASE_PATH = "/announcements";
+
+const defaultIsStaff = (user: unknown): boolean => (user as {admin?: boolean}).admin === true;
 
 const parsePlatform = (req: Request): AnnouncementPlatform => {
   const queryPlatform = req.query.platform;
@@ -116,6 +125,17 @@ export class AnnouncementsApp implements TerrenoPlugin {
     const defaultAcknowledgementPolicy: AcknowledgementPolicy =
       this.options.defaultAcknowledgementPolicy ?? "dismiss-only";
     const matchAudience = this.options.matchAudience ?? (() => true);
+    const isStaff = this.options.isStaff ?? defaultIsStaff;
+
+    const matchesAnnouncementAudience = async (
+      user: unknown,
+      announcement: AnnouncementDocument
+    ): Promise<boolean> => {
+      if (!matchAudienceByType({announcement, isStaff, user})) {
+        return false;
+      }
+      return matchAudience(user, announcement);
+    };
 
     const routerOptions: ModelRouterOptions<AnnouncementDocument> = {
       ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
@@ -144,12 +164,13 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
         const userId = getUserId(user as {_id?: unknown; id?: string});
         const platform = parsePlatform(req);
+        const queryVersion = parseQueryVersion(req.query.version);
         const published = (await Announcement.find({status: "published"}).lean()) as Array<
           AnnouncementDocument & {requiresAcknowledgement?: boolean}
         >;
         const audienceFiltered: AnnouncementDocument[] = [];
         for (const announcement of published) {
-          const matches = await matchAudience(user, announcement);
+          const matches = await matchesAnnouncementAudience(user, announcement);
           if (matches) {
             audienceFiltered.push(announcement);
           }
@@ -174,6 +195,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
             version: impression.version,
           })),
           platform,
+          queryVersion,
         });
 
         const current = pending[0]
@@ -202,6 +224,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
         }
 
         const platform = parsePlatform(req);
+        const queryVersion = parseQueryVersion(req.query.version);
         const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
         const page = Math.max(Number(req.query.page ?? 1), 1);
         const published = (await Announcement.find({status: "published"}).lean()) as Array<
@@ -210,7 +233,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
         const visible: AnnouncementDocument[] = [];
 
         for (const announcement of published) {
-          const matchesAudience = await matchAudience(user, announcement);
+          const matchesAudience = await matchesAnnouncementAudience(user, announcement);
           if (!matchesAudience) {
             continue;
           }
@@ -218,6 +241,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
             continue;
           }
           if (!matchesPlatform({announcement, platform})) {
+            continue;
+          }
+          if (!passesMinBuildNumber({announcement, queryVersion})) {
             continue;
           }
           visible.push(announcement);
@@ -368,6 +394,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
         app,
         basePath,
         defaultAcknowledgementPolicy,
+        isStaff,
         matchAudience,
       });
     }

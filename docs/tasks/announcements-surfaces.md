@@ -17,7 +17,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: none
   - Acceptance: Unit tests cover required / dismiss-only / omitted-field+default / leftover boolean `true` → required. Plugin option `acknowledgementMode` no longer compiles. `GET /pending` `current.requiresAcknowledgement` matches resolution. `bun test announcements/src/tests`
 
-- [ ] **Task 1.2**: Display mode, audience type, min build filters
+- [x] **Task 1.2**: Display mode, audience type, min build filters
   - Delivers: `displayMode`, `audienceType`, `minBuildNumber` on `Announcement`; pending is interrupt-only; feed/help honor min build + audience callback; exported `matchAudienceByType`
   - Files: `announcements/src/models/announcement.ts`, `announcements/src/types.ts`, `announcements/src/pending.ts`, `announcements/src/help.ts`, `announcements/src/announcementsApp.ts`, `announcements/src/index.ts`, `announcements/src/tests/pending.test.ts`, `announcements/src/tests/announcementsApp.test.ts`, `announcements/src/tests/help.test.ts`
   - Docs: `docs/reference/announcements.md` (fields + query `version`)

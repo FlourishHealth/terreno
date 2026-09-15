@@ -23,7 +23,8 @@ new TerrenoApp({ userModel: User })
 | `basePath` | `string` | `"/announcements"` | Mount path for user and admin routes |
 | `defaultAcknowledgementPolicy` | `"required" \| "dismiss-only"` | `"dismiss-only"` | Fills omitted per-announcement `acknowledgementPolicy` at read time and pre-fills the admin editor |
 | `help.enabled` | `boolean` | `false` | Registers help search/detail routes for MCP and in-app help |
-| `matchAudience` | `(user, announcement) => boolean` | always `true` | Opaque audience JSON filter composed with `audienceType` (see surfaces IP) |
+| `matchAudience` | `(user, announcement) => boolean` | always `true` | Opaque audience JSON filter composed with `audienceType` via `matchAudienceByType` |
+| `isStaff` | `(user) => boolean` | `user.admin === true` | Staff check used by `matchAudienceByType` for `audienceType` |
 | `permissions` | partial CRUD overrides | admin-only | Overrides default `IsAdmin` permissions on announcement CRUD |
 
 ## Acknowledgement policy
@@ -49,20 +50,47 @@ Legacy MongoDB documents that still store `requiresAcknowledgement: true` map to
 
 ## Models
 
-- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `acknowledgementPolicy`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
+- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `displayMode` (`modal` | `banner` | `feed`, default `modal`), `audienceType` (`staff` | `patient` | `all`, default `all`), `acknowledgementPolicy`, optional `minBuildNumber`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
 - **AnnouncementAcknowledgement** — per-user acknowledgement at a specific `version`
 - **AnnouncementImpression** — per-view analytics row
+
+Legacy MongoDB documents without `displayMode` or `audienceType` behave as `modal` and `all` at read time.
+
+### `matchAudienceByType`
+
+Exported helper composed with the plugin `matchAudience` callback (both must pass):
+
+```typescript
+import {matchAudienceByType} from "@terreno/announcements";
+
+matchAudienceByType({
+  user,
+  announcement,
+  isStaff: (candidate) => candidate.admin === true,
+});
+// all → true; staff → isStaff(user); patient → !isStaff(user)
+```
+
+The plugin applies `matchAudienceByType` before `matchAudience`. When `isStaff` is omitted on `AnnouncementsApp`, it defaults to `user.admin === true`.
 
 ## User routes
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/announcements/pending` | Current modal item + `remainingCount` (`platform` query: `ios` \| `android` \| `web`; defaults from `User-Agent`) |
-| GET | `/announcements/feed` | Paginated published changelog (`platform` query as above) |
+| GET | `/announcements/pending` | Current interrupt (`modal` or `banner` only) + `remainingCount` (`platform` query: `ios` \| `android` \| `web`; optional `version` build number) |
+| GET | `/announcements/feed` | Paginated published changelog — all display modes (`platform` and optional `version` as above) |
 | POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version) |
 | POST | `/announcements/:id/impression` | Record a view |
 
-`current` and feed items include resolved `requiresAcknowledgement` (boolean) derived from policy resolution above.
+`current` and feed items include resolved `requiresAcknowledgement` (boolean) and `displayMode` derived from policy resolution and stored fields above.
+
+### Query `version`
+
+Optional integer build number on `GET /pending`, `GET /feed`, and help routes. When an announcement has `minBuildNumber` set:
+
+- `?version=9` hides the item when `minBuildNumber` is `10`
+- `?version=10` (or higher) shows it
+- omitting `version` does **not** hide gated items
 
 ## Admin routes
 
@@ -75,7 +103,7 @@ Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressi
 
 ## Help API (optional)
 
-When `help.enabled` is true, authenticated users can search product update notes for MCP and in-app help. Draft announcements are never exposed. Results respect `matchAudience`, `publishAt` / `expiresAt`, and the same visibility rules as `/pending`.
+When `help.enabled` is true, authenticated users can search product update notes for MCP and in-app help. Draft announcements are never exposed. Results respect `matchAudienceByType`, `matchAudience`, `publishAt` / `expiresAt`, optional `?version=` min-build gating, and the same visibility rules as `/pending`.
 
 | Method | Path | Description |
 |--------|------|-------------|

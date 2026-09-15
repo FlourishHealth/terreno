@@ -7,6 +7,7 @@ import {
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
+import {assert} from "chai";
 import type express from "express";
 import {DateTime} from "luxon";
 import type TestAgent from "supertest/lib/agent";
@@ -114,5 +115,38 @@ describe("announcement help routes", () => {
       .expect(200);
     expect(res.body.data.length).toBeLessThanOrEqual(1);
     expect(res.body.total).toBeGreaterThanOrEqual(1);
+  });
+
+  it("hides help results below minBuildNumber when version is present", async () => {
+    await Announcement.deleteMany({});
+
+    await Announcement.create({
+      body: "Visible billing notes",
+      minBuildNumber: 10,
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Billing v10",
+    });
+    await Announcement.create({
+      body: "Future billing notes",
+      minBuildNumber: 20,
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Billing v20",
+    });
+
+    const hidden = await userAgent
+      .get("/announcements/help/search?q=billing&version=9")
+      .expect(200);
+    assert.lengthOf(hidden.body.data, 0);
+
+    const visible = await userAgent
+      .get("/announcements/help/search?q=billing&version=10")
+      .expect(200);
+    assert.lengthOf(visible.body.data, 1);
+    assert.strictEqual(visible.body.data[0].title, "Billing v10");
+
+    const omitted = await userAgent.get("/announcements/help/search?q=billing").expect(200);
+    assert.lengthOf(omitted.body.data, 2);
   });
 });

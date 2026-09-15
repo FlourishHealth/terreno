@@ -19,7 +19,7 @@ import {TerrenoApp} from "@terreno/api";
 new TerrenoApp({userModel: User})
   .register(
     new AnnouncementsApp({
-      acknowledgementMode: "admin",
+      defaultAcknowledgementPolicy: "dismiss-only",
       help: {enabled: true},
       matchAudience: (user, announcement) => true,
     })

@@ -1,5 +1,11 @@
 import {DateTime} from "luxon";
-import type {AcknowledgementPolicy, AnnouncementDocument, AnnouncementPlatform} from "./types";
+import type {
+  AcknowledgementPolicy,
+  AnnouncementAudienceType,
+  AnnouncementDisplayMode,
+  AnnouncementDocument,
+  AnnouncementPlatform,
+} from "./types";
 
 export interface AnnouncementAckState {
   announcementId: string;
@@ -43,6 +49,83 @@ export const requiresAcknowledgementForAnnouncement = ({
 }): boolean => {
   const policy = resolveAcknowledgementPolicy({announcement, defaultAcknowledgementPolicy});
   return policy === "required";
+};
+
+export const resolveDisplayMode = (announcement: AnnouncementDocument): AnnouncementDisplayMode => {
+  const mode = announcement.displayMode;
+  if (mode === "modal" || mode === "banner" || mode === "feed") {
+    return mode;
+  }
+  return "modal";
+};
+
+export const resolveAudienceType = (
+  announcement: AnnouncementDocument
+): AnnouncementAudienceType => {
+  const audienceType = announcement.audienceType;
+  if (audienceType === "staff" || audienceType === "patient" || audienceType === "all") {
+    return audienceType;
+  }
+  return "all";
+};
+
+export const matchAudienceByType = ({
+  announcement,
+  isStaff,
+  user,
+}: {
+  announcement: AnnouncementDocument;
+  isStaff: (user: unknown) => boolean;
+  user: unknown;
+}): boolean => {
+  const audienceType = resolveAudienceType(announcement);
+  if (audienceType === "all") {
+    return true;
+  }
+
+  const staff = isStaff(user);
+  if (audienceType === "staff") {
+    return staff;
+  }
+
+  return !staff;
+};
+
+export const parseQueryVersion = (raw: unknown): number | undefined => {
+  if (raw === undefined || raw === null || raw === "") {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+};
+
+export const passesMinBuildNumber = ({
+  announcement,
+  queryVersion,
+}: {
+  announcement: AnnouncementDocument;
+  queryVersion?: number;
+}): boolean => {
+  const minBuildNumber = announcement.minBuildNumber;
+  if (minBuildNumber === undefined || minBuildNumber === null || minBuildNumber === 0) {
+    return true;
+  }
+
+  if (queryVersion === undefined) {
+    return true;
+  }
+
+  return queryVersion >= minBuildNumber;
+};
+
+export const isInterruptDisplayMode = (announcement: AnnouncementDocument): boolean => {
+  const displayMode = resolveDisplayMode(announcement);
+  return displayMode === "modal" || displayMode === "banner";
 };
 
 export const isAnnouncementVisibleNow = ({
@@ -136,6 +219,7 @@ export const selectPendingAnnouncements = ({
   impressions,
   now,
   platform,
+  queryVersion,
 }: {
   acknowledgements: AnnouncementAckState[];
   announcements: AnnouncementDocument[];
@@ -143,12 +227,19 @@ export const selectPendingAnnouncements = ({
   impressions: AnnouncementImpressionState[];
   now?: DateTime;
   platform: AnnouncementPlatform;
+  queryVersion?: number;
 }): AnnouncementDocument[] => {
   const visible = announcements.filter((announcement) => {
     if (!isAnnouncementVisibleNow({announcement, now})) {
       return false;
     }
     if (!matchesPlatform({announcement, platform})) {
+      return false;
+    }
+    if (!isInterruptDisplayMode(announcement)) {
+      return false;
+    }
+    if (!passesMinBuildNumber({announcement, queryVersion})) {
       return false;
     }
     return isAnnouncementPendingForUser({

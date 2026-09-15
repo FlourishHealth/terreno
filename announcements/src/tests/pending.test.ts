@@ -1,11 +1,16 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import {
   isAnnouncementPendingForUser,
   isAnnouncementVisibleNow,
+  matchAudienceByType,
+  passesMinBuildNumber,
   requiresAcknowledgementForAnnouncement,
   resolveAcknowledgementPolicy,
+  resolveAudienceType,
+  resolveDisplayMode,
   selectPendingAnnouncements,
 } from "../pending";
 import type {AnnouncementDocument} from "../types";
@@ -149,5 +154,109 @@ describe("pending helpers", () => {
       platform: "web",
     });
     expect(pending[0]?._id.toString()).toBe(high._id.toString());
+  });
+
+  it("defaults missing displayMode to modal and audienceType to all", () => {
+    const legacy = makeAnnouncement({});
+    assert.strictEqual(resolveDisplayMode(legacy), "modal");
+    assert.strictEqual(resolveAudienceType(legacy), "all");
+  });
+
+  it("matchAudienceByType honors staff, patient, and all", () => {
+    const staffUser = {admin: true};
+    const patientUser = {admin: false};
+    const isStaff = (user: {admin?: boolean}) => user.admin === true;
+
+    assert.isTrue(
+      matchAudienceByType({
+        announcement: makeAnnouncement({audienceType: "all"}),
+        isStaff,
+        user: patientUser,
+      })
+    );
+    assert.isTrue(
+      matchAudienceByType({
+        announcement: makeAnnouncement({audienceType: "staff"}),
+        isStaff,
+        user: staffUser,
+      })
+    );
+    assert.isFalse(
+      matchAudienceByType({
+        announcement: makeAnnouncement({audienceType: "staff"}),
+        isStaff,
+        user: patientUser,
+      })
+    );
+    assert.isTrue(
+      matchAudienceByType({
+        announcement: makeAnnouncement({audienceType: "patient"}),
+        isStaff,
+        user: patientUser,
+      })
+    );
+    assert.isFalse(
+      matchAudienceByType({
+        announcement: makeAnnouncement({audienceType: "patient"}),
+        isStaff,
+        user: staffUser,
+      })
+    );
+  });
+
+  it("passesMinBuildNumber hides only when version is present and below min", () => {
+    const gated = makeAnnouncement({minBuildNumber: 10});
+
+    assert.isTrue(passesMinBuildNumber({announcement: gated}));
+    assert.isTrue(passesMinBuildNumber({announcement: gated, queryVersion: 10}));
+    assert.isTrue(passesMinBuildNumber({announcement: gated, queryVersion: 11}));
+    assert.isFalse(passesMinBuildNumber({announcement: gated, queryVersion: 9}));
+  });
+
+  it("selectPendingAnnouncements omits feed displayMode", () => {
+    const modal = makeAnnouncement({
+      acknowledgementPolicy: "required",
+      displayMode: "modal",
+      title: "Modal item",
+    });
+    const feedOnly = makeAnnouncement({
+      acknowledgementPolicy: "required",
+      displayMode: "feed",
+      title: "Feed only",
+    });
+
+    const pending = selectPendingAnnouncements({
+      acknowledgements: [],
+      announcements: [modal, feedOnly],
+      impressions: [],
+      platform: "web",
+    });
+
+    assert.lengthOf(pending, 1);
+    assert.strictEqual(pending[0]?._id.toString(), modal._id.toString());
+  });
+
+  it("selectPendingAnnouncements applies minBuildNumber when version is present", () => {
+    const visible = makeAnnouncement({
+      acknowledgementPolicy: "required",
+      minBuildNumber: 10,
+      title: "Visible",
+    });
+    const hidden = makeAnnouncement({
+      acknowledgementPolicy: "required",
+      minBuildNumber: 20,
+      title: "Hidden",
+    });
+
+    const pending = selectPendingAnnouncements({
+      acknowledgements: [],
+      announcements: [visible, hidden],
+      impressions: [],
+      platform: "web",
+      queryVersion: 15,
+    });
+
+    assert.lengthOf(pending, 1);
+    assert.strictEqual(pending[0]?._id.toString(), visible._id.toString());
   });
 });

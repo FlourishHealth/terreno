@@ -2204,19 +2204,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
-            "name": "requiresAcknowledgement",
+            "name": "acknowledgementPolicy",
             "schema": {
               "oneOf": [
                 {
-                  "default": false,
-                  "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                  "type": "boolean",
+                  "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                  "enum": [
+                    "required",
+                    "dismiss-only",
+                  ],
+                  "type": "string",
                 },
                 {
                   "properties": {
                     "$in": {
                       "items": {
-                        "type": "boolean",
+                        "type": "string",
                       },
                       "type": "array",
                     },
@@ -2260,6 +2263,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "_id": {
                             "type": "string",
                           },
+                          "acknowledgementPolicy": {
+                            "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                            "enum": [
+                              "required",
+                              "dismiss-only",
+                            ],
+                            "type": "string",
+                          },
                           "archivedAt": {
                             "description": "When the announcement was archived",
                             "format": "date-time",
@@ -2267,6 +2278,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "audience": {
                             "description": "Opaque targeting metadata consumed by matchAudience callback",
+                          },
+                          "audienceType": {
+                            "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                            "enum": [
+                              "staff",
+                              "patient",
+                              "all",
+                            ],
+                            "type": "string",
                           },
                           "body": {
                             "description": "Markdown body shown in the announcement modal",
@@ -2281,10 +2301,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                             "type": "boolean",
                           },
+                          "displayMode": {
+                            "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                            "enum": [
+                              "modal",
+                              "banner",
+                              "feed",
+                            ],
+                            "type": "string",
+                          },
                           "expiresAt": {
                             "description": "Optional expiry — hidden from pending/feed after this time",
                             "format": "date-time",
                             "type": "string",
+                          },
+                          "minBuildNumber": {
+                            "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                            "type": "number",
                           },
                           "platforms": {
                             "description": "Platforms that should receive this announcement",
@@ -2324,10 +2357,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "When the announcement was first published",
                             "format": "date-time",
                             "type": "string",
-                          },
-                          "requiresAcknowledgement": {
-                            "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                            "type": "boolean",
                           },
                           "status": {
                             "description": "Lifecycle status: draft, published, or archived",
@@ -2440,6 +2469,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "_id": {
                     "type": "string",
                   },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
                   "archivedAt": {
                     "description": "When the announcement was archived",
                     "format": "date-time",
@@ -2447,6 +2484,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "audience": {
                     "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
                   },
                   "body": {
                     "description": "Markdown body shown in the announcement modal",
@@ -2461,10 +2507,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
                   },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
                   "expiresAt": {
                     "description": "Optional expiry — hidden from pending/feed after this time",
                     "format": "date-time",
                     "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
                   },
                   "platforms": {
                     "description": "Platforms that should receive this announcement",
@@ -2505,10 +2564,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
-                  "requiresAcknowledgement": {
-                    "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                    "type": "boolean",
-                  },
                   "status": {
                     "description": "Lifecycle status: draft, published, or archived",
                     "enum": [
@@ -2547,6 +2602,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -2554,6 +2617,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -2568,10 +2640,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -2611,10 +2696,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",
@@ -2886,6 +2967,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -2893,6 +2982,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -2907,10 +3005,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -2950,10 +3061,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",
@@ -3059,6 +3166,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "_id": {
                     "type": "string",
                   },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
                   "archivedAt": {
                     "description": "When the announcement was archived",
                     "format": "date-time",
@@ -3066,6 +3181,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "audience": {
                     "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
                   },
                   "body": {
                     "description": "Markdown body shown in the announcement modal",
@@ -3080,10 +3204,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
                   },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
                   "expiresAt": {
                     "description": "Optional expiry — hidden from pending/feed after this time",
                     "format": "date-time",
                     "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
                   },
                   "platforms": {
                     "description": "Platforms that should receive this announcement",
@@ -3124,10 +3261,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
-                  "requiresAcknowledgement": {
-                    "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                    "type": "boolean",
-                  },
                   "status": {
                     "description": "Lifecycle status: draft, published, or archived",
                     "enum": [
@@ -3166,6 +3299,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -3173,6 +3314,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -3187,10 +3337,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -3230,10 +3393,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",
@@ -10877,6 +11036,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "_id": {
                             "type": "string",
                           },
+                          "acknowledgementPolicy": {
+                            "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                            "enum": [
+                              "required",
+                              "dismiss-only",
+                            ],
+                            "type": "string",
+                          },
                           "archivedAt": {
                             "description": "When the announcement was archived",
                             "format": "date-time",
@@ -10884,6 +11051,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                           "audience": {
                             "description": "Opaque targeting metadata consumed by matchAudience callback",
+                          },
+                          "audienceType": {
+                            "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                            "enum": [
+                              "staff",
+                              "patient",
+                              "all",
+                            ],
+                            "type": "string",
                           },
                           "body": {
                             "description": "Markdown body shown in the announcement modal",
@@ -10898,10 +11074,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                             "type": "boolean",
                           },
+                          "displayMode": {
+                            "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                            "enum": [
+                              "modal",
+                              "banner",
+                              "feed",
+                            ],
+                            "type": "string",
+                          },
                           "expiresAt": {
                             "description": "Optional expiry — hidden from pending/feed after this time",
                             "format": "date-time",
                             "type": "string",
+                          },
+                          "minBuildNumber": {
+                            "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                            "type": "number",
                           },
                           "platforms": {
                             "description": "Platforms that should receive this announcement",
@@ -10941,10 +11130,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "When the announcement was first published",
                             "format": "date-time",
                             "type": "string",
-                          },
-                          "requiresAcknowledgement": {
-                            "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                            "type": "boolean",
                           },
                           "status": {
                             "description": "Lifecycle status: draft, published, or archived",
@@ -11057,6 +11242,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "_id": {
                     "type": "string",
                   },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
                   "archivedAt": {
                     "description": "When the announcement was archived",
                     "format": "date-time",
@@ -11064,6 +11257,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "audience": {
                     "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
                   },
                   "body": {
                     "description": "Markdown body shown in the announcement modal",
@@ -11078,10 +11280,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
                   },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
                   "expiresAt": {
                     "description": "Optional expiry — hidden from pending/feed after this time",
                     "format": "date-time",
                     "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
                   },
                   "platforms": {
                     "description": "Platforms that should receive this announcement",
@@ -11122,10 +11337,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
-                  "requiresAcknowledgement": {
-                    "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                    "type": "boolean",
-                  },
                   "status": {
                     "description": "Lifecycle status: draft, published, or archived",
                     "enum": [
@@ -11164,6 +11375,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -11171,6 +11390,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -11185,10 +11413,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -11228,10 +11469,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",
@@ -11403,6 +11640,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -11410,6 +11655,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -11424,10 +11678,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -11467,10 +11734,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",
@@ -11576,6 +11839,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   "_id": {
                     "type": "string",
                   },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
                   "archivedAt": {
                     "description": "When the announcement was archived",
                     "format": "date-time",
@@ -11583,6 +11854,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "audience": {
                     "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
                   },
                   "body": {
                     "description": "Markdown body shown in the announcement modal",
@@ -11597,10 +11877,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
                   },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
                   "expiresAt": {
                     "description": "Optional expiry — hidden from pending/feed after this time",
                     "format": "date-time",
                     "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
                   },
                   "platforms": {
                     "description": "Platforms that should receive this announcement",
@@ -11641,10 +11934,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
-                  "requiresAcknowledgement": {
-                    "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                    "type": "boolean",
-                  },
                   "status": {
                     "description": "Lifecycle status: draft, published, or archived",
                     "enum": [
@@ -11683,6 +11972,14 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "_id": {
                       "type": "string",
                     },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
                     "archivedAt": {
                       "description": "When the announcement was archived",
                       "format": "date-time",
@@ -11690,6 +11987,15 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                     "audience": {
                       "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
                     },
                     "body": {
                       "description": "Markdown body shown in the announcement modal",
@@ -11704,10 +12010,23 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
                     },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
                     "expiresAt": {
                       "description": "Optional expiry — hidden from pending/feed after this time",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
                     },
                     "platforms": {
                       "description": "Platforms that should receive this announcement",
@@ -11747,10 +12066,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "When the announcement was first published",
                       "format": "date-time",
                       "type": "string",
-                    },
-                    "requiresAcknowledgement": {
-                      "description": "When acknowledgementMode is admin, users must acknowledge before dismissal",
-                      "type": "boolean",
                     },
                     "status": {
                       "description": "Lifecycle status: draft, published, or archived",

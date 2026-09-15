@@ -13,13 +13,21 @@ export {AnnouncementImpression} from "./models/announcementImpression";
 export {
   isAnnouncementPendingForUser,
   isAnnouncementVisibleNow,
+  isInterruptDisplayMode,
+  matchAudienceByType,
+  parseQueryVersion,
+  passesMinBuildNumber,
   requiresAcknowledgementForAnnouncement,
   resolveAcknowledgementPolicy,
+  resolveAudienceType,
+  resolveDisplayMode,
   selectPendingAnnouncements,
   sortAnnouncementsForQueue,
 } from "./pending";
 export type {
   AcknowledgementPolicy,
+  AnnouncementAudienceType,
+  AnnouncementDisplayMode,
   AnnouncementDocument,
   AnnouncementPlatform,
   AnnouncementPrimaryAction,

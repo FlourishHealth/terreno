@@ -2,8 +2,15 @@ import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import {type Request, type Response, Router} from "express";
 import {buildHelpStatusFilter, matchesHelpQueries, toHelpDetail, toHelpSummary} from "./help";
 import {Announcement} from "./models/announcement";
-import {isAnnouncementVisibleNow} from "./pending";
+import {
+  isAnnouncementVisibleNow,
+  matchAudienceByType,
+  parseQueryVersion,
+  passesMinBuildNumber,
+} from "./pending";
 import type {AcknowledgementPolicy, AnnouncementDocument, MatchAudienceFunction} from "./types";
+
+const defaultIsStaff = (user: unknown): boolean => (user as {admin?: boolean}).admin === true;
 
 const parseHelpQueries = (req: Request): string[] => {
   const raw = req.query.q;
@@ -53,14 +60,26 @@ export const registerAnnouncementHelpRoutes = ({
   app,
   basePath,
   defaultAcknowledgementPolicy = "dismiss-only",
+  isStaff = defaultIsStaff,
   matchAudience,
 }: {
   app: import("express").Application;
   basePath: string;
   defaultAcknowledgementPolicy?: AcknowledgementPolicy;
+  isStaff?: (user: unknown) => boolean;
   matchAudience?: MatchAudienceFunction;
 }): void => {
   const audienceMatcher = matchAudience ?? (() => true);
+
+  const matchesAnnouncementAudience = async (
+    user: unknown,
+    announcement: AnnouncementDocument
+  ): Promise<boolean> => {
+    if (!matchAudienceByType({announcement, isStaff, user})) {
+      return false;
+    }
+    return audienceMatcher(user, announcement);
+  };
   const router = Router();
 
   router.get(
@@ -75,6 +94,7 @@ export const registerAnnouncementHelpRoutes = ({
       const queries = parseHelpQueries(req);
       const includeArchived = parseIncludeArchived(req);
       const limit = parseLimit(req);
+      const queryVersion = parseQueryVersion(req.query.version);
       const statuses = buildHelpStatusFilter(includeArchived);
 
       const candidates = (await Announcement.find({status: {$in: statuses}}).lean()) as Array<
@@ -85,7 +105,10 @@ export const registerAnnouncementHelpRoutes = ({
         if (!isAnnouncementHelpVisible(doc)) {
           continue;
         }
-        const matchesAudience = await audienceMatcher(user, doc);
+        if (!passesMinBuildNumber({announcement: doc, queryVersion})) {
+          continue;
+        }
+        const matchesAudience = await matchesAnnouncementAudience(user, doc);
         if (!matchesAudience) {
           continue;
         }
@@ -111,6 +134,7 @@ export const registerAnnouncementHelpRoutes = ({
       }
 
       const includeArchived = parseIncludeArchived(req);
+      const queryVersion = parseQueryVersion(req.query.version);
       const statuses = buildHelpStatusFilter(includeArchived);
       const announcement = (await Announcement.findById(req.params.id).lean()) as
         | (AnnouncementDocument & {requiresAcknowledgement?: boolean})
@@ -121,7 +145,10 @@ export const registerAnnouncementHelpRoutes = ({
       if (!isAnnouncementHelpVisible(announcement)) {
         throw new APIError({status: 404, title: "Update note not found"});
       }
-      const matchesAudience = await audienceMatcher(user, announcement);
+      if (!passesMinBuildNumber({announcement, queryVersion})) {
+        throw new APIError({status: 404, title: "Update note not found"});
+      }
+      const matchesAudience = await matchesAnnouncementAudience(user, announcement);
       if (!matchesAudience) {
         throw new APIError({status: 404, title: "Update note not found"});
       }

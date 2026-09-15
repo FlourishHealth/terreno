@@ -3,6 +3,8 @@ import type {Model, Types} from "mongoose";
 
 export type AnnouncementStatus = "draft" | "published" | "archived";
 export type AnnouncementPlatform = "ios" | "android" | "web";
+export type AnnouncementDisplayMode = "modal" | "banner" | "feed";
+export type AnnouncementAudienceType = "staff" | "patient" | "all";
 export type AcknowledgementPolicy = "required" | "dismiss-only";
 
 export interface AnnouncementPrimaryAction {
@@ -19,6 +21,9 @@ export interface AnnouncementDocument {
   priority: number;
   acknowledgementPolicy?: AcknowledgementPolicy;
   audience: unknown;
+  audienceType?: AnnouncementAudienceType;
+  displayMode?: AnnouncementDisplayMode;
+  minBuildNumber?: number;
   publishAt?: Date;
   expiresAt?: Date;
   platforms: AnnouncementPlatform[];
@@ -62,6 +67,7 @@ export interface AnnouncementPublic {
   body: string;
   version: number;
   priority: number;
+  displayMode: AnnouncementDisplayMode;
   requiresAcknowledgement: boolean;
   primaryAction?: AnnouncementPrimaryAction;
   publishedAt?: string;
@@ -81,6 +87,8 @@ export interface AnnouncementsOptions {
   basePath?: string;
   defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   help?: AnnouncementsHelpOptions;
+  /** When omitted, staff targeting uses `user.admin === true`. */
+  isStaff?: (user: unknown) => boolean;
   matchAudience?: MatchAudienceFunction;
   permissions?: Partial<{
     create: PermissionMethod<AnnouncementDocument>[];

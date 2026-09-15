@@ -12,10 +12,10 @@ export const seedAnnouncements = async (_context: SeedContext): Promise<void> =>
   }
 
   await Announcement.create({
+    acknowledgementPolicy: "required",
     body: "## What is new\n\nProduct update announcements are now built into Terreno.\n\n[Watch a quick overview](https://www.youtube.com/watch?v=dQw4w9WgXcQ)",
     priority: 10,
     publishedAt: DateTime.utc().toJSDate(),
-    requiresAcknowledgement: true,
     status: "published",
     title: "Welcome to Terreno announcements",
     version: 1,

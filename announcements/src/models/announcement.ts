@@ -6,7 +6,7 @@ import {
   isDeletedPlugin,
 } from "@terreno/api";
 import mongoose from "mongoose";
-import {requiresAcknowledgementForAnnouncement} from "../pending";
+import {requiresAcknowledgementForAnnouncement, resolveDisplayMode} from "../pending";
 import type {
   AcknowledgementPolicy,
   AnnouncementDocument,
@@ -35,15 +35,35 @@ const announcementSchema = new mongoose.Schema<AnnouncementDocument, Announcemen
       description: "Opaque targeting metadata consumed by matchAudience callback",
       type: mongoose.Schema.Types.Mixed,
     },
+    audienceType: {
+      default: "all",
+      description:
+        "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+      enum: ["staff", "patient", "all"],
+      type: String,
+    },
     body: {
       description: "Markdown body shown in the announcement modal",
       required: true,
       trim: true,
       type: String,
     },
+    displayMode: {
+      default: "modal",
+      description:
+        "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+      enum: ["modal", "banner", "feed"],
+      type: String,
+    },
     expiresAt: {
       description: "Optional expiry — hidden from pending/feed after this time",
       type: Date,
+    },
+    minBuildNumber: {
+      description:
+        "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+      min: 1,
+      type: Number,
     },
     platforms: {
       default: ALL_PLATFORMS,
@@ -155,6 +175,7 @@ export const toAnnouncementPublic = (
   defaultAcknowledgementPolicy: AcknowledgementPolicy = "dismiss-only"
 ): AnnouncementPublic => ({
   body: doc.body,
+  displayMode: resolveDisplayMode(doc),
   id: doc._id.toString(),
   primaryAction: doc.primaryAction,
   priority: doc.priority,

@@ -180,6 +180,7 @@
         "@types/bun": "catalog:",
         "@types/express": "catalog:",
         "@types/supertest": "catalog:",
+        "chai": "catalog:",
         "passport-local-mongoose": "catalog:",
         "supertest": "catalog:",
         "typescript": "catalog:",
