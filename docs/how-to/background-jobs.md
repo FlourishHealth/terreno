@@ -212,8 +212,9 @@ and queue rate limits bound concurrency. Keep `JOBS_START_WORKER=false` on the t
 service so it does not double-tick schedules. Do not run `jobs:worker` in this mode —
 that process would also tick schedules.
 
-PR previews use the same queue but different callback URLs and databases. A task created
-by PR 123 targets the `pr-123` tasks-service tag and reads
+PR previews use the same queue but different callback URLs and databases. GitHub Actions
+and CircleCI both deploy the `pr-<number>` tag on the tasks Cloud Run service before the
+API preview starts enqueueing. A task created by PR 123 targets that tag and reads
 `terreno-example-pr-123`; it cannot execute against another PR or production.
 
 ## Vercel Queues runner

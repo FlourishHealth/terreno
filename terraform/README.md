@@ -176,9 +176,10 @@ callbacks and 20 dispatches per second by default. Keep `.github/workflows/cd.ym
 `tasks-deploy-prod` on a 30-minute timeout, concurrency 20, and
 `--no-allow-unauthenticated` so a GitHub Actions roll cannot reopen the worker.
 
-PR previews do not create global infrastructure. The CD script deploys matching
-`pr-<number>` tags for both services and configures the API to target that exact tasks
-tag. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
+PR previews do not create global infrastructure. GitHub Actions (`tasks-deploy-preview`
+before `backend-deploy-preview`) and CircleCI (`backend-preview`) both deploy matching
+`pr-<number>` tags for the tasks service before the API preview, then configure the API
+to target that exact tasks tag. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
 workers nor job rows. CircleCI cleanup and `.github/workflows/preview-cleanup.yml`
 both remove the API and tasks tags.
 

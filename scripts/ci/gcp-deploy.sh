@@ -186,8 +186,8 @@ case "$action" in
     scripts/ci/validate-env.sh PR_NUMBER
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    deploy_backend "pr-${PR_NUMBER}"
     deploy_tasks "pr-${PR_NUMBER}"
+    deploy_backend "pr-${PR_NUMBER}"
     ;;
   tasks-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
