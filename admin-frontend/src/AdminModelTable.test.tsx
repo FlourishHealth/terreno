@@ -222,6 +222,47 @@ describe("AdminModelTable", () => {
     expect(getByTestId("data-table-filter-active.switch")).toBeTruthy();
   });
 
+  it("maps reference filters into DataTable additional filters", () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          fields: {
+            ...fullConfig.models[0].fields,
+            ownerId: {ref: "Group", required: false, type: "objectid"},
+          },
+          filters: [{field: "ownerId", kind: "ref" as const, refModel: "Group"}],
+          listFields: ["email"],
+        },
+        {
+          displayName: "Groups",
+          fields: {},
+          listFields: ["name"],
+          name: "Group",
+          routePath: "/admin/groups",
+        },
+      ],
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const [refFilter] = findDataTable(UNSAFE_root).props.additionalFilters;
+    const onChange = mock(() => {});
+    const rendered = refFilter.renderFilter({
+      field: "ownerId",
+      onChange,
+      value: "group-1",
+    }) as React.ReactElement<{
+      onChange: (next: string) => void;
+      routePath: string;
+    }>;
+
+    assert.equal(rendered.props.routePath, "/admin/groups");
+    rendered.props.onChange("group-2");
+    assert.equal(onChange.mock.calls[0]?.[0], "group-2");
+  });
+
   it("renders loading state when the list query is loading", () => {
     configState.config = fullConfig;
     listState.isLoading = true;
