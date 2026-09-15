@@ -7,6 +7,7 @@ import {
   ORGANIZATION_ID_IMMUTABLE_TITLE,
   Organization,
   registerSync,
+  runWithOrgContext,
   TerrenoApp,
   type User,
 } from "@terreno/api";
@@ -106,23 +107,28 @@ describe("projects organizationId immutability", () => {
 
   it("rejects sync mutation updates that retarget organizationId", async () => {
     const user = await createUser("sync-move@example.com");
-    await Membership.create({organizationId: orgA, userId: user._id});
+    const membershipA = await Membership.create({organizationId: orgA, userId: user._id});
     await Membership.create({organizationId: orgB, userId: user._id});
     const created = await Project.create({organizationId: orgA, title: "sync move"});
     const baseVersion = (created as unknown as {_syncSeq?: number})._syncSeq ?? 0;
+    const organizationA = await Organization.findExactlyOne({_id: orgA});
 
-    const outcome = await applySyncMutation({
-      mutation: {
-        baseVersion,
-        collection: "projects",
-        data: {organizationId: orgB, title: "sync moved"},
-        id: String(created._id),
-        mutationId: `org-move-${DateTime.utc().toMillis()}`,
-        operation: "update",
-      },
-      scopeResolver: getUserScopes,
-      user: {_id: String(user._id), admin: false, id: String(user._id)} as User,
-    });
+    const outcome = await runWithOrgContext(
+      {membership: membershipA, organization: organizationA},
+      () =>
+        applySyncMutation({
+          mutation: {
+            baseVersion,
+            collection: "projects",
+            data: {organizationId: orgB, title: "sync moved"},
+            id: String(created._id),
+            mutationId: `org-move-${DateTime.utc().toMillis()}`,
+            operation: "update",
+          },
+          scopeResolver: getUserScopes,
+          user: {_id: String(user._id), admin: false, id: String(user._id)} as User,
+        })
+    );
 
     assert.equal(outcome.type, "nack");
     if (outcome.type === "nack") {

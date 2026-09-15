@@ -1,5 +1,6 @@
 import type express from "express";
 import {type Application, Router} from "express";
+import type mongoose from "mongoose";
 
 import {asyncHandler, type OpenApiMiddleware} from "../api";
 import {authenticateMiddleware, type User, type UserModel} from "../auth";
@@ -17,6 +18,7 @@ import {
   Organization,
   organizationSlugFromName,
 } from "./organizationModel";
+import {registerOrganizationSettings} from "./organizationSettings";
 import {assertOrganizationEnabled, isPlatformOrgActor, runWithOrgContext} from "./orgContext";
 
 const escapeRegularExpression = (value: string): string => {
@@ -56,6 +58,8 @@ export interface OrgsAppOptions {
   access: AnyTerrenoAccess;
   basePath?: string;
   onOrgAudit?: (event: OrgAuditEvent, req: express.Request) => void | Promise<void>;
+  /** Nested schema for `Organization.settings`. Same as `registerOrganizationSettings`. */
+  settingsSchema?: mongoose.Schema;
   userModel: UserModel;
 }
 
@@ -175,6 +179,9 @@ export class OrgsApp implements TerrenoPlugin {
     this.basePath = options.basePath ?? "/orgs";
     this.onOrgAudit = options.onOrgAudit;
     this.userModel = options.userModel;
+    if (options.settingsSchema) {
+      registerOrganizationSettings(options.settingsSchema);
+    }
   }
 
   register(app: Application, openApi?: unknown): void {

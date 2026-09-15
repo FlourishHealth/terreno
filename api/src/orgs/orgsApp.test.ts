@@ -1,4 +1,4 @@
-import {beforeEach, describe, it} from "bun:test";
+import {afterEach, beforeEach, describe, it} from "bun:test";
 import {authAsUser as loginWithPassword} from "@terreno/test";
 import {assert} from "chai";
 import type {Application} from "express";
@@ -12,6 +12,10 @@ import {terrenoStatements} from "../rbac/statements";
 import {getBaseServer} from "../tests";
 import {type User, UserModel} from "../tests/models";
 import {Membership, Organization} from "./organizationModel";
+import {
+  createOrganizationSettingsSchema,
+  registerOrganizationSettings,
+} from "./organizationSettings";
 import {type OrgAuditEvent, OrgsApp} from "./orgsApp";
 
 const PASSWORD = "testpassword123";
@@ -62,6 +66,10 @@ describe("OrgsApp", () => {
       userModel: UserModel as unknown as AuthUserModel,
     }).register(app);
     app.use(apiErrorMiddleware);
+  });
+
+  afterEach(() => {
+    registerOrganizationSettings();
   });
 
   it("returns 403 on GET /orgs for org-admin and 200 for operator", async () => {
@@ -326,5 +334,34 @@ describe("OrgsApp", () => {
       .post(`/orgs/${org._id}/members`)
       .send({email: "teammate@example.com", roleName: "member"});
     assert.equal(attached.status, 201);
+  });
+
+  it("validates PATCH settings against a registered settings schema", async () => {
+    registerOrganizationSettings(
+      createOrganizationSettingsSchema({
+        timezone: {
+          description: "IANA timezone for the organization",
+          type: String,
+        },
+      })
+    );
+    const operator = await createUser({email: "settings-op@example.com", roles: ["operator"]});
+    const org = await Organization.create({name: "Settings Co", ownerId: operator._id});
+    const operatorAgent = await loginWithPassword(app, {
+      email: "settings-op@example.com",
+      password: PASSWORD,
+    });
+
+    const rejected = await operatorAgent
+      .patch(`/orgs/${org._id}`)
+      .send({settings: {plan: "enterprise"}});
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.body.title, "Organization settings are invalid");
+
+    const patched = await operatorAgent
+      .patch(`/orgs/${org._id}`)
+      .send({settings: {timezone: "America/Chicago"}});
+    assert.equal(patched.status, 200);
+    assert.equal(patched.body.data.settings.timezone, "America/Chicago");
   });
 });

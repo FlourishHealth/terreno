@@ -16,6 +16,7 @@ import {
   type ModelRouterRegistration,
   RealtimeApp,
   rbacRouter,
+  registerOrganizationSettings,
   SyncApp,
   syncConsents,
   TerrenoApp,
@@ -54,8 +55,10 @@ import {consentDefinitions} from "./consentDefinitions";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
+import {organizationSettingsSchema} from "./models/organizationSettings";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
+import "./types/models/organizationSettingsTypes";
 import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
@@ -152,6 +155,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
+    registerOrganizationSettings(organizationSettingsSchema);
+
     const terraApp = new TerrenoApp({
       accessControl: access,
       authOptions: {
@@ -175,7 +180,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         enabled: true,
         publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
-      organizations: true,
+      organizations: {
+        settingsSchema: organizationSettingsSchema,
+      },
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,

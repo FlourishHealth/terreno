@@ -5,6 +5,7 @@ import React, {useCallback, useEffect, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
+import {type OrganizationSettings, organizationSettingsOf} from "./organizationSettings";
 import {useOrganizationsApi} from "./useOrganizationsApi";
 import {useOptionalOrgContext} from "./useOrgContext";
 
@@ -16,7 +17,7 @@ export interface OrgSettingsScreenProps {
 }
 
 interface OrganizationDetail extends OrganizationSummary {
-  settings?: Record<string, unknown>;
+  settings?: OrganizationSettings;
 }
 
 const errorTitle = (error: unknown, fallback: string): string => {
@@ -52,21 +53,21 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
       return;
     }
     setName(organization.name);
-    setSettingsText(JSON.stringify(organization.settings ?? {}, null, 2));
+    setSettingsText(JSON.stringify(organizationSettingsOf(organization), null, 2));
     if (orgContext && orgContext.organizationId !== organization._id) {
       orgContext.selectOrganization(organization);
     }
   }, [orgContext, organization]);
 
   const handleSave = useCallback(async (): Promise<void> => {
-    let settings: Record<string, unknown>;
+    let settings: OrganizationSettings;
     try {
       const parsed = JSON.parse(settingsText) as unknown;
       if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
         setSaveError("Settings must be a JSON object.");
         return;
       }
-      settings = parsed as Record<string, unknown>;
+      settings = parsed as OrganizationSettings;
     } catch {
       setSaveError("Settings must be valid JSON.");
       return;

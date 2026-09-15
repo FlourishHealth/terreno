@@ -650,13 +650,26 @@ Native `Organization` and `Membership` models live in `@terreno/api`.
 
 | Model | Fields |
 | --- | --- |
-| `Organization` | `name` (required), `slug` (unique, generated from name), `ownerId`, `settings` (Mixed), `disabled` |
+| `Organization` | `name` (required), `slug` (unique, generated from name), `ownerId`, `settings` (app-defined; Mixed until you register a nested schema), `disabled` |
 | `Membership` | `organizationId`, `userId`, `roleName` (`org-admin` \| `member`, default `member`), `status` (`active` \| `suspended`) |
 
 Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a Mongo duplicate-key error.
 
 `Membership` statics: `findActiveForUser`, `isOrgAdmin`, `isMember` (active rows only). Per-org
 `org-admin` is stored on Membership, not on `user.roles`.
+
+### Organization.settings
+
+Do not add top-level fields to the native `Organization` model. Extend `settings`:
+
+| Helper | Role |
+| --- | --- |
+| `createOrganizationSettingsSchema(definition)` | Nested schema with `_id: false` and `strict: "throw"` |
+| `registerOrganizationSettings(schema)` | Validate settings on create/save/PATCH. Call with no argument to clear |
+| `organizationSettingsOf(organization)` | Type-safe read; defaults to `{}` |
+| `OrganizationSettings` | Empty interface for `declare module "@terreno/api"` merging |
+
+Pass `settingsSchema` on `TerrenoApp({ organizations: { settingsSchema } })` or `new OrgsApp({ settingsSchema })`. Keep settings fields optional or defaulted so existing documents still save. See [Add organizations](../how-to/add-organizations.md#3-type-organization-settings).
 
 ### OrgsApp routes
 

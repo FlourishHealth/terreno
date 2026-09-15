@@ -38,10 +38,72 @@ path, pass an options object:
 organizations: {
   basePath: "/organizations",
   onOrgAudit: recordOrganizationAudit,
+  settingsSchema: organizationSettingsSchema,
 }
 ``````
 
-## 3. Scope tenant models
+## 3. Type organization settings
+
+Keep native `Organization` fields unchanged. Put app fields on
+`Organization.settings` with a nested Mongoose schema and a TypeScript
+interface.
+
+1. Declare the settings shape (optional module augmentation):
+
+``````typescript
+// src/types/models/organizationSettingsTypes.ts
+export interface ExampleOrganizationSettings {
+  timezone?: string;
+}
+
+declare module "@terreno/api" {
+  interface OrganizationSettings extends ExampleOrganizationSettings {}
+}
+``````
+
+2. Build the nested schema. Use optional fields or defaults so existing
+organizations still validate:
+
+``````typescript
+// src/models/organizationSettings.ts
+import {createOrganizationSettingsSchema} from "@terreno/api";
+import type {ExampleOrganizationSettings} from "../types/models/organizationSettingsTypes";
+
+export const organizationSettingsSchema = createOrganizationSettingsSchema<ExampleOrganizationSettings>({
+  timezone: {
+    description: "IANA timezone used for organization-local dates",
+    type: String,
+  },
+});
+``````
+
+3. Register before you create or patch organizations (startup and seeds):
+
+``````typescript
+import {registerOrganizationSettings} from "@terreno/api";
+import {organizationSettingsSchema} from "./models/organizationSettings";
+
+registerOrganizationSettings(organizationSettingsSchema);
+``````
+
+Or pass the same schema on `TerrenoApp` / `OrgsApp`:
+
+``````typescript
+new TerrenoApp({
+  accessControl: access,
+  organizations: {settingsSchema: organizationSettingsSchema},
+  userModel: User,
+});
+``````
+
+Read typed settings with `organizationSettingsOf(organization)` or
+`organizationSettingsOf<ExampleOrganizationSettings>(organization)`.
+
+Without a registered schema, `settings` stays Mixed and accepts any object.
+Unknown keys and wrong types fail with **400** `Organization settings are invalid`
+once a schema is registered.
+
+## 4. Scope tenant models
 
 Add `orgScopedPlugin` to models that use ObjectId organization keys. Put
 `orgContextMiddleware({required: true})` before their routes, use
@@ -99,7 +161,7 @@ created. Client PATCH bodies, admin writes, sync updates, and direct Mongoose
 saves that change `organizationId` return HTTP 400 with
 `organizationId cannot be changed`.
 
-## 4. Send organization context
+## 5. Send organization context
 
 Send `X-Organization-Id` on tenant-scoped requests. `org-admin` callers with
 exactly one administered organization may omit it; Terreno infers that org.

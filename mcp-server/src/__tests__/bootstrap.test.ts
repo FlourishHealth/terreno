@@ -113,11 +113,13 @@ describe("bootstrap", () => {
       expect(text).toContain("backend/.env");
       expect(text).toContain("backend/src/models/modelPlugins.ts");
       expect(text).toContain("backend/src/models/user.ts");
+      expect(text).toContain("backend/src/models/organizationSettings.ts");
       expect(text).toContain("backend/src/models/appConfiguration.ts");
       expect(text).toContain("backend/src/models/index.ts");
       expect(text).toContain("backend/src/api/users.ts");
       expect(text).toContain("backend/src/types/index.ts");
       expect(text).toContain("backend/src/types/models/userTypes.ts");
+      expect(text).toContain("backend/src/types/models/organizationSettingsTypes.ts");
 
       // Frontend files
       expect(text).toContain("frontend/package.json");
@@ -211,7 +213,7 @@ describe("bootstrap", () => {
 
       expect(access).toContain("organizations: true");
       expect(access).toContain("createAccess");
-      expect(server).toContain("organizations: true");
+      expect(server).toContain("settingsSchema: organizationSettingsSchema");
       expect(server).toContain("accessControl: access");
       expect(userModel).toContain("rbacUserPlugin");
       expect(seed).toContain("Organization.create");
