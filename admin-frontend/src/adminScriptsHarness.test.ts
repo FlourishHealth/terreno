@@ -7,8 +7,10 @@ import type {BackgroundTask} from "./types";
  * state instead of installing competing module mocks.
  */
 export const adminScriptsHarness: {
+  omitGetScriptTaskQuery: boolean;
   taskQuery: {data: {task?: BackgroundTask} | undefined; error: unknown};
 } = {
+  omitGetScriptTaskQuery: false,
   taskQuery: {data: undefined, error: null},
 };
 

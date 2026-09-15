@@ -11,15 +11,20 @@ mock.module("expo-router", () => ({
   useNavigation: () => ({setOptions: mock(() => {})}),
 }));
 
-const configState: {config: AdminConfigResponse | null; isLoading: boolean} = {
+const configState: {
+  config: AdminConfigResponse | null;
+  error: unknown;
+  isLoading: boolean;
+} = {
   config: null,
+  error: null,
   isLoading: false,
 };
 
 mock.module("./useAdminConfig", () => ({
   useAdminConfig: () => ({
     config: configState.config,
-    error: null,
+    error: configState.error,
     isLoading: configState.isLoading,
   }),
 }));
@@ -46,24 +51,30 @@ mock.module("./useAdminBackgroundTask", () => ({
 }));
 
 mock.module("./useAdminScripts", () => ({
-  useAdminScripts: () => ({
-    useCancelScriptTaskMutation: () => [
-      mock(() => ({unwrap: async () => ({})})),
-      {isLoading: false},
-    ],
-    useGetScriptTaskQuery: () => adminScriptsHarness.taskQuery,
-    useListScriptRunsQuery: () => ({
-      data: undefined,
-      error: null,
-      isLoading: false,
-    }),
-    useRunScriptMutation: () => [
-      mock(() => ({unwrap: async () => ({taskId: ""})})),
-      {isLoading: false},
-    ],
-  }),
+  useAdminScripts: () => {
+    const hooks: Record<string, unknown> = {
+      useCancelScriptTaskMutation: () => [
+        mock(() => ({unwrap: async () => ({})})),
+        {isLoading: false},
+      ],
+      useListScriptRunsQuery: () => ({
+        data: undefined,
+        error: null,
+        isLoading: false,
+      }),
+      useRunScriptMutation: () => [
+        mock(() => ({unwrap: async () => ({taskId: ""})})),
+        {isLoading: false},
+      ],
+    };
+    if (!adminScriptsHarness.omitGetScriptTaskQuery) {
+      hooks.useGetScriptTaskQuery = () => adminScriptsHarness.taskQuery;
+    }
+    return hooks;
+  },
 }));
 
+import {AdminMigrations} from "./AdminMigrations";
 import {AdminMigrationsView} from "./AdminMigrationsView";
 import {AdminScreenRouter} from "./AdminScreenRouter";
 import {adminScriptsHarness} from "./adminScriptsHarness.test";
@@ -106,6 +117,7 @@ const baseConfig: AdminConfigResponse = {
 describe("AdminScreenRouter", () => {
   beforeEach(() => {
     configState.config = baseConfig;
+    configState.error = null;
     configState.isLoading = false;
   });
 
@@ -113,6 +125,25 @@ describe("AdminScreenRouter", () => {
     const {getByTestId} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="__migrations" />
     );
+    expect(getByTestId("admin-migrations")).toBeTruthy();
+  });
+
+  it("skips page chrome while AdminMigrations config is loading", () => {
+    configState.config = null;
+    configState.isLoading = true;
+    const {getByTestId, queryByText} = renderWithTheme(
+      <AdminMigrations api={adminApi} apiBase="/admin" />
+    );
+    expect(getByTestId("admin-migrations-loading")).toBeTruthy();
+    expect(queryByText("Migrations")).toBeNull();
+  });
+
+  it("wraps loaded AdminMigrations in a page", () => {
+    configState.config = {migrations: {enabled: true}, models: [], scripts: []};
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminMigrations api={adminApi} apiBase="/admin" />
+    );
+    expect(getByText("Migrations")).toBeTruthy();
     expect(getByTestId("admin-migrations")).toBeTruthy();
   });
 
@@ -233,6 +264,7 @@ describe("AdminMigrationsView", () => {
     mockRefetch.mockClear();
     mockTask.data = undefined;
     mockTask.error = null;
+    adminScriptsHarness.omitGetScriptTaskQuery = false;
     adminScriptsHarness.taskQuery = mockTask;
     resetQueryState();
   });
@@ -409,6 +441,15 @@ describe("AdminMigrationsView", () => {
     });
     expect(getByTestId("admin-migrations-task-error")).toBeTruthy();
     expect(getByTestId("admin-migrations-dry-run").props.accessibilityState.disabled).toBe(false);
+  });
+
+  it("still starts a dry-run when script task polling is unavailable", async () => {
+    adminScriptsHarness.omitGetScriptTaskQuery = true;
+    const {getByText} = renderView();
+    await act(async () => {
+      fireEvent.press(getByText("Dry run"));
+    });
+    expect(mockRun).toHaveBeenCalledWith({wetRun: false});
   });
 
   it("surfaces unwrap errors from run", async () => {

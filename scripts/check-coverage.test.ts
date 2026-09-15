@@ -3,6 +3,7 @@ import {describe, expect, it} from "bun:test";
 import {
   evaluateCoverage,
   formatLcov,
+  isBunCoverageThresholdExit,
   mergeIsolatedLcov,
   mergeLcov,
   normalizeLcovPath,
@@ -85,6 +86,34 @@ describe("parseAllFilesRow", () => {
 
   it("returns null when the All files row is malformed", () => {
     expect(parseAllFilesRow("All files | not-a-number | not-a-number |")).toBeNull();
+  });
+});
+
+describe("isBunCoverageThresholdExit", () => {
+  it("ignores bun 1.4+ coverage-threshold exits when every test passed", () => {
+    expect(
+      isBunCoverageThresholdExit(
+        1,
+        [
+          " 466 pass",
+          " 0 fail",
+          " 1 error",
+          "All files                                    |   80.33 |   82.51 |",
+        ].join("\n")
+      )
+    ).toBe(true);
+  });
+
+  it("does not ignore a real test failure", () => {
+    expect(isBunCoverageThresholdExit(1, " 1 fail\nAll files | 100.00 | 100.00 |")).toBe(false);
+  });
+
+  it("does not ignore a crash with no coverage table", () => {
+    expect(isBunCoverageThresholdExit(1, " 0 fail\nerror: script exploded")).toBe(false);
+  });
+
+  it("returns false when bun already exited 0", () => {
+    expect(isBunCoverageThresholdExit(0, " 0 fail\nAll files | 100.00 | 100.00 |")).toBe(false);
   });
 });
 
