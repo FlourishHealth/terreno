@@ -31,7 +31,7 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Blocked by: 1.2
   - Acceptance: Authenticated POST `{action:"primaryAction"}` inserts a row with version + optional platform. Repeat clicks insert another row. 400 on missing primaryAction or unknown action. 404 when announcement not visible. Admin GET lists events. Unique index not required.
 
-- [ ] **Task 1.4**: Admin config endpoint
+- [x] **Task 1.4**: Admin config endpoint
   - Delivers: `GET /announcements/config` returns the plugin `defaultAcknowledgementPolicy`
   - Files: `announcements/src/announcementsApp.ts`, `announcements/src/tests/announcementsApp.test.ts`
   - Docs: `docs/reference/announcements.md`

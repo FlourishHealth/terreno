@@ -100,6 +100,7 @@ Optional integer build number on `GET /pending`, `GET /feed`, and help routes. W
 
 Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
 
+- `GET /announcements/config` — returns `{ data: { defaultAcknowledgementPolicy } }` from the plugin constructor (admin only; defaults to `"dismiss-only"` when omitted). Used to pre-fill the admin editor acknowledgement policy field.
 - `POST /announcements/:id/publish` — draft → published
 - `POST /announcements/:id/archive` — published → archived
 

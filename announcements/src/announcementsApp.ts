@@ -3,6 +3,7 @@ import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
+  createOpenApiBuilder,
   findOneOrNoneFor,
   logger,
   type ModelRouterOptions,
@@ -415,6 +416,37 @@ export class AnnouncementsApp implements TerrenoPlugin {
     );
 
     const adminRouter = Router();
+    const routeOpenApi = openApi ? {openApi: openApi as OpenApiMiddleware} : undefined;
+
+    adminRouter.get(
+      "/config",
+      [
+        authenticateMiddleware(),
+        ...(routeOpenApi
+          ? [
+              createOpenApiBuilder(routeOpenApi)
+                .withTags(["announcements"])
+                .withSummary("Get announcement plugin configuration")
+                .withResponse(200, {
+                  data: {
+                    properties: {
+                      defaultAcknowledgementPolicy: {
+                        description: '"required" or "dismiss-only"',
+                        type: "string",
+                      },
+                    },
+                    type: "object",
+                  },
+                })
+                .build(),
+            ]
+          : []),
+      ],
+      asyncHandler(async (req: Request, res: Response) => {
+        requireAdmin(req.user as {_id?: unknown; admin?: boolean} | undefined);
+        return res.json({data: {defaultAcknowledgementPolicy}});
+      })
+    );
 
     adminRouter.post(
       "/:id/publish",

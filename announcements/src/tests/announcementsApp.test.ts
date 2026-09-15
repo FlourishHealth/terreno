@@ -688,6 +688,32 @@ describe("AnnouncementsApp", () => {
       .expect(404);
   });
 
+  it("GET /config returns defaultAcknowledgementPolicy for admins", async () => {
+    const defaultApp = buildApp();
+    const defaultAdmin = await authAsUser(defaultApp, "admin");
+    const defaultRes = await defaultAdmin.get("/announcements/config").expect(200);
+    assert.strictEqual(defaultRes.body.data.defaultAcknowledgementPolicy, "dismiss-only");
+
+    const requiredApp = buildApp({defaultAcknowledgementPolicy: "required"});
+    const requiredAdmin = await authAsUser(requiredApp, "admin");
+    const requiredRes = await requiredAdmin.get("/announcements/config").expect(200);
+    assert.strictEqual(requiredRes.body.data.defaultAcknowledgementPolicy, "required");
+
+    const dismissApp = buildApp({defaultAcknowledgementPolicy: "dismiss-only"});
+    const dismissAdmin = await authAsUser(dismissApp, "admin");
+    const dismissRes = await dismissAdmin.get("/announcements/config").expect(200);
+    assert.strictEqual(dismissRes.body.data.defaultAcknowledgementPolicy, "dismiss-only");
+  });
+
+  it("GET /config returns 403 for non-admins", async () => {
+    const res = await userAgent.get("/announcements/config").expect(403);
+    assert.strictEqual(res.body.title, "Admin access required");
+  });
+
+  it("GET /config requires authentication", async () => {
+    await supertest(app).get("/announcements/config").expect(401);
+  });
+
   it("admin can list announcement click events and non-admins cannot", async () => {
     await Announcement.deleteMany({});
     await AnnouncementClickEvent.deleteMany({});
