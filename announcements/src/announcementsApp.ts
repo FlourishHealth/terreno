@@ -20,6 +20,7 @@ import {Announcement, toAnnouncementPublic} from "./models/announcement";
 import {AnnouncementAcknowledgement} from "./models/announcementAcknowledgement";
 import {AnnouncementClickEvent, isValidClickAction} from "./models/announcementClickEvent";
 import {AnnouncementImpression, isValidPlatform} from "./models/announcementImpression";
+import {fetchAnnouncementOverview, parseOverviewPagination} from "./overview";
 import {
   isAnnouncementVisibleNow,
   isAnnouncementVisibleToUser,
@@ -445,6 +446,77 @@ export class AnnouncementsApp implements TerrenoPlugin {
       asyncHandler(async (req: Request, res: Response) => {
         requireAdmin(req.user as {_id?: unknown; admin?: boolean} | undefined);
         return res.json({data: {defaultAcknowledgementPolicy}});
+      })
+    );
+
+    adminRouter.get(
+      "/overview",
+      [
+        authenticateMiddleware(),
+        ...(routeOpenApi
+          ? [
+              createOpenApiBuilder(routeOpenApi)
+                .withTags(["announcements"])
+                .withSummary("Admin overview of announcements with aggregate metrics")
+                .withQueryParameter("page", {type: "number"}, {required: false})
+                .withQueryParameter("limit", {type: "number"}, {required: false})
+                .withResponse(200, {
+                  data: {
+                    items: {
+                      properties: {
+                        _id: {type: "string"},
+                        acknowledgementPolicy: {type: "string"},
+                        audienceType: {type: "string"},
+                        displayMode: {type: "string"},
+                        expiresAt: {type: "string"},
+                        metrics: {
+                          properties: {
+                            acknowledgements: {type: "number"},
+                            clicks: {type: "number"},
+                            impressions: {type: "number"},
+                          },
+                          type: "object",
+                        },
+                        priority: {type: "number"},
+                        publishedAt: {type: "string"},
+                        status: {type: "string"},
+                        title: {type: "string"},
+                        version: {type: "number"},
+                      },
+                      type: "object",
+                    },
+                    type: "array",
+                  },
+                  limit: {type: "number"},
+                  more: {type: "boolean"},
+                  page: {type: "number"},
+                  total: {type: "number"},
+                  totals: {
+                    properties: {
+                      acknowledgements: {type: "number"},
+                      announcements: {type: "number"},
+                      archived: {type: "number"},
+                      clicks: {type: "number"},
+                      draft: {type: "number"},
+                      impressions: {type: "number"},
+                      published: {type: "number"},
+                    },
+                    type: "object",
+                  },
+                })
+                .build(),
+            ]
+          : []),
+      ],
+      asyncHandler(async (req: Request, res: Response) => {
+        requireAdmin(req.user as {_id?: unknown; admin?: boolean} | undefined);
+        const {limit, page} = parseOverviewPagination(req.query);
+        const overview = await fetchAnnouncementOverview({
+          defaultAcknowledgementPolicy,
+          limit,
+          page,
+        });
+        return res.json(overview);
       })
     );
 

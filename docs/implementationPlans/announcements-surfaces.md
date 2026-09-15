@@ -1,6 +1,6 @@
 # Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** Implementation complete — Roast passed; pending Brew
+**Status:** In progress — Phase 4 admin launch overview API shipped; UI/nav pending
 **Parent IP:** [announcements](announcements.md)  
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
@@ -169,6 +169,19 @@ Example app: leave `skipFirstLaunch: false` so the seeded modal still appears on
 | **1 — Backend contracts** | Schema, pending/feed/help filters, config route, click model + POST, tests |
 | **2 — Consumer UI** | Banner navigator, version query, frequency, click mutation |
 | **3 — Admin + example + docs** | Editor fields, example `matchAudienceByType` + seeds, how-to/reference |
+| **4 — Admin launch overview** | Overview API + admin dashboard UI + nav/media wiring |
+
+## Phase 4 — Admin launch overview
+
+Launch-quality admin landing for announcements: one overview screen backed by aggregate metrics instead of scanning raw event collections.
+
+| Deliverable | Scope |
+|-------------|--------|
+| **4.1 API** | `GET /announcements/overview?page=&limit=` — admin-only; rows with resolved list fields + per-announcement metrics across all event versions; global totals and status counts via aggregation; deterministic sort (`priority` desc, `publishedAt` desc); pagination `{ data, totals, page, limit, total, more }`; OpenAPI for SDK |
+| **4.2 UI** | `@terreno/admin-frontend` overview screen consuming overview hook; summary cards from `totals`; table from `data` with metrics columns |
+| **4.3 Nav/media** | Admin nav entry + example-frontend route; optional inline media thumbnails in overview rows |
+
+Task checklist: **`docs/tasks/announcements-surfaces.md`** (Phase 4).
 
 ## Feature Flags & Migrations
 

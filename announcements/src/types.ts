@@ -114,3 +114,42 @@ export interface AnnouncementsOptions {
     update: PermissionMethod<AnnouncementDocument>[];
   }>;
 }
+
+export interface AnnouncementOverviewMetrics {
+  impressions: number;
+  acknowledgements: number;
+  clicks: number;
+}
+
+export interface AnnouncementOverviewRow {
+  _id: string;
+  title: string;
+  status: AnnouncementStatus;
+  displayMode: AnnouncementDisplayMode;
+  audienceType: AnnouncementAudienceType;
+  acknowledgementPolicy: AcknowledgementPolicy;
+  priority: number;
+  version: number;
+  publishedAt?: string;
+  expiresAt?: string;
+  metrics: AnnouncementOverviewMetrics;
+}
+
+export interface AnnouncementOverviewTotals {
+  announcements: number;
+  published: number;
+  draft: number;
+  archived: number;
+  impressions: number;
+  acknowledgements: number;
+  clicks: number;
+}
+
+export interface AnnouncementOverviewResponse {
+  data: AnnouncementOverviewRow[];
+  totals: AnnouncementOverviewTotals;
+  page: number;
+  limit: number;
+  total: number;
+  more: boolean;
+}

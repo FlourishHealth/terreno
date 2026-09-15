@@ -1,6 +1,6 @@
 # Task List: Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** Complete — Roast passed; pending Brew
+**Status:** In progress — Phase 4 admin launch (overview API done; UI/nav pending)
 **IP:** `docs/implementationPlans/announcements-surfaces.md`  
 **Parent IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-15  
@@ -76,3 +76,26 @@ Supporting skills for every task: `mongoose-schema-safety` (schema/model work), 
   - Docs: listed files — Diátaxis in place, one minimal wiring example
   - Blocked by: 2.2, 2.3, 3.1
   - Acceptance: Seed idempotent. Docs tables match shipped options (no `acknowledgementMode`). How-to shows Flourish-style staff vs patient. `bun run website:build` if docs pages changed. Frontend verification: log in to example app, confirm modal vs banner per seed, capture artifacts under `/opt/cursor/artifacts/`.
+
+## Phase 4: Admin launch overview
+
+- [x] **Task 4.1**: Overview API
+  - Delivers: Admin-only `GET /announcements/overview?page=&limit=` with aggregate per-row metrics (impressions, acknowledgements, clicks across all event versions), status/total summaries, deterministic pagination, OpenAPI response schema, integration tests (metrics, totals, pagination, empty state, 401/403)
+  - Files: `announcements/src/overview.ts`, `announcements/src/types.ts`, `announcements/src/announcementsApp.ts`, `announcements/src/index.ts`, `announcements/src/tests/overview.test.ts`
+  - Docs: `docs/reference/announcements.md` (overview route + response shape)
+  - Blocked by: Phase 3
+  - Acceptance: Admin 200 with exact row metrics and totals; non-admin 403; unauth 401; deleted docs excluded; default limit 20 cap 100; `bun test announcements/src/tests/overview.test.ts`
+
+- [ ] **Task 4.2**: Admin overview UI
+  - Delivers: `@terreno/admin-frontend` overview screen with summary cards and metrics table backed by generated SDK hook for `/announcements/overview`
+  - Files: `admin-frontend/src/AnnouncementOverview.tsx`, tests, `admin-frontend/src/index.tsx`
+  - Docs: `docs/how-to/product-announcements.md` (admin overview)
+  - Blocked by: 4.1
+  - Acceptance: Admin can open overview, see totals cards and paginated rows with metrics; frontend verification artifacts captured
+
+- [ ] **Task 4.3**: Nav and media wiring
+  - Delivers: Admin nav link to overview; example-frontend admin route; optional media/thumbnail column when announcements store media refs
+  - Files: `announcements/src/announcementsApp.ts` (`adminContribution`), `example-frontend/app/admin/announcements/`, admin shell nav config
+  - Docs: `docs/how-to/product-announcements.md`
+  - Blocked by: 4.2
+  - Acceptance: Overview reachable from admin home/nav in example app; list row media renders when present
