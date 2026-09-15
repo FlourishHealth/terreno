@@ -38,7 +38,7 @@ Reference: [admin-config](../../../docs/reference/admin-config.md).
 | Roles | `platformTools.roles` | `rolesPath` (embedded `/roles` or `/admin/roles`) |
 | Version | `platformTools.version` | `versionConfigPath` |
 | Configuration | `platformTools.configuration` | `configurationPath` |
-| Audit Log / Feature Flags / Jobs | model `read` / custom screen `jobs` | `/{model.name}` or `/jobs` via Platform section |
+| Audit Log / Feature Flags | model `read` | `/{model.name}` via Platform section |
 
 ## Data and MCP
 
