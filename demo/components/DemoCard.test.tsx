@@ -3,7 +3,7 @@ import type {ReactTestRendererJSON} from "react-test-renderer";
 
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {DemoConfig} from "../demoConfig";
-import {DemoCard} from "./DemoHomePage";
+import {DemoCard} from "./DemoCard";
 
 const noop = (): void => {};
 
