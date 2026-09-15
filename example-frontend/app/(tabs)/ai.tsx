@@ -4,10 +4,12 @@ import {
   GPTChat,
   type GPTChatHistory,
   type GPTChatMessage,
+  Heading,
   type MCPToolDetail,
   type MessageContentPart,
   type SelectedFile,
   Spinner,
+  Text,
   useStoredState,
 } from "@terreno/ui";
 import {DateTime} from "luxon";
@@ -85,6 +87,16 @@ const DEFAULT_MODEL_VALUE = "gemini-2.5-flash";
 
 /** RTK Query cache key for the default gpt histories list (must match useGetGptHistoriesQuery). */
 const gptHistoriesListQueryArgs = {};
+
+/** Consumer-owned empty-state character. GPTChat does not ship a default mascot. */
+const EXAMPLE_GPT_MASCOT: React.ReactElement = (
+  <Box alignItems="center" gap={2} testID="example-gpt-mascot">
+    <Heading size="lg">🦊</Heading>
+    <Text color="secondaryDark" size="sm">
+      Ask anything about Terreno.
+    </Text>
+  </Box>
+);
 
 const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
@@ -442,6 +454,7 @@ const AiScreen: React.FC = () => {
       geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
+      mascot={EXAMPLE_GPT_MASCOT}
       mcpTools={mcpTools}
       onAttachFiles={handleAttachFiles}
       onCreateHistory={handleCreateHistory}

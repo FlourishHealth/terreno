@@ -7,6 +7,7 @@ import {Platform, Pressable, ScrollView} from "react-native";
 import type {SelectedFile} from "./FilePickerButton";
 import type {GPTChatHistory, GPTChatMessage, GPTChatProps, MessageContentPart} from "./GPTChat";
 import {GPTChat} from "./GPTChat";
+import {Text} from "./Text";
 import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 
@@ -234,6 +235,40 @@ describe("GPTChat", () => {
     const {queryByTestId} = renderChat({mcpTools: []});
 
     assert.isNull(queryByTestId("gpt-tools-button"));
+  });
+
+  it("omits the mascot when the consumer does not pass one", () => {
+    const {queryByTestId} = renderChat({suggestedPrompts: ["Summarize this"]});
+
+    assert.isNull(queryByTestId("gpt-mascot"));
+  });
+
+  it("renders the consumer mascot on an empty chat", () => {
+    const {getByTestId, getByText} = renderChat({
+      mascot: <Text testID="consumer-mascot">App fox</Text>,
+    });
+
+    assert.isOk(getByTestId("gpt-mascot"));
+    assert.isOk(getByText("App fox"));
+  });
+
+  it("keeps the mascot above suggested prompts on an empty chat", () => {
+    const {getByTestId, getByText} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isOk(getByTestId("gpt-mascot"));
+    assert.isOk(getByText("Try asking..."));
+  });
+
+  it("hides the mascot after messages exist", () => {
+    const {queryByTestId} = renderChat({
+      currentMessages: [{content: "Hi there", role: "user"}],
+      mascot: <Text>App fox</Text>,
+    });
+
+    assert.isNull(queryByTestId("gpt-mascot"));
   });
 
   it("renders suggested prompts and submits the tapped prompt", async () => {

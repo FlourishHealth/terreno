@@ -50,6 +50,7 @@ test.describe("AI Chat", () => {
 
     // The response text from the previous conversation should be gone
     await expect(page.getByText("First response")).not.toBeVisible();
+    await expect(page.getByTestId("gpt-mascot")).toBeVisible();
   });
 
   test("conversation appears in sidebar after sending", async ({page}) => {

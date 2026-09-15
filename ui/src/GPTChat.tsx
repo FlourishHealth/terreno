@@ -115,6 +115,12 @@ export interface GPTChatProps {
   onSubmit: (prompt: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
   selectedModel?: string;
+  /**
+   * Optional consumer-owned character for an empty chat. Terreno does not ship a
+   * default mascot — pass an image, icon, Lottie view, or any React node. Hidden
+   * once `currentMessages` is non-empty.
+   */
+  mascot?: React.ReactNode;
   suggestedPrompts?: string[];
   systemMemory?: string;
   testID?: string;
@@ -584,6 +590,52 @@ const AssistantActions = ({
   );
 };
 
+const EmptyChatHero = ({
+  handleSuggestedPrompt,
+  mascot,
+  suggestedPrompts,
+}: {
+  handleSuggestedPrompt: (prompt: string) => void;
+  mascot?: React.ReactNode;
+  suggestedPrompts?: string[];
+}): React.ReactElement | null => {
+  const hasSuggestedPrompts = Boolean(suggestedPrompts && suggestedPrompts.length > 0);
+  if (!mascot && !hasSuggestedPrompts) {
+    return null;
+  }
+  return (
+    <Box alignItems="center" gap={2} paddingY={4}>
+      {mascot ? (
+        <Box alignItems="center" testID="gpt-mascot">
+          {mascot}
+        </Box>
+      ) : null}
+      {hasSuggestedPrompts ? (
+        <>
+          <Text color="secondaryDark" size="sm">
+            Try asking...
+          </Text>
+          <Box direction="row" gap={2} wrap={true}>
+            {suggestedPrompts?.map((prompt) => (
+              <Box
+                accessibilityHint="Send this suggested prompt"
+                accessibilityLabel={prompt}
+                border="default"
+                key={prompt}
+                onClick={() => handleSuggestedPrompt(prompt)}
+                padding={2}
+                rounding="lg"
+              >
+                <Text size="sm">{prompt}</Text>
+              </Box>
+            ))}
+          </Box>
+        </>
+      ) : null}
+    </Box>
+  );
+};
+
 const StreamingIndicator = ({isStreaming}: {isStreaming: boolean}): React.ReactElement | null => {
   if (!isStreaming) {
     return null;
@@ -758,6 +810,7 @@ export const GPTChat = ({
   onSubmit,
   onUpdateTitle,
   selectedModel,
+  mascot,
   suggestedPrompts,
   systemMemory,
   testID,
@@ -993,27 +1046,12 @@ export const GPTChat = ({
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
           <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
             <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
-              {currentMessages.length === 0 && suggestedPrompts && suggestedPrompts.length > 0 && (
-                <Box alignItems="center" gap={2} paddingY={4}>
-                  <Text color="secondaryDark" size="sm">
-                    Try asking...
-                  </Text>
-                  <Box direction="row" gap={2} wrap={true}>
-                    {suggestedPrompts.map((prompt) => (
-                      <Box
-                        accessibilityHint="Send this suggested prompt"
-                        accessibilityLabel={prompt}
-                        border="default"
-                        key={prompt}
-                        onClick={() => handleSuggestedPrompt(prompt)}
-                        padding={2}
-                        rounding="lg"
-                      >
-                        <Text size="sm">{prompt}</Text>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
+              {currentMessages.length === 0 && (
+                <EmptyChatHero
+                  handleSuggestedPrompt={handleSuggestedPrompt}
+                  mascot={mascot}
+                  suggestedPrompts={suggestedPrompts}
+                />
               )}
               {currentMessages.map((message, index) => {
                 // Tool call/result messages
