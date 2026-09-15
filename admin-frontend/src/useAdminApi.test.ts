@@ -56,6 +56,17 @@ describe("buildAdminApiListQueryUrl", () => {
 });
 
 describe("buildAdminApiListQueryRequest", () => {
+  it("leaves the route unchanged when there are no serializable params", () => {
+    assert.deepEqual(buildAdminApiListQueryRequest("/admin/todos", undefined), {
+      method: "GET",
+      url: "/admin/todos",
+    });
+    assert.deepEqual(buildAdminApiListQueryRequest("/admin/todos", {priority: undefined}), {
+      method: "GET",
+      url: "/admin/todos",
+    });
+  });
+
   it("returns a GET url with qs-serialized nested filters and no params object", () => {
     const listRequest = buildAdminApiListQueryRequest("/admin/todos", {
       limit: 25,
