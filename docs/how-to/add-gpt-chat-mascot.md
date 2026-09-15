@@ -21,18 +21,45 @@ Keep the asset in the consumer package. `GPTChat` only mounts whatever you pass.
 
 ```tsx
 import {Box, Heading} from "@terreno/ui";
+import {Image} from "react-native";
+import {useState} from "react";
 
-const ChatMascot: React.ReactElement = (
-  <Box alignItems="center" gap={3}>
-    <Heading size="2xl">🦊</Heading>
-    <Heading align="center" size="md">
-      Ask anything.
-    </Heading>
-  </Box>
-);
+const MASCOTS = [
+  require("../assets/mascot-1.png"),
+  require("../assets/mascot-2.png"),
+  require("../assets/mascot-3.png"),
+  require("../assets/mascot-4.png"),
+];
+
+const ChatScreen: React.FC = (): React.ReactElement => {
+  // Select once per screen mount; ordinary re-renders keep the same character.
+  const [mascot] = useState(() => MASCOTS[Math.floor(Math.random() * MASCOTS.length)]);
+
+  return (
+    <GPTChat
+      currentMessages={currentMessages}
+      histories={histories}
+      mascot={
+        <Box alignItems="center" gap={3}>
+          <Image
+            accessibilityLabel="App mascot"
+            resizeMode="contain"
+            source={mascot}
+            style={{height: 192, width: 192}}
+          />
+          <Heading align="center" size="md">Ask anything.</Heading>
+        </Box>
+      }
+      onCreateHistory={handleCreateHistory}
+      onDeleteHistory={handleDeleteHistory}
+      onSelectHistory={handleSelectHistory}
+      onSubmit={handleSubmit}
+    />
+  );
+};
 ```
 
-Swap the heading for `Image`, a custom SVG, or a Lottie view.
+For a single fixed mascot, pass one asset directly instead of selecting from an array.
 
 ### 2. Pass it to `GPTChat`
 
@@ -55,7 +82,9 @@ Open a new chat: the mascot is visible. After the first user or assistant messag
 
 ## Example
 
-The example app supplies a fox heading in `example-frontend/app/(tabs)/ai.tsx`. The demo story `GPTChat` → `Mascot` does the same without a backend.
+The example app bundles four consumer-owned plant robots in
+`example-frontend/assets/gptMascots/` and selects one on each AI screen mount. The
+demo story `GPTChat` → `Mascot` shows the slot without a backend.
 
 ## Related
 

@@ -15,6 +15,7 @@ test.describe("AI Chat", () => {
 
   test("AI chat screen renders", async ({page}) => {
     await expect(page.getByTestId("chat")).toBeVisible();
+    await expect(page.locator('[data-testid^="example-gpt-mascot-"]')).toHaveCount(1);
     await expect(page.getByTestId("gpt-input")).toBeVisible();
     await expect(page.getByTestId("gpt-submit")).toBeVisible();
     await expect(page.getByTestId("gpt-new-chat-button")).toBeVisible();

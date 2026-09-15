@@ -103,6 +103,8 @@ The composer row (attachment picker, tools, input, Send) is vertically centered,
 ```
 
 Operator steps: [Add a GPT chat mascot](../how-to/add-gpt-chat-mascot.md). Demo story: `GPTChat` → `Mascot`.
+The example AI screen demonstrates a consumer selecting one of four bundled mascot
+images once per mount.
 
 ### SplitPage
 

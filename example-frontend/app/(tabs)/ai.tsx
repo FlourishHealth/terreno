@@ -14,8 +14,10 @@ import {
 import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
+import {type ImageSourcePropType, Image as RNImage} from "react-native";
 import {useDispatch, useSelector} from "react-redux";
 import {getSessionToken} from "@/lib/betterAuth";
+import {selectGptMascotIndex} from "@/lib/gptMascot";
 import {
   type GptHistory,
   terrenoApi,
@@ -87,15 +89,12 @@ const DEFAULT_MODEL_VALUE = "gemini-2.5-flash";
 /** RTK Query cache key for the default gpt histories list (must match useGetGptHistoriesQuery). */
 const gptHistoriesListQueryArgs = {};
 
-/** Consumer-owned empty-state character. GPTChat does not ship a default mascot. */
-const EXAMPLE_GPT_MASCOT: React.ReactElement = (
-  <Box alignItems="center" gap={3} testID="example-gpt-mascot">
-    <Heading size="2xl">🦊</Heading>
-    <Heading align="center" size="md">
-      Ask anything about Terreno.
-    </Heading>
-  </Box>
-);
+const GPT_MASCOT_IMAGES: ImageSourcePropType[] = [
+  require("../../assets/gptMascots/mascot-1.png"),
+  require("../../assets/gptMascots/mascot-2.png"),
+  require("../../assets/gptMascots/mascot-3.png"),
+  require("../../assets/gptMascots/mascot-4.png"),
+];
 
 const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
@@ -104,6 +103,25 @@ const AiScreen: React.FC = () => {
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [attachments, setAttachments] = useState<SelectedFile[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_VALUE);
+  const [mascotIndex] = useState<number>(() => selectGptMascotIndex(Math.random()));
+
+  const mascot = useMemo(
+    (): React.ReactElement => (
+      <Box alignItems="center" gap={3} testID="example-gpt-mascot">
+        <RNImage
+          accessibilityLabel="Terreno plant robot mascot"
+          resizeMode="contain"
+          source={GPT_MASCOT_IMAGES[mascotIndex]}
+          style={{height: 192, width: 192}}
+          testID={`example-gpt-mascot-${mascotIndex + 1}`}
+        />
+        <Heading align="center" size="md">
+          Ask anything about Terreno.
+        </Heading>
+      </Box>
+    ),
+    [mascotIndex]
+  );
 
   const dispatch = useDispatch();
   const userId = useSelector(selectBetterAuthUserId);
@@ -453,7 +471,7 @@ const AiScreen: React.FC = () => {
       geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
-      mascot={EXAMPLE_GPT_MASCOT}
+      mascot={mascot}
       mcpTools={mcpTools}
       onAttachFiles={handleAttachFiles}
       onCreateHistory={handleCreateHistory}
