@@ -42,6 +42,7 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
+    assert.isFalse(isCoverageSourceFile("api/src/migrations/fixtures/bad-name/not-a-migration.ts"));
   });
 
   it("excludes Expo Router route-structural entry files but keeps other app modules", () => {
