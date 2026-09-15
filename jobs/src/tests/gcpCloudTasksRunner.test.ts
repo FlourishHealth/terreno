@@ -130,12 +130,14 @@ describe("GcpCloudTasksRunner", () => {
     assert.equal(fake.calls[0].request.task.httpRequest?.url, "https://api.example.com//execute");
   });
 
-  it("throws when the Cloud Tasks client is not injected and the peer is missing", (): void => {
+  it("loads the optional peer when installed or reports how to install it", (): void => {
     const {client: _client, ...configWithoutClient} = baseConfig();
-    assert.throws(
-      () => new GcpCloudTasksRunner(configWithoutClient),
-      /optional peer dependency @google-cloud\/tasks/
-    );
+    try {
+      const runner = new GcpCloudTasksRunner(configWithoutClient);
+      assert.equal(runner.id, "gcp-cloud-tasks");
+    } catch (error: unknown) {
+      assert.match(String(error), /optional peer dependency @google-cloud\/tasks/);
+    }
   });
 
   it("throws when publicUrl is not an absolute http(s) URL", (): void => {

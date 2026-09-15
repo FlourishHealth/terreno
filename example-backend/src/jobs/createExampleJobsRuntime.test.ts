@@ -88,16 +88,24 @@ describe("createExampleJobsRuntime", () => {
   });
 
   it("accepts only verified tokens from the configured task service account", async (): Promise<void> => {
+    let verification: {audience: string; idToken: string} | undefined;
     const validRuntime = createExampleJobsRuntime({
       cloudTasksClient: {
         createTask: async (): Promise<[GcpCreateTaskResponse]> => [{}],
         queuePath: (): string => "queue",
       },
       environment: CLOUD_TASKS_ENVIRONMENT,
-      idTokenVerifier: createVerifier({
-        email: CLOUD_TASKS_ENVIRONMENT.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
-        email_verified: true,
-      }),
+      idTokenVerifier: {
+        verifyIdToken: async (options): Promise<{getPayload: () => IdTokenPayload | undefined}> => {
+          verification = options;
+          return {
+            getPayload: () => ({
+              email: CLOUD_TASKS_ENVIRONMENT.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
+              email_verified: true,
+            }),
+          };
+        },
+      },
     });
     const wrongIdentityRuntime = createExampleJobsRuntime({
       cloudTasksClient: {
@@ -112,7 +120,24 @@ describe("createExampleJobsRuntime", () => {
     });
 
     assert.isTrue(await validRuntime.executeAuth?.(createRequest("Bearer valid-token")));
+    assert.deepEqual(verification, {
+      audience: CLOUD_TASKS_ENVIRONMENT.GCP_TASKS_OIDC_AUDIENCE,
+      idToken: "valid-token",
+    });
     assert.isFalse(await validRuntime.executeAuth?.(createRequest()));
     assert.isFalse(await wrongIdentityRuntime.executeAuth?.(createRequest("Bearer valid-token")));
+
+    const unverifiedRuntime = createExampleJobsRuntime({
+      cloudTasksClient: {
+        createTask: async (): Promise<[GcpCreateTaskResponse]> => [{}],
+        queuePath: (): string => "queue",
+      },
+      environment: CLOUD_TASKS_ENVIRONMENT,
+      idTokenVerifier: createVerifier({
+        email: CLOUD_TASKS_ENVIRONMENT.GCP_TASKS_SERVICE_ACCOUNT_EMAIL,
+        email_verified: false,
+      }),
+    });
+    assert.isFalse(await unverifiedRuntime.executeAuth?.(createRequest("Bearer valid-token")));
   });
 });

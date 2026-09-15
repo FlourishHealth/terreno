@@ -11,12 +11,11 @@ export interface IdTokenPayload {
   email_verified?: boolean;
 }
 
-export interface IdTokenTicket {
-  getPayload: () => IdTokenPayload | undefined;
-}
-
 export interface IdTokenVerifier {
-  verifyIdToken: (options: {audience: string; idToken: string}) => Promise<IdTokenTicket>;
+  verifyIdToken: (options: {
+    audience: string;
+    idToken: string;
+  }) => Promise<{getPayload: () => IdTokenPayload | undefined}>;
 }
 
 export interface CreateExampleJobsRuntimeOptions {

@@ -279,6 +279,8 @@
         "@ai-sdk/google-vertex!",
         "@google-cloud/opentelemetry-cloud-trace-exporter!",
         "@google-cloud/secret-manager!",
+        // @terreno/jobs loads this consumer-supplied optional peer with createRequire.
+        "@google-cloud/tasks!",
         "@google-cloud/trace-agent!",
         "@opentelemetry/instrumentation-express!",
         "@opentelemetry/instrumentation-http!",
@@ -300,6 +302,7 @@
         "ai!",
         "expo-server-sdk!",
         "express!",
+        "google-auth-library!",
         "ioredis!",
         "luxon!",
         "mongoose!",
