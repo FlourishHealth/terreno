@@ -1,3 +1,4 @@
+import {CloudTasksClient} from "@google-cloud/tasks";
 import {APIError} from "@terreno/api";
 import {type JobRunner, type JobsAppOptions, MongoJobRunner} from "@terreno/jobs";
 import {type GcpCloudTasksClient, GcpCloudTasksRunner} from "@terreno/jobs/runners/gcpCloudTasks";
@@ -102,7 +103,7 @@ export const createExampleJobsRuntime = (
       verifier,
     }),
     runner: new GcpCloudTasksRunner({
-      client: options.cloudTasksClient,
+      client: options.cloudTasksClient ?? (new CloudTasksClient() as GcpCloudTasksClient),
       location,
       oidcAudience,
       project,

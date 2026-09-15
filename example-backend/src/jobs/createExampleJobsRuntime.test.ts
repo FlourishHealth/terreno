@@ -44,6 +44,15 @@ describe("createExampleJobsRuntime", () => {
     assert.isUndefined(runtime.executeAuth);
   });
 
+  it("constructs the Cloud Tasks runner without an injected client", (): void => {
+    const runtime = createExampleJobsRuntime({
+      environment: CLOUD_TASKS_ENVIRONMENT,
+      idTokenVerifier: createVerifier(undefined),
+    });
+
+    assert.equal(runtime.runner.id, "gcp-cloud-tasks");
+  });
+
   it("fails fast when Cloud Tasks configuration is incomplete", (): void => {
     assert.throws(
       () =>
