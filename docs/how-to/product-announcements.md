@@ -76,12 +76,14 @@ Interrupt frequency is enforced **client-side** in `AnnouncementNavigator` befor
 
 | Prop | Default | Behavior |
 |------|---------|----------|
-| `maxInterruptionsPerSession` | `1` | In-memory session counter. After the cap is reached, pending interrupts are skipped until the app remounts (new session). |
+| `maxInterruptionsPerSession` | `1` | In-memory module session counter. After the cap is reached, pending interrupts are skipped until the JS runtime reloads (cold start / full app restart). Remounting `AnnouncementNavigator` alone does **not** reset the counter. |
 | `cooldownHours` | off | When set, skips interrupts if the last shown interrupt was within this many hours. Timestamp is persisted in AsyncStorage when an interrupt becomes visible. |
 | `skipFirstLaunch` | `false` | When `true`, the first app launch ever (no `hasLaunched` key) records the flag and skips interrupts for that launch only. |
 | `userId` | `"anon"` | AsyncStorage namespace for frequency keys when a signed-in user id is available. |
 
-When a cap applies, the navigator renders children (does not block the app) and does **not** record an impression. AsyncStorage read/write failures fail open with a `console.warn` and allow the interrupt to show.
+When a cap applies, the navigator renders children (does not block the app) and does **not** record an impression. AsyncStorage read/write failures fail open with a `console.warn` and allow the interrupt to show. If `hasLaunched` cannot be persisted on first launch, the interrupt is shown and the in-memory first-launch skip is not armed for the rest of the session.
+
+Tests call `resetFrequencySessionStateForTests()` to simulate a cold start; that helper is not part of the production API.
 
 ## Media in markdown
 

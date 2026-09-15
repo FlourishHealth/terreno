@@ -142,12 +142,14 @@ const writeHasLaunched = async (
   storage: FrequencyStorage,
   namespace: string,
   warn: (message: string, details?: unknown) => void
-): Promise<void> => {
+): Promise<boolean> => {
   const key = buildFrequencyStorageKey(namespace, "hasLaunched");
   try {
     await storage.setItem(key, "true");
+    return true;
   } catch (error) {
     warn("[announcementFrequency] Failed to persist hasLaunched", {error});
+    return false;
   }
 };
 
@@ -187,9 +189,11 @@ export const shouldSuppressInterrupt = async (
 
     const hasLaunched = await readHasLaunched(storage, namespace, warn);
     if (hasLaunched === false) {
-      await writeHasLaunched(storage, namespace, warn);
-      session.setFirstLaunchSkipActive(true);
-      return true;
+      const persisted = await writeHasLaunched(storage, namespace, warn);
+      if (persisted) {
+        session.setFirstLaunchSkipActive(true);
+        return true;
+      }
     }
   }
 

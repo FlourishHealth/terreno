@@ -151,6 +151,32 @@ describe("announcementFrequency", () => {
       assert.strictEqual(suppress, false);
     });
 
+    it("fails open when hasLaunched setItem is rejected without activating session skip", async () => {
+      const session = createFrequencySessionState();
+      const warnings: Array<{message: string; details?: unknown}> = [];
+      const deps = createDeps({
+        session,
+        storage: {
+          getItem: async (): Promise<string | null> => null,
+          setItem: async (): Promise<void> => {
+            throw new Error("storage write failed");
+          },
+        },
+        warn: (message: string, details?: unknown): void => {
+          warnings.push({details, message});
+        },
+      });
+      const config = {skipFirstLaunch: true, userId: "user-a"};
+
+      const suppress = await shouldSuppressInterrupt(config, "announcement-1:1", deps);
+      const secondSuppress = await shouldSuppressInterrupt(config, "announcement-2:1", deps);
+
+      assert.strictEqual(suppress, false);
+      assert.strictEqual(secondSuppress, false);
+      assert.strictEqual(session.isFirstLaunchSkipActive(), false);
+      assert.isTrue(warnings.some((entry) => entry.message.includes("hasLaunched")));
+    });
+
     it("fails open when storage reads fail", async () => {
       const warnings: Array<{message: string; details?: unknown}> = [];
       const deps = createDeps({

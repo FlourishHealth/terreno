@@ -41,7 +41,21 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     baseUrl
   );
 
-  const frequencyConfig = useMemo(() => resolveFrequencyConfig(frequency), [frequency]);
+  const cooldownHours = frequency?.cooldownHours;
+  const maxInterruptionsPerSession = frequency?.maxInterruptionsPerSession;
+  const skipFirstLaunch = frequency?.skipFirstLaunch;
+  const frequencyUserId = frequency?.userId;
+
+  const frequencyConfig = useMemo(
+    () =>
+      resolveFrequencyConfig({
+        cooldownHours,
+        maxInterruptionsPerSession,
+        skipFirstLaunch,
+        userId: frequencyUserId,
+      }),
+    [cooldownHours, frequencyUserId, maxInterruptionsPerSession, skipFirstLaunch]
+  );
 
   const rawCurrent = pending?.current ?? null;
   const current = rawCurrent?.displayMode === "feed" ? null : rawCurrent;

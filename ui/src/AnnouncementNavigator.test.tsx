@@ -384,7 +384,8 @@ describe("AnnouncementNavigator", () => {
     assert.isNull(result.queryByTestId("announcement-screen"));
   });
 
-  it("shows the next interrupt after remounting with a fresh session", async () => {
+  it("shows the next interrupt after module session reset simulating cold start", async () => {
+    // resetFrequencySessionStateForTests() simulates a JS runtime reload; navigator remount alone does not reset the cap.
     const FirstSessionHarness: React.FC = () => {
       const {api} = createMockApi({
         current: makeAnnouncement({id: "announcement-1", title: "First update"}),
@@ -429,6 +430,35 @@ describe("AnnouncementNavigator", () => {
     });
 
     expect(secondSession.getByText("Second update")).toBeTruthy();
+  });
+
+  it("keeps a visible interrupt mounted when the parent rerenders an equivalent inline frequency object", async () => {
+    const {api} = createMockApi({
+      current: makeAnnouncement({title: "Stable interrupt"}),
+      remainingCount: 0,
+    });
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api} frequency={{maxInterruptionsPerSession: 5}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await waitForFrequencyCheck();
+    expect(result.getByTestId("announcement-screen")).toBeTruthy();
+    assert.isNull(result.queryByTestId("app-content"));
+
+    result.rerender(
+      <AnnouncementNavigator api={api} frequency={{maxInterruptionsPerSession: 5}}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    expect(result.getByTestId("announcement-screen")).toBeTruthy();
+    assert.isNull(result.queryByTestId("app-content"));
   });
 
   it("skips interrupts on first launch when skipFirstLaunch is true", async () => {
