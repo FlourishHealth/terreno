@@ -84,10 +84,11 @@ describe("AdminScreenRouter", () => {
   });
 
   it("renders AdminModelTable for a configured model name", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, unmount} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="Food" />
     );
     expect(getByTestId("admin-list-Food")).toBeTruthy();
+    unmount();
   });
 
   it("renders built-in version-config screen widget", () => {
