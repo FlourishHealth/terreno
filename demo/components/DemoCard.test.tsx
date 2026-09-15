@@ -1,11 +1,15 @@
 import {describe, expect, it} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
 import type {ReactTestRendererJSON} from "react-test-renderer";
 
 import {renderWithTheme} from "../../ui/src/test-utils";
+import type {DemoConfiguration} from "../demoConfig";
 import {DemoConfig} from "../demoConfig";
 import {DemoCard} from "./DemoCard";
 
 const noop = (): void => {};
+
+const testIdFor = (name: string): string => `demo-home-${name.toLowerCase().replace(/\s+/g, "-")}`;
 
 const isPressableNode = (node: ReactTestRendererJSON): boolean => {
   const role = node.props?.accessibilityRole ?? node.props?.role;
@@ -45,8 +49,39 @@ describe("DemoCard", () => {
       throw new Error("DemoConfig is empty");
     }
     const {getByTestId} = renderWithTheme(<DemoCard config={config} onPress={noop} />);
-    const testId = `demo-home-${config.name.toLowerCase().replace(/\s+/g, "-")}`;
-    expect(getByTestId(testId)).toBeTruthy();
+    expect(getByTestId(testIdFor(config.name))).toBeTruthy();
+  });
+
+  it("reports the component name when the press target is pressed", () => {
+    const config = DemoConfig[0];
+    if (!config) {
+      throw new Error("DemoConfig is empty");
+    }
+    const pressed: string[] = [];
+    const {getByTestId} = renderWithTheme(
+      <DemoCard
+        config={config}
+        onPress={(componentName) => {
+          pressed.push(componentName);
+        }}
+      />
+    );
+    fireEvent.press(getByTestId(testIdFor(config.name)));
+    expect(pressed).toEqual([config.name]);
+  });
+
+  it("renders nothing when the configuration has no demo", () => {
+    const config = DemoConfig[0];
+    if (!config) {
+      throw new Error("DemoConfig is empty");
+    }
+    const {toJSON} = renderWithTheme(
+      <DemoCard
+        config={{...config, demo: undefined} as unknown as DemoConfiguration}
+        onPress={noop}
+      />
+    );
+    expect(toJSON()).toBeNull();
   });
 
   for (const config of DemoConfig) {
