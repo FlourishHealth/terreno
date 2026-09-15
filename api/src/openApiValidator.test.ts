@@ -268,9 +268,9 @@ describe("openApiValidator", () => {
       expect(schema.hidden).toBeUndefined();
     });
 
-    it("marks query fields as not required", () => {
+    it("does not mark query fields as required", () => {
       const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
-      expect(schema.name.required).toBe(false);
+      expect(schema.name.required).toBeUndefined();
     });
   });
 
