@@ -732,7 +732,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api ai api-health admin-backend comms jobs feature-flags ui rtk admin-frontend admin-spa example-backend
+          packages: api ai api-health comms jobs admin-backend feature-flags ui rtk admin-frontend admin-spa example-backend
       - run:
           name: List admin scripts
           working_directory: ~/project/example-backend
@@ -1531,7 +1531,7 @@ jobs:
           condition: << pipeline.parameters.run-cd-backend >>
           steps:
             - run:
-                name: Deploy backend preview
+                name: Deploy backend and isolated tasks preview
                 command: scripts/ci/gcp-deploy.sh backend-preview
 
   deploy-preview-manual:
@@ -1570,7 +1570,7 @@ jobs:
       - install_bun_and_deps
       - gcp-cli/install
       - run:
-          name: Clean Cloud Run tag and preview database
+          name: Clean backend/tasks tags and preview database
           environment:
             PR_NUMBER: << pipeline.parameters.preview-cleanup-pr >>
           command: |

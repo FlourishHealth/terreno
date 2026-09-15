@@ -11,6 +11,8 @@ flowchart TD
   U["User<br/>iOS / Android / Web"]
   CDN["Cloud CDN + GCS bucket<br/>expo export -p web output"]
   CR["Cloud Run<br/>@terreno/api backend"]
+  CT["Cloud Tasks<br/>durable jobs push queue"]
+  JW["Cloud Run<br/>private jobs worker service"]
   SM["Secret Manager<br/>auth secrets, MONGO_URI"]
   AT["MongoDB Atlas<br/>replica set (change streams)"]
   GCS["GCS bucket<br/>user file uploads"]
@@ -21,7 +23,10 @@ flowchart TD
   CR --> SM
   CR --> AT
   CR --> GCS
+  CT -->|"OIDC POST /jobs/execute"| JW
+  JW --> AT
   AR --> CR
+  AR --> JW
 ```
 
 ## Component responsibilities
@@ -30,6 +35,8 @@ flowchart TD
 |-----------|------|
 | **Artifact Registry** | Stores versioned backend container images built from `example-backend/Dockerfile` |
 | **Cloud Run** | Runs the long-lived `@terreno/api` process (HTTP + Socket.io) |
+| **Cloud Tasks** | Provisioned push queue for `@terreno/jobs`; unused until the API selects `GcpCloudTasksRunner` |
+| **Jobs worker service** | Private Cloud Run service running the example-backend image; IAM-restricted to the Cloud Tasks invoker SA |
 | **Secret Manager** | Holds `MONGO_URI`, JWT secrets, and other credentials — mounted as env vars |
 | **MongoDB Atlas** | Primary database; must be a replica set for change streams (realtime, feature flags) |
 | **GCS (web bucket)** | Serves static web export; CDN caches at the edge |
@@ -58,6 +65,18 @@ flowchart TD
 | **Node/Bun server (SSR)** | Better SEO and API routes — requires Expo SDK ≥ 55; not available in the current `~54` catalog |
 
 Native iOS and Android apps call Cloud Run directly; only the web client uses the CDN origin.
+
+## Durable jobs worker infrastructure
+
+Cloud Tasks is a push service; it does not expose a pull-consumer API. Cloud Run worker
+pools do not have HTTP ingress, so Infra Manager provisions a private Cloud Run service
+as the future execution pool. Queue rate limits bound dispatch concurrency and Cloud Run
+scales the worker instances.
+
+The example API still runs `@terreno/jobs` with `MongoJobRunner` until a follow-up
+selects `GcpCloudTasksRunner`. Production and PR revisions already share matching
+`pr-<number>` tags and `terreno-example-pr-<number>` databases so that follow-up can
+enqueue to isolated callback URLs without colliding.
 
 ## Related
 

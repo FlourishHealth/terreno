@@ -33,6 +33,39 @@ configure_registry() {
   gcloud auth configure-docker "${region}-docker.pkg.dev" --quiet
 }
 
+deploy_tasks() {
+  local tag="$1"
+  local image="${GCP_BACKEND_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_TASKS_SERVICE}/${GCP_TASKS_SERVICE}:${CIRCLE_SHA1}"
+  configure_registry "$GCP_BACKEND_REGION"
+  docker build --file example-backend/Dockerfile --tag "$image" .
+  docker push "$image"
+
+  local env_vars="NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE}"
+  local args=(
+    run deploy "$GCP_TASKS_SERVICE"
+    "--project=$GCP_PROJECT_ID"
+    "--region=$GCP_BACKEND_REGION"
+    "--image=$image"
+    "--tag=$tag"
+    "--port=3000"
+    "--memory=512Mi"
+    "--min-instances=0"
+    "--max-instances=10"
+    "--concurrency=20"
+    "--timeout=1800"
+    --no-allow-unauthenticated
+  )
+  if [ "$tag" != "prod" ]; then
+    args+=(--no-traffic)
+    env_vars+=",MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},PR_NUMBER=${PR_NUMBER}"
+  fi
+  args+=(
+    "--set-env-vars=$env_vars"
+    "--set-secrets=MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
+  )
+  gcloud "${args[@]}"
+}
+
 deploy_backend() {
   local tag="$1"
   local image="${GCP_BACKEND_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_BACKEND_SERVICE}/${GCP_BACKEND_SERVICE}:${CIRCLE_SHA1}"
@@ -124,28 +157,12 @@ case "$action" in
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
     deploy_backend "pr-${PR_NUMBER}"
+    deploy_tasks "pr-${PR_NUMBER}"
     ;;
   tasks-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    configure_registry "$GCP_BACKEND_REGION"
-    image="${GCP_BACKEND_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_TASKS_SERVICE}/${GCP_TASKS_SERVICE}:${CIRCLE_SHA1}"
-    docker build --file example-backend/Dockerfile --tag "$image" .
-    docker push "$image"
-    gcloud run deploy "$GCP_TASKS_SERVICE" \
-      "--project=$GCP_PROJECT_ID" \
-      "--region=$GCP_BACKEND_REGION" \
-      "--image=$image" \
-      --tag=prod \
-      --port=3000 \
-      --memory=512Mi \
-      --min-instances=0 \
-      --max-instances=10 \
-      --concurrency=80 \
-      --timeout=300 \
-      --allow-unauthenticated \
-      "--set-env-vars=NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE}" \
-      "--set-secrets=MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
+    deploy_tasks prod
     ;;
   mcp-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
@@ -173,6 +190,9 @@ case "$action" in
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
     gcloud run services update-traffic "$GCP_BACKEND_SERVICE" \
+      "--remove-tags=pr-${PR_NUMBER}" \
+      "--region=$GCP_BACKEND_REGION" || true
+    gcloud run services update-traffic "$GCP_TASKS_SERVICE" \
       "--remove-tags=pr-${PR_NUMBER}" \
       "--region=$GCP_BACKEND_REGION" || true
     export MONGO_URI

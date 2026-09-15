@@ -1,4 +1,5 @@
 import {
+  APIError,
   BackgroundTask,
   createScriptArgs,
   logger,
@@ -186,7 +187,7 @@ const createAdminScriptHandler = (
   return async (payload: unknown, ctx: JobHandlerContext): Promise<void> => {
     const parsed = parseAdminScriptJobPayload(payload);
     if (!parsed) {
-      throw new Error("Invalid admin/script job payload");
+      throw new APIError({status: 400, title: "Invalid admin/script job payload"});
     }
 
     const script = getScript(parsed.scriptName);
@@ -203,7 +204,7 @@ const createAdminScriptHandler = (
           },
         }
       );
-      throw new Error(message);
+      throw new APIError({status: 404, title: message});
     }
 
     const {args, errors} = createScriptArgs({
@@ -211,7 +212,7 @@ const createAdminScriptHandler = (
       values: parsed.args,
     });
     if (errors.length > 0) {
-      throw new Error(errors.join("; "));
+      throw new APIError({status: 400, title: errors.join("; ")});
     }
 
     await runRegisteredScriptTask({
