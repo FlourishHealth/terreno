@@ -254,13 +254,24 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
     );
   }
 
-  if (!visibleCurrent) {
-    return <>{children}</>;
+  if (visibleCurrent && displayMode === "modal") {
+    return (
+      <AnnouncementScreen
+        announcement={visibleCurrent}
+        isSubmitting={isSubmitting}
+        onAcknowledge={handleAcknowledge}
+        onDismiss={handleDismiss}
+        onPrimaryAction={handlePrimaryAction}
+        requiresAcknowledgement={requiresAcknowledgement}
+      />
+    );
   }
 
-  if (displayMode === "banner") {
-    return (
-      <Box direction="column" flex="grow" width="100%">
+  // Keep a stable Box shell for banner and idle states so children are not remounted
+  // when the banner is dismissed or when frequency gating finishes showing it.
+  return (
+    <Box direction="column" flex="grow" width="100%">
+      {visibleCurrent && displayMode === "banner" ? (
         <AnnouncementBanner
           announcement={visibleCurrent}
           isSubmitting={isSubmitting}
@@ -269,19 +280,8 @@ export const AnnouncementNavigator: React.FC<AnnouncementNavigatorProps> = ({
           onPrimaryAction={handlePrimaryAction}
           requiresAcknowledgement={requiresAcknowledgement}
         />
-        {children}
-      </Box>
-    );
-  }
-
-  return (
-    <AnnouncementScreen
-      announcement={visibleCurrent}
-      isSubmitting={isSubmitting}
-      onAcknowledge={handleAcknowledge}
-      onDismiss={handleDismiss}
-      onPrimaryAction={handlePrimaryAction}
-      requiresAcknowledgement={requiresAcknowledgement}
-    />
+      ) : null}
+      {children}
+    </Box>
   );
 };

@@ -10,6 +10,7 @@ import {
   resetFrequencySessionStateForTests,
 } from "./announcementFrequency";
 import {Box} from "./Box";
+import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
 import {Unifier} from "./Unifier";
 import {
@@ -354,6 +355,49 @@ describe("AnnouncementNavigator", () => {
     expect(result.getByTestId("announcement-banner")).toBeTruthy();
     expect(result.queryByTestId("announcement-screen")).toBeNull();
     expect(impressionMutation).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves child input state when a banner is dismissed", async () => {
+    const StatefulInput: React.FC = () => {
+      const [value, setValue] = useState("");
+      return <TextField onChange={setValue} testID="todo-input" title="New Todo" value={value} />;
+    };
+
+    const BannerDismissHarness: React.FC = () => {
+      const [pending, setPending] = useState<PendingAnnouncementsResponse>({
+        current: makeAnnouncement({displayMode: "banner", requiresAcknowledgement: false}),
+        remainingCount: 0,
+      });
+      const refetch = useCallback(async (): Promise<void> => {
+        setPending({current: null, remainingCount: 0});
+      }, []);
+      const {api} = createMockApi(pending, refetch);
+
+      return (
+        <AnnouncementNavigator api={api} frequency={{maxInterruptionsPerSession: 5}}>
+          <Box testID="app-content">
+            <StatefulInput />
+          </Box>
+        </AnnouncementNavigator>
+      );
+    };
+
+    const result = renderWithTheme(<BannerDismissHarness />);
+    await waitForFrequencyCheck();
+    expect(result.getByTestId("announcement-banner")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.changeText(result.getByTestId("todo-input"), "unsaved text");
+    });
+    expect(result.getByTestId("todo-input").props.value).toBe("unsaved text");
+
+    await act(async () => {
+      fireEvent.press(result.getByText("Dismiss"));
+      await Promise.resolve();
+    });
+
+    expect(result.queryByTestId("announcement-banner")).toBeNull();
+    expect(result.getByTestId("todo-input").props.value).toBe("unsaved text");
   });
 
   it("ignores unexpected feed displayMode items in pending.current", () => {
