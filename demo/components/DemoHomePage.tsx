@@ -2,7 +2,7 @@ import {DemoConfig, type DemoConfiguration} from "@config";
 import {Box, Button, Heading, Text} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect} from "react";
-import {Pressable, ScrollView, View} from "react-native";
+import {Pressable, Image as RNImage, ScrollView, View} from "react-native";
 
 const CARD_WIDTH = 300;
 const CARD_HEIGHT = 280;
@@ -10,11 +10,32 @@ const CARD_PREVIEW_HEIGHT = 176;
 const CARD_DIVIDER_HEIGHT = 4;
 const CARD_TEXT_HEIGHT = 100;
 const CARD_DESCRIPTION_LINES = 2;
+export const DEMO_BANNER_WIDTH = CARD_WIDTH * 2 + 16;
+export const DEMO_BANNER_HEIGHT = CARD_HEIGHT;
+const DEMO_BANNER_SOURCE = require("../assets/terreno-garden-banner.png");
 
 interface DemoCardProps {
   config: DemoConfiguration;
   onPress: (componentName: string) => void;
 }
+
+export const DemoHomeBanner: React.FC = (): React.ReactElement => {
+  return (
+    <RNImage
+      accessibilityLabel="Terreno Garden — Demo and Docs"
+      resizeMode="cover"
+      source={DEMO_BANNER_SOURCE}
+      style={{
+        borderRadius: 16,
+        height: DEMO_BANNER_HEIGHT,
+        margin: 8,
+        maxWidth: "100%",
+        width: DEMO_BANNER_WIDTH,
+      }}
+      testID="demo-home-banner"
+    />
+  );
+};
 
 const DemoCard: React.FC<DemoCardProps> = ({config, onPress}) => {
   const handlePress = useCallback(async (): Promise<void> => {
@@ -94,6 +115,7 @@ export const DemoHomePage: React.FC<{
       }}
       style={{padding: 20, width: "100%"}}
     >
+      <DemoHomeBanner />
       <Box
         alignItems="center"
         color="secondaryLight"
