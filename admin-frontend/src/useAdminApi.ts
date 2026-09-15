@@ -15,7 +15,7 @@ type TagArg = unknown;
  * @param api - RTK Query API instance to inject endpoints into
  * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
  * @param modelName - Name of the model for cache tag generation (e.g., "User")
- * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`, `useBulkPatchMutation`
  *
  * @example
  * ```typescript
@@ -47,6 +47,8 @@ type TagArg = unknown;
  *
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
+ * @deprecated Terreno 57 compatibility for ObjectId/API-only model CRUD.
+ * Terreno 58 removes this RTK `injectEndpoints` path and the required admin `api` prop.
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {

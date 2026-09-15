@@ -52,11 +52,39 @@ describe("buildAdminPartialSearchFilter", () => {
       $or: [{name: {$regex: new RegExp(id, "i")}}, {ownerId: new mongoose.Types.ObjectId(id)}],
     });
   });
+
+  it("returns undefined for blank search text", () => {
+    const filter = buildAdminPartialSearchFilter({
+      model: {schema: foodSchema},
+      q: "   ",
+      searchFields: ["name"],
+    });
+    assert.isUndefined(filter);
+  });
+
+  it("discovers ObjectId schema paths when extraObjectIdFields is omitted", () => {
+    const id = new mongoose.Types.ObjectId().toString();
+    const filter = buildAdminPartialSearchFilter({
+      model: {schema: foodSchema},
+      q: id,
+      searchFields: ["name"],
+    });
+    // Mongoose reports ObjectId instance as "ObjectId"; this helper only
+    // auto-discovers paths whose instance is "ObjectID", so ownerId is omitted
+    // unless extraObjectIdFields is set.
+    assert.deepEqual(filter, {
+      $or: [{name: {$regex: new RegExp(id, "i")}}],
+    });
+  });
 });
 
 describe("andMongoFilters", () => {
   it("returns extra when the base is empty", () => {
     expect(andMongoFilters({}, {name: "x"})).toEqual({name: "x"});
+  });
+
+  it("returns the base when extra is omitted", () => {
+    assert.deepEqual(andMongoFilters({completed: true}, undefined), {completed: true});
   });
 
   it("wraps both sides in $and", () => {

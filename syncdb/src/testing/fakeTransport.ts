@@ -209,7 +209,7 @@ export const createFakeTransport = (): FakeTransport => {
     setDefaultResponder: (responder?: FakeMutationResponder): void => {
       defaultResponder = responder ?? autoAck;
     },
-    subscribe: (collections: string[]): void => {
+    subscribe: (collections: string[], _options?: {mode?: "window"}): void => {
       for (const collection of collections) {
         subscribed.add(collection);
       }

@@ -1,0 +1,24 @@
+name: Upload coverage to Codecov
+description: Upload a package merged lcov.info with a distinct Codecov flag.
+
+inputs:
+  flag:
+    description: Codecov flag name (must match codecov.yml)
+    required: true
+  directory:
+    description: Package directory that contains coverage/lcov.info
+    required: true
+  token:
+    description: Codecov upload token (GitHub secret CODECOV_TOKEN)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Upload coverage to Codecov
+      shell: bash
+      working-directory: ${{ inputs.directory }}
+      env:
+        CODECOV_TOKEN: ${{ inputs.token }}
+      run: bash "${{ github.workspace }}/scripts/upload-codecov.sh" "${{ inputs.flag }}"

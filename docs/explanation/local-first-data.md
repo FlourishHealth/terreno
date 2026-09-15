@@ -27,7 +27,10 @@ Think **apply locally, then reconcile** instead of **request, wait, update cache
 3. **Refetch orchestration** — `invalidatesTags`, `refetch()`, and list/detail cache coordination after mutations.
 4. **Treating the network as the read path** — list screens blocked on `isLoading` for every navigation.
 
-RTK Query remains appropriate for **non-synced** endpoints: `/auth/me`, admin RPC, AI routes, and anything that should stay request/response.
+RTK Query remains appropriate for **non-synced generated** endpoints such as
+`/auth/me` and AI routes. Built-in admin RPC stays request/response through its
+host-bound fetch client; ObjectId/API-only admin CRUD keeps RTK compatibility in
+Terreno 57.
 
 ## What you start doing
 
@@ -35,7 +38,7 @@ RTK Query remains appropriate for **non-synced** endpoints: `/auth/me`, admin RP
 2. **Sync-status UX** — Surface offline state, queued mutations, and drain progress with `useSyncStatus` (and optionally `SyncStatusBanner`).
 3. **Encryption at rest (web)** — Web persistence uses AES-GCM via the default `createServerKeyProvider`; understand key fetch and `onDecryptFailure` for support flows.
 4. **Key lifecycle on logout** — Call `syncDb.stop()` and consider `wipeLocalData` when the authenticated user changes so one account does not read another's local store.
-5. **Backend sync registration** — Every synced collection needs `syncPlugin`, `isDeletedPlugin`, and a `sync` block on `modelRouter`, plus `SyncApp` and `RealtimeApp` on the server.
+5. **Backend sync registration** — Every synced collection needs `syncPlugin`, `isDeletedPlugin`, and a `sync` block on `modelRouter`, plus `SyncApp` and `RealtimeApp` on the server. Optional `sync.adminBroadcast: true` also emits `sync:delta` to `{collection}|admin`. Admin clients subscribe with `mode: "window"` (`createSyncDb({windowCollections})`) so they do not snapshot or reconcile that collection; they call `hydrateWindow` (REST membership ids + `GET /sync/entities`). Pass the same `accessControl` into `SyncApp` that `AdminApp` uses so `{collection}|admin` requires `admin:access`. `AdminApp.register` also installs that model's admin list/read/`queryFilter` on the admin window so hydrate and live `|admin` deltas match `/admin` REST. Without RBAC, `user.admin` is enough for the shell gate. Live deltas on that stream apply only to ids already in the window; Refresh is a REST re-query plus `hydrateWindow`.
 
 ## Tradeoffs
 

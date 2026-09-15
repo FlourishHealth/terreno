@@ -1,8 +1,65 @@
 # Custom Routes — Terreno
 
-Use `createOpenApiBuilder` for endpoints that are not standard CRUD.
+Do **not** add `app.get`, `app.post`, `router.get`, or `router.post` for application
+APIs. Put named operations on `modelRouter` as `collectionActions` or
+`instanceActions`. Architecture: `docs/explanation/model-router-actions.md`.
 
-## Basic pattern
+## Default: modelRouter actions
+
+```typescript
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+      summary: "Mark multiple todos complete",
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => {
+        doc.completed = true;
+        await doc.save();
+        return doc;
+      },
+    },
+  },
+  permissions: { /* CRUD */ },
+});
+```
+
+- `POST /todos/bulkComplete` → `collectionActions.bulkComplete`
+- `POST /todos/:id/markComplete` → `instanceActions.markComplete`
+- `GET /settings/gcs` → `collectionActions.gcs` on a router mounted at `/settings`
+
+Actions share permissions, `{data}` wrapping, and OpenAPI with CRUD. Return a value from
+the handler; do not call `res.json` unless you are streaming.
+
+CRUD itself is `modelRouter` create/list/read/update/delete — not a custom Express
+method and not an action.
+
+## Allowed Express `app.get` / `app.post`
+
+| Case | Use |
+|------|-----|
+| Inbound provider webhooks | `WebhooksApp` |
+| Static SPA / assets | plugin `app.use` / `express.static` |
+| Framework auth, health, version-check | existing plugins |
+| SSE / streaming GPT | handler that writes `res` itself |
+| Tests and harnesses | raw Express is fine |
+
+PATCH/DELETE that is not CRUD should be a POST action (`clearGcs`, not `DELETE /settings/gcs`).
+
+## Last resort: `createOpenApiBuilder`
+
+Only when the path cannot be `/{actionName}` or `/:id/{actionName}` and the table above
+does not apply.
 
 ```typescript
 import {
@@ -12,7 +69,7 @@ import {
   APIError,
 } from "@terreno/api";
 
-export const addStatsRoutes = (router: Router, options?: OpenApiOptions): void => {
+export const addLegacyStatsRoutes = (router: Router, options?: OpenApiOptions): void => {
   router.get("/stats/summary", [
     authenticateMiddleware(),
     createOpenApiBuilder(options)
@@ -30,6 +87,8 @@ export const addStatsRoutes = (router: Router, options?: OpenApiOptions): void =
   }));
 };
 ```
+
+Prefer attaching that work as `collectionActions.summary` on the Todo router instead.
 
 ## Builder methods
 
@@ -66,38 +125,8 @@ Pass the same `WebhooksApp` into `CommsApp` before `webhooks.register` for Twili
 SendGrid. See `docs/how-to/inbound-webhooks.md`. Stripe billing stays
 `POST /billing/webhooks/stripe` on `billing-stripe`.
 
-## Prefer modelRouter actions over custom routes
+## After adding an action
 
-Before adding a standalone route, check if `collectionActions` or `instanceActions` on `modelRouter` fits:
-
-- `POST /todos/bulkComplete` → `collectionActions.bulkComplete`
-- `POST /todos/:id/markComplete` → `instanceActions.markComplete`
-
-Actions are documented in OpenAPI and get SDK hooks after regeneration.
-
-## Custom routes inside modelRouter
-
-```typescript
-modelRouter("/todos", Todo, {
-  endpoints: (router) => {
-    router.get("/export", [
-      authenticateMiddleware(),
-      createOpenApiBuilder(options)
-        .withTags(["todos"])
-        .withSummary("Export todos as CSV")
-        .build(),
-    ], asyncHandler(async (req, res) => {
-      // ...
-    }));
-  },
-  permissions: { /* ... */ },
-});
-```
-
-Custom `endpoints` are registered **before** CRUD routes.
-
-## After adding a custom route
-
-1. Verify `/openapi.json` includes the new endpoint
+1. Confirm `/openapi.json` includes `/{collection}/{actionName}` or `/{collection}/{id}/{actionName}`
 2. Run `generate-sdk` in the frontend
 3. Add tests with supertest
