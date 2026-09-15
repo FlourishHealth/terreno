@@ -178,6 +178,28 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
+  it("rejects Brew that rewrites the PR body as a turn summary", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("IP's original justification", "latest implementation summary")
+      .replace("reproducible testing instructions", "test status")
+      .replace(
+        "without rewriting the body around the latest turn",
+        "by rewriting the body around the latest turn"
+      );
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("original justification")));
+    assert.isTrue(errors.some((error) => error.includes("testing instructions")));
+    assert.isTrue(errors.some((error) => error.includes("overview stable")));
+  });
+
   it("rejects Taste that skips prepush, fallback checks, or the product-CI wait loop", (): void => {
     const content = readStage("terreno-5-taste")
       .replaceAll("fresh subagent", "same conversation")
@@ -401,6 +423,14 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
     assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
     assert.isTrue(errors.some((error) => error.includes("preview URLs")));
+    assert.isTrue(errors.some((error) => error.includes("[FH-1632]")));
+    assert.isTrue(errors.some((error) => error.includes("[#412]")));
+    assert.isTrue(errors.some((error) => error.includes("IP Approved")));
+    assert.isTrue(errors.some((error) => error.includes("feat:")));
+    assert.isTrue(errors.some((error) => error.includes("initial justification")));
+    assert.isTrue(errors.some((error) => error.includes("overview of the approved IP")));
+    assert.isTrue(errors.some((error) => error.includes("testing instructions")));
+    assert.isTrue(errors.some((error) => error.includes("stable across turns")));
   });
 
   it("rejects a documentation contract that does not require reading and updating docs", (): void => {

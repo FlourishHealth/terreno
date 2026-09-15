@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-15T06:28:56.686Z.
+> dates are promised. Last updated: 2026-09-15T23:22:13.630Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -63,7 +63,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
 - [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
-- [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Planned)
 - [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
 
 ### ui
