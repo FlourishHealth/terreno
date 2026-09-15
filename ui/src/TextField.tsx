@@ -319,7 +319,7 @@ export const TextField: FC<TextFieldProps> = ({
               testID={fieldTestIDs.visibilityToggle}
             >
               <Icon
-                color={disabled ? "extraLight" : "secondaryDark"}
+                color={disabled ? "extraLight" : "link"}
                 iconName={isValueRevealed ? "eye-slash" : "eye"}
                 size="md"
               />
