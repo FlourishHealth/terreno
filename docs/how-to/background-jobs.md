@@ -203,7 +203,9 @@ backend POSTs to the Cloud Tasks REST API with `google-auth-library`.
 
 The deployed example backend selects this runner with `JOBS_RUNNER=gcp-cloud-tasks`.
 Infra Manager creates one queue and a callback-only service account; the CD script supplies
-the remaining `GCP_TASKS_*` values. The API process starts the worker so cron schedules
+the remaining `GCP_TASKS_*` values. Both GitHub Actions and CircleCI deploy the same
+runner configuration so either deploy path preserves Cloud Tasks execution. The API
+process starts the worker so cron schedules
 enqueue Cloud Tasks (`GcpCloudTasksRunner.start()` ticks Mongo schedules only). The tasks
 Cloud Run service is the execution pool: Cloud Tasks pushes authenticated callbacks to it,
 and queue rate limits bound concurrency. Keep `JOBS_START_WORKER=false` on the tasks
