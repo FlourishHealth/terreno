@@ -365,7 +365,8 @@ describe("prompts", () => {
 
       expect(content).toContain("my-bootstrap-app");
       expect(content).toContain("My Bootstrap App");
-      expect(content).toContain("terreno_bootstrap_app");
+      expect(content).toContain("bunx create-terreno-app");
+      expect(content).not.toContain("terreno_bootstrap_app");
       expect(content).toContain("terreno_bootstrap_ai_rules");
     });
   });

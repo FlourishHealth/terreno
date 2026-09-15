@@ -1,50 +1,21 @@
 import {beforeEach, describe, it} from "bun:test";
-import {
-  generateTokens,
-  type ModelRouterOptions,
-  type ModelRouterRegistration,
-  TerrenoApp,
-} from "@terreno/api";
+import {generateTokens, TerrenoApp} from "@terreno/api";
 import {CommsApp, PushToken} from "@terreno/comms";
 import {assert} from "chai";
-import express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import supertest from "supertest";
 import {User as UserModel} from "../models/user";
 import type {UserDocument} from "../types/models/userTypes";
-import {addDevCommsRoutes} from "./commsDev";
-
-type RegisterRoutesWithOptions = (
-  router: express.Router,
-  options?: Partial<ModelRouterOptions<unknown>>
-) => void;
-
-const createOpenApiAwareRouteRegistration = (
-  registerRoutes: RegisterRoutesWithOptions
-): ModelRouterRegistration => {
-  const buildRouter = (openApi?: unknown): express.Router => {
-    const router = express.Router();
-    const routeOptions = openApi ? ({openApi} as Partial<ModelRouterOptions<unknown>>) : undefined;
-    registerRoutes(router, routeOptions);
-    return router;
-  };
-
-  const registration: ModelRouterRegistration = {
-    __type: "modelRouter",
-    _buildWithContext: ({openApi}) => buildRouter(openApi),
-    model: {} as ModelRouterRegistration["model"],
-    options: {} as ModelRouterRegistration["options"],
-    path: "/",
-    router: express.Router(),
-  };
-  return registration;
-};
+import {commsDevRouter} from "./commsDev";
 
 describe("dev comms test-push route", () => {
   const buildApp = () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET || "test-secret";
     process.env.TOKEN_ISSUER = process.env.TOKEN_ISSUER || "example-backend-test";
+    if (!commsDevRouter) {
+      throw new Error("commsDevRouter is disabled in production");
+    }
     return new TerrenoApp({
       authOptions: {
         generateJWTPayload: (user: unknown) => ({
@@ -66,7 +37,7 @@ describe("dev comms test-push route", () => {
           },
         })
       )
-      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
+      .register(commsDevRouter)
       .build();
   };
 

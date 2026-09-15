@@ -21,7 +21,6 @@ Code generation tools:
 - `terreno_search_docs` - Search bundled Terreno documentation (call before guessing APIs). Optional `version` selects a retained docs snapshot; omit for current `next` docs.
 - `terreno_get_component_docs` - Full `@terreno/ui` props table for one component
 - `terreno_get_upgrade_guide` - Lockstep upgrade notes between two `@terreno/*` versions
-- `terreno_bootstrap_app` - Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP)
 - `terreno_bootstrap_ai_rules` - Scaffold AI assistant rules files for Cursor, Claude Code, etc.
 - `terreno_generate_model` - Generate a Mongoose model with proper Terreno conventions
 - `terreno_generate_route` - Generate a modelRouter route configuration

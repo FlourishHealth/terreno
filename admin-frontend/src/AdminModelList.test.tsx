@@ -75,9 +75,9 @@ describe("AdminModelList", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders models before tools when both sections are present", () => {
+  it("renders models before tools and navigates from every tool card", async () => {
     mockConfigState.data = baseConfig;
-    const {getByTestId, getByText} = renderWithTheme(
+    const {getByLabelText, getByTestId, getByText} = renderWithTheme(
       <AdminModelList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -92,6 +92,16 @@ describe("AdminModelList", () => {
     expect(getByTestId("admin-scripts-card")).toBeDefined();
     expect(getByTestId("admin-configuration-card")).toBeDefined();
     expect(getByTestId("admin-model-card-User")).toBeDefined();
+    await act(async () => {
+      fireEvent.press(getByLabelText("Dashboard"));
+      fireEvent.press(getByLabelText("Local"));
+      fireEvent.press(getByLabelText("Scripts"));
+      fireEvent.press(getByLabelText("Configuration"));
+    });
+    expect(routerPush).toHaveBeenNthCalledWith(1, "/admin/dashboard");
+    expect(routerPush).toHaveBeenNthCalledWith(2, "/admin/local-screen");
+    expect(routerPush).toHaveBeenNthCalledWith(3, "/admin/__scripts");
+    expect(routerPush).toHaveBeenNthCalledWith(4, "/admin/configuration");
   });
 
   it("renders only the model section when config has no tool cards", () => {
