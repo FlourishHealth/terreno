@@ -13,7 +13,7 @@ const missingScriptPayload = {
 
 describe("createExampleJobsApp", (): void => {
   it("registers example jobs and looks up admin scripts from the example catalog", async (): Promise<void> => {
-    const jobsApp = createExampleJobsApp({environment: {}});
+    const jobsApp = createExampleJobsApp();
     const adminScript = jobsApp.getDefinition("admin/script");
 
     assert.isDefined(jobsApp.getDefinition("example/heartbeat"));
