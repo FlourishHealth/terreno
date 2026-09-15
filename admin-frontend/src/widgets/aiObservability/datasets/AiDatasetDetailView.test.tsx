@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {Modal} from "@terreno/ui";
 import {act, fireEvent, within} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
@@ -61,7 +62,7 @@ describe("AiDatasetDetailView items table", () => {
         tags: ["gold", "universal"],
       },
     ];
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, queryByTestId, UNSAFE_root} = renderWithTheme(
       <AiDatasetDetailView
         dataset={dataset}
         items={longItems}
@@ -88,6 +89,19 @@ describe("AiDatasetDetailView items table", () => {
     expect(modal.getByText("Outcome: tp")).toBeTruthy();
     expect(modal.getByText("Annotator user: user-1")).toBeTruthy();
     expect(modal.getByText("Review item: review-1")).toBeTruthy();
+
+    const detailsModal = UNSAFE_root.findAllByType(Modal).find(
+      (entry) => entry.props.title === "Dataset item details"
+    );
+    assert.exists(detailsModal);
+    if (!detailsModal) {
+      return;
+    }
+    await act(async () => {
+      fireEvent(detailsModal, "onDismiss");
+      await Promise.resolve();
+    });
+    assert.notExists(queryByTestId("ai-dataset-item-modal"));
   });
 });
 
@@ -139,8 +153,10 @@ describe("AiDatasetDetailView tabs", () => {
     fireEvent.changeText(view.getByText("Input (JSON)"), '{"q":"new"}');
     fireEvent.changeText(view.getByText("Expected output (JSON)"), '{"a":"ok"}');
     const addButtons = view.getAllByText("Add item");
+    const submitAddButton = addButtons.at(-1);
+    assert.exists(submitAddButton);
     await act(async () => {
-      fireEvent.press(addButtons[addButtons.length - 1]!);
+      fireEvent.press(submitAddButton);
       await Promise.resolve();
     });
     assert.isAtLeast(onAddItem.mock.calls.length, 1);
@@ -176,8 +192,10 @@ describe("AiDatasetDetailView tabs", () => {
       await Promise.resolve();
     });
     const addButtons = view.getAllByText("Add item");
+    const submitAddButton = addButtons.at(-1);
+    assert.exists(submitAddButton);
     await act(async () => {
-      fireEvent.press(addButtons[addButtons.length - 1]!);
+      fireEvent.press(submitAddButton);
       await Promise.resolve();
     });
     expect(view.getByTestId("ai-dataset-add-item-error")).toBeTruthy();
@@ -188,8 +206,10 @@ describe("AiDatasetDetailView tabs", () => {
       await Promise.resolve();
     });
     const retryButtons = view.getAllByText("Add item");
+    const retryAddButton = retryButtons.at(-1);
+    assert.exists(retryAddButton);
     await act(async () => {
-      fireEvent.press(retryButtons[retryButtons.length - 1]!);
+      fireEvent.press(retryAddButton);
       await Promise.resolve();
     });
     expect(view.queryByTestId("ai-dataset-add-item-error")).toBeNull();
