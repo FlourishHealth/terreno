@@ -127,8 +127,13 @@ const AllNotificationsScreen: React.FC = () => {
         </Box>
         <Box gap={3}>
           <Heading size="lg">Archived</Heading>
-          {archivedItems.length > 0 ? (
+          {isSyncDbReady && archivedItems.length === 0 ? (
+            <Text color="secondaryLight" testID="all-notifications-archived-empty">
+              No archived notifications.
+            </Text>
+          ) : (
             <NotificationInbox
+              isLoading={!isSyncDbReady}
               items={archivedItems}
               onDismiss={handleDismiss}
               onMarkRead={handleMarkRead}
@@ -136,10 +141,6 @@ const AllNotificationsScreen: React.FC = () => {
               onOpen={handleOpen}
               testID="all-notifications-archived"
             />
-          ) : (
-            <Text color="secondaryLight" testID="all-notifications-archived-empty">
-              No archived notifications.
-            </Text>
           )}
         </Box>
       </Box>

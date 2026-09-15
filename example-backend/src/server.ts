@@ -110,11 +110,6 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     wetRun: process.env.RBAC_BACKFILL_ADMINS === "true",
   });
 
-  if (process.env.SEED_DEFAULTS === "true") {
-    logger.info("Seeding default example data");
-    await seedDefaultData();
-  }
-
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {
     logger.warn(`Failed to sync consent forms on startup: ${err}`);
@@ -492,6 +487,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           secretKey: process.env.LANGFUSE_SECRET_KEY,
         })
       );
+    }
+
+    if (process.env.SEED_DEFAULTS === "true") {
+      logger.info("Seeding default example data after sync collections are registered");
+      await seedDefaultData();
     }
 
     const app = terraApp.start();

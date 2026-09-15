@@ -247,6 +247,7 @@ describe("AllNotificationsScreen", () => {
         _id: "active-notification",
         body: "Active body",
         created: "2026-09-11T12:00:00.000Z",
+        href: "/",
         title: "Active",
       },
       {
@@ -272,6 +273,77 @@ describe("AllNotificationsScreen", () => {
       [["active-notification"], ["archived-notification"]]
     );
     assert.isTrue(inboxes[1]?.props.items[0].archived);
+  });
+
+  it("keeps archived inbox loading until syncdb is ready", async (): Promise<void> => {
+    isSyncDbReady = false;
+    notificationRows.splice(0, notificationRows.length);
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<AllNotificationsScreen />);
+    });
+
+    const archivedInbox = renderer.root
+      .findAllByType("NotificationInbox")
+      .find((inbox) => inbox.props.testID === "all-notifications-archived");
+    assert.isOk(archivedInbox);
+    assert.isTrue(archivedInbox?.props.isLoading);
+    assert.equal(
+      renderer.root.findAllByProps({testID: "all-notifications-archived-empty"}).length,
+      0
+    );
+  });
+
+  it("applies history actions and navigates back", async (): Promise<void> => {
+    syncMutate.mockClear();
+    routerBack.mockClear();
+    routerPush.mockClear();
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<AllNotificationsScreen />);
+    });
+
+    const activeInbox = renderer.root
+      .findAllByType("NotificationInbox")
+      .find((inbox) => inbox.props.testID === "all-notifications-active");
+    const item = activeInbox?.props.items[0];
+    act(() => {
+      activeInbox?.props.onMarkRead(item);
+      activeInbox?.props.onMarkUnread(item);
+      activeInbox?.props.onDismiss(item);
+      activeInbox?.props.onOpen(item);
+    });
+    act(() => {
+      renderer.root.findByProps({testID: "notifications-back-button"}).props.onClick();
+    });
+
+    assert.deepInclude(syncMutate.mock.calls[0]?.[0], {
+      collection: "notifications",
+      operation: "update",
+    });
+    assert.deepInclude(syncMutate.mock.calls[1]?.[0], {data: {readAt: null}});
+    assert.equal(typeof syncMutate.mock.calls[2]?.[0].data.archivedAt, "string");
+    assert.equal(routerPush.mock.calls[0]?.[0], "/");
+    assert.equal(routerBack.mock.calls.length, 1);
+  });
+
+  it("ignores history mutations until syncdb is ready", async (): Promise<void> => {
+    isSyncDbReady = false;
+    syncMutate.mockClear();
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<AllNotificationsScreen />);
+    });
+    const activeInbox = renderer.root
+      .findAllByType("NotificationInbox")
+      .find((inbox) => inbox.props.testID === "all-notifications-active");
+    const item = activeInbox?.props.items[0];
+    act(() => {
+      activeInbox?.props.onMarkRead(item);
+      activeInbox?.props.onMarkUnread(item);
+      activeInbox?.props.onDismiss(item);
+    });
+    assert.equal(syncMutate.mock.calls.length, 0);
   });
 });
 

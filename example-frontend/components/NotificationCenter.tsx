@@ -27,7 +27,7 @@ export const isNotificationArchived = (
   notification: Pick<Notification, "archivedAt" | "deleted">
 ): boolean => Boolean(notification.archivedAt) || notification.deleted === true;
 
-export const isActiveNotification = (notification: Notification): boolean =>
+const isActiveNotification = (notification: Notification): boolean =>
   !isNotificationArchived(notification);
 
 export const sortNotificationsByCreatedDesc = (left: Notification, right: Notification): number => {

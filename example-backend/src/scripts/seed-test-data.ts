@@ -12,7 +12,8 @@ import {
   findSyncEntryByModelName,
   logger,
   Notification,
-  NotificationsApp,
+  Permissions,
+  registerSync,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -26,7 +27,6 @@ import {
   type CommsMessageStatus,
 } from "@terreno/comms";
 import {FeatureFlag} from "@terreno/feature-flags";
-import express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
@@ -48,7 +48,21 @@ const ensureNotificationSyncRegistered = (): void => {
   if (findSyncEntryByModelName("Notification")) {
     return;
   }
-  new NotificationsApp({userModel: User}).register(express());
+  registerSync({
+    config: {scope: {type: "owner"}},
+    model: Notification,
+    options: {
+      permissions: {
+        create: [],
+        delete: [Permissions.IsOwner],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+      },
+      sync: {scope: {type: "owner"}},
+    },
+    routePath: "/notifications",
+  });
 };
 
 interface SeedUser {
