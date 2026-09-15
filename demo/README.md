@@ -45,6 +45,15 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 2. Add a `story-config/MyComponent.config.tsx` export (`name`, `interfaceName`, category).
 3. Import that config in `demoConfig.tsx` and add it to the exported list.
 
+## Home grid cards must not nest pressables
+
+The home grid renders every story preview inside a card, and the card's press target is an
+absolutely positioned sibling that covers the card rather than a wrapper around it. A wrapper
+would put one pressable inside another, which on web means `<button>` inside `<button>`. The
+HTML parser repairs that by closing the outer button early, so the static-rendered page loses
+the rest of the grid out of `#root` and onto `<body>`. `components/DemoHomePage.test.tsx`
+renders every configured card and fails if any pressable ends up inside another.
+
 ## Documentation
 
 UI reference: [docs/reference/ui.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/ui.md)
