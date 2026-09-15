@@ -46,7 +46,8 @@ Order in the rail:
 1. **Home** → `{routeBase}/`
 2. **Models** grouped by `admin.group` (ungrouped models land in **General**)
 3. **Screens** from config `customScreens` (plus optional host extras)
-4. **Platform** — Scripts (`/__scripts`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
+4. **Platform** — Scripts (`/__scripts`), Migrations (`/__migrations` when
+   `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
 operators do not hunt for them among business collections. Jobs is a custom screen

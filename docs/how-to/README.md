@@ -22,6 +22,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Durable background jobs](background-jobs.md) — `@terreno/jobs`: enqueue, workers, schedules, Cloud Tasks / Vercel Queues
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
+- [Run MongoDB migrations](run-mongodb-migrations.md) — Versioned `up`/`down` files, `terreno-migrate`, production gate
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Password reset and email verification](password-reset.md) — JWT routes, comms templates, Better Auth hooks
