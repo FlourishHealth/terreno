@@ -14,6 +14,11 @@ const readState: ReadState = {data: undefined, isLoading: false};
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useListQuery: () => ({
+      data: {data: [], total: 0},
+      isLoading: false,
+      refetch: async () => ({}),
+    }),
     useReadQuery: (_id: string, opts: {skip?: boolean}) => {
       if (opts?.skip) {
         return {data: undefined, isLoading: false};

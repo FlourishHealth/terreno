@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {groupAdminCustomScreens, groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminModelConfig} from "./types";
 
 const stubModel = (name: string, displayName: string, group?: string): AdminModelConfig =>
@@ -42,5 +42,28 @@ describe("groupAdminModelsByGroup", () => {
 
   it("returns no groups when models is missing", () => {
     assert.deepEqual(groupAdminModelsByGroup(undefined as unknown as AdminModelConfig[]), []);
+  });
+});
+
+describe("groupAdminCustomScreens", () => {
+  it("keeps ungrouped screens separate from named groups", () => {
+    const result = groupAdminCustomScreens([
+      {displayName: "AI Requests", name: "ai-requests"},
+      {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+      {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+    ]);
+    assert.deepEqual(
+      result.ungrouped.map((screen) => screen.name),
+      ["ai-requests"]
+    );
+    assert.deepEqual(result.grouped, [
+      {
+        group: "AI Observability",
+        screens: [
+          {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+          {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+        ],
+      },
+    ]);
   });
 });
