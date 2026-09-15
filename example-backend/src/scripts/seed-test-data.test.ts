@@ -43,6 +43,14 @@ describe("seedDefaultData", () => {
       }),
       1
     );
+    const archivedExample = await Notification.findExactlyOne({
+      kind: "seed",
+      ownerId: user._id,
+      title: "Archived example",
+    });
+    assert.isOk(archivedExample.archivedAt);
+    assert.isFalse(archivedExample.deleted);
+    assert.isNumber(archivedExample.get("_syncSeq"));
     assert.equal(await ConsentForm.countDocuments({}), 3);
     assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
     assert.equal(

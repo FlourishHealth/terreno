@@ -9,8 +9,10 @@ import {
   ConsentForm,
   type ConsentFormType,
   ConsentResponse,
+  findSyncEntryByModelName,
   logger,
   Notification,
+  NotificationsApp,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -24,6 +26,7 @@ import {
   type CommsMessageStatus,
 } from "@terreno/comms";
 import {FeatureFlag} from "@terreno/feature-flags";
+import express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 // Importing the routers registers the sync configs, so seeded todos/projects get a
@@ -40,6 +43,13 @@ import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
 import {seedFeatureFlags} from "./seed-feature-flags";
+
+const ensureNotificationSyncRegistered = (): void => {
+  if (findSyncEntryByModelName("Notification")) {
+    return;
+  }
+  new NotificationsApp({userModel: User}).register(express());
+};
 
 interface SeedUser {
   admin?: boolean;
@@ -446,6 +456,7 @@ const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<voi
 };
 
 const seedNotifications = async (context: SeedContext, owner: UserDocument): Promise<void> => {
+  ensureNotificationSyncRegistered();
   const seededAt = DateTime.utc();
   for (const notification of SEED_NOTIFICATIONS) {
     const values = {
@@ -459,6 +470,17 @@ const seedNotifications = async (context: SeedContext, owner: UserDocument): Pro
       title: notification.title,
     };
     await context.upsert(Notification, {ownerId: owner._id, title: notification.title}, values);
+    if (context.dryRun) {
+      continue;
+    }
+    const seededNotification = await Notification.findExactlyOne({
+      ownerId: owner._id,
+      title: notification.title,
+    });
+    if (seededNotification.get("_syncSeq") == null) {
+      seededNotification.markModified("body");
+      await seededNotification.save();
+    }
   }
 };
 
