@@ -4,7 +4,6 @@
     "@ai-sdk/google-vertex": "^4.0.142",
     "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0",
     "@google-cloud/secret-manager": "^6.1.2",
-    "@google-cloud/tasks": "catalog:",
     "@google-cloud/trace-agent": "^8.0.0",
     "@opentelemetry/instrumentation-express": "^0.66.0",
     "@opentelemetry/instrumentation-http": "^0.218.0",

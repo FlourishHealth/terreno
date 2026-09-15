@@ -251,7 +251,7 @@ admin HTTP internally (not via a public `useJobsDashboardApi` export).
 | `serviceAccountEmail` | yes | OIDC invoker SA |
 | `oidcAudience` | no | Defaults to execute URL |
 | `basePath` | no | Default `/jobs` |
-| `client` | no | Injected Cloud Tasks client. Required in `bun build --compile` images (static import in the app). Optional peer `createRequire` fallback for Node. |
+| `client` | no | Injected Cloud Tasks client. Required in `bun build --compile` images (REST + `google-auth-library` in the example app). Optional peer `createRequire` fallback for Node. |
 
 Enqueue: `createTask` POST to `{publicUrl}{basePath}/execute`, body `{jobId}` base64,
 `scheduleTime` when `runAt` is future. `requiresExecuteRoute: true`.

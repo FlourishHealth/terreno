@@ -196,9 +196,10 @@ const jobsApp = new JobsApp({
 `GcpCloudTasksRunner` sets `requiresExecuteRoute: true`. Each enqueue creates an HTTP POST
 to `{publicUrl}/jobs/execute` with body `{jobId}` (base64) and an OIDC token. Delayed jobs
 use Cloud Tasks `scheduleTime`. `@terreno/jobs` does **not** read `GCP_TASK_*` env vars —
-pass explicit constructor config. Compiled `bun build --compile` binaries must pass
-`client` from a static `import {CloudTasksClient} from "@google-cloud/tasks"` (example-backend
-does this). The runner's `createRequire` path is omitted from those binaries.
+pass explicit constructor config. Compiled `bun build --compile` binaries must pass a
+`client` that does not load `@google-cloud/tasks` (that package reads
+`cloud_tasks_client_config.json` from disk and is omitted from `$bunfs`). The example
+backend POSTs to the Cloud Tasks REST API with `google-auth-library`.
 
 The deployed example backend selects this runner with `JOBS_RUNNER=gcp-cloud-tasks`.
 Infra Manager creates one queue and a callback-only service account; the CD script supplies
