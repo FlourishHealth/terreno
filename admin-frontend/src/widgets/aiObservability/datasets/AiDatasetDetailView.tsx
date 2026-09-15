@@ -132,7 +132,9 @@ export const AiDatasetDetailView: React.FC<AiDatasetDetailViewProps> = ({
     if (!selectedItem?.sourceTraceId || !onOpenTrace) {
       return;
     }
-    onOpenTrace(selectedItem.sourceTraceId);
+    const traceId = selectedItem.sourceTraceId;
+    setSelectedItem(undefined);
+    onOpenTrace(traceId);
   }, [onOpenTrace, selectedItem]);
 
   return (

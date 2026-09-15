@@ -6,7 +6,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   View,
   type ViewStyle,
 } from "react-native";
@@ -91,7 +90,6 @@ const NON_STYLE_BOX_PROPS = new Set<string>([
   "onScroll",
   "scroll",
   "scrollRef",
-  "style",
   "testID",
   "testIDs",
 ]);
@@ -377,10 +375,6 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
     // Finally, dangerously set overrides.
     if (props.dangerouslySetInlineStyle) {
       style = {...style, ...(props.dangerouslySetInlineStyle.__style as ViewStyle)};
-    }
-
-    if (props.style) {
-      style = StyleSheet.flatten([style, props.style]);
     }
 
     return style;

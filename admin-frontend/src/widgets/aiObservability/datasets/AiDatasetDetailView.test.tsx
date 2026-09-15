@@ -157,6 +157,7 @@ describe("AiDatasetDetailView tabs", () => {
       await Promise.resolve();
     });
     assert.equal(onOpenTrace.mock.calls.length, 1);
+    assert.notExists(view.queryByTestId("ai-dataset-item-modal"));
   });
 
   it("surfaces add-item errors and dismisses the modal on success", async () => {

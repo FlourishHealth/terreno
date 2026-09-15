@@ -404,6 +404,7 @@ and cells wrap to three lines before truncating, so long inputs and expected out
 overlap adjacent rows. Input and Expected receive 2.5× the flexible width of metadata columns.
 Selecting a row opens a scrollable modal with the complete input, expected output, provenance,
 annotation ids, tags, timestamps, metadata, and an **Open source trace** action when linked.
+Opening the source trace dismisses the item modal before navigation.
 
 `ObservabilityTable` (`widgets/aiObservability/shell/ObservabilityTable.tsx`) is the shared
 flow-height table for these screens. Columns take a `title`, optional `minWidth`, and optional

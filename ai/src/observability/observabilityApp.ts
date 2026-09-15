@@ -8,6 +8,11 @@ import {LocalExperimentRunner} from "./local/experimentRunner";
 import {LocalPromptStore} from "./local/promptStore";
 import {LocalReviewStore} from "./local/reviewStore";
 import {LocalTraceSink} from "./local/traceStore";
+import {
+  getObservabilityApp,
+  registerObservabilityApp,
+  resetObservabilityApp,
+} from "./observabilityAppRegistry";
 import {addObservabilityDatasetRoutes} from "./routes/datasets";
 import {addObservabilityEvaluatorRoutes} from "./routes/evaluators";
 import {addObservabilityExperimentRoutes} from "./routes/experiments";
@@ -31,15 +36,7 @@ import type {
 } from "./types";
 import {validateObservabilityConfig} from "./types";
 
-let registeredObservabilityApp: ObservabilityApp | undefined;
-
-export const getObservabilityApp = (): ObservabilityApp | undefined => {
-  return registeredObservabilityApp;
-};
-
-export const resetObservabilityApp = (): void => {
-  registeredObservabilityApp = undefined;
-};
+export {getObservabilityApp, resetObservabilityApp};
 
 export class ObservabilityApp implements TerrenoPlugin {
   readonly aiService?: ObservabilityGenerateClient;
@@ -58,7 +55,7 @@ export class ObservabilityApp implements TerrenoPlugin {
     this.priceMap = options.priceMap;
     this.requestAiServiceFactory = options.requestAiServiceFactory;
     this.sampleRate = options.sampleRate ?? 0;
-    registeredObservabilityApp = this;
+    registerObservabilityApp(this);
   }
 
   get promptRegistry(): PromptRegistry | undefined {

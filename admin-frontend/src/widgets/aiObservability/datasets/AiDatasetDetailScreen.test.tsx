@@ -128,7 +128,11 @@ describe("AiDatasetDetailScreenWidget", () => {
     assert.include(String(routerPush.mock.calls[0]?.[0]), "ai-experiment-new");
 
     await act(async () => {
-      fireEvent.press(view.getByText("Open trace"));
+      fireEvent.press(view.getByTestId("ai-dataset-items-table-row-item-1-clickable"));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.press(view.getByTestId("ai-dataset-item-open-trace"));
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     assert.include(String(routerPush.mock.calls[1]?.[0]), "ai-trace-detail");

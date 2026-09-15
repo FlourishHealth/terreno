@@ -2,7 +2,7 @@ import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} fr
 import type express from "express";
 
 import {requireAdmin} from "../../langfuseRoutesMiddleware";
-import {getObservabilityApp} from "../observabilityApp";
+import {getObservabilityApp} from "../observabilityAppRegistry";
 import {buildObservabilityStatus} from "../status";
 
 const BASE_PATH = "/ai/observability";

@@ -3,7 +3,7 @@ import type express from "express";
 
 import {requireAdmin} from "../../langfuseRoutesMiddleware";
 import type {LocalTraceStore} from "../local/traceStore";
-import {getObservabilityApp} from "../observabilityApp";
+import {getObservabilityApp} from "../observabilityAppRegistry";
 import type {ScoreRecord, ScoreSink} from "../types";
 
 const BASE_PATH = "/ai/observability";

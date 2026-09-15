@@ -1,6 +1,6 @@
 import {Box, Text} from "@terreno/ui";
 import React from "react";
-import type {ViewStyle} from "react-native";
+import {View, type ViewStyle} from "react-native";
 
 export interface ObservabilityTableColumn {
   /** Relative share of leftover row width. */
@@ -45,7 +45,7 @@ const renderRowCells = ({
     const column = columns[cellIndex];
     const minWidth = column?.minWidth ?? DEFAULT_MIN_WIDTH;
     return (
-      <Box
+      <View
         key={column?.title ?? `cell-${cellIndex}`}
         style={columnCellStyle(minWidth, column?.grow)}
       >
@@ -54,7 +54,7 @@ const renderRowCells = ({
         ) : (
           cell
         )}
-      </Box>
+      </View>
     );
   });
 };
@@ -79,11 +79,11 @@ export const ObservabilityTable: React.FC<ObservabilityTableProps> = ({columns, 
         {columns.map((column) => {
           const minWidth = column.minWidth ?? DEFAULT_MIN_WIDTH;
           return (
-            <Box key={column.title} style={columnCellStyle(minWidth, column.grow)}>
+            <View key={column.title} style={columnCellStyle(minWidth, column.grow)}>
               <Text bold size="sm">
                 {column.title}
               </Text>
-            </Box>
+            </View>
           );
         })}
       </Box>

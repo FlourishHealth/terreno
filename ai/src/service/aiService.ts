@@ -12,7 +12,7 @@ import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
-import {getObservabilityApp} from "../observability/observabilityApp";
+import {getObservabilityApp} from "../observability/observabilityAppRegistry";
 import type {ModelPrice, PromptVersionRef, SpanRecord, TraceRecord} from "../observability/types";
 import type {
   AIRequestType,

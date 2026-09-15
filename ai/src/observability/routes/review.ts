@@ -3,7 +3,7 @@ import type express from "express";
 
 import {requireAdmin} from "../../langfuseRoutesMiddleware";
 import type {LocalReviewStore, ReviewStatus} from "../local/reviewStore";
-import {getObservabilityApp} from "../observabilityApp";
+import {getObservabilityApp} from "../observabilityAppRegistry";
 
 const BASE_PATH = "/ai/observability";
 

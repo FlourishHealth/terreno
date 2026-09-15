@@ -31,4 +31,22 @@ describe("jsonPath", () => {
     setValueAtPath(target, "", "ignored");
     assert.deepEqual(target, {});
   });
+
+  it("rejects prototype-polluting read and write paths", () => {
+    const target: Record<string, unknown> = {};
+    for (const path of [
+      "__proto__.polluted",
+      "constructor.prototype.polluted",
+      "prototype.polluted",
+    ]) {
+      assert.throws(() => {
+        setValueAtPath(target, path, true);
+      }, /Unsafe JSON path segment/);
+      assert.throws(() => {
+        getValueAtPath(target, path);
+      }, /Unsafe JSON path segment/);
+    }
+    assert.notProperty(Object.prototype, "polluted");
+    assert.deepEqual(target, {});
+  });
 });

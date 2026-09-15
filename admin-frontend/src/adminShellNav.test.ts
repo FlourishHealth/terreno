@@ -52,8 +52,11 @@ describe("groupAdminCustomScreens", () => {
       {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
       {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
     ]);
-    expect(result.ungrouped.map((screen) => screen.name)).toEqual(["ai-requests"]);
-    expect(result.grouped).toEqual([
+    assert.deepEqual(
+      result.ungrouped.map((screen) => screen.name),
+      ["ai-requests"]
+    );
+    assert.deepEqual(result.grouped, [
       {
         group: "AI Observability",
         screens: [

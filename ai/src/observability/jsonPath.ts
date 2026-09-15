@@ -1,10 +1,24 @@
+const UNSAFE_PATH_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
+
+const pathSegments = (path: string): string[] => {
+  return path.split(".").filter((segment) => {
+    return segment.length > 0;
+  });
+};
+
+const assertSafePath = (segments: string[]): void => {
+  const unsafe = segments.find((segment) => UNSAFE_PATH_SEGMENTS.has(segment));
+  if (unsafe) {
+    throw new Error(`Unsafe JSON path segment "${unsafe}"`);
+  }
+};
+
 export const getValueAtPath = (value: unknown, path: string): unknown => {
   if (!path || path === ".") {
     return value;
   }
-  const segments = path.split(".").filter((segment) => {
-    return segment.length > 0;
-  });
+  const segments = pathSegments(path);
+  assertSafePath(segments);
   let current: unknown = value;
   for (const segment of segments) {
     if (current === null || current === undefined || typeof current !== "object") {
@@ -20,9 +34,8 @@ export const setValueAtPath = (
   path: string,
   value: unknown
 ): void => {
-  const segments = path.split(".").filter((segment) => {
-    return segment.length > 0;
-  });
+  const segments = pathSegments(path);
+  assertSafePath(segments);
   if (segments.length === 0) {
     return;
   }

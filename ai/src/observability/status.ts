@@ -1,4 +1,4 @@
-import type {ObservabilityApp} from "./observabilityApp";
+import type {RegisteredObservabilityApp} from "./observabilityAppRegistry";
 import type {ObservabilityCapability, ObservabilityControlConfig} from "./types";
 
 export interface ObservabilityPluginStatus {
@@ -19,7 +19,7 @@ export interface ObservabilityStatus {
   primaries: ObservabilityControlConfig;
 }
 
-export const buildPlaygroundAiStatus = (app: ObservabilityApp): PlaygroundAiStatus => {
+export const buildPlaygroundAiStatus = (app: RegisteredObservabilityApp): PlaygroundAiStatus => {
   if (app.aiService) {
     return {source: "server"};
   }
@@ -35,7 +35,7 @@ export const isLocalObservabilityPluginOn = (plugins: ReadonlyArray<{id: string}
   });
 };
 
-export const buildObservabilityStatus = (app: ObservabilityApp): ObservabilityStatus => {
+export const buildObservabilityStatus = (app: RegisteredObservabilityApp): ObservabilityStatus => {
   return {
     localOn: isLocalObservabilityPluginOn(app.plugins),
     playgroundAi: buildPlaygroundAiStatus(app),
