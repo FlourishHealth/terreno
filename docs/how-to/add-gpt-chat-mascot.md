@@ -9,7 +9,7 @@ Pass a `mascot` node into `GPTChat`. Terreno does not ship a character — the c
 | `currentMessages` is empty | Rendered, centered in the chat panel above suggested prompts |
 | One or more messages | Hidden |
 
-The empty state fills the message area and centers both axes. It remains scrollable when a large mascot, suggested prompts, or an open keyboard exceeds the available height. Streaming feedback stays with the centered hero until the first message arrives. Size the mascot for a hero slot (`Heading size="2xl"`, a large `Image`, or a Lottie view).
+The empty state fills the message area and centers both axes. The message scroller grows its content to the panel height so a short mascot stays centered, and it still scrolls when a large mascot, suggested prompts, or an open keyboard exceeds the available height. Streaming feedback stays with the centered hero until the first message arrives. Size the mascot for a hero slot (`Heading size="2xl"`, a large `Image`, or a Lottie view).
 
 Omit `mascot` to keep the default empty chat (prompts only, or a blank panel).
 

@@ -1113,7 +1113,14 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
-          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
+          <Box
+            flex="grow"
+            gap={3}
+            justifyContent={isEmptyChat ? "center" : undefined}
+            onScroll={handleScroll}
+            scroll={true}
+            scrollRef={scrollViewRef}
+          >
             <Box flex="grow" gap={3} onLayout={handleContentLayout} testID="gpt-messages">
               {isEmptyChat ? (
                 <EmptyChatHero

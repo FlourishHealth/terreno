@@ -439,10 +439,14 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
 
   if (props.scroll) {
     const {justifyContent, alignContent, alignItems, ...scrollStyle} = boxStyle;
+    const contentContainerStyle: ViewStyle = {alignContent, alignItems, justifyContent};
+    if (typeof boxStyle.flexGrow === "number") {
+      contentContainerStyle.flexGrow = boxStyle.flexGrow;
+    }
 
     box = (
       <ScrollView
-        contentContainerStyle={{alignContent, alignItems, justifyContent}}
+        contentContainerStyle={contentContainerStyle}
         horizontal={props.overflow === "scrollX"}
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled

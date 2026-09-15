@@ -269,10 +269,16 @@ describe("GPTChat", () => {
     });
 
     const emptyState = getByTestId("gpt-empty-state");
+    let messageScroll = getByTestId("gpt-messages").parent;
+    while (messageScroll && !messageScroll.props.contentContainerStyle) {
+      messageScroll = messageScroll.parent;
+    }
 
     assert.equal(emptyState.props.style.flexGrow, 1);
     assert.equal(emptyState.props.style.justifyContent, "center");
     assert.equal(emptyState.props.style.alignItems, "center");
+    assert.equal(messageScroll?.props.contentContainerStyle.flexGrow, 1);
+    assert.equal(messageScroll?.props.contentContainerStyle.justifyContent, "center");
   });
 
   it("keeps the empty state inside the scrollable message content", () => {
