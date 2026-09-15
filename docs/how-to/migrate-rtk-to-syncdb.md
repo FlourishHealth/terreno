@@ -21,7 +21,9 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 1. **Step A — Auth:** Move login/session to Better Auth (`generateBetterAuthSlice`, `betterAuthAdapter`, `syncDb.start()` on login). Screens can still read/write via RTK Query during this step.
 2. **Step B — Data:** For each collection, replace RTK Query hooks with syncdb hooks and delete the RTK path for that screen.
 
-The example app completed both steps; todos are syncdb-only while profile/admin still use generated RTK hooks.
+The example app completed both steps. Product Todos and eligible built-in admin
+String-`_id` model CRUD use syncdb. Profile and other non-synced routes keep
+generated RTK hooks; admin RPC uses its host-bound fetch client.
 
 **Validation (Task 3.5):** The profile screen (`example-frontend/app/(tabs)/profile.tsx`) was reviewed against this guide. `useGetMeQuery` / `usePatchMeMutation` are **non-synced** custom SDK routes — the guide §8 explicitly says to keep them on RTK. No profile migration is required; the guide is sufficient for that case.
 
@@ -348,7 +350,7 @@ It runs `@rtk-query/codegen-openapi` against `openapi-config.ts` and writes `sto
 
 | Still generated | Stop using for migrated collections |
 |-----------------|-------------------------------------|
-| Auth routes, `GET /auth/me`, admin, AI explorer, version config, feature flags | Collection CRUD — import from `store/syncDbSdk.ts` instead |
+| Auth routes, `GET /auth/me`, AI routes, feature flags, ObjectId admin compatibility CRUD | Collection CRUD — import from `store/syncDbSdk.ts` instead |
 | Custom REST / RPC endpoints | Todo `realtimeList` / `realtimeDocument` wiring in `store/sdk.ts` |
 
 Keep running `bun run sdk` after backend route changes — non-synced screens still import from `store/sdk.ts`.
@@ -370,6 +372,20 @@ cd example-frontend && bun run sync-sdk
 ```
 
 This writes `store/syncDbSdk.ts` with friendly hooks (`useTodos`, `useCreateTodo`, …) that intentionally differ from RTK names so both SDKs can coexist during migration. Import synced screens from `@/store/syncDbSdk`, not `store/sdk.ts`.
+
+### Built-in admin
+
+For a synced String-`_id` model, set `sync.adminBroadcast: true` on its existing
+`modelRouter` sync config and inject a dedicated `createSyncDb` client with
+`windowCollections` into `AdminProvider`. REST remains the list membership,
+search, sort, pagination, and bulk-patch surface; TinyBase overlays rows and
+`useMutate` handles create/update/delete. Pass the host's `useConflicts()` result
+as `syncConflicts`.
+
+Admin RPC (config, scripts, roles, comms, consent, documents, version config,
+background tasks) uses admin-frontend's host-bound native fetch client. Do not
+add new admin `injectEndpoints`. Terreno 57 keeps `useAdminApi` and the required
+`api` prop only for ObjectId/API-only compatibility; Terreno 58 removes them.
 
 ## 9. Feature flags
 
@@ -453,7 +469,7 @@ Before a collection can sync:
 - [ ] `syncPlugin` on schema (`_syncSeq` stamping)
 - [ ] `modelRouter("/path", Model, {sync: {scope: ...}})` three-argument form
 - [ ] Custom scopes include `snapshotFilter`
-- [ ] `new SyncApp({getUserScopes?})` for tenant/custom scopes
+- [ ] `new SyncApp({getUserScopes?, accessControl?})` for tenant/custom scopes and admin-window `admin:access` (mount `AdminApp` too so admin `queryFilter` / resource actions apply to hydrate and `|admin` deltas)
 - [ ] `new RealtimeApp({betterAuth?})` + MongoDB replica set
 - [ ] No `updateMany`, `deleteMany`, `deleteOne`, `findOneAndDelete`, or `bulkWrite` on synced models
 

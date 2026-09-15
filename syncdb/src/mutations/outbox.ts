@@ -3,7 +3,7 @@ import type {Row} from "tinybase";
 
 import type {SyncStore} from "../storage/store";
 import {CONFLICTS_TABLE, OUTBOX_TABLE, type OutboxRow} from "../storage/types";
-import type {OutboxMutation, OutboxStatus, SyncMutationOperation} from "../types";
+import type {OutboxMutation, OutboxStatus, SyncMutationMode, SyncMutationOperation} from "../types";
 
 const defaultNow = (): string => DateTime.now().toISO();
 
@@ -47,6 +47,7 @@ const rowToMutation = (mutationId: string, row: Partial<OutboxRow>): OutboxMutat
   errorNackCount: row.errorNackCount ?? 0,
   maxAttempts: typeof row.maxAttempts === "number" ? row.maxAttempts : undefined,
   mutationId,
+  mutationMode: row.mutationMode,
   operation: (row.operation ?? "update") as SyncMutationOperation,
   status: (row.status ?? "queued") as OutboxStatus,
   userId: row.userId ?? "",
@@ -69,6 +70,8 @@ interface EnqueueArgs {
   userId: string;
   /** Optional explicit id (defaults to a generated UUID; useful in tests). */
   mutationId?: string;
+  /** Admin-window marker persisted for replay after restart. */
+  mutationMode?: SyncMutationMode;
 }
 
 interface RecoverStartupStateResult {
@@ -256,6 +259,9 @@ export const createOutbox = ({
     if (args.maxAttempts !== undefined) {
       row.maxAttempts = args.maxAttempts;
     }
+    if (args.mutationMode !== undefined) {
+      row.mutationMode = args.mutationMode;
+    }
     store.raw.setRow(OUTBOX_TABLE, mutationId, row as unknown as Row);
     return rowToMutation(mutationId, row);
   };
@@ -354,6 +360,7 @@ export const createOutbox = ({
       enqueueOrder: row.enqueueOrder ?? 0,
       entityId: row.entityId ?? "",
       errorNackCount: 0,
+      ...(row.mutationMode !== undefined ? {mutationMode: row.mutationMode} : {}),
       operation: row.operation ?? "update",
       status: "queued",
       userId: row.userId ?? "",

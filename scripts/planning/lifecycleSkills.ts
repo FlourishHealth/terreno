@@ -180,6 +180,10 @@ export const validateStageContent = ({
     errors.push(`${prefix}: must load the shared lifecycle contract`);
   }
 
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${prefix}: must load the PR deployments chat closer`);
+  }
+
   if (!content.includes("../../references/documentation-contract.md")) {
     errors.push(`${prefix}: must load the shared documentation contract`);
   }
@@ -447,6 +451,9 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   if (!content.includes("Default to silence")) {
     errors.push("GitHub attention contract must default PR comments to silence");
   }
+  if (!content.includes("preview/demo URLs")) {
+    errors.push("GitHub attention contract must keep preview URLs out of PR comments");
+  }
   if (!content.includes("<details>")) {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
   }
@@ -508,6 +515,26 @@ export const validateAsyncReviewBotsContract = (content: string): string[] => {
   return errors;
 };
 
+export const validatePrDeploymentsContract = (content: string): string[] => {
+  const errors: string[] = [];
+  for (const phrase of [
+    "last visible section",
+    "environmentUrl",
+    "Do not wait for",
+    "Do not post the links as a PR comment",
+    'Do not write "no deployments."',
+    "## Demo",
+  ]) {
+    if (!content.includes(phrase)) {
+      errors.push(`PR deployments contract is missing required phrase: ${phrase}`);
+    }
+  }
+  if (!content.includes("gh api graphql") && !content.includes('gh api "')) {
+    errors.push("PR deployments contract must show how to list GitHub Deployments");
+  }
+  return errors;
+};
+
 export const validateOuterLoopContent = ({
   content,
   directory,
@@ -518,6 +545,9 @@ export const validateOuterLoopContent = ({
   const errors: string[] = [];
   if (content.includes("disable-model-invocation: true")) {
     errors.push(`${directory}: outer-loop skills must allow model invocation`);
+  }
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${directory}: outer loop must load the PR deployments chat closer`);
   }
   if (directory === "terreno-pick-roast-loop") {
     for (const marker of [
@@ -878,6 +908,9 @@ export const validateLifecyclePlugin = ({
   );
   errors.push(...validateAsyncReviewBotsContract(asyncReviewBots));
 
+  const prDeployments = readFileSync(join(pluginDirectory, "references/pr-deployments.md"), "utf8");
+  errors.push(...validatePrDeploymentsContract(prDeployments));
+
   const pluginReadme = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   if (!pluginReadme.includes("documentation-contract.md")) {
     errors.push("plugins/README.md must document the documentation contract");
@@ -994,6 +1027,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!lifecycleContract.includes("pick-roast-loop.md")) {
     errors.push("lifecycle contract must name the pick-roast inner loop");
+  }
+  if (!lifecycleContract.includes("last visible section")) {
+    errors.push("lifecycle contract must close wait/done chats with PR demo URLs");
   }
 
   const loopEngineering = readFileSync(
