@@ -115,6 +115,12 @@ export interface GPTChatProps {
   onSubmit: (prompt: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
   selectedModel?: string;
+  /**
+   * Optional consumer-owned character for an empty chat. Terreno does not ship a
+   * default mascot — pass an image, icon, Lottie view, or any React node. Hidden
+   * once `currentMessages` is non-empty.
+   */
+  mascot?: React.ReactNode;
   suggestedPrompts?: string[];
   systemMemory?: string;
   testID?: string;
@@ -584,12 +590,125 @@ const AssistantActions = ({
   );
 };
 
+const EmptyChatHero = ({
+  handleSuggestedPrompt,
+  isStreaming,
+  mascot,
+  suggestedPrompts,
+}: {
+  handleSuggestedPrompt: (prompt: string) => void;
+  isStreaming: boolean;
+  mascot?: React.ReactNode;
+  suggestedPrompts?: string[];
+}): React.ReactElement | null => {
+  const hasSuggestedPrompts = Boolean(suggestedPrompts && suggestedPrompts.length > 0);
+  if (!mascot && !hasSuggestedPrompts && !isStreaming) {
+    return null;
+  }
+  return (
+    <Box
+      alignItems="center"
+      flex="grow"
+      justifyContent="center"
+      padding={4}
+      testID="gpt-empty-state"
+    >
+      <Box alignItems="center" gap={5} maxWidth={640} width="100%">
+        {mascot ? (
+          <Box alignItems="center" testID="gpt-mascot">
+            {mascot}
+          </Box>
+        ) : null}
+        {hasSuggestedPrompts ? (
+          <Box alignItems="center" gap={3} width="100%">
+            <Text color="secondaryDark" size="sm">
+              Try asking...
+            </Text>
+            <Box direction="row" gap={2} justifyContent="center" wrap={true}>
+              {suggestedPrompts?.map((prompt) => (
+                <Box
+                  accessibilityHint="Send this suggested prompt"
+                  accessibilityLabel={prompt}
+                  border="default"
+                  key={prompt}
+                  onClick={() => handleSuggestedPrompt(prompt)}
+                  paddingX={3}
+                  paddingY={2}
+                  rounding="lg"
+                >
+                  <Text size="sm">{prompt}</Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : null}
+      </Box>
+      <StreamingIndicator isStreaming={isStreaming} />
+    </Box>
+  );
+};
+
+const MessageList = ({
+  currentMessages,
+  handleCopyMessage,
+  onRateFeedback,
+}: {
+  currentMessages: GPTChatMessage[];
+  handleCopyMessage: (text: string) => void;
+  onRateFeedback?: (promptIndex: number, rating: "up" | "down" | null) => void;
+}): React.ReactElement => {
+  return (
+    <>
+      {currentMessages.map((message, index) => {
+        if (message.role === "tool-call" && message.toolCall) {
+          return (
+            <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+              <ToolCallCard toolCall={message.toolCall} />
+            </Box>
+          );
+        }
+        if (message.role === "tool-result" && message.toolResult) {
+          return (
+            <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+              <ToolResultCard toolResult={message.toolResult} />
+            </Box>
+          );
+        }
+
+        const hasImages = message.contentParts?.some((p) => p.type === "image");
+        return (
+          <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
+            <Box
+              color={message.role === "user" ? "primary" : "neutralLight"}
+              maxWidth={hasImages ? "90%" : "80%"}
+              padding={3}
+              rounding="lg"
+            >
+              <ContentPartsPreview
+                hasContent={Boolean(message.content)}
+                parts={message.contentParts}
+              />
+              <MessageText content={message.content} role={message.role} />
+              <AssistantActions
+                handleCopyMessage={handleCopyMessage}
+                index={index}
+                message={message}
+                onRateFeedback={onRateFeedback}
+              />
+            </Box>
+          </Box>
+        );
+      })}
+    </>
+  );
+};
+
 const StreamingIndicator = ({isStreaming}: {isStreaming: boolean}): React.ReactElement | null => {
   if (!isStreaming) {
     return null;
   }
   return (
-    <Box alignItems="start" padding={2}>
+    <Box alignItems="start" padding={2} testID="gpt-streaming-indicator">
       <Spinner size="sm" />
     </Box>
   );
@@ -758,6 +877,7 @@ export const GPTChat = ({
   onSubmit,
   onUpdateTitle,
   selectedModel,
+  mascot,
   suggestedPrompts,
   systemMemory,
   testID,
@@ -916,6 +1036,8 @@ export const GPTChat = ({
     setIsApiKeyModalVisible(false);
   }, [apiKeyDraft, onGeminiApiKeyChange]);
 
+  const isEmptyChat = currentMessages.length === 0;
+
   return (
     <Box direction="row" flex="grow" testID={testID}>
       {/* Sidebar */}
@@ -991,72 +1113,32 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
-          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
-            <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
-              {currentMessages.length === 0 && suggestedPrompts && suggestedPrompts.length > 0 && (
-                <Box alignItems="center" gap={2} paddingY={4}>
-                  <Text color="secondaryDark" size="sm">
-                    Try asking...
-                  </Text>
-                  <Box direction="row" gap={2} wrap={true}>
-                    {suggestedPrompts.map((prompt) => (
-                      <Box
-                        accessibilityHint="Send this suggested prompt"
-                        accessibilityLabel={prompt}
-                        border="default"
-                        key={prompt}
-                        onClick={() => handleSuggestedPrompt(prompt)}
-                        padding={2}
-                        rounding="lg"
-                      >
-                        <Text size="sm">{prompt}</Text>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
+          <Box
+            flex="grow"
+            gap={3}
+            justifyContent={isEmptyChat ? "center" : undefined}
+            onScroll={handleScroll}
+            scroll={true}
+            scrollRef={scrollViewRef}
+          >
+            <Box flex="grow" gap={3} onLayout={handleContentLayout} testID="gpt-messages">
+              {isEmptyChat ? (
+                <EmptyChatHero
+                  handleSuggestedPrompt={handleSuggestedPrompt}
+                  isStreaming={isStreaming}
+                  mascot={mascot}
+                  suggestedPrompts={suggestedPrompts}
+                />
+              ) : (
+                <>
+                  <MessageList
+                    currentMessages={currentMessages}
+                    handleCopyMessage={handleCopyMessage}
+                    onRateFeedback={onRateFeedback}
+                  />
+                  <StreamingIndicator isStreaming={isStreaming} />
+                </>
               )}
-              {currentMessages.map((message, index) => {
-                // Tool call/result messages
-                if (message.role === "tool-call" && message.toolCall) {
-                  return (
-                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                      <ToolCallCard toolCall={message.toolCall} />
-                    </Box>
-                  );
-                }
-                if (message.role === "tool-result" && message.toolResult) {
-                  return (
-                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                      <ToolResultCard toolResult={message.toolResult} />
-                    </Box>
-                  );
-                }
-
-                const hasImages = message.contentParts?.some((p) => p.type === "image");
-                return (
-                  <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
-                    <Box
-                      color={message.role === "user" ? "primary" : "neutralLight"}
-                      maxWidth={hasImages ? "90%" : "80%"}
-                      padding={3}
-                      rounding="lg"
-                    >
-                      <ContentPartsPreview
-                        hasContent={Boolean(message.content)}
-                        parts={message.contentParts}
-                      />
-                      <MessageText content={message.content} role={message.role} />
-                      <AssistantActions
-                        handleCopyMessage={handleCopyMessage}
-                        index={index}
-                        message={message}
-                        onRateFeedback={onRateFeedback}
-                      />
-                    </Box>
-                  </Box>
-                );
-              })}
-              <StreamingIndicator isStreaming={isStreaming} />
             </Box>
           </Box>
         </Box>
@@ -1065,21 +1147,27 @@ export const GPTChat = ({
         <AttachmentSection attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
         {/* Input */}
-        <Box alignItems="end" direction="row" gap={2}>
-          <AttachButton
-            handleFilesSelected={handleFilesSelected}
-            isStreaming={isStreaming}
-            onAttachFiles={onAttachFiles}
-          />
+        <Box direction="row" gap={2} testID="gpt-composer">
+          {onAttachFiles ? (
+            <Box justifyContent="center" testID="gpt-composer-attach">
+              <AttachButton
+                handleFilesSelected={handleFilesSelected}
+                isStreaming={isStreaming}
+                onAttachFiles={onAttachFiles}
+              />
+            </Box>
+          ) : null}
           {mcpTools && mcpTools.length > 0 && (
-            <IconButton
-              accessibilityLabel="Show available tools"
-              iconName="hammer"
-              onClick={() => setIsToolsModalVisible(true)}
-              testID="gpt-tools-button"
-            />
+            <Box justifyContent="center" testID="gpt-composer-tools">
+              <IconButton
+                accessibilityLabel="Show available tools"
+                iconName="hammer"
+                onClick={() => setIsToolsModalVisible(true)}
+                testID="gpt-tools-button"
+              />
+            </Box>
           )}
-          <Box flex="grow">
+          <Box flex="grow" justifyContent="center">
             <TextArea
               blurOnSubmit={false}
               disabled={isStreaming}
@@ -1090,13 +1178,15 @@ export const GPTChat = ({
               value={inputValue}
             />
           </Box>
-          <Button
-            disabled={!inputValue.trim() || isStreaming}
-            iconName="paper-plane"
-            onClick={handleSubmit}
-            testID="gpt-submit"
-            text="Send"
-          />
+          <Box justifyContent="center" testID="gpt-composer-send">
+            <Button
+              disabled={!inputValue.trim() || isStreaming}
+              iconName="paper-plane"
+              onClick={handleSubmit}
+              testID="gpt-submit"
+              text="Send"
+            />
+          </Box>
         </Box>
       </Box>
 
