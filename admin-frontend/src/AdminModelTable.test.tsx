@@ -62,7 +62,6 @@ mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [enqueueBackgroundFn, {isLoading: false}],
 }));
 
-import {AdminFilterDrawer} from "./AdminFilterDrawer";
 import {AdminModelTable} from "./AdminModelTable";
 
 const fullConfig = {
@@ -864,7 +863,7 @@ describe("AdminModelTable", () => {
     expectSelectionCount(getByTestId, 1);
 
     await act(async () => {
-      fireEvent.changeText(getByTestId("admin-table-search"), "query");
+      findDataTable(UNSAFE_root).props.onSearchChange("query");
     });
     await act(async () => {
       await new Promise((r) => setTimeout(r, ADMIN_SEARCH_DEBOUNCE_MS + 50));
@@ -874,7 +873,7 @@ describe("AdminModelTable", () => {
     expectSelectionCount(getByTestId, 0);
   });
 
-  it("applies filters through the drawer and resets pagination", async () => {
+  it("applies DataTable filters and resets pagination", async () => {
     configState.config = interactiveConfig;
     listState.data = {data: interactiveListRows, total: 40};
     const {UNSAFE_root} = renderWithTheme(
@@ -887,7 +886,7 @@ describe("AdminModelTable", () => {
     assert.equal(findDataTable(UNSAFE_root).props.page, 2);
 
     await act(async () => {
-      UNSAFE_root.findByType(AdminFilterDrawer).props.onApply({active: true});
+      findDataTable(UNSAFE_root).props.onFilterValuesChange({active: true});
     });
 
     assert.equal(findDataTable(UNSAFE_root).props.page, 1);
