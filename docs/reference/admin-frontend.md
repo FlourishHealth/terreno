@@ -42,13 +42,18 @@ export default function AdminScreen() {
 
 `OrgDirectoryScreen` is the operator-only organization directory. It renders
 loading, error, and empty states plus actions to create, disable, and open an
-organization.
+organization. **Open** also calls `selectOrganization` when the directory is
+inside `OrgContextProvider`, so `X-Organization-Id` is set even if the host
+callback only navigates.
 
 ``````typescript
+const {selectOrganization} = useOrgContext();
+
 <OrgDirectoryScreen
   api={api}
   isOperator={currentUser.roles?.includes("operator") ?? false}
   onEnterOrganization={(organization) => {
+    selectOrganization(organization);
     router.push(`/admin/orgs/${organization._id}`);
   }}
   routeBase="/admin"
@@ -77,7 +82,8 @@ Wrap organization-aware admin routes with `OrgContextProvider` and render
 organization navigates to `{routeBase}/orgs/:orgId` and adds
 `X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
 include the organization id, preventing rows cached for one org from appearing
-in another.
+in another. Pass `initialOrganization` when the current route already has an
+org id so context follows URL changes after mount.
 
 ``````typescript
 <OrgContextProvider>

@@ -175,8 +175,9 @@ tenant context. Operators re-enable them from the organization directory UI or
 with `PATCH /orgs/:id` and `disabled: false` (see
 [How organization tenancy works](../explanation/organizations.md#disabled-organizations)).
 
-Creating or renaming an organization to a name that generates an existing slug
-returns **409** `Organization name already in use`. `OrgSwitcher` hides itself
+Creating or renaming an organization to a name that generates an existing slug,
+including a slug still held by a **soft-deleted** organization, returns **409**
+`Organization name already in use`. `OrgSwitcher` hides itself
 when `/orgs/mine` returns **403** for callers without org-admin memberships.
 
 ## Example app accounts

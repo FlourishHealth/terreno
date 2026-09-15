@@ -1,4 +1,4 @@
-import React, {createContext, useCallback, useContext, useMemo, useState} from "react";
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useState} from "react";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
 
 export interface OrgContextValue {
@@ -23,6 +23,16 @@ export const OrgContextProvider: React.FC<OrgContextProviderProps> = ({
   const [organization, setOrganization] = useState<OrganizationSummary | undefined>(
     initialOrganization
   );
+  // Hosts that pass a route-derived org must keep context aligned after navigation.
+  useEffect(() => {
+    if (!initialOrganization) {
+      return;
+    }
+    if (organization?._id === initialOrganization._id) {
+      return;
+    }
+    setOrganization(initialOrganization);
+  }, [initialOrganization, organization?._id]);
   const selectOrganization = useCallback(
     (nextOrganization: OrganizationSummary): void => {
       setOrganization(nextOrganization);

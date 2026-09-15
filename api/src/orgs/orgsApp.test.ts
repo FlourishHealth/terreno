@@ -289,6 +289,21 @@ describe("OrgsApp", () => {
     assert.equal(stillAdmin?.roleName, "org-admin");
   });
 
+  it("returns 409 when POST /orgs collides with a soft-deleted slug", async () => {
+    const operator = await createUser({email: "op-deleted@example.com", roles: ["operator"]});
+    const org = await Organization.create({name: "Acme Corp", ownerId: operator._id});
+    const operatorAgent = await loginWithPassword(app, {
+      email: "op-deleted@example.com",
+      password: PASSWORD,
+    });
+    const deleted = await operatorAgent.delete(`/orgs/${org._id}`);
+    assert.equal(deleted.status, 204);
+
+    const created = await operatorAgent.post("/orgs").send({name: "Acme Corp"});
+    assert.equal(created.status, 409);
+    assert.equal(created.body.title, "Organization name already in use");
+  });
+
   it("returns 409 when POST /orgs collides on slug", async () => {
     const operator = await createUser({email: "op@example.com", roles: ["operator"]});
     await Organization.create({name: "Acme Corp", ownerId: operator._id});

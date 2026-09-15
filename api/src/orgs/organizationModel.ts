@@ -38,7 +38,11 @@ export const assertOrganizationSlugAvailable = async (
   slug: string,
   excludeOrganizationId?: mongoose.Types.ObjectId
 ): Promise<void> => {
-  const query: {_id?: {$ne: mongoose.Types.ObjectId}; slug: string} = {slug};
+  const query: {
+    _id?: {$ne: mongoose.Types.ObjectId};
+    deleted: {$in: boolean[]};
+    slug: string;
+  } = {deleted: {$in: [true, false]}, slug};
   if (excludeOrganizationId) {
     query._id = {$ne: excludeOrganizationId};
   }

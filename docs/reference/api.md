@@ -720,8 +720,9 @@ must also hold an active Membership in that organization. Direct `GET` / `PATCH`
 by document id does not apply `OrgQueryFilter`, so this object-level check is
 what blocks cross-tenant reads and writes. `getOrgContext()` exposes the
 resolved organization to create hooks so they can overwrite client-provided
-organization ids. Duplicate organization names that generate the same slug
-return **409** `Organization name already in use` on `POST /orgs` and on rename
+organization ids. Duplicate organization names that generate the same slug,
+including slugs still held by soft-deleted organizations, return **409**
+`Organization name already in use` on `POST /orgs` and on rename
 via `PATCH /orgs/:id`. See [Add organizations](../how-to/add-organizations.md)
 for complete route wiring.
 

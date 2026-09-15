@@ -15,6 +15,7 @@ import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import {normalizeListData} from "./normalizeListData";
 import {useOrganizationsApi} from "./useOrganizationsApi";
+import {useOptionalOrgContext} from "./useOrgContext";
 
 export interface OrganizationSummary {
   _id: string;
@@ -54,6 +55,14 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
   const [createOrganization, {isLoading: isCreating}] = useCreateMutation();
   const [updateOrganization, {isLoading: isUpdating}] = useUpdateMutation();
   const organizations = normalizeListData<OrganizationSummary>(data);
+  const orgContext = useOptionalOrgContext();
+  const handleEnterOrganization = useCallback(
+    (organization: OrganizationSummary): void => {
+      orgContext?.selectOrganization(organization);
+      onEnterOrganization(organization);
+    },
+    [onEnterOrganization, orgContext]
+  );
 
   const handleDismissCreate = useCallback((): void => {
     setIsCreateOpen(false);
@@ -101,7 +110,7 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
       return (
         <Box direction="row" gap={2}>
           <Button
-            onClick={() => onEnterOrganization(organization)}
+            onClick={() => handleEnterOrganization(organization)}
             size="sm"
             text="Open"
             variant="outline"
@@ -118,7 +127,7 @@ export const OrgDirectoryScreen: React.FC<OrgDirectoryScreenProps> = ({
         </Box>
       );
     },
-    [handleSetDisabled, isUpdating, onEnterOrganization]
+    [handleEnterOrganization, handleSetDisabled, isUpdating]
   );
 
   const customColumns: DataTableCustomComponentMap = useMemo(

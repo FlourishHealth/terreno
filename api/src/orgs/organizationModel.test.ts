@@ -2,7 +2,7 @@ import {beforeEach, describe, it} from "bun:test";
 import {assert} from "chai";
 import mongoose from "mongoose";
 
-import {Membership, Organization} from "./organizationModel";
+import {assertOrganizationSlugAvailable, Membership, Organization} from "./organizationModel";
 
 const userId = (): mongoose.Types.ObjectId => new mongoose.Types.ObjectId();
 
@@ -70,6 +70,25 @@ describe("Organization and Membership models", () => {
 
     assert.instanceOf(error, Error);
     assert.match((error as Error).message, /duplicate key/i);
+  });
+
+  it("treats a soft-deleted organization slug as taken", async () => {
+    const org = await Organization.create({
+      name: "Acme Corp",
+      ownerId: userId(),
+    });
+    org.deleted = true;
+    await org.save();
+
+    let error: unknown;
+    try {
+      await assertOrganizationSlugAvailable("acme-corp");
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    assert.equal((error as {status?: number}).status, 409);
+    assert.equal((error as {title?: string}).title, "Organization name already in use");
   });
 
   it("defaults membership roleName to member and status to active", async () => {

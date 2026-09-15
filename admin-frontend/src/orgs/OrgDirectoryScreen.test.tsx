@@ -16,6 +16,7 @@ mock.module("expo-router", () => ({
 
 import type {AdminApi} from "../types";
 import {OrgDirectoryScreen} from "./OrgDirectoryScreen";
+import {OrgContextProvider, useOrgContext} from "./useOrgContext";
 
 /**
  * Stands in for the host RTK Query API so the real `useOrganizationsApi` runs.
@@ -156,5 +157,28 @@ describe("OrgDirectoryScreen", () => {
       body: {disabled: false},
       id: "org-1",
     });
+  });
+
+  it("selects the opened organization in OrgContextProvider without a host callback", () => {
+    queryState.data = {
+      data: [{_id: "org-1", disabled: false, name: "Acme", slug: "acme"}],
+    };
+    const selectedIds: string[] = [];
+    const SelectedOrganizationProbe: React.FC = () => {
+      const {organizationId} = useOrgContext();
+      if (organizationId) {
+        selectedIds.push(organizationId);
+      }
+      return null;
+    };
+    const screen = renderWithTheme(
+      <OrgContextProvider>
+        <SelectedOrganizationProbe />
+        <OrgDirectoryScreen api={api} isOperator onEnterOrganization={mock(() => {})} />
+      </OrgContextProvider>
+    );
+
+    fireEvent(screen.getByLabelText("Open"), "click");
+    expect(selectedIds.at(-1)).toBe("org-1");
   });
 });
