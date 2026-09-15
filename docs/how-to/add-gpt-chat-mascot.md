@@ -6,8 +6,10 @@ Pass a `mascot` node into `GPTChat`. Terreno does not ship a character — the c
 
 | Chat state | Mascot |
 | --- | --- |
-| `currentMessages` is empty | Rendered, centered above suggested prompts |
+| `currentMessages` is empty | Rendered, centered in the chat panel above suggested prompts |
 | One or more messages | Hidden |
+
+The empty state fills the message area and centers both axes, so size the mascot for a hero slot (`Heading size="2xl"`, a large `Image`, or a Lottie view).
 
 Omit `mascot` to keep the default empty chat (prompts only, or a blank panel).
 
@@ -18,14 +20,14 @@ Omit `mascot` to keep the default empty chat (prompts only, or a blank panel).
 Keep the asset in the consumer package. `GPTChat` only mounts whatever you pass.
 
 ```tsx
-import {Box, Heading, Text} from "@terreno/ui";
+import {Box, Heading} from "@terreno/ui";
 
 const ChatMascot: React.ReactElement = (
-  <Box alignItems="center" gap={2}>
-    <Heading size="lg">🦊</Heading>
-    <Text color="secondaryDark" size="sm">
+  <Box alignItems="center" gap={3}>
+    <Heading size="2xl">🦊</Heading>
+    <Heading align="center" size="md">
       Ask anything.
-    </Text>
+    </Heading>
   </Box>
 );
 ```

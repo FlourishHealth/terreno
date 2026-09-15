@@ -31,9 +31,9 @@ const GPTChatFrame: React.FC<{children: React.ReactNode}> = ({children}) => {
 };
 
 const DEMO_MASCOT: React.ReactElement = (
-  <Box alignItems="center" gap={1}>
-    <Heading size="lg">🦊</Heading>
-    <Text color="secondaryDark" size="sm">
+  <Box alignItems="center" gap={3}>
+    <Heading size="2xl">🦊</Heading>
+    <Text align="center" color="secondaryDark" size="sm">
       Demo fox — supplied by the story, not by GPTChat.
     </Text>
   </Box>

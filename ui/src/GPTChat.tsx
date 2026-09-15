@@ -604,35 +604,99 @@ const EmptyChatHero = ({
     return null;
   }
   return (
-    <Box alignItems="center" gap={2} paddingY={4}>
-      {mascot ? (
-        <Box alignItems="center" testID="gpt-mascot">
-          {mascot}
-        </Box>
-      ) : null}
-      {hasSuggestedPrompts ? (
-        <>
-          <Text color="secondaryDark" size="sm">
-            Try asking...
-          </Text>
-          <Box direction="row" gap={2} wrap={true}>
-            {suggestedPrompts?.map((prompt) => (
-              <Box
-                accessibilityHint="Send this suggested prompt"
-                accessibilityLabel={prompt}
-                border="default"
-                key={prompt}
-                onClick={() => handleSuggestedPrompt(prompt)}
-                padding={2}
-                rounding="lg"
-              >
-                <Text size="sm">{prompt}</Text>
-              </Box>
-            ))}
+    <Box
+      alignItems="center"
+      flex="grow"
+      justifyContent="center"
+      padding={4}
+      testID="gpt-empty-state"
+    >
+      <Box alignItems="center" gap={5} maxWidth={640} width="100%">
+        {mascot ? (
+          <Box alignItems="center" testID="gpt-mascot">
+            {mascot}
           </Box>
-        </>
-      ) : null}
+        ) : null}
+        {hasSuggestedPrompts ? (
+          <Box alignItems="center" gap={3} width="100%">
+            <Text color="secondaryDark" size="sm">
+              Try asking...
+            </Text>
+            <Box direction="row" gap={2} justifyContent="center" wrap={true}>
+              {suggestedPrompts?.map((prompt) => (
+                <Box
+                  accessibilityHint="Send this suggested prompt"
+                  accessibilityLabel={prompt}
+                  border="default"
+                  key={prompt}
+                  onClick={() => handleSuggestedPrompt(prompt)}
+                  paddingX={3}
+                  paddingY={2}
+                  rounding="lg"
+                >
+                  <Text size="sm">{prompt}</Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : null}
+      </Box>
     </Box>
+  );
+};
+
+const MessageList = ({
+  currentMessages,
+  handleCopyMessage,
+  onRateFeedback,
+}: {
+  currentMessages: GPTChatMessage[];
+  handleCopyMessage: (text: string) => void;
+  onRateFeedback?: (promptIndex: number, rating: "up" | "down" | null) => void;
+}): React.ReactElement => {
+  return (
+    <>
+      {currentMessages.map((message, index) => {
+        if (message.role === "tool-call" && message.toolCall) {
+          return (
+            <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+              <ToolCallCard toolCall={message.toolCall} />
+            </Box>
+          );
+        }
+        if (message.role === "tool-result" && message.toolResult) {
+          return (
+            <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+              <ToolResultCard toolResult={message.toolResult} />
+            </Box>
+          );
+        }
+
+        const hasImages = message.contentParts?.some((p) => p.type === "image");
+        return (
+          <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
+            <Box
+              color={message.role === "user" ? "primary" : "neutralLight"}
+              maxWidth={hasImages ? "90%" : "80%"}
+              padding={3}
+              rounding="lg"
+            >
+              <ContentPartsPreview
+                hasContent={Boolean(message.content)}
+                parts={message.contentParts}
+              />
+              <MessageText content={message.content} role={message.role} />
+              <AssistantActions
+                handleCopyMessage={handleCopyMessage}
+                index={index}
+                message={message}
+                onRateFeedback={onRateFeedback}
+              />
+            </Box>
+          </Box>
+        );
+      })}
+    </>
   );
 };
 
@@ -969,6 +1033,8 @@ export const GPTChat = ({
     setIsApiKeyModalVisible(false);
   }, [apiKeyDraft, onGeminiApiKeyChange]);
 
+  const isEmptyChat = currentMessages.length === 0;
+
   return (
     <Box direction="row" flex="grow" testID={testID}>
       {/* Sidebar */}
@@ -1044,66 +1110,38 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
-          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
-            <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
-              {currentMessages.length === 0 && (
-                <EmptyChatHero
-                  handleSuggestedPrompt={handleSuggestedPrompt}
-                  mascot={mascot}
-                  suggestedPrompts={suggestedPrompts}
+          {isEmptyChat ? (
+            <EmptyChatHero
+              handleSuggestedPrompt={handleSuggestedPrompt}
+              mascot={mascot}
+              suggestedPrompts={suggestedPrompts}
+            />
+          ) : null}
+          {isEmptyChat && !isStreaming ? null : (
+            <Box
+              flex="grow"
+              gap={3}
+              onScroll={handleScroll}
+              scroll={true}
+              scrollRef={scrollViewRef}
+            >
+              <Box gap={3} onLayout={handleContentLayout} testID="gpt-messages">
+                <MessageList
+                  currentMessages={currentMessages}
+                  handleCopyMessage={handleCopyMessage}
+                  onRateFeedback={onRateFeedback}
                 />
-              )}
-              {currentMessages.map((message, index) => {
-                // Tool call/result messages
-                if (message.role === "tool-call" && message.toolCall) {
-                  return (
-                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                      <ToolCallCard toolCall={message.toolCall} />
-                    </Box>
-                  );
-                }
-                if (message.role === "tool-result" && message.toolResult) {
-                  return (
-                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                      <ToolResultCard toolResult={message.toolResult} />
-                    </Box>
-                  );
-                }
-
-                const hasImages = message.contentParts?.some((p) => p.type === "image");
-                return (
-                  <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
-                    <Box
-                      color={message.role === "user" ? "primary" : "neutralLight"}
-                      maxWidth={hasImages ? "90%" : "80%"}
-                      padding={3}
-                      rounding="lg"
-                    >
-                      <ContentPartsPreview
-                        hasContent={Boolean(message.content)}
-                        parts={message.contentParts}
-                      />
-                      <MessageText content={message.content} role={message.role} />
-                      <AssistantActions
-                        handleCopyMessage={handleCopyMessage}
-                        index={index}
-                        message={message}
-                        onRateFeedback={onRateFeedback}
-                      />
-                    </Box>
-                  </Box>
-                );
-              })}
-              <StreamingIndicator isStreaming={isStreaming} />
+                <StreamingIndicator isStreaming={isStreaming} />
+              </Box>
             </Box>
-          </Box>
+          )}
         </Box>
 
         <ScrollToBottomButton isScrolledUp={isScrolledUp} scrollToBottom={scrollToBottom} />
         <AttachmentSection attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
         {/* Input */}
-        <Box alignItems="end" direction="row" gap={2}>
+        <Box alignItems="center" direction="row" gap={2} testID="gpt-composer">
           <AttachButton
             handleFilesSelected={handleFilesSelected}
             isStreaming={isStreaming}

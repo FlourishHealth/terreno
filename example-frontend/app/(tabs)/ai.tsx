@@ -9,7 +9,6 @@ import {
   type MessageContentPart,
   type SelectedFile,
   Spinner,
-  Text,
   useStoredState,
 } from "@terreno/ui";
 import {DateTime} from "luxon";
@@ -90,11 +89,11 @@ const gptHistoriesListQueryArgs = {};
 
 /** Consumer-owned empty-state character. GPTChat does not ship a default mascot. */
 const EXAMPLE_GPT_MASCOT: React.ReactElement = (
-  <Box alignItems="center" gap={2} testID="example-gpt-mascot">
-    <Heading size="lg">🦊</Heading>
-    <Text color="secondaryDark" size="sm">
+  <Box alignItems="center" gap={3} testID="example-gpt-mascot">
+    <Heading size="2xl">🦊</Heading>
+    <Heading align="center" size="md">
       Ask anything about Terreno.
-    </Text>
+    </Heading>
   </Box>
 );
 

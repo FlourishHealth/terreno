@@ -262,6 +262,38 @@ describe("GPTChat", () => {
     assert.isOk(getByText("Try asking..."));
   });
 
+  it("centers the empty state in the chat panel", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    const emptyState = getByTestId("gpt-empty-state");
+
+    assert.equal(emptyState.props.style.flexGrow, 1);
+    assert.equal(emptyState.props.style.justifyContent, "center");
+    assert.equal(emptyState.props.style.alignItems, "center");
+  });
+
+  it("drops the centered empty state once messages exist", () => {
+    const {queryByTestId} = renderChat({
+      currentMessages: [{content: "Hi there", role: "user"}],
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isNull(queryByTestId("gpt-empty-state"));
+  });
+
+  it("vertically centers the composer controls beside the input", () => {
+    const {getByTestId} = renderChat({
+      mcpTools: [{name: "readFile"}],
+      onAttachFiles: () => {},
+    });
+
+    assert.equal(getByTestId("gpt-composer").props.style.alignItems, "center");
+  });
+
   it("hides the mascot after messages exist", () => {
     const {queryByTestId} = renderChat({
       currentMessages: [{content: "Hi there", role: "user"}],
