@@ -7,13 +7,13 @@ import type {
 import {GoogleAuth} from "google-auth-library";
 import {DateTime} from "luxon";
 
-export interface GcpTasksHttpRequest {
+interface GcpTasksHttpRequest {
   data: {task: unknown};
   method: "POST";
   url: string;
 }
 
-export interface GcpTasksTokenClient {
+interface GcpTasksTokenClient {
   request: (options: GcpTasksHttpRequest) => Promise<{data?: GcpCreateTaskResponse}>;
 }
 
