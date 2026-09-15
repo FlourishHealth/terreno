@@ -75,6 +75,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "implement-ready-for-dev",
       "respond-to-review",
       "verify-ui-changes",
+      "review-chart-visuals",
       "work-github-issues",
       "fix-conflicts",
       "release",

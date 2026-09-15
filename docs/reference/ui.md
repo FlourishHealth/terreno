@@ -120,6 +120,14 @@ One slice per `{label, value}` point. Per-slice `color` overrides the theme pain
 />
 ```
 
+### Chart visual regression
+
+`bun run ui:charts:compare` screenshots `http://localhost:8085/demo/chart-visual-gallery`
+and diffs each fixture against `demo/rendered-snapshots/<id>.png`.
+`bun run ui:charts:update-snapshots` rewrites those goldens. Fixture ids live in
+`demo/chartVisual/fixtureCatalog.ts`. Operator steps:
+[Compare rendered chart snapshots](../how-to/compare-chart-rendered-snapshots.md).
+
 ## Component Behaviors
 
 ### Button Layout Behavior

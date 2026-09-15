@@ -85,6 +85,26 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
   - Docs: the files listed above
   - Acceptance: a stranger can copy the how-to example into a screen; explanation states the victory-native rejection; seed `Implementation plan` / `Tasks` are not `*(not yet written)*`; `bun run website:build` if the docs site is in the slice; changelog fragment `category: Added`
 
+## Phase 5 — Rendered visual regression
+
+- [x] **Task 5.1**: Chart visual gallery + compare command + review skill
+  - Delivers: easy-through-hard fixtures actually rendered in the demo; PNG goldens under `demo/rendered-snapshots/`; `bun run ui:charts:compare` / `ui:charts:update-snapshots`; `review-chart-visuals` skill
+  - Files: `demo/chartVisual/**`, `demo/app/demo/chart-visual-gallery.tsx`, `scripts/charts/compareChartImages.ts`, `scripts/charts/compareRenderedSnapshots.ts`, `demo/rendered-snapshots/*.png`, `.rulesync/skills/review-chart-visuals/SKILL.md`, `docs/how-to/compare-chart-rendered-snapshots.md`, `docs/explanation/charts.md`, `docs/reference/ui.md`
+  - Blocked by: 4.2
+  - Skills: `verify-ui-changes`, `review-chart-visuals`, `update-docs`, `update-agent-docs`
+  - Docs: how-to compare page; explanation + reference pointers; skill + `verify-ui-changes` hook
+  - Acceptance: catalog tests; fixture render tests; pixelmatch unit tests; compare against goldens is green; skill is in `skills.sh.json` groupings
+
+## Phase 6 — Composition grammar (not this slice)
+
+- [ ] **Task 6.1**: Declarative `Chart` children grammar (follow-up Pick)
+  - Delivers: `Chart`, `ChartTitle`, `ChartSubtitle`, `ChartCartesian`, `ChartPolar`, `ChartXAxis`, `ChartYAxis`, `ChartGrid`, `ChartLegend`, `ChartTooltip`, `ChartLine`, `ChartArea`, `ChartBar`, `ChartDonut`, `ChartDataLabels`, `ChartReferenceLine`, `ChartReferenceBand`; keyed rows + `dataKey`; facades additive `{label,value}`; tooltip overlay+footer; tokens+hex; grouped bars unless `stackId`
+  - Files: `ui/src/Chart*.tsx` (flat named exports, no barrel)
+  - Blocked by: 5.1
+  - Skills: `terreno-ui`, `review-chart-visuals`, `update-docs`
+  - Docs: how-to + reference rewritten for composition; visual goldens updated
+  - Acceptance: a complex titled/labeled/colored chart is composed only from Terreno chart children; `ui:charts:compare` stays green
+
 ## Verification mapping
 
 | Criterion | Method |
@@ -97,3 +117,4 @@ IP: [charts-and-dashboards.md](../implementationPlans/charts-and-dashboards.md)
 | Lazy charts | `RootImportRegression` / import benchmark |
 | Demo + docs | registered stories; how-to/explanation/reference exist |
 | Frontend proof | `verify-ui-changes` on demo stories; artifacts on the implementation PR |
+| Rendered paint | `bun run ui:charts:compare` vs `demo/rendered-snapshots/` |

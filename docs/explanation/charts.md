@@ -21,3 +21,9 @@ row come out of that budget. A chart therefore fits a fixed-height slot, and res
 row even when no tooltip is showing keeps hovering from reflowing the page.
 
 `DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.
+
+Chart paint is proven with **rendered PNG goldens**, not React test-renderer JSON.
+`bun run ui:charts:compare` opens the demo gallery
+(`/demo/chart-visual-gallery`), screenshots each fixture from easy to hard, and
+pixel-diffs against `demo/rendered-snapshots/`. Agents use the `review-chart-visuals`
+skill to read golden / actual / diff images when a compare fails.

@@ -67,7 +67,8 @@
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "scripts/**/*.test.ts",
         ".github/scripts/**/*.test.ts",
-        "scripts/ci/prepare-package-publish.mjs"
+        "scripts/ci/prepare-package-publish.mjs",
+        "scripts/charts/compareRenderedSnapshots.ts"
       ],
       // Policy/release scripts are development entries, not production modules.
       "project": [
@@ -232,7 +233,10 @@
         "**/*.test.ts",
         "collectRegisteredStoryRenders.ts",
         "jspdf-native-stub.js",
-        "fingerprint.config.js"
+        "fingerprint.config.js",
+        "chartVisual/ChartVisualGallery.tsx",
+        "chartVisual/fixtures.tsx",
+        "app/demo/chart-visual-gallery.tsx"
       ]
     },
     "comms": {
