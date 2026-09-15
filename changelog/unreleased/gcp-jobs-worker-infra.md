@@ -8,4 +8,5 @@ Infra Manager now owns the example Cloud Tasks queue `terreno-example-jobs`, the
 private `terreno-backend-example-tasks` Cloud Run service, and the
 `terreno-jobs-invoker` OIDC identity. CD deploys matching PR tags for the API and
 tasks services. The example API still uses `MongoJobRunner` until a follow-up
-selects `JOBS_RUNNER=gcp-cloud-tasks`.
+selects `JOBS_RUNNER=gcp-cloud-tasks`. The example image compiles `@terreno/jobs`
+before `@terreno/admin-backend`.
