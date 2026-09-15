@@ -1,4 +1,5 @@
-import {describe, expect, it} from "bun:test";
+import {describe, it} from "bun:test";
+import {assert} from "chai";
 
 import {groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminModelConfig} from "./types";
@@ -21,9 +22,25 @@ describe("groupAdminModelsByGroup", () => {
       stubModel("B", "B"),
       stubModel("C", "C", "Alpha"),
     ]);
-    expect(groups.map((g) => g.group)).toEqual(["Alpha", "Zebra", "General"]);
-    expect(groups[0]?.models.map((m) => m.name)).toEqual(["C"]);
-    expect(groups[1]?.models.map((m) => m.name)).toEqual(["A"]);
-    expect(groups[2]?.models.map((m) => m.name)).toEqual(["B"]);
+    assert.deepEqual(
+      groups.map((g) => g.group),
+      ["Alpha", "Zebra", "General"]
+    );
+    assert.deepEqual(
+      groups[0]?.models.map((m) => m.name),
+      ["C"]
+    );
+    assert.deepEqual(
+      groups[1]?.models.map((m) => m.name),
+      ["A"]
+    );
+    assert.deepEqual(
+      groups[2]?.models.map((m) => m.name),
+      ["B"]
+    );
+  });
+
+  it("returns no groups when models is missing", () => {
+    assert.deepEqual(groupAdminModelsByGroup(undefined as unknown as AdminModelConfig[]), []);
   });
 });

@@ -27,22 +27,19 @@ const getUserRoles = (user: User): string[] => {
   return withRoles.roles ?? [];
 };
 
-const permissionCacheKeyForUser = (user: User): string => {
+/** Include org context and roles so tenant switches and Mongo promotions are not stuck behind TTL. */
+const permissionCacheKey = (user: User): string => {
   const ctx = getOrgContext();
   const organizationId = ctx?.organization?._id?.toString() ?? "";
   const membershipRole = ctx?.membership?.roleName ?? "";
-  return `${user.id}::org=${organizationId}::role=${membershipRole}`;
+  const roles = [...getUserRoles(user)].sort().join(",");
+  return `${user.id}::org=${organizationId}::role=${membershipRole}::roles=${roles}`;
 };
 
-const deletePermissionCacheForUser = (
-  permissionCache: Map<string, CacheEntry>,
-  userId: string
-): void => {
-  permissionCache.delete(userId);
-  const prefix = `${userId}::`;
-  for (const key of [...permissionCache.keys()]) {
-    if (key.startsWith(prefix)) {
-      permissionCache.delete(key);
+const deletePermissionCacheForUser = (cache: Map<string, CacheEntry>, userId: string): void => {
+  for (const key of [...cache.keys()]) {
+    if (key === userId || key.startsWith(`${userId}:`) || key.startsWith(`${userId}::`)) {
+      cache.delete(key);
     }
   }
 };
@@ -92,9 +89,9 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
   };
 
-  const rememberPermissions = (userId: string, entry: CacheEntry): void => {
-    permissionCache.delete(userId);
-    permissionCache.set(userId, entry);
+  const rememberPermissions = (cacheKey: string, entry: CacheEntry): void => {
+    permissionCache.delete(cacheKey);
+    permissionCache.set(cacheKey, entry);
     enforceCacheBound();
   };
 
@@ -226,7 +223,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     user: User,
     shouldCache: boolean
   ): Promise<PermissionSet> => {
-    const cacheKey = permissionCacheKeyForUser(user);
+    const cacheKey = permissionCacheKey(user);
     if (shouldCache) {
       const cached = permissionCache.get(cacheKey);
       if (cached && cached.expiresAt > DateTime.now().toMillis()) {

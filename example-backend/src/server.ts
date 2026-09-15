@@ -225,6 +225,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       // resolve tenant streams from active organization memberships.
       .register(
         new SyncApp({
+          accessControl: access,
           getUserScopes: async (user) => {
             const memberships = await Membership.findActiveForUser(user.id);
             return memberships.map((membership) => String(membership.organizationId));

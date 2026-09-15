@@ -53,7 +53,7 @@ export interface SyncTransport {
   /** Close the connection and reject any in-flight mutation sends. */
   disconnect: () => void;
   /** Subscribe to delta streams for the given collections (idempotent server-side). */
-  subscribe: (collections: string[]) => void;
+  subscribe: (collections: string[], options?: {mode?: "window"}) => void;
   /**
    * Send a mutation and resolve with the server's ack/nack, correlated by
    * `mutationId`. Rejects when no reply arrives within the transport's

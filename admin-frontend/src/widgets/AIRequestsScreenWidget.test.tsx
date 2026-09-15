@@ -6,7 +6,32 @@ import {act} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
-import type {AdminApi} from "../types";
+
+import type {AdminApi, AdminConfigResponse} from "../types";
+import {AI_ADMIN_WIDGETS, AIRequestsScreenWidget} from "./AIRequestsScreenWidget";
+
+const registrationQueryRequests: Record<string, unknown>[] = [];
+
+const createRegistrationAdminApi = (): AdminApi => {
+  const api = {
+    injectEndpoints: ({endpoints}: {endpoints: (build: unknown) => Record<string, unknown>}) => {
+      const definitions = endpoints({query: (definition: unknown) => definition});
+      const query = definitions.adminAiRequestsExplorer as {
+        query: (params: Record<string, unknown>) => unknown;
+      };
+      registrationQueryRequests.push(query.query({limit: 20, page: 1}) as Record<string, unknown>);
+      return {
+        useAdminAiRequestsExplorerQuery: () => ({
+          data: {data: [], limit: 20, more: false, page: 1, total: 21},
+          isLoading: false,
+        }),
+      };
+    },
+  };
+  return api as unknown as AdminApi;
+};
+
+const emptyConfig: AdminConfigResponse = {customScreens: [], models: [], scripts: []};
 
 let explorerQueryArg: Record<string, unknown> | undefined;
 let explorerProps: Record<string, unknown> | undefined;
@@ -32,8 +57,6 @@ mock.module("@terreno/ui", () => ({
   AIRequestExplorer: ExplorerStub,
 }));
 
-import {AIRequestsScreenWidget} from "./AIRequestsScreenWidget";
-
 const makeExplorerApi = (): AdminApi =>
   ({
     injectEndpoints: () => ({
@@ -45,6 +68,31 @@ const makeExplorerApi = (): AdminApi =>
   }) as unknown as AdminApi;
 
 describe("AIRequestsScreenWidget", () => {
+  it("registers the AI explorer widget", () => {
+    expect(AI_ADMIN_WIDGETS["ai-requests"]).toBe(AIRequestsScreenWidget);
+  });
+
+  it("injects the explorer endpoint and renders the first page", () => {
+    registrationQueryRequests.length = 0;
+    const {getByText} = renderWithTheme(
+      <AIRequestsScreenWidget
+        api={createRegistrationAdminApi()}
+        config={emptyConfig}
+        routeBase="/admin"
+        screenName="ai-requests"
+      />
+    );
+
+    expect(registrationQueryRequests).toEqual([
+      {
+        method: "GET",
+        params: {limit: 20, page: 1},
+        url: "/aiRequestsExplorer",
+      },
+    ]);
+    expect(getByText("21 total requests")).toBeDefined();
+  });
+
   beforeEach(() => {
     explorerQueryArg = undefined;
     explorerProps = undefined;

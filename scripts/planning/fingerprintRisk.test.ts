@@ -1,7 +1,7 @@
+import {describe, it} from "bun:test";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {assert} from "chai";
-import {describe, it} from "bun:test";
 import {isFingerprintSkip} from "./fingerprintRisk.ts";
 import {
   isTrustedRollingPr,
@@ -12,9 +12,9 @@ import {
 const ROOT_DIRECTORY = resolve(import.meta.dir, "../..");
 
 const catalogPackageNames = (): string[] => {
-  const packageJson = JSON.parse(
-    readFileSync(resolve(ROOT_DIRECTORY, "package.json"), "utf8")
-  ) as {catalog: Record<string, string>};
+  const packageJson = JSON.parse(readFileSync(resolve(ROOT_DIRECTORY, "package.json"), "utf8")) as {
+    catalog: Record<string, string>;
+  };
   return Object.keys(packageJson.catalog);
 };
 
@@ -106,25 +106,18 @@ describe("update-dependencies skill", (): void => {
     };
 
     assert.isTrue(isTrustedRollingPr(candidate, repository));
-    assert.isFalse(
-      isTrustedRollingPr({...candidate, isCrossRepository: true}, repository)
-    );
+    assert.isFalse(isTrustedRollingPr({...candidate, isCrossRepository: true}, repository));
     assert.isFalse(
       isTrustedRollingPr(
         {...candidate, headRepositoryOwnerLogin: "untrusted-fork-owner"},
         repository
       )
     );
-    assert.isFalse(
-      isTrustedRollingPr({...candidate, headRefName: "spoofed-branch"}, repository)
-    );
+    assert.isFalse(isTrustedRollingPr({...candidate, headRefName: "spoofed-branch"}, repository));
   });
 
   it("keeps react-native-web eligible for root Dependabot updates", (): void => {
-    const dependabot = readFileSync(
-      resolve(ROOT_DIRECTORY, ".github/dependabot.yml"),
-      "utf8"
-    );
+    const dependabot = readFileSync(resolve(ROOT_DIRECTORY, ".github/dependabot.yml"), "utf8");
     const rootUpdates = dependabot.slice(
       dependabot.indexOf("# Maintain dependencies for root package.json"),
       dependabot.indexOf("# Maintain dependencies for backend packages")

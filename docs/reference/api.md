@@ -636,7 +636,7 @@ todoSchema.plugin(addDefaultPlugins);
 
 Organizations are **opt-in**. Existing and single-tenant apps omit them: do not pass
 `organizations: true` to `createAccess` or `TerrenoApp`, and do not register `OrgsApp`.
-New apps from `terreno_bootstrap_app` enable organizations by default.
+New apps from `create-terreno-app` enable organizations by default.
 
 | App kind | What to do |
 | --- | --- |

@@ -73,7 +73,8 @@ Post only when at least one is true:
 3. A requested change is intentionally not made and the tradeoff must be recorded.
 
 Do not post progress updates, thanks, summaries of the PR body, test reports already in
-the body, “ready for review” messages, or CI notifications.
+the body, “ready for review” messages, CI notifications, or preview/demo URLs. Chat
+already prints PR deployment links per [`pr-deployments.md`](pr-deployments.md).
 
 Use the narrowest location:
 
