@@ -1,6 +1,6 @@
 # Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** In progress — implementation complete; pending Roast/Brew
+**Status:** Implementation complete — Roast passed; pending Brew
 **Parent IP:** [announcements](announcements.md)  
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
@@ -205,11 +205,11 @@ Executable checklist: **`docs/tasks/announcements-surfaces.md`**.
 
 ## Acceptance Criteria
 
-- [ ] Pending never returns `displayMode: "feed"`. Feed still lists feed-only items.
-- [ ] `minBuildNumber` hides the item from pending/feed/help when `version` is present and lower; omitted `version` does not hide.
-- [ ] `acknowledgementPolicy` + `defaultAcknowledgementPolicy` resolve to public `requiresAcknowledgement`; `acknowledgementMode` is gone.
-- [ ] `audienceType` is stored and honored by `matchAudienceByType`; example-backend uses `user.admin` as staff.
-- [ ] Navigator: modal blocks; banner does not; frequency caps skip extra interrupts this session / cooldown / first launch.
-- [ ] Primary action records `AnnouncementClickEvent` via `POST /announcements/:id/click`.
-- [ ] Admin editor exposes display mode, audience type, policy, min build without requiring raw JSON for those fields.
-- [ ] Reference + how-to match shipped behavior in the same slice. New files ≥90% coverage. `bun run announcements:test`, `ui` announcement tests, `admin-frontend` editor tests, `bun run lint`, `bun run compile`, `bun run analyze:full` pass.
+- [x] Pending never returns `displayMode: "feed"`. Feed still lists feed-only items.
+- [x] `minBuildNumber` hides the item from pending/feed/help when `version` is present and lower; omitted `version` does not hide.
+- [x] `acknowledgementPolicy` + `defaultAcknowledgementPolicy` resolve to public `requiresAcknowledgement`; `acknowledgementMode` is gone.
+- [x] `audienceType` is stored and honored by `matchAudienceByType`; example-backend uses `user.admin` as staff.
+- [x] Navigator: modal blocks; banner does not; frequency caps skip extra interrupts this session / cooldown / first launch.
+- [x] Primary action records `AnnouncementClickEvent` via `POST /announcements/:id/click`.
+- [x] Admin editor exposes display mode, audience type, policy, min build without requiring raw JSON for those fields.
+- [x] Reference + how-to match shipped behavior in the same slice. New files ≥90% coverage. `bun run announcements:test`, `ui` announcement tests, `admin-frontend` editor tests, `bun run lint`, `bun run compile`, `bun run analyze:full` pass.

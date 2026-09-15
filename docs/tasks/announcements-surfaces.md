@@ -1,6 +1,6 @@
 # Task List: Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** Complete (pending Roast/Brew)
+**Status:** Complete — Roast passed; pending Brew
 **IP:** `docs/implementationPlans/announcements-surfaces.md`  
 **Parent IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-15  

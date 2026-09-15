@@ -1,6 +1,6 @@
 # Product Update Announcements — In-App Core Feature
 
-**Status:** In progress — v1 shipped on branch; surfaces follow-up in [announcements-surfaces.md](announcements-surfaces.md) (implementation complete, pending Roast/Brew)
+**Status:** In progress — implementation and Roast complete; pending Brew
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
 **Created:** 2026-09-08  
