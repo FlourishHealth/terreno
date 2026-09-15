@@ -5,7 +5,9 @@ import {
   buildChoiceFilterQueryValue,
   buildDataTableListQuery,
   DATA_TABLE_CHOICE_EMPTY_VALUE,
+  endOfUtcDay,
   escapeRegexLiteral,
+  startOfUtcDay,
 } from "./dataTableListQuery";
 
 describe("escapeRegexLiteral", () => {
@@ -115,6 +117,50 @@ describe("buildDataTableListQuery", () => {
     });
 
     expect(params.status).toEqual({$in: ["open", "closed"]});
+  });
+});
+
+describe("buildDataTableListQuery date ranges", () => {
+  const columns: DataTableColumn[] = [
+    {
+      columnType: "date",
+      filter: {field: "created", kind: "dateRange"},
+      title: "Created",
+      width: 120,
+    },
+  ];
+
+  it("emits only the lower bound when just from is set", () => {
+    const params = buildDataTableListQuery({
+      columns,
+      filterValues: {created_gte: "2026-01-15T00:00:00.000Z"},
+    });
+    expect(params.created_gte).toBe("2026-01-15T00:00:00.000Z");
+    expect(params.created_lte).toBeUndefined();
+  });
+
+  it("emits only the upper bound when just to is set", () => {
+    const params = buildDataTableListQuery({
+      columns,
+      filterValues: {created_lte: "2026-01-15T23:59:59.999Z"},
+    });
+    expect(params.created_lte).toBe("2026-01-15T23:59:59.999Z");
+    expect(params.created_gte).toBeUndefined();
+  });
+});
+
+describe("utc day bounds", () => {
+  it("opens the chosen day for lower bounds", () => {
+    expect(startOfUtcDay("2026-01-15T00:00:00.000Z")).toBe("2026-01-15T00:00:00.000Z");
+  });
+
+  it("closes the chosen day for upper bounds", () => {
+    expect(endOfUtcDay("2026-01-15T00:00:00.000Z")).toBe("2026-01-15T23:59:59.999Z");
+  });
+
+  it("passes through values that are not parseable dates", () => {
+    expect(startOfUtcDay("")).toBe("");
+    expect(endOfUtcDay("not-a-date")).toBe("not-a-date");
   });
 });
 

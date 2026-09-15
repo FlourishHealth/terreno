@@ -609,7 +609,7 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 | Toolbar search (`search` + `searchFields`) | `$or: [{field: {$regex, $options: "i"}}, ...]` (user text escaped) |
 | Text column filter | `{field: {$regex, $options: "i"}}` |
 | Boolean column filter | `{field: true \| false}`; unset omits the key |
-| Date range | `field_gte` / `field_lte` ISO strings |
+| Date range | `field_gte` / `field_lte` ISO strings; either bound may be sent alone |
 | Number range | `{field: {$gte?, $lte?}}` |
 | Choice (one value) | `{field: string}` scalar equality |
 | Choice (many values) | `{field: {$in: string[]}}` |
@@ -618,6 +618,10 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 
 `onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
 (250ms, same delay as admin list search).
+
+Date range filters collect calendar days, so a range covers whole UTC days: **from**
+opens the chosen day (`00:00:00.000Z`) and **to** closes it (`23:59:59.999Z`), which
+keeps rows recorded later on the end day inside the range.
 
 Pass `emptyContent` to keep the table header, search, and filter controls mounted
 while showing an application-specific empty state below the header.

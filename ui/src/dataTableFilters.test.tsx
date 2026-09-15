@@ -95,6 +95,48 @@ describe("DataTableFilterFields", () => {
     });
   });
 
+  it("emits a date range draft from a calendar date alone", () => {
+    const onDraftChange = mock(() => {});
+    const {getAllByPlaceholderText} = renderWithTheme(
+      <DraftHarness
+        filters={[{field: "created", kind: "dateRange", label: "Created"}]}
+        onDraftChange={onDraftChange}
+      />
+    );
+
+    const [fromMonth] = getAllByPlaceholderText("MM");
+    const [fromDay] = getAllByPlaceholderText("DD");
+    const [fromYear] = getAllByPlaceholderText("YYYY");
+    fireEvent.changeText(fromMonth, "01");
+    fireEvent.changeText(fromDay, "15");
+    fireEvent.changeText(fromYear, "2026");
+
+    expect(onDraftChange).toHaveBeenLastCalledWith({
+      created_gte: "2026-01-15T00:00:00.000Z",
+    });
+  });
+
+  it("emits an end-of-day upper bound so the chosen day is included", () => {
+    const onDraftChange = mock(() => {});
+    const {getAllByPlaceholderText} = renderWithTheme(
+      <DraftHarness
+        filters={[{field: "created", kind: "dateRange", label: "Created"}]}
+        onDraftChange={onDraftChange}
+      />
+    );
+
+    const toMonth = getAllByPlaceholderText("MM")[1];
+    const toDay = getAllByPlaceholderText("DD")[1];
+    const toYear = getAllByPlaceholderText("YYYY")[1];
+    fireEvent.changeText(toMonth, "01");
+    fireEvent.changeText(toDay, "15");
+    fireEvent.changeText(toYear, "2026");
+
+    expect(onDraftChange).toHaveBeenLastCalledWith({
+      created_lte: "2026-01-15T23:59:59.999Z",
+    });
+  });
+
   it("clears a boolean filter and hosts a custom renderFilter", async () => {
     const onDraftChange = mock(() => {});
     const {getByTestId, rerender} = renderWithTheme(

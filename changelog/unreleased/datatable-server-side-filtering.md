@@ -21,3 +21,8 @@ category: Added
 - **@terreno/ui `DataTable`**: single-column filter popovers no longer duplicate the
   popover's own Clear with a per-field **Clear filter**; the boolean per-field clear
   now appears only where one surface hosts several filters.
+- **@terreno/ui `DataTable`**: date range filters use date inputs, so entering a
+  calendar date filters immediately and either bound works on its own. Previously the
+  datetime input emitted nothing until an hour and minute were also entered. The **to**
+  bound now closes the chosen UTC day instead of landing on midnight, so rows recorded
+  later that day stay in range.

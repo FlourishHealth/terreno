@@ -7,7 +7,12 @@ import {Box} from "./Box";
 import {Button} from "./Button";
 import type {DataTableColumnFilter} from "./Common";
 import {DateTimeField} from "./DateTimeField";
-import {DATA_TABLE_CHOICE_EMPTY_LABEL, DATA_TABLE_CHOICE_EMPTY_VALUE} from "./dataTableListQuery";
+import {
+  DATA_TABLE_CHOICE_EMPTY_LABEL,
+  DATA_TABLE_CHOICE_EMPTY_VALUE,
+  endOfUtcDay,
+  startOfUtcDay,
+} from "./dataTableListQuery";
 import {Filter} from "./Filter";
 import {MultiselectField} from "./MultiselectField";
 import {NumberField} from "./NumberField";
@@ -134,17 +139,17 @@ export const DataTableFilterFields: FC<DataTableFilterFieldsProps> = ({
         nodes.push(
           <Box direction="column" gap={2} key={field} width="100%">
             <DateTimeField
-              onChange={(next: string) => setField(gteKey, next)}
+              onChange={(next: string) => setField(gteKey, startOfUtcDay(next))}
               testID={`data-table-filter-${field}-gte`}
               title={`${label} from`}
-              type="datetime"
+              type="date"
               value={String(draftValues[gteKey] ?? "")}
             />
             <DateTimeField
-              onChange={(next: string) => setField(lteKey, next)}
+              onChange={(next: string) => setField(lteKey, endOfUtcDay(next))}
               testID={`data-table-filter-${field}-lte`}
               title={`${label} to`}
-              type="datetime"
+              type="date"
               value={String(draftValues[lteKey] ?? "")}
             />
           </Box>

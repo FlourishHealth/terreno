@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 import type {DataTableColumn, DataTableColumnFilter, DataTableQueryParams} from "./Common";
 
 /** Debounce delay for DataTable toolbar search before emitting query params. */
@@ -10,6 +12,27 @@ export const DATA_TABLE_SEARCH_DEBOUNCE_MS = 250;
 export const DATA_TABLE_CHOICE_EMPTY_VALUE = "__empty__";
 
 export const DATA_TABLE_CHOICE_EMPTY_LABEL = "Empty";
+
+/**
+ * Date range bounds are collected as calendar days, so the range covers whole UTC days:
+ * the lower bound opens the chosen day and the upper bound closes it. Without this the
+ * upper bound would land on midnight and exclude everything recorded later that day.
+ */
+export const startOfUtcDay = (isoValue: string): string => {
+  const parsed = DateTime.fromISO(isoValue, {zone: "utc"});
+  if (!parsed.isValid) {
+    return isoValue;
+  }
+  return parsed.startOf("day").toISO({suppressMilliseconds: false}) ?? isoValue;
+};
+
+export const endOfUtcDay = (isoValue: string): string => {
+  const parsed = DateTime.fromISO(isoValue, {zone: "utc"});
+  if (!parsed.isValid) {
+    return isoValue;
+  }
+  return parsed.endOf("day").toISO({suppressMilliseconds: false}) ?? isoValue;
+};
 
 /** Escape user input for case-insensitive MongoDB $regex literals. */
 export const escapeRegexLiteral = (value: string): string => {
