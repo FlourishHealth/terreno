@@ -60,7 +60,7 @@ jobs_env_vars() {
   if [ "$tag" != "prod" ]; then
     target_tasks_url="$(tagged_service_url "$GCP_TASKS_SERVICE" "$tag")"
   fi
-  echo "JOBS_RUNNER=gcp-cloud-tasks,JOBS_START_WORKER=false,GCP_TASKS_PROJECT=${GCP_PROJECT_ID},GCP_TASKS_LOCATION=${GCP_BACKEND_REGION},GCP_TASKS_QUEUE=${GCP_TASKS_QUEUE},GCP_TASKS_PUBLIC_URL=${target_tasks_url},GCP_TASKS_OIDC_AUDIENCE=${canonical_tasks_url},GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${GCP_TASKS_INVOKER_SA}"
+  echo "JOBS_RUNNER=gcp-cloud-tasks,GCP_TASKS_PROJECT=${GCP_PROJECT_ID},GCP_TASKS_LOCATION=${GCP_BACKEND_REGION},GCP_TASKS_QUEUE=${GCP_TASKS_QUEUE},GCP_TASKS_PUBLIC_URL=${target_tasks_url},GCP_TASKS_OIDC_AUDIENCE=${canonical_tasks_url},GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${GCP_TASKS_INVOKER_SA}"
 }
 
 deploy_backend() {
@@ -76,7 +76,7 @@ deploy_backend() {
   docker push "$image"
 
   secrets="MONGO_URI=${GCP_BACKEND_SERVICE}-mongodb-uri:latest,LANGFUSE_SECRET_KEY=${GCP_BACKEND_SERVICE}-langfuse-secret-key:latest,LANGFUSE_PUBLIC_KEY=${GCP_BACKEND_SERVICE}-langfuse-public-key:latest"
-  env_vars="NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true,$(jobs_env_vars "$tag")"
+  env_vars="NODE_ENV=production,ADMIN_SPA_ENABLED=true,CROSS_DOMAIN_AUTH_COOKIES=true,JOBS_START_WORKER=true,$(jobs_env_vars "$tag")"
   args=(
     run deploy "$GCP_BACKEND_SERVICE"
     "--project=$GCP_PROJECT_ID"
@@ -120,7 +120,7 @@ deploy_tasks() {
   docker build --file example-backend/Dockerfile --tag "$image" .
   docker push "$image"
 
-  local env_vars="NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE},$(jobs_env_vars "$tag")"
+  local env_vars="NODE_ENV=production,BACKEND_SERVICE=tasks,FLOURISH_SERVICE=${GCP_TASKS_SERVICE},JOBS_START_WORKER=false,$(jobs_env_vars "$tag")"
   local args=(
     run deploy "$GCP_TASKS_SERVICE"
     "--project=$GCP_PROJECT_ID"

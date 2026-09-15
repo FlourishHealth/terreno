@@ -251,10 +251,11 @@ admin HTTP internally (not via a public `useJobsDashboardApi` export).
 | `serviceAccountEmail` | yes | OIDC invoker SA |
 | `oidcAudience` | no | Defaults to execute URL |
 | `basePath` | no | Default `/jobs` |
-| `client` | no | Test seam |
+| `client` | no | Injected Cloud Tasks client. Required in `bun build --compile` images (static import in the app). Optional peer `createRequire` fallback for Node. |
 
 Enqueue: `createTask` POST to `{publicUrl}{basePath}/execute`, body `{jobId}` base64,
 `scheduleTime` when `runAt` is future. `requiresExecuteRoute: true`.
+`start()` ticks due Mongo schedules into `enqueue`; it does not claim job rows.
 
 **Operator responsibility:** implement `executeAuth` to verify the OIDC token (issuer,
 audience, SA email). `@terreno/jobs` does not ship a GCP verifier.
