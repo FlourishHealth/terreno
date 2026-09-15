@@ -10,6 +10,7 @@ import {
   validateGithubAttentionContract,
   validateLifecyclePlugin,
   validateOuterLoopContent,
+  validatePrDeploymentsContract,
   validateProductCiContract,
   validateStageContent,
 } from "./lifecycleSkills.ts";
@@ -399,6 +400,7 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("forbidden heading ## Summary")));
     assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
     assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
+    assert.isTrue(errors.some((error) => error.includes("preview URLs")));
   });
 
   it("rejects a documentation contract that does not require reading and updating docs", (): void => {
@@ -435,6 +437,16 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(unsafeErrors.some((error) => error.includes("bot failure")));
   });
 
+  it("rejects a PR deployments contract that hides demo URLs", (): void => {
+    const errors = validatePrDeploymentsContract("Mention previews somewhere in the recap.");
+
+    assert.isTrue(errors.some((error) => error.includes("last visible section")));
+    assert.isTrue(errors.some((error) => error.includes("environmentUrl")));
+    assert.isTrue(errors.some((error) => error.includes("Do not wait for")));
+    assert.isTrue(errors.some((error) => error.includes("PR comment")));
+    assert.isTrue(errors.some((error) => error.includes("list GitHub Deployments")));
+  });
+
   it("rejects a stage that does not load the documentation contract", (): void => {
     const content = readStage("terreno-2-pick").replace(
       "../../references/documentation-contract.md",
@@ -450,6 +462,23 @@ describe("lifecycle skill architecture", (): void => {
     });
 
     assert.isTrue(errors.some((error) => error.includes("documentation contract")));
+  });
+
+  it("rejects a stage that does not load the PR deployments closer", (): void => {
+    const content = readStage("terreno-4-brew").replace(
+      "../../references/pr-deployments.md",
+      "missing-pr-deployments"
+    );
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("PR deployments chat closer")));
   });
 
   it("rejects Grow that skips grilling or the Decisions table", (): void => {

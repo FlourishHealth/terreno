@@ -197,9 +197,9 @@ const makeObservableTransport = (base: FakeTransport): ObservableTransport => {
         events.push("disconnect");
         base.disconnect();
       },
-      subscribe: (collections: string[]): void => {
+      subscribe: (collections: string[], options?: {mode?: "window"}): void => {
         events.push("subscribe");
-        base.subscribe(collections);
+        base.subscribe(collections, options);
       },
     },
   };
@@ -496,6 +496,21 @@ describe("createSyncDb", () => {
       await expect(client.reconcile()).resolves.toBeUndefined();
       await client.stop();
     });
+
+    it("window collection reconcile interval does not GET /sync/snapshot", async () => {
+      const snapshotStreams: string[] = [];
+      const harness = makeHarness({reconcileIntervalMs: 20, windowCollections: ["todos"]});
+      const fetchSnapshotPage = harness.http.channel.fetchSnapshotPage;
+      harness.http.channel.fetchSnapshotPage = async (args) => {
+        snapshotStreams.push(args.stream);
+        return fetchSnapshotPage(args);
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      assert.deepEqual(snapshotStreams, []);
+      await client.stop();
+    });
   });
 
   describe("subscribe confirmation catch-up", () => {
@@ -551,6 +566,30 @@ describe("createSyncDb", () => {
 
       expect(harness.http.state.fetchCount).toBe(baseline);
       expect(client.store.getKnownStreams()).not.toContain("projects|all");
+      await client.stop();
+    });
+
+    it("window subscribe confirmation does not GET /sync/snapshot", async () => {
+      const harness = makeHarness({windowCollections: ["todos"]});
+      const snapshotStreams: string[] = [];
+      const fetchSnapshotPage = harness.http.channel.fetchSnapshotPage;
+      harness.http.channel.fetchSnapshotPage = async (args) => {
+        snapshotStreams.push(args.stream);
+        return fetchSnapshotPage(args);
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      snapshotStreams.length = 0;
+
+      harness.transport.confirmSubscribed({
+        collection: "todos",
+        mode: "window",
+        streams: ["todos|admin"],
+      });
+      await flush();
+
+      assert.deepEqual(snapshotStreams, []);
       await client.stop();
     });
 

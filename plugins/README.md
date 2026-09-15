@@ -56,17 +56,21 @@ The shared result/state format and outer state machine live in:
 - [`references/product-ci.md`](terreno-planning/references/product-ci.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
 - [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
+- [`references/pr-deployments.md`](terreno-planning/references/pr-deployments.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
 - [`execution-state.schema.json`](terreno-planning/references/execution-state.schema.json)
 
 Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details toggle in
-chat and on the PR. Humans read `status`, `next`, and `action`.
+chat and on the PR. Humans read `status` / `next` / `action`. When the current PR has
+GitHub Deployments, those demo URLs are the last visible section of every wait-for-human
+or done chat.
 
 The focused `terreno-pick-roast-loop` is the implementation autopilot: it keeps
 recovering from objective Pick/Roast failures while an evidence-backed engineering
 action remains. It reports the complete task/attempt ledger once at completion. When a
 human decision is genuinely required, it first explains the plan state, work completed,
-decisive evidence, options, impact, and recommendation, then asks one exact question.
+decisive evidence, options, impact, and recommendation, then asks one exact question,
+then prints PR deployment URLs when a PR has them.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
 invoke Pick once; it pick-roasts each frontier task in sequence. `terreno-planning-loop`

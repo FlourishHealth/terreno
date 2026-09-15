@@ -5,6 +5,7 @@ import {
   type AnyTerrenoAccess,
   APIError,
   asyncHandler,
+  auditActorIdFromRequest,
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
@@ -12,6 +13,7 @@ import {
   createOpenApiBuilder,
   createScriptArgs,
   describeModel,
+  findSyncEntryByModelName,
   type JSONValue,
   logger,
   type ModelRouterOptions,
@@ -21,6 +23,8 @@ import {
   type PermissionMethod,
   Permissions,
   type PopulatePath,
+  registerAdminBroadcastScope,
+  registerAdminWindowMutationScope,
   type ScriptArgDef,
   type ScriptArgValue,
   type ScriptContext,
@@ -248,6 +252,13 @@ interface AdminModelMeta {
   fieldOrder?: string[];
   fieldsets?: AdminFieldsetInput[];
   fields: Record<string, AdminFieldMeta>;
+  /** True when the model’s app `sync` config set `adminBroadcast`. */
+  adminBroadcast: boolean;
+  /**
+   * Sync collection tag (`routePath` without a leading slash) when
+   * `adminBroadcast` is true. Omitted otherwise.
+   */
+  syncCollection?: string;
   filters: AdminListFilter[];
   group?: string;
   hiddenFields: string[];
@@ -294,6 +305,16 @@ interface AdminConfigResponse {
   widgetIds: string[];
   migrations?: {enabled: boolean};
 }
+
+const syncMetaForAdminModel = (
+  modelName: string
+): {adminBroadcast: boolean; syncCollection?: string} => {
+  const entry = findSyncEntryByModelName(modelName);
+  if (entry?.config.adminBroadcast !== true) {
+    return {adminBroadcast: false};
+  }
+  return {adminBroadcast: true, syncCollection: entry.collectionTag};
+};
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
   const map: AdminModelAdminMap = {};
@@ -460,13 +481,7 @@ const coerceAdminFlag = (value: unknown): boolean => {
   throw new APIError({status: 400, title: "admin must be a boolean"});
 };
 
-const auditActorId = (request: express.Request): string | undefined => {
-  const user = request.user as {_id?: unknown} | undefined;
-  if (!user || user._id == null) {
-    return undefined;
-  }
-  return String(user._id);
-};
+const auditActorId = auditActorIdFromRequest;
 
 interface ArraySchemaTypeCompatibility {
   caster?: mongoose.SchemaType;
@@ -783,9 +798,11 @@ export class AdminApp {
           readonlyFields,
           schemaPaths: schemaPathKeys,
         });
+      const syncMeta = syncMetaForAdminModel(config.model.modelName);
 
       return {
         actions: config.actions ?? [],
+        adminBroadcast: syncMeta.adminBroadcast,
         bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
@@ -811,6 +828,7 @@ export class AdminApp {
         routePath: `${basePath}${config.routePath}`,
         searchFields,
         sortableFields,
+        ...(syncMeta.syncCollection ? {syncCollection: syncMeta.syncCollection} : {}),
       };
     });
 
@@ -1671,6 +1689,31 @@ export class AdminApp {
         ...(config.populatePaths ? {populatePaths: config.populatePaths} : {}),
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
+
+      registerAdminBroadcastScope(config.model.modelName, {
+        listPermissions: adminPermission(true, "list"),
+        queryFilter: routerOptions.queryFilter,
+        readPermissions: adminPermission(true, "read"),
+      });
+
+      registerAdminWindowMutationScope(config.model.modelName, {
+        accessControl: this.options.accessControl,
+        createPermissions: this.resourceActionPermissions(config, "create"),
+        deletePermissions: this.resourceActionPermissions(config, "delete"),
+        modelName: config.model.modelName,
+        permissions: {
+          create: config.permissions?.create !== false,
+          delete: config.permissions?.delete !== false,
+          update: config.permissions?.update !== false,
+        },
+        postCreate: routerOptions.postCreate,
+        postDelete: routerOptions.postDelete,
+        postUpdate: routerOptions.postUpdate,
+        preCreate: routerOptions.preCreate,
+        preUpdate: routerOptions.preUpdate,
+        stripMutationData: (data) => stripProtectedFromBody(data),
+        updatePermissions: this.resourceActionPermissions(config, "update"),
+      });
 
       const modelBase = express.Router();
       modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));

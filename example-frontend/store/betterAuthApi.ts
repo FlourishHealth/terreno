@@ -20,6 +20,14 @@ const readSessionToken = async (): Promise<string | null> => {
   }
 };
 
+export const getAdminAuthHeaders = async (): Promise<HeadersInit> => {
+  const token = await readSessionToken();
+  if (!token) {
+    return {};
+  }
+  return {Authorization: `Bearer ${token}`};
+};
+
 const betterAuthBaseQuery = fetchBaseQuery({
   baseUrl,
   credentials: "include",

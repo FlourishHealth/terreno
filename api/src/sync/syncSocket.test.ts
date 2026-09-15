@@ -9,6 +9,7 @@
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose, {type Model, model, Schema} from "mongoose";
 import type {Server} from "socket.io";
 
@@ -22,6 +23,7 @@ import {
 import {clearRealtimeRegistry, registerRealtime} from "../realtime/registry";
 import {setupDb} from "../tests";
 import {defaultResponseHandler} from "../transformers";
+import {registerAdminBroadcastScope} from "./adminBroadcastScope";
 import {SyncCounter, SyncMutation, SyncScopeMove} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
 import {
@@ -269,6 +271,102 @@ describe("installSyncSocketHandlers — subscribe/unsubscribe", () => {
       collection: "sockStuff",
       streams: ["sockStuff|owner:user1"],
     });
+  });
+
+  it("window mode joins {collection}|admin and does not emit snapshot pages", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isTrue(socket.rooms.has("sync:sockStuff|admin"));
+    assert.isFalse(socket.rooms.has("sync:sockStuff|owner:user1"));
+    const subscribed = socket.emitted.filter((e) => e.event === "sync:subscribed");
+    assert.deepEqual(
+      subscribed.map((e) => e.payload),
+      [{collection: "sockStuff", mode: "window", streams: ["sockStuff|admin"]}]
+    );
+    const snapshotLike = socket.emitted.filter(
+      (e) => e.event.includes("snapshot") || (e.payload as {entities?: unknown})?.entities
+    );
+    assert.deepEqual(snapshotLike, []);
+  });
+
+  it("nacks window subscribe when the caller is not admin", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: false, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    assert.deepEqual(
+      socket.emitted.filter((e) => e.event === "sync:subscribed"),
+      []
+    );
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.equal(errors[0].collection, "sockStuff");
+    assert.match(errors[0].message, /admin/i);
+  });
+
+  it("nacks window subscribe when accessControl denies admin:access", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket, {
+      accessControl: {
+        can: async () => ({allowed: false}),
+      } as never,
+    });
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    assert.deepEqual(
+      socket.emitted.filter((e) => e.event === "sync:subscribed"),
+      []
+    );
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /admin panel access/i);
+  });
+
+  it("nacks window subscribe when AdminApp list permission is denied", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    registerAdminBroadcastScope("SockStuff", {
+      listPermissions: [() => false],
+      readPermissions: [() => true],
+    });
+    const socket = createMockSocket({admin: true, id: "user1"});
+    install(socket);
+    await socket.trigger("sync:subscribe", {collections: ["sockStuff"], mode: "window"});
+
+    assert.isFalse(socket.rooms.has("sync:sockStuff|admin"));
+    const errors = syncErrors(socket);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /admin collection access/i);
   });
 
   it("owner scope never uses a client-supplied user id", async () => {
@@ -1025,6 +1123,100 @@ describe("emitSyncDeltaForChange", () => {
     expect(delta.collection).toBe("sockStuff");
     expect((delta.data as Record<string, unknown>).name).toBe("hello");
     expect((delta.data as Record<string, unknown>).id).toBe("doc-1");
+  });
+
+  it("adminBroadcast true: create also emits to {collection}|admin", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-admin-fan", _syncSeq: 11, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-admin-fan",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const deltas = io.emissions
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => e.payload as SyncDelta);
+    const streams = deltas.map((d) => d.stream).sort();
+    assert.deepEqual(streams, ["sockStuff|admin", "sockStuff|owner:user1"]);
+    const adminDelta = deltas.find((d) => d.stream === "sockStuff|admin");
+    const ownerDelta = deltas.find((d) => d.stream === "sockStuff|owner:user1");
+    assert.strictEqual(adminDelta?.method, "create");
+    assert.strictEqual(adminDelta?.seq, 11);
+    assert.strictEqual(ownerDelta?.method, "create");
+    assert.strictEqual(ownerDelta?.seq, 11);
+  });
+
+  it("adminBroadcast room skips sockets excluded by AdminApp queryFilter", async () => {
+    clearSyncRegistry();
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: SockStuffModel as unknown as Model<unknown>,
+      options: ownerReadOptions,
+      routePath: "/sockStuff",
+    });
+    registerAdminBroadcastScope("SockStuff", {
+      listPermissions: [() => true],
+      queryFilter: () => ({ownerId: "acme"}),
+      readPermissions: [() => true],
+    });
+    const entry = findSyncEntryByCollectionTag("sockStuff") as SyncRegistryEntry;
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-other-tenant", _syncSeq: 12, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-other-tenant",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const adminDeltas = io.emissions.filter(
+      (e) => e.event === "sync:delta" && (e.payload as SyncDelta).stream === "sockStuff|admin"
+    );
+    assert.deepEqual(adminDeltas, []);
+  });
+
+  it("adminBroadcast false: create emits only the owner stream", async () => {
+    const entry = ownerEntry();
+    const io = makeTrackedIo();
+    io.addSocketToRoom(syncRoomForStream("sockStuff|owner:user1"), {admin: false, id: "user1"});
+    io.addSocketToRoom(syncRoomForStream("sockStuff|admin"), {admin: true, id: "admin1"});
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-no-fan", _syncSeq: 2, name: "hello", ownerId: "user1"},
+        operationType: "insert",
+      }),
+      docId: "doc-no-fan",
+      entry,
+      io,
+      logDebug: () => {},
+    });
+
+    const streams = io.emissions
+      .filter((e) => e.event === "sync:delta")
+      .map((e) => (e.payload as SyncDelta).stream);
+    assert.deepEqual(streams, ["sockStuff|owner:user1"]);
   });
 
   it("emits a delta when the REST responseHandler serializes a BSON post-image", async () => {

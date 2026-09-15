@@ -217,6 +217,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       // resolve tenant streams (projects are scoped by the user's organizationIds).
       .register(
         new SyncApp({
+          accessControl: access,
           getUserScopes: (user) => {
             return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
           },
