@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, userEvent} from "@testing-library/react-native";
+import type {ReactElement} from "react";
 import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
 
@@ -538,6 +539,169 @@ describe("TextField", () => {
       );
       fireEvent(getByDisplayValue(""), "focus");
       expect(mockOnFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores onChangeText when the text matches the controlled value", async () => {
+      const onChange = mock(() => {});
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField onChange={onChange} value="stable title" />
+      );
+
+      await act(async () => {
+        fireEvent.changeText(getByDisplayValue("stable title"), "stable title");
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("keeps a stable onChangeText callback across value and onChange updates while invoking the latest onChange", async () => {
+      const onChange1 = mock(() => {});
+      const onChange2 = mock(() => {});
+      const {getByDisplayValue, rerender} = renderWithTheme(
+        <TextField onChange={onChange1} value="hello" />
+      );
+
+      const initialOnChangeText = getByDisplayValue("hello").props.onChangeText;
+
+      rerender(<TextField onChange={onChange2} value="world" />);
+
+      const input = getByDisplayValue("world");
+      expect(input.props.onChangeText).toBe(initialOnChangeText);
+
+      await act(async () => {
+        fireEvent.changeText(input, "updated");
+      });
+
+      expect(onChange2).toHaveBeenCalledWith("updated");
+      expect(onChange1).not.toHaveBeenCalled();
+    });
+
+    it("preserves per-character typing when onChangeText identity churn would trigger stale RN Web rebinds", async () => {
+      const savedOS = PlatformModule.OS;
+      const perCharTitle = "Review";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = "";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+
+        for (let i = 0; i < perCharTitle.length; i++) {
+          const partial = perCharTitle.slice(0, i + 1);
+          const field = view.getByDisplayValue(value);
+          const previousOnChangeText = field.props.onChangeText;
+
+          await act(async () => {
+            fireEvent.changeText(field, partial);
+          });
+
+          view.rerender(renderField());
+
+          const fieldAfterChange = view.getByDisplayValue(value);
+          expect(fieldAfterChange.props.onChangeText).toBe(previousOnChangeText);
+          expect(fieldAfterChange.props.value).toBe(partial);
+        }
+
+        expect(view.getByDisplayValue(value).props.value).toBe(perCharTitle);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("disables browser autocorrect and spellcheck on web", () => {
+      const savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByDisplayValue} = renderWithTheme(
+          <TextField onChange={mockOnChange} type="text" value="controlled title" />
+        );
+        const input = getByDisplayValue("controlled title");
+        expect(input.props.autoCorrect).toBe(false);
+        expect(input.props.spellCheck).toBe(false);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("does not recurse when synthetic onChange alternates by a single-space autocorrect delta", async () => {
+      const savedOS = PlatformModule.OS;
+      const withoutSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reachthreshold fo maximum update depth exc";
+      const withSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reach threshold fo maximum update depth exc";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = withoutSpace;
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+        const alternates = [withSpace, withoutSpace];
+
+        for (let i = 0; i < 6; i++) {
+          const nextText = alternates[i % 2];
+          await act(async () => {
+            fireEvent.changeText(view.getByDisplayValue(value), nextText);
+          });
+          view.rerender(renderField());
+        }
+
+        expect(onChange.mock.calls.length).toBe(1);
+        expect(onChange.mock.calls[0]?.[0]).toBe(withSpace);
+        expect(value).toBe(withSpace);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("allows backspace and retype after the oscillation window", async () => {
+      const savedOS = PlatformModule.OS;
+      const originalNow = performance.now.bind(performance);
+      let fakeNow = 10_000;
+
+      try {
+        PlatformModule.OS = "web";
+        performance.now = () => fakeNow;
+
+        let value = "hello";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const view = renderWithTheme(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hell");
+        });
+        view.rerender(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        fakeNow += 600;
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hello");
+        });
+
+        expect(onChange.mock.calls.map((call) => call[0])).toEqual(["hell", "hello"]);
+      } finally {
+        performance.now = originalNow;
+        PlatformModule.OS = savedOS;
+      }
     });
   });
 });

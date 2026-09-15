@@ -1,3 +1,8 @@
+/**
+ * Isolated: `mock.module("expo-router")` and `./useAdminApi` leak across the
+ * main suite and flake header-action tests. Keep this file next to
+ * `AdminModelForm.tsx` so those specifiers match the component imports.
+ */
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
@@ -7,17 +12,11 @@ import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
-import type {AdminApi, AdminConfigResponse} from "./types";
+import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const routerBack = mock(() => {});
 const routerPush = mock(() => {});
-const setOptions = mock((opts: Record<string, unknown>) => {
-  // Invoke the headerRight render function so its children execute and we
-  // exercise the save/delete button useCallbacks when fired elsewhere.
-  if (opts?.headerRight) {
-    opts.headerRight();
-  }
-});
+const setOptions = mock((_opts: Record<string, unknown>) => {});
 mock.module("expo-router", () => ({
   router: {back: routerBack, push: routerPush},
   useNavigation: () => ({setOptions}),
@@ -43,7 +42,40 @@ const createFn = mock((_: unknown) => ({unwrap: async () => ({_id: "new"})}));
 const updateFn = mock((_: unknown) => ({unwrap: async () => ({_id: "u"})}));
 const deleteFn = mock((_: unknown) => ({unwrap: async () => ({})}));
 
+const syncMutateFn = mock((_args: unknown) => ({id: "sync-id", mutationId: "mutation-id"}));
+const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]}));
+
 import {AdminModelForm} from "./AdminModelForm";
+import {AdminProvider} from "./AdminProvider";
+import {getAdminWindowMembershipStale, resetAdminWindowRefreshForTests} from "./adminWindowRefresh";
+
+const syncDb: AdminSyncDb = {
+  hydrateWindow: hydrateWindowFn,
+  mutate: syncMutateFn,
+  store: {
+    getEntity: () => undefined,
+    raw: {
+      addTableListener: () => "listener",
+      delListener: () => {},
+    },
+  },
+};
+
+const renderWithSyncAdmin = (
+  child: React.ReactElement,
+  syncConflicts?: AdminSyncConflicts
+): ReturnType<typeof renderWithTheme> =>
+  renderWithTheme(
+    <AdminProvider
+      api={{} as unknown as AdminApi}
+      apiBase="/admin"
+      getAuthHeaders={() => ({})}
+      syncConflicts={syncConflicts}
+      syncDb={syncDb}
+    >
+      {child}
+    </AdminProvider>
+  );
 
 const modelConfig = {
   defaultSort: "-created",
@@ -81,10 +113,383 @@ describe("AdminModelForm", () => {
     createFn.mockClear();
     updateFn.mockClear();
     deleteFn.mockClear();
+    syncMutateFn.mockClear();
+    syncMutateFn.mockImplementation((_args: unknown) => ({
+      id: "sync-id",
+      mutationId: "mutation-id",
+    }));
+    hydrateWindowFn.mockClear();
     configState.config = null;
     configState.isLoading = false;
     readState.data = null;
     readState.isLoading = false;
+    resetAdminWindowRefreshForTests();
+  });
+
+  it("uses syncdb mutations for create, update, and delete on windowed String-id models", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    const onSaveSuccess = mock(async (_args: unknown) => {});
+
+    const createForm = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="Todo"
+        onSaveSuccess={onSaveSuccess}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(createForm.getByTestId("admin-save-button"));
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[0]?.[0], {
+      collection: "todos",
+      data: {active: true, age: 0, email: "", name: ""},
+      operation: "create",
+    });
+    assert.equal(createFn.mock.calls.length, 0);
+    assert.deepEqual(onSaveSuccess.mock.calls[0]?.[0], {
+      itemId: undefined,
+      mode: "create",
+      payload: {active: true, age: 0, email: "", name: ""},
+      result: {_id: "sync-id", active: true, age: 0, email: "", name: ""},
+    });
+    assert.equal(routerBack.mock.calls.length, 1);
+    assert.deepEqual(getAdminWindowMembershipStale("todos"), {awaitId: "sync-id"});
+    createForm.unmount();
+    resetAdminWindowRefreshForTests();
+
+    readState.data = {active: true, age: 1, email: "todo@example.com", name: "Todo"};
+    const editForm = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(editForm.getByTestId("admin-save-button"));
+    });
+    assert.deepEqual(hydrateWindowFn.mock.calls[0]?.[0], {
+      collection: "todos",
+      ids: ["todo-1"],
+      restRows: {
+        "todo-1": {active: true, age: 1, email: "todo@example.com", name: "Todo"},
+      },
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[1]?.[0], {
+      collection: "todos",
+      data: {active: true, age: 1, email: "todo@example.com", name: "Todo"},
+      id: "todo-1",
+      operation: "update",
+    });
+    assert.equal(updateFn.mock.calls.length, 0);
+    assert.equal(routerBack.mock.calls.length, 2);
+    assert.isUndefined(getAdminWindowMembershipStale("todos"));
+
+    const deleteButton = editForm.UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
+    )[0];
+    await act(async () => {
+      deleteButton?.props.onClick();
+    });
+    assert.deepEqual(syncMutateFn.mock.calls[2]?.[0], {
+      collection: "todos",
+      id: "todo-1",
+      operation: "delete",
+    });
+    assert.equal(deleteFn.mock.calls.length, 0);
+    assert.equal(routerBack.mock.calls.length, 3);
+    assert.deepEqual(getAdminWindowMembershipStale("todos"), {});
+  });
+
+  it("ignores duplicate windowed save presses while the first save is pending", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    let releaseSave: (() => void) | undefined;
+    const onSaveSuccess = mock(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSave = resolve;
+        })
+    );
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="Todo"
+        onSaveSuccess={onSaveSuccess}
+      />
+    );
+    const saveButton = form.UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.testID === "admin-save-button" && typeof node.props.onClick === "function"
+    )[0];
+
+    await act(async () => {
+      void saveButton?.props.onClick();
+      void saveButton?.props.onClick();
+      await Promise.resolve();
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 1);
+    assert.equal(onSaveSuccess.mock.calls.length, 1);
+
+    await act(async () => {
+      releaseSave?.();
+      await Promise.resolve();
+    });
+  });
+
+  it("ignores duplicate windowed delete presses while hydration is pending", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    readState.data = {email: "todo@example.com"};
+    let releaseHydrate: (() => void) | undefined;
+    hydrateWindowFn.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseHydrate = (): void => resolve({hydratedIds: ["todo-1"]});
+        })
+    );
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />
+    );
+    const deleteButton = form.UNSAFE_root.findAll(
+      (node: ReactTestInstance) =>
+        node.props?.testID === "admin-delete-button" && typeof node.props.onClick === "function"
+    )[0];
+
+    await act(async () => {
+      void deleteButton?.props.onClick();
+      void deleteButton?.props.onClick();
+      await Promise.resolve();
+    });
+
+    assert.equal(hydrateWindowFn.mock.calls.length, 1);
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+
+    await act(async () => {
+      releaseHydrate?.();
+      await Promise.resolve();
+    });
+    assert.equal(syncMutateFn.mock.calls.length, 1);
+  });
+
+  it("shows an edit conflict for the loaded form id", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          name: "Todo",
+          syncCollection: "todos",
+        },
+      ],
+    };
+    readState.data = {email: "todo@example.com", name: "Todo"};
+    const syncConflicts: AdminSyncConflicts = {
+      conflicts: [
+        {
+          collection: "todos",
+          entityId: "todo-1",
+          localData: JSON.stringify({name: "Mine"}),
+          mutationId: "mutation-1",
+          serverData: JSON.stringify({name: "Server"}),
+        },
+        {
+          collection: "todos",
+          entityId: "todo-2",
+          localData: JSON.stringify({name: "Other mine"}),
+          mutationId: "mutation-2",
+          serverData: JSON.stringify({name: "Other server"}),
+        },
+      ],
+      resolve: () => {},
+    };
+
+    const view = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="todo-1"
+        mode="edit"
+        modelName="Todo"
+      />,
+      syncConflicts
+    );
+
+    assert.isDefined(await view.findByTestId("conflict-item-todo-1"));
+    assert.isNull(view.queryByTestId("conflict-item-todo-2"));
+  });
+
+  it("keeps ObjectId model create, update, and delete on the REST mutation path", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            _id: {required: true, type: "objectid"},
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 1);
+    form.unmount();
+
+    readState.data = {active: true, age: 1, email: "user@example.com", name: "User"};
+    const editForm = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        itemId="object-id"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(editForm.getByTestId("admin-save-button"));
+    });
+    const deleteButton = editForm.UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.testID === "admin-delete-button"
+    )[0];
+    await act(async () => {
+      deleteButton?.props.onClick();
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(hydrateWindowFn.mock.calls.length, 0);
+    assert.equal(updateFn.mock.calls.length, 1);
+    assert.equal(deleteFn.mock.calls.length, 1);
+  });
+
+  it("falls back to REST when a String-id model is not adminBroadcast-enabled", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(syncMutateFn.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 1);
+  });
+
+  it("keeps the form open when a syncdb mutation throws", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          adminBroadcast: true,
+          fields: {
+            ...modelConfig.fields,
+            email: {required: false, type: "string"},
+          },
+          syncCollection: "users",
+        },
+      ],
+    };
+    syncMutateFn.mockImplementation(() => {
+      throw new Error("sync failed");
+    });
+
+    const form = renderWithSyncAdmin(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        mode="create"
+        modelName="User"
+      />
+    );
+    await act(async () => {
+      fireEvent.press(form.getByTestId("admin-save-button"));
+    });
+
+    assert.equal(routerBack.mock.calls.length, 0);
+    assert.equal(createFn.mock.calls.length, 0);
   });
 
   it("renders loading state while config loads", () => {
@@ -142,14 +547,7 @@ describe("AdminModelForm", () => {
       email: "readonly@example.com",
       name: "Read only",
     };
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -158,10 +556,9 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
 
-    assert.isNull(header.queryByTestId("admin-save-button"));
-    assert.isNull(header.queryByTestId("admin-delete-button"));
+    assert.isNull(form.queryByTestId("admin-save-button"));
+    assert.isNull(form.queryByTestId("admin-delete-button"));
   });
 
   it("renders spinner during edit when the item is loading", () => {
@@ -274,7 +671,7 @@ describe("AdminModelForm", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("invokes save callback via headerRight save button", async () => {
+  it("invokes save callback via the form save button", async () => {
     // Build a config with no required fields so validation passes without field edits.
     configState.config = {
       ...config,
@@ -289,14 +686,7 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-
-    renderWithTheme(
+    const header = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -304,7 +694,6 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
       fireEvent.press(header.getByTestId("admin-save-button"));
     });
@@ -330,13 +719,7 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -344,9 +727,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(createFn).not.toHaveBeenCalled();
@@ -368,13 +750,7 @@ describe("AdminModelForm", () => {
       transformed: true,
     }));
     const onSaveSuccess = mock(async () => undefined);
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -384,9 +760,8 @@ describe("AdminModelForm", () => {
         transformPayload={transformPayload}
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(transformPayload).toHaveBeenCalled();
@@ -400,13 +775,7 @@ describe("AdminModelForm", () => {
         throw new Error("boom");
       },
     }));
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -414,9 +783,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     // router.back is not called on error.
@@ -426,13 +794,7 @@ describe("AdminModelForm", () => {
   it("deletes an existing item via the delete button confirm flow", async () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -441,16 +803,15 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     // Open confirmation modal.
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-delete-button"));
+      fireEvent.press(form.getByTestId("admin-delete-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     // Confirm by pressing delete again (Button toggles showConfirmation on first press
     // and invokes onClick on the second press when not using the lazy modal).
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-delete-button"));
+      fireEvent.press(form.getByTestId("admin-delete-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     // The delete handler may not fire under the lazy-loaded Modal, but the render path
@@ -466,13 +827,7 @@ describe("AdminModelForm", () => {
         throw new Error("nope");
       },
     }));
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -481,8 +836,7 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    // The header render should still succeed in an error-flagged scenario.
-    expect(savedHeaderRight).toBeDefined();
+    assert.isNotNull(form.getByTestId("admin-delete-button"));
   });
 
   it("covers update-mode errors via toast.catch", async () => {
@@ -493,13 +847,7 @@ describe("AdminModelForm", () => {
         throw new Error("update failed");
       },
     }));
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -508,9 +856,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(routerBack).not.toHaveBeenCalled();
@@ -539,13 +886,7 @@ describe("AdminModelForm", () => {
       nested: {inner: null, keep: "yes"},
       tags: ["a", null, "b"],
     };
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -554,9 +895,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(updateFn).toHaveBeenCalled();
@@ -584,13 +924,7 @@ describe("AdminModelForm", () => {
       ],
     };
     readState.data = {email: "e@x.com"};
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -599,9 +933,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((resolve) => setTimeout(resolve, 600));
     });
 
@@ -670,13 +1003,7 @@ describe("AdminModelForm", () => {
     // Ensure no leftover mockImplementationOnce from earlier test runs.
     deleteFn.mockReset();
     deleteFn.mockImplementation(() => ({unwrap: async () => ({})}));
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    const {UNSAFE_root} = renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -685,10 +1012,9 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     // Invoke the delete Button's onClick callback directly so we exercise
     // handleDelete's success branch (calls deleteItem + router.back).
-    const deleteBtns = header.UNSAFE_root.findAll(
+    const deleteBtns = form.UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-delete-button"
     );
     expect(deleteBtns.length).toBeGreaterThan(0);
@@ -698,8 +1024,6 @@ describe("AdminModelForm", () => {
     });
     expect(deleteFn).toHaveBeenCalledWith("u1");
     expect(routerBack).toHaveBeenCalled();
-    // Silence unused-warning for UNSAFE_root root var of main render.
-    expect(UNSAFE_root).toBeDefined();
   });
 
   it("surfaces delete errors via toast.catch without navigating", async () => {
@@ -710,13 +1034,7 @@ describe("AdminModelForm", () => {
         throw new Error("delete failed");
       },
     }));
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -725,8 +1043,7 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
-    const deleteBtns = header.UNSAFE_root.findAll(
+    const deleteBtns = form.UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-delete-button"
     );
     await act(async () => {
@@ -754,13 +1071,7 @@ describe("AdminModelForm", () => {
       ],
     };
     readState.data = {email: "locked@x.com", name: "N"};
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -769,9 +1080,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(updateFn).toHaveBeenCalled();
@@ -783,13 +1093,7 @@ describe("AdminModelForm", () => {
   it("updates an existing item in edit mode", async () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
-    let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: Record<string, unknown>) => {
-      if (opts?.headerRight) {
-        savedHeaderRight = opts.headerRight();
-      }
-    });
-    renderWithTheme(
+    const form = renderWithTheme(
       <AdminModelForm
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -798,9 +1102,8 @@ describe("AdminModelForm", () => {
         modelName="User"
       />
     );
-    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
-      fireEvent.press(header.getByTestId("admin-save-button"));
+      fireEvent.press(form.getByTestId("admin-save-button"));
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(updateFn).toHaveBeenCalled();

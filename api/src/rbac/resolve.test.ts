@@ -53,13 +53,45 @@ describe("createPermissionResolver", () => {
     const first = await resolver.resolvePermissionsForUser(user);
     expect(first.todo).toEqual(["read"]);
 
-    user.roles = [];
+    await RbacRole.findOneAndUpdate({name: "reader"}, {$set: {permissions: {todo: ["create"]}}});
     const cached = await resolver.resolvePermissionsForUser(user);
     expect(cached.todo).toEqual(["read"]);
 
     resolver.invalidateCache({userId: user.id});
     const refreshed = await resolver.resolvePermissionsForUser(user);
-    expect(refreshed.todo).toBeUndefined();
+    expect(refreshed.todo).toEqual(["create"]);
+  });
+
+  it("does not reuse cached permissions after the user's roles change", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({statements: appStatements});
+    await RbacRole.findOneAndUpdate(
+      {name: "reader"},
+      {
+        $set: {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      },
+      {upsert: true}
+    );
+
+    const resolver = createPermissionResolver({
+      cacheTtlMs: 60_000,
+      rbacRoleModel: RbacRole,
+      statements: appStatements,
+    });
+
+    const user = createTestUser({roles: ["reader"]});
+    const first = await resolver.resolvePermissionsForUser(user);
+    expect(first.todo).toEqual(["read"]);
+    expect(first.admin).toBeUndefined();
+
+    user.roles = ["superadmin"];
+    const promoted = await resolver.resolvePermissionsForUser(user);
+    expect(promoted.admin).toEqual(expect.arrayContaining(["access"]));
   });
 
   it("clears all cached permissions when invalidateCache is called without userId", async () => {

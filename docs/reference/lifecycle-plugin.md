@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.10.0`)
+Plugin: `terreno-planning` (`2.11.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -39,6 +39,8 @@ Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and the compact `v: 2` schem
 (`v`, `stage`, `status`, `next`, `action`; omit empty keys). Loop state follows
 [`execution-state.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
 Chat and PRs show `status` / `next` / `action`; the YAML lives in a Details toggle.
+When the current PR has GitHub Deployments, those demo URLs are the last visible
+section of every wait-for-human or done chat.
 
 The outer loop owns state persistence, Taste `PENDING` reinvocation, Grow/Brew/Taste
 invocation, retries, and escalation. Pick owns the
@@ -68,7 +70,7 @@ docs, and risks, then presents that report once. It asks the human only
 for an actual product/architecture/security/data/destructive/policy decision or
 unreplaceable credential. Before asking, it gives the overall goal/state, completed
 work, decisive evidence, two to four options with impact, and a recommendation; the
-message ends with one exact question.
+message ends with one exact question, then PR deployment URLs when a PR has them.
 
 Grow's human-facing output is a standalone approval brief, not an index. It opens with a
 paragraph on where the repository is and where the change takes it, adds background on
@@ -77,9 +79,15 @@ verification, out of scope, risks). A Decisions table follows the plan with no r
 pairing every settled human decision with the question that prompted it; it is omitted
 when grilling settled none. Paths to the IP and task files come last.
 
-GitHub communication follows a fixed attention budget: `Why`, `What changed`, and
-`Verification` are the only visible PR sections; optional detail is expandable; comments
-are reserved for blocked decisions or non-obvious review resolutions.
+GitHub communication follows a fixed attention budget. The PR title is
+`[ticket] Short feature title` (Linear `TEAM-n` or GitHub `#n`; omit brackets when
+no ticket is attached) and names the feature only — never `feat:`, `IP Approved`,
+or `Task list`. `Why` preserves the IP's initial justification, `What changed`
+briefly describes the approved IP and intended outcomes, and `Verification` always
+contains reproducible testing instructions. Brew updates verification as testing
+changes but otherwise keeps the body stable instead of summarizing the latest turn.
+These are the only visible PR sections; optional detail is expandable; comments are
+reserved for blocked decisions or non-obvious review resolutions.
 
 Every stage follows the
 [documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):

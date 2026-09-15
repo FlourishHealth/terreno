@@ -1,5 +1,6 @@
 export {AdminActionMenu} from "./AdminActionMenu";
 export {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
+export {AdminConflictSheet, type AdminConflictSheetProps} from "./AdminConflictSheet";
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminFilterDrawer} from "./AdminFilterDrawer";
 export {AdminHome} from "./AdminHome";
@@ -32,6 +33,14 @@ export {AdminVersionConfig} from "./AdminVersionConfig";
 export {AnnouncementEditor} from "./AnnouncementEditor";
 export {AnnouncementList} from "./AnnouncementList";
 export {isAdminPageForbiddenError} from "./adminPageAccess";
+export {
+  AdminAPIError,
+  type AdminRequestArgs,
+  adminRequest,
+  type BindAdminRequestOptions,
+  bindAdminRequest,
+  DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
+} from "./adminRequest";
 export {groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
@@ -62,12 +71,17 @@ export type {
   AdminCustomScreen,
   AdminFieldConfig,
   AdminFieldWidgetProps,
+  AdminGetAuthHeaders,
   AdminHomeWidgetProps,
   AdminModelConfig,
   AdminProviderValue,
   AdminScreenProps,
   AdminScreenWidgetProps,
   AdminScriptConfig,
+  AdminSyncConflict,
+  AdminSyncConflicts,
+  AdminSyncDb,
+  AdminSyncDbEntity,
   AdminWidgetRegistry,
   BackgroundTask,
   DocumentFile,
@@ -82,6 +96,7 @@ export type {
 export {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 export {useAdminApi} from "./useAdminApi";
 export {useAdminConfig} from "./useAdminConfig";
+export {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "./useAdminRpc";
 export {useAdminScripts} from "./useAdminScripts";
 export {useConfigurationApi} from "./useConfigurationApi";
 export * from "./useConsentHistory";
