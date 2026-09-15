@@ -4,6 +4,7 @@ export {AdminConflictSheet, type AdminConflictSheetProps} from "./AdminConflictS
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminFilterDrawer} from "./AdminFilterDrawer";
 export {AdminHome} from "./AdminHome";
+export {AdminMigrations} from "./AdminMigrations";
 export {AdminModelForm, type AdminModelFormScreenTitleParams} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";

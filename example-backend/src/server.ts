@@ -52,6 +52,7 @@ import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
+import {resolveExampleMigrationsDir} from "./migrationsDir";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -180,6 +181,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         enabled: true,
         publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
+      migrations: {dir: resolveExampleMigrationsDir()},
       organizations: {
         settingsSchema: organizationSettingsSchema,
       },
@@ -399,6 +401,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             },
             title: "Example administration",
           },
+          migrations: {dir: resolveExampleMigrationsDir()},
           models: [
             mcpServiceTokenAdminModel,
             {

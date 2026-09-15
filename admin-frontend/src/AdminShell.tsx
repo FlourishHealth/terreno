@@ -82,6 +82,7 @@ interface AdminShellSidebarNavProps {
   footer?: React.ReactNode;
   grouped: ReturnType<typeof groupAdminModelsByGroup>;
   isOrganizationOperator?: boolean;
+  migrationsEnabled: boolean;
   navigate: (path: string) => void;
   onNavigate?: () => void;
   organizationDirectoryPath?: string;
@@ -99,6 +100,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   footer,
   grouped,
   isOrganizationOperator,
+  migrationsEnabled,
   navigate,
   onNavigate,
   organizationDirectoryPath,
@@ -122,6 +124,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
     .filter(({models: groupModels}) => groupModels.length > 0);
   const hasPlatformLinks = Boolean(
     (platformTools.scripts && scripts.length > 0) ||
+      migrationsEnabled ||
       (platformTools.roles && rolesPath) ||
       (platformTools.version && versionConfigPath) ||
       auditLogModel ||
@@ -232,6 +235,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 }}
                 sidebarVariant={sidebarVariant}
                 testID="admin-shell-nav-scripts"
+              />
+            ) : null}
+            {migrationsEnabled ? (
+              <NavButton
+                label="Migrations"
+                onPress={() => {
+                  runNav(() => {
+                    navigate("/__migrations");
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-migrations"
               />
             ) : null}
             {platformTools.roles && rolesPath ? (
@@ -424,6 +439,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     footer,
     grouped,
     isOrganizationOperator,
+    migrationsEnabled: Boolean(config.migrations?.enabled),
     navigate,
     organizationDirectoryPath,
     organizationSwitcher,
