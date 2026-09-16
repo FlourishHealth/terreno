@@ -37,7 +37,10 @@ describe("DemoHomeBanner", () => {
 
   it("flows inline with the component cards instead of above them", () => {
     const rendered = renderWithTheme(<DemoHomePage onPress={() => {}} />);
-    const testIds = collectTestIds(rendered.toJSON() as RenderedNode | null);
+    // Component previews render their own test IDs, so compare grid slots only.
+    const testIds = collectTestIds(rendered.toJSON() as RenderedNode | null).filter((id) =>
+      id.startsWith("demo-home-")
+    );
     const calloutIndex = testIds.indexOf("demo-home-palette-callout");
     const bannerIndex = testIds.indexOf("demo-home-banner");
     const firstCardIndex = testIds.findIndex((id) => id.startsWith("demo-home-accordion"));
