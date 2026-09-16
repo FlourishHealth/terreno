@@ -30,6 +30,15 @@ const GPTChatFrame: React.FC<{children: React.ReactNode}> = ({children}) => {
   );
 };
 
+const DEMO_MASCOT: React.ReactElement = (
+  <Box alignItems="center" gap={3}>
+    <Heading size="2xl">🦊</Heading>
+    <Text align="center" color="secondaryDark" size="sm">
+      Demo fox — supplied by the story, not by GPTChat.
+    </Text>
+  </Box>
+);
+
 export const GPTChatDemo: React.FC = (): React.ReactElement => {
   const [messages, setMessages] = useState<GPTChatMessage[]>(STATIC_MESSAGES);
   const [historyId, setHistoryId] = useState<string>("h1");
@@ -83,6 +92,31 @@ export const GPTChatEmpty: React.FC = (): React.ReactElement => {
           onSubmit={noop}
           suggestedPrompts={["What can this chat do?", "Explain SplitPage"]}
           testID="demo-gpt-chat-empty"
+        />
+      </GPTChatFrame>
+    </Box>
+  );
+};
+
+export const GPTChatMascot: React.FC = (): React.ReactElement => {
+  return (
+    <Box gap={2} width="100%">
+      <Heading size="sm">Mascot</Heading>
+      <Text>
+        Empty chat with a consumer-supplied mascot. GPTChat ships none — omit `mascot` to keep the
+        default empty state.
+      </Text>
+      <GPTChatFrame>
+        <GPTChat
+          currentMessages={[]}
+          histories={STATIC_HISTORIES}
+          mascot={DEMO_MASCOT}
+          onCreateHistory={noop}
+          onDeleteHistory={noop}
+          onSelectHistory={noop}
+          onSubmit={noop}
+          suggestedPrompts={["What can this chat do?", "Explain SplitPage"]}
+          testID="demo-gpt-chat-mascot"
         />
       </GPTChatFrame>
     </Box>
