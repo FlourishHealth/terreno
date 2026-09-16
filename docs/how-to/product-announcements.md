@@ -74,9 +74,9 @@ Register the screen through `AnnouncementsApp.adminContribution()` (`customScree
 
 `AnnouncementEditor` uses `MultiselectField` for platforms and requires at least one platform before save.
 
-![Announcement overview with delivery metrics](/img/announcements/admin-overview.png)
+<img alt="Announcement overview with delivery metrics" src="/img/announcements/admin-overview.png" />
 
-![Platform multiselect in the announcement editor](/img/announcements/admin-editor-platforms.png)
+<img alt="Platform multiselect in the announcement editor" src="/img/announcements/admin-editor-platforms.png" />
 
 ## Frontend
 
