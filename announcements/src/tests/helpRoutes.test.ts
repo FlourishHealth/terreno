@@ -13,6 +13,7 @@ import {DateTime} from "luxon";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {AnnouncementsApp} from "../announcementsApp";
+import {registerAnnouncementHelpRoutes} from "../helpRoutes";
 import {Announcement} from "../models/announcement";
 
 const buildApp = (options?: {
@@ -206,6 +207,54 @@ describe("announcement help routes", () => {
     assert.lengthOf(search.body.data, 0);
 
     await patientAgent.get(`/announcements/help/${staffOnly._id.toString()}`).expect(404);
+  });
+
+  it("uses default isStaff for staff and patient audienceType targeting", async () => {
+    await Announcement.deleteMany({});
+
+    const defaultHelpApp = getBaseServer();
+    setupAuth(defaultHelpApp, UserModel as unknown as UserModelType);
+    addAuthRoutes(defaultHelpApp, UserModel as unknown as UserModelType);
+    registerAnnouncementHelpRoutes({app: defaultHelpApp, basePath: "/announcements"});
+    defaultHelpApp.use(apiUnauthorizedMiddleware);
+    defaultHelpApp.use(apiErrorMiddleware);
+
+    const staffAgent = await authAsUser(defaultHelpApp, "admin");
+    const patientAgent = await authAsUser(defaultHelpApp, "notAdmin");
+
+    const staffOnly = await Announcement.create({
+      audienceType: "staff",
+      body: "Staff-only billing notes",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff billing default",
+    });
+    const patientOnly = await Announcement.create({
+      audienceType: "patient",
+      body: "Patient-only billing notes",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Patient billing default",
+    });
+
+    const staffSearch = await staffAgent.get("/announcements/help/search?q=billing").expect(200);
+    assert.lengthOf(staffSearch.body.data, 1);
+    assert.strictEqual(staffSearch.body.data[0].id, staffOnly._id.toString());
+
+    const patientSearch = await patientAgent
+      .get("/announcements/help/search?q=billing")
+      .expect(200);
+    assert.lengthOf(patientSearch.body.data, 1);
+    assert.strictEqual(patientSearch.body.data[0].id, patientOnly._id.toString());
+
+    await staffAgent.get(`/announcements/help/${patientOnly._id.toString()}`).expect(404);
+    await patientAgent.get(`/announcements/help/${staffOnly._id.toString()}`).expect(404);
+  });
+
+  it("ignores blank array query values when searching help", async () => {
+    const res = await userAgent.get("/announcements/help/search?q=&q=billing&q=%20").expect(200);
+    assert.lengthOf(res.body.data, 1);
+    assert.strictEqual(res.body.data[0].id, publishedId);
   });
 
   it("sorts help search results by priority then publishedAt", async () => {

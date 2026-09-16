@@ -178,6 +178,116 @@ describe("AnnouncementOverview", () => {
     assert.strictEqual(onEdit.mock.calls[0]?.[0], "a1");
   });
 
+  it("omits the actions column when onEdit is not provided", () => {
+    overviewState.data = {
+      data: [
+        {
+          _id: "a1",
+          acknowledgementPolicy: "required",
+          audienceType: "staff",
+          displayMode: "modal",
+          metrics: {acknowledgements: 1, clicks: 1, impressions: 1},
+          status: "published",
+          title: "Read only",
+        },
+      ],
+      limit: 20,
+      more: false,
+      page: 1,
+      total: 1,
+      totals: {
+        acknowledgements: 1,
+        announcements: 1,
+        archived: 0,
+        clicks: 1,
+        draft: 0,
+        impressions: 1,
+        published: 1,
+      },
+    };
+
+    const {UNSAFE_root} = renderWithTheme(
+      <AnnouncementOverview api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
+    );
+    const editButtons = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => node.props?.accessibilityLabel === "Edit announcement"
+    );
+    assert.lengthOf(editButtons, 0);
+  });
+
+  it("invokes quick-link callbacks and paginates the table", async () => {
+    overviewState.data = {
+      data: [
+        {
+          _id: "a1",
+          acknowledgementPolicy: "required",
+          audienceType: "staff",
+          displayMode: "modal",
+          metrics: {
+            acknowledgements: Number.NaN,
+            clicks: Number.POSITIVE_INFINITY,
+            impressions: Number.NaN,
+          },
+          status: "published",
+          title: "Metrics row",
+        },
+      ],
+      limit: 20,
+      more: true,
+      page: 1,
+      total: 40,
+      totals: {
+        acknowledgements: Number.NaN,
+        announcements: 1,
+        archived: 0,
+        clicks: Number.NaN,
+        draft: 0,
+        impressions: Number.NaN,
+        published: 1,
+      },
+    };
+
+    const onOpenAcknowledgements = mock(() => {});
+    const onOpenImpressions = mock(() => {});
+    const onOpenClickEvents = mock(() => {});
+    const {getByTestId, getByText, UNSAFE_root} = renderWithTheme(
+      <AnnouncementOverview
+        api={makeApi() as unknown as AdminApi}
+        baseUrl="/admin"
+        onOpenAcknowledgements={onOpenAcknowledgements}
+        onOpenClickEvents={onOpenClickEvents}
+        onOpenImpressions={onOpenImpressions}
+      />
+    );
+
+    assert.exists(getByText("Metrics row"));
+
+    await press(getByTestId("announcement-overview-link-acknowledgements"));
+    await press(getByTestId("announcement-overview-link-impressions"));
+    await press(getByTestId("announcement-overview-link-clicks"));
+    assert.strictEqual(onOpenAcknowledgements.mock.calls.length, 1);
+    assert.strictEqual(onOpenImpressions.mock.calls.length, 1);
+    assert.strictEqual(onOpenClickEvents.mock.calls.length, 1);
+
+    const tables = UNSAFE_root.findAll(
+      (node: ReactTestInstance) => typeof node.props?.setPage === "function"
+    );
+    assert.isAtLeast(tables.length, 1);
+    await act(async () => {
+      (tables[0] as ReactTestInstance).props.setPage(2);
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    assert.strictEqual((tables[0] as ReactTestInstance).props.page, 2);
+  });
+
+  it("reuses the injected overview endpoint across renders", () => {
+    const api = makeApi() as unknown as AdminApi;
+    const {rerender} = renderWithTheme(<AnnouncementOverview api={api} baseUrl="/admin" />);
+    querySpecs.length = 0;
+    rerender(<AnnouncementOverview api={api} baseUrl="/admin" />);
+    assert.lengthOf(querySpecs, 0);
+  });
+
   it("renders empty state when overview has no rows", () => {
     overviewState.data = {
       data: [],
