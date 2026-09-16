@@ -2016,13 +2016,40 @@ export class AdminApp {
         }
 
         const taskId = task._id.toString();
-        const enqueued = await tryEnqueueAdminScriptJob({
-          args: args.raw,
-          createdByName: user.name,
-          scriptName: script.name,
-          taskId,
-          wetRun: isWetRun,
-        });
+        let enqueued: {id: string} | undefined;
+        try {
+          enqueued = await tryEnqueueAdminScriptJob({
+            args: args.raw,
+            createdByName: user.name,
+            scriptName: script.name,
+            taskId,
+            wetRun: isWetRun,
+          });
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to enqueue durable job for ${script.name}: ${detail}`);
+          const failedAt = DateTime.now().toJSDate();
+          await BackgroundTask.updateOne(
+            {_id: task._id},
+            {
+              $set: {
+                completedAt: failedAt,
+                error: detail,
+                progress: {
+                  message: "Failed to enqueue",
+                  percentage: 100,
+                  stage: "Failed",
+                },
+                status: "failed",
+              },
+            }
+          );
+          throw new APIError({
+            detail,
+            status: 500,
+            title: `Failed to enqueue script: ${script.name}`,
+          });
+        }
         if (enqueued) {
           return res.status(201).json({taskId});
         }

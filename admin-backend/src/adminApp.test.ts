@@ -575,6 +575,41 @@ describe("AdminApp script routes", () => {
       expect(task?.status).toBe("failed");
       expect(task?.error).toBe("Script exploded");
     });
+
+    it("marks the BackgroundTask failed when enqueue throws", async () => {
+      unregisterJobsService();
+      const throwingJobs = new JobsApp({
+        pollIntervalMs: 25,
+        runner: {
+          enqueue: async (): Promise<void> => {
+            throw new Error("Cloud Tasks unavailable");
+          },
+          id: "throw-enqueue",
+        },
+      });
+      const server = getBaseServer();
+      setupAuth(server, UserModel as unknown as UserModelType);
+      addAuthRoutes(server, UserModel as unknown as UserModelType);
+      throwingJobs.register(server);
+      const admin = new AdminApp({
+        basePath: "/admin",
+        models: [],
+        scripts: [createTestScript()],
+      });
+      admin.register(server);
+      server.use(apiUnauthorizedMiddleware);
+      server.use(apiErrorMiddleware);
+      const agent = await authAsUser(server, "admin");
+
+      const res = await agent.post("/admin/scripts/test-script/run").expect(500);
+      expect(res.body.title).toMatch(/enqueue/i);
+      const pending = await BackgroundTask.find({status: "pending"});
+      expect(pending).toHaveLength(0);
+      const failed = await BackgroundTask.find({taskType: "test-script"});
+      expect(failed).toHaveLength(1);
+      expect(failed[0]?.status).toBe("failed");
+      expect(failed[0]?.error).toContain("Cloud Tasks unavailable");
+    });
   });
 
   describe("GET /admin/config with scripts", () => {

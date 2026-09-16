@@ -61,7 +61,9 @@ defineAdminScriptJob(jobsApp, (name) => adminScripts.find((script) => script.nam
 
 `AdminApp` also binds `admin/script` from its `scripts` list at register time. Cloud Tasks
 uses this path automatically when `JobsApp` is constructed with `GcpCloudTasksRunner` — the
-worker/execute process must load the same script definitions.
+worker/execute process must load the same script definitions. If runner `enqueue` throws,
+the HTTP handler marks the `BackgroundTask` failed and returns 500 instead of leaving it
+`pending`.
 
 ## Enqueue
 
