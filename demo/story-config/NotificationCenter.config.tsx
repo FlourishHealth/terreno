@@ -1,4 +1,5 @@
 import {DemoConfiguration} from "@config";
+import {NotificationBell} from "@terreno/ui";
 import type {ReactElement} from "react";
 
 import {NotificationCenterDemo} from "../stories/NotificationCenter.stories";
@@ -9,7 +10,7 @@ export const NotificationCenterConfiguration: DemoConfiguration = {
   additionalDocumentation: [],
   a11yNotes: [],
   category: "Pattern",
-  component: () => null,
+  component: NotificationBell,
   demo: renderNotificationCenterDemo,
   demoOptions: {},
   description: "Presentational notification bell, inbox list, and channel preferences.",
