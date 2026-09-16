@@ -260,7 +260,7 @@ export const Modal: FC<ModalProps> = ({
   // fight over the touch responder, producing repeated press animations and a Confirm button that
   // never fires. All native devices (phones and tablets) use the ActionSheet presentation.
   const isMobile = isNative();
-  const isNarrow = windowWidth < 480;
+  const isNarrow = !isMobile && windowWidth < 480;
   const sizePx = getModalSize(size);
 
   const modalContentProps = {

@@ -6,7 +6,6 @@ import {assert} from "chai";
 import {Platform as ImportedPlatform, type ScaledSize, useWindowDimensions} from "react-native";
 import {Gesture} from "react-native-gesture-handler";
 
-import {Button} from "./Button";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -498,7 +497,7 @@ describe("Modal web platform", () => {
   it("stacks long modal actions at narrow web widths", () => {
     const restoreWindowWidth = setWindowWidth(400);
     try {
-      const {UNSAFE_getAllByType} = renderWithTheme(
+      const {getByText, UNSAFE_root} = renderWithTheme(
         <Modal
           onDismiss={() => {}}
           primaryButtonOnClick={() => {}}
@@ -512,9 +511,12 @@ describe("Modal web platform", () => {
         </Modal>
       );
 
-      const buttons = UNSAFE_getAllByType(Button);
-      assert.lengthOf(buttons, 2);
-      assert.isTrue(buttons.every((button) => button.props.fullWidth === true));
+      assert.exists(getByText("Read the announcement docs"));
+      assert.exists(getByText("Got it"));
+      const stackedActionRows = UNSAFE_root.findAll(
+        (node) => node.props?.style?.flexDirection === "column" && node.props?.style?.gap === 12
+      );
+      assert.lengthOf(stackedActionRows, 1);
     } finally {
       restoreWindowWidth();
     }
