@@ -1,4 +1,5 @@
 import {describe, expect, test} from "bun:test";
+import {assert} from "chai";
 import {handleToolCall, tools} from "../tools.js";
 
 describe("tools", () => {
@@ -594,12 +595,12 @@ describe("tools", () => {
   });
 
   describe("handleToolCall - bootstrap dispatch", () => {
-    test("does not expose terreno_bootstrap_app", () => {
-      const result = handleToolCall("terreno_bootstrap_app", {
+    test("does not expose terreno_bootstrap_app", async () => {
+      const result = await handleToolCall("terreno_bootstrap_app", {
         appDisplayName: "Dispatch App",
         appName: "dispatch-app",
       });
-      expect(result.content[0].text).toContain("Unknown tool");
+      assert.include(result.content[0].text, "Unknown tool");
     });
 
     test("should delegate terreno_bootstrap_ai_rules to bootstrap handler", async () => {
