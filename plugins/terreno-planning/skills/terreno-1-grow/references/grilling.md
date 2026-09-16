@@ -73,7 +73,10 @@ If the harness has a structured question tool that renders selectable choices
 (Cursor `AskQuestion`, Claude Code `AskUserQuestion`, or equivalent), use it for the whole
 round instead of listing the questions in prose:
 
-- One tool question per frontier decision; send the whole round in a single call.
+- One tool question per frontier decision; send the round in a single call.
+- Cap a structured-tool round at **four** questions. Claude Code `AskUserQuestion` rejects
+  calls with more than four, so the fifth frontier question waits for the next round
+  instead of being appended. Do not split one round across two calls.
 - Put the recommended option **first** and suffix its label with `(Recommended)`.
 - Give every question 2–4 concrete, mutually exclusive options. Option labels are the
   actual choice ("Better Auth session cookie", "Existing JWT middleware"), never "Yes"/
@@ -110,7 +113,9 @@ Rules for the body:
   plan yet. If this branch already has a PR with GitHub Deployments, the last visible
   section is Demo (see the PR deployments procedure).
 
-Both shapes are capped at **five** questions per round, one decision each.
+Round caps, one decision per question: **four** with a structured question tool (the
+Claude Code `AskUserQuestion` limit), **five** for the markdown fallback. Anything past the
+cap stays on the frontier for the next round.
 
 ### After the user replies
 
