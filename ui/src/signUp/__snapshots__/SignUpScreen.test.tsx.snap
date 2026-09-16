@@ -865,6 +865,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
+              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
