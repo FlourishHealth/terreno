@@ -80,6 +80,7 @@ const useMountedRef = (): React.RefObject<boolean> => {
 };
 
 const ButtonVisual: React.FC<ButtonVisualProps> = ({
+  accessibilityLabel,
   children,
   disabled = false,
   fullWidth = false,
@@ -89,6 +90,7 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
   onPress,
   pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   size = "default",
+  state = "default",
   testID,
   text,
   variant = "primary",
@@ -125,13 +127,26 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
       textColor = theme.surface.secondaryDark;
     }
 
+    if (!disabled && state === "active") {
+      if (variant === "primary") {
+        bgColor = theme.surface.secondaryDark;
+      } else if (variant === "destructive") {
+        bgColor = theme.surface.error;
+      } else {
+        bgColor = theme.surface.primary;
+      }
+      bColor = undefined;
+      bWidth = undefined;
+      textColor = theme.surface.base;
+    }
+
     return {
       backgroundColor: bgColor,
       borderColor: bColor,
       borderWidth: bWidth,
       color: textColor,
     };
-  }, [disabled, variant, theme]);
+  }, [disabled, state, variant, theme]);
 
   if (!theme) {
     return null;
@@ -148,7 +163,7 @@ const ButtonVisual: React.FC<ButtonVisualProps> = ({
       accessibilityHint={
         withConfirmation ? "Opens a confirmation dialog" : "Press to perform action"
       }
-      accessibilityLabel={text}
+      accessibilityLabel={accessibilityLabel ?? text}
       accessibilityRole="button"
       accessibilityState={{disabled: isPressDisabled}}
       {...pressableInteractionProps}

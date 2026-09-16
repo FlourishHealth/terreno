@@ -72,6 +72,10 @@ only in a collapsed details block. On a PR, put it only in the Details toggle fr
 [`GitHub attention contract`](github-attention-contract.md). Never paste the YAML in
 visible PR body, comments, or the main chat.
 
+When a PR has GitHub Deployments, close every wait-for-human or done message with those
+demo URLs as the **last visible section**, per [`pr-deployments.md`](pr-deployments.md).
+Omit the section when no `environmentUrl` exists. Do not comment the links on the PR.
+
 The schema is [`stage-result.schema.json`](stage-result.schema.json) (`v: 2`). Required
 keys are `v`, `stage`, `status`, `next`, and `action`. Omit nulls and empty arrays.
 Status values are exactly `PASS`, `FAIL`, `BLOCKED`, or `PENDING`.
@@ -185,8 +189,9 @@ recommended default when appropriate.
 
 An outer loop requesting human input must first summarize the overall plan state,
 completed work, failed/recovered attempts, decisive evidence, options and impact, and a
-recommended default. It ends with one exact question. Objective engineering failures
-are not human gates while a concrete safe action remains.
+recommended default. It ends with one exact question, then the Demo section when the PR
+has deployment URLs. Objective engineering failures are not human gates while a concrete
+safe action remains.
 
 Bounded engineering retries must be hypothesis-driven. Taste waits in-process for
 async review bots and for product CI (bounded watch loop). The outer loop reinvokes
