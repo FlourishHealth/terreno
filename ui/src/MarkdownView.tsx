@@ -158,7 +158,7 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
 
   const markdownRules = useMemo<React.ComponentProps<typeof Markdown>["rules"]>(() => {
     return {
-      image: (node, children, parent, styles, allowedImageHandlers, defaultImageHandler) => {
+      image: (node, _children, _parent, styles, allowedImageHandlers, defaultImageHandler) => {
         const src = node.attributes?.src;
         if (typeof src === "string" && isEmbeddableMediaUrl(src) && toMediaEmbedUrl(src)) {
           return <MarkdownEmbed key={node.key} url={src} />;
