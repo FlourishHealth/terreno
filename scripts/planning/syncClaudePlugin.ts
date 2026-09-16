@@ -71,6 +71,12 @@ const listFilesRecursively = (directory: string, prefix = ""): string[] => {
   return files.sort();
 };
 
+/** Claude Code requires explicit agent file paths; a directory path fails validation. */
+const listAgentPaths = (rootDirectory: string): string[] =>
+  listFilesRecursively(join(rootDirectory, CANONICAL_PLUGIN_DIRECTORY, "agents"))
+    .filter((relativePath) => relativePath.endsWith(".md"))
+    .map((relativePath) => `./agents/${relativePath}`);
+
 const buildClaudeManifest = (rootDirectory: string): string => {
   const cursorManifest = JSON.parse(
     readFileSync(
@@ -86,7 +92,7 @@ const buildClaudeManifest = (rootDirectory: string): string => {
   };
 
   const manifest = {
-    agents: ["./agents/"],
+    agents: listAgentPaths(rootDirectory),
     author: cursorManifest.author,
     description: cursorManifest.description,
     displayName: "Terreno",

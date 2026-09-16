@@ -1,8 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import {DateTime} from "luxon";
-import type mongoose from "mongoose";
-import type {Model} from "mongoose";
+import mongoose, {type Model} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -543,6 +542,44 @@ describe("@terreno/api", () => {
 
       const res = await server.get("/food").expect(200);
       expect(res.body.data).toEqual([]);
+    });
+
+    it("queryFilter undefined values remove keys from the merged query", async () => {
+      await FoodModel.create({
+        calories: 100,
+        hidden: false,
+        name: "Apple",
+        ownerId: new mongoose.Types.ObjectId(),
+      });
+      await FoodModel.create({
+        calories: 50,
+        hidden: false,
+        name: "Banana",
+        ownerId: new mongoose.Types.ObjectId(),
+      });
+
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          queryFields: ["name", "hidden"],
+          queryFilter: () => ({
+            hidden: undefined,
+            name: "Apple",
+          }),
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food?name=Banana&hidden=true").expect(200);
+      expect(res.body.data.map((item: {name: string}) => item.name)).toEqual(["Apple"]);
     });
   });
 

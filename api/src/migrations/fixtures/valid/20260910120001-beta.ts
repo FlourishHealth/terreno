@@ -1,0 +1,6 @@
+/** Loader fixture: reversible (`down` present), second in the valid pair. */
+export const id = "20260910120001-beta";
+
+export const up = async (): Promise<void> => undefined;
+
+export const down = async (): Promise<void> => undefined;
