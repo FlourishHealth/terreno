@@ -65,6 +65,11 @@ describe("AnnouncementsApp", () => {
     expect(contribution.models?.[0]?.routePath).toBe("/announcements");
     expect(contribution.models?.[0]?.admin.displayName).toBe("All announcements");
     expect(contribution.models?.every((entry) => entry.admin.group === "Announcements")).toBe(true);
+    for (const eventModel of contribution.models?.slice(1) ?? []) {
+      assert.deepEqual(eventModel.admin.adminPermissions?.create, []);
+      assert.deepEqual(eventModel.admin.adminPermissions?.delete, []);
+      assert.deepEqual(eventModel.admin.adminPermissions?.update, []);
+    }
     expect(contribution.customScreens).toEqual([
       {
         displayName: "Overview",

@@ -128,6 +128,13 @@ export class AnnouncementsApp implements TerrenoPlugin {
         },
         {
           admin: {
+            adminPermissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAdmin],
+              read: [Permissions.IsAdmin],
+              update: [],
+            },
             defaultSort: "-acknowledgedAt",
             displayName: "Acknowledgements",
             group: "Announcements",
@@ -138,6 +145,13 @@ export class AnnouncementsApp implements TerrenoPlugin {
         },
         {
           admin: {
+            adminPermissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAdmin],
+              read: [Permissions.IsAdmin],
+              update: [],
+            },
             defaultSort: "-viewedAt",
             displayName: "Impressions",
             group: "Announcements",
@@ -148,6 +162,13 @@ export class AnnouncementsApp implements TerrenoPlugin {
         },
         {
           admin: {
+            adminPermissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAdmin],
+              read: [Permissions.IsAdmin],
+              update: [],
+            },
             defaultSort: "-clickedAt",
             displayName: "Click events",
             group: "Announcements",
