@@ -24,7 +24,10 @@ describe("NotificationBell", () => {
     assert.include(StyleSheet.flatten(getByTestId("bell").props.style), {
       position: "relative",
     });
-    assert.equal(getByTestId("bell-badge-container").props.pointerEvents, "none");
+    assert.equal(
+      StyleSheet.flatten(getByTestId("bell-badge-container").props.style).pointerEvents,
+      "none"
+    );
   });
 
   it("keeps the badge inside the bell bounds so ancestors cannot clip it", () => {
