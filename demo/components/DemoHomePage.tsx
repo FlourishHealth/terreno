@@ -95,7 +95,6 @@ export const DemoHomePage: React.FC<{
       }}
       style={{padding: 20, width: "100%"}}
     >
-      <DemoHomeBanner />
       <Box
         alignItems="center"
         color="secondaryLight"
@@ -105,6 +104,7 @@ export const DemoHomePage: React.FC<{
         margin={2}
         padding={4}
         rounding="md"
+        testID="demo-home-palette-callout"
         width="100%"
         wrap
       >
@@ -122,6 +122,7 @@ export const DemoHomePage: React.FC<{
           variant="primary"
         />
       </Box>
+      <DemoHomeBanner />
       {DemoConfig.map((config) => (
         <DemoCard config={config} key={config.name} onPress={onPress} />
       ))}
