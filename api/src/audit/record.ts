@@ -172,6 +172,18 @@ const organizationIdFromAuditContext = (
   return idString(fromDoc);
 };
 
+/** Non-ObjectId actor ids (e.g. string auth ids) must not cost us the whole event. */
+const actorObjectId = (actorId?: string): mongoose.Types.ObjectId | undefined => {
+  if (!actorId) {
+    return undefined;
+  }
+  if (!mongoose.isValidObjectId(actorId)) {
+    logger.warn(`AuditEvent actorId is not an ObjectId, recording without an actor: ${actorId}`);
+    return undefined;
+  }
+  return new mongoose.Types.ObjectId(actorId);
+};
+
 const persistAuditEvent = async (write: AuditEventWrite): Promise<void> => {
   if (write.modelName === "AuditEvent") {
     return;
@@ -183,8 +195,9 @@ const persistAuditEvent = async (write: AuditEventWrite): Promise<void> => {
     }
     return;
   }
+  const actorId = actorObjectId(write.actorId);
   await auditEventModel.create({
-    ...(write.actorId ? {actorId: new mongoose.Types.ObjectId(write.actorId)} : {}),
+    ...(actorId ? {actorId} : {}),
     ...(write.after ? {after: write.after} : {}),
     ...(write.before ? {before: write.before} : {}),
     modelName: write.modelName,

@@ -134,6 +134,19 @@ describe("audit record helpers", () => {
     assert.isUndefined(event?.actorId);
   });
 
+  it("keeps the event when the actor id is not an ObjectId", async () => {
+    registerAuditApp();
+    await maybeRecordAdminAudit({
+      after: {_id: "4", title: "String actor"},
+      modelName: "Note",
+      req: {user: {id: "auth-user-abc"}} as express.Request,
+      verb: "created",
+    });
+    const event = await mongoose.connection.collection("auditevents").findOne({});
+    assert.equal(event?.modelName, "Note");
+    assert.isUndefined(event?.actorId);
+  });
+
   it("does not throw when admin audit serialization fails", async () => {
     registerAuditApp();
     const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);

@@ -53,6 +53,10 @@ RBAC mutations fan into the same collection when `createAccess({auditSink: persi
 
 `organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the mutated document's `organizationId` string. The field is omitted when neither exists. Org-admin list filtering waits on org management UI.
 
+`actorId` comes from `req.user.id` (or `_id`). When that id is not a Mongo ObjectId — for
+example a string auth id — the event is still written with `actorId` omitted and a warning
+logged, so the mutation record survives even without attribution.
+
 ### 4. Fire-and-forget persist
 
 HTTP handlers do not await Mongo. Diffs still run before the response so `before` / `after` are captured. Failures log; the mutation stays 2xx.
