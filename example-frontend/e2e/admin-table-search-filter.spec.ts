@@ -19,10 +19,15 @@ test.describe("Admin table search and filters", () => {
 
     const search = page.getByTestId("data-table-search");
     await expect(search).toBeVisible();
+    await expect(page.getByText("Try offline mode").locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
     await search.fill("no-such-todo-1177");
     await expect(page.getByText("No items found.")).toBeVisible({timeout: 15_000});
     await expect(search).toBeVisible();
 
+    // RN Web TextField suppresses empty A→B→A onChange for 500ms after the last fill.
+    await page.waitForTimeout(510);
     await search.clear();
     await expect(page.getByText("Try offline mode").locator("visible=true").first()).toBeVisible({
       timeout: 15_000,

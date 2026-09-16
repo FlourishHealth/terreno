@@ -190,8 +190,7 @@ describe("useAdminApi", () => {
       injected.adminList_Todo.query({limit: 20, page: 1, q: "Alpha", sort: "-created"})
     ).toEqual({
       method: "GET",
-      params: {limit: 20, page: 1, q: "Alpha", sort: "-created"},
-      url: "/admin/todos",
+      url: "/admin/todos?limit=20&page=1&q=Alpha&sort=-created",
     });
     expect(injected.adminRead_Todo.query("todo-alpha")).toEqual({
       method: "GET",
