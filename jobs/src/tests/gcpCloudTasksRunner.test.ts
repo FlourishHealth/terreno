@@ -1,7 +1,7 @@
 import {beforeEach, describe, it} from "bun:test";
+import {createRequire} from "node:module";
 import {TerrenoApp, type UserModel as UserModelType} from "@terreno/api";
 import {setupDb, UserModel} from "@terreno/api/testing";
-import {createRequire} from "node:module";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
