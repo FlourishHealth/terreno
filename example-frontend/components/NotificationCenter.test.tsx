@@ -35,13 +35,20 @@ const notificationRows: MockNotification[] = [];
 const preferenceRows: MockPreference[] = [];
 let isSyncDbReady = true;
 
-const createPreference = mock((): void => {});
+interface MockMutation {
+  collection?: string;
+  data: Record<string, unknown>;
+  id: string;
+  operation?: string;
+}
+
+const createPreference = mock((_mutation: MockMutation): void => {});
 const reconcile = mock(async (): Promise<void> => {});
 const routerBack = mock((): void => {});
-const routerPush = mock((): void => {});
+const routerPush = mock((_href: string): void => {});
 const sendTestNotification = mock(() => ({unwrap: async (): Promise<void> => {}}));
-const syncMutate = mock((): void => {});
-const updatePreference = mock((): void => {});
+const syncMutate = mock((_mutation: MockMutation): void => {});
+const updatePreference = mock((_mutation: MockMutation): void => {});
 
 Object.assign(globalThis, {
   __DEV__: true,
