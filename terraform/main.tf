@@ -118,6 +118,16 @@ module "tasks_artifact_registry" {
   depends_on = [module.bootstrap]
 }
 
+# Dedicated API runtime. Queue enqueue + actAs on terreno-jobs-invoker are bound
+# only to this identity so MCP and other default-Compute Cloud Run services cannot
+# mint OIDC callbacks to the private jobs worker.
+resource "google_service_account" "backend_runtime" {
+  project      = var.project_id
+  account_id   = "terreno-backend-runtime"
+  display_name = "Terreno example backend runtime"
+  description  = "Cloud Run identity for the public example API. Sole runtime allowed to enqueue Cloud Tasks and actAs terreno-jobs-invoker."
+}
+
 module "backend_secret_mongodb_uri" {
   source = "./modules/secret"
 
@@ -126,7 +136,8 @@ module "backend_secret_mongodb_uri" {
   labels     = local.common_labels
 
   accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+    api-runtime   = "serviceAccount:${google_service_account.backend_runtime.email}"
+    tasks-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
   }
 
   depends_on = [module.bootstrap]
@@ -140,7 +151,8 @@ module "backend_secret_langfuse_secret_key" {
   labels     = local.common_labels
 
   accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+    api-runtime   = "serviceAccount:${google_service_account.backend_runtime.email}"
+    tasks-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
   }
 
   depends_on = [module.bootstrap]
@@ -154,7 +166,8 @@ module "backend_secret_langfuse_public_key" {
   labels     = local.common_labels
 
   accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+    api-runtime   = "serviceAccount:${google_service_account.backend_runtime.email}"
+    tasks-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
   }
 
   depends_on = [module.bootstrap]
@@ -168,7 +181,7 @@ module "backend_secret_better_auth" {
   labels     = local.common_labels
 
   accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+    api-runtime = "serviceAccount:${google_service_account.backend_runtime.email}"
   }
 
   depends_on = [module.bootstrap]
@@ -201,6 +214,7 @@ module "backend_service" {
   concurrency           = 80
   timeout_seconds       = 300
   allow_unauthenticated = true
+  service_account_email = google_service_account.backend_runtime.email
   labels                = local.common_labels
 
   depends_on = [
@@ -278,13 +292,13 @@ resource "google_cloud_tasks_queue_iam_member" "runtime_enqueuer" {
   location = google_cloud_tasks_queue.example_jobs.location
   name     = google_cloud_tasks_queue.example_jobs.name
   role     = "roles/cloudtasks.enqueuer"
-  member   = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  member   = "serviceAccount:${google_service_account.backend_runtime.email}"
 }
 
 resource "google_service_account_iam_member" "runtime_can_attach_jobs_identity" {
   service_account_id = google_service_account.jobs_tasks_invoker.name
   role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  member             = "serviceAccount:${google_service_account.backend_runtime.email}"
 }
 
 resource "google_cloud_run_v2_service_iam_member" "jobs_tasks_invoker" {

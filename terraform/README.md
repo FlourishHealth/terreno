@@ -12,9 +12,12 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
-- Cloud Tasks queue `terreno-example-jobs`, its queue-level dispatch pool limits, and a
-  callback-only OIDC service account. The private tasks Cloud Run service executes
-  callbacks; Cloud Run worker pools are not used because they have no HTTP ingress.
+- Cloud Tasks queue `terreno-example-jobs`, its queue-level dispatch pool limits, a
+  dedicated `terreno-backend-runtime` Cloud Run identity (the only runtime that can
+  enqueue and `actAs` the callback SA), and a callback-only `terreno-jobs-invoker`
+  OIDC service account. The private tasks Cloud Run service executes callbacks;
+  Cloud Run worker pools are not used because they have no HTTP ingress. The
+  project default Compute Engine SA is not an enqueuer.
 - Secret Manager containers for backend sensitive env vars. Values are seeded out-of-band; CircleCI deploy jobs mount them by secret reference.
 
 The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.

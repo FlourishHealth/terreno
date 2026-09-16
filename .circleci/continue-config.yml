@@ -702,8 +702,9 @@ jobs:
       - run:
           name: Compile coverage script dependencies
           command: |
-            node .github/scripts/compile-workspace-deps.js api
+            node .github/scripts/compile-workspace-deps.js api jobs
             bun run --filter '@terreno/api' compile
+            bun run --filter '@terreno/jobs' compile
       - run:
           name: Check new source file coverage
           command: |

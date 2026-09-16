@@ -11,6 +11,7 @@ import {
   groupFilesByWorkspace,
   isCoverageSourceFile,
   parseNewFileCoverageArgs,
+  workspaceDepsCompileArgs,
 } from "./check-new-file-coverage";
 
 describe("parseNewFileCoverageArgs", () => {
@@ -210,5 +211,16 @@ describe("expandCoverageRunArgs", () => {
       assert.notInclude(path, "*");
       assert.notInclude(path, "node_modules");
     }
+  });
+});
+
+describe("workspaceDepsCompileArgs", () => {
+  it("points compile-workspace-deps at the gated package", () => {
+    const repoRoot = "/repo";
+    const packageRoot = "/repo/admin-backend";
+    assert.deepEqual(workspaceDepsCompileArgs({packageRoot, repoRoot}), [
+      "/repo/.github/scripts/compile-workspace-deps.js",
+      "/repo/admin-backend",
+    ]);
   });
 });

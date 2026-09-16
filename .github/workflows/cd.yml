@@ -48,6 +48,7 @@ env:
   GCP_TASKS_SERVICE: terreno-backend-example-tasks
   GCP_TASKS_QUEUE: terreno-example-jobs
   GCP_TASKS_INVOKER_SA: terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
+  GCP_BACKEND_RUNTIME_SA: terreno-backend-runtime@flourish-terreno.iam.gserviceaccount.com
   GCP_MCP_REGION: us-east1
   GCP_MCP_SERVICE: terreno-mcp
   TF_DEPLOYMENT: terreno-prod
@@ -328,6 +329,15 @@ jobs:
             echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
             echo "JOBS_EOF"
           } >> "$GITHUB_OUTPUT"
+      - name: Resolve backend runtime service account
+        id: runtime-sa
+        run: |
+          set -euo pipefail
+          if gcloud iam service-accounts describe "${{ env.GCP_BACKEND_RUNTIME_SA }}" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "flag=--service-account=${{ env.GCP_BACKEND_RUNTIME_SA }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -358,6 +368,7 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            ${{ steps.runtime-sa.outputs.flag }}
       - name: Set deployment status to success
         if: success()
         uses: actions/github-script@v9.0.0
@@ -518,6 +529,15 @@ jobs:
             echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
             echo "JOBS_EOF"
           } >> "$GITHUB_OUTPUT"
+      - name: Resolve backend runtime service account
+        id: runtime-sa
+        run: |
+          set -euo pipefail
+          if gcloud iam service-accounts describe "${{ env.GCP_BACKEND_RUNTIME_SA }}" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "flag=--service-account=${{ env.GCP_BACKEND_RUNTIME_SA }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run with tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -551,6 +571,7 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            ${{ steps.runtime-sa.outputs.flag }}
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
         run: |

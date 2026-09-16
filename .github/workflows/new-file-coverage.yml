@@ -29,8 +29,9 @@ jobs:
 
       - name: Compile workspace for coverage tests
         run: |
-          node .github/scripts/compile-workspace-deps.js api
+          node .github/scripts/compile-workspace-deps.js api jobs
           bun run --filter '@terreno/api' compile
+          bun run --filter '@terreno/jobs' compile
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1

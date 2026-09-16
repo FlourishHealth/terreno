@@ -79,6 +79,12 @@ callback URL. A PR backend targets the matching `pr-<number>` worker tag and use
 service tags. An old callback then fails closed instead of reaching production or another
 PR.
 
+Queue IAM grants `cloudtasks.enqueuer` and `iam.serviceAccountUser` on
+`terreno-jobs-invoker` only to `terreno-backend-runtime`, the example API Cloud Run
+identity. The project default Compute Engine SA (MCP and any other service that omits a
+runtime identity) cannot create tasks that present that OIDC token. The worker remains
+invokable only by `terreno-jobs-invoker`.
+
 ## Related
 
 - [Deployment baseline](deployment-baseline.md) — seven requirements every host must satisfy

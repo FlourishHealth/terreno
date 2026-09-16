@@ -208,8 +208,11 @@ pass explicit constructor config. Compiled `bun build --compile` binaries must p
 backend POSTs to the Cloud Tasks REST API with `google-auth-library`.
 
 The deployed example backend selects this runner with `JOBS_RUNNER=gcp-cloud-tasks`.
-Infra Manager creates one queue and a callback-only service account; the CD script supplies
-the remaining `GCP_TASKS_*` values. Both GitHub Actions and CircleCI deploy the same
+Infra Manager creates one queue, the API Cloud Run identity
+`terreno-backend-runtime` (queue enqueuer + `actAs` on the callback SA), and a
+callback-only `terreno-jobs-invoker` service account. The CD script supplies
+the remaining `GCP_TASKS_*` values. Do not grant enqueue or `actAs` to the
+project default Compute Engine SA. Both GitHub Actions and CircleCI deploy the same
 runner configuration so either deploy path preserves Cloud Tasks execution. The API
 process starts the worker so cron schedules
 enqueue Cloud Tasks (`GcpCloudTasksRunner.start()` ticks Mongo schedules only). The tasks

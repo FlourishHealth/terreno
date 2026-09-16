@@ -22,6 +22,7 @@ export GCP_BACKEND_SERVICE="${GCP_BACKEND_SERVICE:-terreno-backend-example}"
 export GCP_TASKS_SERVICE="${GCP_TASKS_SERVICE:-terreno-backend-example-tasks}"
 export GCP_TASKS_QUEUE="${GCP_TASKS_QUEUE:-terreno-example-jobs}"
 export GCP_TASKS_INVOKER_SA="${GCP_TASKS_INVOKER_SA:-terreno-jobs-invoker@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
+export GCP_BACKEND_RUNTIME_SA="${GCP_BACKEND_RUNTIME_SA:-terreno-backend-runtime@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 export GCP_MCP_REGION="${GCP_MCP_REGION:-us-east1}"
 export GCP_MCP_SERVICE="${GCP_MCP_SERVICE:-terreno-mcp}"
 export TF_DEPLOYMENT="${TF_DEPLOYMENT:-terreno-prod}"
@@ -49,6 +50,13 @@ tagged_service_url() {
   local canonical_url
   canonical_url="$(service_url "$service")"
   echo "https://${tag}---${canonical_url#https://}"
+}
+
+backend_runtime_sa_flag() {
+  if gcloud iam service-accounts describe "$GCP_BACKEND_RUNTIME_SA" \
+    "--project=$GCP_PROJECT_ID" >/dev/null 2>&1; then
+    echo "--service-account=$GCP_BACKEND_RUNTIME_SA"
+  fi
 }
 
 jobs_env_vars() {
@@ -91,6 +99,10 @@ deploy_backend() {
     "--timeout=300"
     --allow-unauthenticated
   )
+  runtime_sa_flag="$(backend_runtime_sa_flag)"
+  if [ -n "$runtime_sa_flag" ]; then
+    args+=("$runtime_sa_flag")
+  fi
 
   better_auth_secret="${GCP_BACKEND_SERVICE}-better-auth-secret"
   if gcloud secrets versions access latest --secret="$better_auth_secret" >/dev/null 2>&1; then

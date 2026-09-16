@@ -73,7 +73,11 @@ Those packages are covered by `ui-ci` / `rtk-ci` / `packages-ci` plus e2e and
 admin-spa. `new-file-coverage` starts on package `src/` (and example app
 runtime paths including `example-frontend/components/`), not on every `*.ts`
 file in the repo (Playwright specs no longer compile the world). That job
-compiles `@terreno/api` deps and then `bun run --filter '@terreno/api' compile`.
+compiles `@terreno/api` and `@terreno/jobs` deps, then
+`bun run --filter '@terreno/api' compile` and
+`bun run --filter '@terreno/jobs' compile`. The coverage script also compiles
+each gated package's `@terreno/*` workspace deps so packages such as
+`admin-backend` can import `@terreno/jobs`.
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
 `admin-table`, `syncdb`) instead of one container per spec file. Repository
