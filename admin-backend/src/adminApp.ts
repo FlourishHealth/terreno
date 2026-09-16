@@ -1729,8 +1729,8 @@ export class AdminApp {
 
       registerAdminWindowMutationScope(config.model.modelName, {
         accessControl: this.options.accessControl,
-        createPermissions: this.resourceActionPermissions(config, "create"),
-        deletePermissions: this.resourceActionPermissions(config, "delete"),
+        createPermissions: adminPermission(config.permissions?.create, "create"),
+        deletePermissions: adminPermission(config.permissions?.delete, "delete"),
         modelName: config.model.modelName,
         permissions: {
           create: config.permissions?.create !== false,
@@ -1743,7 +1743,7 @@ export class AdminApp {
         preCreate: routerOptions.preCreate,
         preUpdate: routerOptions.preUpdate,
         stripMutationData: (data) => stripProtectedFromBody(data),
-        updatePermissions: this.resourceActionPermissions(config, "update"),
+        updatePermissions: adminPermission(config.permissions?.update, "update"),
       });
 
       const modelBase = express.Router();

@@ -1,5 +1,3 @@
-// noExplicitAny: test harness doubles
-// biome-ignore-all lint/suspicious/noExplicitAny: test harness doubles
 import {beforeAll, beforeEach, describe, it, mock} from "bun:test";
 import {assert} from "chai";
 import {useLocalSearchParams} from "expo-router";

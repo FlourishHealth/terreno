@@ -417,7 +417,7 @@ sync: {
 | `GET /sync/snapshot?collection=&stream=&cursor=&limit=` | Bootstrap + catch-up per stream |
 | `GET /sync/streams` | Current stream membership for the user |
 | `GET /sync/entities` | Point lookup for entity repair and admin window hydrate. Admin-window callers (`admin:access` with RBAC, else `user.admin`) on `adminBroadcast` collections receive requested ids across product streams. When AdminApp registered a scope, list/read/`queryFilter` still apply; unknown or out-of-scope ids are omitted |
-| `POST /sync/mutate` | Single mutation (HTTP fallback). Optional `mutationMode: "adminWindow"` validates `adminBroadcast`, admin-window access, and a registered AdminApp write scope, then runs the shared sync executor with **AdminApp** pre/post hooks (not product `modelRouter` hooks), plus the same permission, stripping, and audit semantics as `/admin` REST |
+| `POST /sync/mutate` | Single mutation (HTTP fallback). Optional `mutationMode: "adminWindow"` validates `adminBroadcast`, admin-window access, and a registered AdminApp write scope, then runs the shared sync executor with **AdminApp** pre/post hooks (not product `modelRouter` hooks), plus the same permission (including org membership), stripping, and audit semantics as `/admin` REST. HTTP mutate binds `X-Organization-Id` into org context |
 | `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack). Each mutation may carry `mutationMode: "adminWindow"` under the same AdminApp executor hook path as single mutate |
 | `GET /sync/key` | Per-user encryption key material (web) |
 

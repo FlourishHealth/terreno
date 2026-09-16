@@ -155,6 +155,8 @@ app.register(projectOrgContextPlugin).register(projectRouter);
 
 For admin CRUD, use `new AdminApp({accessControl: access, organizations:
 true})`. Models with an `organizationId` schema path are scoped automatically.
+Admin-window `POST /sync/mutate` uses the same membership check as REST for
+update and delete when `X-Organization-Id` is set.
 
 `orgScopedPlugin` also makes `organizationId` immutable after the document is
 created. Client PATCH bodies, admin writes, sync updates, and direct Mongoose

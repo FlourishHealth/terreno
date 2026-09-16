@@ -725,8 +725,8 @@ and `$or` cannot list another org.
 
 Use `Permissions.IsOrganizationMember` on read, update, and delete methods for
 tenant models. It requires the object's `organizationId` to match the active
-request organization context (AsyncLocalStorage from `orgContextMiddleware`) for
-every caller. Platform actors (`operator` / `superadmin`) then pass; members
+request organization context (AsyncLocalStorage from `orgContextMiddleware`, and
+from `X-Organization-Id` on `POST /sync/mutate`) for every caller. Platform actors (`operator` / `superadmin`) then pass; members
 must also hold an active Membership in that organization. Direct `GET` / `PATCH`
 by document id does not apply `OrgQueryFilter`, so this object-level check is
 what blocks cross-tenant reads and writes. `getOrgContext()` exposes the
