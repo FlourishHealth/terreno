@@ -126,12 +126,10 @@ describe("useAdminApi", () => {
     const listDef = injected.adminList_User;
     expect(listDef.query({limit: 1})).toEqual({
       method: "GET",
-      params: {limit: 1},
-      url: "/admin/users",
+      url: "/admin/users?limit=1",
     });
     expect(listDef.query(undefined)).toEqual({
       method: "GET",
-      params: {},
       url: "/admin/users",
     });
 
@@ -192,8 +190,7 @@ describe("useAdminApi", () => {
       injected.adminList_Todo.query({limit: 20, page: 1, q: "Alpha", sort: "-created"})
     ).toEqual({
       method: "GET",
-      params: {limit: 20, page: 1, q: "Alpha", sort: "-created"},
-      url: "/admin/todos",
+      url: "/admin/todos?limit=20&page=1&q=Alpha&sort=-created",
     });
     expect(injected.adminRead_Todo.query("todo-alpha")).toEqual({
       method: "GET",
