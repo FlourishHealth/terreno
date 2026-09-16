@@ -20,6 +20,7 @@ export const addTagTypes = [
   "announcements",
   "announcementacknowledgements",
   "announcementimpressions",
+  "announcementclickevents",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -46,26 +47,6 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/mcp/service-tokens`,
-        }),
-      }),
-      deleteAdminAnnouncementAcknowledgementsById: build.mutation<
-        DeleteAdminAnnouncementAcknowledgementsByIdRes,
-        DeleteAdminAnnouncementAcknowledgementsByIdArgs
-      >({
-        invalidatesTags: ["announcementacknowledgements"],
-        query: (queryArg) => ({
-          method: "DELETE",
-          url: `/admin/announcement-acknowledgements/${queryArg}`,
-        }),
-      }),
-      deleteAdminAnnouncementImpressionsById: build.mutation<
-        DeleteAdminAnnouncementImpressionsByIdRes,
-        DeleteAdminAnnouncementImpressionsByIdArgs
-      >({
-        invalidatesTags: ["announcementimpressions"],
-        query: (queryArg) => ({
-          method: "DELETE",
-          url: `/admin/announcement-impressions/${queryArg}`,
         }),
       }),
       deleteAdminAnnouncementsById: build.mutation<
@@ -203,6 +184,37 @@ const injectedRtkApi = api
         providesTags: ["announcementacknowledgements"],
         query: (queryArg) => ({
           url: `/admin/announcement-acknowledgements/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncementClickEvents: build.query<
+        GetAdminAnnouncementClickEventsRes,
+        GetAdminAnnouncementClickEventsArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            action: queryArg.action,
+            announcementId: queryArg.announcementId,
+            clickedAt: queryArg.clickedAt,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+          },
+          url: `/admin/announcement-click-events/`,
+        }),
+      }),
+      getAdminAnnouncementClickEventsById: build.query<
+        GetAdminAnnouncementClickEventsByIdRes,
+        GetAdminAnnouncementClickEventsByIdArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-click-events/${queryArg}`,
         }),
       }),
       getAdminAnnouncementImpressions: build.query<
@@ -674,28 +686,6 @@ const injectedRtkApi = api
           url: `/todos/loadtestGenerate`,
         }),
       }),
-      patchAdminAnnouncementAcknowledgementsById: build.mutation<
-        PatchAdminAnnouncementAcknowledgementsByIdRes,
-        PatchAdminAnnouncementAcknowledgementsByIdArgs
-      >({
-        invalidatesTags: ["announcementacknowledgements"],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "PATCH",
-          url: `/admin/announcement-acknowledgements/${queryArg.id}`,
-        }),
-      }),
-      patchAdminAnnouncementImpressionsById: build.mutation<
-        PatchAdminAnnouncementImpressionsByIdRes,
-        PatchAdminAnnouncementImpressionsByIdArgs
-      >({
-        invalidatesTags: ["announcementimpressions"],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "PATCH",
-          url: `/admin/announcement-impressions/${queryArg.id}`,
-        }),
-      }),
       patchAdminAnnouncementsById: build.mutation<
         PatchAdminAnnouncementsByIdRes,
         PatchAdminAnnouncementsByIdArgs
@@ -809,17 +799,6 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
-      postAdminAnnouncementAcknowledgements: build.mutation<
-        PostAdminAnnouncementAcknowledgementsRes,
-        PostAdminAnnouncementAcknowledgementsArgs
-      >({
-        invalidatesTags: ["announcementacknowledgements"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/admin/announcement-acknowledgements/`,
-        }),
-      }),
       postAdminAnnouncementAcknowledgementsBulkPatch: build.mutation<
         PostAdminAnnouncementAcknowledgementsBulkPatchRes,
         PostAdminAnnouncementAcknowledgementsBulkPatchArgs
@@ -840,17 +819,6 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/admin/announcement-click-events/bulk-patch`,
-        }),
-      }),
-      postAdminAnnouncementImpressions: build.mutation<
-        PostAdminAnnouncementImpressionsRes,
-        PostAdminAnnouncementImpressionsArgs
-      >({
-        invalidatesTags: ["announcementimpressions"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/admin/announcement-impressions/`,
         }),
       }),
       postAdminAnnouncementImpressionsBulkPatch: build.mutation<
@@ -4086,40 +4054,6 @@ export type PostAdminAnnouncementAcknowledgementsBulkPatchArgs = {
   /** Partial document; keys must be allowlisted for this model */
   patch: object;
 };
-export type PostAdminAnnouncementAcknowledgementsRes = /** status 201 Successful create */ {
-  /** When the user acknowledged this announcement version */
-  acknowledgedAt: string;
-  /** Announcement that was acknowledged */
-  announcementId: string;
-  /** User who acknowledged the announcement */
-  userId: string;
-  /** Announcement version acknowledged by the user */
-  version: number;
-  _id: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PostAdminAnnouncementAcknowledgementsArgs = {
-  /** When the user acknowledged this announcement version */
-  acknowledgedAt?: string;
-  /** Announcement that was acknowledged */
-  announcementId?: string;
-  /** User who acknowledged the announcement */
-  userId?: string;
-  /** Announcement version acknowledged by the user */
-  version?: number;
-  _id?: string;
-  /** When this document was last updated */
-  updated?: string;
-  /** When this document was created */
-  created?: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
 export type GetAdminAnnouncementAcknowledgementsRes = /** status 200 Successful list */ {
   data?: {
     /** When the user acknowledged this announcement version */
@@ -4208,45 +4142,6 @@ export type GetAdminAnnouncementAcknowledgementsByIdRes = /** status 200 Success
   deleted?: boolean;
 };
 export type GetAdminAnnouncementAcknowledgementsByIdArgs = string;
-export type PatchAdminAnnouncementAcknowledgementsByIdRes = /** status 200 Successful update */ {
-  /** When the user acknowledged this announcement version */
-  acknowledgedAt: string;
-  /** Announcement that was acknowledged */
-  announcementId: string;
-  /** User who acknowledged the announcement */
-  userId: string;
-  /** Announcement version acknowledged by the user */
-  version: number;
-  _id: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PatchAdminAnnouncementAcknowledgementsByIdArgs = {
-  id: string;
-  body: {
-    /** When the user acknowledged this announcement version */
-    acknowledgedAt?: string;
-    /** Announcement that was acknowledged */
-    announcementId?: string;
-    /** User who acknowledged the announcement */
-    userId?: string;
-    /** Announcement version acknowledged by the user */
-    version?: number;
-    _id?: string;
-    /** When this document was last updated */
-    updated?: string;
-    /** When this document was created */
-    created?: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  };
-};
-export type DeleteAdminAnnouncementAcknowledgementsByIdRes = unknown;
-export type DeleteAdminAnnouncementAcknowledgementsByIdArgs = string;
 export type PostAdminAnnouncementImpressionsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -4256,44 +4151,6 @@ export type PostAdminAnnouncementImpressionsBulkPatchArgs = {
   ids: string[];
   /** Partial document; keys must be allowlisted for this model */
   patch: object;
-};
-export type PostAdminAnnouncementImpressionsRes = /** status 201 Successful create */ {
-  /** Announcement that was viewed */
-  announcementId: string;
-  /** Client platform where the impression occurred */
-  platform?: "ios" | "android" | "web";
-  /** User who viewed the announcement */
-  userId: string;
-  /** Announcement version viewed by the user */
-  version: number;
-  /** When the announcement was viewed */
-  viewedAt: string;
-  _id: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PostAdminAnnouncementImpressionsArgs = {
-  /** Announcement that was viewed */
-  announcementId?: string;
-  /** Client platform where the impression occurred */
-  platform?: "ios" | "android" | "web";
-  /** User who viewed the announcement */
-  userId?: string;
-  /** Announcement version viewed by the user */
-  version?: number;
-  /** When the announcement was viewed */
-  viewedAt?: string;
-  _id?: string;
-  /** When this document was last updated */
-  updated?: string;
-  /** When this document was created */
-  created?: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
 };
 export type GetAdminAnnouncementImpressionsRes = /** status 200 Successful list */ {
   data?: {
@@ -4392,49 +4249,6 @@ export type GetAdminAnnouncementImpressionsByIdRes = /** status 200 Successful r
   deleted?: boolean;
 };
 export type GetAdminAnnouncementImpressionsByIdArgs = string;
-export type PatchAdminAnnouncementImpressionsByIdRes = /** status 200 Successful update */ {
-  /** Announcement that was viewed */
-  announcementId: string;
-  /** Client platform where the impression occurred */
-  platform?: "ios" | "android" | "web";
-  /** User who viewed the announcement */
-  userId: string;
-  /** Announcement version viewed by the user */
-  version: number;
-  /** When the announcement was viewed */
-  viewedAt: string;
-  _id: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type PatchAdminAnnouncementImpressionsByIdArgs = {
-  id: string;
-  body: {
-    /** Announcement that was viewed */
-    announcementId?: string;
-    /** Client platform where the impression occurred */
-    platform?: "ios" | "android" | "web";
-    /** User who viewed the announcement */
-    userId?: string;
-    /** Announcement version viewed by the user */
-    version?: number;
-    /** When the announcement was viewed */
-    viewedAt?: string;
-    _id?: string;
-    /** When this document was last updated */
-    updated?: string;
-    /** When this document was created */
-    created?: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  };
-};
-export type DeleteAdminAnnouncementImpressionsByIdRes = unknown;
-export type DeleteAdminAnnouncementImpressionsByIdArgs = string;
 export type PostAdminAnnouncementClickEventsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -4445,6 +4259,112 @@ export type PostAdminAnnouncementClickEventsBulkPatchArgs = {
   /** Partial document; keys must be allowlisted for this model */
   patch: object;
 };
+export type GetAdminAnnouncementClickEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Which announcement action the user clicked */
+    action: "primaryAction";
+    /** Announcement whose primary action was clicked */
+    announcementId: string;
+    /** When the primary action was clicked */
+    clickedAt: string;
+    /** Client platform where the click occurred */
+    platform?: "ios" | "android" | "web";
+    /** User who clicked the announcement action */
+    userId: string;
+    /** Announcement version at click time */
+    version: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementClickEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version at click time */
+        $gt?: number;
+        /** Announcement version at click time */
+        $gte?: number;
+        /** Announcement version at click time */
+        $lt?: number;
+        /** Announcement version at click time */
+        $lte?: number;
+      };
+  action?:
+    | "primaryAction"
+    | {
+        $in?: string[];
+      };
+  clickedAt?:
+    | string
+    | {
+        /** When the primary action was clicked */
+        $gt?: string;
+        /** When the primary action was clicked */
+        $gte?: string;
+        /** When the primary action was clicked */
+        $lt?: string;
+        /** When the primary action was clicked */
+        $lte?: string;
+      };
+  platform?:
+    | ("ios" | "android" | "web")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementClickEventsByIdRes = /** status 200 Successful read */ {
+  /** Which announcement action the user clicked */
+  action: "primaryAction";
+  /** Announcement whose primary action was clicked */
+  announcementId: string;
+  /** When the primary action was clicked */
+  clickedAt: string;
+  /** Client platform where the click occurred */
+  platform?: "ios" | "android" | "web";
+  /** User who clicked the announcement action */
+  userId: string;
+  /** Announcement version at click time */
+  version: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementClickEventsByIdArgs = string;
 export type PostAdminTodosBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -5411,18 +5331,14 @@ export const {
   usePatchAdminAnnouncementsByIdMutation,
   useDeleteAdminAnnouncementsByIdMutation,
   usePostAdminAnnouncementAcknowledgementsBulkPatchMutation,
-  usePostAdminAnnouncementAcknowledgementsMutation,
   useGetAdminAnnouncementAcknowledgementsQuery,
   useGetAdminAnnouncementAcknowledgementsByIdQuery,
-  usePatchAdminAnnouncementAcknowledgementsByIdMutation,
-  useDeleteAdminAnnouncementAcknowledgementsByIdMutation,
   usePostAdminAnnouncementImpressionsBulkPatchMutation,
-  usePostAdminAnnouncementImpressionsMutation,
   useGetAdminAnnouncementImpressionsQuery,
   useGetAdminAnnouncementImpressionsByIdQuery,
-  usePatchAdminAnnouncementImpressionsByIdMutation,
-  useDeleteAdminAnnouncementImpressionsByIdMutation,
   usePostAdminAnnouncementClickEventsBulkPatchMutation,
+  useGetAdminAnnouncementClickEventsQuery,
+  useGetAdminAnnouncementClickEventsByIdQuery,
   usePostAdminTodosBulkPatchMutation,
   usePostAdminTodosMutation,
   useGetAdminTodosQuery,

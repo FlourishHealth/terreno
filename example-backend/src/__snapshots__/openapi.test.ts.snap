@@ -373,161 +373,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "announcementacknowledgements",
         ],
       },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "acknowledgedAt": {
-                    "description": "When the user acknowledged this announcement version",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "announcementId": {
-                    "description": "Announcement that was acknowledged",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "description": "User who acknowledged the announcement",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Announcement version acknowledged by the user",
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "acknowledgedAt": {
-                      "description": "When the user acknowledged this announcement version",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "announcementId": {
-                      "description": "Announcement that was acknowledged",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "description": "User who acknowledged the announcement",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Announcement version acknowledged by the user",
-                      "type": "number",
-                    },
-                  },
-                  "required": [
-                    "acknowledgedAt",
-                    "announcementId",
-                    "userId",
-                    "version",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "announcementacknowledgements",
-        ],
-      },
     },
     "/admin/announcement-acknowledgements/bulk-patch": {
       "post": {
@@ -630,69 +475,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
       },
     },
     "/admin/announcement-acknowledgements/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful delete",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "announcementacknowledgements",
-        ],
-      },
       "get": {
         "parameters": [
           {
@@ -810,122 +592,330 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "announcementacknowledgements",
         ],
       },
-      "patch": {
+    },
+    "/admin/announcement-click-events/": {
+      "get": {
         "parameters": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "User who clicked the announcement action",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "announcementId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement whose primary action was clicked",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement version at click time",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Which announcement action the user clicked",
+                  "enum": [
+                    "primaryAction",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "clickedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the primary action was clicked",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Client platform where the click occurred",
+                  "enum": [
+                    "ios",
+                    "android",
+                    "web",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
             "schema": {
               "type": "string",
             },
           },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "acknowledgedAt": {
-                    "description": "When the user acknowledged this announcement version",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "announcementId": {
-                    "description": "Announcement that was acknowledged",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "description": "User who acknowledged the announcement",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Announcement version acknowledged by the user",
-                    "type": "number",
-                  },
-                },
-                "type": "object",
-              },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
             },
           },
-          "required": true,
-        },
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
-                    "_id": {
-                      "type": "string",
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "action": {
+                            "description": "Which announcement action the user clicked",
+                            "enum": [
+                              "primaryAction",
+                            ],
+                            "type": "string",
+                          },
+                          "announcementId": {
+                            "description": "Announcement whose primary action was clicked",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "clickedAt": {
+                            "description": "When the primary action was clicked",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "platform": {
+                            "description": "Client platform where the click occurred",
+                            "enum": [
+                              "ios",
+                              "android",
+                              "web",
+                            ],
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "User who clicked the announcement action",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Announcement version at click time",
+                            "type": "number",
+                          },
+                        },
+                        "required": [
+                          "action",
+                          "announcementId",
+                          "clickedAt",
+                          "userId",
+                          "version",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
                     },
-                    "acknowledgedAt": {
-                      "description": "When the user acknowledged this announcement version",
-                      "format": "date-time",
-                      "type": "string",
+                    "limit": {
+                      "type": "number",
                     },
-                    "announcementId": {
-                      "description": "Announcement that was acknowledged",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "more": {
                       "type": "boolean",
                     },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
+                    "page": {
+                      "type": "number",
                     },
-                    "userId": {
-                      "description": "User who acknowledged the announcement",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Announcement version acknowledged by the user",
+                    "total": {
                       "type": "number",
                     },
                   },
-                  "required": [
-                    "acknowledgedAt",
-                    "announcementId",
-                    "userId",
-                    "version",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
                   "type": "object",
                 },
               },
             },
-            "description": "Successful update",
+            "description": "Successful list",
           },
           "400": {
             "content": {
@@ -972,7 +962,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "announcementacknowledgements",
+          "announcementclickevents",
         ],
       },
     },
@@ -1073,6 +1063,142 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "Bulk patch AnnouncementClickEvent documents",
         "tags": [
           "admin",
+        ],
+      },
+    },
+    "/admin/announcement-click-events/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "action": {
+                      "description": "Which announcement action the user clicked",
+                      "enum": [
+                        "primaryAction",
+                      ],
+                      "type": "string",
+                    },
+                    "announcementId": {
+                      "description": "Announcement whose primary action was clicked",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "clickedAt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "platform": {
+                      "description": "Client platform where the click occurred",
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "User who clicked the announcement action",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "action",
+                    "announcementId",
+                    "clickedAt",
+                    "userId",
+                    "version",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementclickevents",
         ],
       },
     },
@@ -1414,179 +1540,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           "announcementimpressions",
         ],
       },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "announcementId": {
-                    "description": "Announcement that was viewed",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "platform": {
-                    "description": "Client platform where the impression occurred",
-                    "enum": [
-                      "ios",
-                      "android",
-                      "web",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "description": "User who viewed the announcement",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Announcement version viewed by the user",
-                    "type": "number",
-                  },
-                  "viewedAt": {
-                    "description": "When the announcement was viewed",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "announcementId": {
-                      "description": "Announcement that was viewed",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "platform": {
-                      "description": "Client platform where the impression occurred",
-                      "enum": [
-                        "ios",
-                        "android",
-                        "web",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "description": "User who viewed the announcement",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Announcement version viewed by the user",
-                      "type": "number",
-                    },
-                    "viewedAt": {
-                      "description": "When the announcement was viewed",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "announcementId",
-                    "userId",
-                    "version",
-                    "viewedAt",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful create",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "announcementimpressions",
-        ],
-      },
     },
     "/admin/announcement-impressions/bulk-patch": {
       "post": {
@@ -1689,69 +1642,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
       },
     },
     "/admin/announcement-impressions/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful delete",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "announcementimpressions",
-        ],
-      },
       "get": {
         "parameters": [
           {
@@ -1829,189 +1719,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               },
             },
             "description": "Successful read",
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Bad request",
-          },
-          "401": {
-            "description": "The user must be authenticated",
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on this document",
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "Document not found",
-          },
-          "405": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIError",
-                },
-              },
-            },
-            "description": "The user is not allowed to perform this action on any document",
-          },
-        },
-        "tags": [
-          "announcementimpressions",
-        ],
-      },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
-            },
-          },
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "_id": {
-                    "type": "string",
-                  },
-                  "announcementId": {
-                    "description": "Announcement that was viewed",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "created": {
-                    "description": "When this document was created",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "deleted": {
-                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                    "type": "boolean",
-                  },
-                  "platform": {
-                    "description": "Client platform where the impression occurred",
-                    "enum": [
-                      "ios",
-                      "android",
-                      "web",
-                    ],
-                    "type": "string",
-                  },
-                  "updated": {
-                    "description": "When this document was last updated",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                  "userId": {
-                    "description": "User who viewed the announcement",
-                    "format": "objectid",
-                    "type": "string",
-                  },
-                  "version": {
-                    "description": "Announcement version viewed by the user",
-                    "type": "number",
-                  },
-                  "viewedAt": {
-                    "description": "When the announcement was viewed",
-                    "format": "date-time",
-                    "type": "string",
-                  },
-                },
-                "type": "object",
-              },
-            },
-          },
-          "required": true,
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "_id": {
-                      "type": "string",
-                    },
-                    "announcementId": {
-                      "description": "Announcement that was viewed",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "created": {
-                      "description": "When this document was created",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
-                    },
-                    "platform": {
-                      "description": "Client platform where the impression occurred",
-                      "enum": [
-                        "ios",
-                        "android",
-                        "web",
-                      ],
-                      "type": "string",
-                    },
-                    "updated": {
-                      "description": "When this document was last updated",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "userId": {
-                      "description": "User who viewed the announcement",
-                      "format": "objectid",
-                      "type": "string",
-                    },
-                    "version": {
-                      "description": "Announcement version viewed by the user",
-                      "type": "number",
-                    },
-                    "viewedAt": {
-                      "description": "When the announcement was viewed",
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "announcementId",
-                    "userId",
-                    "version",
-                    "viewedAt",
-                    "_id",
-                    "created",
-                    "updated",
-                  ],
-                  "type": "object",
-                },
-              },
-            },
-            "description": "Successful update",
           },
           "400": {
             "content": {
