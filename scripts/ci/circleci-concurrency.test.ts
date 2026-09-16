@@ -192,9 +192,10 @@ describe("CircleCI concurrency", () => {
     assert.equal(mappingMatches({mappings, parameter: "run-e2e", path: component}), true);
   });
 
-  it("compiles @terreno/api itself for new-file-coverage", () => {
+  it("compiles @terreno/api and example-backend deps for new-file-coverage", () => {
     const coverage = jobCommandBlock(continueConfig, "new-file-coverage");
     assert.ok(coverage);
+    assert.match(coverage, /compile-workspace-deps\.js api example-backend/);
     assert.match(coverage, /bun run --filter '@terreno\/api' compile/);
   });
 });
