@@ -1,16 +1,16 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas
 import {emptySplitApi as api} from "./betterAuthApi";
 export const addTagTypes = [
-  "ai",
   "gpthistories",
   "gpt",
-  "admin-users",
+  "ai",
   "settings",
-  "loadtest",
-  "comms",
   "todos",
+  "loadtest",
   "exampleprojects",
+  "admin-users",
   "users",
+  "comms",
   "admin",
   "featureflags",
   "jobs",
@@ -18,6 +18,7 @@ export const addTagTypes = [
   "adminauditlogs",
   "consentforms",
   "consentresponses",
+  "adminMigrations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -26,6 +27,32 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      adminMigrationsRun: build.mutation<AdminMigrationsRunRes, AdminMigrationsRunArgs>({
+        invalidatesTags: ["adminMigrations"],
+        query: (queryArg) => ({
+          method: "POST",
+          params: {
+            wetRun: queryArg,
+          },
+          url: `/admin/migrations/run`,
+        }),
+      }),
+      adminMigrationsStatus: build.query<AdminMigrationsStatusRes, AdminMigrationsStatusArgs>({
+        providesTags: ["adminMigrations"],
+        query: () => ({url: `/admin/migrations/status`}),
+      }),
+      aiModels: build.query<AiModelsRes, AiModelsArgs>({
+        providesTags: ["ai"],
+        query: () => ({url: `/ai/models`}),
+      }),
+      commsTestPush: build.mutation<CommsTestPushRes, CommsTestPushArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/dev/testPush`,
+        }),
+      }),
       createMcpServiceToken: build.mutation<CreateMcpServiceTokenRes, CreateMcpServiceTokenArgs>({
         invalidatesTags: ["mcp"],
         query: (queryArg) => ({
@@ -106,10 +133,6 @@ const injectedRtkApi = api
           method: "DELETE",
           url: `/projects/${queryArg}`,
         }),
-      }),
-      deleteSettingsGcs: build.mutation<DeleteSettingsGcsRes, DeleteSettingsGcsArgs>({
-        invalidatesTags: ["settings"],
-        query: () => ({method: "DELETE", url: `/settings/gcs`}),
       }),
       deleteTodosById: build.mutation<DeleteTodosByIdRes, DeleteTodosByIdArgs>({
         invalidatesTags: ["todos"],
@@ -303,10 +326,6 @@ const injectedRtkApi = api
         providesTags: ["users"],
         query: (queryArg) => ({url: `/admin/users/${queryArg}`}),
       }),
-      getAiModels: build.query<GetAiModelsRes, GetAiModelsArgs>({
-        providesTags: ["ai"],
-        query: () => ({url: `/ai/models`}),
-      }),
       getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
         providesTags: ["admin", "comms"],
         query: (queryArg) => ({
@@ -458,10 +477,6 @@ const injectedRtkApi = api
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({url: `/projects/${queryArg}`}),
       }),
-      getSettingsGcs: build.query<GetSettingsGcsRes, GetSettingsGcsArgs>({
-        providesTags: ["settings"],
-        query: () => ({url: `/settings/gcs`}),
-      }),
       getTodos: build.query<GetTodosRes, GetTodosArgs>({
         providesTags: ["todos"],
         query: (queryArg) => ({
@@ -506,6 +521,29 @@ const injectedRtkApi = api
             page: queryArg.page,
           },
           url: `/mcp/service-tokens`,
+        }),
+      }),
+      loadtestLoadtestChurn: build.mutation<LoadtestLoadtestChurnRes, LoadtestLoadtestChurnArgs>({
+        invalidatesTags: ["loadtest"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/todos/loadtestChurn`,
+        }),
+      }),
+      loadtestLoadtestClear: build.mutation<LoadtestLoadtestClearRes, LoadtestLoadtestClearArgs>({
+        invalidatesTags: ["loadtest"],
+        query: () => ({method: "POST", url: `/todos/loadtestClear`}),
+      }),
+      loadtestLoadtestGenerate: build.mutation<
+        LoadtestLoadtestGenerateRes,
+        LoadtestLoadtestGenerateArgs
+      >({
+        invalidatesTags: ["loadtest"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/todos/loadtestGenerate`,
         }),
       }),
       patchAdminConsentFormsById: build.mutation<
@@ -720,25 +758,6 @@ const injectedRtkApi = api
           url: `/admin/users/bulk-patch`,
         }),
       }),
-      postAdminUsersByIdPassword: build.mutation<
-        PostAdminUsersByIdPasswordRes,
-        PostAdminUsersByIdPasswordArgs
-      >({
-        invalidatesTags: ["admin-users"],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "POST",
-          url: `/admin/users/${queryArg.id}/password`,
-        }),
-      }),
-      postCommsDevTestPush: build.mutation<PostCommsDevTestPushRes, PostCommsDevTestPushArgs>({
-        invalidatesTags: ["comms"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/comms/dev/testPush`,
-        }),
-      }),
       postCommsMessagesByIdRetry: build.mutation<
         PostCommsMessagesByIdRetryRes,
         PostCommsMessagesByIdRetryArgs
@@ -876,14 +895,6 @@ const injectedRtkApi = api
           url: `/projects/`,
         }),
       }),
-      postSettingsGcs: build.mutation<PostSettingsGcsRes, PostSettingsGcsArgs>({
-        invalidatesTags: ["settings"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/settings/gcs`,
-        }),
-      }),
       postTodos: build.mutation<PostTodosRes, PostTodosArgs>({
         invalidatesTags: ["todos"],
         query: (queryArg) => ({
@@ -900,12 +911,36 @@ const injectedRtkApi = api
           url: `/users/`,
         }),
       }),
+      postUsersByIdPassword: build.mutation<PostUsersByIdPasswordRes, PostUsersByIdPasswordArgs>({
+        invalidatesTags: ["admin-users"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/users/${queryArg.id}/password`,
+        }),
+      }),
       revokeMcpServiceToken: build.mutation<RevokeMcpServiceTokenRes, RevokeMcpServiceTokenArgs>({
         invalidatesTags: ["mcp"],
         query: (queryArg) => ({
           method: "DELETE",
           url: `/mcp/service-tokens/${queryArg}`,
         }),
+      }),
+      settingsClearGcs: build.mutation<SettingsClearGcsRes, SettingsClearGcsArgs>({
+        invalidatesTags: ["settings"],
+        query: () => ({method: "POST", url: `/settings/clearGcs`}),
+      }),
+      settingsConfigureGcs: build.mutation<SettingsConfigureGcsRes, SettingsConfigureGcsArgs>({
+        invalidatesTags: ["settings"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/settings/configureGcs`,
+        }),
+      }),
+      settingsGcs: build.query<SettingsGcsRes, SettingsGcsArgs>({
+        providesTags: ["settings"],
+        query: () => ({url: `/settings/gcs`}),
       }),
       todosBulkComplete: build.mutation<TodosBulkCompleteRes, TodosBulkCompleteArgs>({
         invalidatesTags: ["todos"],
@@ -927,13 +962,6 @@ const injectedRtkApi = api
   });
 
 export {injectedRtkApi as openapi};
-export type GetAiModelsRes = /** status 200 Success */ {
-  models?: {
-    label?: string;
-    value?: string;
-  }[];
-};
-export type GetAiModelsArgs = undefined;
 export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Project this conversation belongs to */
   projectId?: string;
@@ -1292,87 +1320,67 @@ export type GetGptToolsRes = /** status 200 Success */ {
   }[];
 };
 export type GetGptToolsArgs = undefined;
-export type PostAdminUsersByIdPasswordRes = /** status 200 Success */ {
-  data?: {
-    _id?: string;
-    message?: string;
+export type AiModelsRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AiModelsArgs = undefined;
+export type SettingsClearGcsRes = /** status 200 Successful response */ {
+  data: {
+    configured: boolean;
+    message: string;
   };
 };
-export type PostAdminUsersByIdPasswordArgs = {
-  id: string;
-  body: {
-    /** New password for the user */
-    password?: string;
+export type SettingsClearGcsArgs = undefined;
+export type SettingsConfigureGcsRes = /** status 200 Successful response */ {
+  data: {
+    configured: boolean;
+    message: string;
   };
 };
-export type GetSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    bucketName?: string;
-    configured?: boolean;
-    hasCredentials?: boolean;
-    projectId?: string;
-  };
-};
-export type GetSettingsGcsArgs = undefined;
-export type PostSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    configured?: boolean;
-    message?: string;
-  };
-};
-export type PostSettingsGcsArgs = {
-  bucketName?: string;
+export type SettingsConfigureGcsArgs = {
+  bucketName: string;
   projectId?: string;
   serviceAccountKey?: string;
 };
-export type DeleteSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    configured?: boolean;
-    message?: string;
+export type SettingsGcsRes = /** status 200 Successful response */ {
+  data: {
+    bucketName: string | null;
+    configured: boolean;
+    hasCredentials: boolean;
+    projectId: string | null;
   };
 };
-export type DeleteSettingsGcsArgs = undefined;
-export type PostLoadtestTodosGenerateRes = /** status 200 Success */ {
-  data?: {
-    created?: number;
-  };
-};
-export type PostLoadtestTodosGenerateArgs = {
-  count?: number;
-};
-export type PostLoadtestTodosChurnRes = /** status 200 Success */ {
-  data?: {
-    created?: number;
-    deleted?: number;
-    updated?: number;
-  };
-};
-export type PostLoadtestTodosChurnArgs = {
-  creates?: number;
-  deletes?: number;
-  updates?: number;
-};
-export type PostLoadtestTodosClearRes = /** status 200 Success */ {
-  data?: {
-    deleted?: number;
-  };
-};
-export type PostLoadtestTodosClearArgs = undefined;
-export type PostCommsDevTestPushRes = /** status 200 Success */ {
-  data?: {
-    accepted?: number;
-    results?: object[];
-    tokenCount?: number;
-  };
-};
-export type PostCommsDevTestPushArgs = {
-  body?: string;
-  title?: string;
-};
+export type SettingsGcsArgs = undefined;
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
 export type TodosMarkCompleteArgs = string;
+export type LoadtestLoadtestChurnRes = /** status 200 Successful response */ {
+  data: {
+    created: number;
+    deleted: number;
+    updated: number;
+  };
+};
+export type LoadtestLoadtestChurnArgs = {
+  creates?: number | null;
+  deletes?: number | null;
+  updates?: number | null;
+};
+export type LoadtestLoadtestClearRes = /** status 200 Successful response */ {
+  data: {
+    deleted: number;
+  };
+};
+export type LoadtestLoadtestClearArgs = undefined;
+export type LoadtestLoadtestGenerateRes = /** status 200 Successful response */ {
+  data: {
+    created: number;
+  };
+};
+export type LoadtestLoadtestGenerateArgs = {
+  count?: number | null;
+};
 export type TodosBulkCompleteRes = /** status 200 Successful response */ {
   data: {
     matched: number;
@@ -1694,6 +1702,18 @@ export type PatchProjectsByIdArgs = {
 };
 export type DeleteProjectsByIdRes = unknown;
 export type DeleteProjectsByIdArgs = string;
+export type PostUsersByIdPasswordRes = /** status 200 Successful response */ {
+  data: {
+    _id: string;
+    message: string;
+  };
+};
+export type PostUsersByIdPasswordArgs = {
+  id: string;
+  body: {
+    password: string;
+  };
+};
 export type PostUsersRes = /** status 201 Successful create */ {
   /** Whether the user has admin privileges */
   admin?: boolean;
@@ -1898,6 +1918,13 @@ export type PatchUsersByIdArgs = {
 };
 export type DeleteUsersByIdRes = unknown;
 export type DeleteUsersByIdArgs = string;
+export type CommsTestPushRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type CommsTestPushArgs = {
+  body?: string;
+  title?: string;
+};
 export type PostCommsPushTokensRes =
   /** status 200 Success */
   | {
@@ -4023,6 +4050,14 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -4087,7 +4122,6 @@ export type ApiError = {
   title?: string;
 };
 export const {
-  useGetAiModelsQuery,
   usePostGptHistoriesMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
@@ -4097,15 +4131,14 @@ export const {
   usePatchGptHistoriesByIdRatingMutation,
   usePostGptRemixMutation,
   useGetGptToolsQuery,
-  usePostAdminUsersByIdPasswordMutation,
-  useGetSettingsGcsQuery,
-  usePostSettingsGcsMutation,
-  useDeleteSettingsGcsMutation,
-  usePostLoadtestTodosGenerateMutation,
-  usePostLoadtestTodosChurnMutation,
-  usePostLoadtestTodosClearMutation,
-  usePostCommsDevTestPushMutation,
+  useAiModelsQuery,
+  useSettingsClearGcsMutation,
+  useSettingsConfigureGcsMutation,
+  useSettingsGcsQuery,
   useTodosMarkCompleteMutation,
+  useLoadtestLoadtestChurnMutation,
+  useLoadtestLoadtestClearMutation,
+  useLoadtestLoadtestGenerateMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
   useGetTodosQuery,
@@ -4117,11 +4150,13 @@ export const {
   useGetProjectsByIdQuery,
   usePatchProjectsByIdMutation,
   useDeleteProjectsByIdMutation,
+  usePostUsersByIdPasswordMutation,
   usePostUsersMutation,
   useGetUsersQuery,
   useGetUsersByIdQuery,
   usePatchUsersByIdMutation,
   useDeleteUsersByIdMutation,
+  useCommsTestPushMutation,
   usePostCommsPushTokensMutation,
   useGetCommsPushTokensQuery,
   useDeleteCommsPushTokensByIdMutation,
@@ -4180,6 +4215,8 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

@@ -2,15 +2,18 @@
 name: terreno-data-fetching
 description: >-
   Use when implementing or debugging ANY network request, API call, or data
-  fetching in a Terreno app. Covers RTK Query generated hooks, generateAuthSlice,
-  token management, realtime sockets, caching, and SDK
-  regeneration. Replaces raw fetch, axios, React Query, and SWR in Terreno apps.
+  fetching in a Terreno app. Covers syncdb collection CRUD, RTK Query generated
+  hooks for non-synced routes, admin's host-bound fetch client, auth, caching,
+  and SDK regeneration. Replaces direct fetch, axios, React Query, and SWR in
+  application code.
   Lifecycle composition: Grow for data-flow shape, Pick for implementation, Roast
   for independent network/cache behavior proof.
 ---
 # Terreno Data Fetching
 
-**You MUST use this skill for ANY networking work in Terreno apps.** Never use `axios`, raw `fetch`, React Query, or SWR — use generated RTK Query hooks from `@terreno/rtk`.
+**You MUST use this skill for ANY networking work in Terreno apps.** Use syncdb
+for synced collection CRUD and generated RTK Query hooks for non-synced routes.
+Never call `axios`, raw `fetch`, React Query, or SWR from application screens.
 
 **Related skills:** `generate-sdk` (regenerate hooks after backend changes), `terreno-backend-api` (create backend routes), `building-terreno-apps` (screen integration).
 
@@ -41,52 +44,44 @@ references/
 
 ## Core Rules
 
-1. **Always use generated hooks** from `store/openApiSdk.ts` (or `store/sdk.ts` exports).
-2. **Never edit `openApiSdk.ts` manually** — regenerate with `generate-sdk` skill.
-3. **Never use `axios` or raw `fetch`** in app code — RTK Query handles retries, auth headers, and token refresh.
-4. **Customize in `sdk.ts`** via `injectEndpoints` / `enhanceEndpoints` — that file is hand-maintained.
-5. **Use `.unwrap()`** on mutations to get typed errors in try/catch.
+1. **Use syncdb hooks** (`useQuery`, `useEntity`, `useMutate`) for synced collection CRUD.
+2. **Use generated hooks** from `store/openApiSdk.ts` (or `store/sdk.ts`) for non-synced routes.
+3. **Never edit `openApiSdk.ts` manually** — regenerate with `generate-sdk`.
+4. **Never use `axios` or raw `fetch`** in app code. Framework-owned admin RPC
+   is the exception: `@terreno/admin-frontend` binds `adminRequest` from host
+   `credentials` / `getAuthHeaders`.
+5. **Do not add new admin `injectEndpoints`.** String-`_id` models with
+   `adminBroadcast` use windowed syncdb; ObjectId compatibility CRUD remains RTK
+   until Terreno 58 removes `useAdminApi` and the required `api` prop.
 
 ## Quick Start
 
-### Query (read data)
+### Synced collection read
 
 ```tsx
-import {useGetTodosQuery} from "@/store/sdk";
+import {useQuery} from "@terreno/syncdb/react";
 
 const TodosScreen: React.FC = () => {
-  const {data, isLoading, error, refetch, isFetching} = useGetTodosQuery({
-    completed: false,
+  const todos = useQuery<Todo>("todos", {
+    filter: (todo) => !todo.completed,
   });
-
-  // data shape for list endpoints: {data: Todo[], page, limit, total, more}
-  const todos = data?.data ?? [];
 };
 ```
 
-### Mutation (write data)
+### Synced collection write
 
 ```tsx
-import {usePostTodosMutation, usePatchTodosByIdMutation} from "@/store/sdk";
+import {useMutate} from "@terreno/syncdb/react";
 
-const [createTodo, {isLoading: isCreating}] = usePostTodosMutation();
-const [updateTodo] = usePatchTodosByIdMutation();
+const {create, update} = useMutate("todos");
 
-const handleCreate = useCallback(async (): Promise<void> => {
-  try {
-    await createTodo({title: "New todo", completed: false}).unwrap();
-  } catch (err) {
-    console.error("Create failed", err);
-  }
-}, [createTodo]);
+const handleCreate = useCallback((): void => {
+  create({data: {title: "New todo", completed: false}});
+}, [create]);
 
-const handleToggle = useCallback(async (id: string, completed: boolean): Promise<void> => {
-  try {
-    await updateTodo({id, completed: !completed}).unwrap();
-  } catch (err) {
-    console.error("Update failed", err);
-  }
-}, [updateTodo]);
+const handleToggle = useCallback((id: string, completed: boolean): void => {
+  update({id, data: {completed: !completed}});
+}, [update]);
 ```
 
 ### Auth
@@ -152,7 +147,7 @@ Never put server secrets in `EXPO_PUBLIC_*` variables.
 RTK Query exposes errors on the hook result:
 
 ```tsx
-const {error, isError} = useGetTodosQuery({});
+const {error, isError} = useGetMeQuery();
 
 if (isError) {
   // error is FetchBaseQueryError | SerializedError
@@ -164,7 +159,7 @@ For mutations, use `.unwrap()`:
 
 ```tsx
 try {
-  await createTodo(body).unwrap();
+  await updateMe({name}).unwrap();
 } catch (err) {
   // Handle APIError-shaped responses from @terreno/api
   console.error("Mutation failed", err);
@@ -175,24 +170,32 @@ Use `isNetworkFetchError` from `@terreno/rtk` to detect connectivity issues in e
 
 ## SDK Regeneration
 
-After **any** backend API change, run the `generate-sdk` skill:
+After a non-synced backend API change, run the `generate-sdk` skill. Synced
+collection CRUD does not belong in the OpenAPI SDK.
 
 ```bash
 # Backend running on :4000, then:
 cd example-frontend && bun run sdk
 ```
 
-Triggers: new `modelRouter`, custom routes, schema field changes, permission changes, OpenAPI builder edits.
+Triggers: custom routes, non-synced `modelRouter` routes, and OpenAPI builder
+edits. Regenerate syncdb collection types/hooks with its codegen when a synced
+schema changes.
 
 ## Decision Tree
 
 ```
 Need data in a Terreno app?
-  |-- Reading from API?
-  |   \-- useGet*Query from generated SDK
+  |-- Synced collection CRUD?
+  |   \-- @terreno/syncdb hooks
   |
-  |-- Writing to API?
-  |   \-- usePost/Patch/Delete*Mutation + .unwrap()
+  |-- Non-synced API route?
+  |   \-- useGet*/usePost* from generated SDK
+  |
+  |-- Built-in admin?
+  |   |-- String id + adminBroadcast -> windowed syncdb
+  |   |-- Framework RPC -> host-bound adminRequest
+  |   \-- ObjectId compatibility CRUD -> useAdminApi until Terreno 58
   |
   |-- Login/logout?
   |   \-- references/auth-and-tokens.md
@@ -207,8 +210,8 @@ Need data in a Terreno app?
   |-- Backend doesn't exist?
   |   \-- terreno-backend-api, then generate-sdk
   |
-  \-- Using axios/fetch/React Query?
-      \-- STOP — migrate to RTK Query hooks
+  \-- Using axios/direct fetch/React Query?
+      \-- STOP — choose syncdb or a generated hook
 ```
 
 ## Common Mistakes
@@ -219,10 +222,10 @@ Need data in a Terreno app?
 const result = await axios.get("/todos");
 ```
 
-**Right: generated hook**
+**Right: syncdb for a synced collection**
 
 ```tsx
-const {data} = useGetTodosQuery({});
+const todos = useQuery<Todo>("todos");
 ```
 
 **Wrong: manual token in fetch**
@@ -231,11 +234,10 @@ const {data} = useGetTodosQuery({});
 fetch(url, {headers: {Authorization: `Bearer ${token}`}});
 ```
 
-**Right: RTK handles auth automatically**
+**Right: a generated hook handles auth for a non-synced route**
 
 ```tsx
-// emptyApi from @terreno/rtk adds Bearer token and refreshes on 401
-const {data} = useGetTodosQuery({});
+const {data: profile} = useGetMeQuery();
 ```
 
 **Wrong: editing openApiSdk.ts**
@@ -244,18 +246,17 @@ const {data} = useGetTodosQuery({});
 // Adding a new endpoint by hand
 ```
 
-**Right: regenerate or inject**
+**Right: regenerate**
 
 ```bash
 cd example-frontend && bun run sdk
-# or injectEndpoints in store/sdk.ts for app-specific extensions
 ```
 
 ## Example Invocations
 
-- "How do I fetch todos?" → `useGetTodosQuery` from `@/store/sdk`
+- "How do I fetch todos?" → `useQuery("todos")` from `@terreno/syncdb/react`
 - "How do I handle login?" → `useEmailLoginMutation` + `generateAuthSlice`
-- "Should I use React Query?" → No — RTK Query via generated hooks
+- "Should I use React Query?" → No — syncdb for collections, generated RTK hooks for non-synced routes
 - "API calls return 401" → Check token refresh; see auth-and-tokens.md
 - "Hooks are missing after backend change" → Run `generate-sdk` skill
-- "How do I add a custom endpoint?" → Backend route + OpenAPI, then sdk.ts injectEndpoints
+- "How do I add a custom endpoint?" → Backend route + OpenAPI, then regenerate the SDK

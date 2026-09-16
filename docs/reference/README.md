@@ -16,6 +16,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/jobs](jobs.md) — Durable background jobs, schedules, and queue runners
 - [@terreno/feature-flags](feature-flags.md) — Feature flags and A/B testing plugin
 - [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
+- [create-terreno-app](create-terreno-app.md) — Scaffold CLI (`bunx create-terreno-app`)
 - [@terreno/test](test.md) — Bun test helpers and in-memory MongoDB
 
 ## Legacy

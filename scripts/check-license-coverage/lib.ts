@@ -13,6 +13,7 @@ export const PUBLISHED_PACKAGES = [
   "ai",
   "api-health",
   "comms",
+  "create-terreno-app",
   "feature-flags",
   "jobs",
   "mcp-server",

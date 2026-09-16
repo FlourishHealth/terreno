@@ -34,7 +34,7 @@ const IGNORED_DIR_NAMES = new Set([
 ]);
 
 /** Package name → absolute path to the package public entry index file. */
-const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
+export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/admin-backend": resolve(REPO_ROOT, "admin-backend/src/index.ts"),
   "@terreno/admin-frontend": resolve(REPO_ROOT, "admin-frontend/src/index.tsx"),
   "@terreno/admin-spa": resolve(REPO_ROOT, "admin-spa/src/index.ts"),

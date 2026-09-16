@@ -40,13 +40,11 @@ import mongoose from "mongoose";
 import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
-import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes} from "./api/ai";
-import {addDevCommsRoutes} from "./api/commsDev";
-import {addLoadTestRoutes} from "./api/loadtest";
+import {addAiRoutes, aiModelsRouter} from "./api/ai";
+import {commsDevRouter} from "./api/commsDev";
 import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
 import {projectRouter} from "./api/projects";
-import {addSettingsRoutes} from "./api/settings";
+import {settingsRouter} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
@@ -56,6 +54,7 @@ import {exampleAdminHome} from "./exampleAdminConfig";
 import {createExampleJobsApp} from "./jobs/createExampleJobsApp";
 import {shouldStartJobsWorkerInApiProcess} from "./jobs/jobsStartWorker";
 import {registerJobsWorkerShutdown} from "./jobs/shutdownJobsWorker";
+import {resolveExampleMigrationsDir} from "./migrationsDir";
 import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -180,6 +179,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         enabled: true,
         publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
       },
+      migrations: {dir: resolveExampleMigrationsDir()},
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
@@ -207,20 +207,21 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     terraApp
       .register(rbacRouter({access, userModel: User as unknown as TerrenoAuthUserModel}))
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
-      .register(
-        createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
-      )
-      .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
-      .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
-      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
+      .register(aiModelsRouter)
+      .register(settingsRouter)
       .register(todoRouter)
       .register(projectRouter)
-      .register(usersRouter)
+      .register(usersRouter);
+    if (commsDevRouter) {
+      terraApp.register(commsDevRouter);
+    }
+    terraApp
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
       // resolve tenant streams (projects are scoped by the user's organizationIds).
       .register(
         new SyncApp({
+          accessControl: access,
           getUserScopes: (user) => {
             return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
           },
@@ -392,6 +393,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
             },
           ],
           home: exampleAdminHome,
+          migrations: {dir: resolveExampleMigrationsDir()},
           models: [
             mcpServiceTokenAdminModel,
             {
