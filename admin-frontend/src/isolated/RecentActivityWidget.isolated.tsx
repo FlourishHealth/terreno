@@ -47,8 +47,8 @@ describe("RecentActivityWidget", () => {
     const {getByText} = renderWithTheme(
       <RecentActivityWidget {...baseProps} config={{models: [], scripts: []}} models={[]} />
     );
-    expect(getByText(/Register an AdminAuditLog model/)).toBeDefined();
-    expect(listCalls[0]).toEqual([{limit: 8, page: 1, sort: "-createdAt"}, {skip: true}]);
+    expect(getByText(/Register AuditApp \(or an AdminAuditLog model\)/)).toBeDefined();
+    expect(listCalls[0]).toEqual([{limit: 8, page: 1, sort: "-created"}, {skip: true}]);
   });
 
   it("renders loading, error, and empty states", () => {

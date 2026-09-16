@@ -14,12 +14,20 @@ const readState: ReadState = {data: undefined, isLoading: false};
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useBulkPatchMutation: () => [async (): Promise<void> => undefined],
+    useDeleteMutation: () => [async (): Promise<void> => undefined],
+    useListQuery: () => ({
+      data: undefined,
+      isLoading: false,
+      refetch: async (): Promise<void> => undefined,
+    }),
     useReadQuery: (_id: string, opts: {skip?: boolean}) => {
       if (opts?.skip) {
         return {data: undefined, isLoading: false};
       }
       return {data: readState.data, isLoading: readState.isLoading};
     },
+    useUpdateMutation: () => [async (): Promise<void> => undefined],
   }),
 }));
 
