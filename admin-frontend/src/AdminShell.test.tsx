@@ -319,7 +319,13 @@ describe("AdminShell", () => {
     };
 
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
         <React.Fragment />
       </AdminShell>
     );
@@ -330,6 +336,52 @@ describe("AdminShell", () => {
       fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
     });
     expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AuditEvent");
+  });
+
+  it("shows Migrations in Platform when config.migrations.enabled", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      migrations: {enabled: true},
+    };
+
+    const {getByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-migrations-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/__migrations");
+  });
+
+  it("hides Migrations when config.migrations.enabled is omitted", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = buildConfig();
+
+    const {queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(queryByTestId("admin-shell-nav-migrations")).toBeNull();
   });
 
   it("renders top chrome and navigates every desktop sidebar section", async () => {
