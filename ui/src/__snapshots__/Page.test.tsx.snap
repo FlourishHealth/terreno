@@ -64,7 +64,6 @@ exports[`Page renders correctly with default props 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -232,7 +231,6 @@ exports[`Page renders with title 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -445,7 +443,6 @@ exports[`Page renders with back button 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -654,7 +651,6 @@ exports[`Page renders with close button 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -910,7 +906,6 @@ exports[`Page renders with right button 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -1018,7 +1013,6 @@ exports[`Page renders loading state 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -1132,7 +1126,6 @@ exports[`Page renders with footer 1`] = `
               "contentContainerStyle": {
                 "alignContent": undefined,
                 "alignItems": undefined,
-                "flexGrow": 1,
                 "justifyContent": undefined,
               },
               "horizontal": false,
@@ -1297,7 +1290,6 @@ exports[`Page renders with custom padding 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -1410,7 +1402,6 @@ exports[`Page renders with custom color 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,
@@ -1601,7 +1592,6 @@ exports[`Page renders with custom maxWidth 1`] = `
             "contentContainerStyle": {
               "alignContent": undefined,
               "alignItems": undefined,
-              "flexGrow": 1,
               "justifyContent": undefined,
             },
             "horizontal": false,

@@ -595,11 +595,13 @@ const EmptyChatHero = ({
   isStreaming,
   mascot,
   suggestedPrompts,
+  viewportHeight,
 }: {
   handleSuggestedPrompt: (prompt: string) => void;
   isStreaming: boolean;
   mascot?: React.ReactNode;
   suggestedPrompts?: string[];
+  viewportHeight: number;
 }): React.ReactElement | null => {
   const hasSuggestedPrompts = Boolean(suggestedPrompts && suggestedPrompts.length > 0);
   if (!mascot && !hasSuggestedPrompts && !isStreaming) {
@@ -612,6 +614,7 @@ const EmptyChatHero = ({
       justifyContent="center"
       padding={4}
       testID="gpt-empty-state"
+      {...(viewportHeight > 0 ? {minHeight: viewportHeight} : {})}
     >
       <Box alignItems="center" gap={5} maxWidth={640} width="100%">
         {mascot ? (
@@ -890,6 +893,7 @@ export const GPTChat = ({
   const contentHeightRef = useRef(0);
   const scrollOffsetRef = useRef(0);
   const viewportHeightRef = useRef(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
   const [isToolsModalVisible, setIsToolsModalVisible] = useState(false);
   const [apiKeyDraft, setApiKeyDraft] = useState(geminiApiKey ?? "");
@@ -971,7 +975,9 @@ export const GPTChat = ({
 
   const handleViewportLayout = useCallback(
     (event: {nativeEvent: {layout: {height: number; width: number; x: number; y: number}}}) => {
-      viewportHeightRef.current = event.nativeEvent.layout.height;
+      const nextHeight = event.nativeEvent.layout.height;
+      viewportHeightRef.current = nextHeight;
+      setViewportHeight(nextHeight);
     },
     []
   );
@@ -1113,14 +1119,7 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout} testID="gpt-viewport">
-          <Box
-            flex="grow"
-            gap={3}
-            justifyContent={isEmptyChat ? "center" : undefined}
-            onScroll={handleScroll}
-            scroll={true}
-            scrollRef={scrollViewRef}
-          >
+          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
             <Box flex="grow" gap={3} onLayout={handleContentLayout} testID="gpt-messages">
               {isEmptyChat ? (
                 <EmptyChatHero
@@ -1128,6 +1127,7 @@ export const GPTChat = ({
                   isStreaming={isStreaming}
                   mascot={mascot}
                   suggestedPrompts={suggestedPrompts}
+                  viewportHeight={viewportHeight}
                 />
               ) : (
                 <>

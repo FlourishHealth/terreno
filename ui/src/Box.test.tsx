@@ -608,18 +608,6 @@ describe("Box", () => {
     // Behavior props leaking into style reach the native view as unserializable
     // values: a ref object in style is cyclical (host instance points back at the
     // node) and gets dev-frozen, so React throws when detaching it on unmount.
-    it("grows the scroll content so flex children can fill the viewport", () => {
-      const {root} = renderWithTheme(
-        <Box flex="grow" scroll>
-          <Text>Centered</Text>
-        </Box>
-      );
-
-      const scrollView = root.findByType("ScrollView");
-      expect(scrollView.props.style.flexGrow).toBe(1);
-      expect(scrollView.props.contentContainerStyle.flexGrow).toBe(1);
-    });
-
     it("should keep behavior props out of the ScrollView style", () => {
       const scrollRef = React.createRef<ScrollView>();
       const {root} = renderWithTheme(

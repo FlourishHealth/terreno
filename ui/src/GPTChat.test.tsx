@@ -269,16 +269,23 @@ describe("GPTChat", () => {
     });
 
     const emptyState = getByTestId("gpt-empty-state");
-    let messageScroll = getByTestId("gpt-messages").parent;
-    while (messageScroll && !messageScroll.props.contentContainerStyle) {
-      messageScroll = messageScroll.parent;
-    }
 
     assert.equal(emptyState.props.style.flexGrow, 1);
     assert.equal(emptyState.props.style.justifyContent, "center");
     assert.equal(emptyState.props.style.alignItems, "center");
-    assert.equal(messageScroll?.props.contentContainerStyle.flexGrow, 1);
-    assert.equal(messageScroll?.props.contentContainerStyle.justifyContent, "center");
+  });
+
+  it("sizes the empty hero to the viewport so short content can center", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    fireEvent(getByTestId("gpt-viewport"), "layout", {
+      nativeEvent: {layout: {height: 480, width: 100, x: 0, y: 0}},
+    });
+
+    assert.equal(getByTestId("gpt-empty-state").props.style.minHeight, 480);
   });
 
   it("keeps the empty state inside the scrollable message content", () => {
