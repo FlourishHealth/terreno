@@ -1,6 +1,7 @@
 import {beforeEach, describe, it} from "bun:test";
 import {TerrenoApp, type UserModel as UserModelType} from "@terreno/api";
 import {setupDb, UserModel} from "@terreno/api/testing";
+import {createRequire} from "node:module";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
@@ -138,12 +139,24 @@ describe("GcpCloudTasksRunner", () => {
 
   it("loads the optional peer when installed or reports how to install it", (): void => {
     const {client: _client, ...configWithoutClient} = baseConfig();
+    let isPeerAvailable = true;
     try {
-      const runner = new GcpCloudTasksRunner(configWithoutClient);
-      assert.equal(runner.id, "gcp-cloud-tasks");
+      createRequire(import.meta.url)("@google-cloud/tasks");
     } catch (error: unknown) {
-      assert.match(String(error), /optional peer dependency @google-cloud\/tasks/);
+      void error;
+      isPeerAvailable = false;
     }
+
+    if (isPeerAvailable) {
+      const runner = new GcpCloudTasksRunner(configWithoutClient);
+      assert.equal(runner.requiresExecuteRoute, true);
+      return;
+    }
+
+    assert.throws(
+      () => new GcpCloudTasksRunner(configWithoutClient),
+      /optional peer dependency @google-cloud\/tasks/
+    );
   });
 
   it("throws when publicUrl is not an absolute http(s) URL", (): void => {

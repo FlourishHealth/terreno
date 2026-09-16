@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 
 import {createSyncStore, type SyncStore} from "../storage/store";
 import {NEEDS_REPAIR_TABLE} from "../storage/types";
@@ -233,5 +234,74 @@ describe("applyDelta", () => {
     expect(() => applyDelta({delta: makeDelta({collection: "nope"}), store})).toThrow(
       /Unknown collection/
     );
+  });
+});
+
+describe("applyDelta window |admin (Task 3.5)", () => {
+  const ADMIN_STREAM = "todos|admin";
+
+  it("is a no-op for an unknown id (no surprise insert) and still advances the cursor", () => {
+    const store = makeStore();
+    const result = applyDelta({
+      delta: makeDelta({
+        data: {title: "surprise"},
+        id: "unknown",
+        method: "create",
+        seq: 4,
+        stream: ADMIN_STREAM,
+      }),
+      store,
+    });
+    assert.isFalse(result.applied);
+    assert.isUndefined(store.getEntity({collection: "todos", id: "unknown"}));
+    assert.equal(getCursor({store, stream: ADMIN_STREAM}), 4);
+  });
+
+  it("updates a known id on the admin stream", () => {
+    const store = makeStore();
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "old"},
+      id: "t1",
+      seq: 1,
+      stream: ADMIN_STREAM,
+    });
+    const result = applyDelta({
+      delta: makeDelta({
+        data: {title: "new"},
+        method: "update",
+        seq: 2,
+        stream: ADMIN_STREAM,
+      }),
+      store,
+    });
+    assert.isTrue(result.applied);
+    assert.equal(
+      store.getEntity<{title: string}>({collection: "todos", id: "t1"})?.data.title,
+      "new"
+    );
+  });
+
+  it("delete delta removes a known id and ignores an unknown id", () => {
+    const store = makeStore();
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "gone"},
+      id: "t1",
+      seq: 1,
+      stream: ADMIN_STREAM,
+    });
+    const known = applyDelta({
+      delta: makeDelta({deleted: true, id: "t1", method: "delete", seq: 2, stream: ADMIN_STREAM}),
+      store,
+    });
+    const unknown = applyDelta({
+      delta: makeDelta({deleted: true, id: "nope", method: "delete", seq: 3, stream: ADMIN_STREAM}),
+      store,
+    });
+    assert.isTrue(known.applied);
+    assert.isTrue(store.getEntity({collection: "todos", id: "t1"})?.deleted);
+    assert.isFalse(unknown.applied);
+    assert.isUndefined(store.getEntity({collection: "todos", id: "nope"}));
   });
 });

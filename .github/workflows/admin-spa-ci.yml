@@ -32,8 +32,14 @@ jobs:
       - name: Typecheck app
         run: bunx tsc --noEmit -p tsconfig.json
 
-      - name: Unit tests (serve plugin)
-        run: bun run test:ci
+      - name: Unit tests with coverage threshold
+        run: bun run test:coverage
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: admin-spa
+          flag: admin-spa
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build web export
         run: bun run build:web

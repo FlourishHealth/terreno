@@ -44,8 +44,9 @@ second outer-loop pass.
 ## Read first
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
-[`loop engineering`](../../references/loop-engineering.md), and
-[`pick-roast inner loop`](../../references/pick-roast-loop.md). When Brew or Taste is
+[`loop engineering`](../../references/loop-engineering.md),
+[`pick-roast inner loop`](../../references/pick-roast-loop.md), and
+[`PR deployments`](../../references/pr-deployments.md). When Brew or Taste is
 selected, also read [`product CI`](../../references/product-ci.md). Then:
 
 1. `plugins/README.md` — Hosts and stage skills
@@ -153,4 +154,5 @@ action: Planning loop finished selected phases.
 Set `stage` to the last stage skill you invoked (`grow` | `pick` |
 `roast` | `brew` | `taste`). Required keys are `v`, `stage`, `status`,
 `next`, and `action`. Omit `wait` unless the last stage asked you to
-wait (`wait` is a positive integer).
+wait (`wait` is a positive integer). After that YAML, close with PR
+deployment URLs when the current PR has them.

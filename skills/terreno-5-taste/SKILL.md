@@ -13,6 +13,7 @@ Taste never owns persistence.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md),
 [`product CI`](references/product-ci.md),
 [`async review bots`](references/async-review-bots.md), and
 [`GitHub attention contract`](references/github-attention-contract.md).
@@ -122,7 +123,7 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
      are still unaddressed, and do not emit `PENDING` for unfinished product CI until
      the wait loop has timed out.
    Update execution state and emit the structured result collapsed per the lifecycle
-   contract. Then exit.
+   contract. Close the chat with PR deployment URLs when the PR has them. Then exit.
 
 ## Supporting skills
 

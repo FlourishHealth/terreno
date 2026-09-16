@@ -11,7 +11,6 @@ describe("tools", () => {
     expect(toolNames).toContain("terreno_generate_form_fields");
     expect(toolNames).toContain("terreno_validate_model_schema");
     expect(toolNames).toContain("terreno_install_admin");
-    expect(toolNames).toContain("terreno_bootstrap_app");
     expect(toolNames).toContain("terreno_bootstrap_ai_rules");
     expect(toolNames).toContain("terreno_search_docs");
     expect(toolNames).toContain("terreno_get_component_docs");
@@ -592,12 +591,12 @@ describe("tools", () => {
   });
 
   describe("handleToolCall - bootstrap dispatch", () => {
-    test("should delegate terreno_bootstrap_app to bootstrap handler", () => {
+    test("does not expose terreno_bootstrap_app", () => {
       const result = handleToolCall("terreno_bootstrap_app", {
         appDisplayName: "Dispatch App",
         appName: "dispatch-app",
       });
-      expect(result.content[0].text).toContain("# Bootstrap Dispatch App");
+      expect(result.content[0].text).toContain("Unknown tool");
     });
 
     test("should delegate terreno_bootstrap_ai_rules to bootstrap handler", () => {

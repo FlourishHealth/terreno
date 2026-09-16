@@ -57,6 +57,7 @@ patterns for that workspace, so those defaults must be repeated next to extra gl
 | OpenAPI codegen configs, Metro `jspdf` stubs, Expo fingerprint configs, Playwright CI config, `ui/babel.config.js`, Docusaurus `src/theme/**` swizzles, `scripts/ci/prepare-package-publish.mjs` | Invoked by Expo/Metro/Docusaurus/CI, not imported from app `index` | Extra `entry` globs on the owning workspace |
 | Generated `expo-cicd-workflows/scripts/*.js` (including `.rulesync/`) | Skill copies; they import `ajv` / `js-yaml` outside this repo’s package graph | `ignore` globs |
 | `example-backend` production dependencies | Knip's package-script entry for `bun run src/index.ts` shadows the explicit `src/index.ts!` entry in production mode | Keep default-mode enforcement; use exact dependency names suffixed with `!` as production-only exceptions |
+| `mcp-server/src/__tests__/preload.ts` | `bunfig.toml` `test.preload`; Knip's Bun plugin is disabled for this workspace | `mcp-server` extra entry |
 
 ## Runtime-only dependencies
 

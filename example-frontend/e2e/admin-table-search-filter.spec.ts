@@ -1,14 +1,22 @@
 import {expect, test} from "./fixtures/test";
-import {loginAsAdmin} from "./helpers/adminAuth";
+import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
+import {waitForAdminTable} from "./helpers/adminUi";
 
 test.describe("Admin table search and filters", () => {
-  test.beforeEach(async ({page}) => {
+  test("searches and applies a filter", async ({consoleGuard, page, request}) => {
+    consoleGuard.allow("UTC is not a valid timezone");
+    const apiUrl = process.env.BACKEND_URL ?? "http://localhost:4000";
+    const token = await getAdminToken(request);
+    const createResponse = await request.post(`${apiUrl}/todos`, {
+      data: {title: "Try offline mode"},
+      headers: {authorization: `Bearer ${token}`},
+    });
+    expect(createResponse.ok()).toBeTruthy();
+
     await loginAsAdmin(page);
     await page.goto("/admin/Todo");
-  });
+    await waitForAdminTable(page);
 
-  test("searches and applies a filter", async ({consoleGuard, page}) => {
-    consoleGuard.allow("UTC is not a valid timezone");
     const search = page.getByTestId("admin-table-search");
     await expect(search).toBeVisible();
     await search.fill("OFFLINE");

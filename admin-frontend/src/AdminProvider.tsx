@@ -1,7 +1,11 @@
-import React, {createContext, useContext, useEffect, useMemo, useRef} from "react";
+import React, {useEffect, useMemo, useRef} from "react";
+import {AdminWidgetContext, useAdminContext} from "./adminContext";
+import {bindAdminRequest} from "./adminRequest";
 import type {
   AdminProviderValue,
   AdminScreenProps,
+  AdminSyncConflicts,
+  AdminSyncDb,
   AdminWidgetRegistry,
   FieldWidgetComponent,
   HomeWidgetComponent,
@@ -10,7 +14,7 @@ import type {
 import {resolveAdminBases} from "./types";
 import {BUILT_IN_WIDGET_REGISTRY, mergeWidgetRegistry} from "./widgets/builtInWidgets";
 
-const AdminWidgetContext = createContext<AdminProviderValue | null>(null);
+export {useAdminContext} from "./adminContext";
 
 const warnedMissingWidgets = new Set<string>();
 
@@ -36,6 +40,10 @@ export const resetAdminWidgetWarningsForTests = (): void => {
 
 export interface AdminProviderProps extends AdminScreenProps {
   children: React.ReactNode;
+  /** Optional windowed TinyBase client for String `_id` + `adminBroadcast` models. */
+  syncDb?: AdminSyncDb;
+  /** Optional adapter from the host's `useConflicts()` result. */
+  syncConflicts?: AdminSyncConflicts;
   widgets?: Partial<AdminWidgetRegistry>;
 }
 
@@ -44,26 +52,50 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   api,
   baseUrl,
   apiBase,
+  apiOrigin,
+  credentials,
+  getAuthHeaders,
   routeBase,
+  syncConflicts,
+  syncDb,
   widgets: userWidgets,
 }) => {
   const bases = resolveAdminBases({apiBase, baseUrl, routeBase});
   const mergedWidgets = useMemo(() => mergeWidgetRegistry(userWidgets), [userWidgets]);
+  const adminRpc = useMemo(() => {
+    if (credentials === undefined && getAuthHeaders === undefined) {
+      return undefined;
+    }
+    return bindAdminRequest({credentials, getAuthHeaders, origin: apiOrigin});
+  }, [apiOrigin, credentials, getAuthHeaders]);
   const value = useMemo(
     (): AdminProviderValue => ({
+      adminRpc,
       api,
       apiBase: bases.apiBase,
+      apiOrigin,
+      credentials,
+      getAuthHeaders,
       routeBase: bases.routeBase,
+      syncConflicts,
+      syncDb,
       widgets: mergedWidgets,
     }),
-    [api, bases.apiBase, bases.routeBase, mergedWidgets]
+    [
+      adminRpc,
+      api,
+      apiOrigin,
+      bases.apiBase,
+      bases.routeBase,
+      credentials,
+      getAuthHeaders,
+      mergedWidgets,
+      syncConflicts,
+      syncDb,
+    ]
   );
 
   return <AdminWidgetContext.Provider value={value}>{children}</AdminWidgetContext.Provider>;
-};
-
-export const useAdminContext = (): AdminProviderValue | null => {
-  return useContext(AdminWidgetContext);
 };
 
 export const useAdminWidgetRegistry = (): AdminWidgetRegistry => {
