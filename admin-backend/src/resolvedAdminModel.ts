@@ -3,6 +3,7 @@ import type {Model} from "mongoose";
 
 import type {AdminModelConfig} from "./adminApp";
 import type {AdminListFilter, AdminModelPermissionsInput} from "./adminUiV2";
+import {enrichAdminListFilters} from "./enrichAdminListFilters";
 import {normalizeAdminRoutePath} from "./routePath";
 
 export type AdminModelSource = "legacy" | "plugin" | "registered";
@@ -90,7 +91,7 @@ export const resolvedModelFromAdminConfig = ({
     fieldOrder: admin.fieldOrder,
     fieldOverrides: admin.fieldOverrides,
     fieldsets: admin.fieldsets,
-    filters: admin.filters as AdminListFilter[] | undefined,
+    filters: enrichAdminListFilters(admin.filters as AdminListFilter[] | undefined, model),
     group: admin.group,
     hiddenFields: admin.hiddenFields,
     icon: admin.icon,

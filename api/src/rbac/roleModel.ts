@@ -52,7 +52,7 @@ export {READ_ONLY_ROLE_PERMISSIONS} from "./statements";
  * Insert missing default roles. Existing unsealed roles are left unchanged so admin
  * customizations survive process restarts. Sealed roles are refreshed from code.
  */
-export const upsertSeededRole = async (
+const upsertSeededRole = async (
   model: RbacRoleModel,
   role: RoleDefinition,
   statements: Statements

@@ -50,11 +50,17 @@ jobs:
         run: bun run types
         working-directory: ui
 
-      - name: Run UI tests
-        run: bun run test:ci
+      - name: Run UI tests with coverage threshold
+        run: bun run test:coverage
         working-directory: ui
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: ui
+          flag: ui
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   demo-typecheck:
     name: Demo TypeScript Check (UI dependency)
@@ -100,3 +106,12 @@ jobs:
       - name: TypeScript compile Demo
         run: bun run compile
         working-directory: demo
+
+      - name: Demo story smoke tests
+        run: bun run test:ci
+        working-directory: demo
+
+      - name: Check demo story coverage
+        run: |
+          bun test scripts/check-demo-coverage.test.ts
+          bun run check:demo-coverage

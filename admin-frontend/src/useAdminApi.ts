@@ -1,4 +1,5 @@
 import {useMemo} from "react";
+import {buildAdminApiListQueryRequest} from "./adminApiQueryParams";
 import {asDynamicHookApi} from "./dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "./types";
 
@@ -15,7 +16,7 @@ type TagArg = unknown;
  * @param api - RTK Query API instance to inject endpoints into
  * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
  * @param modelName - Name of the model for cache tag generation (e.g., "User")
- * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`, `useBulkPatchMutation`
  *
  * @example
  * ```typescript
@@ -47,6 +48,8 @@ type TagArg = unknown;
  *
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
+ * @deprecated Terreno 57 compatibility for ObjectId/API-only model CRUD.
+ * Terreno 58 removes this RTK `injectEndpoints` path and the required admin `api` prop.
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
@@ -62,11 +65,8 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
       endpoints: (build: EndpointBuilder) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
-          query: (params: Record<string, unknown> | undefined) => ({
-            method: "GET",
-            params: params ?? {},
-            url: routePath,
-          }),
+          query: (params: Record<string, unknown> | undefined) =>
+            buildAdminApiListQueryRequest(routePath, params),
         }),
         [readKey]: build.query({
           providesTags: (_result: TagArg, _error: TagArg, id: string) => [

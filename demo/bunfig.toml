@@ -1,0 +1,9 @@
+[test]
+preload = ["../ui/src/bunSetup.ts"]
+root = "."
+coveragePathIgnorePatterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.stories.{ts,tsx}",
+  "**/node_modules/**",
+]

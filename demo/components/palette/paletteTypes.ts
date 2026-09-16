@@ -17,7 +17,7 @@ import {DARK_ROLE_MAP} from "./darkTheme";
  * theme primitives.
  */
 
-export type ChatRole = "user" | "assistant" | "system";
+type ChatRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;
@@ -69,7 +69,7 @@ export const DEFAULT_ANCHORS: PaletteAnchors = {
 export type ThemeMode = "light" | "dark";
 
 /** A semantic theme role, resolved to a concrete primitive via the active light/dark role map. */
-export interface RoleRef {
+interface RoleRef {
   group: "text" | "surface" | "border";
   key: string;
 }
@@ -78,6 +78,7 @@ export interface RoleRef {
  * A single foreground/background contrast pairing to evaluate, expressed in semantic theme roles so
  * the same check can be resolved against either the light or the dark role map.
  */
+/** @internal */
 export interface ContrastCheckDef {
   label: string;
   fg: RoleRef;
@@ -95,6 +96,7 @@ export type RoleMap = Record<RoleRef["group"], Record<string, string>>;
  * The stock Terreno light theme mapping (subset used by the audit + preview), mirroring
  * `defaultTheme` in `ui/src/Theme.tsx`.
  */
+/** @internal */
 export const LIGHT_ROLE_MAP: RoleMap = {
   border: {default: "neutral300"},
   surface: {
@@ -119,6 +121,7 @@ export const LIGHT_ROLE_MAP: RoleMap = {
  * Curated set of the most important text/surface pairings. Flagging one here flags a real
  * accessibility risk in an app using the generated palette in that mode.
  */
+/** @internal */
 export const CONTRAST_CHECKS: ContrastCheckDef[] = [
   {
     bg: {group: "surface", key: "base"},
@@ -224,10 +227,4 @@ export const runContrastChecks = (
   });
 };
 
-/** Convenience aggregate for the header badge ("3 issues"). */
-export const countContrastFailures = (results: ContrastResult[]): number => {
-  return results.filter((result) => !result.passes).length;
-};
-
 export type {MainFamily, StatusFamily};
-export {MAIN_FAMILIES, STATUS_FAMILIES};

@@ -1,4 +1,5 @@
-import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeAll, beforeEach, describe, expect, it, spyOn} from "bun:test";
+import {assert} from "chai";
 import mongoose, {model, Schema} from "mongoose";
 import type {ModelRouterOptions} from "../api";
 import type {User} from "../auth";
@@ -6,10 +7,17 @@ import {APIError} from "../errors";
 import {Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {setupDb} from "../tests";
+import {
+  type AdminWindowMutationAuditEvent,
+  type AdminWindowMutationScope,
+  clearAdminWindowMutationScopes,
+  registerAdminWindowMutationScope,
+} from "./adminWindowMutation";
 import {computeStableFrontier, SyncCounter, SyncMutation} from "./models";
 import {
   applySyncMutation,
   applySyncMutationBatch,
+  docMatchesMutationData,
   MAX_SYNC_MUTATIONS_PER_BATCH,
   type SyncMutationOutcome,
   validateSyncMutationBatch,
@@ -363,6 +371,32 @@ describe("applySyncMutation", () => {
       const row = await SyncMutation.findOne({mutationId: "m-lease-create-e11000"});
       expect(row?.status).toBe("applied");
       expect(row?.resultId).toBe(entityId);
+    });
+
+    it("create: surfaces the E11000 as a nack when the colliding _id is not readable (soft-deleted)", async () => {
+      const entityId = new mongoose.Types.ObjectId().toHexString();
+      await MutStuffModel.create({
+        _id: entityId,
+        deleted: true,
+        name: "tombstone",
+        ownerId: owner.id,
+      });
+      await createStalePendingRow("m-lease-create-tombstone", 90_000);
+
+      const nack = expectNack(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "tombstone", ownerId: owner.id},
+            id: entityId,
+            mutationId: "m-lease-create-tombstone",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      assert.notEqual(nack.code, "conflict");
+      assert.equal(await MutStuffModel.countDocuments({_id: entityId, deleted: true}), 1);
     });
 
     it("update: tolerates the write having already landed (seq already advanced by exactly this mutation) and reads back the doc as the ack", async () => {
@@ -813,6 +847,25 @@ describe("applySyncMutation", () => {
       expect(nack.message).toContain("Unknown sync collection");
     });
 
+    it("nacks validation when an update omits baseVersion", async () => {
+      const doc = await MutStuffModel.create({name: "no base", ownerId: owner.id});
+      const nack = expectNack(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "changed"},
+            id: String(doc._id),
+            mutationId: "m-no-base-version",
+            operation: "update",
+          },
+          user: owner,
+        })
+      );
+      assert.equal(nack.code, "validation");
+      assert.include(nack.message, "baseVersion is required");
+      assert.equal(await SyncMutation.countDocuments({mutationId: "m-no-base-version"}), 0);
+    });
+
     it("nacks validation when update or delete is missing an id", async () => {
       for (const operation of ["update", "delete"] as const) {
         const nack = expectNack(
@@ -1000,6 +1053,229 @@ describe("applySyncMutation", () => {
       // Task 9.18: error-class outcomes release the claim rather than recording it.
       expect(await SyncMutation.countDocuments({mutationId: "m-plain-error"})).toBe(0);
     });
+
+    it("rethrows a non-duplicate failure from the ledger claim insert", async () => {
+      const createSpy = spyOn(SyncMutation, "create").mockImplementation((() => {
+        throw new Error("ledger unavailable");
+      }) as never);
+      try {
+        let thrown: unknown;
+        try {
+          await applySyncMutation({
+            mutation: {
+              collection: "mutStuff",
+              data: {name: "never claimed", ownerId: owner.id},
+              mutationId: "m-claim-crash",
+              operation: "create",
+            },
+            user: owner,
+          });
+        } catch (error: unknown) {
+          thrown = error;
+        }
+        assert.instanceOf(thrown, Error);
+        assert.equal((thrown as Error).message, "ledger unavailable");
+      } finally {
+        createSpy.mockRestore();
+      }
+      assert.equal(await MutStuffModel.countDocuments({name: "never claimed"}), 0);
+    });
+  });
+
+  describe("write scope enforcement", () => {
+    it("skips the write-scope check for broadcast collections", async () => {
+      registerMutStuff({config: {scope: {type: "broadcast"}}});
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "broadcast", ownerId: stranger.id},
+            mutationId: "m-broadcast-create",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      assert.equal(ack.seq, 1);
+      const saved = await MutStuffModel.findById(ack.id);
+      assert.equal(saved?.ownerId, stranger.id);
+    });
+
+    it("nacks error when a tenant-scoped collection has no scope resolver", async () => {
+      registerMutStuff({config: {scope: {field: "ownerId", type: "tenant"}}});
+      const nack = expectNack(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "tenant", ownerId: "tenant-1"},
+            mutationId: "m-tenant-no-resolver",
+            operation: "create",
+          },
+          user: owner,
+        })
+      );
+      assert.equal(nack.code, "error");
+      assert.include(nack.message, "no getUserScopes resolver");
+      assert.equal(await MutStuffModel.countDocuments({name: "tenant"}), 0);
+    });
+
+    it("acks a tenant-scoped create when the resolver confirms the membership", async () => {
+      registerMutStuff({config: {scope: {field: "ownerId", type: "tenant"}}});
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "tenant ok", ownerId: "tenant-1"},
+            mutationId: "m-tenant-member",
+            operation: "create",
+          },
+          scopeResolver: async () => ["tenant-1", "tenant-2"],
+          user: owner,
+        })
+      );
+      assert.equal(ack.seq, 1);
+    });
+  });
+
+  describe("recorded conflict replay", () => {
+    const recordConflict = async (
+      mutationId: string,
+      resultId: string | undefined
+    ): Promise<void> => {
+      await SyncMutation.create({
+        claimedAt: new Date(),
+        error: "recorded conflict",
+        mutationId,
+        resultId,
+        resultSeq: 3,
+        status: "conflicted",
+        userId: String(owner.id),
+      });
+    };
+
+    const replay = (mutationId: string): Promise<SyncMutationOutcome> =>
+      applySyncMutation({
+        mutation: {
+          baseVersion: 1,
+          collection: "mutStuff",
+          data: {name: "replayed"},
+          id: new mongoose.Types.ObjectId().toHexString(),
+          mutationId,
+          operation: "update",
+        },
+        user: owner,
+      });
+
+    it("omits the server doc when the recorded conflict has no resultId", async () => {
+      await recordConflict("m-conflict-no-id", undefined);
+      const nack = expectNack(await replay("m-conflict-no-id"));
+      assert.equal(nack.code, "conflict");
+      assert.equal(nack.message, "recorded conflict");
+      assert.equal(nack.serverSeq, 3);
+      assert.isUndefined(nack.serverDoc);
+    });
+
+    it("omits the server doc when the recorded resultId no longer resolves to a document", async () => {
+      await recordConflict("m-conflict-missing", new mongoose.Types.ObjectId().toHexString());
+      const nack = expectNack(await replay("m-conflict-missing"));
+      assert.equal(nack.code, "conflict");
+      assert.isUndefined(nack.serverDoc);
+    });
+
+    it("omits the server doc when loading it throws", async () => {
+      await recordConflict("m-conflict-bad-id", "not-an-object-id");
+      const nack = expectNack(await replay("m-conflict-bad-id"));
+      assert.equal(nack.code, "conflict");
+      assert.isUndefined(nack.serverDoc);
+    });
+  });
+
+  describe("admin window mutations", () => {
+    const admin = {_id: "mut-admin", admin: true, id: "mut-admin"} as unknown as User;
+
+    const registerAdminScope = (
+      emitAudit?: AdminWindowMutationScope["emitAudit"]
+    ): AdminWindowMutationScope => {
+      const scope: AdminWindowMutationScope = {
+        createPermissions: [Permissions.IsAdmin],
+        deletePermissions: [Permissions.IsAdmin],
+        emitAudit,
+        modelName: MutStuffModel.modelName,
+        permissions: {create: true, delete: true, update: true},
+        stripMutationData: (data) => {
+          const next = {...data};
+          delete next.secret;
+          return next;
+        },
+        updatePermissions: [Permissions.IsAdmin],
+      };
+      registerAdminWindowMutationScope(MutStuffModel.modelName, scope);
+      return scope;
+    };
+
+    beforeEach(() => {
+      clearAdminWindowMutationScopes();
+      registerMutStuff({config: {adminBroadcast: true, scope: {type: "owner"}}});
+    });
+
+    afterEach(() => {
+      clearAdminWindowMutationScopes();
+    });
+
+    it("applies an admin window create with stripped data and emits the audit event", async () => {
+      const events: AdminWindowMutationAuditEvent[] = [];
+      registerAdminScope(({event}) => {
+        events.push(event);
+      });
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "admin created", ownerId: owner.id, secret: "strip me"},
+            mutationId: "m-admin-create",
+            mutationMode: "adminWindow",
+            operation: "create",
+          },
+          user: admin,
+        })
+      );
+      assert.equal(ack.seq, 1);
+      assert.isUndefined(ack.warning);
+      const saved = await MutStuffModel.findById(ack.id);
+      assert.equal(saved?.name, "admin created");
+      assert.equal(saved?.ownerId, owner.id);
+      assert.lengthOf(events, 1);
+      assert.equal(events[0].verb, "created");
+      assert.equal(events[0].recordId, ack.id);
+    });
+
+    it("still acks when the admin window audit hook throws after the write committed", async () => {
+      registerAdminScope(() => {
+        throw new Error("audit sink down");
+      });
+      const ack = expectAck(
+        await applySyncMutation({
+          mutation: {
+            collection: "mutStuff",
+            data: {name: "audited anyway", ownerId: owner.id},
+            mutationId: "m-admin-audit-throw",
+            mutationMode: "adminWindow",
+            operation: "create",
+          },
+          user: admin,
+        })
+      );
+      assert.isUndefined(ack.warning);
+      assert.equal(await MutStuffModel.countDocuments({name: "audited anyway"}), 1);
+      const row = await SyncMutation.findOne({mutationId: "m-admin-audit-throw"});
+      assert.equal(row?.status, "applied");
+    });
+  });
+});
+
+describe("docMatchesMutationData", () => {
+  it("treats an absent mutation payload as matching any document", () => {
+    assert.isTrue(docMatchesMutationData({name: "anything"}, undefined));
   });
 });
 

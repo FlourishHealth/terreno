@@ -10,6 +10,7 @@ test.describe("Admin model form", () => {
     await loginAsAdmin(page);
     await page.goto("/admin/Todo/create");
 
+    await page.getByTestId("admin-save-button").waitFor({state: "visible", timeout: 15_000});
     await expect(page.getByTestId("admin-save-button")).toBeVisible();
     await page.getByTestId("admin-save-button").click();
     await expect(page.getByText(/required/i).first()).toBeVisible();

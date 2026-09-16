@@ -12,7 +12,7 @@ copy as `terreno` (see [Hosts](#hosts)):
 | 2 | **Pick** (`terreno-2-pick`) | Build one slice, roast it, then pick the next until the list is done |
 | 3 | **Roast** (`terreno-3-roast`) | Prove the current task, then continue the pick-roast inner loop |
 | 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, confirm product CI on every discovered host, wait for review bots, then exit |
-| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; before push: pull latest `master`, then lint and typecheck in a no-context subagent, then push and watch |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; before push: pull latest `master`, then run root `prepush` when present (otherwise affected-package checks) in a no-context subagent, then push and watch |
 
 Stages and outer loops are model-invocable; descriptions keep Pick/Brew/Taste from firing
 on casual chat. Grow, Brew, and Taste never own the full orchestration. Pick and Roast own
@@ -56,17 +56,21 @@ The shared result/state format and outer state machine live in:
 - [`references/product-ci.md`](terreno-planning/references/product-ci.md)
 - [`references/loop-engineering.md`](terreno-planning/references/loop-engineering.md)
 - [`references/github-attention-contract.md`](terreno-planning/references/github-attention-contract.md)
+- [`references/pr-deployments.md`](terreno-planning/references/pr-deployments.md)
 - [`stage-result.schema.json`](terreno-planning/references/stage-result.schema.json)
 - [`execution-state.schema.json`](terreno-planning/references/execution-state.schema.json)
 
 Stage YAML is compact (`v: 2`, omit empty keys) and collapsed behind a Details toggle in
-chat and on the PR. Humans read `status`, `next`, and `action`.
+chat and on the PR. Humans read `status` / `next` / `action`. When the current PR has
+GitHub Deployments, those demo URLs are the last visible section of every wait-for-human
+or done chat.
 
 The focused `terreno-pick-roast-loop` is the implementation autopilot: it keeps
 recovering from objective Pick/Roast failures while an evidence-backed engineering
 action remains. It reports the complete task/attempt ledger once at completion. When a
 human decision is genuinely required, it first explains the plan state, work completed,
-decisive evidence, options, impact, and recommendation, then asks one exact question.
+decisive evidence, options, impact, and recommendation, then asks one exact question,
+then prints PR deployment URLs when a PR has them.
 
 The optional **feature profile** in the loop document preserves the former Grind behavior:
 invoke Pick once; it pick-roasts each frontier task in sequence. `terreno-planning-loop`
@@ -93,8 +97,9 @@ CodeQL, and similar review bots on the current head have reported, preferring pr
 CLI watch hooks or harness event subscriptions over sleep polling, then continue. Taste
 then waits in a loop for product CI using GitHub CLI or CircleCI CLI until jobs are
 terminal or the wait times out. Before any push, Taste always pulls latest `master`,
-then spawns a fresh subagent with no parent conversation to run lint, typecheck, and
-locally affected tests in each affected package, then pushes and watches product CI. Taste observes jobs on every discovered CI host (GitHub Actions, CircleCI,
+then spawns a fresh subagent with no parent conversation. It runs the root `prepush`
+package script when present; otherwise it falls back to lint, typecheck, and locally
+affected tests in each affected package. It then pushes and watches product CI. Taste observes jobs on every discovered CI host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. Outer loops use the same native hooks
 during Taste `PENDING` waits. The loop owns persistence, retry, stop, and escalation.
 It does not reinvoke Pick between roasted tasks.

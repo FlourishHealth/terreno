@@ -62,6 +62,7 @@ const buildPermissionRequest = (resource: string, action: string): Record<string
   [resource]: [action],
 });
 
+/** @internal */
 export const buildAccessPermissions = <T>(
   accessControl: AnyTerrenoAccess,
   access: ModelRouterAccessOptions
@@ -115,6 +116,7 @@ export const buildAccessPermissions = <T>(
   };
 };
 
+/** @internal */
 export const buildAccessQueryFilter = <_T>(
   accessControl: AnyTerrenoAccess,
   access: ModelRouterAccessOptions,
@@ -161,6 +163,7 @@ export const buildAccessQueryFilter = <_T>(
   };
 };
 
+/** @internal */
 export const wrapAccessResponseHandler = <T>(
   accessControl: AnyTerrenoAccess,
   access: ModelRouterAccessOptions,

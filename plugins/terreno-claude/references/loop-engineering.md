@@ -60,7 +60,7 @@ the named stage when a concrete engineering action remains, but it does not repe
 failed approach without a new hypothesis. It keeps cycle details in execution state and
 presents one complete report at the end. At a human gate, the report must explain the
 overall goal/state, completed work, decisive evidence, options and impact, recommendation,
-then end with one exact question. It never invokes Grow, Brew, Taste, or product CI.
+then one exact question, then PR deployment URLs when a PR has them. It never invokes Grow, Brew, Taste, or product CI.
 
 ## Feature profile (formerly Grind)
 
@@ -88,9 +88,10 @@ per-task results in execution state, and continues to the next frontier task.
 - Taste reacts to the current CI/review state until the loop receives `PASS`. It waits
 until Bugbot, CodeQL, and similar review bots have reported, then waits in a loop for
 product CI with `gh` or `circleci`, then acts. Before any push it always pulls latest
-`master`, then spawns a fresh subagent with no parent conversation to run `bun lint` in
-affected packages, run each package's typecheck, and run the locally affected tests,
-then pushes and watches CI.
+`master`, then spawns a fresh subagent with no parent conversation. When the repository
+root defines a `prepush` package script, the subagent runs that authoritative local gate.
+Otherwise it falls back to lint, typecheck, and locally affected tests in affected
+packages. Taste then pushes and watches CI.
 
 ## UI scenario
 
@@ -110,9 +111,10 @@ then pushes and watches CI.
 2. Taste waits if those bots are still running, then runs the product-CI wait loop
    (`gh pr checks --watch` / `gh run watch` / `circleci run watch`) until jobs on SHA A
    are terminal. It sees a branch-caused CI failure, fixes it, always pulls latest
-   `master`, proves lint, typecheck, and affected tests in a fresh subagent with no
-   parent conversation, pushes SHA B, then watches review bots and product CI on B, and acts
-   once on those results. A further push emits `PENDING` and exits.
+   `master`, runs the root `prepush` script (or fallback lint, typecheck, and affected
+   tests) in a fresh subagent with no parent conversation, pushes SHA B, then watches
+   review bots and product CI on B, and acts once on those results. A further push emits
+   `PENDING` and exits.
 3. The outer loop uses the same native watch hook only when Taste timed out or pushed a
    second fix (falling back to the requested timer), then invokes fresh Taste. It sees
    green jobs plus an actionable human review comment, fixes it, waits for review bots

@@ -20,8 +20,8 @@ Grow (shape) → Pick (build) → Roast (prove) → Brew (submit) → Taste (rea
 The outer loop owns invocation, persistence, Taste `PENDING` reinvocation, retry, stop,
 and escalation. Brew waits in-process for async review bots. Taste waits in-process for
 review bots and for product CI (GitHub CLI or CircleCI CLI watch loop). Before any
-push it pulls latest `master`, lints in a no-context subagent, then pushes and watches
-CI.
+push it pulls latest `master`, runs root `prepush` when present (otherwise affected
+package lint/typecheck/tests) in a no-context subagent, then pushes and watches CI.
 Lifecycle skills own how one stage is performed. Repository skills own how this codebase
 works. Roast owns independent acceptance proof. State/evidence bridge fresh invocations.
 
@@ -56,13 +56,13 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP2 | Sensitive-data rules cover credentials, customer data, PII/PHI, and evidence media |
 | AP3 | Canonical stages are Grow, Pick, Roast, Brew, Taste |
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
-| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI. Before any push: always pull latest `master`, then run lint, typecheck, and affected tests in a fresh subagent with no parent conversation, then push and watch CI (`gh` / `circleci`). The outer loop reinvokes on Taste `PENDING` |
+| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI. Before any push: always pull latest `master`, then run the repository root's `prepush` package script when present (otherwise affected-package lint, typecheck, and tests) in a fresh subagent with no parent conversation, then push and watch CI (`gh` / `circleci`). The outer loop reinvokes on Taste `PENDING` |
 | AP6 | Shared results use compact `v: 2` YAML; required keys are `v`, `stage`, `status`, `next`, `action`; empty keys are omitted; YAML is collapsed for humans |
 | AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
 | AP9 | No deprecated command aliases: old implementation-Roast conflicts with new verification-Roast and no maintained alias mechanism exists |
 | AP10 | Plugin major version is `2.0.0` because lifecycle semantics and command names are breaking |
-| AP11 | Grow lists every grilled decision in an unbounded Decisions table after the 15-line index, or omits the table when there were none; grilling stays on a question until the answer is executable |
+| AP11 | Grow ends with a standalone approval brief — orientation paragraph, optional background, idea, plan — then an unbounded Decisions table pairing every grilled decision with the question that prompted it, or omits that table when there were none; grilling stays on a question until the answer is executable |
 | AP12 | Brew and Taste wait until Bugbot, CodeQL, and similar review bots on the current head have reported, preferring hooks targeted to the matched bot or harness subscriptions over timer polling; unfiltered PR-check watches are product-CI waits owned by Taste |
 | AP13 | Product CI is every discovered host (GitHub Actions, CircleCI, Buildkite, GitLab CI, and similar). Taste observes native jobs when GitHub checks are incomplete; Brew confirms each host triggered or documented a not-applicable skip. An unexplained untriggered host prevents Brew `PASS`; a documented skip is terminal for Taste |
 | AP14 | Taste waits in-process with the provider's bounded native watch command (`gh pr checks --watch`, `gh run watch`, `circleci run watch`, `bk build watch`) in a loop until jobs are terminal or the wait times out. Outer loops honor Taste `PENDING` with the same hooks. Watch exit codes trigger a fresh classification rather than becoming stage verdicts directly |
@@ -133,7 +133,8 @@ current head rather than trusting stale state.
 Researches repository facts, distinguishes human decisions from discoverable facts and
 low-risk conventional details, grills until each answer is executable, then writes
 approved, implementation-ready IP/tasks. Every acceptance criterion maps to verification.
-Approval shows a 15-line index plus a full Decisions table when any grilled decisions
+Approval shows a standalone brief — orientation paragraph, optional background, idea,
+plan — plus a full Decisions table with prompting questions when any grilled decisions
 exist.
 
 ### Pick
@@ -166,8 +167,9 @@ using GitHub CLI (`gh pr checks --watch`, `gh run watch`) or CircleCI CLI
 (`circleci run watch`) until jobs on every discovered host are terminal or the wait
 times out. It then classifies mergeability and reviews, performs one bounded set of
 actionable fixes. Before any push it always pulls latest `master`, then spawns a fresh
-subagent with no parent conversation to run lint, typecheck, and locally affected tests
-in each affected package, then pushes and watches review bots and product CI. It may act
+subagent with no parent conversation to run root `prepush` when present, falling back to
+lint, typecheck, and locally affected tests in each affected package. It then pushes and
+watches review bots and product CI. It may act
 once more after that watch. It emits
 `PASS`/`PENDING`/`BLOCKED`/`FAIL` and exits. The outer loop reinvokes after timeout or a
 second post-fix push.

@@ -51,7 +51,7 @@ export const SYNCDB_STORAGE_USER = suiteUser("syncdb-storage", "E2E SyncDB Stora
 export const SYNCDB_CHAOS_USER = suiteUser("syncdb-chaos", "E2E SyncDB Chaos User");
 /**
  * Admin-capable suite user for the SyncDB Load Lab e2e (Phase F4): the admin-guarded
- * `/loadtest/todos/*` routes require `user.admin === true`, so this user is promoted
+ * `/todos/loadtest*` collectionActions require `user.admin === true`, so this user is promoted
  * to admin in auth.setup.ts alongside ADMIN_USER.
  */
 export const SYNCDB_LOADLAB_USER = suiteUser("syncdb-loadlab", "E2E SyncDB LoadLab User");

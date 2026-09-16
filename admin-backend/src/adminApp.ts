@@ -5,6 +5,7 @@ import {
   type AnyTerrenoAccess,
   APIError,
   asyncHandler,
+  auditActorIdFromRequest,
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
@@ -12,6 +13,7 @@ import {
   createOpenApiBuilder,
   createScriptArgs,
   describeModel,
+  findSyncEntryByModelName,
   type JSONValue,
   logger,
   type ModelRouterOptions,
@@ -21,6 +23,8 @@ import {
   type PermissionMethod,
   Permissions,
   type PopulatePath,
+  registerAdminBroadcastScope,
+  registerAdminWindowMutationScope,
   type ScriptArgDef,
   type ScriptArgValue,
   type ScriptContext,
@@ -37,6 +41,7 @@ import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
 import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
+import {mountAdminMigrationRoutes} from "./adminMigrations";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -213,6 +218,11 @@ export interface AdminOptions {
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
    * resource/action permissions (for example `user:update`) from the same Access instance. */
   accessControl?: AnyTerrenoAccess;
+  /**
+   * When `dir` is set, admin exposes GET/POST `/migrations` and
+   * `GET /admin/config` includes `migrations.enabled: true`.
+   */
+  migrations?: {dir: string};
 }
 
 interface AdminFieldMeta {
@@ -242,6 +252,13 @@ interface AdminModelMeta {
   fieldOrder?: string[];
   fieldsets?: AdminFieldsetInput[];
   fields: Record<string, AdminFieldMeta>;
+  /** True when the model’s app `sync` config set `adminBroadcast`. */
+  adminBroadcast: boolean;
+  /**
+   * Sync collection tag (`routePath` without a leading slash) when
+   * `adminBroadcast` is true. Omitted otherwise.
+   */
+  syncCollection?: string;
   filters: AdminListFilter[];
   group?: string;
   hiddenFields: string[];
@@ -286,7 +303,18 @@ interface AdminConfigResponse {
   schemaVersion: number;
   scripts: AdminScriptMeta[];
   widgetIds: string[];
+  migrations?: {enabled: boolean};
 }
+
+const syncMetaForAdminModel = (
+  modelName: string
+): {adminBroadcast: boolean; syncCollection?: string} => {
+  const entry = findSyncEntryByModelName(modelName);
+  if (entry?.config.adminBroadcast !== true) {
+    return {adminBroadcast: false};
+  }
+  return {adminBroadcast: true, syncCollection: entry.collectionTag};
+};
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
   const map: AdminModelAdminMap = {};
@@ -349,7 +377,13 @@ const buildAdminListQueryFilter = (
       merged = {...merged, ...baseResult};
     }
     const result = andMongoFilters(merged, searchClause);
-    return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
+    const overrides: Record<string, unknown> = {...filter};
+    for (const key of consumedKeys) {
+      if (!(key in overrides)) {
+        overrides[key] = undefined;
+      }
+    }
+    return {...result, ...overrides, [ADMIN_LIST_SEARCH_PARAM]: undefined};
   };
 };
 
@@ -453,19 +487,14 @@ const coerceAdminFlag = (value: unknown): boolean => {
   throw new APIError({status: 400, title: "admin must be a boolean"});
 };
 
-const auditActorId = (request: express.Request): string | undefined => {
-  const user = request.user as {_id?: unknown} | undefined;
-  if (!user || user._id == null) {
-    return undefined;
-  }
-  return String(user._id);
-};
+const auditActorId = auditActorIdFromRequest;
 
 interface ArraySchemaTypeCompatibility {
   caster?: mongoose.SchemaType;
   getEmbeddedSchemaType?: () => mongoose.SchemaType | undefined;
 }
 
+/** @internal */
 export const getArrayEmbeddedSchemaType = (
   schemaPath: mongoose.SchemaType
 ): mongoose.SchemaType | undefined => {
@@ -555,6 +584,13 @@ export class AdminApp {
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
     if (this.options.accessControl) {
       return [this.options.accessControl.permission({admin: [ADMIN_PAGE_ACTION]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
+  private adminRunScriptsPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["runScripts"]})];
     }
     return [Permissions.IsAdmin];
   }
@@ -768,9 +804,11 @@ export class AdminApp {
           readonlyFields,
           schemaPaths: schemaPathKeys,
         });
+      const syncMeta = syncMetaForAdminModel(config.model.modelName);
 
       return {
         actions: config.actions ?? [],
+        adminBroadcast: syncMeta.adminBroadcast,
         bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
@@ -796,6 +834,7 @@ export class AdminApp {
         routePath: `${basePath}${config.routePath}`,
         searchFields,
         sortableFields,
+        ...(syncMeta.syncCollection ? {syncCollection: syncMeta.syncCollection} : {}),
       };
     });
 
@@ -912,6 +951,7 @@ export class AdminApp {
       return {
         ...baseConfigResponse,
         customScreens: authorizedScreens.map(({adminAccess: _adminAccess, ...screen}) => screen),
+        migrations: {enabled: Boolean(this.options.migrations?.dir)},
         models: authorizedModels,
         platformTools: {
           configuration: canReadConfiguration,
@@ -1656,6 +1696,31 @@ export class AdminApp {
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
 
+      registerAdminBroadcastScope(config.model.modelName, {
+        listPermissions: adminPermission(true, "list"),
+        queryFilter: routerOptions.queryFilter,
+        readPermissions: adminPermission(true, "read"),
+      });
+
+      registerAdminWindowMutationScope(config.model.modelName, {
+        accessControl: this.options.accessControl,
+        createPermissions: this.resourceActionPermissions(config, "create"),
+        deletePermissions: this.resourceActionPermissions(config, "delete"),
+        modelName: config.model.modelName,
+        permissions: {
+          create: config.permissions?.create !== false,
+          delete: config.permissions?.delete !== false,
+          update: config.permissions?.update !== false,
+        },
+        postCreate: routerOptions.postCreate,
+        postDelete: routerOptions.postDelete,
+        postUpdate: routerOptions.postUpdate,
+        preCreate: routerOptions.preCreate,
+        preUpdate: routerOptions.preUpdate,
+        stripMutationData: (data) => stripProtectedFromBody(data),
+        updatePermissions: this.resourceActionPermissions(config, "update"),
+      });
+
       const modelBase = express.Router();
       modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));
       modelBase.post(
@@ -1776,7 +1841,7 @@ export class AdminApp {
     }
 
     // Mount script routes
-    if (scriptConfigs.length > 0) {
+    if (scriptConfigs.length > 0 || this.options.migrations?.dir) {
       const scriptsRouter = express.Router();
       scriptsRouter.use(authenticateMiddleware());
 
@@ -1784,6 +1849,15 @@ export class AdminApp {
 
       app.use(`${basePath}/scripts`, scriptsRouter);
     }
+
+    mountAdminMigrationRoutes({
+      app,
+      basePath,
+      dir: this.options.migrations?.dir,
+      ...(openApiMw ? {openApi: openApiMw} : {}),
+      runPermissions: this.adminRunScriptsPermissions(),
+      statusPermissions: this.adminAccessPermissions(),
+    });
   }
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {

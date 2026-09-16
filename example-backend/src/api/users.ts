@@ -1,8 +1,20 @@
-import type {JSONValue} from "@terreno/api";
-import {modelRouter, Permissions} from "@terreno/api";
+import {
+  APIError,
+  type JSONValue,
+  modelRouter,
+  Permissions,
+  setPasswordForUser,
+  z,
+} from "@terreno/api";
 import type {Document, Model} from "mongoose";
 import {User} from "../models/user";
 import type {UserDocument} from "../types/models/userTypes";
+
+const setPasswordBodySchema = z
+  .object({
+    password: z.string().min(8),
+  })
+  .strict();
 
 type SerializableUser = UserDocument | (Document & UserDocument);
 
@@ -31,6 +43,31 @@ export const usersRouter = modelRouter("/users", User as unknown as Model<UserDo
     recordTitleField: "name",
     searchFields: ["email", "name"],
     sortableFields: ["email", "name", "admin", "created"],
+  },
+  instanceActions: {
+    password: {
+      body: setPasswordBodySchema,
+      handler: async ({body, doc, user}) => {
+        const password = (body as z.infer<typeof setPasswordBodySchema>).password;
+        if (!password.trim() || password.trim().length < 8) {
+          throw new APIError({status: 400, title: "Password must be at least 8 characters"});
+        }
+        const admin = user as {_id?: unknown; id?: string} | undefined;
+        await setPasswordForUser(doc, password, undefined, {adminId: admin?._id ?? admin?.id});
+        await doc.save();
+        return {_id: doc._id.toString(), message: "Password updated"};
+      },
+      method: "POST",
+      permissions: [Permissions.IsAdmin],
+      response: z
+        .object({
+          _id: z.string(),
+          message: z.string(),
+        })
+        .strict(),
+      summary: "Set a user's password as an admin",
+      tag: "admin-users",
+    },
   },
   mcp: {
     excludeFields: ["hash", "salt", "attempts", "last"],

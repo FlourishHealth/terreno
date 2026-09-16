@@ -1,8 +1,8 @@
 import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
-export const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
-export const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
+const LIFECYCLE_STAGES = ["grow", "pick", "roast", "brew", "taste"] as const;
+const RESULT_STATUSES = ["PASS", "FAIL", "BLOCKED", "PENDING"] as const;
 
 interface StageDefinition {
   directory: string;
@@ -17,6 +17,7 @@ interface ValidateLifecyclePluginOptions {
 interface ValidateStageContentOptions {
   content: string;
   definition: StageDefinition;
+  grillingContent?: string;
 }
 
 interface TextFile {
@@ -84,6 +85,13 @@ const PLUGIN_APP_SKILL_DIRECTORIES = [
 ] as const;
 
 const PLUGIN_AGENT_NAMES = ["pre-commit", "ui-verifier"] as const;
+
+const GRILLING_BRIEF_HEADINGS = [
+  "## Background",
+  "## The idea",
+  "## The plan",
+  "## Decisions",
+] as const;
 
 const REMOVED_SKILL_DIRECTORIES = [
   "add-app-clip",
@@ -155,6 +163,7 @@ const readMarkdownFiles = (directory: string): TextFile[] => {
 export const validateStageContent = ({
   content,
   definition,
+  grillingContent,
 }: ValidateStageContentOptions): string[] => {
   const errors: string[] = [];
   const prefix = definition.directory;
@@ -169,6 +178,10 @@ export const validateStageContent = ({
 
   if (!content.includes("../../references/lifecycle-contract.md")) {
     errors.push(`${prefix}: must load the shared lifecycle contract`);
+  }
+
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${prefix}: must load the PR deployments chat closer`);
   }
 
   if (!content.includes("../../references/documentation-contract.md")) {
@@ -199,6 +212,15 @@ export const validateStageContent = ({
     }
     if (!content.includes("Decisions table")) {
       errors.push(`${prefix}: Grow must list grilled decisions in a Decisions table`);
+    }
+    if (!content.includes("approval brief")) {
+      errors.push(`${prefix}: Grow must end with a standalone approval brief`);
+    }
+    if (!content.includes("question that prompted")) {
+      errors.push(`${prefix}: Grow decisions must carry the question that prompted them`);
+    }
+    if (grillingContent) {
+      errors.push(...validateGrillingProcedure(grillingContent));
     }
   }
 
@@ -257,6 +279,18 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Brew must load the GitHub attention contract`);
     }
+    if (!content.includes("[ticket] Short feature title")) {
+      errors.push(`${prefix}: Brew must set PR titles to [ticket] Short feature title`);
+    }
+    if (!content.includes("IP's original justification")) {
+      errors.push(`${prefix}: Brew must preserve the IP's original justification in the PR body`);
+    }
+    if (!content.includes("reproducible testing instructions")) {
+      errors.push(`${prefix}: Brew must always include reproducible testing instructions`);
+    }
+    if (!content.includes("without rewriting the body around the latest turn")) {
+      errors.push(`${prefix}: Brew must keep the PR overview stable across testing updates`);
+    }
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
@@ -314,21 +348,28 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before lint, typecheck, and push`);
+      errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(
-        `${prefix}: Taste must order before-push as pull, then lint and typecheck, then watch`
-      );
+      errors.push(`${prefix}: Taste must order before-push as pull, then local gate, then watch`);
     }
     if (!content.includes("fresh subagent")) {
-      errors.push(`${prefix}: Taste must spawn a fresh subagent for local lint and tests`);
+      errors.push(`${prefix}: Taste must spawn a fresh subagent for the local pre-push gate`);
     }
     if (!content.includes("no parent conversation")) {
-      errors.push(`${prefix}: Taste's lint/test subagent must have no parent conversation`);
+      errors.push(`${prefix}: Taste's pre-push subagent must have no parent conversation`);
     }
-    if (!content.includes("bun lint")) {
-      errors.push(`${prefix}: Taste must run bun lint in each affected package`);
+    if (!content.includes("package.json") || !content.includes("prepush")) {
+      errors.push(`${prefix}: Taste must run the root prepush package script when present`);
+    }
+    if (!content.includes("repository's package manager")) {
+      errors.push(`${prefix}: Taste must invoke prepush with the repository package manager`);
+    }
+    if (!content.includes("If no root `prepush` script exists")) {
+      errors.push(`${prefix}: Taste must retain affected-package fallback checks`);
+    }
+    if (!content.includes("lint script")) {
+      errors.push(`${prefix}: Taste fallback must run lint in each affected package`);
     }
     if (!content.includes("typecheck script")) {
       errors.push(`${prefix}: Taste must run a typecheck in each affected package`);
@@ -350,6 +391,37 @@ export const validateStageContent = ({
         errors.push(`${prefix}: contains an unbounded waiting/loop pattern: ${pattern.source}`);
       }
     }
+  }
+
+  return errors;
+};
+
+const validateGrillingProcedure = (content: string): string[] => {
+  const errors: string[] = [];
+
+  if (!content.includes("## Approval brief")) {
+    errors.push("grilling: Grow's approval output must be a standalone approval brief");
+    return errors;
+  }
+
+  for (const heading of GRILLING_BRIEF_HEADINGS) {
+    if (!content.includes(heading)) {
+      errors.push(`grilling: approval brief must include ${heading}`);
+    }
+  }
+
+  const planIndex = content.indexOf("## The plan");
+  const decisionsIndex = content.indexOf("## Decisions");
+  if (planIndex >= 0 && decisionsIndex >= 0 && planIndex > decisionsIndex) {
+    errors.push("grilling: the idea and the plan must come before the Decisions table");
+  }
+
+  if (!content.includes("| ID | Question asked | Answer |")) {
+    errors.push("grilling: the Decisions table must record the question that prompted each choice");
+  }
+
+  if (!content.includes("no row limit")) {
+    errors.push("grilling: the Decisions table must stay unbounded");
   }
 
   return errors;
@@ -391,8 +463,35 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   if (!content.includes("Default to silence")) {
     errors.push("GitHub attention contract must default PR comments to silence");
   }
+  if (!content.includes("preview/demo URLs")) {
+    errors.push("GitHub attention contract must keep preview URLs out of PR comments");
+  }
   if (!content.includes("<details>")) {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
+  }
+  if (!content.includes("[FH-1632]")) {
+    errors.push("GitHub attention contract must show Linear ticket title format [FH-1632]");
+  }
+  if (!content.includes("[#412]")) {
+    errors.push("GitHub attention contract must show GitHub issue title format [#412]");
+  }
+  if (!content.includes("IP Approved")) {
+    errors.push("GitHub attention contract must forbid lifecycle labels such as IP Approved");
+  }
+  if (!content.includes("feat:")) {
+    errors.push("GitHub attention contract must forbid conventional-commit prefixes such as feat:");
+  }
+  if (!content.includes("IP's initial justification")) {
+    errors.push("GitHub attention contract must preserve the IP's initial justification");
+  }
+  if (!content.includes("overview of the approved IP")) {
+    errors.push("GitHub attention contract must include an overview of the approved IP");
+  }
+  if (!content.includes("Always include executable testing instructions")) {
+    errors.push("GitHub attention contract must always include executable testing instructions");
+  }
+  if (!content.includes("Do not regenerate the rest of the body from the latest turn")) {
+    errors.push("GitHub attention contract must keep the PR body stable across turns");
   }
 
   return errors;
@@ -452,6 +551,26 @@ export const validateAsyncReviewBotsContract = (content: string): string[] => {
   return errors;
 };
 
+export const validatePrDeploymentsContract = (content: string): string[] => {
+  const errors: string[] = [];
+  for (const phrase of [
+    "last visible section",
+    "environmentUrl",
+    "Do not wait for",
+    "Do not post the links as a PR comment",
+    'Do not write "no deployments."',
+    "## Demo",
+  ]) {
+    if (!content.includes(phrase)) {
+      errors.push(`PR deployments contract is missing required phrase: ${phrase}`);
+    }
+  }
+  if (!content.includes("gh api graphql") && !content.includes('gh api "')) {
+    errors.push("PR deployments contract must show how to list GitHub Deployments");
+  }
+  return errors;
+};
+
 export const validateOuterLoopContent = ({
   content,
   directory,
@@ -462,6 +581,9 @@ export const validateOuterLoopContent = ({
   const errors: string[] = [];
   if (content.includes("disable-model-invocation: true")) {
     errors.push(`${directory}: outer-loop skills must allow model invocation`);
+  }
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${directory}: outer loop must load the PR deployments chat closer`);
   }
   if (directory === "terreno-pick-roast-loop") {
     for (const marker of [
@@ -773,10 +895,21 @@ export const validateLifecyclePlugin = ({
     errors.push(...validateOuterLoopContent({content, directory}));
   }
 
+  const grilling = readFileSync(
+    join(skillsDirectory, "terreno-1-grow/references/grilling.md"),
+    "utf8"
+  );
+
   for (const definition of STAGE_DEFINITIONS) {
     const skillPath = join(skillsDirectory, definition.directory, "SKILL.md");
     const content = readFileSync(skillPath, "utf8");
-    errors.push(...validateStageContent({content, definition}));
+    errors.push(
+      ...validateStageContent({
+        content,
+        definition,
+        grillingContent: definition.stage === "grow" ? grilling : undefined,
+      })
+    );
     if (content.includes("Cupping")) {
       errors.push(`${definition.directory}: Cupping terminology must be migrated to Roast`);
     }
@@ -810,6 +943,9 @@ export const validateLifecyclePlugin = ({
     "utf8"
   );
   errors.push(...validateAsyncReviewBotsContract(asyncReviewBots));
+
+  const prDeployments = readFileSync(join(pluginDirectory, "references/pr-deployments.md"), "utf8");
+  errors.push(...validatePrDeploymentsContract(prDeployments));
 
   const pluginReadme = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   if (!pluginReadme.includes("documentation-contract.md")) {
@@ -927,6 +1063,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!lifecycleContract.includes("pick-roast-loop.md")) {
     errors.push("lifecycle contract must name the pick-roast inner loop");
+  }
+  if (!lifecycleContract.includes("last visible section")) {
+    errors.push("lifecycle contract must close wait/done chats with PR demo URLs");
   }
 
   const loopEngineering = readFileSync(

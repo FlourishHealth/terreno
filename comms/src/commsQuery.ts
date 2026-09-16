@@ -77,6 +77,7 @@ const parseIsoDate = (value: string, field: "startDate" | "endDate"): DateTime =
   return parsed;
 };
 
+/** @internal */
 export const defaultStatsRange = (): {endDate: DateTime; startDate: DateTime} => {
   const endDate = DateTime.utc();
   return {endDate, startDate: endDate.minus({days: DEFAULT_STATS_DAYS})};

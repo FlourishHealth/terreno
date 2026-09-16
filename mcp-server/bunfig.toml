@@ -1,5 +1,6 @@
 [test]
-preload = "./src/__tests__/preload.ts"
+# Array form: Knip's Bun plugin calls `preload.map` and crashes on a scalar string.
+preload = ["./src/__tests__/preload.ts"]
 # `databaseQuery` is mostly exercised against a real MongoDB; tests cover validation
 # paths while the driver-heavy tail is excluded so the 95% gate stays meaningful.
 coveragePathIgnorePatterns = ["**/__tests__/**", "**/dist/**", "**/local/tools/databaseQuery.ts"]

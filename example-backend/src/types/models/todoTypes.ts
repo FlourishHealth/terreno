@@ -3,9 +3,9 @@ import type mongoose from "mongoose";
 
 // Todo Model Types
 // biome-ignore lint/complexity/noBannedTypes: No methods.
-export type TodoMethods = {};
+type TodoMethods = {};
 
-export interface TodoStatics
+interface TodoStatics
   extends FindExactlyOnePlugin<TodoDocument>,
     FindOneOrNonePlugin<TodoDocument> {}
 

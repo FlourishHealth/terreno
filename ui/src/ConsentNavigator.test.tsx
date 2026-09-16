@@ -370,4 +370,59 @@ describe("ConsentNavigator", () => {
     });
     expect(submitMutation).toHaveBeenCalled();
   });
+
+  it("invokes onError when consent submission fails on decline", async () => {
+    const {act, fireEvent} = await import("@testing-library/react-native");
+    const form = makeForm({allowDecline: true, required: false});
+    const onError = mock(() => {});
+    const declineError = new Error("decline failed");
+    const unwrap = mock(() => Promise.reject(declineError));
+    const submitMutation = mock(() => ({unwrap}));
+    const refetch = mock(() => Promise.resolve());
+    const api = {
+      enhanceEndpoints: mock(() => ({
+        injectEndpoints: mock(() => ({
+          useGetPendingConsentsQuery: mock(() => ({
+            data: {data: [form]},
+            error: undefined,
+            isLoading: false,
+            refetch,
+          })),
+          useSubmitConsentResponseMutation: mock(() => [
+            submitMutation,
+            {error: undefined, isLoading: false},
+          ]),
+        })),
+      })),
+    };
+
+    const {getByTestId} = renderWithTheme(
+      <ConsentNavigator api={api} onError={onError}>
+        <Text>App Content</Text>
+      </ConsentNavigator>
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("consent-form-decline-button"));
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onError).toHaveBeenCalledWith(declineError);
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it("renders non-element extra screens as-is without injecting onNext", async () => {
+    const api = createMockApi([]);
+
+    const {queryByText, toJSON} = renderWithTheme(
+      <ConsentNavigator api={api} extraScreens={[null]}>
+        <Text>App Content</Text>
+      </ConsentNavigator>
+    );
+
+    expect(toJSON()).toBeNull();
+    expect(queryByText("App Content")).toBeNull();
+  });
 });

@@ -9,7 +9,8 @@ Turn a request, ticket, or specification into approved artifacts a fresh Pick ag
 execute without conversation history.
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
-[`documentation contract`](references/documentation-contract.md), and
+[`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md), and
 [`grilling procedure`](references/grilling.md) before acting. Follow grilling for every
 human decision until the answer is executable.
 
@@ -48,7 +49,8 @@ human decision until the answer is executable.
    of selectable options with a recommended default, using the harness's structured
    question tool when it has one. Get to the bottom of each reply: vague,
    partial, or conflicting answers stay on the frontier. Wait for explicit
-   shared-understanding confirmation before writing.
+   shared-understanding confirmation before writing. Every wait-for-human or done
+   message closes with PR deployment URLs when a PR has them.
 6. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.
    Define scope, non-scope, architecture decisions, risks, human gates, rollout, and
    dependencies.
@@ -59,9 +61,12 @@ human decision until the answer is executable.
    names files/seams, acceptance criteria, blockers, verification, docs to create or
    update, and relevant supporting skills when discoverable. Docs updates follow the
    documentation contract and are not deferred.
-9. **Approve.** Show the 15-line approval index from grilling, then the unbounded
-   Decisions table when grilling produced any settled human decisions. Skip that table
-   when there were none. Set the repository's approved status only after human
+9. **Approve.** Post the standalone approval brief from grilling: an orientation
+   paragraph on where the repository is and where this change takes it, optional
+   background on current state, the idea, the plan, then the unbounded Decisions table
+   pairing each settled human decision with the question that prompted it. Skip that
+   table when grilling settled none. The brief must be readable without the IP, the
+   ticket, or the grilling history. Set the repository's approved status only after human
    confirmation. Update execution state and emit the stage result collapsed per the
    lifecycle contract.
 
@@ -74,8 +79,9 @@ none is universally required.
 ## Evidence produced
 
 - Approved IP path and task-file path
+- Standalone approval brief: orientation paragraph, background when needed, idea, plan
 - Research findings and recorded assumptions (not chain-of-thought)
-- Decision log/human gates, listed in full when any exist
+- Decision log/human gates, listed in full with their prompting questions when any exist
 - Acceptance-criterion → verification mapping
 - Selected supporting skills
 - Docs files named on each task
@@ -86,6 +92,7 @@ none is universally required.
 - IP/task artifacts are approved, implementation-ready, dependency-aware, and testable.
 - A fresh Pick invocation can identify the next unblocked task, applicable criteria,
   decisions, supporting skills, and risks from durable artifacts.
+- A reviewer with no prior context can approve or push back from the brief alone.
 - Emit `PASS` with `next: pick`.
 
 ## Failure conditions

@@ -397,6 +397,8 @@ export interface ModelRouterOptions<T> {
   /**
    * Enable local-first sync (@terreno/syncdb) for this model. Documents are scoped
    * into streams (owner/tenant/broadcast/custom) with monotonic per-stream cursors.
+   * Set `sync.adminBroadcast: true` to also emit `sync:delta` to `{collection}|admin`
+   * (default false; stored on the collection catalog at registration).
    *
    * Requires the schema to use `isDeletedPlugin` (soft delete tombstones) and
    * `syncPlugin` (per-stream `_syncSeq` stamping) — validated at registration.
@@ -857,6 +859,11 @@ const _buildModelRouter = <T>(
           return res.json({data: []});
         }
         query = {...query, ...queryFilter};
+        for (const [key, value] of Object.entries(queryFilter)) {
+          if (value === undefined) {
+            delete query[key];
+          }
+        }
       }
 
       let limit = options.defaultLimit ?? 100;

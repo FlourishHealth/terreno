@@ -148,6 +148,7 @@ const emptyByType = (): Record<SyncDebugEventType, number> => ({
 /**
  * Create an in-memory debug log backed by a circular buffer.
  */
+/** @internal */
 export const createSyncDebugLog = (options: SyncDebugLogOptions = {}): SyncDebugLog => {
   const capacity = Math.max(1, options.capacity ?? DEFAULT_CAPACITY);
   const clock = options.clock ?? ((): string => DateTime.now().toISO() ?? new Date().toISOString());

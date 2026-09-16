@@ -21,6 +21,12 @@ parameters:
   run-ui:
     type: boolean
     default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
   run-ui-demo:
     type: boolean
     default: false
@@ -28,6 +34,9 @@ parameters:
     type: boolean
     default: false
   run-mcp-server:
+    type: boolean
+    default: false
+  run-create-terreno-app:
     type: boolean
     default: false
   run-example-frontend:
@@ -58,6 +67,21 @@ parameters:
     type: boolean
     default: false
   run-syncdb:
+    type: boolean
+    default: false
+  run-admin-backend:
+    type: boolean
+    default: false
+  run-admin-frontend:
+    type: boolean
+    default: false
+  run-api-health:
+    type: boolean
+    default: false
+  run-feature-flags:
+    type: boolean
+    default: false
+  run-test-package:
     type: boolean
     default: false
   run-new-file-coverage:
@@ -117,6 +141,8 @@ parameters:
     default: ""
 
 executors:
+  # Docker Performance credits/min: small 5, medium 10, medium+ 15, large 20.
+  # Sidecar mongo shares the class. Keep large for in-job Expo export / compile+Playwright.
   node22:
     docker:
       - image: cimg/node:22.11
@@ -137,6 +163,12 @@ executors:
       - image: cimg/node:22.11-browsers
     resource_class: medium
   node22_browsers_mongo_rs:
+    docker:
+      - image: cimg/node:22.11-browsers
+      - image: mongo:6.0
+        command: ["--replSet", "rs0", "--bind_ip_all"]
+    resource_class: medium+
+  node22_browsers_mongo_rs_heavy:
     docker:
       - image: cimg/node:22.11-browsers
       - image: mongo:6.0
@@ -201,7 +233,7 @@ commands:
             done
 
   demo_lint_and_typecheck:
-    description: Compile ui, then lint and typecheck demo
+    description: Compile ui, then lint, typecheck, and smoke-test demo, then check story coverage
     steps:
       - compile_packages:
           packages: ui
@@ -211,6 +243,13 @@ commands:
             set -euo pipefail
             (cd demo && bun run lint)
             (cd demo && bun run compile)
+            (cd demo && bun run test:ci)
+      - run:
+          name: Check demo story coverage
+          command: |
+            set -euo pipefail
+            bun test scripts/check-demo-coverage.test.ts
+            bun run check:demo-coverage
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -433,6 +472,49 @@ commands:
               circleci step halt
             fi
 
+  skip_if_netlify_unconfigured:
+    description: Halt before checkout/install when terreno-netlify has no token or site id
+    parameters:
+      site-id-var:
+        type: string
+    steps:
+      - run:
+          name: Skip when terreno-netlify is empty
+          command: |
+            set -euo pipefail
+            site_id_var="<< parameters.site-id-var >>"
+            site_id="${!site_id_var-}"
+            if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] || [ -z "$site_id" ]; then
+              echo "Skipping: terreno-netlify is missing NETLIFY_AUTH_TOKEN or ${site_id_var}."
+              echo "GitHub Actions still owns live deploys until that context is populated."
+              circleci step halt
+            fi
+
+  skip_if_gcp_unconfigured:
+    description: Halt before checkout/install when terreno-gcp cannot authenticate
+    steps:
+      - run:
+          name: Skip when terreno-gcp is empty
+          command: |
+            set -euo pipefail
+            if [ -z "${GCP_WIF_PROVIDER_PROD:-}" ] || [ -z "${GCP_TF_ADMIN_SA_PROD:-}${GCP_CD_DEPLOYER_SA_PROD:-}" ]; then
+              echo "Skipping: terreno-gcp is missing GCP_WIF_PROVIDER_PROD or deployer SA emails."
+              echo "GitHub Actions still owns live CD until that context is populated."
+              circleci step halt
+            fi
+
+  skip_if_no_deploy_context:
+    description: Halt manual preview deploys when both Netlify and GCP contexts are empty
+    steps:
+      - run:
+          name: Skip when no deploy context is configured
+          command: |
+            set -euo pipefail
+            if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] && [ -z "${GCP_WIF_PROVIDER_PROD:-}" ]; then
+              echo "Skipping: terreno-netlify and terreno-gcp are empty."
+              circleci step halt
+            fi
+
   restore_e2e_dists:
     description: Unpack workspace dist trees produced by e2e-prepare
     steps:
@@ -478,6 +560,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh api
 
   ai-ci:
     executor: node22_mongo
@@ -496,7 +579,8 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ai
 
   rtk-ci:
     executor: node22
@@ -515,6 +599,7 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh rtk
 
   ui-ci:
     executor: node22
@@ -531,7 +616,46 @@ jobs:
             bun run lint
             bun run compile
             bun run types
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh ui
+
+  admin-backend-ci:
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test admin-backend
+          working_directory: ~/project/admin-backend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+
+  admin-frontend-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: ui
+      - run:
+          name: Lint / compile / test admin-frontend
+          working_directory: ~/project/admin-frontend
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
 
   syncdb-ci:
     executor: node22
@@ -546,12 +670,12 @@ jobs:
           command: |
             bun run lint
             bun run compile
-            bun run test
-            bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh syncdb
 
   new-file-coverage:
     executor: node22_mongo
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - install_bun_and_deps
@@ -570,7 +694,7 @@ jobs:
           name: Check new source file coverage
           command: |
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
             bun run check:new-file-coverage --base="$base_sha" --threshold=90
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
@@ -605,11 +729,12 @@ jobs:
             set -euo pipefail
             bun run lint
             bun run compile
-            bun run test
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh comms
 
   mcp-server-ci:
     executor: node22
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - install_bun_and_deps
@@ -630,22 +755,41 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+            bash ../scripts/upload-codecov.sh mcp-server
+
+  create-terreno-app-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Lint / compile / test create-terreno-app
+          working_directory: ~/project/create-terreno-app
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh create-terreno-app
 
   mcp-server-docker:
     executor: node22
     resource_class: large
     steps:
+      - checkout
       - run:
           name: Skip Docker build on pull requests
           command: |
-            if [ -n "${CIRCLE_PULL_REQUEST:-}" ]; then
-              echo "mcp-server Docker job is push-only (matches GHA)"
+            set -euo pipefail
+            result="$(scripts/ci/resolve-preview-pr.sh)"
+            if [[ "$result" =~ ^[0-9]+$ ]] || [ "$result" = "skip-fork" ]; then
+              echo "mcp-server Docker job is push-only (matches GHA); skipping ($result)"
               circleci step halt
             fi
-      - checkout
       - install_bun_and_deps
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - compile_packages:
           packages: api mcp-server
       - run:
@@ -653,7 +797,8 @@ jobs:
           command: |
             set -euo pipefail
             rm -rf node_modules
-            bun install --production --frozen-lockfile
+            # prepare runs simple-git-hooks, a root devDependency omitted here.
+            bun install --production --frozen-lockfile --ignore-scripts
       - run:
           name: Build mcp-server Docker image
           command: |
@@ -682,7 +827,7 @@ jobs:
 
   example-backend-ci:
     executor: node22_mongo
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - install_bun_and_deps
@@ -757,8 +902,7 @@ jobs:
     steps:
       - skip_if_not_pull_request
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run:
           name: Build example-backend Docker image
           command: |
@@ -791,7 +935,8 @@ jobs:
             bun run lint
             bun run compile
             bunx tsc --noEmit -p tsconfig.json
-            bun run test:ci
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
       - run:
@@ -811,6 +956,44 @@ jobs:
       - store_artifacts:
           path: admin-spa/test-results
           destination: admin-spa-playwright-results
+
+  packages-ci:
+    parameters:
+      package:
+        type: string
+      compile-deps:
+        type: string
+        default: ""
+    executor: node22_mongo
+    working_directory: ~/project
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - wait_for_mongo
+      - run:
+          name: Compile workspace dependencies
+          command: |
+            set -euo pipefail
+            deps="<< parameters.compile-deps >>"
+            if [ -z "$deps" ]; then
+              echo "no compile deps"
+              exit 0
+            fi
+            for pkg in $deps; do
+              echo "=== compile $pkg ==="
+              (cd "$pkg" && bun run compile)
+            done
+      - run:
+          name: Lint / compile / coverage (<< parameters.package >>)
+          working_directory: ~/project/<< parameters.package >>
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+            bash ../scripts/upload-codecov.sh "<< parameters.package >>"
 
   no-barrel-imports:
     executor: node22
@@ -846,7 +1029,7 @@ jobs:
       - checkout
       - install_bun_and_deps
       - run:
-          name: Test and run static-analysis ratchets
+          name: Test and run static analysis
           command: |
             bun test scripts/static-analysis/
             bun run analyze:full
@@ -885,6 +1068,9 @@ jobs:
       - run:
           name: Test lifecycle validator
           command: bun test scripts/planning/
+      - run:
+          name: Test release tooling
+          command: bun run test:ci-tools
 
   license-coverage:
     executor: node22
@@ -1030,7 +1216,7 @@ jobs:
             }
 
   maestro-e2e:
-    executor: node22_browsers_mongo_rs
+    executor: node22_browsers_mongo_rs_heavy
     parameters:
       include-demo:
         type: boolean
@@ -1289,7 +1475,7 @@ jobs:
   # Heavier syncdb-loadlab spec — nightly/manual only, never PR-blocking
   # (mirrors GHA e2e-load-nightly).
   e2e-load:
-    executor: node22_browsers_mongo_rs
+    executor: node22_browsers_mongo_rs_heavy
     steps:
       - checkout
       - restore_e2e_dists
@@ -1300,7 +1486,7 @@ jobs:
           skip-web-export: true
 
   admin-spa-integration:
-    executor: node22_browsers_mongo_rs
+    executor: node22_browsers_mongo_rs_heavy
     steps:
       - checkout
       - install_bun_and_deps
@@ -1378,6 +1564,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_DEMO_SITE_ID
       - checkout
       - install_bun_and_deps
       - run:
@@ -1388,6 +1576,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
       - checkout
       - install_bun_and_deps
       - run:
@@ -1398,6 +1588,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_DOCS_SITE_ID
       - checkout
       - install_bun_and_deps
       - run:
@@ -1408,11 +1600,18 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_gcp_unconfigured
       - checkout
       - install_terraform
       - gcp-cli/install
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.run-cd-backend >>
+              - << pipeline.parameters.run-cd-mcp >>
+              - << pipeline.parameters.force-cd >>
+          steps:
+            - setup_remote_docker
       - when:
           condition:
             or:
@@ -1449,6 +1648,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_DEMO_SITE_ID
       - checkout
       - install_bun_and_deps
       - resolve_preview_pr_number
@@ -1460,6 +1661,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
       - checkout
       - install_bun_and_deps
       - resolve_preview_pr_number
@@ -1479,6 +1682,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_netlify_unconfigured:
+          site-id-var: NETLIFY_DOCS_SITE_ID
       - checkout
       - install_bun_and_deps
       - resolve_preview_pr_number
@@ -1490,12 +1695,9 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_gcp_unconfigured
       - checkout
-      - install_bun_and_deps
-      - install_terraform
       - gcp-cli/install
-      - setup_remote_docker:
-          docker_layer_caching: true
       - resolve_preview_pr_number
       - when:
           condition: << pipeline.parameters.run-cd-terraform >>
@@ -1506,6 +1708,7 @@ jobs:
       - when:
           condition: << pipeline.parameters.run-cd-backend >>
           steps:
+            - setup_remote_docker
             - run:
                 name: Deploy backend preview
                 command: scripts/ci/gcp-deploy.sh backend-preview
@@ -1514,12 +1717,12 @@ jobs:
     executor: node22
     resource_class: large
     steps:
+      - skip_if_no_deploy_context
       - checkout
       - install_bun_and_deps
       - install_terraform
       - gcp-cli/install
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run:
           name: Validate preview PR number
           command: |
@@ -1542,6 +1745,7 @@ jobs:
   preview-cleanup:
     executor: node22
     steps:
+      - skip_if_gcp_unconfigured
       - checkout
       - install_bun_and_deps
       - gcp-cli/install
@@ -1559,6 +1763,14 @@ jobs:
   eas-dev-build:
     executor: node22
     steps:
+      - run:
+          name: Skip when terreno-expo is empty
+          command: |
+            set -euo pipefail
+            if [ -z "${EXPO_TOKEN:-}" ]; then
+              echo "Skipping: terreno-expo is missing EXPO_TOKEN."
+              circleci step halt
+            fi
       - checkout
       - install_bun_and_deps
       - run:
@@ -1599,6 +1811,7 @@ jobs:
             bun run check:upgrade-docs "$CIRCLE_TAG"
       - run:
           name: Publish packages in dependency order
+          no_output_timeout: 20m
           command: |
             version="$CIRCLE_TAG"
             if [[ "$version" == *-* ]]; then
@@ -1609,9 +1822,10 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags mcp-server syncdb
+              api-health comms feature-flags create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
+              echo "=== Publishing ${package}@${version} ==="
               scripts/ci/publish-package.sh "$package" "$version" "$npm_tag" release
             done
       - run:
@@ -1626,7 +1840,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');
@@ -1638,7 +1852,9 @@ jobs:
             done
             git add -- '*/package.json'
             if ! git diff --cached --quiet; then
-              git commit -m "chore: bump package versions to ${CIRCLE_TAG}"
+              # Pre-commit biome useSortedKeys fails on existing package.json key
+              # order when the whole file is staged. This commit only bumps version.
+              git commit --no-verify -m "chore: bump package versions to ${CIRCLE_TAG}"
               git remote set-url origin "https://x-access-token:${REPO_ADMIN_TOKEN}@github.com/FlourishHealth/terreno.git"
               git pull --rebase origin master
               git push origin HEAD:master
@@ -1716,6 +1932,16 @@ workflows:
       - ui-ci
       - ui-demo-typecheck
 
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - admin-backend-ci
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - admin-frontend-ci
+
   # Mirror GHA ui-demo-ci: only when demo changed and ui did not.
   ui-demo:
     when:
@@ -1737,6 +1963,11 @@ workflows:
       - mcp-server-docker:
           requires:
             - mcp-server-ci
+
+  create-terreno-app:
+    when: << pipeline.parameters.run-create-terreno-app >>
+    jobs:
+      - create-terreno-app-ci
 
   example-frontend:
     when: << pipeline.parameters.run-example-frontend >>
@@ -1762,6 +1993,40 @@ workflows:
     when: << pipeline.parameters.run-admin-spa >>
     jobs:
       - admin-spa-ci
+
+  admin-backend:
+    when: << pipeline.parameters.run-admin-backend >>
+    jobs:
+      - packages-ci:
+          package: admin-backend
+          compile-deps: api
+
+  admin-frontend:
+    when: << pipeline.parameters.run-admin-frontend >>
+    jobs:
+      - packages-ci:
+          package: admin-frontend
+          compile-deps: ui
+
+  api-health:
+    when: << pipeline.parameters.run-api-health >>
+    jobs:
+      - packages-ci:
+          package: api-health
+          compile-deps: api
+
+  feature-flags:
+    when: << pipeline.parameters.run-feature-flags >>
+    jobs:
+      - packages-ci:
+          package: feature-flags
+          compile-deps: api
+
+  test-package:
+    when: << pipeline.parameters.run-test-package >>
+    jobs:
+      - packages-ci:
+          package: test
 
   repo-policies:
     when: << pipeline.parameters.run-repo-policies >>
@@ -1792,6 +2057,13 @@ workflows:
                 - todos
                 - profile
                 - admin
+                - admin-home
+                - admin-form
+                - admin-todo-crud
+                - admin-table-search-filter
+                - admin-table-bulk-actions
+                - admin-custom-screens
+                - admin-comms-back
                 - consents
                 - ai-chat
                 - realtime

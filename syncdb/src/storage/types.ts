@@ -66,14 +66,6 @@ export interface EntityRow {
   stream: string;
 }
 
-/** Primitive row shape for the `_knownStreams` table; rowId = stream key. */
-export interface KnownStreamRow {
-  /** The collection tag the stream belongs to. */
-  collection: string;
-  /** When the stream was first bootstrapped. */
-  addedAt: string;
-}
-
 /** Primitive row shape for the `_outbox` table; rowId = mutationId. */
 export interface OutboxRow {
   /** JSON-encoded mutation args. */
@@ -98,6 +90,7 @@ export interface OutboxRow {
   operation: SyncMutationOperation;
   status: OutboxStatus;
   userId: string;
+  mutationMode?: "adminWindow";
 }
 
 /** Primitive row shape for the `_cursors` table; rowId = stream key. */

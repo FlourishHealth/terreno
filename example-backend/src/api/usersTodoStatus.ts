@@ -4,13 +4,13 @@ import {z} from "zod";
 import {Todo} from "../models/todo";
 import {User as UserModel} from "../models/user";
 
-export interface UserTodoItem {
+interface UserTodoItem {
   completed: boolean;
   id: string;
   title: string;
 }
 
-export interface UserTodoStatus {
+interface UserTodoStatus {
   email: string;
   id: string;
   name: string;
