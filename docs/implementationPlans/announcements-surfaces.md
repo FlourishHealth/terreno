@@ -1,6 +1,6 @@
 # Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** In progress — Phase 4 implementation complete; pending verification
+**Status:** Implementation complete — Phase 4 verified; Taste in progress
 **Parent IP:** [announcements](announcements.md)  
 **Branch:** `cursor/announcements-grow-bf9c`  
 **Owner:** Terreno  
@@ -225,7 +225,7 @@ Executable checklist: **`docs/tasks/announcements-surfaces.md`**.
 - [x] Navigator: modal blocks; banner does not; frequency caps skip extra interrupts this session / cooldown / first launch.
 - [x] Primary action records `AnnouncementClickEvent` via `POST /announcements/:id/click`.
 - [x] Admin editor exposes display mode, audience type, policy, min build without requiring raw JSON for those fields.
-- [ ] Admin overview shows launch guidance, aggregate totals, and per-announcement impressions, acknowledgements, and CTA clicks.
-- [ ] Announcement admin routes share one Announcements sidebar group; the editor uses a platform multiselect.
-- [ ] Example staff launch content renders markdown with a YouTube embed, feature screenshots, and tracked CTA.
+- [x] Admin overview shows launch guidance, aggregate totals, and per-announcement impressions, acknowledgements, and CTA clicks.
+- [x] Announcement admin routes share one Announcements sidebar group; the editor uses a platform multiselect.
+- [x] Example staff launch content renders markdown with a YouTube embed, feature screenshots, and tracked CTA.
 - [x] Reference + how-to match shipped behavior in the same slice. New files ≥90% coverage. `bun run announcements:test`, `ui` announcement tests, `admin-frontend` editor tests, `bun run lint`, `bun run compile`, `bun run analyze:full` pass.

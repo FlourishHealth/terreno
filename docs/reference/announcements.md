@@ -103,7 +103,7 @@ Optional integer build number on `GET /pending`, `GET /feed`, and help routes. W
 Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
 
 - `GET /announcements/config` — returns `{ data: { defaultAcknowledgementPolicy } }` from the plugin constructor (admin only; defaults to `"dismiss-only"` when omitted). Used to pre-fill the admin editor acknowledgement policy field.
-- `GET /announcements/overview` — paginated admin dashboard with per-announcement metrics and aggregate totals (admin only). Query: `page` (default `1`), `limit` (default `20`, max `100`).
+- `GET /announcements/overview` — paginated admin dashboard with per-announcement metrics and aggregate totals. Access uses `adminOverviewPermissions` (defaults to `IsAdmin`). Query: `page` (default `1`), `limit` (default `20`, max `100`).
 - `POST /announcements/:id/publish` — draft → published
 - `POST /announcements/:id/archive` — published → archived
 
@@ -125,7 +125,7 @@ Admin-only list for launch dashboards. Includes **all** lifecycle statuses (`dra
 - Per-row metrics count **all event versions** for that announcement (aggregation grouped by `announcementId`, not N+1 queries).
 - `totals` — `announcements`, `published`, `draft`, `archived`, plus global `impressions`, `acknowledgements`, and `clicks` across non-deleted event rows.
 
-**Auth:** `401` unauthenticated, `403` non-admin.
+**Auth:** `401` unauthenticated; `403` when `adminOverviewPermissions` denies access.
 
 Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressions`, `/announcement-click-events`.
 

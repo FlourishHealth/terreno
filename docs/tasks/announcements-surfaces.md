@@ -1,6 +1,6 @@
 # Task List: Announcement Surfaces, Targeting, and Click Tracking
 
-**Status:** In progress — Phase 4 admin launch (overview API done; UI/nav pending)
+**Status:** Complete — Phase 4 verified; Taste in progress
 **IP:** `docs/implementationPlans/announcements-surfaces.md`  
 **Parent IP:** `docs/implementationPlans/announcements.md`  
 **Created:** 2026-09-15  
