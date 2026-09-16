@@ -110,7 +110,10 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 ## Coverage gates
 
 Package CI uses `scripts/check-coverage.ts` (`bun run test:coverage`, default 95%
-functions and lines) as the live gate. Dedicated CircleCI jobs (`api-ci`, `ai-ci`,
+functions and lines) as the live gate. Bun 1.4.2+ may exit 1 on bunfig
+`coverageThreshold` before isolated LCOV merges; the script continues when tests
+reported `0 fail` and then enforces 95% on the merged report. Dedicated CircleCI
+jobs (`api-ci`, `ai-ci`,
 `rtk-ci`, `ui-ci`, `syncdb-ci`, `comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run
 that script. Published packages without a dedicated workflow
 (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `@terreno/test`)
