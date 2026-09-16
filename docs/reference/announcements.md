@@ -21,6 +21,7 @@ new TerrenoApp({ userModel: User })
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `adminOverviewPermissions` | `PermissionMethod[]` | `IsAdmin` | Access methods for `GET /announcements/overview`; pass the consumer RBAC `adminAnnouncement:read` permission when the admin shell uses RBAC-only users |
 | `basePath` | `string` | `"/announcements"` | Mount path for user and admin routes |
 | `defaultAcknowledgementPolicy` | `"required" \| "dismiss-only"` | `"dismiss-only"` | Fills omitted per-announcement `acknowledgementPolicy` at read time and pre-fills the admin editor |
 | `help.enabled` | `boolean` | `false` | Registers help search/detail routes for MCP and in-app help |

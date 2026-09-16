@@ -17,10 +17,9 @@ import {Announcement} from "../models/announcement";
 import {AnnouncementAcknowledgement} from "../models/announcementAcknowledgement";
 import {AnnouncementClickEvent} from "../models/announcementClickEvent";
 import {AnnouncementImpression} from "../models/announcementImpression";
+import type {AnnouncementsOptions} from "../types";
 
-const buildApp = (options?: {
-  defaultAcknowledgementPolicy?: "required" | "dismiss-only";
-}): express.Application => {
+const buildApp = (options?: AnnouncementsOptions): express.Application => {
   const app = getBaseServer();
   setupAuth(app, UserModel as unknown as UserModelType);
   addAuthRoutes(app, UserModel as unknown as UserModelType);
@@ -335,6 +334,15 @@ describe("GET /announcements/overview", () => {
   it("returns 403 for non-admin users", async () => {
     const res = await userAgent.get("/announcements/overview").expect(403);
     assert.strictEqual(res.body.title, "Admin access required");
+  });
+
+  it("allows consumers to use an RBAC permission method instead of legacy admin flag", async () => {
+    const rbacApp = buildApp({
+      adminOverviewPermissions: [(): boolean => true],
+    });
+    const rbacUser = await authAsUser(rbacApp, "notAdmin");
+
+    await rbacUser.get("/announcements/overview").expect(200);
   });
 
   it("returns 401 for unauthenticated requests", async () => {

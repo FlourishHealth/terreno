@@ -28,6 +28,14 @@ new AnnouncementsApp({
 
 Use admin `audienceType` for staff vs patient vs all. Reserve the `audience` JSON field for custom segments (orgs, tiers, feature cohorts) in `matchAudience`. Do **not** call `matchAudienceByType` in your app — the plugin composes it before your callback.
 
+When the admin shell uses Terreno RBAC without the legacy `user.admin` flag, pass the same read permission to the overview:
+
+```typescript
+new AnnouncementsApp({
+  adminOverviewPermissions: [access.permission({adminAnnouncement: ["read"]})],
+});
+```
+
 For Flourish-style surfaces on one collection:
 
 | Audience | Typical `displayMode` | `acknowledgementPolicy` |

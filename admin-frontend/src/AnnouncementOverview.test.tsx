@@ -16,26 +16,32 @@ interface OverviewState {
 
 const overviewState: OverviewState = {data: undefined, error: null, isLoading: false};
 const querySpecs: unknown[] = [];
+const queryDefinitions: Array<Record<string, unknown>> = [];
 
-const makeApi = () => ({
-  injectEndpoints: ({endpoints}: {endpoints: (b: unknown) => Record<string, unknown>}) => {
-    endpoints({
-      query: (spec: Record<string, unknown>) => {
-        if (typeof spec?.query === "function") {
-          querySpecs.push(spec.query({limit: 20, page: 1}));
-        }
-        return spec;
-      },
-    });
-    return {
-      useAnnouncementOverviewQuery: () => ({
-        data: overviewState.data,
-        error: overviewState.error,
-        isLoading: overviewState.isLoading,
-      }),
-    };
-  },
-});
+const makeApi = () => {
+  const api = {
+    enhanceEndpoints: () => api,
+    injectEndpoints: ({endpoints}: {endpoints: (b: unknown) => Record<string, unknown>}) => {
+      endpoints({
+        query: (spec: Record<string, unknown>) => {
+          queryDefinitions.push(spec);
+          if (typeof spec?.query === "function") {
+            querySpecs.push(spec.query({limit: 20, page: 1}));
+          }
+          return spec;
+        },
+      });
+      return {
+        useAnnouncementOverviewQuery: () => ({
+          data: overviewState.data,
+          error: overviewState.error,
+          isLoading: overviewState.isLoading,
+        }),
+      };
+    },
+  };
+  return api;
+};
 
 import {AnnouncementOverview} from "./AnnouncementOverview";
 
@@ -52,6 +58,7 @@ describe("AnnouncementOverview", () => {
     overviewState.error = null;
     overviewState.isLoading = false;
     querySpecs.length = 0;
+    queryDefinitions.length = 0;
   });
 
   it("wires the overview query to GET /announcements/overview", () => {
@@ -62,6 +69,10 @@ describe("AnnouncementOverview", () => {
       method: "GET",
       url: "/announcements/overview?page=1&limit=20",
     });
+    assert.deepEqual(queryDefinitions[0]?.providesTags, [
+      "AnnouncementOverview",
+      "admin_Announcement",
+    ]);
   });
 
   it("renders loading state", () => {

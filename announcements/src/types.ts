@@ -100,6 +100,8 @@ export interface AnnouncementsHelpOptions {
 }
 
 export interface AnnouncementsOptions {
+  /** Permission methods for the aggregate admin overview. Defaults to IsAdmin. */
+  adminOverviewPermissions?: PermissionMethod<AnnouncementDocument>[];
   basePath?: string;
   defaultAcknowledgementPolicy?: AcknowledgementPolicy;
   help?: AnnouncementsHelpOptions;

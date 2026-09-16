@@ -99,9 +99,13 @@ const getEnhancedApi = (api: AdminApi): unknown => {
   if (cached) {
     return cached;
   }
-  const enhanced = api.injectEndpoints({
+  const apiWithTags = api.enhanceEndpoints({
+    addTagTypes: ["AnnouncementOverview", "admin_Announcement"],
+  });
+  const enhanced = apiWithTags.injectEndpoints({
     endpoints: (build: EndpointBuilder) => ({
       announcementOverview: build.query({
+        providesTags: ["AnnouncementOverview", "admin_Announcement"],
         query: ({limit, page}: {limit: number; page: number}) => ({
           method: "GET",
           url: `${ANNOUNCEMENT_OVERVIEW_ROUTE}?page=${page}&limit=${limit}`,

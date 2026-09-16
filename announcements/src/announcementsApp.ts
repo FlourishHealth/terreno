@@ -9,6 +9,7 @@ import {
   type ModelRouterOptions,
   modelRouter,
   type OpenApiMiddleware,
+  type PermissionMethod,
   Permissions,
   type TerrenoPlugin,
 } from "@terreno/api";
@@ -60,6 +61,24 @@ const parsePlatform = (req: Request): AnnouncementPlatform => {
 const requireAdmin = (user: {_id?: unknown; admin?: boolean} | undefined): void => {
   if (!user?.admin) {
     throw new APIError({status: 403, title: "Admin access required"});
+  }
+};
+
+const requireOverviewAccess = async ({
+  permissions,
+  user,
+}: {
+  permissions: PermissionMethod<AnnouncementDocument>[];
+  user: unknown;
+}): Promise<void> => {
+  if (permissions.length === 0) {
+    throw new APIError({status: 403, title: "Admin access required"});
+  }
+  for (const permission of permissions) {
+    const isAllowed = await permission("list", user as never);
+    if (!isAllowed) {
+      throw new APIError({status: 403, title: "Admin access required"});
+    }
   }
 };
 
@@ -185,6 +204,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
     const basePath = this.options.basePath ?? DEFAULT_BASE_PATH;
     const defaultAcknowledgementPolicy: AcknowledgementPolicy =
       this.options.defaultAcknowledgementPolicy ?? "dismiss-only";
+    const overviewPermissions = this.options.adminOverviewPermissions ?? [Permissions.IsAdmin];
     const matchAudience = this.options.matchAudience ?? (() => true);
     const isStaff = this.options.isStaff ?? defaultIsStaff;
 
@@ -541,7 +561,7 @@ export class AnnouncementsApp implements TerrenoPlugin {
           : []),
       ],
       asyncHandler(async (req: Request, res: Response) => {
-        requireAdmin(req.user as {_id?: unknown; admin?: boolean} | undefined);
+        await requireOverviewAccess({permissions: overviewPermissions, user: req.user});
         const {limit, page} = parseOverviewPagination(req.query);
         const overview = await fetchAnnouncementOverview({
           defaultAcknowledgementPolicy,

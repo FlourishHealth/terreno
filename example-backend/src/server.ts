@@ -434,6 +434,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       )
       .register(
         new AnnouncementsApp({
+          adminOverviewPermissions: [access.permission({adminAnnouncement: ["read"]})],
           defaultAcknowledgementPolicy: "dismiss-only",
           help: {enabled: true},
           // audienceType staff/patient/all is composed inside the plugin via matchAudienceByType.
