@@ -210,7 +210,7 @@ describe("GcpCloudTasksRunner", () => {
       audience: executeUrl,
       serviceAccountEmail: "tasks@my-project.iam.gserviceaccount.com",
     });
-    assert.equal(request.task.dispatchDeadline, "1800s");
+    assert.deepEqual(request.task.dispatchDeadline, {seconds: 1800});
     assert.isUndefined(request.task.scheduleTime);
   });
 
@@ -225,7 +225,7 @@ describe("GcpCloudTasksRunner", () => {
 
     await runner.enqueue(buildJob());
 
-    assert.equal(fake.calls[0].request.task.dispatchDeadline, "900s");
+    assert.deepEqual(fake.calls[0].request.task.dispatchDeadline, {seconds: 900});
   });
 
   it("throws when dispatchDeadlineSeconds is outside the HTTP range of 15 to 1800", (): void => {

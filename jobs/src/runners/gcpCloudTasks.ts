@@ -10,6 +10,12 @@ export interface GcpTimestamp {
   seconds: number;
 }
 
+/** protobuf Duration (`google.protobuf.Duration`) — used by `@google-cloud/tasks`. */
+export interface GcpDuration {
+  nanos?: number;
+  seconds: number;
+}
+
 export interface GcpHttpRequest {
   body?: string;
   headers?: Record<string, string>;
@@ -22,7 +28,7 @@ export interface GcpHttpRequest {
 }
 
 export interface GcpTask {
-  dispatchDeadline?: string;
+  dispatchDeadline?: GcpDuration;
   httpRequest?: GcpHttpRequest;
   scheduleTime?: GcpTimestamp;
 }
@@ -66,7 +72,7 @@ export interface GcpCloudTasksRunnerConfig {
 
 interface ResolvedGcpCloudTasksRunnerConfig {
   basePath: string;
-  dispatchDeadline: string;
+  dispatchDeadline: GcpDuration;
   location: string;
   oidcAudience?: string;
   project: string;
@@ -128,12 +134,13 @@ const validateDispatchDeadlineSeconds = (dispatchDeadlineSeconds: number | undef
   return dispatchDeadlineSeconds;
 };
 
-const formatDispatchDeadline = (dispatchDeadlineSeconds: number): string =>
-  `${dispatchDeadlineSeconds}s`;
+const toProtobufDuration = (dispatchDeadlineSeconds: number): GcpDuration => ({
+  seconds: dispatchDeadlineSeconds,
+});
 
 const resolveConfig = (config: GcpCloudTasksRunnerConfig): ResolvedGcpCloudTasksRunnerConfig => ({
   basePath: normalizeBasePath(config.basePath),
-  dispatchDeadline: formatDispatchDeadline(
+  dispatchDeadline: toProtobufDuration(
     validateDispatchDeadlineSeconds(config.dispatchDeadlineSeconds)
   ),
   location: requireNonEmpty(config.location, "location"),

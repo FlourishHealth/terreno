@@ -2,6 +2,7 @@ import type {
   GcpCloudTasksClient,
   GcpCreateTaskRequest,
   GcpCreateTaskResponse,
+  GcpDuration,
   GcpTimestamp,
 } from "@terreno/jobs/runners/gcpCloudTasks";
 import {GoogleAuth} from "google-auth-library";
@@ -36,6 +37,19 @@ const toRfc3339 = (timestamp: GcpTimestamp | undefined): string | undefined => {
   );
 };
 
+const toJsonDuration = (duration: GcpDuration | undefined): string | undefined => {
+  if (!duration) {
+    return undefined;
+  }
+
+  const millis = Math.floor((duration.nanos ?? 0) / 1_000_000);
+  if (millis <= 0) {
+    return `${duration.seconds}s`;
+  }
+
+  return `${duration.seconds}.${String(millis).padStart(3, "0")}s`;
+};
+
 const defaultAuth = (): GcpTasksAuth => {
   const auth = new GoogleAuth({scopes: [CLOUD_TASKS_SCOPE]});
   return {
@@ -62,13 +76,12 @@ export const createGcpCloudTasksHttpClient = (
     createTask: async (request: GcpCreateTaskRequest): Promise<[GcpCreateTaskResponse]> => {
       const client = await auth.getClient();
       const scheduleTime = toRfc3339(request.task.scheduleTime);
+      const dispatchDeadline = toJsonDuration(request.task.dispatchDeadline);
       const response = await client.request({
         data: {
           task: {
             httpRequest: request.task.httpRequest,
-            ...(request.task.dispatchDeadline
-              ? {dispatchDeadline: request.task.dispatchDeadline}
-              : {}),
+            ...(dispatchDeadline ? {dispatchDeadline} : {}),
             ...(scheduleTime ? {scheduleTime} : {}),
           },
         },

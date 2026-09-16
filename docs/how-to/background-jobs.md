@@ -195,9 +195,10 @@ const jobsApp = new JobsApp({
 
 `GcpCloudTasksRunner` sets `requiresExecuteRoute: true`. Each enqueue creates an HTTP POST
 to `{publicUrl}/jobs/execute` with body `{jobId}` (base64) and an OIDC token. Delayed jobs
-use Cloud Tasks `scheduleTime`. HTTP tasks set `dispatchDeadline` to 1800 seconds by
-default (Cloud Tasks otherwise retries at 10 minutes while a 30-minute Cloud Run handler
-is still running). Override with `dispatchDeadlineSeconds` (15–1800).
+use Cloud Tasks `scheduleTime`. HTTP tasks set `dispatchDeadline` to `{seconds: 1800}`
+(REST JSON `"1800s"`) by default so Cloud Tasks does not retry at 10 minutes while a
+30-minute Cloud Run handler is still running. Override with `dispatchDeadlineSeconds`
+(15–1800).
 `@terreno/jobs` does **not** read `GCP_TASK_*` env vars —
 pass explicit constructor config. Compiled `bun build --compile` binaries must pass a
 `client` that does not load `@google-cloud/tasks` (that package reads

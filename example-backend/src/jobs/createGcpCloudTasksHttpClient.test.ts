@@ -78,7 +78,7 @@ describe("createGcpCloudTasksHttpClient", (): void => {
     await client.createTask({
       parent: "projects/p/locations/l/queues/q",
       task: {
-        dispatchDeadline: "1800s",
+        dispatchDeadline: {seconds: 1800},
         httpRequest: {
           httpMethod: "POST",
           url: "https://tasks.example.com/jobs/execute",
@@ -89,6 +89,39 @@ describe("createGcpCloudTasksHttpClient", (): void => {
     assert.deepEqual(captured.data, {
       task: {
         dispatchDeadline: "1800s",
+        httpRequest: {
+          httpMethod: "POST",
+          url: "https://tasks.example.com/jobs/execute",
+        },
+      },
+    });
+  });
+
+  it("encodes dispatchDeadline nanos as a JSON duration fraction", async (): Promise<void> => {
+    let captured: CapturedCreateTaskCall = {};
+    const client = createGcpCloudTasksHttpClient({
+      getClient: async () => ({
+        request: async (options) => {
+          captured = {data: options.data};
+          return {data: {}};
+        },
+      }),
+    });
+
+    await client.createTask({
+      parent: "projects/p/locations/l/queues/q",
+      task: {
+        dispatchDeadline: {nanos: 250_000_000, seconds: 15},
+        httpRequest: {
+          httpMethod: "POST",
+          url: "https://tasks.example.com/jobs/execute",
+        },
+      },
+    });
+
+    assert.deepEqual(captured.data, {
+      task: {
+        dispatchDeadline: "15.250s",
         httpRequest: {
           httpMethod: "POST",
           url: "https://tasks.example.com/jobs/execute",
