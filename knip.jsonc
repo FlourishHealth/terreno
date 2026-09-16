@@ -360,6 +360,7 @@
       "entry": [
         "src/index.ts",
         "src/local/index.ts",
+        "src/**/*.test.ts",
         "src/__tests__/**/*.test.ts",
         "src/__tests__/preload.ts"
       ],

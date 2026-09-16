@@ -66,8 +66,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "test": "bun test --max-concurrency=1 && ROOT=\"$(pwd)\" && for f in ./src/*.isolated.tsx ./src/*.isolated.ts ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do [ -f \"$f\" ] || continue; if [ \"$f\" = \"./src/isolated/hooks.isolated.tsx\" ]; then (cd /tmp && bun test --preload \"$ROOT/../ui/src/bunSetup.ts\" --max-concurrency=1 \"$ROOT/$f\") || exit 1; else bun test --max-concurrency=1 ././\"$f\" || exit 1; fi; done",
-    "test:agent": "ROOT=\"$(pwd)\"; for f in ./src/*.test.ts ./src/*.test.tsx ./src/**/*.test.ts ./src/**/*.test.tsx ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do if [ -f \"$f\" ]; then if [ \"$f\" = \"./src/isolated/hooks.isolated.tsx\" ]; then (cd /tmp && AGENT=1 bun test --preload \"$ROOT/../ui/src/bunSetup.ts\" --only-failures \"$ROOT/$f\") || exit 1; else AGENT=1 bun test --only-failures \"$f\" || exit 1; fi; fi; done",
+    "test": "bash scripts/run-tests.sh",
+    "test:agent": "AGENT=1 bash scripts/run-tests.sh agent",
     "test:ci": "bun run test",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
