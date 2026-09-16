@@ -3,7 +3,8 @@ name: terreno-backend-api
 description: >-
   Guidelines for creating backend APIs with @terreno/api on Express/Mongoose.
   Covers when to use Terreno backend vs Expo API routes, modelRouter CRUD,
-  permissions, custom routes, OpenAPI generation, and the SDK codegen pipeline.
+  permissions, modelRouter actions (not app.get/app.post), OpenAPI generation,
+  and the SDK codegen pipeline.
   Use when adding models, routes, auth, or server-side logic in Terreno apps.
   Lifecycle composition: Grow for API shape, Pick for implementation, Roast for
   API/integration proof.
@@ -182,26 +183,36 @@ throw new APIError({
 
 All permissions in the array must pass (AND logic).
 
-## Custom Routes
+## Custom endpoints — modelRouter actions
 
-For non-CRUD endpoints, use `createOpenApiBuilder`:
+Do **not** use `app.get`, `app.post`, `router.get`, or `router.post` for application
+APIs. Declare `collectionActions` / `instanceActions` on `modelRouter`.
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
-
-router.get("/stats", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["stats"])
-    .withSummary("Get statistics")
-    .withResponse(200, {count: {type: "number"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: {count: 42}});
-}));
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => doc,
+    },
+  },
+  permissions: { /* CRUD */ },
+});
 ```
 
-See `./references/custom-routes.md`.
+See `docs/explanation/model-router-actions.md` and `./references/custom-routes.md`
+(exceptions: webhooks, static files, auth/health plugins, SSE).
 
 ## Admin Panel
 
@@ -228,8 +239,14 @@ Need server-side logic?
   |-- CRUD on a MongoDB model?
   |   \-- modelRouter (references/model-router.md)
   |
-  |-- One-off endpoint (stats, webhook, action)?
-  |   \-- custom-routes.md (createOpenApiBuilder)
+  |-- Named GET/POST on a model (bulk, status, admin op)?
+  |   \-- collectionActions / instanceActions (docs/explanation/model-router-actions.md)
+  |
+  |-- Inbound webhook?
+  |   \-- WebhooksApp (not createOpenApiBuilder)
+  |
+  |-- One-off path that cannot be /{action} or /:id/{action}?
+  |   \-- custom-routes.md last resort (createOpenApiBuilder)
   |
   |-- Admin CRUD?
   |   \-- AdminApp + admin-frontend
@@ -283,6 +300,26 @@ const todo = await Todo.findOne({_id: id});
 const todo = await Todo.findExactlyOne({_id: id});
 ```
 
+**Wrong: app.get / router.post for an application API**
+
+```typescript
+app.get("/todos/stats", authenticateMiddleware(), asyncHandler(async (req, res) => {
+  return res.json({data: {count: 42}});
+}));
+```
+
+**Right: collectionActions on modelRouter**
+
+```typescript
+collectionActions: {
+  stats: {
+    method: "GET",
+    permissions: [Permissions.IsAuthenticated],
+    handler: async () => ({count: 42}),
+  },
+}
+```
+
 **Wrong: Expo API route for MongoDB CRUD**
 
 ```typescript
@@ -303,6 +340,7 @@ After backend changes, always run `generate-sdk`.
 
 - "Add a Todo API" → model + modelRouter + TerrenoApp.register + generate-sdk
 - "Add a bulk complete endpoint" → `collectionActions` on modelRouter (see example-backend todos)
+- "Add a webhook" → `WebhooksApp`, not `app.post`
 - "Restrict list to owner" → `queryFilter: OwnerQueryFilter`
 - "Add admin CRUD" → AdminApp registration
-- "Webhook endpoint" → custom route with createOpenApiBuilder
+- "Webhook endpoint" → `WebhooksApp` (not createOpenApiBuilder)

@@ -1098,7 +1098,7 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "terreno_bootstrap_app" || name === "terreno_bootstrap_ai_rules") {
+  if (name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 

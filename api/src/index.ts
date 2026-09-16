@@ -50,6 +50,12 @@ export type {
   MCPToolResult,
 } from "./mcp/types";
 export * from "./middleware";
+export * from "./migrations/generate";
+export * from "./migrations/load";
+export * from "./migrations/lock";
+export * from "./migrations/runner";
+export * from "./migrations/schemaCatalog";
+export * from "./migrations/types";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";
 export * from "./models/mcpServiceToken";
@@ -212,6 +218,8 @@ export * from "./scriptRunner";
 export {adminBodyFieldsToStrip, scrubAdminFields, stripAdminBodyFields} from "./scrubAdminFields";
 export * from "./secretProviders";
 export * from "./seedRunner";
+export * from "./sync/adminBroadcastScope";
+export * from "./sync/adminWindowMutation";
 export * from "./sync/executors";
 export * from "./sync/models";
 export * from "./sync/mutationHandler";

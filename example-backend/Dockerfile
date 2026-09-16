@@ -40,12 +40,16 @@ RUN apt-get update \
 
 COPY --from=builder /app/example-backend/dist/backend ./backend
 COPY --from=builder /app/admin-spa/dist ./admin-spa-dist
+# Compiled binaries resolve import.meta.url to $bunfs. Copy migration files to a
+# real path and point MIGRATIONS_DIR at it (same pattern as ADMIN_SPA_DIST_DIR).
+COPY --from=builder /app/example-backend/migrations ./migrations
 
 ENV NODE_ENV=production
 ENV PORT=3000
 # The compiled binary cannot resolve the SPA bundle via __dirname, so point the
 # serve plugin at the copied export explicitly.
 ENV ADMIN_SPA_DIST_DIR=/app/admin-spa-dist
+ENV MIGRATIONS_DIR=/app/migrations
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \

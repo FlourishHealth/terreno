@@ -10,6 +10,7 @@ import {
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
 import type {UserDocument} from "../types/models/userTypes";
+import {todoLoadTestCollectionActions} from "./loadtest";
 
 const bulkCompleteBodySchema = z
   .object({
@@ -50,7 +51,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
       },
     ],
     adminAccess: {isOwned: adminOwnedBy("ownerId")},
-    adminPermissions: {delete: []},
+    adminPermissions: {delete: [Permissions.IsAdmin]},
     bulkPatchAllowlist: ["completed", "priority", "tags"],
     defaultSort: "-created",
     displayName: "Todos",
@@ -84,6 +85,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
     sortableFields: ["title", "completed", "created", "priority"],
   },
   collectionActions: {
+    ...todoLoadTestCollectionActions,
     bulkComplete: {
       access: {action: "update", resource: "todo"},
       body: bulkCompleteBodySchema,
@@ -175,7 +177,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   sort: "-created",
   // Local-first sync (@terreno/syncdb): stream = todos|owner:{ownerId}.
-  sync: {scope: {type: "owner"}},
+  sync: {adminBroadcast: true, scope: {type: "owner"}},
   validation: {
     excludeFromCreate: ["ownerId"],
     excludeFromUpdate: ["ownerId"],

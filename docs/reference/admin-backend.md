@@ -34,7 +34,10 @@ admin.register(app);
 ``````
 
 This creates:
-- `GET /admin/config` — Model metadata endpoint
+- `GET /admin/config` — Model metadata endpoint (`migrations.enabled` when `AdminApp` is given `migrations.dir`)
+- `GET /admin/migrations/status` (`admin:access`) and `POST /admin/migrations/run?wetRun=` (`admin:runScripts`) as `modelRouter` collection actions when `migrations.dir` is set. CRUD on `/admin/migrations` is disabled (405), action permission denials are 405, and responses use `{data: ...}`. Both operations are documented under the `adminMigrations` OpenAPI tag.
+- Poll/cancel those tasks at `GET`/`DELETE /admin/scripts/tasks/:id`
+- Pass `migrations: {dir: "./migrations"}` on `AdminApp`
 - Standard CRUD routes for each model at `{basePath}{routePath}`
 - All routes protected with `Permissions.IsAdmin`, or fine-grained RBAC when `accessControl` is set
 
@@ -57,9 +60,11 @@ interface AdminModelConfig {
 
 ## Generated Routes
 
-For each model, creates standard modelRouter CRUD endpoints:
+For each model, creates standard modelRouter CRUD endpoints plus admin membership helpers:
 
-- `GET {basePath}{routePath}` — List (paginated, sortable)
+- `GET {basePath}{routePath}` — List (paginated, sortable). Query params: `page`, `limit`, `sort`, `q` (partial search across string `searchFields`), plus `queryFields` from list/filter metadata. Envelope: `{data, limit, more, page, total}` (`page` is the raw query string when provided)
+- `GET {basePath}{routePath}/search?q=` — Typeahead search. Envelope: `{data}` (limit 20; empty `q` returns `{data: []}`)
+- `POST {basePath}{routePath}/bulk-patch` — Body `{ids: string[], patch: object}`. Success body `{updated}` plus `failures` when any id fails. Ids must pass `mongoose.isValidObjectId` (hex String `_id` values work; arbitrary UUID-like strings are rejected as `"Invalid id"`)
 - `POST {basePath}{routePath}` — Create
 - `GET {basePath}{routePath}/:id` — Read
 - `PATCH {basePath}{routePath}/:id` — Update
@@ -89,7 +94,8 @@ For each model, creates standard modelRouter CRUD endpoints:
           required: false,
           default: false
         }
-      }
+      },
+      adminBroadcast: false
     }
   ]
 }
@@ -102,6 +108,8 @@ Field metadata includes:
 - `enum` — Enum values if applicable
 - `default` — Default value
 - `ref` — Referenced model name for ObjectId refs
+- `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set `adminBroadcast`
+- `syncCollection` — Sync collection tag (app `routePath` without a leading slash, e.g. `todos`) when `adminBroadcast` is true; omitted otherwise
 
 Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.
 
@@ -111,6 +119,20 @@ Field metadata is built from `describeModel()` via `modelDescriptionToAdminField
 without it. Script, configuration, RBAC, and per-model permissions never grant entry on their own.
 
 Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.admin`).
+
+`AdminApp.register` also installs each model's list/read permissions and `queryFilter` on
+the sync admin window (`registerAdminBroadcastScope`). `GET /sync/entities` and
+`{collection}|admin` deltas then use that contract, not product `IsOwner`.
+
+For writes, AdminApp registers an admin-window mutation scope (`registerAdminWindowMutationScope`).
+Sync clients listed in `createSyncDb({windowCollections})` tag outbox rows with
+`mutationMode: "adminWindow"`. The server does not trust the marker alone: it also requires
+`adminBroadcast`, admin-window access (`admin:access` with RBAC, else `user.admin`), and the
+registered scope. Successful admin-window sync mutations enforce the same create/update/delete
+enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, User admin-flag/role
+gates, and `onAdminAudit` post hooks as REST — via AdminApp executor callbacks on the shared
+sync write pipeline (Mongoose validation, conflict/baseVersion checks, and ledger ordering
+unchanged). Product clients that omit the marker keep product sync permissions and hooks.
 
 With `accessControl`, each model can use a standard admin resource with three actions:
 
@@ -165,6 +187,7 @@ writable controls are disabled, and `platformTools` reports visibility for Scrip
 and Configuration. Built-in tools use the existing editable permissions:
 
 - Scripts: `admin:runScripts` or `admin:viewBackgroundTasks`
+- Migrations apply/dry-run: `admin:runScripts` (status listing uses `admin:access`)
 - Roles: `rbac:read`
 - Version and Configuration: `configuration:read`
 - Audit Log and Feature Flags: their model's admin `read` permission

@@ -101,12 +101,33 @@ describe("rbac permission utils and middleware", () => {
     const first = await access.getPermissions({user});
     expect(first.todo).toEqual(["read"]);
 
-    user.roles = [];
-    const cached = await access.getPermissions({user});
-    expect(cached.todo).toEqual(["read"]);
-
     access.invalidateCache({userId: user.id});
     const refreshed = await access.getPermissions({user});
-    expect(refreshed.todo).toBeUndefined();
+    expect(refreshed.todo).toEqual(["read"]);
+  });
+
+  it("does not reuse cached permissions after the user's roles change", async () => {
+    await setupDb();
+    const access = createAccess({
+      cacheTtlMs: 60_000,
+      connection: mongoose.connection,
+      defaultRoles: [
+        {
+          displayName: "Reader",
+          name: "reader",
+          permissions: {todo: ["read"]},
+        },
+      ],
+      statements: appStatements,
+    });
+    await access.roles.seedDefaults();
+
+    const user = createUser({roles: ["reader"]});
+    const first = await access.getPermissions({user});
+    expect(first.todo).toEqual(["read"]);
+
+    user.roles = [];
+    const afterRoleChange = await access.getPermissions({user});
+    expect(afterRoleChange.todo).toBeUndefined();
   });
 });

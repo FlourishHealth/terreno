@@ -27,6 +27,9 @@
     "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    "api/src/migrations/fixtures/**": ["files", "exports", "types"],
+    "example-backend/migrations/**": ["files", "exports", "types"],
+    "example-backend/src/migrationsDir.ts": ["files", "exports", "types"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
     // Generated communications SDK may include hooks before an example screen adopts them.
@@ -80,6 +83,7 @@
       // Isolated files are `bun test $file`, not `*.test.ts`, so the Bun plugin skips them.
       // react-native-webview is supplied by consuming apps through this package's
       // optional peer contract, which Knip reports as an unused optional peer.
+      "ignoreBinaries": ["continue"],
       "ignoreDependencies": ["react-native-webview"],
       // Public interfaces used inside this module remain valid package API; interfaces
       // that become unused both internally and externally are still reported.
@@ -87,6 +91,7 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/*.isolated.{ts,tsx}",
         "src/isolated/**/*.isolated.{ts,tsx}"
       ]
     },
@@ -118,7 +123,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/tests/fixtures/compileAuthEntry.ts"
+        "src/tests/fixtures/compileAuthEntry.ts",
+        "src/migrations/cli.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -155,7 +161,7 @@
       // The test logger discovers @terreno/api through a runtime require. Declaring it
       // here would cycle with API's own @terreno/test dependency and break the
       // topological order that .github/scripts/compile-workspace-deps.js relies on.
-      "ignoreDependencies": ["@terreno/api"],
+      "ignoreDependencies": ["@sentry/bun", "@terreno/api"],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "!src/preload/**!"
@@ -228,6 +234,7 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "**/*.test.ts",
+        "collectRegisteredStoryRenders.ts",
         "jspdf-native-stub.js",
         "fingerprint.config.js"
       ]
@@ -331,10 +338,19 @@
       ]
     },
     "mcp-server": {
+      // Knip 6.34 expects Bun's `test.preload` to be an array. This package uses
+      // the array form in bunfig.toml; with bun: false Knip cannot discover that
+      // preload file from the plugin, so it is listed as an entry.
+      "bun": false,
+      "entry": [
+        "src/index.ts",
+        "src/local/index.ts",
+        "src/__tests__/**/*.test.ts",
+        "src/__tests__/preload.ts"
+      ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "!scripts/**!",
-        "!src/__tests__/**!"
+        "!scripts/**!"
       ]
     },
     "ui": {
@@ -353,6 +369,8 @@
         "react-native-permissions",
         "react-native-picker-select",
         "react-native-webview",
+        // mdurl ships its own types; the extra @types package is a catalog pin.
+        "@types/mdurl",
         "react-time-picker",
         // Tests mock expo-modules-core subpaths by string; TypeDoc is invoked by
         // the package's `types` script.

@@ -1,8 +1,10 @@
 import {AIRequestExplorer, type AIRequestExplorerData} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
 import {AdminScreenPage} from "../AdminScreenPage";
+import {withQueryString} from "../adminRpc";
 import {asDynamicHookApi} from "../dynamicHookApi";
 import type {AdminScreenWidgetProps, EndpointBuilder, ScreenWidgetComponent} from "../types";
+import {useAdminRpc, useAdminRpcQuery} from "../useAdminRpc";
 
 const EXPLORER_LIMIT = 20;
 const AI_REQUESTS_ENDPOINT_KEY = "adminAiRequestsExplorer";
@@ -20,6 +22,20 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api, r
   const [requestTypeFilter, setRequestTypeFilter] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const explorerParams = {
+    endDate: endDate || undefined,
+    limit: EXPLORER_LIMIT,
+    page,
+    requestType: requestTypeFilter.length > 0 ? requestTypeFilter.join(",") : undefined,
+    startDate: startDate || undefined,
+  };
+  const rpc = useAdminRpc();
+  const fetchState = useAdminRpcQuery<AIRequestsResponse>({
+    rpc,
+    skip: !rpc,
+    url: withQueryString({params: explorerParams, url: "/aiRequestsExplorer"}),
+  });
 
   const enhancedApi = useMemo(
     () =>
@@ -39,13 +55,11 @@ export const AIRequestsScreenWidget: React.FC<AdminScreenWidgetProps> = ({api, r
   );
 
   const useExplorerQuery = asDynamicHookApi(enhancedApi).useAdminAiRequestsExplorerQuery;
-  const {data, isLoading} = useExplorerQuery({
-    endDate: endDate || undefined,
-    limit: EXPLORER_LIMIT,
-    page,
-    requestType: requestTypeFilter.length > 0 ? requestTypeFilter.join(",") : undefined,
-    startDate: startDate || undefined,
-  }) as {data?: AIRequestsResponse; isLoading: boolean};
+  const rtk = useExplorerQuery(explorerParams, {skip: Boolean(rpc)}) as {
+    data?: AIRequestsResponse;
+    isLoading: boolean;
+  };
+  const {data, isLoading} = rpc ? fetchState : rtk;
 
   const handlePageChange = useCallback((nextPage: number): void => {
     setPage(nextPage);

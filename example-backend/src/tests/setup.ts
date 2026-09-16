@@ -29,6 +29,7 @@ registerSimpleMongoPreload({
     Reflect.deleteProperty(process.env, "WEBHOOK_SECRET");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
     Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
+    Reflect.deleteProperty(process.env, "MIGRATIONS_DIR");
   },
   testEnv: {
     extra: {
