@@ -166,4 +166,35 @@ describe("CircleCI concurrency", () => {
     assert.match(backend, /bun run script --list/);
     assert.match(continueConfig, /equal: \[false, << pipeline.parameters.run-example-backend >>\]/);
   });
+
+  it("runs repo-policies on Node 22.14 so Knip can load oxc-parser", () => {
+    assert.match(continueConfig, /node22_knip:\n {4}docker:\n {6}- image: cimg\/node:22\.14/);
+    assert.match(continueConfig, /repo-policies:\n {4}executor: node22_knip/);
+  });
+
+  it("does not duplicate repo-policies on config-only kitchen-sink", () => {
+    const start = continueConfig.indexOf("  circleci-config:\n");
+    assert.ok(start >= 0);
+    const next = continueConfig.indexOf("\n  deploy-demo-production:\n", start);
+    const slice = continueConfig.slice(start, next > start ? next : undefined);
+    assert.doesNotMatch(slice, /\n {6}- repo-policies\n/);
+    assert.match(slice, /shard:\n {16}- auth\n/);
+  });
+
+  it("starts coverage and Maestro for example-frontend components", () => {
+    const mappings = readMappings({repoRoot});
+    const component = "example-frontend/components/SyncTodosScreen.tsx";
+    assert.equal(
+      mappingMatches({mappings, parameter: "run-new-file-coverage", path: component}),
+      true
+    );
+    assert.equal(mappingMatches({mappings, parameter: "run-maestro", path: component}), true);
+    assert.equal(mappingMatches({mappings, parameter: "run-e2e", path: component}), true);
+  });
+
+  it("compiles @terreno/api itself for new-file-coverage", () => {
+    const coverage = jobCommandBlock(continueConfig, "new-file-coverage");
+    assert.ok(coverage);
+    assert.match(coverage, /bun run --filter '@terreno\/api' compile/);
+  });
 });

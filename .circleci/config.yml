@@ -196,6 +196,7 @@ workflows:
             example-frontend/hooks/.* run-new-file-coverage true
             example-frontend/utils/.* run-new-file-coverage true
             example-frontend/constants/.* run-new-file-coverage true
+            example-frontend/components/.* run-new-file-coverage true
             .*/package\.json$ run-repo-policies true
             LICENSE$ run-repo-policies true
             .*/LICENSE$ run-repo-policies true
@@ -228,6 +229,7 @@ workflows:
             example-frontend/lib/.* run-e2e true
             example-frontend/store/.* run-e2e true
             example-frontend/utils/.* run-e2e true
+            example-frontend/components/.* run-e2e true
             example-frontend/e2e/.* run-e2e true
             example-frontend/playwright\.config\.ts run-e2e true
             example-frontend/package\.json run-e2e true
@@ -242,6 +244,7 @@ workflows:
             example-frontend/hooks/.* run-maestro true
             example-frontend/constants/.* run-maestro true
             example-frontend/utils/.* run-maestro true
+            example-frontend/components/.* run-maestro true
             example-backend/src/.* run-maestro true
             rtk/.* run-maestro true
             \.maestro/.* run-maestro true

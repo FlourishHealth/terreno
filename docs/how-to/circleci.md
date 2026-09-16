@@ -56,10 +56,11 @@ Fork-only `dco` and PR `architectural-pr-review` always start on continuation
 the same command sequence.
 
 `.circleci/**` sets `run-circleci-config`. On **config-only** PRs that workflow
-runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
-`repo-policies`, `e2e` shard `login`). If the same pipeline already set
-`run-api`, `run-ui`, `run-e2e`, `run-example-backend`, or `run-admin-spa`, that
-kitchen-sink workflow is skipped so jobs are not doubled.
+runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`, `e2e`
+shard `auth`). `repo-policies` still starts from `run-repo-policies` (also set
+for `.circleci/**`); the kitchen-sink does not start a second copy. If the same
+pipeline already set `run-api`, `run-ui`, `run-e2e`, `run-example-backend`, or
+`run-admin-spa`, that kitchen-sink workflow is skipped so jobs are not doubled.
 `comms/**` also sets `run-example-backend` and `run-example-backend-script`,
 matching the GitHub Actions twins.
 
@@ -70,14 +71,19 @@ changes are covered by preview CD builds and do not start a duplicate image job.
 UI, RTK, and admin-frontend changes do **not** start `example-backend-ci`.
 Those packages are covered by `ui-ci` / `rtk-ci` / `packages-ci` plus e2e and
 admin-spa. `new-file-coverage` starts on package `src/` (and example app
-runtime paths), not on every `*.ts` file in the repo (Playwright specs no
-longer compile the world).
+runtime paths including `example-frontend/components/`), not on every `*.ts`
+file in the repo (Playwright specs no longer compile the world). That job
+compiles `@terreno/api` deps and then `bun run --filter '@terreno/api' compile`.
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
 `admin-table`, `syncdb`) instead of one container per spec file. Repository
 policy checks share one `repo-policies` job so eight small checkouts do not
-sit in the concurrency queue. Require those CircleCI names in branch
-protection; do not require the old `no-barrel-imports` / `e2e-login` names.
+sit in the concurrency queue. `repo-policies` uses Node 22.14 because Knip's
+oxc-parser throws `ERR_REQUIRE_ESM` on the shared 22.11 executor.
+Require `repo-policies` in branch protection. Require `e2e-auth` /
+`e2e-app` / … only as path-filtered checks; config-only PRs post `e2e-auth`
+as the smoke shard and do not run the other four. Do not require the old
+`no-barrel-imports` / `e2e-login` names.
 
 ## Automatic deploys
 

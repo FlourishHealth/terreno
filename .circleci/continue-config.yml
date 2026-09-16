@@ -141,6 +141,11 @@ executors:
     docker:
       - image: cimg/node:22.11
     resource_class: medium
+  # Knip (oxc-parser) needs Node 22.14; 22.11 throws ERR_REQUIRE_ESM.
+  node22_knip:
+    docker:
+      - image: cimg/node:22.14
+    resource_class: medium
   node22_mongo:
     docker:
       - image: cimg/node:22.11
@@ -693,7 +698,9 @@ jobs:
           command: git fetch origin master
       - run:
           name: Compile coverage script dependencies
-          command: node .github/scripts/compile-workspace-deps.js api
+          command: |
+            node .github/scripts/compile-workspace-deps.js api
+            bun run --filter '@terreno/api' compile
       - run:
           name: Check new source file coverage
           command: |
@@ -1048,8 +1055,7 @@ jobs:
   # One container for the former eight policy jobs. Each used to checkout + bun
   # install on its own small/medium class and then sit in the queue behind e2e.
   repo-policies:
-    executor: node22
-    resource_class: medium
+    executor: node22_knip
     steps:
       - checkout
       - install_bun_and_deps
@@ -2061,6 +2067,8 @@ workflows:
   # PRs, dual-run the documented representative slice (not every ported job).
   # Skip this workflow when path filters already started the heavy package/e2e
   # twins so a mixed PR does not pay for a second api/ui/e2e/mcp matrix.
+  # Do not start `repo-policies` here: `.circleci/**` already sets
+  # `run-repo-policies`, and a second copy reports the same GitHub check.
   circleci-config:
     when:
       and:
@@ -2074,7 +2082,6 @@ workflows:
       - api-ci
       - ui-ci
       - example-backend-ci
-      - repo-policies
       - e2e-prepare
       - e2e:
           requires:
@@ -2082,7 +2089,7 @@ workflows:
           matrix:
             parameters:
               shard:
-                - login
+                - auth
 
   deploy-demo-production:
     when:
