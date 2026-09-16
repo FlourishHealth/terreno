@@ -266,6 +266,26 @@ describe("state machine transitions", () => {
     expect(outbox.getMutation({mutationId: retry.mutationId})?.baseVersion).toBe(3);
   });
 
+  it("requeue preserves an admin-window mutation mode", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({
+      args: {title: "Admin retry"},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      mutationMode: "adminWindow",
+      operation: "update",
+      userId: "user-1",
+    });
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markConflicted({mutationId: "m1"});
+
+    const retry = outbox.requeue({baseVersion: 9, mutationId: "m1"});
+
+    expect(retry.mutationMode).toBe("adminWindow");
+    expect(outbox.getMutation({mutationId: retry.mutationId})?.mutationMode).toBe("adminWindow");
+  });
+
   it("requeue copies maxAttempts onto the cloned row", () => {
     const outbox = makeOutbox();
     outbox.enqueue({

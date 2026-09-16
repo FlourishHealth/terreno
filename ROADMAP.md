@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-14T17:31:18.011Z.
+> dates are promised. Last updated: 2026-09-15T23:22:13.630Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -53,7 +53,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### dx
 
-- [create-terreno-app scaffolding CLI](https://github.com/FlourishHealth/terreno/issues/1174) (Feature, Planned)
+- [create-terreno-app scaffolding CLI](https://github.com/FlourishHealth/terreno/issues/1174) (Feature, In progress) — IP: [create-terreno-app](docs/implementationPlans/create-terreno-app.md)
 - [Migrate CI/CD to CircleCI](https://github.com/FlourishHealth/terreno/issues/1088) (Improvement, In progress) — IP: [migrate-cicd-to-circleci](docs/implementationPlans/migrate-cicd-to-circleci.md)
 - [Open source launch program](https://github.com/FlourishHealth/terreno/issues/1094) (Improvement, In progress) — IP: [oss-launch-program](docs/implementationPlans/oss-launch-program.md)
 
@@ -63,7 +63,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
 - [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
-- [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Planned)
 - [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
 
 ### ui

@@ -5,6 +5,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {AdminScriptList} from "./AdminScriptList";
+import {adminScriptsHarness} from "./adminScriptsHarness.test";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 // Mock useAdminConfig to control returned data
@@ -64,7 +65,16 @@ const mockUseListScriptRunsQuery = mock((args?: {page?: number; name?: string}) 
 
 mock.module("./useAdminScripts", () => ({
   useAdminScripts: () => ({
+    useCancelScriptTaskMutation: () => [
+      mock(() => ({unwrap: async () => ({})})),
+      {isLoading: false},
+    ],
+    useGetScriptTaskQuery: () => adminScriptsHarness.taskQuery,
     useListScriptRunsQuery: mockUseListScriptRunsQuery,
+    useRunScriptMutation: () => [
+      mock(() => ({unwrap: async () => ({taskId: ""})})),
+      {isLoading: false},
+    ],
   }),
 }));
 

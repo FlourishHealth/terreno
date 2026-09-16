@@ -7,8 +7,9 @@ import {Glob} from "bun";
 
 import {
   type CoverageSummary,
-  type FileCoverage,
   evaluateCoverage,
+  type FileCoverage,
+  isBunCoverageThresholdExit,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";
@@ -16,7 +17,7 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
@@ -122,11 +123,10 @@ const getWorkspaceNames = (repoRoot: string): Set<string> => {
 };
 
 const getAddedSourceFiles = (repoRoot: string, base: string): string[] => {
-  const output = execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`],
-    {cwd: repoRoot, encoding: "utf8"}
-  );
+  const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=A", `${base}...HEAD`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
   return output
     .split("\n")
     .map((path) => path.trim())
@@ -252,7 +252,7 @@ const runPackageCoverage = async ({
   coverageDir: string;
   packageName: string;
   packageRoot: string;
-}): Promise<number> => {
+}): Promise<{exitCode: number; output: string}> => {
   const coverageArgs = expandCoverageRunArgs({
     args: coverageRunArgs({
       hasSrcDir: existsSync(join(packageRoot, "src")),
@@ -268,18 +268,30 @@ const runPackageCoverage = async ({
         "test",
         ...coverageArgs,
         "--coverage",
+        "--coverage-reporter=text",
         "--coverage-reporter=lcov",
         `--coverage-dir=${coverageDir}`,
       ],
       {
         cwd: packageRoot,
-        env: {...process.env, CI: "true"},
-        stdio: "inherit",
+        env: {...process.env, CI: "true", FORCE_COLOR: "0"},
+        stdio: ["ignore", "pipe", "pipe"],
       }
     );
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      process.stdout.write(text);
+    });
+    child.stderr.on("data", (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      process.stderr.write(text);
+    });
     child.on("error", rejectPromise);
     child.on("close", (code) => {
-      resolvePromise(code ?? 1);
+      resolvePromise({exitCode: code ?? 1, output});
     });
   });
 };
@@ -310,12 +322,12 @@ const main = async (): Promise<void> => {
       console.info(
         `\nChecking ${packageCoverage.files.length} new source file(s) in ${packageCoverage.packageName}...`
       );
-      const exitCode = await runPackageCoverage({
+      const {exitCode, output} = await runPackageCoverage({
         coverageDir,
         packageName: packageCoverage.packageName,
         packageRoot,
       });
-      if (exitCode !== 0) {
+      if (exitCode !== 0 && !isBunCoverageThresholdExit(exitCode, output)) {
         process.exit(exitCode);
       }
       const lcovPath = join(coverageDir, "lcov.info");

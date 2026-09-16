@@ -50,6 +50,8 @@ list pipelines on the slug above.
 
 Smoke job `config-ok` and fork-only `dco` always run on continuation.
 `rulesync-check` runs only when generated-rule sources change (`run-rulesync`).
+`admin-backend/**` starts `admin-backend-ci`; `admin-frontend/**` starts
+`admin-frontend-ci`. Both jobs lint, compile, and run `test:coverage`.
 
 `.circleci/**` sets `run-circleci-config`. On **config-only** PRs that workflow
 runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
@@ -118,9 +120,12 @@ project, leave fork-PR secret passing off, and attach that context **only** to
 unset, and it skips fork PRs. The job checks out `origin/master` before running
 the review script so a PR cannot rewrite the reviewer.
 
-The Netlify deploy helper validates its context before building, and the docs
-target disables Docusaurus minification for preview and production builds to
-remain within the available 8 GB CircleCI executor.
+Netlify and GCP jobs **halt as the first step** when `terreno-netlify` /
+`terreno-gcp` are empty, before checkout or `bun install`. Path filters still
+start those jobs so filling the context turns deploys on without a config
+change; skip-green no longer pays for a full `large` install. Docker Layer
+Caching is off (200 credits per job). The docs Netlify target disables
+Docusaurus minification so the build stays within the 8 GB `large` executor.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id`, `circleci_project_id`, and
@@ -154,6 +159,8 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Verify rules are in sync | `rulesync-check` |
 | `dco` | `dco` |
 | Run all tests (API CI) | `api-ci` |
+| _(new)_ Admin backend lint, compile, coverage | `admin-backend-ci` |
+| _(new)_ Admin frontend lint, compile, coverage | `admin-frontend-ci` |
 | Run all tests (AI CI) | `ai-ci` |
 | RTK Lint and Build | `rtk-ci` |
 | Syncdb Lint, Build, and Tests | `syncdb-ci` |
@@ -162,6 +169,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Demo Lint and TypeScript Check | `ui-demo-ci` |
 | Lint, compile, and test communications | `comms-ci` |
 | Lint, Build, and Test (MCP) | `mcp-server-ci` |
+| Lint, compile, and coverage (create-terreno-app) | `create-terreno-app-ci` |
 | Build Docker Image (MCP) | `mcp-server-docker` |
 | Example Frontend Lint and Test | `example-frontend-ci` |
 | Example Backend Lint, Build, and Test | `example-backend-ci` |
@@ -169,7 +177,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
 | Lint, compile, and coverage (matrix package) | `packages-ci` (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) |
-| E2E · `<spec>` | `e2e` (matrix `spec`) |
+| E2E · `<spec>` | `e2e` (matrix `spec`, including `admin` plus `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, `admin-comms-back`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
 | _(new)_ CircleCI path-filter parity | `circleci-parity` |
@@ -262,14 +270,21 @@ Edits to `.circleci/config.yml` / `continue-config.yml` /
 `example-frontend/playwright.circleci.config.ts` set `run-circleci-config`.
 When no package/e2e path param is also set, that workflow runs the slice above.
 CircleCI e2e compiles the workspace and `bun expo export`s **once** in
-`e2e-prepare`, then shards attach that dist (60s test timeout, `large` Docker).
-Keeping Metro alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on
-this project's plan. Chaos e2e treats a hidden Offline banner after `goOnline`
-as reconnect — a `client.stop()`/`start()` handshake hung 30s on the static
+`e2e-prepare` (`large`, 8 GB — the export heap is 3 GB). Shards then attach
+that dist on `medium+` (6 GB, 15 credits/min): static `serve` + Playwright +
+mongo no longer need 8 GB. `xlarge` is not on this project's plan. In-job
+compile+export jobs (`maestro-e2e`, `admin-spa-integration`, `e2e-load`) stay
+on `large`. Chaos e2e treats a hidden Offline banner after `goOnline` as
+reconnect — a `client.stop()`/`start()` handshake hung 30s on the static
 export. `maestro-e2e` follows the same static-export rule: it exports
 example-frontend and serves the static `dist`. If the browsers image has no
 Xvfb on `:99`, a `background: true` fallback starts one and keeps it alive
 for later steps.
+
+Package jobs that only lint/compile/test one workspace package stay on
+`medium` (including `mcp-server-ci`, `example-backend-ci`, and
+`new-file-coverage`). Do not put Docker Layer Caching on remote-docker jobs
+unless a profiled image build reuses layers enough to beat 200 credits/run.
 
 ## Nightly load test
 

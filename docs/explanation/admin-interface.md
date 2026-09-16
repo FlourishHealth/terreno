@@ -12,14 +12,17 @@ workflow (consent publish, comms message detail, password-on-create).
 
 ## Two hosts
 
-| Host | When to use | Route prefix (`routeBase`) | API prefix (`apiBase`) |
-| --- | --- | --- | --- |
-| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` |
-| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` |
+| Host | When to use | Route prefix (`routeBase`) | API prefix (`apiBase`) | Fetch auth |
+| --- | --- | --- | --- | --- |
+| Embedded (`example-frontend/app/admin`) | Admin lives inside the product Expo app | `"/admin"` | `"/admin"` | `getAuthHeaders` → Bearer, plus `apiOrigin` = RTK `baseUrl` so RPC does not hit the Expo origin |
+| Standalone (`@terreno/admin-spa`) | Same-origin console served by `AdminSpaServeApp` | `""` (SPA root; mount is `/console`) | `"/admin"` | `credentials="same-origin"`; empty `getAuthHeaders`; omit `apiOrigin` |
 
 `apiBase` is the HTTP path for `/config` and CRUD. `routeBase` is the Expo Router
 prefix the sidebar concatenates onto `/{model.name}` and `/{screen.name}`. Mixing
-them puts nav on the wrong URL.
+them puts nav on the wrong URL. Embedded hosts must also set `apiOrigin` (the
+backend origin, e.g. `http://localhost:4000`) on `AdminProvider`. Native `fetch`
+RPC uses that origin to prefix `/admin/config` and `/rbac/roles`. Do not put the
+origin in `apiBase` — that would rewrite in-app navigation.
 
 ## Screen kinds
 
@@ -43,7 +46,8 @@ Order in the rail:
 1. **Home** → `{routeBase}/`
 2. **Models** grouped by `admin.group` (ungrouped models land in **General**)
 3. **Screens** from config `customScreens` (plus optional host extras)
-4. **Platform** — Scripts (`/__scripts`), Roles, Version, Audit Log, Feature Flags, Configuration
+4. **Platform** — Scripts (`/__scripts`), Migrations (`/__migrations` when
+   `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
 operators do not hunt for them among business collections.
@@ -64,7 +68,7 @@ canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and
 | Field widgets | `admin.fieldOverrides.widget` + `widgets.fields` |
 | Expo files | `app/admin/_layout.tsx` (shell once) or per-route shell in admin-spa |
 | Dedicated extra segments (`/comms/:id`) | Explicit Expo files so `[model]/[id]` does not treat them as generic forms |
-| Data fetching | `useAdminConfig` / `useAdminApi` (RTK). Admin is **not** a syncdb collection |
+| Data fetching | REST remains membership/search/sort/pagination. String `_id` models with `adminBroadcast` overlay TinyBase and write through syncdb when the host passes a window client + fetch auth. Framework RPC uses host-bound fetch; ObjectId/API-only CRUD keeps RTK compatibility in Terreno 57. |
 
 ## Related
 

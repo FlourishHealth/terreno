@@ -40,10 +40,11 @@ declare module "react-native-swiper-flatlist" {
     scrollToIndex: (params: {index: number; animated?: boolean}) => void;
   }
 
-  export const SwiperFlatList: React.ForwardRefExoticComponent<
-    // noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
-    // biome-ignore lint/suspicious/noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
-    SwiperFlatListProps<any> & React.RefAttributes<SwiperFlatListRefProps>>;
+  // noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
+  // biome-ignore lint/suspicious/noExplicitAny: declaration must use any for the generic to allow consumers to specify their data type without explicit type args
+  type SwiperFlatListPropsWithRef = SwiperFlatListProps<any> &
+    React.RefAttributes<SwiperFlatListRefProps>;
+  export const SwiperFlatList: React.ForwardRefExoticComponent<SwiperFlatListPropsWithRef>;
 
   export const Pagination: React.FC<{
     paginationActiveColor?: string;
