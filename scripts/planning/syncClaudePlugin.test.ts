@@ -81,7 +81,7 @@ describe("Claude plugin sync", (): void => {
 
     assert.equal(manifest.name, "terreno");
     assert.equal(manifest.skills, "./skills/");
-    assert.deepEqual(manifest.agents, ["./agents/"]);
+    assert.deepEqual(manifest.agents, ["./agents/pre-commit.md", "./agents/ui-verifier.md"]);
     assert.equal(manifest.version, cursorManifest.version);
   });
 });

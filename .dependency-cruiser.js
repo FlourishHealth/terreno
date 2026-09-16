@@ -45,6 +45,10 @@ module.exports = {
   options: {
     combinedDependencies: true,
     doNotFollow: {path: ["node_modules"]},
+    // Rule-level `pathNot` filters violations but still parses the file. Bundled web
+    // builds under dist/ blow dependency-cruiser's call stack, so keep generated output
+    // out of the graph entirely — otherwise a local `expo export` breaks analyze:full.
+    exclude: {path: generatedPath},
     enhancedResolveOptions: {
       conditionNames: ["import", "require", "react-native", "browser", "node", "default", "types"],
       exportsFields: ["exports"],
