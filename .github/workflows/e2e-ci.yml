@@ -42,9 +42,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # One shard per spec file. Keep this list in sync with example-frontend/e2e/
-        # so every spec runs in CI; a shard's playwright step should stay under ~2
-        # minutes — split the spec file if it grows past that.
+        # Grouped shards in CircleCI; keep this list in sync with
+        # .circleci/continue-config.yml `auth`/`app`/`admin-*`/`syncdb` groups
+        # so every spec still runs if this workflow is re-enabled.
         spec:
           - login
           - signup
@@ -59,8 +59,13 @@ jobs:
           - admin-custom-screens
           - admin-comms-back
           - consents
+          - forgot-password
+          - reset-password
+          - verify-email
           - ai-chat
           - realtime
+          - pdf
+          - admin-title-update-depth
           - syncdb-load-delta
           - syncdb-offline
           - syncdb-conflicts
