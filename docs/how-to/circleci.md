@@ -77,7 +77,9 @@ compiles `@terreno/api` and `@terreno/jobs` deps, then
 `bun run --filter '@terreno/api' compile` and
 `bun run --filter '@terreno/jobs' compile`. The coverage script also compiles
 each gated package's `@terreno/*` workspace deps so packages such as
-`admin-backend` can import `@terreno/jobs`.
+`admin-backend` can import `@terreno/jobs`. Workspace-dep compile uses
+`tsconfig.server.json` when present (so `@terreno/admin-spa` emits `src/dist`
+instead of the Expo app `tsconfig.json`).
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
 `admin-table`, `syncdb`) instead of one container per spec file. Repository
