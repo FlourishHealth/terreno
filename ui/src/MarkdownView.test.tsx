@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it, mock, spyOn} from "bun:test";
 import assert from "node:assert";
 import {fireEvent, waitFor} from "@testing-library/react-native";
 import {Linking} from "react-native";
@@ -148,5 +148,24 @@ describe("MarkdownView", () => {
         serialized.includes("markdown-embed-web") || serialized.includes("markdown-embed-native");
       expect(hasEmbed).toBe(true);
     });
+  });
+
+  it("passes ordinary image keys directly instead of spreading them through props", async () => {
+    const consoleError = spyOn(console, "error").mockImplementation(() => {});
+    const {toJSON} = renderWithTheme(
+      <MarkdownView>
+        {"![Announcement overview](https://example.com/announcement-overview.png)"}
+      </MarkdownView>
+    );
+
+    await waitFor(() => {
+      assert.ok(JSON.stringify(toJSON()).includes("announcement-overview.png"));
+    });
+
+    const keySpreadWarnings = consoleError.mock.calls.filter(([message]) =>
+      String(message).includes('A props object containing a "key" prop')
+    );
+    assert.equal(keySpreadWarnings.length, 0);
+    consoleError.mockRestore();
   });
 });

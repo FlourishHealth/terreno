@@ -1,7 +1,7 @@
 import React, {lazy, Suspense, useCallback, useEffect, useMemo} from "react";
 import {Linking, Platform} from "react-native";
 import type Markdown from "react-native-markdown-display";
-import {renderRules} from "react-native-markdown-display";
+import {FitImage, renderRules} from "react-native-markdown-display";
 
 import {MarkdownEmbed} from "./MarkdownEmbed";
 import {isEmbeddableMediaUrl, toMediaEmbedUrl} from "./markdownEmbeds";
@@ -163,13 +163,25 @@ const MarkdownViewComponent: React.FC<MarkdownViewProps> = ({children, inverted,
         if (typeof src === "string" && isEmbeddableMediaUrl(src) && toMediaEmbedUrl(src)) {
           return <MarkdownEmbed key={node.key} url={src} />;
         }
-        return renderRules.image?.(
-          node,
-          children,
-          parent,
-          styles,
-          allowedImageHandlers,
-          defaultImageHandler
+        if (typeof src !== "string") {
+          return null;
+        }
+        const isAllowed = allowedImageHandlers.some((handler) =>
+          src.toLowerCase().startsWith(handler.toLowerCase())
+        );
+        if (!isAllowed && defaultImageHandler === null) {
+          return null;
+        }
+        const alt = node.attributes?.alt;
+        return (
+          <FitImage
+            accessibilityLabel={typeof alt === "string" ? alt : undefined}
+            accessible={Boolean(alt)}
+            indicator
+            key={node.key}
+            source={{uri: isAllowed ? src : `${defaultImageHandler}${src}`}}
+            style={styles._VIEW_SAFE_image}
+          />
         );
       },
       link: (node, children, parent, styles, onLinkPress) => {
