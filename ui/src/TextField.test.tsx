@@ -265,6 +265,31 @@ describe("TextField", () => {
 
         expect(getByTestId("custom-toggle")).toBeTruthy();
       });
+
+      it("should not blur the input when the visibility toggle is pressed", async () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField
+            onBlur={mockOnBlur}
+            onChange={mockOnChange}
+            testID="pw"
+            trimOnBlur
+            type="password"
+            value="secret  "
+          />
+        );
+
+        const input = getByDisplayValue("secret  ");
+        fireEvent(input, "focus");
+        await act(async () => {
+          fireEvent.press(getByTestId("pw.visibility-toggle"));
+          await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+          });
+        });
+
+        expect(mockOnBlur).not.toHaveBeenCalled();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
     });
 
     it("should render url type with correct keyboard", () => {

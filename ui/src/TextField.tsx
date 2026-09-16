@@ -104,16 +104,36 @@ export const TextField: FC<TextFieldProps> = ({
   const [focused, setFocused] = useState(false);
   const [height, setHeight] = useState(rows * 40);
   const [isValueRevealed, setIsValueRevealed] = useState(false);
+  const textInputRef = useRef<TextInput | null>(null);
 
   const isPasswordField = type === "password";
   const hasVisibilityToggle = isPasswordField && showVisibilityToggle;
 
-  const toggleValueRevealed = useCallback((): void => {
+  /**
+   * Toggles password visibility without blurring the input. Refocuses when the field was focused so
+   * trim-on-blur, parent blur handlers, and the native keyboard stay intact.
+   */
+  const handleVisibilityTogglePress = useCallback((): void => {
     if (disabled) {
       return;
     }
+    const wasFocused = focused;
     setIsValueRevealed((previous) => !previous);
-  }, [disabled]);
+    if (wasFocused) {
+      const refocusInput = (): void => {
+        textInputRef.current?.focus();
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(refocusInput);
+      } else {
+        setTimeout(refocusInput, 0);
+      }
+    }
+  }, [disabled, focused]);
+
+  const preventVisibilityToggleBlur = useCallback((event: {preventDefault: () => void}): void => {
+    event.preventDefault();
+  }, []);
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -291,6 +311,7 @@ export const TextField: FC<TextFieldProps> = ({
             placeholderTextColor={theme.text.secondaryLight}
             readOnly={disabled}
             ref={(ref) => {
+              textInputRef.current = ref;
               if (inputRef) {
                 inputRef(ref);
               }
@@ -314,7 +335,8 @@ export const TextField: FC<TextFieldProps> = ({
               accessibilityState={{disabled, expanded: isValueRevealed}}
               disabled={disabled}
               hitSlop={8}
-              onPress={toggleValueRevealed}
+              onMouseDown={preventVisibilityToggleBlur}
+              onPress={handleVisibilityTogglePress}
               // Fixed width keeps the input from reflowing: the eye-slash glyph is wider than the eye.
               style={{alignItems: "center", marginLeft: 8, width: 20}}
               testID={fieldTestIDs.visibilityToggle}
