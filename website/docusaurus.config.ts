@@ -20,7 +20,7 @@ const searchTheme: [string, Record<string, unknown>] = [
 
 const config: Config = {
   baseUrl: "/",
-  favicon: "img/logo.svg",
+  favicon: "img/favicon.png",
   future: {
     faster: true,
     v4: {
@@ -136,7 +136,7 @@ const config: Config = {
       ],
       logo: {
         alt: "Terreno",
-        src: "img/logo.svg",
+        src: "img/terreno-docs-icon.png",
       },
       title: "Terreno",
     },

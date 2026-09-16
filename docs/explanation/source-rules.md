@@ -49,7 +49,7 @@ bun test scripts/check-source-rules/
 | Layer | What it does |
 | --- | --- |
 | **`bun run check:source-rules`** | Scans scoped production sources and fails on any remaining hit |
-| **Repository policies CI** | GitHub Actions job `Production source rules` (CircleCI twin `source-rules`) |
+| **Repository policies CI** | CircleCI job `repo-policies` (includes `check:source-rules`) |
 | **`bun run check`** | Local aggregate that includes this scanner |
 
 A **new** production file that uses `export function`, `Date.now()`, `throw new Error`, `console.log`, `Model.findOne`, or unsuppressed `as any` fails CI.

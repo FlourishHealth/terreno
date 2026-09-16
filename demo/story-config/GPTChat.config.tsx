@@ -1,5 +1,5 @@
 import type {DemoConfiguration} from "@config";
-import {GPTChatDemo, GPTChatEmpty, GPTChatStreaming} from "@stories/GPTChat.stories";
+import {GPTChatDemo, GPTChatEmpty, GPTChatMascot, GPTChatStreaming} from "@stories/GPTChat.stories";
 import {GPTChat} from "@terreno/ui";
 
 export const GPTChatConfiguration: DemoConfiguration = {
@@ -23,6 +23,7 @@ export const GPTChatConfiguration: DemoConfiguration = {
     do: [
       "Pass currentMessages and histories from your AI routes.",
       "Keep submit local or mocked in stories so the demo runs without an API.",
+      "Pass mascot only when the app owns a character; omit it for the default empty chat.",
     ],
     doNot: ["Do not require a live model endpoint to render the component."],
   },
@@ -33,6 +34,10 @@ export const GPTChatConfiguration: DemoConfiguration = {
     Empty: {
       description: "No messages, with suggested prompts.",
       render: () => <GPTChatEmpty />,
+    },
+    Mascot: {
+      description: "Empty chat with a consumer-supplied mascot above suggested prompts.",
+      render: () => <GPTChatMascot />,
     },
     Streaming: {
       description: "Assistant reply in progress.",
