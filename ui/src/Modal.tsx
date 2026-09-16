@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   Modal as RNModal,
+  useWindowDimensions,
   View,
 } from "react-native";
 import ActionSheet, {type ActionSheetRef} from "react-native-actions-sheet";
@@ -47,6 +48,7 @@ const ModalContent: FC<{
   sizePx: DimensionValue;
   theme: TerrenoTheme;
   isMobile: boolean;
+  isNarrow: boolean;
   modalTestIDs: ReturnType<typeof resolveModalTestIDsFromProps>;
 }> = ({
   children,
@@ -62,6 +64,7 @@ const ModalContent: FC<{
   sizePx,
   theme,
   isMobile,
+  isNarrow,
   modalTestIDs,
 }) => {
   return (
@@ -150,14 +153,16 @@ const ModalContent: FC<{
       )}
       <View
         style={{
-          alignSelf: "flex-end",
-          flexDirection: "row",
+          alignSelf: isNarrow ? "stretch" : "flex-end",
+          flexDirection: isNarrow ? "column" : "row",
+          gap: isNarrow ? 12 : 0,
           marginTop: text && !children ? 20 : 32,
         }}
       >
         {Boolean(secondaryButtonText && secondaryButtonOnClick) && (
-          <View style={{marginRight: primaryButtonText ? 20 : 0}}>
+          <View style={{marginRight: !isNarrow && primaryButtonText ? 20 : 0}}>
             <Button
+              fullWidth={isNarrow}
               onClick={secondaryButtonOnClick!}
               testID={modalTestIDs.secondaryButton}
               text={secondaryButtonText as string}
@@ -168,6 +173,7 @@ const ModalContent: FC<{
         {Boolean(primaryButtonText && primaryButtonOnClick) && (
           <Button
             disabled={primaryButtonDisabled}
+            fullWidth={isNarrow}
             onClick={primaryButtonOnClick!}
             testID={modalTestIDs.primaryButton}
             text={primaryButtonText as string}
@@ -197,6 +203,7 @@ export const Modal: FC<ModalProps> = ({
 }: ModalProps) => {
   const actionSheetRef = useRef<ActionSheetRef>(null);
   const {theme} = useTheme();
+  const {width: windowWidth} = useWindowDimensions();
   const modalTestIDs = resolveModalTestIDsFromProps({testID, testIDs});
 
   const handleDismiss = () => {
@@ -253,11 +260,13 @@ export const Modal: FC<ModalProps> = ({
   // fight over the touch responder, producing repeated press animations and a Confirm button that
   // never fires. All native devices (phones and tablets) use the ActionSheet presentation.
   const isMobile = isNative();
+  const isNarrow = windowWidth < 480;
   const sizePx = getModalSize(size);
 
   const modalContentProps = {
     children,
     isMobile,
+    isNarrow,
     modalTestIDs,
     onDismiss: handleDismiss,
     persistOnBackgroundClick,
