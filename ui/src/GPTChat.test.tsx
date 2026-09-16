@@ -7,6 +7,7 @@ import {Platform, Pressable, ScrollView} from "react-native";
 import type {SelectedFile} from "./FilePickerButton";
 import type {GPTChatHistory, GPTChatMessage, GPTChatProps, MessageContentPart} from "./GPTChat";
 import {GPTChat} from "./GPTChat";
+import {Text} from "./Text";
 import {ThemeProvider} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 
@@ -234,6 +235,112 @@ describe("GPTChat", () => {
     const {queryByTestId} = renderChat({mcpTools: []});
 
     assert.isNull(queryByTestId("gpt-tools-button"));
+  });
+
+  it("omits the mascot when the consumer does not pass one", () => {
+    const {queryByTestId} = renderChat({suggestedPrompts: ["Summarize this"]});
+
+    assert.isNull(queryByTestId("gpt-mascot"));
+  });
+
+  it("renders the consumer mascot on an empty chat", () => {
+    const {getByTestId, getByText} = renderChat({
+      mascot: <Text testID="consumer-mascot">App fox</Text>,
+    });
+
+    assert.isOk(getByTestId("gpt-mascot"));
+    assert.isOk(getByText("App fox"));
+  });
+
+  it("keeps the mascot above suggested prompts on an empty chat", () => {
+    const {getByTestId, getByText} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isOk(getByTestId("gpt-mascot"));
+    assert.isOk(getByText("Try asking..."));
+  });
+
+  it("centers the empty state in the chat panel", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    const emptyState = getByTestId("gpt-empty-state");
+
+    assert.equal(emptyState.props.style.flexGrow, 1);
+    assert.equal(emptyState.props.style.justifyContent, "center");
+    assert.equal(emptyState.props.style.alignItems, "center");
+  });
+
+  it("sizes the empty hero to the viewport so short content can center", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    fireEvent(getByTestId("gpt-viewport"), "layout", {
+      nativeEvent: {layout: {height: 480, width: 100, x: 0, y: 0}},
+    });
+
+    assert.equal(getByTestId("gpt-empty-state").props.style.minHeight, 480);
+  });
+
+  it("keeps the empty state inside the scrollable message content", () => {
+    const {getByTestId} = renderChat({
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isOk(getByTestId("gpt-messages").findByProps({testID: "gpt-empty-state"}));
+  });
+
+  it("keeps empty-chat streaming feedback in the centered hero", () => {
+    const {getByTestId} = renderChat({
+      isStreaming: true,
+      mascot: <Text>App fox</Text>,
+    });
+
+    assert.isOk(getByTestId("gpt-empty-state").findByProps({testID: "gpt-streaming-indicator"}));
+  });
+
+  it("drops the centered empty state once messages exist", () => {
+    const {queryByTestId} = renderChat({
+      currentMessages: [{content: "Hi there", role: "user"}],
+      mascot: <Text>App fox</Text>,
+      suggestedPrompts: ["Summarize this"],
+    });
+
+    assert.isNull(queryByTestId("gpt-empty-state"));
+  });
+
+  it("vertically centers each composer control beside the input", () => {
+    const {getByTestId} = renderChat({
+      mcpTools: [{name: "readFile"}],
+      onAttachFiles: () => {},
+    });
+
+    // Button hard-codes alignSelf, so each control sits in a full-height cell that centers it.
+    for (const cell of ["gpt-composer-attach", "gpt-composer-tools", "gpt-composer-send"]) {
+      assert.equal(getByTestId(cell).props.style.justifyContent, "center");
+    }
+  });
+
+  it("omits the attachment composer cell when attachments are unavailable", () => {
+    const {queryByTestId} = renderChat();
+
+    assert.isNull(queryByTestId("gpt-composer-attach"));
+  });
+
+  it("hides the mascot after messages exist", () => {
+    const {queryByTestId} = renderChat({
+      currentMessages: [{content: "Hi there", role: "user"}],
+      mascot: <Text>App fox</Text>,
+    });
+
+    assert.isNull(queryByTestId("gpt-mascot"));
   });
 
   it("renders suggested prompts and submits the tapped prompt", async () => {

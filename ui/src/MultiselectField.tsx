@@ -1,4 +1,4 @@
-import {type FC, useEffect, useState} from "react";
+import {type FC, useCallback} from "react";
 import {TouchableOpacity, View} from "react-native";
 
 import {CheckBox} from "./CheckBox";
@@ -69,19 +69,17 @@ export const MultiselectField: FC<MultiselectFieldProps> = ({
   const isMobile = isMobileDevice();
   const isDefault = variant === "leftText";
   const fieldTestIDs = resolveFieldTestIDsFromProps({testID, testIDs});
-  const [selectedItems, setSelectedItems] = useState<string[]>(value);
-  // set the selected items to the value passed in the props
-  useEffect(() => {
-    setSelectedItems(value);
-  }, [value]);
+  const selectedItems = value ?? [];
 
-  const toggleItem = (item: string) => {
-    const newSelectedItems = selectedItems.includes(item)
-      ? selectedItems.filter((selected) => selected !== item)
-      : [...selectedItems, item];
-    setSelectedItems(newSelectedItems);
-    onChange(newSelectedItems);
-  };
+  const toggleItem = useCallback(
+    (item: string): void => {
+      const newSelectedItems = selectedItems.includes(item)
+        ? selectedItems.filter((selected) => selected !== item)
+        : [...selectedItems, item];
+      onChange(newSelectedItems);
+    },
+    [onChange, selectedItems]
+  );
   return (
     <View
       accessibilityHint="Contains a prompt and list of options to select"

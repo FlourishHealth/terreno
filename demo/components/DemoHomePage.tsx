@@ -6,6 +6,8 @@ import type React from "react";
 import {useEffect} from "react";
 import {ScrollView} from "react-native";
 
+import {DemoHomeBanner} from "./demoHomeBanner";
+
 export const DemoHomePage: React.FC<{
   onPress: (componentName: string) => void;
 }> = ({onPress}) => {
@@ -34,6 +36,7 @@ export const DemoHomePage: React.FC<{
         margin={2}
         padding={4}
         rounding="md"
+        testID="demo-home-palette-callout"
         width="100%"
         wrap
       >
@@ -51,6 +54,7 @@ export const DemoHomePage: React.FC<{
           variant="primary"
         />
       </Box>
+      <DemoHomeBanner />
       {DemoConfig.map((config) => (
         <DemoCard config={config} key={config.name} onPress={onPress} />
       ))}

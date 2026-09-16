@@ -279,6 +279,18 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Brew must load the GitHub attention contract`);
     }
+    if (!content.includes("[ticket] Short feature title")) {
+      errors.push(`${prefix}: Brew must set PR titles to [ticket] Short feature title`);
+    }
+    if (!content.includes("IP's original justification")) {
+      errors.push(`${prefix}: Brew must preserve the IP's original justification in the PR body`);
+    }
+    if (!content.includes("reproducible testing instructions")) {
+      errors.push(`${prefix}: Brew must always include reproducible testing instructions`);
+    }
+    if (!content.includes("without rewriting the body around the latest turn")) {
+      errors.push(`${prefix}: Brew must keep the PR overview stable across testing updates`);
+    }
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
@@ -457,6 +469,30 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   if (!content.includes("<details>")) {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
   }
+  if (!content.includes("[FH-1632]")) {
+    errors.push("GitHub attention contract must show Linear ticket title format [FH-1632]");
+  }
+  if (!content.includes("[#412]")) {
+    errors.push("GitHub attention contract must show GitHub issue title format [#412]");
+  }
+  if (!content.includes("IP Approved")) {
+    errors.push("GitHub attention contract must forbid lifecycle labels such as IP Approved");
+  }
+  if (!content.includes("feat:")) {
+    errors.push("GitHub attention contract must forbid conventional-commit prefixes such as feat:");
+  }
+  if (!content.includes("IP's initial justification")) {
+    errors.push("GitHub attention contract must preserve the IP's initial justification");
+  }
+  if (!content.includes("overview of the approved IP")) {
+    errors.push("GitHub attention contract must include an overview of the approved IP");
+  }
+  if (!content.includes("Always include executable testing instructions")) {
+    errors.push("GitHub attention contract must always include executable testing instructions");
+  }
+  if (!content.includes("Do not regenerate the rest of the body from the latest turn")) {
+    errors.push("GitHub attention contract must keep the PR body stable across turns");
+  }
 
   return errors;
 };
@@ -625,8 +661,11 @@ export const validateClaudePluginHost = ({
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
   }
-  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
-    errors.push("Claude plugin agents path must be ./agents/");
+  const expectedClaudeAgents = [...PLUGIN_AGENT_NAMES]
+    .sort()
+    .map((agentName) => `./agents/${agentName}.md`);
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(expectedClaudeAgents)) {
+    errors.push(`Claude plugin agents must be exactly ${expectedClaudeAgents.join(", ")}`);
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {

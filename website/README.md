@@ -32,6 +32,7 @@ The site runs on **port 3001**. Generated API and component pages are produced b
 - `sidebars.ts` — navigation
 - `scripts/generate-component-docs.ts` / `generate-api-reference.ts` — generated reference
 - `scripts/docs-audit.ts` — drift checks for READMEs, reference pages, and leakage
+- `static/img/terreno-docs-icon.png` and `favicon.png` — docs sprout branding
 - `versioned_docs/` — frozen docs for published versions
 
 `docs/implementationPlans/` and `docs/tasks/` are excluded from the site (`exclude` in `docusaurus.config.ts`).
