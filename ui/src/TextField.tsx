@@ -2,7 +2,6 @@ import {getCalendars} from "expo-localization";
 import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
-  type GestureResponderEvent,
   type KeyboardTypeOptions,
   Platform,
   Pressable,
@@ -64,6 +63,13 @@ const textContentMap: {
   username: "username",
 };
 
+interface WebTextInputRef {
+  focus: () => void;
+  selectionEnd: number | null;
+  selectionStart: number | null;
+  setSelectionRange: (start: number, end: number) => void;
+}
+
 export const TextField: FC<TextFieldProps> = ({
   title,
   disabled,
@@ -119,10 +125,21 @@ export const TextField: FC<TextFieldProps> = ({
       return;
     }
     const wasFocused = focused;
+    const webInput =
+      Platform.OS === "web" ? (textInputRef.current as unknown as WebTextInputRef | null) : null;
+    const selection =
+      webInput?.selectionStart !== null &&
+      webInput?.selectionStart !== undefined &&
+      webInput.selectionEnd !== null
+        ? {end: webInput.selectionEnd, start: webInput.selectionStart}
+        : undefined;
     setIsValueRevealed((previous) => !previous);
     if (wasFocused) {
       const refocusInput = (): void => {
         textInputRef.current?.focus();
+        if (selection && webInput) {
+          webInput.setSelectionRange(selection.start, selection.end);
+        }
       };
       if (typeof requestAnimationFrame === "function") {
         requestAnimationFrame(refocusInput);
@@ -132,9 +149,11 @@ export const TextField: FC<TextFieldProps> = ({
     }
   }, [disabled, focused]);
 
-  const preventVisibilityToggleBlur = useCallback((event: GestureResponderEvent): void => {
+  const preventVisibilityToggleBlur = useCallback((event: {preventDefault: () => void}): void => {
     event.preventDefault();
   }, []);
+  const visibilityToggleWebProps =
+    Platform.OS === "web" ? {onMouseDown: preventVisibilityToggleBlur} : {};
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -331,13 +350,13 @@ export const TextField: FC<TextFieldProps> = ({
           )}
           {hasVisibilityToggle && (
             <Pressable
+              {...visibilityToggleWebProps}
               accessibilityLabel={isValueRevealed ? "Hide password" : "Show password"}
               accessibilityRole="button"
               accessibilityState={{disabled, expanded: isValueRevealed}}
               disabled={disabled}
               hitSlop={8}
               onPress={handleVisibilityTogglePress}
-              onPressIn={preventVisibilityToggleBlur}
               // Fixed width keeps the input from reflowing: the eye-slash glyph is wider than the eye.
               style={{alignItems: "center", marginLeft: 8, width: 20}}
               testID={fieldTestIDs.visibilityToggle}
