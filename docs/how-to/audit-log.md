@@ -69,6 +69,10 @@ new AuditApp({
 });
 ```
 
+Authenticated malformed queue payloads are acknowledged without persistence. They cannot
+become valid on retry, and returning a non-2xx response would make Cloud Tasks retry the
+same poison task indefinitely.
+
 ### 5. Retention
 
 Omit `retentionDays` or set `0` to keep events forever (no TTL index). `new AuditApp({retentionDays: 90})` creates a Mongo TTL index on `created` with `expireAfterSeconds = 90 * 86400`, replacing the default `{created: 1}` field index so Mongo does not reject a duplicate key pattern. Mongo expires documents in the background; lowering or removing TTL later requires dropping that index yourself (`db.auditevents.dropIndex(...)`) — Mongoose will not remove it.

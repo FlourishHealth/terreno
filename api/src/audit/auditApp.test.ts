@@ -198,7 +198,7 @@ describe("AuditApp", () => {
     assert.equal(res.status, 401);
   });
 
-  it("rejects enqueued writes with an invalid payload", async () => {
+  it("acknowledges malformed enqueued writes without persisting them", async () => {
     const app = new TerrenoApp({
       skipListen: true,
       userModel: typedUserModel,
@@ -211,8 +211,12 @@ describe("AuditApp", () => {
         })
       )
       .build();
-    const res = await fetchWorker(app, {body: {operation: "create"}, secret: "queue-secret"});
-    assert.equal(res.status, 400);
+    const res = await fetchWorker(app, {
+      body: {modelName: "Note", operation: "create", source: "invalid", verb: "created"},
+      secret: "queue-secret",
+    });
+    assert.equal(res.status, 204);
+    assert.equal(await mongoose.connection.collection("auditevents").countDocuments(), 0);
   });
 
   it("rejects enqueued writes with no secret header", async () => {

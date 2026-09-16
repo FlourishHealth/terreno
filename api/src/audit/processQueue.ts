@@ -24,7 +24,26 @@ const isAuditEventWrite = (value: unknown): value is AuditEventWrite => {
     return false;
   }
   const record = value as Record<string, unknown>;
-  return typeof record.modelName === "string" && typeof record.operation === "string";
+  const validOperations: AuditEventWrite["operation"][] = [
+    "arrayPush",
+    "arrayRemove",
+    "arrayUpdate",
+    "create",
+    "delete",
+    "update",
+  ];
+  const validSources: AuditEventWrite["source"][] = ["admin", "modelRouter", "rbac"];
+  const validVerbs: AuditEventWrite["verb"][] = ["created", "deleted", "updated"];
+  return (
+    typeof record.modelName === "string" &&
+    record.modelName.length > 0 &&
+    typeof record.operation === "string" &&
+    validOperations.includes(record.operation as AuditEventWrite["operation"]) &&
+    typeof record.source === "string" &&
+    validSources.includes(record.source as AuditEventWrite["source"]) &&
+    typeof record.verb === "string" &&
+    validVerbs.includes(record.verb as AuditEventWrite["verb"])
+  );
 };
 
 export const handleEnqueuedAuditWrite = async ({
@@ -41,7 +60,9 @@ export const handleEnqueuedAuditWrite = async ({
     throw new APIError({status: 401, title: "Unauthorized"});
   }
   if (!isAuditEventWrite(req.body)) {
-    throw new APIError({status: 400, title: "Invalid AuditEvent payload"});
+    // Cloud Tasks retries every non-2xx response. This authenticated task cannot
+    // become valid on retry, so acknowledge it rather than retrying it forever.
+    return res.status(204).end();
   }
   await persistEnqueuedAuditEvent(req.body);
   return res.status(204).end();
