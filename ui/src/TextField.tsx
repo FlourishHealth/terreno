@@ -2,6 +2,7 @@ import {getCalendars} from "expo-localization";
 import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
+  type GestureResponderEvent,
   type KeyboardTypeOptions,
   Platform,
   Pressable,
@@ -131,7 +132,7 @@ export const TextField: FC<TextFieldProps> = ({
     }
   }, [disabled, focused]);
 
-  const preventVisibilityToggleBlur = useCallback((event: {preventDefault: () => void}): void => {
+  const preventVisibilityToggleBlur = useCallback((event: GestureResponderEvent): void => {
     event.preventDefault();
   }, []);
 
@@ -335,8 +336,8 @@ export const TextField: FC<TextFieldProps> = ({
               accessibilityState={{disabled, expanded: isValueRevealed}}
               disabled={disabled}
               hitSlop={8}
-              onMouseDown={preventVisibilityToggleBlur}
               onPress={handleVisibilityTogglePress}
+              onPressIn={preventVisibilityToggleBlur}
               // Fixed width keeps the input from reflowing: the eye-slash glyph is wider than the eye.
               style={{alignItems: "center", marginLeft: 8, width: 20}}
               testID={fieldTestIDs.visibilityToggle}
