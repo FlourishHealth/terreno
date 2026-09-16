@@ -37,6 +37,7 @@ describe("Filter", () => {
     const trigger = getByTestId("f.trigger");
     expect(queryByText("Filters")).toBeNull();
     expect(trigger.props.accessibilityLabel).toBe("Filter Name");
+    expect(trigger.props.accessibilityRole).toBe("button");
     expect(trigger.props.style.height).toBe(24);
     expect(trigger.props.style.width).toBe(24);
   });

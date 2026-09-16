@@ -260,8 +260,8 @@ export const Filter: FC<FilterProps> = ({
         {iconOnly ? (
           <Pressable
             accessibilityLabel={triggerAccessibilityLabel ?? label ?? "Filter"}
+            accessibilityRole="button"
             aria-label={triggerAccessibilityLabel ?? label ?? "Filter"}
-            aria-role="button"
             hitSlop={8}
             onPress={() => setOpen(!open)}
             style={{
