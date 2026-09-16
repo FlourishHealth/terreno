@@ -701,6 +701,7 @@ jobs:
           command: |
             node .github/scripts/compile-workspace-deps.js api example-backend
             bun run --filter '@terreno/api' compile
+            bun run --filter '@terreno/admin-spa' compile
       - run:
           name: Check new source file coverage
           command: |

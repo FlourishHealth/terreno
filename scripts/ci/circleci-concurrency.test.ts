@@ -197,5 +197,6 @@ describe("CircleCI concurrency", () => {
     assert.ok(coverage);
     assert.match(coverage, /compile-workspace-deps\.js api example-backend/);
     assert.match(coverage, /bun run --filter '@terreno\/api' compile/);
+    assert.match(coverage, /bun run --filter '@terreno\/admin-spa' compile/);
   });
 });
