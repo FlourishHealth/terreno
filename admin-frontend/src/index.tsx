@@ -40,7 +40,7 @@ export {
   bindAdminRequest,
   DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
 } from "./adminRequest";
-export {groupAdminModelsByGroup} from "./adminShellNav";
+export {groupAdminCustomScreens, groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {ConsentFormEditor} from "./ConsentFormEditor";
@@ -104,6 +104,15 @@ export {
   AI_ADMIN_WIDGETS,
   AIRequestsScreenWidget,
 } from "./widgets/AIRequestsScreenWidget";
+export {
+  AI_OBSERVABILITY_WIDGETS,
+  AiPromptEditorScreenWidget,
+  AiPromptsScreenWidget,
+  AiReviewItemScreenWidget,
+  AiReviewScreenWidget,
+  AiTraceDetailScreenWidget,
+  AiTracesScreenWidget,
+} from "./widgets/aiObservability/shell/AiObservabilityScreenWidgets";
 export {
   BUILT_IN_FIELD_WIDGETS,
   BUILT_IN_HOME_WIDGETS,

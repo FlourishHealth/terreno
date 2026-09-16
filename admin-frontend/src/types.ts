@@ -135,6 +135,9 @@ export interface AdminModelConfig {
 export interface AdminCustomScreen {
   description?: string;
   displayName: string;
+  /** Sidebar heading. Screens without a group stay under "Screens". */
+  group?: string;
+  icon?: string;
   name: string;
 }
 

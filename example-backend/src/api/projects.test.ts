@@ -127,8 +127,12 @@ describe("projects tenant create-escape (D3)", () => {
       if (findSyncEntryByCollectionTag("projects")) {
         return;
       }
+      const syncConfig = projectRouter.options.sync;
+      if (!syncConfig) {
+        throw new Error("projectRouter sync config is required");
+      }
       registerSync({
-        config: projectRouter.options.sync!,
+        config: syncConfig,
         model: projectRouter.model,
         options: projectRouter.options,
         routePath: projectRouter.path,

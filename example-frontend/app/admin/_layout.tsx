@@ -1,7 +1,13 @@
-import {AdminProvider, AdminShellLayout} from "@terreno/admin-frontend";
+import {
+  AdminProvider,
+  type AdminScreenWidgetProps,
+  AdminShellLayout,
+  AiPromptEditorScreenWidget,
+  AiTracesScreenWidget,
+} from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
-import {Box, Spinner, Text} from "@terreno/ui";
+import {Box, Spinner, Text, useStoredState} from "@terreno/ui";
 import {Stack} from "expo-router";
 import React, {useEffect, useState} from "react";
 import {useSelector} from "react-redux";
@@ -10,6 +16,36 @@ import {getAdminAuthHeaders} from "@/store/betterAuthApi";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import {adminSyncDb} from "@/store/syncdb";
 import SyncLabScreen from "./SyncLabScreen";
+
+const PLAYGROUND_GEMINI_KEY_HINT =
+  "Save a Gemini API key on the Profile tab, then return here to run the playground.";
+
+const MULTI_STAGE_GEMINI_KEY_HINT =
+  "Save a Gemini API key on the Profile tab, then return here to run the multi-stage trace test.";
+
+const ExamplePromptEditorScreen: React.FC<AdminScreenWidgetProps> = (props) => {
+  const [geminiApiKey, , isGeminiApiKeyLoading] = useStoredState<string>("geminiApiKey", "");
+  return (
+    <AiPromptEditorScreenWidget
+      {...props}
+      apiKey={geminiApiKey || undefined}
+      apiKeyLoading={isGeminiApiKeyLoading}
+      playgroundApiKeyHint={PLAYGROUND_GEMINI_KEY_HINT}
+    />
+  );
+};
+
+const ExampleTracesScreen: React.FC<AdminScreenWidgetProps> = (props) => {
+  const [geminiApiKey, , isGeminiApiKeyLoading] = useStoredState<string>("geminiApiKey", "");
+  return (
+    <AiTracesScreenWidget
+      {...props}
+      apiKey={geminiApiKey || undefined}
+      apiKeyHint={MULTI_STAGE_GEMINI_KEY_HINT}
+      apiKeyLoading={isGeminiApiKeyLoading}
+    />
+  );
+};
 
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main
@@ -99,7 +135,13 @@ const AdminLayoutContent: React.FC = () => {
       routeBase={ADMIN_ROUTE}
       syncConflicts={syncConflicts}
       syncDb={adminSyncDb}
-      widgets={{screens: {"sync-lab": SyncLabScreen}}}
+      widgets={{
+        screens: {
+          "ai-prompt-editor": ExamplePromptEditorScreen,
+          "ai-traces": ExampleTracesScreen,
+          "sync-lab": SyncLabScreen,
+        },
+      }}
     >
       <AdminShellLayout
         api={terrenoApi}
