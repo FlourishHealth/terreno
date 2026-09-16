@@ -377,7 +377,13 @@ const buildAdminListQueryFilter = (
       merged = {...merged, ...baseResult};
     }
     const result = andMongoFilters(merged, searchClause);
-    return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
+    const overrides: Record<string, unknown> = {...filter};
+    for (const key of consumedKeys) {
+      if (!(key in overrides)) {
+        overrides[key] = undefined;
+      }
+    }
+    return {...result, ...overrides, [ADMIN_LIST_SEARCH_PARAM]: undefined};
   };
 };
 
