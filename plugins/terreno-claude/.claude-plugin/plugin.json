@@ -1,6 +1,7 @@
 {
   "agents": [
-    "./agents/"
+    "./agents/pre-commit.md",
+    "./agents/ui-verifier.md"
   ],
   "author": {
     "name": "Terreno",
