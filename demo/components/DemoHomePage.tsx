@@ -4,13 +4,14 @@ import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect} from "react";
 import {Pressable, ScrollView, View} from "react-native";
 
+import {DemoHomeBanner} from "./demoHomeBanner";
+
 const CARD_WIDTH = 300;
 const CARD_HEIGHT = 280;
 const CARD_PREVIEW_HEIGHT = 176;
 const CARD_DIVIDER_HEIGHT = 4;
 const CARD_TEXT_HEIGHT = 100;
 const CARD_DESCRIPTION_LINES = 2;
-
 interface DemoCardProps {
   config: DemoConfiguration;
   onPress: (componentName: string) => void;
@@ -94,6 +95,7 @@ export const DemoHomePage: React.FC<{
       }}
       style={{padding: 20, width: "100%"}}
     >
+      <DemoHomeBanner />
       <Box
         alignItems="center"
         color="secondaryLight"

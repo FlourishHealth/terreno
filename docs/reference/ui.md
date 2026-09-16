@@ -78,6 +78,34 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### GPTChat
+
+Streaming chat surface for `@terreno/ai`. Histories, messages, submit, and optional MCP/tools stay under consumer control.
+
+Pass `mascot` when the app owns a character. Terreno ships none. The node renders only while `currentMessages` is empty, centered in the chat panel above the suggested prompts. The empty hero uses the message viewport height as a minimum so short content stays centered, while taller mascots still scroll. Streaming feedback shares that centered hero instead of creating a second pane. Omit the prop for the default empty chat.
+
+The composer row (attachment picker, tools, input, Send) is vertically centered, so controls stay aligned with the input as it grows. The attachment cell is omitted when `onAttachFiles` is not provided.
+
+```tsx
+<GPTChat
+  currentMessages={[]}
+  histories={histories}
+  mascot={
+    <Box alignItems="center">
+      <Heading size="lg">🦊</Heading>
+    </Box>
+  }
+  onCreateHistory={onCreateHistory}
+  onDeleteHistory={onDeleteHistory}
+  onSelectHistory={onSelectHistory}
+  onSubmit={onSubmit}
+/>
+```
+
+Operator steps: [Add a GPT chat mascot](../how-to/add-gpt-chat-mascot.md). Demo story: `GPTChat` → `Mascot`.
+The example AI screen demonstrates a consumer selecting one of four bundled mascot
+images once per mount.
+
 ### SplitPage
 
 Master-detail layout. Pass `listViewData` plus `renderListViewItem` for the list, and
