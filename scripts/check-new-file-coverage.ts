@@ -9,6 +9,7 @@ import {
   type CoverageSummary,
   evaluateCoverage,
   type FileCoverage,
+  isBunCoverageThresholdExit,
   parseLcov,
   summarizeLcov,
 } from "./check-coverage";
@@ -16,7 +17,7 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|testing)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)src\/types\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|testing|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)src\/types\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, thin `create` wrappers, and named recovery routes
@@ -252,7 +253,7 @@ const runPackageCoverage = async ({
   coverageDir: string;
   packageName: string;
   packageRoot: string;
-}): Promise<number> => {
+}): Promise<{exitCode: number; output: string}> => {
   const coverageArgs = expandCoverageRunArgs({
     args: coverageRunArgs({
       hasSrcDir: existsSync(join(packageRoot, "src")),
@@ -268,18 +269,30 @@ const runPackageCoverage = async ({
         "test",
         ...coverageArgs,
         "--coverage",
+        "--coverage-reporter=text",
         "--coverage-reporter=lcov",
         `--coverage-dir=${coverageDir}`,
       ],
       {
         cwd: packageRoot,
-        env: {...process.env, CI: "true"},
-        stdio: "inherit",
+        env: {...process.env, CI: "true", FORCE_COLOR: "0"},
+        stdio: ["ignore", "pipe", "pipe"],
       }
     );
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      process.stdout.write(text);
+    });
+    child.stderr.on("data", (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      process.stderr.write(text);
+    });
     child.on("error", rejectPromise);
     child.on("close", (code) => {
-      resolvePromise(code ?? 1);
+      resolvePromise({exitCode: code ?? 1, output});
     });
   });
 };
@@ -310,12 +323,12 @@ const main = async (): Promise<void> => {
       console.info(
         `\nChecking ${packageCoverage.files.length} new source file(s) in ${packageCoverage.packageName}...`
       );
-      const exitCode = await runPackageCoverage({
+      const {exitCode, output} = await runPackageCoverage({
         coverageDir,
         packageName: packageCoverage.packageName,
         packageRoot,
       });
-      if (exitCode !== 0) {
+      if (exitCode !== 0 && !isBunCoverageThresholdExit(exitCode, output)) {
         process.exit(exitCode);
       }
       const lcovPath = join(coverageDir, "lcov.info");

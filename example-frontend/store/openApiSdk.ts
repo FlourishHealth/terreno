@@ -21,6 +21,7 @@ export const addTagTypes = [
   "announcementacknowledgements",
   "announcementimpressions",
   "announcementclickevents",
+  "adminMigrations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -29,6 +30,20 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      adminMigrationsRun: build.mutation<AdminMigrationsRunRes, AdminMigrationsRunArgs>({
+        invalidatesTags: ["adminMigrations"],
+        query: (queryArg) => ({
+          method: "POST",
+          params: {
+            wetRun: queryArg,
+          },
+          url: `/admin/migrations/run`,
+        }),
+      }),
+      adminMigrationsStatus: build.query<AdminMigrationsStatusRes, AdminMigrationsStatusArgs>({
+        providesTags: ["adminMigrations"],
+        query: () => ({url: `/admin/migrations/status`}),
+      }),
       aiModels: build.query<AiModelsRes, AiModelsArgs>({
         providesTags: ["ai"],
         query: () => ({url: `/ai/models`}),
@@ -5187,6 +5202,14 @@ export type PatchAnnouncementsByIdArgs = {
 };
 export type DeleteAnnouncementsByIdRes = unknown;
 export type DeleteAnnouncementsByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -5358,6 +5381,8 @@ export const {
   useGetAnnouncementsByIdQuery,
   usePatchAnnouncementsByIdMutation,
   useDeleteAnnouncementsByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

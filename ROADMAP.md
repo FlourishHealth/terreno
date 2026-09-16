@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-15T06:28:56.686Z.
+> dates are promised. Last updated: 2026-09-16T01:25:38.470Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -29,7 +29,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### ui
 
 - [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, Planned)
-- [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review)
+- [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review) — IP: [datatable-server-side-filtering](docs/implementationPlans/datatable-server-side-filtering.md)
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
 - [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
@@ -63,7 +63,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
 - [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
-- [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Planned)
 - [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
 
 ### ui

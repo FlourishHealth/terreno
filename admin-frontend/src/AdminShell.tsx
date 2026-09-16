@@ -78,6 +78,7 @@ interface AdminShellSidebarNavProps {
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
+  migrationsEnabled: boolean;
   sidebarGroups: AdminSidebarGroup[];
   sidebarVariant: AdminShellSidebarVariant;
   ungroupedScreens: AdminCustomScreen[];
@@ -92,6 +93,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   platformTools,
   rolesPath,
   scripts,
+  migrationsEnabled,
   sidebarGroups,
   sidebarVariant,
   ungroupedScreens,
@@ -113,6 +115,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
     );
   const hasPlatformLinks = Boolean(
     (platformTools.scripts && scripts.length > 0) ||
+      migrationsEnabled ||
       (platformTools.roles && rolesPath) ||
       (platformTools.version && versionConfigPath) ||
       auditLogModel ||
@@ -219,6 +222,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 }}
                 sidebarVariant={sidebarVariant}
                 testID="admin-shell-nav-scripts"
+              />
+            ) : null}
+            {migrationsEnabled ? (
+              <NavButton
+                label="Migrations"
+                onPress={() => {
+                  runNav(() => {
+                    navigate("/__migrations");
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-migrations"
               />
             ) : null}
             {platformTools.roles && rolesPath ? (
@@ -408,6 +423,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const sidebarNavProps: AdminShellSidebarNavProps = {
     configurationPath,
     footer,
+    migrationsEnabled: Boolean(config.migrations?.enabled),
     navigate,
     platformTools,
     rolesPath,
