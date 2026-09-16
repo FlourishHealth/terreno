@@ -197,7 +197,7 @@ describe("DataTableFilterFields", () => {
     expect(getByTestId("data-table-filter-age-lte").props.value).toBe("2");
   });
 
-  it("clears number range bounds when the inputs are emptied", () => {
+  it("clears number range bounds when the inputs are emptied", async () => {
     const onDraftChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <DraftHarness
@@ -205,10 +205,21 @@ describe("DataTableFilterFields", () => {
         onDraftChange={onDraftChange}
       />
     );
-    fireEvent.changeText(getByTestId("data-table-filter-age-gte"), "3");
-    fireEvent.changeText(getByTestId("data-table-filter-age-lte"), "9");
-    fireEvent.changeText(getByTestId("data-table-filter-age-gte"), "");
-    fireEvent.changeText(getByTestId("data-table-filter-age-lte"), "");
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-filter-age-gte"), "3");
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-filter-age-lte"), "9");
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 510));
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-filter-age-gte"), "");
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("data-table-filter-age-lte"), "");
+    });
     expect(onDraftChange).toHaveBeenLastCalledWith({age: {}});
   });
 
