@@ -155,8 +155,8 @@ const ModalContent: FC<{
         style={{
           alignSelf: isNarrow ? "stretch" : "flex-end",
           flexDirection: isNarrow ? "column" : "row",
-          gap: isNarrow ? 12 : 0,
           marginTop: text && !children ? 20 : 32,
+          ...(isNarrow ? {gap: 12} : {}),
         }}
       >
         {Boolean(secondaryButtonText && secondaryButtonOnClick) && (

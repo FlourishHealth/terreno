@@ -514,7 +514,10 @@ describe("Modal web platform", () => {
       assert.exists(getByText("Read the announcement docs"));
       assert.exists(getByText("Got it"));
       const stackedActionRows = UNSAFE_root.findAll(
-        (node) => node.props?.style?.flexDirection === "column" && node.props?.style?.gap === 12
+        (node) =>
+          node.props?.style?.alignSelf === "stretch" &&
+          node.props?.style?.flexDirection === "column" &&
+          node.props?.style?.gap === 12
       );
       assert.lengthOf(stackedActionRows, 1);
     } finally {
