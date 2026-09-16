@@ -45,6 +45,8 @@ Common fields:
   Optional choice fields (Mongoose path not `required`) automatically expose an **Empty**
   filter option; set `allowEmpty: false` on the filter config to hide it, or
   `allowEmpty: true` on required fields when you intentionally want unset matching.
+  Empty filters can be combined with toolbar search or concrete choices. The wire
+  sentinel is consumed before Mongo receives the query.
 - `fieldsets`: grouped form sections.
 - `readonlyFields` / `hiddenFields`: display-only or omitted form fields.
 - `adminPermissions`: optional admin-specific permission methods.

@@ -949,6 +949,85 @@ describe("AdminApp model CRUD routes", () => {
     ]);
   });
 
+  it("filters empty priority with search without leaving the wire sentinel on the query", async () => {
+    app = buildApp([
+      {
+        displayName: "Priority todos",
+        filters: [
+          {
+            choices: [
+              {label: "High", value: "high"},
+              {label: "Low", value: "low"},
+            ],
+            field: "priority",
+            kind: "choice",
+            label: "Priority",
+          },
+        ],
+        listFields: ["title", "priority"],
+        model: PriorityTodoModel,
+        routePath: "/priority-todos",
+        searchFields: ["title"],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    await PriorityTodoModel.create({priority: "high", title: "alpha task"});
+    await PriorityTodoModel.create({priority: "low", title: "beta task"});
+    await PriorityTodoModel.create({title: "gamma task"});
+    await PriorityTodoModel.create({title: "delta task"});
+    await PriorityTodoModel.create({priority: null, title: "epsilon task"});
+
+    const query = new URLSearchParams([
+      ["priority[$in][0]", "__empty__"],
+      ["q", "task"],
+    ]).toString();
+    const res = await agent.get(`/admin/priority-todos?${query}`).expect(200);
+    expect(res.body.data.map((item: {title: string}) => item.title).sort()).toEqual([
+      "delta task",
+      "epsilon task",
+      "gamma task",
+    ]);
+  });
+
+  it("combines empty and concrete priority filters with search", async () => {
+    app = buildApp([
+      {
+        displayName: "Priority todos",
+        filters: [
+          {
+            choices: [
+              {label: "High", value: "high"},
+              {label: "Low", value: "low"},
+            ],
+            field: "priority",
+            kind: "choice",
+            label: "Priority",
+          },
+        ],
+        listFields: ["title", "priority"],
+        model: PriorityTodoModel,
+        routePath: "/priority-todos",
+        searchFields: ["title"],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    await PriorityTodoModel.create({priority: "high", title: "alpha task"});
+    await PriorityTodoModel.create({priority: "low", title: "beta task"});
+    await PriorityTodoModel.create({title: "gamma task"});
+    await PriorityTodoModel.create({priority: "high", title: "high hidden"});
+
+    const query = new URLSearchParams([
+      ["priority[$in][0]", "high"],
+      ["priority[$in][1]", "__empty__"],
+      ["q", "task"],
+    ]).toString();
+    const res = await agent.get(`/admin/priority-todos?${query}`).expect(200);
+    expect(res.body.data.map((item: {title: string}) => item.title).sort()).toEqual([
+      "alpha task",
+      "gamma task",
+    ]);
+  });
+
   it("exposes allowEmpty on optional choice filters in admin config", async () => {
     app = buildApp([
       {

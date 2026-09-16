@@ -140,6 +140,8 @@ export interface OpenApiSchemaProperty {
    * operator shapes (`{$in: ...}`, `{$regex: ...}`).
    */
   required?: boolean | string[];
+  /** When true, string values must be escaped regex literals (query `$regex` operator). */
+  escapedRegexLiteral?: boolean;
 }
 
 /**

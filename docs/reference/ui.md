@@ -619,6 +619,9 @@ import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
 `onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
 (250ms, same delay as admin list search).
 
+The server accepts only the documented nested operator keys. Text `$regex` values
+must be escaped literals; executable patterns and extra Mongo operators are rejected.
+
 Date range filters collect calendar days, so a range covers whole UTC days: **from**
 opens the chosen day (`00:00:00.000Z`) and **to** closes it (`23:59:59.999Z`), which
 keeps rows recorded later on the end day inside the range.

@@ -14,6 +14,7 @@ import {
   createValidator,
   getOpenApiValidatorConfig,
   getSchemaFromModel,
+  isEscapedRegexLiteral,
   isOpenApiValidatorConfigured,
   resetOpenApiValidatorConfig,
   validateModelRequestBody,
@@ -313,6 +314,83 @@ describe("openApiValidator", () => {
         method: "GET",
         path: "/test",
         query: {limit: "25", page: "1", priority: {$in: ["high", "missing"]}},
+      } as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
+    });
+  });
+
+  describe("isEscapedRegexLiteral", () => {
+    it("accepts literal text and escaped metacharacters", () => {
+      expect(isEscapedRegexLiteral("alice")).toBe(true);
+      expect(isEscapedRegexLiteral("\\.\\*")).toBe(true);
+    });
+
+    it("rejects executable regex patterns", () => {
+      expect(isEscapedRegexLiteral(".*")).toBe(false);
+      expect(isEscapedRegexLiteral("^x")).toBe(false);
+      expect(isEscapedRegexLiteral("[a-z]")).toBe(false);
+    });
+  });
+
+  describe("query operator hardening", () => {
+    const assertQueryRejected = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
+      const middleware = validateQueryParams(schema);
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
+    };
+
+    const assertQueryAccepted = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
+      const middleware = validateQueryParams(schema);
+      let nextCalled = false;
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+      middleware(req, {} as Response, () => {
+        nextCalled = true;
+      });
+      expect(nextCalled).toBe(true);
+    };
+
+    it("accepts escaped literal regex operators", () => {
+      assertQueryAccepted({
+        name: {$options: "i", $regex: "Green Beans"},
+      });
+      assertQueryAccepted({
+        name: {$options: "i", $regex: "\\.\\*"},
+      });
+    });
+
+    it("rejects executable regex operators even when removeAdditional is false", () => {
+      assertQueryRejected({
+        name: {$options: "i", $regex: ".*"},
+      });
+      assertQueryRejected({
+        name: {$options: "i", $regex: "^x"},
+      });
+    });
+
+    it("rejects extra nested operators on $in objects", () => {
+      assertQueryRejected({
+        name: {$in: ["Apple"], $ne: "Banana"},
+      });
+    });
+
+    it("rejects extra nested operators on range objects", () => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["calories"]);
+      const middleware = validateQueryParams(schema);
+      const req = {
+        method: "GET",
+        path: "/test",
+        query: {calories: {$gte: 1, $where: "1"}},
       } as unknown as Request;
 
       expect(() => {

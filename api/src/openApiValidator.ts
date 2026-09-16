@@ -185,6 +185,11 @@ const getAjvInstance = (): Ajv => {
       validateSchema: false,
     });
     addFormats(instance as unknown as Parameters<typeof addFormats>[0]);
+    instance.addKeyword({
+      keyword: ESCAPED_REGEX_LITERAL_KEYWORD,
+      type: "string",
+      validate: (_enabled: boolean, data: string) => isEscapedRegexLiteral(data),
+    });
     ajvCache.set(key, instance);
   }
 
@@ -210,6 +215,44 @@ const VALID_JSON_SCHEMA_TYPES = new Set([
   "object",
   "null",
 ]);
+
+const REGEX_META_CHARACTERS = new Set([
+  "\\",
+  ".",
+  "*",
+  "+",
+  "?",
+  "^",
+  "$",
+  "{",
+  "}",
+  "(",
+  ")",
+  "|",
+  "[",
+  "]",
+]);
+
+/** Accepts literal text and escaped metacharacters (e.g. `\\.`), rejects executable patterns. */
+export const isEscapedRegexLiteral = (value: string): boolean => {
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === "\\") {
+      const escapedCharacter = value[index + 1];
+      if (!escapedCharacter || !REGEX_META_CHARACTERS.has(escapedCharacter)) {
+        return false;
+      }
+      index += 1;
+      continue;
+    }
+    if (REGEX_META_CHARACTERS.has(character)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const ESCAPED_REGEX_LITERAL_KEYWORD = "escapedRegexLiteral";
 
 // mongoose-to-swagger emits non-standard type strings for some Mongoose types
 const MONGOOSE_TYPE_MAP: Record<string, {type: string; format?: string}> = {
@@ -897,6 +940,7 @@ const choiceEmptyInItemSchema = (baseItem: OpenApiSchemaProperty): OpenApiSchema
 };
 
 const buildInOperatorSchema = (itemSchema: OpenApiSchemaProperty): OpenApiSchemaProperty => ({
+  additionalProperties: false,
   properties: {
     $in: {
       items: itemSchema,
@@ -909,15 +953,17 @@ const buildInOperatorSchema = (itemSchema: OpenApiSchemaProperty): OpenApiSchema
 });
 
 const buildRegexOperatorSchema = (): OpenApiSchemaProperty => ({
+  additionalProperties: false,
   properties: {
     $options: {enum: ["i"], type: "string"},
-    $regex: {type: "string"},
+    $regex: {escapedRegexLiteral: true, type: "string"},
   },
   required: ["$regex", "$options"],
   type: "object",
 });
 
 const buildRangeOperatorSchema = (valueSchema: OpenApiSchemaProperty): OpenApiSchemaProperty => ({
+  additionalProperties: false,
   properties: {
     $gt: valueSchema,
     $gte: valueSchema,
