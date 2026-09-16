@@ -128,6 +128,8 @@ Admin-only list for launch dashboards. Includes **all** lifecycle statuses (`dra
 
 Read-only admin lists: `/announcement-acknowledgements`, `/announcement-impressions`, `/announcement-click-events`.
 
+Terreno RBAC includes `adminAnnouncementAcknowledgement`, `adminAnnouncementImpression`, and `adminAnnouncementClickEvent`. The built-in `admin` role receives read access to these audit models; `superadmin` receives all declared actions.
+
 ## Help API (optional)
 
 When `help.enabled` is true, authenticated users can search product update notes for MCP and in-app help. Draft announcements are never exposed. Results respect `matchAudienceByType`, `matchAudience`, `publishAt` / `expiresAt`, optional `?version=` min-build gating, and the same visibility rules as `/pending`.

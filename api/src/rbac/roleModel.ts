@@ -104,6 +104,9 @@ export const terrenoDefaultRoles: RoleDefinition[] = [
     permissions: {
       admin: ["access"],
       adminAnnouncement: ["read", "write", "writeOwned"],
+      adminAnnouncementAcknowledgement: ["read"],
+      adminAnnouncementClickEvent: ["read"],
+      adminAnnouncementImpression: ["read"],
       configuration: ["read", "update"],
       user: ["create", "list", "read", "update"],
     },

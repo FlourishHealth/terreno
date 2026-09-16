@@ -12,6 +12,7 @@ export const terrenoStatements = {
   admin: [ADMIN_PAGE_ACTION, "runScripts", "viewBackgroundTasks"],
   adminAnnouncement: ADMIN_MODEL_ACCESS,
   adminAnnouncementAcknowledgement: ADMIN_MODEL_ACCESS,
+  adminAnnouncementClickEvent: ADMIN_MODEL_ACCESS,
   adminAnnouncementImpression: ADMIN_MODEL_ACCESS,
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,

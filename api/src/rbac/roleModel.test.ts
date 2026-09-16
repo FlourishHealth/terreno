@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose from "mongoose";
 
 import {setupDb} from "../tests";
@@ -11,6 +12,15 @@ describe("rbac role model", () => {
     const names = terrenoDefaultRoles.map((role) => role.name);
 
     expect(names).toEqual(["superadmin", "admin", "auditor", "member"]);
+
+    const admin = terrenoDefaultRoles.find((role) => role.name === "admin");
+    assert.isObject(admin?.permissions);
+    if (!admin?.permissions || admin.permissions === "*" || "readOnly" in admin.permissions) {
+      assert.fail("Expected concrete admin permissions");
+    }
+    assert.deepEqual(admin.permissions.adminAnnouncementAcknowledgement, ["read"]);
+    assert.deepEqual(admin.permissions.adminAnnouncementClickEvent, ["read"]);
+    assert.deepEqual(admin.permissions.adminAnnouncementImpression, ["read"]);
   });
 
   it("seeds default roles with expanded permissions", async () => {
