@@ -4,6 +4,7 @@ import {AddressFieldConfiguration} from "@story-config/AddressField.config";
 import {AIRequestExplorerConfiguration} from "@story-config/AIRequestExplorer.config";
 import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
 import {AnnouncementBannerConfiguration} from "@story-config/AnnouncementBanner.config";
+import {AnnouncementScreenConfiguration} from "@story-config/AnnouncementScreen.config";
 import {AttachmentPreviewConfiguration} from "@story-config/AttachmentPreview.config";
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
@@ -267,6 +268,7 @@ const Config: DemoConfigurationBase[] = [
   AvatarConfiguration,
   AddressFieldConfiguration,
   AnnouncementBannerConfiguration,
+  AnnouncementScreenConfiguration,
   AttachmentPreviewConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
