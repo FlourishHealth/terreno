@@ -196,7 +196,28 @@ const jobsApp = new JobsApp({
 `GcpCloudTasksRunner` sets `requiresExecuteRoute: true`. Each enqueue creates an HTTP POST
 to `{publicUrl}/jobs/execute` with body `{jobId}` (base64) and an OIDC token. Delayed jobs
 use Cloud Tasks `scheduleTime`. `@terreno/jobs` does **not** read `GCP_TASK_*` env vars —
-pass explicit constructor config.
+pass explicit constructor config. Compiled `bun build --compile` binaries must pass a
+`client` that does not load `@google-cloud/tasks` (that package reads
+`cloud_tasks_client_config.json` from disk and is omitted from `$bunfs`). The example
+backend POSTs to the Cloud Tasks REST API with `google-auth-library`.
+
+The deployed example backend selects this runner with `JOBS_RUNNER=gcp-cloud-tasks`.
+Infra Manager creates one queue and a callback-only service account; the CD script supplies
+the remaining `GCP_TASKS_*` values. Both GitHub Actions and CircleCI deploy the same
+runner configuration so either deploy path preserves Cloud Tasks execution. The API
+process starts the worker so cron schedules
+enqueue Cloud Tasks (`GcpCloudTasksRunner.start()` ticks Mongo schedules only). The tasks
+Cloud Run service is the execution pool: Cloud Tasks pushes authenticated callbacks to it,
+and queue rate limits bound concurrency. Keep `JOBS_START_WORKER=false` on the tasks
+service so it does not double-tick schedules. Do not run `jobs:worker` in this mode —
+that process would also tick schedules.
+
+PR previews use the same queue but different callback URLs and databases. GitHub Actions
+and CircleCI both deploy the `pr-<number>` tag on the tasks Cloud Run service before the
+API preview starts enqueueing. GitHub Actions uses `env_vars_update_strategy: overwrite`
+(CircleCI `--set-env-vars`) so `MONGO_DB_NAME` / `PR_NUMBER` on a tagged revision do not
+merge into the next production deploy. A task created by PR 123 targets that tag and reads
+`terreno-example-pr-123`; it cannot execute against another PR or production.
 
 ## Vercel Queues runner
 

@@ -23,10 +23,10 @@ flowchart TD
   CR --> SM
   CR --> AT
   CR --> GCS
+  CR -->|"enqueue"| CT
   CT -->|"OIDC POST /jobs/execute"| JW
   JW --> AT
   AR --> CR
-  AR --> JW
 ```
 
 ## Component responsibilities
@@ -35,8 +35,8 @@ flowchart TD
 |-----------|------|
 | **Artifact Registry** | Stores versioned backend container images built from `example-backend/Dockerfile` |
 | **Cloud Run** | Runs the long-lived `@terreno/api` process (HTTP + Socket.io) |
-| **Cloud Tasks** | Provisioned push queue for `@terreno/jobs`; unused until the API selects `GcpCloudTasksRunner` |
-| **Jobs worker service** | Private Cloud Run service running the example-backend image; IAM-restricted to the Cloud Tasks invoker SA |
+| **Cloud Tasks** | Dispatches persisted `@terreno/jobs` rows to an authenticated HTTP worker with queue-level concurrency limits |
+| **Jobs worker service** | Runs the same example-backend image and job definitions; exposes only the Cloud Tasks execute callback through Cloud Run IAM |
 | **Secret Manager** | Holds `MONGO_URI`, JWT secrets, and other credentials — mounted as env vars |
 | **MongoDB Atlas** | Primary database; must be a replica set for change streams (realtime, feature flags) |
 | **GCS (web bucket)** | Serves static web export; CDN caches at the edge |
@@ -66,17 +66,18 @@ flowchart TD
 
 Native iOS and Android apps call Cloud Run directly; only the web client uses the CDN origin.
 
-## Durable jobs worker infrastructure
+## Durable jobs and PR isolation
 
 Cloud Tasks is a push service; it does not expose a pull-consumer API. Cloud Run worker
-pools do not have HTTP ingress, so Infra Manager provisions a private Cloud Run service
-as the future execution pool. Queue rate limits bound dispatch concurrency and Cloud Run
-scales the worker instances.
+pools do not have HTTP ingress, so the example uses a private Cloud Run service as the
+execution pool. Queue rate limits bound dispatch concurrency and Cloud Run scales the
+worker instances.
 
-The example API still runs `@terreno/jobs` with `MongoJobRunner` until a follow-up
-selects `GcpCloudTasksRunner`. Production and PR revisions already share matching
-`pr-<number>` tags and `terreno-example-pr-<number>` databases so that follow-up can
-enqueue to isolated callback URLs without colliding.
+Production and PR revisions share one queue safely because every task stores its complete
+callback URL. A PR backend targets the matching `pr-<number>` worker tag and uses
+`terreno-example-pr-<number>` as its Mongo database. Removing a preview removes both
+service tags. An old callback then fails closed instead of reaching production or another
+PR.
 
 ## Related
 

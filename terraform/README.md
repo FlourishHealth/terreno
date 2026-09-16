@@ -167,22 +167,23 @@ terraform import google_service_account.jobs_tasks_invoker \
   projects/flourish-terreno/serviceAccounts/terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
 ```
 
-## Durable jobs worker infrastructure
+## Durable jobs deployment
 
-This stack provisions the Cloud Tasks queue and private tasks Cloud Run service.
-The example API still executes jobs with `MongoJobRunner` until a follow-up sets
-`JOBS_RUNNER=gcp-cloud-tasks` and points enqueue callbacks at this queue.
+The API and private tasks service run the same image and register the same job handlers.
+The API persists a `Job`, then Cloud Tasks sends an OIDC-authenticated
+`POST /jobs/execute` to the tasks service. Queue rate limits cap the dispatch pool at 20
+callbacks and 20 dispatches per second by default. Keep `.github/workflows/cd.yml`
+`tasks-deploy-prod` on a 30-minute timeout, concurrency 20, and
+`--no-allow-unauthenticated` so a GitHub Actions roll cannot reopen the worker.
 
-Queue rate limits cap the future dispatch pool at 20 callbacks and 20 dispatches per
-second by default. The tasks service is private (`run.invoker` for the callback SA only)
-and uses a 30-minute request timeout with concurrency 20 so long script jobs are not
-killed by a later Terraform apply. Keep `.github/workflows/cd.yml` `tasks-deploy-prod`
-on those same flags so a GitHub Actions roll cannot reopen the worker.
-
-PR previews do not create global infrastructure. The CD script deploys matching
-`pr-<number>` tags for the API and tasks services and uses
-`terreno-example-pr-<number>` for Mongo. CircleCI cleanup and
-`.github/workflows/preview-cleanup.yml` both remove the API and tasks tags.
+PR previews do not create global infrastructure. GitHub Actions (`tasks-deploy-preview`
+before `backend-deploy-preview`) and CircleCI (`backend-preview`) both deploy matching
+`pr-<number>` tags for the tasks service before the API preview, then configure the API
+to target that exact tasks tag. GitHub Actions production deploys overwrite Cloud Run
+env vars (same as CircleCI `--set-env-vars`) so preview `MONGO_DB_NAME` / `PR_NUMBER`
+do not merge into production. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
+workers nor job rows. CircleCI cleanup and `.github/workflows/preview-cleanup.yml`
+both remove the API and tasks tags.
 
 ## Adding a third service account
 

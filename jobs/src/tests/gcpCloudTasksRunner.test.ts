@@ -1,11 +1,14 @@
 import {beforeEach, describe, it} from "bun:test";
 import {createRequire} from "node:module";
-import {setupDb} from "@terreno/api/testing";
+import {TerrenoApp, type UserModel as UserModelType} from "@terreno/api";
+import {setupDb, UserModel} from "@terreno/api/testing";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 
+import {JobsApp} from "../jobsApp";
 import {Job} from "../models/job";
+import {JobSchedule} from "../models/jobSchedule";
 import type {JobDocument} from "../modelTypes";
 import {
   type GcpCloudTasksClient,
@@ -13,6 +16,8 @@ import {
   type GcpCloudTasksRunnerConfig,
   type GcpCreateTaskRequest,
 } from "../runners/gcpCloudTasks";
+
+const typedUserModel = UserModel as unknown as UserModelType;
 
 interface RecordedCreateTaskCall {
   request: GcpCreateTaskRequest;
@@ -61,13 +66,14 @@ describe("GcpCloudTasksRunner", () => {
   beforeEach(async (): Promise<void> => {
     await setupDb();
     await Job.deleteMany({});
+    await JobSchedule.deleteMany({});
   });
 
-  it("requires the execute route and does not implement start", (): void => {
+  it("requires the execute route and ticks schedules from start()", (): void => {
     const runner = new GcpCloudTasksRunner(baseConfig());
 
     assert.equal(runner.requiresExecuteRoute, true);
-    assert.isUndefined(runner.start);
+    assert.isFunction(runner.start);
   });
 
   it("throws when required config is missing or blank", (): void => {
@@ -131,7 +137,7 @@ describe("GcpCloudTasksRunner", () => {
     assert.equal(fake.calls[0].request.task.httpRequest?.url, "https://api.example.com//execute");
   });
 
-  it("throws when the Cloud Tasks client is not injected and the peer is missing", (): void => {
+  it("loads the optional peer when installed or reports how to install it", (): void => {
     const {client: _client, ...configWithoutClient} = baseConfig();
     let isPeerAvailable = true;
     try {
@@ -261,5 +267,46 @@ describe("GcpCloudTasksRunner", () => {
       fake.calls[0].request.task.httpRequest?.url,
       "https://api.example.com/jobs/execute"
     );
+  });
+
+  it("startWorker ticks due schedules into Cloud Tasks without claiming Mongo jobs", async (): Promise<void> => {
+    const fake = createFakeClient();
+    const jobsApp = new JobsApp({
+      executeAuth: async () => true,
+      pollIntervalMs: 25,
+      runner: new GcpCloudTasksRunner(baseConfig({client: fake.client})),
+    });
+    jobsApp.define("cloud-tasks-cron", {
+      handler: async () => {},
+      schedule: {cron: "0 9 * * *", timezone: "UTC"},
+    });
+    new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(jobsApp)
+      .build();
+
+    await jobsApp.startWorker();
+    const schedule = await JobSchedule.findExactlyOne({name: "cloud-tasks-cron"});
+    await JobSchedule.updateOne(
+      {_id: schedule._id},
+      {$set: {nextRunAt: DateTime.utc().minus({minutes: 1}).toJSDate()}}
+    );
+
+    const deadline = DateTime.utc().plus({milliseconds: 5_000});
+    while (DateTime.utc() < deadline) {
+      if (fake.calls.length >= 1 && (await Job.countDocuments({name: "cloud-tasks-cron"})) >= 1) {
+        break;
+      }
+      await Bun.sleep(25);
+    }
+
+    await jobsApp.stopWorker();
+
+    assert.isAtLeast(fake.calls.length, 1);
+    const childJobs = await Job.find({name: "cloud-tasks-cron"});
+    assert.equal(childJobs.length, 1);
+    assert.equal(childJobs[0]?.status, "pending");
   });
 });

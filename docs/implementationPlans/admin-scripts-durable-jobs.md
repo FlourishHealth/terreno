@@ -30,6 +30,9 @@ Admin HTTP script runs (`POST /admin/scripts/:name/run`) enqueue `@terreno/jobs`
 | Fallback | No `JobsApp` → existing in-process runner |
 | Worker | Same script catalog via `defineAdminScriptJob` |
 | Cloud Tasks | Inherited from `JobsApp` runner; execute process must load scripts |
+| GCP topology | Infra Manager queue pushes OIDC callbacks to a private Cloud Run tasks service |
+| Execution pool | Cloud Tasks rate limits + Cloud Run service instances; not Cloud Run worker pools (no HTTP ingress) |
+| PR isolation | Shared queue, per-PR tasks-service tag callback, and per-PR Mongo database |
 
 ## Acceptance
 
@@ -37,3 +40,5 @@ Admin HTTP script runs (`POST /admin/scripts/:name/run`) enqueue `@terreno/jobs`
 - Without `JobsApp`, existing admin-backend script tests still pass
 - Cancel marks `BackgroundTask` cancelled and cancels the job when present
 - Example worker defines `admin/script`
+- Deployed example backend selects `GcpCloudTasksRunner` and rejects unverified callbacks
+- Concurrent PR previews target only their matching tasks-service tag and database
