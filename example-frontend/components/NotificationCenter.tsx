@@ -216,16 +216,14 @@ export const NotificationCenter: React.FC<React.PropsWithChildren> = ({children}
           text="View all notifications"
           variant="outline"
         />
-        {__DEV__ ? (
-          <Button
-            fullWidth
-            loading={isSendingTest}
-            onClick={handleSendTest}
-            testID="notification-send-test-button"
-            text="Send test notification"
-            variant="ghost"
-          />
-        ) : null}
+        <Button
+          fullWidth
+          loading={isSendingTest}
+          onClick={handleSendTest}
+          testID="notification-send-test-button"
+          text="Send test notification"
+          variant="ghost"
+        />
       </Box>
     ),
     [
