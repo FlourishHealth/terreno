@@ -2025,7 +2025,7 @@ workflows:
     jobs:
       - packages-ci:
           package: admin-backend
-          compile-deps: api
+          compile-deps: api jobs
 
   admin-frontend:
     when: << pipeline.parameters.run-admin-frontend >>
