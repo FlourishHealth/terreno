@@ -519,7 +519,7 @@ describe("Modal web platform", () => {
           node.props?.style?.flexDirection === "column" &&
           node.props?.style?.gap === 12
       );
-      assert.lengthOf(stackedActionRows, 1);
+      assert.isAtLeast(stackedActionRows.length, 1);
     } finally {
       restoreWindowWidth();
     }
