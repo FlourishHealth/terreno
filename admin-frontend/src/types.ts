@@ -114,6 +114,7 @@ export interface AdminModelConfig {
   bulkPatchAllowlist?: string[];
   fieldsets?: {fields: string[]; title: string}[];
   filters?: {
+    allowEmpty?: boolean;
     choices?: {label: string; value: string}[];
     field: string;
     kind: string;

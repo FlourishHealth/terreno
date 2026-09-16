@@ -28,7 +28,7 @@ origin in `apiBase` — that would rewrite in-app navigation.
 
 | Kind | Source of truth | Frontend |
 | --- | --- | --- |
-| Model changelist / form | `modelRouter({admin: ...})` or plugin `adminContribution()` | `AdminScreenRouter` → `AdminModelTable` / `AdminModelForm` |
+| Model changelist / form | `modelRouter({admin: ...})` or plugin `adminContribution()` | `AdminScreenRouter` → `AdminModelTable` / `AdminModelForm` (list filters live on `DataTable`, not a side drawer) |
 | Custom screen | `AdminApp.customScreens` or plugin `customScreens` (`name` + `displayName`) | Matching `AdminProvider.widgets.screens[name]`, or a dedicated Expo route |
 | Platform tool | Built-in (`scripts`, `roles`, `version`, `configuration`, audit log, feature flags, jobs) | Sidebar **Platform** section; visibility from `/admin/config.platformTools` (jobs is lifted from `customScreens`) |
 | Home widget | `AdminApp.home.slots` IDs | `AdminProvider.widgets.home` (built-ins already registered) |

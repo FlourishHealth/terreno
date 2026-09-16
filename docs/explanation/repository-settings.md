@@ -31,8 +31,9 @@ descriptions):
 **Path:** Settings → Branches → Branch protection rules → `master`
 
 - Require a pull request before merging
-- Require status checks to pass (include Repository policies, package CI, and
-  Rulesync Check jobs relevant to the change)
+- Require status checks to pass (include CircleCI `repo-policies`, package CI,
+  and Rulesync Check jobs relevant to the change — see the check name map in
+  [how-to/circleci.md](../how-to/circleci.md))
 - Require branches to be up to date before merging
 - Do not allow bypassing the above settings
 
