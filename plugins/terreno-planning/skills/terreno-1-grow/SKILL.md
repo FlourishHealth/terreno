@@ -44,8 +44,9 @@ human decision until the answer is executable.
      investigate it.
    - **Low-risk implementation detail:** strongly implied by convention → choose it and
      record the assumption.
-5. **Grill.** Follow the grilling procedure. Work the current decision frontier in
-   numbered rounds with recommended answers. Get to the bottom of each reply: vague,
+5. **Grill.** Follow the grilling procedure. Work the current decision frontier in rounds
+   of selectable options with a recommended default, using the harness's structured
+   question tool when it has one. Get to the bottom of each reply: vague,
    partial, or conflicting answers stay on the frontier. Wait for explicit
    shared-understanding confirmation before writing.
 6. **Shape.** Prefer contracts/models/APIs before implementation detail where applicable.

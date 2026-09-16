@@ -65,7 +65,28 @@ Never ask only the first question when three are unblocked. Never proceed to the
 round from inferred answers. The user may answer a subset; unanswered items stay on the
 frontier.
 
-### Message shape (every grilling round)
+### Ask with selectable options, not typed replies
+
+Every frontier round must be answerable by clicking, not by typing `Q1: xyz`.
+
+If the harness has a structured question tool that renders selectable choices
+(Cursor `AskQuestion`, Claude Code `AskUserQuestion`, or equivalent), use it for the whole
+round instead of listing the questions in prose:
+
+- One tool question per frontier decision; send the whole round in a single call.
+- Put the recommended option **first** and suffix its label with `(Recommended)`.
+- Give every question 2–4 concrete, mutually exclusive options. Option labels are the
+  actual choice ("Better Auth session cookie", "Existing JWT middleware"), never "Yes"/
+  "Option A"/"Your call". The harness always offers a free-text escape, so do not add an
+  "Other" option yourself.
+- Set multi-select only when the decision genuinely accepts several answers at once.
+- Keep the shaping context in the question prompt, one or two sentences, so the option
+  labels stay short.
+- Do not also repeat the same questions as numbered prose; the tool is the round.
+
+Only when no such tool exists, fall back to the markdown shape below.
+
+### Fallback message shape (no structured question tool)
 
 Lead with one line: what this round is deciding.
 
@@ -87,6 +108,8 @@ Rules for the body:
 - Cap the round at **five** questions. Park the rest as "later, after these".
 - End the message. Do not write files, do not start Pick, do not summarize the whole
   plan yet.
+
+Both shapes are capped at **five** questions per round, one decision each.
 
 ### After the user replies
 
@@ -110,6 +133,10 @@ Shared understanding:
 
 Confirm and I will write the plan. Change any bullet if I have it wrong.
 ```
+
+When the harness has a structured question tool, send that block and pair it with one
+selectable question ("Confirm this understanding?") offering `Write the plan
+(Recommended)` and `Change something` so confirmation is a click too.
 
 Do not write the IP until they confirm.
 
@@ -146,6 +173,10 @@ mention decisions, an empty table, or "none".
 ## Anti-patterns
 
 - One giant question dump at the start
+- Prose-only rounds that force typed replies like `Q1: xyz` when the harness can render
+  selectable options
+- Selectable options that are not real choices ("Yes"/"No"/"Your call") or that duplicate
+  the harness's built-in free-text escape
 - Asking repository facts ("where is this route defined?")
 - Acting on a recommended answer the user has not accepted
 - Accepting a vague "yes" as a finished decision
