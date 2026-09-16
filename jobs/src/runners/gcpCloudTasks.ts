@@ -22,6 +22,7 @@ export interface GcpHttpRequest {
 }
 
 export interface GcpTask {
+  dispatchDeadline?: string;
   httpRequest?: GcpHttpRequest;
   scheduleTime?: GcpTimestamp;
 }
@@ -41,10 +42,20 @@ export interface GcpCloudTasksClient {
   queuePath(project: string, location: string, queue: string): string;
 }
 
+/** Cloud Tasks HTTP `dispatchDeadline` bounds (15s–30min). Default 30min matches Cloud Run. */
+export const GCP_HTTP_TASK_MIN_DISPATCH_DEADLINE_SECONDS = 15;
+export const GCP_HTTP_TASK_MAX_DISPATCH_DEADLINE_SECONDS = 1_800;
+export const GCP_HTTP_TASK_DEFAULT_DISPATCH_DEADLINE_SECONDS = 1_800;
+
 export interface GcpCloudTasksRunnerConfig {
   basePath?: string;
   /** Injected client for tests. Production wiring loads `@google-cloud/tasks`. */
   client?: GcpCloudTasksClient;
+  /**
+   * Seconds Cloud Tasks waits for POST /jobs/execute before retrying.
+   * HTTP range is 15–1800. Default 1800 so a 30-minute handler is not retried at 10 minutes.
+   */
+  dispatchDeadlineSeconds?: number;
   location: string;
   oidcAudience?: string;
   project: string;
@@ -55,6 +66,7 @@ export interface GcpCloudTasksRunnerConfig {
 
 interface ResolvedGcpCloudTasksRunnerConfig {
   basePath: string;
+  dispatchDeadline: string;
   location: string;
   oidcAudience?: string;
   project: string;
@@ -98,8 +110,32 @@ const normalizeBasePath = (basePath: string | undefined): string => {
   return trimmed.replace(/\/+$/, "") || "/";
 };
 
+const validateDispatchDeadlineSeconds = (dispatchDeadlineSeconds: number | undefined): number => {
+  if (dispatchDeadlineSeconds === undefined) {
+    return GCP_HTTP_TASK_DEFAULT_DISPATCH_DEADLINE_SECONDS;
+  }
+
+  if (
+    !Number.isFinite(dispatchDeadlineSeconds) ||
+    dispatchDeadlineSeconds < GCP_HTTP_TASK_MIN_DISPATCH_DEADLINE_SECONDS ||
+    dispatchDeadlineSeconds > GCP_HTTP_TASK_MAX_DISPATCH_DEADLINE_SECONDS
+  ) {
+    throw new Error(
+      `GcpCloudTasksRunner dispatchDeadlineSeconds must be between ${GCP_HTTP_TASK_MIN_DISPATCH_DEADLINE_SECONDS} and ${GCP_HTTP_TASK_MAX_DISPATCH_DEADLINE_SECONDS} seconds`
+    );
+  }
+
+  return dispatchDeadlineSeconds;
+};
+
+const formatDispatchDeadline = (dispatchDeadlineSeconds: number): string =>
+  `${dispatchDeadlineSeconds}s`;
+
 const resolveConfig = (config: GcpCloudTasksRunnerConfig): ResolvedGcpCloudTasksRunnerConfig => ({
   basePath: normalizeBasePath(config.basePath),
+  dispatchDeadline: formatDispatchDeadline(
+    validateDispatchDeadlineSeconds(config.dispatchDeadlineSeconds)
+  ),
   location: requireNonEmpty(config.location, "location"),
   oidcAudience: config.oidcAudience?.trim() || undefined,
   project: requireNonEmpty(config.project, "project"),
@@ -186,6 +222,7 @@ export class GcpCloudTasksRunner implements JobRunner {
     const executeUrl = buildExecuteUrl(this.config.publicUrl, this.config.basePath);
     const body = Buffer.from(JSON.stringify({jobId: job._id.toString()})).toString("base64");
     const task: GcpTask = {
+      dispatchDeadline: this.config.dispatchDeadline,
       httpRequest: {
         body,
         headers: {

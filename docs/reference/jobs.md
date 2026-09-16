@@ -251,10 +251,12 @@ admin HTTP internally (not via a public `useJobsDashboardApi` export).
 | `serviceAccountEmail` | yes | OIDC invoker SA |
 | `oidcAudience` | no | Defaults to execute URL |
 | `basePath` | no | Default `/jobs` |
+| `dispatchDeadlineSeconds` | no | Cloud Tasks HTTP wait before retry. Range 15–1800. Default **1800** so a 30-minute Cloud Run handler is not retried at the 10-minute HTTP default |
 | `client` | no | Injected Cloud Tasks client. Required in `bun build --compile` images (REST + `google-auth-library` in the example app). Optional peer `createRequire` fallback for Node. |
 
 Enqueue: `createTask` POST to `{publicUrl}{basePath}/execute`, body `{jobId}` base64,
-`scheduleTime` when `runAt` is future. `requiresExecuteRoute: true`.
+`dispatchDeadline` (`1800s` by default), `scheduleTime` when `runAt` is future.
+`requiresExecuteRoute: true`.
 `start()` ticks due Mongo schedules into `enqueue`; it does not claim job rows.
 
 **Operator responsibility:** implement `executeAuth` to verify the OIDC token (issuer,

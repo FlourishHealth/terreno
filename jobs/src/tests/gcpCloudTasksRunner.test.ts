@@ -210,7 +210,44 @@ describe("GcpCloudTasksRunner", () => {
       audience: executeUrl,
       serviceAccountEmail: "tasks@my-project.iam.gserviceaccount.com",
     });
+    assert.equal(request.task.dispatchDeadline, "1800s");
     assert.isUndefined(request.task.scheduleTime);
+  });
+
+  it("honors a custom dispatchDeadlineSeconds within the HTTP task range", async (): Promise<void> => {
+    const fake = createFakeClient();
+    const runner = new GcpCloudTasksRunner(
+      baseConfig({
+        client: fake.client,
+        dispatchDeadlineSeconds: 900,
+      })
+    );
+
+    await runner.enqueue(buildJob());
+
+    assert.equal(fake.calls[0].request.task.dispatchDeadline, "900s");
+  });
+
+  it("throws when dispatchDeadlineSeconds is outside the HTTP range of 15 to 1800", (): void => {
+    assert.throws(
+      () =>
+        new GcpCloudTasksRunner(
+          baseConfig({
+            dispatchDeadlineSeconds: 14,
+          })
+        ),
+      /dispatchDeadlineSeconds/i
+    );
+
+    assert.throws(
+      () =>
+        new GcpCloudTasksRunner(
+          baseConfig({
+            dispatchDeadlineSeconds: 1801,
+          })
+        ),
+      /dispatchDeadlineSeconds/i
+    );
   });
 
   it("honors basePath and a custom OIDC audience", async (): Promise<void> => {

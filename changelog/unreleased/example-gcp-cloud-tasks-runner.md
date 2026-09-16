@@ -11,5 +11,7 @@ deploys overwrite env vars so preview `MONGO_DB_NAME` / `PR_NUMBER` cannot stick
 The API
 process starts the schedule ticker; the tasks service does not. The compiled Cloud Run binary enqueues through the Cloud Tasks REST
 API (`google-auth-library`) because `@google-cloud/tasks` cannot load its JSON
-config from a `bun build --compile` image. Queue and worker service resources
+config from a `bun build --compile` image. Enqueued HTTP tasks set
+`dispatchDeadline` to 1800 seconds so Cloud Tasks does not retry a still-running
+30-minute handler at the 10-minute HTTP default. Queue and worker service resources
 live in Infra Manager.

@@ -64,6 +64,39 @@ describe("createGcpCloudTasksHttpClient", (): void => {
     });
   });
 
+  it("forwards dispatchDeadline so Cloud Tasks waits past the 10-minute HTTP default", async (): Promise<void> => {
+    let captured: CapturedCreateTaskCall = {};
+    const client = createGcpCloudTasksHttpClient({
+      getClient: async () => ({
+        request: async (options) => {
+          captured = {data: options.data, url: options.url};
+          return {data: {name: "projects/p/locations/l/queues/q/tasks/t1"}};
+        },
+      }),
+    });
+
+    await client.createTask({
+      parent: "projects/p/locations/l/queues/q",
+      task: {
+        dispatchDeadline: "1800s",
+        httpRequest: {
+          httpMethod: "POST",
+          url: "https://tasks.example.com/jobs/execute",
+        },
+      },
+    });
+
+    assert.deepEqual(captured.data, {
+      task: {
+        dispatchDeadline: "1800s",
+        httpRequest: {
+          httpMethod: "POST",
+          url: "https://tasks.example.com/jobs/execute",
+        },
+      },
+    });
+  });
+
   it("sends scheduleTime as UTC RFC3339 when the runner supplies seconds and nanos", async (): Promise<void> => {
     let captured: CapturedCreateTaskCall = {};
     const scheduled = DateTime.fromISO("2026-09-15T19:10:00.250Z", {zone: "utc"});

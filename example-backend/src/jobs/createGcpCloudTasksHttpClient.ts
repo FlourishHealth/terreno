@@ -66,6 +66,9 @@ export const createGcpCloudTasksHttpClient = (
         data: {
           task: {
             httpRequest: request.task.httpRequest,
+            ...(request.task.dispatchDeadline
+              ? {dispatchDeadline: request.task.dispatchDeadline}
+              : {}),
             ...(scheduleTime ? {scheduleTime} : {}),
           },
         },
