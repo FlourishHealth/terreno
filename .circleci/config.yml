@@ -142,8 +142,6 @@ workflows:
             admin-backend/.* run-example-backend true
             admin-backend/.* run-example-backend-script true
             admin-frontend/.* run-admin-frontend true
-            admin-frontend/.* run-example-backend true
-            admin-frontend/.* run-example-backend-script true
             admin-spa/.* run-example-backend true
             admin-spa/.* run-example-backend-script true
             admin-spa/.* run-admin-spa true
@@ -156,12 +154,8 @@ workflows:
             feature-flags/.* run-example-backend-script true
             feature-flags/.* run-e2e true
             feature-flags/.* run-admin-spa-integration true
-            rtk/.* run-example-backend true
-            rtk/.* run-example-backend-script true
             rtk/.* run-admin-spa true
             rtk/.* run-e2e true
-            ui/.* run-example-backend true
-            ui/.* run-example-backend-script true
             ui/.* run-admin-spa true
             ui/.* run-e2e true
             bun\.lock run-ai true
@@ -178,8 +172,31 @@ workflows:
             bun\.lock run-new-file-coverage true
             .*\.ts$ run-repo-policies true
             .*\.tsx$ run-repo-policies true
-            .*\.ts$ run-new-file-coverage true
-            .*\.tsx$ run-new-file-coverage true
+            api/src/.* run-new-file-coverage true
+            ai/src/.* run-new-file-coverage true
+            ui/src/.* run-new-file-coverage true
+            rtk/src/.* run-new-file-coverage true
+            syncdb/src/.* run-new-file-coverage true
+            comms/src/.* run-new-file-coverage true
+            admin-backend/src/.* run-new-file-coverage true
+            admin-frontend/src/.* run-new-file-coverage true
+            admin-spa/src/.* run-new-file-coverage true
+            admin-spa/app/.* run-new-file-coverage true
+            admin-spa/store/.* run-new-file-coverage true
+            admin-spa/components/.* run-new-file-coverage true
+            api-health/src/.* run-new-file-coverage true
+            feature-flags/src/.* run-new-file-coverage true
+            test/src/.* run-new-file-coverage true
+            mcp-server/src/.* run-new-file-coverage true
+            create-terreno-app/src/.* run-new-file-coverage true
+            example-backend/src/.* run-new-file-coverage true
+            example-frontend/app/.* run-new-file-coverage true
+            example-frontend/lib/.* run-new-file-coverage true
+            example-frontend/store/.* run-new-file-coverage true
+            example-frontend/hooks/.* run-new-file-coverage true
+            example-frontend/utils/.* run-new-file-coverage true
+            example-frontend/constants/.* run-new-file-coverage true
+            example-frontend/components/.* run-new-file-coverage true
             .*/package\.json$ run-repo-policies true
             LICENSE$ run-repo-policies true
             .*/LICENSE$ run-repo-policies true
@@ -212,6 +229,7 @@ workflows:
             example-frontend/lib/.* run-e2e true
             example-frontend/store/.* run-e2e true
             example-frontend/utils/.* run-e2e true
+            example-frontend/components/.* run-e2e true
             example-frontend/e2e/.* run-e2e true
             example-frontend/playwright\.config\.ts run-e2e true
             example-frontend/package\.json run-e2e true
@@ -220,8 +238,14 @@ workflows:
             ui/.* run-maestro-demo true
             demo/.* run-maestro true
             demo/.* run-maestro-demo true
-            example-frontend/.* run-maestro true
-            example-backend/.* run-maestro true
+            example-frontend/app/.* run-maestro true
+            example-frontend/lib/.* run-maestro true
+            example-frontend/store/.* run-maestro true
+            example-frontend/hooks/.* run-maestro true
+            example-frontend/constants/.* run-maestro true
+            example-frontend/utils/.* run-maestro true
+            example-frontend/components/.* run-maestro true
+            example-backend/src/.* run-maestro true
             rtk/.* run-maestro true
             \.maestro/.* run-maestro true
             \.maestro/flows/demo/.* run-maestro-demo true
@@ -248,7 +272,6 @@ workflows:
             example-frontend/.* run-deploy-frontend true
             ui/.* run-deploy-frontend true
             rtk/.* run-deploy-frontend true
-            ai/.* run-deploy-frontend true
             admin-frontend/.* run-deploy-frontend true
             bun\.lock run-deploy-frontend true
             docs/.* run-deploy-docs true
@@ -267,7 +290,6 @@ workflows:
             ai/.* run-cd-backend true
             comms/.* run-cd-backend true
             mcp-server/.* run-cd-mcp true
-            ui/.* run-cd-mcp true
 
   # Manual/scheduled trigger: {"run-e2e-load": true} on the setup pipeline.
   # Continuation uses a differently named parameter so CircleCI does not treat

@@ -1,5 +1,7 @@
 import {describe, expect, it} from "bun:test";
 
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "@terreno/api";
+
 import type {AdminListFilter} from "./adminUiV2";
 import {parseAdminListFilters} from "./filterParser";
 
@@ -53,6 +55,59 @@ describe("parseAdminListFilters", () => {
     expect(errors.$where).toBeDefined();
   });
 
+  it("parses choice $in and text $regex filters", () => {
+    const {errors, filter} = parseAdminListFilters(
+      {
+        name: {$options: "i", $regex: "ali"},
+        role: {$in: ["staff", "admin"]},
+      },
+      [
+        {
+          choices: [
+            {label: "Staff", value: "staff"},
+            {label: "Admin", value: "admin"},
+          ],
+          field: "role",
+          kind: "choice",
+        },
+        {field: "name", kind: "text"},
+      ]
+    );
+
+    expect(errors).toEqual({});
+    expect(filter.role).toEqual({$in: ["staff", "admin"]});
+    expect(filter.name).toEqual({$options: "i", $regex: "ali"});
+  });
+
+  it("rejects invalid choice $in values and top-level $or", () => {
+    const {errors} = parseAdminListFilters(
+      {
+        $or: [{name: "alice"}],
+        role: {$in: ["missing"]},
+      },
+      [{choices: [{label: "Staff", value: "staff"}], field: "role", kind: "choice"}]
+    );
+
+    expect(errors.role).toBeDefined();
+    expect(errors.$or).toBeDefined();
+  });
+
+  it("rejects executable regex patterns and undeclared nested operators", () => {
+    const {errors} = parseAdminListFilters(
+      {
+        name: {$options: "i", $regex: ".*"},
+        role: {$in: ["staff"], $ne: "admin"},
+      },
+      [
+        {choices: [{label: "Staff", value: "staff"}], field: "role", kind: "choice"},
+        {field: "name", kind: "text"},
+      ]
+    );
+
+    expect(errors.name).toBeDefined();
+    expect(errors.role).toBeDefined();
+  });
+
   it("drops prototype pollution keys without surfacing them as filter errors", () => {
     const {errors, filter} = parseAdminListFilters(
       {
@@ -64,5 +119,45 @@ describe("parseAdminListFilters", () => {
 
     expect(errors).toEqual({});
     expect(filter.admin).toBe(true);
+  });
+
+  it("maps empty sentinel to null for optional choice filters", () => {
+    const priorityFilter: AdminListFilter = {
+      allowEmpty: true,
+      choices: [
+        {label: "High", value: "high"},
+        {label: "Low", value: "low"},
+      ],
+      field: "priority",
+      kind: "choice",
+    };
+
+    const emptyOnly = parseAdminListFilters({priority: {$in: [ADMIN_LIST_CHOICE_EMPTY_VALUE]}}, [
+      priorityFilter,
+    ]);
+    expect(emptyOnly.errors).toEqual({});
+    expect(emptyOnly.filter.priority).toBeNull();
+
+    const highOnly = parseAdminListFilters({priority: "high"}, [priorityFilter]);
+    expect(highOnly.errors).toEqual({});
+    expect(highOnly.filter.priority).toBe("high");
+
+    const combined = parseAdminListFilters(
+      {priority: {$in: ["high", ADMIN_LIST_CHOICE_EMPTY_VALUE]}},
+      [priorityFilter]
+    );
+    expect(combined.errors).toEqual({});
+    expect(combined.filter.priority).toEqual({$in: ["high", null]});
+  });
+
+  it("rejects empty sentinel when allowEmpty is false", () => {
+    const {errors} = parseAdminListFilters({priority: {$in: [ADMIN_LIST_CHOICE_EMPTY_VALUE]}}, [
+      {
+        choices: [{label: "High", value: "high"}],
+        field: "priority",
+        kind: "choice",
+      },
+    ]);
+    expect(errors.priority).toBeDefined();
   });
 });

@@ -3,11 +3,24 @@ import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 
 import {Button} from "./Button";
+import type {ButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import * as ThemeModule from "./Theme";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 import {Unifier} from "./Unifier";
 import * as Utilities from "./Utilities";
+
+const ACTIVE_BUTTON_VARIANTS: {
+  backgroundColor: string;
+  variant: NonNullable<ButtonProps["variant"]>;
+}[] = [
+  {backgroundColor: "#2B6072", variant: "primary"},
+  {backgroundColor: "#0E9DCD", variant: "secondary"},
+  {backgroundColor: "#0E9DCD", variant: "muted"},
+  {backgroundColor: "#0E9DCD", variant: "outline"},
+  {backgroundColor: "#BD1111", variant: "destructive"},
+  {backgroundColor: "#0E9DCD", variant: "ghost"},
+];
 
 interface PressableTestProps {
   onPress: () => Promise<void>;
@@ -34,6 +47,13 @@ describe("Button", () => {
       <Button onClick={() => {}} testID="test-button" text="Test" />
     );
     expect(getByTestId("test-button")).toBeTruthy();
+  });
+
+  it("supports an accessible name distinct from visible text", () => {
+    const {getByTestId} = renderWithTheme(
+      <Button accessibilityLabel="Filter Name" onClick={() => {}} testID="filter-button" text="" />
+    );
+    expect(getByTestId("filter-button").props.accessibilityLabel).toBe("Filter Name");
   });
 
   // Variant tests
@@ -68,6 +88,52 @@ describe("Button", () => {
       <Button onClick={() => {}} text="Delete" variant="destructive" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  for (const {backgroundColor, variant} of ACTIVE_BUTTON_VARIANTS) {
+    it(`renders ${variant} variant in active state`, () => {
+      const {getByTestId, getByText} = renderWithTheme(
+        <Button
+          onClick={() => {}}
+          state="active"
+          testID={`${variant}-active`}
+          text={`${variant} active`}
+          variant={variant}
+        />
+      );
+
+      expect(getByTestId(`${variant}-active`)).toHaveStyle({backgroundColor});
+      expect(getByText(`${variant} active`)).toHaveStyle({color: "#FFFFFF"});
+    });
+  }
+
+  it("removes the outline border in active state", () => {
+    const {getByTestId} = renderWithTheme(
+      <Button
+        onClick={() => {}}
+        state="active"
+        testID="outline-active"
+        text="Outline active"
+        variant="outline"
+      />
+    );
+
+    expect(getByTestId("outline-active").props.style.borderColor).toBeUndefined();
+    expect(getByTestId("outline-active").props.style.borderWidth).toBeUndefined();
+  });
+
+  it("keeps disabled styling when state is active", () => {
+    const {getByTestId} = renderWithTheme(
+      <Button
+        disabled
+        onClick={() => {}}
+        state="active"
+        testID="disabled-active"
+        text="Disabled active"
+      />
+    );
+
+    expect(getByTestId("disabled-active")).toHaveStyle({backgroundColor: "#9A9A9A"});
   });
 
   it("defaults to scale press animation", () => {
