@@ -15,13 +15,7 @@ run_test_file() {
   fi
 
   if [[ "$file" == "./src/isolated/hooks.isolated.tsx" ]]; then
-    (
-      cd /tmp
-      AGENT="${AGENT:-}" bun test \
-        --preload "$root/../ui/src/bunSetup.ts" \
-        "${args[@]}" \
-        "$root/$file"
-    )
+    ADMIN_USE_REAL_API=1 AGENT="${AGENT:-}" bun test "${args[@]}" "$file"
     return
   fi
 

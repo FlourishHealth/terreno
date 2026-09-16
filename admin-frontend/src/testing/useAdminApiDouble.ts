@@ -57,12 +57,14 @@ const resolveHook = (prop: string): HookFactory => {
   return () => undefined;
 };
 
-mock.module("../useAdminApi", () => ({
-  useAdminApi: () =>
-    new Proxy(
-      {},
-      {
-        get: (_target, prop: string) => resolveHook(prop),
-      }
-    ),
-}));
+if (process.env.ADMIN_USE_REAL_API !== "1") {
+  mock.module("../useAdminApi", () => ({
+    useAdminApi: () =>
+      new Proxy(
+        {},
+        {
+          get: (_target, prop: string) => resolveHook(prop),
+        }
+      ),
+  }));
+}
