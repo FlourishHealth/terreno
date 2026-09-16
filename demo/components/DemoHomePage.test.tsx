@@ -1,5 +1,6 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
+import {StyleSheet} from "react-native";
 
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {DemoHomePage} from "./DemoHomePage";
@@ -28,8 +29,10 @@ describe("DemoHomeBanner", () => {
     const {getByTestId} = renderWithTheme(<DemoHomeBanner />);
     const banner = getByTestId("demo-home-banner");
 
-    assert.equal(banner.props.style.width, DEMO_BANNER_WIDTH);
-    assert.equal(banner.props.style.height, DEMO_BANNER_HEIGHT);
+    const bannerStyle = StyleSheet.flatten(banner.props.style);
+
+    assert.equal(bannerStyle?.width, DEMO_BANNER_WIDTH);
+    assert.equal(bannerStyle?.height, DEMO_BANNER_HEIGHT);
   });
 
   it("flows inline with the component cards instead of above them", () => {
