@@ -500,6 +500,35 @@ describe("AdminShell", () => {
     expect(getByText("Platform")).toBeTruthy();
   });
 
+  it("lifts the jobs custom screen into Platform and keeps other screens", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "Comms", name: "comms"},
+        {displayName: "Jobs", name: "jobs"},
+      ],
+      scripts: [],
+    };
+
+    const {getByTestId, queryByTestId, queryByText} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-jobs-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-comms-clickable"));
+    assert.isNull(queryByTestId("admin-shell-nav-screen-jobs"));
+    assert.isNotNull(queryByText("Screens"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-jobs-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/jobs");
+  });
+
   it("shows a loading spinner while admin config is loading", () => {
     configState.config = null;
     configState.error = null;

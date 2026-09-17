@@ -15,6 +15,7 @@ on:
       - "admin-backend/**"
       - "ai/**"
       - "comms/**"
+      - "jobs/**"
       - "mcp-server/**"
       - "ui/**"
       - ".github/workflows/cd.yml"
@@ -45,6 +46,9 @@ env:
   GCP_BACKEND_REGION: us-central1
   GCP_BACKEND_SERVICE: terreno-backend-example
   GCP_TASKS_SERVICE: terreno-backend-example-tasks
+  GCP_TASKS_QUEUE: terreno-example-jobs
+  GCP_TASKS_INVOKER_SA: terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
+  GCP_BACKEND_RUNTIME_SA: terreno-backend-runtime@flourish-terreno.iam.gserviceaccount.com
   GCP_MCP_REGION: us-east1
   GCP_MCP_SERVICE: terreno-mcp
   TF_DEPLOYMENT: terreno-prod
@@ -76,6 +80,7 @@ jobs:
               - 'admin-backend/**'
               - 'ai/**'
               - 'comms/**'
+              - 'jobs/**'
               - '.github/workflows/cd.yml'
             tasks:
               - 'example-backend/**'
@@ -84,6 +89,7 @@ jobs:
               - 'admin-backend/**'
               - 'ai/**'
               - 'comms/**'
+              - 'jobs/**'
               - '.github/workflows/cd.yml'
             mcp:
               - 'mcp-server/**'
@@ -303,6 +309,35 @@ jobs:
             echo "env_vars=" >> "$GITHUB_OUTPUT"
             echo "secrets=" >> "$GITHUB_OUTPUT"
           fi
+      - name: Resolve jobs deploy config
+        id: jobs
+        run: |
+          set -euo pipefail
+          TASKS_URL="$(
+            gcloud run services describe "${{ env.GCP_TASKS_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format='value(status.url)'
+          )"
+          {
+            echo "env_vars<<JOBS_EOF"
+            echo "JOBS_RUNNER=gcp-cloud-tasks"
+            echo "GCP_TASKS_PROJECT=${{ env.GCP_PROJECT_ID }}"
+            echo "GCP_TASKS_LOCATION=${{ env.GCP_BACKEND_REGION }}"
+            echo "GCP_TASKS_QUEUE=${{ env.GCP_TASKS_QUEUE }}"
+            echo "GCP_TASKS_PUBLIC_URL=$TASKS_URL"
+            echo "GCP_TASKS_OIDC_AUDIENCE=$TASKS_URL"
+            echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
+            echo "JOBS_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Resolve backend runtime service account
+        id: runtime-sa
+        run: |
+          set -euo pipefail
+          if gcloud iam service-accounts describe "${{ env.GCP_BACKEND_RUNTIME_SA }}" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "flag=--service-account=${{ env.GCP_BACKEND_RUNTIME_SA }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -311,11 +346,14 @@ jobs:
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
           tag: prod
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
             CORS_ORIGINS=https://terreno-frontend.netlify.app
             CROSS_DOMAIN_AUTH_COOKIES=true
+            JOBS_START_WORKER=true
+            ${{ steps.jobs.outputs.env_vars }}
             ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
@@ -330,6 +368,7 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            ${{ steps.runtime-sa.outputs.flag }}
       - name: Set deployment status to success
         if: success()
         uses: actions/github-script@v9.0.0
@@ -358,13 +397,14 @@ jobs:
 
   backend-deploy-preview:
     name: Backend deploy (preview)
-    needs: [detect, terraform-preview]
+    needs: [detect, terraform-preview, tasks-deploy-preview]
     if: |
       always() &&
       needs.detect.outputs.backend == 'true' &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped')
+      (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped') &&
+      (needs.tasks-deploy-preview.result == 'success' || needs.tasks-deploy-preview.result == 'skipped')
     permissions:
       contents: read
       id-token: write
@@ -469,6 +509,35 @@ jobs:
             echo "env_vars=" >> "$GITHUB_OUTPUT"
             echo "secrets=" >> "$GITHUB_OUTPUT"
           fi
+      - name: Resolve jobs deploy config
+        id: jobs
+        run: |
+          set -euo pipefail
+          TASKS_URL="$(
+            gcloud run services describe "${{ env.GCP_TASKS_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format='value(status.url)'
+          )"
+          {
+            echo "env_vars<<JOBS_EOF"
+            echo "JOBS_RUNNER=gcp-cloud-tasks"
+            echo "GCP_TASKS_PROJECT=${{ env.GCP_PROJECT_ID }}"
+            echo "GCP_TASKS_LOCATION=${{ env.GCP_BACKEND_REGION }}"
+            echo "GCP_TASKS_QUEUE=${{ env.GCP_TASKS_QUEUE }}"
+            echo "GCP_TASKS_PUBLIC_URL=https://pr-${{ github.event.pull_request.number }}---${TASKS_URL#https://}"
+            echo "GCP_TASKS_OIDC_AUDIENCE=$TASKS_URL"
+            echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
+            echo "JOBS_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Resolve backend runtime service account
+        id: runtime-sa
+        run: |
+          set -euo pipefail
+          if gcloud iam service-accounts describe "${{ env.GCP_BACKEND_RUNTIME_SA }}" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "flag=--service-account=${{ env.GCP_BACKEND_RUNTIME_SA }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run with tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -478,6 +547,7 @@ jobs:
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
           tag: pr-${{ github.event.pull_request.number }}
           no_traffic: true
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
@@ -485,6 +555,8 @@ jobs:
             CROSS_DOMAIN_AUTH_COOKIES=true
             MONGO_DB_NAME=terreno-example-pr-${{ github.event.pull_request.number }}
             SEED_DEFAULTS=true
+            JOBS_START_WORKER=true
+            ${{ steps.jobs.outputs.env_vars }}
             ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
@@ -499,6 +571,7 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            ${{ steps.runtime-sa.outputs.flag }}
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
         run: |
@@ -548,6 +621,94 @@ jobs:
 
   # ───────────────────────────── Backend tasks worker ─────────────────────────────
 
+  tasks-deploy-preview:
+    name: Tasks deploy (preview)
+    needs: [detect, terraform-preview]
+    if: |
+      always() &&
+      needs.detect.outputs.tasks == 'true' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
+    environment: gcp-cd-preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        id: docker-build
+        env:
+          IMAGE: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag "$IMAGE" \
+            .
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      - name: Push Docker image
+        run: docker push ${{ steps.docker-build.outputs.image }}
+      - name: Resolve jobs deploy config
+        id: jobs
+        run: |
+          set -euo pipefail
+          TASKS_URL="$(
+            gcloud run services describe "${{ env.GCP_TASKS_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format='value(status.url)'
+          )"
+          {
+            echo "env_vars<<JOBS_EOF"
+            echo "JOBS_RUNNER=gcp-cloud-tasks"
+            echo "GCP_TASKS_PROJECT=${{ env.GCP_PROJECT_ID }}"
+            echo "GCP_TASKS_LOCATION=${{ env.GCP_BACKEND_REGION }}"
+            echo "GCP_TASKS_QUEUE=${{ env.GCP_TASKS_QUEUE }}"
+            echo "GCP_TASKS_PUBLIC_URL=https://pr-${{ github.event.pull_request.number }}---${TASKS_URL#https://}"
+            echo "GCP_TASKS_OIDC_AUDIENCE=$TASKS_URL"
+            echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
+            echo "JOBS_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Deploy to Cloud Run with tag
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_TASKS_SERVICE }}
+          region: ${{ env.GCP_BACKEND_REGION }}
+          image: ${{ steps.docker-build.outputs.image }}
+          tag: pr-${{ github.event.pull_request.number }}
+          no_traffic: true
+          env_vars_update_strategy: overwrite
+          env_vars: |
+            NODE_ENV=production
+            BACKEND_SERVICE=tasks
+            FLOURISH_SERVICE=${{ env.GCP_TASKS_SERVICE }}
+            JOBS_START_WORKER=false
+            MONGO_DB_NAME=terreno-example-pr-${{ github.event.pull_request.number }}
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            ${{ steps.jobs.outputs.env_vars }}
+          secrets: |
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=20
+            --timeout=1800
+            --no-allow-unauthenticated
+
   tasks-deploy-prod:
     name: Tasks deploy (prod)
     needs: [detect, terraform-apply]
@@ -592,6 +753,26 @@ jobs:
         run: |
           docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
           docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:latest
+      - name: Resolve jobs deploy config
+        id: jobs
+        run: |
+          set -euo pipefail
+          TASKS_URL="$(
+            gcloud run services describe "${{ env.GCP_TASKS_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format='value(status.url)'
+          )"
+          {
+            echo "env_vars<<JOBS_EOF"
+            echo "JOBS_RUNNER=gcp-cloud-tasks"
+            echo "GCP_TASKS_PROJECT=${{ env.GCP_PROJECT_ID }}"
+            echo "GCP_TASKS_LOCATION=${{ env.GCP_BACKEND_REGION }}"
+            echo "GCP_TASKS_QUEUE=${{ env.GCP_TASKS_QUEUE }}"
+            echo "GCP_TASKS_PUBLIC_URL=$TASKS_URL"
+            echo "GCP_TASKS_OIDC_AUDIENCE=$TASKS_URL"
+            echo "GCP_TASKS_SERVICE_ACCOUNT_EMAIL=${{ env.GCP_TASKS_INVOKER_SA }}"
+            echo "JOBS_EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v3
         with:
@@ -599,10 +780,13 @@ jobs:
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
           tag: prod
+          env_vars_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
             BACKEND_SERVICE=tasks
             FLOURISH_SERVICE=${{ env.GCP_TASKS_SERVICE }}
+            JOBS_START_WORKER=false
+            ${{ steps.jobs.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
@@ -612,9 +796,9 @@ jobs:
             --memory=512Mi
             --min-instances=0
             --max-instances=10
-            --concurrency=80
-            --timeout=300
-            --allow-unauthenticated
+            --concurrency=20
+            --timeout=1800
+            --no-allow-unauthenticated
 
   # ───────────────────────────── MCP server ─────────────────────────────
 

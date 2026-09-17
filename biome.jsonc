@@ -59,7 +59,8 @@
       "!!**/.next",
       "!!**/generated",
       "!!**/.git",
-      "!!api/src/populate.ts"
+      "!!api/src/populate.ts",
+      "!!example-frontend/expo-env.d.ts"
     ]
   },
   "formatter": {

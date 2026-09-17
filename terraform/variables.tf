@@ -69,6 +69,24 @@ variable "tasks_service_name" {
   type        = string
 }
 
+variable "jobs_queue_name" {
+  description = "Cloud Tasks queue used to dispatch example-backend durable jobs."
+  type        = string
+  default     = "terreno-example-jobs"
+}
+
+variable "jobs_queue_max_concurrent_dispatches" {
+  description = "Maximum Cloud Tasks callbacks in flight across the example backend worker service."
+  type        = number
+  default     = 20
+}
+
+variable "jobs_queue_max_dispatches_per_second" {
+  description = "Maximum Cloud Tasks callback dispatch rate for the example backend worker service."
+  type        = number
+  default     = 20
+}
+
 variable "mcp_service_name" {
   description = "Cloud Run service name for the MCP server."
   type        = string

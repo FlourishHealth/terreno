@@ -19,6 +19,7 @@ export const SCAN_ROOTS = [
   "example-backend/src",
   "example-frontend",
   "feature-flags/src",
+  "jobs/src",
   "mcp-server/src",
   "rtk/src",
   "scripts",
