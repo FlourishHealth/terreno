@@ -9,7 +9,7 @@ fi
 
 SERVICE="$1"
 REGION="$2"
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 
 service_json="$(mktemp)"
 revisions_json="$(mktemp)"

@@ -1,5 +1,8 @@
 import {describe, it} from "bun:test";
+import {existsSync} from "node:fs";
 import {createRequire} from "node:module";
+import {dirname, join} from "node:path";
+import {fileURLToPath} from "node:url";
 import {assert} from "chai";
 
 const require = createRequire(import.meta.url);
@@ -85,5 +88,12 @@ describe("pruneNotReadyTaggedTraffic", () => {
       },
     ]);
     assert.deepEqual(names, ["ready-rev"]);
+  });
+
+  it("resolves the prune CLI from the workflow script directory", (): void => {
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const workflowScriptDir = join(thisDir, "../workflows/scripts");
+    const cliPath = join(workflowScriptDir, "../../../.github/scripts/prune-cloud-run-not-ready-traffic.js");
+    assert.isTrue(existsSync(cliPath));
   });
 });
