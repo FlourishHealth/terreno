@@ -1,9 +1,11 @@
-import {describe, it} from "bun:test";
-import {ConsentForm} from "@terreno/api";
+import {beforeEach, describe, it} from "bun:test";
+import {ConsentForm, TerrenoApp, type UserModel as TerrenoAuthUserModel} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
+import {Job} from "@terreno/jobs";
 import {assert} from "chai";
-
+import {access} from "./access";
 import {adminScripts, isDatabaseResetAllowed, resetExampleDatabase} from "./adminScripts";
+import {createExampleJobsApp} from "./jobs/createExampleJobsApp";
 import {Project} from "./models/project";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
@@ -58,5 +60,50 @@ describe("resetDatabase admin script", () => {
     assert.exists(superadmin);
     assert.isTrue(superadmin?.admin);
     assert.include(superadmin?.roles ?? [], "superadmin");
+  });
+});
+
+describe("enqueueDlqDemoJob admin script", () => {
+  const typedUserModel = User as unknown as TerrenoAuthUserModel;
+
+  beforeEach(async (): Promise<void> => {
+    await Job.deleteMany({});
+    const jobsApp = createExampleJobsApp({accessControl: access});
+    new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(jobsApp)
+      .build();
+  });
+
+  it("is registered for the admin script runner", () => {
+    const script = adminScripts.find(({name}) => name === "enqueueDlqDemoJob");
+    assert.exists(script);
+    assert.match(script?.description ?? "", /dead-letter|DLQ/i);
+  });
+
+  it("reports a dry run without enqueueing a job", async () => {
+    const script = adminScripts.find(({name}) => name === "enqueueDlqDemoJob");
+    assert.exists(script);
+
+    const result = await script.runner(false);
+    assert.isTrue(result.success);
+    assert.match(result.results[0], /Dry run/i);
+    assert.equal(await Job.countDocuments(), 0);
+  });
+
+  it("enqueues example/dlq-demo on a wet run", async () => {
+    const script = adminScripts.find(({name}) => name === "enqueueDlqDemoJob");
+    assert.exists(script);
+
+    const result = await script.runner(true);
+    assert.isTrue(result.success);
+    assert.match(result.results[0], /Enqueued example\/dlq-demo/);
+    assert.equal(await Job.countDocuments(), 1);
+
+    const job = await Job.findOne({});
+    assert.equal(job?.name, "example/dlq-demo");
+    assert.deepEqual(job?.payload, {source: "enqueueDlqDemoJob"});
   });
 });

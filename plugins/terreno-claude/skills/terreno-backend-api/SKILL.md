@@ -248,6 +248,15 @@ Need server-side logic?
   |-- One-off path that cannot be /{action} or /:id/{action}?
   |   \-- custom-routes.md last resort (createOpenApiBuilder)
   |
+  |-- Durable async work (retries, schedules, DLQ, admin queue UI)?
+  |   \-- @terreno/jobs JobsApp — docs/how-to/background-jobs.md
+  |
+  |-- In-process recurring timer (dies with the process)?
+  |   \-- @terreno/api cronjob()
+  |
+  |-- One-shot CLI / script entry?
+  |   \-- @terreno/api wrapScript()
+  |
   |-- Admin CRUD?
   |   \-- AdminApp + admin-frontend
   |

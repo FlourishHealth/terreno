@@ -36,5 +36,6 @@ PR deploy preview.
 | `cd` backend preview | Runs the built container against the configured Secret Manager values and requires a healthy `/health` response before pushing or deploying. |
 | Bun install | `.github/actions/setup-bun-workspace` pins Bun `1.4.0` and caches `~/.bun/install/cache` without `github.ref` in the key |
 
-Playwright e2e still uses one shard per spec file so required check names stay
-`E2E · <spec>`.
+Playwright e2e on CircleCI groups specs into five shards (`e2e-auth`,
+`e2e-app`, `e2e-admin-core`, `e2e-admin-table`, `e2e-syncdb`). The retained GHA
+twin still lists one spec per matrix entry for rollback.

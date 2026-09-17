@@ -11,6 +11,7 @@ import {setupDb} from "../tests";
 import {
   assertMigrationsAllowed,
   exerciseReversibleMigrations,
+  getMigrationStatus,
   runDownMigrations,
   runMigrations,
 } from "./runner";
@@ -259,6 +260,31 @@ describe("runDownMigrations", () => {
     expect(await appliedIds()).toEqual(["20260910120000-irreversible"]);
   });
 
+  it("rejects a non-positive or non-integer steps value before touching history", async () => {
+    const migrations: LoadedMigration[] = [
+      {
+        checksum: "steps",
+        down: async () => undefined,
+        id: "20260910120000-steps",
+        up: async () => undefined,
+      },
+    ];
+    await runMigrations({connection: mongoose.connection, dryRun: false, migrations, mongoose});
+
+    for (const steps of [0, -1, 1.5]) {
+      await expect(
+        runDownMigrations({
+          connection: mongoose.connection,
+          dryRun: false,
+          migrations,
+          mongoose,
+          steps,
+        })
+      ).rejects.toThrow("Invalid down steps");
+    }
+    expect(await appliedIds()).toEqual(["20260910120000-steps"]);
+  });
+
   it("stops before up when checkCancellation rejects", async () => {
     let ran = false;
     await expect(
@@ -282,6 +308,85 @@ describe("runDownMigrations", () => {
     ).rejects.toThrow("cancelled");
     expect(ran).toBe(false);
     expect(await appliedIds()).toEqual([]);
+  });
+});
+
+describe("getMigrationStatus", () => {
+  beforeEach(async () => {
+    await setupDb();
+    await collection().deleteMany({});
+  });
+
+  const migrations: LoadedMigration[] = [
+    {checksum: "one", id: "20260910120000-a", up: async () => undefined},
+    {checksum: "two", id: "20260910120001-b", up: async () => undefined},
+  ];
+
+  it("splits migrations into applied and pending with no lock", async () => {
+    await runMigrations({
+      connection: mongoose.connection,
+      dryRun: false,
+      migrations: [migrations[0]],
+      mongoose,
+    });
+
+    const status = await getMigrationStatus({connection: mongoose.connection, migrations});
+
+    expect(status.lock).toBeNull();
+    expect(status.pending).toEqual([{checksum: "two", id: "20260910120001-b"}]);
+    expect(status.applied).toHaveLength(1);
+    expect(status.applied[0].id).toBe("20260910120000-a");
+    expect(status.applied[0].checksum).toBe("one");
+    expect(status.applied[0].appliedAt).toBeInstanceOf(Date);
+  });
+
+  it("reports the active lock holder and expiry", async () => {
+    const expiresAt = new Date("2026-09-10T12:00:00.000Z");
+    await collection().insertOne({_id: MIGRATION_LOCK_ID, expiresAt, holder: "worker-1"});
+
+    const status = await getMigrationStatus({connection: mongoose.connection, migrations});
+
+    expect(status.lock).toEqual({expiresAt, holder: "worker-1"});
+    expect(status.applied).toEqual([]);
+    expect(status.pending.map((m) => m.id)).toEqual(["20260910120000-a", "20260910120001-b"]);
+  });
+
+  it("defaults a lock holder to an empty string when missing", async () => {
+    await collection().insertOne({
+      _id: MIGRATION_LOCK_ID,
+      expiresAt: "2026-09-10T12:00:00.000Z",
+    });
+
+    const status = await getMigrationStatus({connection: mongoose.connection, migrations});
+
+    expect(status.lock?.holder).toBe("");
+    expect(status.lock?.expiresAt).toEqual(new Date("2026-09-10T12:00:00.000Z"));
+  });
+
+  it("parses ISO string appliedAt values from legacy history docs", async () => {
+    await collection().insertOne({
+      _id: "20260910120000-a",
+      appliedAt: "2026-09-10T11:00:00.000Z",
+      checksum: "one",
+      id: "20260910120000-a",
+    });
+
+    const status = await getMigrationStatus({connection: mongoose.connection, migrations});
+
+    expect(status.applied[0].appliedAt).toEqual(new Date("2026-09-10T11:00:00.000Z"));
+  });
+
+  it("throws when a stored timestamp is not a valid date", async () => {
+    await collection().insertOne({
+      _id: "20260910120000-a",
+      appliedAt: "not-a-date",
+      checksum: "one",
+      id: "20260910120000-a",
+    });
+
+    await expect(getMigrationStatus({connection: mongoose.connection, migrations})).rejects.toThrow(
+      "Invalid migration timestamp"
+    );
   });
 });
 

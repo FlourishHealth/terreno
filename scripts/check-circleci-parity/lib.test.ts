@@ -1,8 +1,8 @@
-import {assert} from "chai";
 import {describe, it} from "bun:test";
 import {mkdirSync, mkdtempSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 
 import {
   collectParityGaps,
@@ -41,9 +41,14 @@ const createFixtureRepo = ({
 
   writeFileSync(
     join(root, ".github", "workflows", "api-ci.yml"),
-    ["name: API CI", "on:", "  push:", "    paths:", ...workflowPaths.map((p) => `      - "${p}"`), ""].join(
-      "\n"
-    )
+    [
+      "name: API CI",
+      "on:",
+      "  push:",
+      "    paths:",
+      ...workflowPaths.map((p) => `      - "${p}"`),
+      "",
+    ].join("\n")
   );
 
   return root;
@@ -225,6 +230,10 @@ describe("collectParityGaps", () => {
       {parameter: "run-cd-terraform", sample: "terraform/main.tf"},
       {parameter: "run-cd-backend", sample: "example-backend/src/server.ts"},
       {parameter: "run-cd-backend", sample: "comms/src/commsApp.ts"},
+      {parameter: "run-cd-backend", sample: "jobs/src/jobsApp.ts"},
+      {parameter: "run-jobs", sample: "jobs/src/jobsService.ts"},
+      {parameter: "run-e2e", sample: "jobs/src/jobsApp.ts"},
+      {parameter: "run-admin-spa-integration", sample: "jobs/src/routes/jobsAdmin.ts"},
       {parameter: "run-cd-mcp", sample: "mcp-server/src/index.ts"},
     ];
     for (const {parameter, sample} of cases) {

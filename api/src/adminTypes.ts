@@ -11,6 +11,12 @@ export const MAX_BULK_PATCH_IDS = 1000;
 
 export type AdminFilterKind = "boolean" | "choice" | "dateRange" | "ref" | "text";
 
+/**
+ * Wire-format sentinel for optional choice filters meaning "field is null or unset".
+ * Must match `DATA_TABLE_CHOICE_EMPTY_VALUE` in `@terreno/ui`.
+ */
+export const ADMIN_LIST_CHOICE_EMPTY_VALUE = "__empty__";
+
 export interface AdminFilterBoolean {
   field: string;
   kind: "boolean";
@@ -19,6 +25,8 @@ export interface AdminFilterBoolean {
 
 export interface AdminFilterChoice {
   choices: {label: string; value: string}[];
+  /** When true, the filter UI offers an Empty option and the parser accepts {@link ADMIN_LIST_CHOICE_EMPTY_VALUE}. */
+  allowEmpty?: boolean;
   field: string;
   kind: "choice";
   label?: string;

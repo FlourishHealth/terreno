@@ -70,6 +70,16 @@ For each model, creates standard modelRouter CRUD endpoints plus admin membershi
 - `PATCH {basePath}{routePath}/:id` — Update
 - `DELETE {basePath}{routePath}/:id` — Delete
 
+## Scripts
+
+`POST {basePath}/scripts/:name/run` creates a `BackgroundTask` and returns `{taskId}`. Poll
+`GET {basePath}/scripts/tasks/:id`. Cancel `DELETE {basePath}/scripts/tasks/:id`.
+
+When `JobsApp` is already registered, the run is enqueued as job `admin/script` (see
+[Durable background jobs](../how-to/background-jobs.md#admin-scripts)). Call
+`defineAdminScriptJob` on the worker process with the same script list. The CLI
+(`runScriptCli`) does not enqueue.
+
 ## Config Endpoint
 
 `GET {basePath}/config` returns metadata for all registered models:

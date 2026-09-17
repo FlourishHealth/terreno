@@ -17,7 +17,7 @@ import {
 const DEFAULT_THRESHOLD = 90;
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|e2e|node_modules|isolated|tests|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|e2e|node_modules|isolated|tests|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)types\.ts$|(?:^|\/)jobsWorker\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
@@ -205,6 +205,29 @@ export const coverageRunArgs = ({
   return args;
 };
 
+export const workspaceDepsCompileArgs = ({
+  packageRoot,
+  repoRoot,
+}: {
+  packageRoot: string;
+  repoRoot: string;
+}): string[] => {
+  return [join(repoRoot, ".github/scripts/compile-workspace-deps.js"), packageRoot];
+};
+
+const compilePackageWorkspaceDeps = ({
+  packageRoot,
+  repoRoot,
+}: {
+  packageRoot: string;
+  repoRoot: string;
+}): void => {
+  execFileSync("node", workspaceDepsCompileArgs({packageRoot, repoRoot}), {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
+};
+
 /**
  * Package `test` scripts rely on the shell to expand globs such as `./**\/*.test.ts`.
  * Coverage runs spawn `bun` directly, so expand the patterns here; an unexpanded pattern
@@ -248,11 +271,14 @@ const runPackageCoverage = async ({
   coverageDir,
   packageName,
   packageRoot,
+  repoRoot,
 }: {
   coverageDir: string;
   packageName: string;
   packageRoot: string;
+  repoRoot: string;
 }): Promise<{exitCode: number; output: string}> => {
+  compilePackageWorkspaceDeps({packageRoot, repoRoot});
   const coverageArgs = expandCoverageRunArgs({
     args: coverageRunArgs({
       hasSrcDir: existsSync(join(packageRoot, "src")),
@@ -326,6 +352,7 @@ const main = async (): Promise<void> => {
         coverageDir,
         packageName: packageCoverage.packageName,
         packageRoot,
+        repoRoot,
       });
       if (exitCode !== 0 && !isBunCoverageThresholdExit(exitCode, output)) {
         process.exit(exitCode);

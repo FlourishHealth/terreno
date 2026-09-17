@@ -876,6 +876,11 @@ const _buildModelRouter = <T>(
           return res.json({data: []});
         }
         query = {...query, ...queryFilter};
+        for (const [key, value] of Object.entries(queryFilter)) {
+          if (value === undefined) {
+            delete query[key];
+          }
+        }
       }
 
       let limit = options.defaultLimit ?? 100;
