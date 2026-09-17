@@ -558,6 +558,7 @@ jobs:
             JOBS_START_WORKER=true
             ${{ steps.jobs.outputs.env_vars }}
             ${{ steps.better-auth.outputs.env_vars }}
+          secrets_update_strategy: overwrite
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             ${{ steps.better-auth.outputs.secrets }}
@@ -583,6 +584,16 @@ jobs:
               jq -r --arg sha "$GITHUB_SHA" \
                 'first(.[] | select(.metadata.labels["commit-sha"] == $sha) | .metadata.name) // empty'
           )"
+          if [ -z "$revision" ]; then
+            revision="$(
+              gcloud run revisions list \
+                --service="${{ env.GCP_BACKEND_SERVICE }}" \
+                --region="${{ env.GCP_BACKEND_REGION }}" \
+                --format='value(metadata.name)' \
+                --sort-by=~metadata.creationTimestamp \
+                --limit=1
+            )"
+          fi
           if [ -z "$revision" ]; then
             echo "::warning::Could not identify the failed Cloud Run revision for $GITHUB_SHA"
             exit 0

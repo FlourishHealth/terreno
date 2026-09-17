@@ -28,6 +28,7 @@ export const getSyncAppOptions = (app: express.Application): SyncAppOptions | un
  * idempotent, and the unique `stream` index is what keeps the counter upsert race from
  * minting duplicate seqs — so an index-build failure fails startup loudly. Apps that build
  * the Express app without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+ * Pass `httpServer` when the process already bound `PORT` (Cloud Run startup probe).
  */
 export class SyncApp implements TerrenoPlugin {
   private readonly options: SyncAppOptions;

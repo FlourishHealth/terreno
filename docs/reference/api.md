@@ -84,7 +84,7 @@ const app = new TerrenoApp({userModel: User})
 - `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
 - `addMiddleware(fn)` — Add Express middleware
 - `build()` — Build Express app without listening
-- `start()` — Build and start server
+`start()` — Build and start server. Pass `httpServer` to attach to an already-listening `http.Server` instead of binding a new port (Cloud Run: bind `PORT` before MongoDB connect).
 
 `migrations.runOnStart` defaults to **false**. When `true`, `start()` binds listen first, then runs `ensureSyncIndexes`, then wet `up`. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
 

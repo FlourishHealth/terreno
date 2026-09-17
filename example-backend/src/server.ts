@@ -51,6 +51,7 @@ import {settingsRouter} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
+import {bindPortEarly} from "./bindPortEarly";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {exampleAdminHome} from "./exampleAdminConfig";
@@ -101,6 +102,10 @@ const createOpenApiAwareRouteRegistration = (
 };
 
 export const start = async (skipListen = false): Promise<express.Application> => {
+  // Cloud Run probes PORT as soon as the process starts. Bind before Mongo so a
+  // slow connect/seed cannot fail the revision.
+  const httpServer = skipListen ? undefined : await bindPortEarly(process.env.PORT || "9000");
+
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
@@ -173,6 +178,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
+      httpServer,
       // Cloud Run captures stdout/stderr. Keeping the console transport avoids making
       // startup depend on LoggingWinston network/auth callbacks before the port opens.
       loggingOptions: {

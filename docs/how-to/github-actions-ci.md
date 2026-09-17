@@ -33,7 +33,7 @@ PR deploy preview.
 | `fingerprint-gate` | Master iOS/Android hashes cached per `pull_request.base.sha` (skips a second `bun run compile`) |
 | `maestro-e2e` | Demo export + static server only when `demo/`, `ui/`, or `.maestro/flows/demo/` change |
 | `example-backend-docker` | Buildx runs only when the image recipe changes (`Dockerfile`, lockfile, `package.json`). Source-only PRs skip; CD preview deploy still builds the image. `load: true` stays off. |
-| `cd` backend preview | Runs the built container against the configured Secret Manager values and requires a healthy `/health` response before pushing or deploying. Preview Cloud Run uses `--memory=1Gi` and `--cpu-boost`, and omits Langfuse secrets so boot matches smoke. |
+| `cd` backend preview | Runs the built container against the configured Secret Manager values, including the Cloud Tasks `JOBS_*` env, and requires a healthy `/health` response before pushing or deploying. Preview Cloud Run uses `--memory=1Gi` and `--cpu-boost`, overwrites revision secrets (so leftover Langfuse keys are not merged in), and binds `PORT` before MongoDB connect. |
 | Bun install | `.github/actions/setup-bun-workspace` pins Bun `1.4.0` and caches `~/.bun/install/cache` without `github.ref` in the key |
 
 Playwright e2e on CircleCI groups specs into five shards (`e2e-auth`,

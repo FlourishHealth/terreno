@@ -1,5 +1,5 @@
 import {EventEmitter} from "node:events";
-import {createServer} from "node:http";
+import {createServer, type Server as HttpServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
@@ -91,6 +91,12 @@ export interface TerrenoAppOptions {
   githubAuth?: GitHubAuthOptions;
   /** Skip calling app.listen() in start() method (useful for testing) */
   skipListen?: boolean;
+  /**
+   * Already-listening HTTP server. `start()` attaches the Express app to it
+   * instead of creating and binding a new server, so Cloud Run can see PORT
+   * before MongoDB connect and plugin registration finish.
+   */
+  httpServer?: HttpServer;
   /** Sentry configuration options */
   sentryOptions?: Sentry.BunOptions;
   /** Maximum number of array items in query parameters (default: 200) */
@@ -138,7 +144,8 @@ export interface TerrenoAppOptions {
   mcpServiceTokens?: McpServiceTokensAppOption;
   /**
    * Versioned MongoDB migrations. `runOnStart` defaults to false. When true, wet `up`
-   * runs after indexes and before listen. Production still requires `ALLOW_MIGRATIONS=true`.
+   * runs after listen and `ensureSyncIndexes`. Production still requires
+   * `ALLOW_MIGRATIONS=true`.
    */
   migrations?: StartupMigrationsOption;
 }
@@ -632,7 +639,12 @@ export class TerrenoApp {
   private completeStart = async (app: express.Application): Promise<void> => {
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
-      const server = createServer(app);
+      const existingServer = this.options.httpServer;
+      const server = existingServer ?? createServer(app);
+      if (existingServer) {
+        existingServer.removeAllListeners("request");
+        existingServer.on("request", app);
+      }
       for (const reg of this.registrations) {
         if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
           reg.onServerCreated(server);
@@ -640,9 +652,13 @@ export class TerrenoApp {
       }
       // Bind PORT before index/migration work so Cloud Run's startup probe can
       // succeed while `ensureSyncIndexes` still runs. whenReady() still waits.
-      server.listen(port, () => {
+      if (!existingServer) {
+        server.listen(port, () => {
+          logger.info(`Listening on port ${port}`);
+        });
+      } else {
         logger.info(`Listening on port ${port}`);
-      });
+      }
       await ensureSyncIndexes();
     }
     await runStartupMigrations({
