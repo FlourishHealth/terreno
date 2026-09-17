@@ -128,6 +128,22 @@ resource "google_service_account" "backend_runtime" {
   description  = "Cloud Run identity for the public example API. Sole runtime allowed to enqueue Cloud Tasks and actAs terreno-jobs-invoker."
 }
 
+# Cloud Run validates the existing revision template before it applies a
+# deployment update, including legacy JWT secret mounts that CD will replace.
+resource "google_secret_manager_secret_iam_member" "backend_runtime_legacy_token_secret" {
+  project   = var.project_id
+  secret_id = "EXAMPLE_TOKEN_SECRET"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_runtime_legacy_refresh_token_secret" {
+  project   = var.project_id
+  secret_id = "EXAMPLE_REFRESH_TOKEN_SECRET"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
 module "backend_secret_mongodb_uri" {
   source = "./modules/secret"
 

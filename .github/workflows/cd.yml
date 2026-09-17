@@ -368,7 +368,6 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
-            --remove-secrets=TOKEN_SECRET,REFRESH_TOKEN_SECRET
             ${{ steps.runtime-sa.outputs.flag }}
       - name: Set deployment status to success
         if: success()
@@ -572,7 +571,6 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
-            --remove-secrets=TOKEN_SECRET,REFRESH_TOKEN_SECRET
             ${{ steps.runtime-sa.outputs.flag }}
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
