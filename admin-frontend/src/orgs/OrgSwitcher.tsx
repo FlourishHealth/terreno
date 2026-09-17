@@ -66,7 +66,7 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
   if (organizations.length === 1) {
     return (
       <Box gap={1} testID="org-switcher-single">
-        <Text color="secondaryDark" size="sm">
+        <Text bold color="inverted" size="sm">
           Organization
         </Text>
         <Button
@@ -79,16 +79,20 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
     );
   }
   return (
-    <SelectField
-      onChange={handleChange}
-      options={organizations.map((candidate) => ({
-        label: candidate.name,
-        value: candidate._id,
-      }))}
-      placeholder="Select organization"
-      testID="org-switcher"
-      title="Organization"
-      value={organization?._id ?? ""}
-    />
+    <Box gap={1}>
+      <Text bold color="inverted" size="sm">
+        Organization
+      </Text>
+      <SelectField
+        onChange={handleChange}
+        options={organizations.map((candidate) => ({
+          label: candidate.name,
+          value: candidate._id,
+        }))}
+        placeholder="Select organization"
+        testID="org-switcher"
+        value={organization?._id ?? ""}
+      />
+    </Box>
   );
 };

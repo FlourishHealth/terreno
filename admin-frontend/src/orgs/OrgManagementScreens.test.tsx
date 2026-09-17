@@ -2,9 +2,15 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
+import {StyleSheet} from "react-native";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 
-const readState: {data?: unknown; error?: unknown; isLoading: boolean} = {isLoading: false};
+const readState: {
+  data?: unknown;
+  error?: unknown;
+  isFetching: boolean;
+  isLoading: boolean;
+} = {isFetching: false, isLoading: false};
 const membersState: {data?: unknown; error?: unknown; isLoading: boolean} = {isLoading: false};
 const updateOrganization = mock(() => ({unwrap: async () => ({})}));
 const attachMember = mock(() => ({unwrap: async () => ({})}));
@@ -47,6 +53,7 @@ describe("organization management screens", () => {
   beforeEach(() => {
     readState.data = {data: {_id: "org-1", name: "Acme", settings: {region: "us"}}};
     readState.error = undefined;
+    readState.isFetching = false;
     readState.isLoading = false;
     membersState.data = {
       data: [
@@ -72,6 +79,18 @@ describe("organization management screens", () => {
 
   it("shows a spinner while organization settings are loading", () => {
     readState.isLoading = true;
+    const screen = renderWithTheme(
+      <OrgSettingsScreen api={api} organizationId="org-1" routeBase="/admin" />
+    );
+
+    assert.isNull(screen.queryByTestId("org-settings-save"));
+    assert.isNull(screen.queryByText("Could not load organization settings."));
+  });
+
+  it("shows a spinner while RTK still serves a previous organization id", () => {
+    readState.isLoading = false;
+    readState.isFetching = false;
+    readState.data = {data: {_id: "org-old", name: "Old Org", settings: {}}};
     const screen = renderWithTheme(
       <OrgSettingsScreen api={api} organizationId="org-1" routeBase="/admin" />
     );
@@ -172,6 +191,10 @@ describe("organization management screens", () => {
 
   it("shows disabled Invite and attaches an existing user", async () => {
     const screen = renderWithTheme(<OrgMembersScreen api={api} organizationId="org-1" />);
+    assert.equal(
+      StyleSheet.flatten(screen.getByTestId("org-members-page").props.style).maxWidth,
+      "100%"
+    );
     expect(screen.getByLabelText("Invite").props.accessibilityState.disabled).toBe(true);
     expect(screen.getByText("admin@example.com")).toBeTruthy();
     await act(async () => {

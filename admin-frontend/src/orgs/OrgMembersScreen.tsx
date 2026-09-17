@@ -193,7 +193,9 @@ export const OrgMembersScreen: React.FC<OrgMembersScreenProps> = ({
     <AdminScreenPage
       backHref={`${routeBase}/orgs/${organizationId}`}
       color="transparent"
+      maxWidth="100%"
       padding={0}
+      testID="org-members-page"
       title="Organization members"
     >
       <Box gap={4} padding={4}>

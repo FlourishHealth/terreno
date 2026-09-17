@@ -82,11 +82,14 @@ Wrap organization-aware admin routes with `OrgContextProvider` and render
 organization navigates to `{routeBase}/orgs/:orgId` and adds
 `X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
 include the organization id, preventing rows cached for one org from appearing
-in another. Pass `initialOrganization` when the current route already has an
-org id so context follows URL changes after mount.
+in another. Pass `useRouteOrganizationInitial()` as `initialOrganization` so
+context follows URL changes after mount without overriding a switcher selection
+while navigation is in progress.
 
 ``````typescript
-<OrgContextProvider>
+const routeOrganization = useRouteOrganizationInitial();
+
+<OrgContextProvider initialOrganization={routeOrganization}>
   <AdminShellLayout
     api={api}
     apiBase="/admin"
@@ -100,6 +103,7 @@ org id so context follows URL changes after mount.
 
 When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
 selects it automatically. With multiple organizations it renders a selector.
+Its **Organization** label uses the shell's inverted text color.
 When `/orgs/mine` returns **403** (callers without org-admin memberships, per API
 docs), the switcher renders nothing instead of an error banner. Other failures
 still show "Organizations unavailable".
@@ -125,7 +129,7 @@ organization-management feature.
 email, changes member roles, and removes members. Backend errors such as
 `Cannot remove the last org-admin` are shown inline. Invite is intentionally
 disabled because invitation tokens and email belong to the later invitations
-feature.
+feature. The members page uses the full available admin content width.
 
 ### AdminModelList
 

@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 
@@ -55,6 +56,7 @@ describe("OrgSwitcher", () => {
     );
 
     expect(screen.getByText("Only Org")).toBeTruthy();
+    assert.equal(screen.getByText("Organization").props.style.color, "#FFFFFF");
     await act(async () => {});
     expect(changed).toHaveBeenCalledWith({_id: "org-1", name: "Only Org"});
     fireEvent(screen.getByTestId("org-switcher-single-open"), "click");
@@ -115,6 +117,7 @@ describe("OrgSwitcher", () => {
       </OrgContextProvider>
     );
 
+    assert.equal(screen.getByText("Organization").props.style.color, "#FFFFFF");
     await act(async () => {
       fireEvent(screen.getByTestId("web_dropdown_option_org-2"), "press");
     });

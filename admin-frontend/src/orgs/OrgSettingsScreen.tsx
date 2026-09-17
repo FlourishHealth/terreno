@@ -6,8 +6,8 @@ import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
 import {type OrganizationSettings, organizationSettingsOf} from "./organizationSettings";
+import {organizationMatchesRoute} from "./routeOrganization";
 import {useOrganizationsApi} from "./useOrganizationsApi";
-import {useOptionalOrgContext} from "./useOrgContext";
 
 export interface OrgSettingsScreenProps {
   api: AdminApi;
@@ -40,24 +40,26 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
 }) => {
   const {useReadQuery, useUpdateMutation} = useOrganizationsApi(api, basePath, organizationId);
   const {data, error, isLoading} = useReadQuery(organizationId);
-  const organization = (data?.data ?? data) as OrganizationDetail | undefined;
-  const orgContext = useOptionalOrgContext();
+  const loadedOrganization = (data?.data ?? data) as OrganizationDetail | undefined;
+  const isStaleOrganization =
+    loadedOrganization !== undefined &&
+    !organizationMatchesRoute(loadedOrganization, organizationId);
+  const organization = organizationMatchesRoute(loadedOrganization, organizationId)
+    ? loadedOrganization
+    : undefined;
   const [name, setName] = useState("");
   const [settingsText, setSettingsText] = useState("{}");
   const [saveError, setSaveError] = useState<string>();
   const [updateOrganization, {isLoading: isSaving}] = useUpdateMutation();
 
-  // Reconcile editable fields when the selected organization response changes.
+  // Reconcile editable fields when the route-scoped organization response changes.
   useEffect(() => {
     if (!organization) {
       return;
     }
     setName(organization.name);
     setSettingsText(JSON.stringify(organizationSettingsOf(organization), null, 2));
-    if (orgContext && orgContext.organizationId !== organization._id) {
-      orgContext.selectOrganization(organization);
-    }
-  }, [orgContext, organization]);
+  }, [organization, organizationId]);
 
   const handleSave = useCallback(async (): Promise<void> => {
     let settings: OrganizationSettings;
@@ -86,7 +88,7 @@ export const OrgSettingsScreen: React.FC<OrgSettingsScreenProps> = ({
     router.push(`${routeBase}/orgs/${organizationId}/members` as Href);
   }, [organizationId, routeBase]);
 
-  if (isLoading) {
+  if (isLoading || isStaleOrganization) {
     return (
       <Box alignItems="center" padding={6}>
         <Spinner />

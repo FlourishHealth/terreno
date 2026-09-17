@@ -1,4 +1,10 @@
-import {AdminProvider, OrgContextProvider, useAdminConfig} from "@terreno/admin-frontend";
+import {
+  AdminProvider,
+  type OrganizationSummary,
+  OrgContextProvider,
+  useAdminConfig,
+  useRouteOrganizationInitial,
+} from "@terreno/admin-frontend";
 import {createSyncDb, type SyncDb} from "@terreno/syncdb";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, TerrenoProvider, Text} from "@terreno/ui";
@@ -16,7 +22,8 @@ const SyncEnabledAdminProvider: React.FC<{
   apiBase: string;
   children: React.ReactNode;
   client: SyncDb;
-}> = ({apiBase, children, client}) => {
+  routeOrganization?: OrganizationSummary;
+}> = ({apiBase, children, client, routeOrganization}) => {
   const syncConflicts = useConflicts();
   const [isReady, setIsReady] = useState(false);
   const [startError, setStartError] = useState<string | undefined>();
@@ -65,7 +72,7 @@ const SyncEnabledAdminProvider: React.FC<{
       syncConflicts={syncConflicts}
       syncDb={client}
     >
-      <OrgContextProvider>{children}</OrgContextProvider>
+      <OrgContextProvider initialOrganization={routeOrganization}>{children}</OrgContextProvider>
     </AdminProvider>
   );
 };
@@ -73,6 +80,7 @@ const SyncEnabledAdminProvider: React.FC<{
 const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) => {
   const {appConfig} = useAppConfig();
   const {authClient} = useAuth();
+  const routeOrganization = useRouteOrganizationInitial();
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   const {config} = useAdminConfig(terrenoApi, apiBase);
   const syncCollections = useMemo(
@@ -97,7 +105,11 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
   if (client) {
     return (
       <SyncDbProvider client={client}>
-        <SyncEnabledAdminProvider apiBase={apiBase} client={client}>
+        <SyncEnabledAdminProvider
+          apiBase={apiBase}
+          client={client}
+          routeOrganization={routeOrganization}
+        >
           {children}
         </SyncEnabledAdminProvider>
       </SyncDbProvider>
@@ -112,7 +124,7 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
       getAuthHeaders={SPA_ADMIN_AUTH_HEADERS}
       routeBase=""
     >
-      <OrgContextProvider>{children}</OrgContextProvider>
+      <OrgContextProvider initialOrganization={routeOrganization}>{children}</OrgContextProvider>
     </AdminProvider>
   );
 };

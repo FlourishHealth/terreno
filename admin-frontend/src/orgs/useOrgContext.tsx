@@ -23,16 +23,19 @@ export const OrgContextProvider: React.FC<OrgContextProviderProps> = ({
   const [organization, setOrganization] = useState<OrganizationSummary | undefined>(
     initialOrganization
   );
-  // Hosts that pass a route-derived org must keep context aligned after navigation.
+  // Hosts pass route-derived org ids; sync only when the route id changes, not when
+  // OrgSwitcher has already moved context ahead of the URL during navigation.
   useEffect(() => {
     if (!initialOrganization) {
       return;
     }
-    if (organization?._id === initialOrganization._id) {
-      return;
-    }
-    setOrganization(initialOrganization);
-  }, [initialOrganization, organization?._id]);
+    setOrganization((current) => {
+      if (current?._id === initialOrganization._id) {
+        return current;
+      }
+      return initialOrganization;
+    });
+  }, [initialOrganization]);
   const selectOrganization = useCallback(
     (nextOrganization: OrganizationSummary): void => {
       setOrganization(nextOrganization);

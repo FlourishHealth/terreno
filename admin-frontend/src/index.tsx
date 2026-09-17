@@ -76,6 +76,11 @@ export {
   type OrganizationSettings,
   organizationSettingsOf,
 } from "./orgs/organizationSettings";
+export {
+  organizationIdFromPath,
+  organizationMatchesRoute,
+  useRouteOrganizationInitial,
+} from "./orgs/routeOrganization";
 export {useOrganizationsApi} from "./orgs/useOrganizationsApi";
 export {
   OrgContextProvider,

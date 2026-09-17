@@ -3,6 +3,7 @@ import {
   AdminShellLayout,
   OrgContextProvider,
   OrgSwitcher,
+  useRouteOrganizationInitial,
 } from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
@@ -32,6 +33,7 @@ const AdminLayoutContent: React.FC = () => {
   });
   const roles = profile?.roles ?? [];
   const isOrganizationOperator = roles.includes("operator") || roles.includes("superadmin");
+  const routeOrganization = useRouteOrganizationInitial();
 
   // Admin uses a separate window-mode client so admin rows never pollute the
   // owner-scoped product store and the socket can join `{collection}|admin`.
@@ -108,7 +110,7 @@ const AdminLayoutContent: React.FC = () => {
       syncDb={adminSyncDb}
       widgets={{screens: {"sync-lab": SyncLabScreen}}}
     >
-      <OrgContextProvider>
+      <OrgContextProvider initialOrganization={routeOrganization}>
         <AdminShellLayout
           api={terrenoApi}
           apiBase={ADMIN_ROUTE}
