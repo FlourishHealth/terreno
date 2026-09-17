@@ -44,7 +44,8 @@ The reusable planning plugin uses five bounded transitions:
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
-then spawns a no-context subagent to run the root `prepush` package script when present
+records last-run failed tests and re-verifies them locally, then
+spawns a no-context subagent to run the root `prepush` package script when present
 (otherwise lint, typecheck, and locally affected tests in affected packages), then
 pushes and watches CI. Brew also waits until
 review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
@@ -532,7 +533,22 @@ Seed login users with `bun run backend:seed` (same env vars): creates `test@exam
 
 ### Tests and lint
 
-- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+Every CircleCI test job has a local command. Map and run them with
+[`docs/how-to/run-tests-locally.md`](../../docs/how-to/run-tests-locally.md).
+
+```bash
+bun run test              # every workspace test:ci (including example-frontend)
+bun run test:agent        # same suites; passing cases suppressed
+bun run frontend:test     # example-frontend unit tests
+bun run frontend:e2e      # Playwright (needs replica-set mongod; starts backend+web)
+bun run maestro:test      # Maestro web flows
+bun run prepush           # lint + compile + analyze:full
+```
+
+Install Playwright browsers once: `cd example-frontend && bunx playwright install --with-deps chromium`.
+Taste: copy failed tests from the last CI log, run that exact local command, then
+`git push`. `prepush` does not replace that re-verify.
+
 - `demo:start` serves the UI component demo on port **8085**.
 
 ### GCP service account secrets
