@@ -48,10 +48,11 @@ describe("bindPortEarly", () => {
     const port = (address as {port: number}).port;
     try {
       await bindPortEarly(String(port));
-      assert.fail("expected a second bind on the same port to reject");
     } catch (error) {
       assert.instanceOf(error, Error);
+      return;
     }
+    assert.fail("expected a second bind on the same port to reject");
   });
 
   it("releases the port so a failed boot does not keep serving 503", async () => {
@@ -63,9 +64,10 @@ describe("bindPortEarly", () => {
     server = undefined;
     try {
       await fetch(`http://127.0.0.1:${port}/health`);
-      assert.fail("expected fetch to fail after the holder closed");
     } catch (error) {
       assert.instanceOf(error, Error);
+      return;
     }
+    assert.fail("expected fetch to fail after the holder closed");
   });
 });

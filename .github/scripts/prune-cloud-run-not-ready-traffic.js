@@ -24,13 +24,27 @@ const readyRevisionNames = (revisions) => {
 };
 
 const trafficTargets = (service) => {
-  if (Array.isArray(service?.spec?.traffic) && service.spec.traffic.length > 0) {
-    return service.spec.traffic;
+  const spec = Array.isArray(service?.spec?.traffic) ? service.spec.traffic : [];
+  const status = Array.isArray(service?.status?.traffic) ? service.status.traffic : [];
+  if (spec.length === 0) {
+    return status;
   }
-  if (Array.isArray(service?.status?.traffic)) {
-    return service.status.traffic;
-  }
-  return [];
+  const statusLive = status.find((target) => (target.percent ?? 0) === 100 && target.revisionName);
+  return spec.map((target) => {
+    if (target.revisionName) {
+      return target;
+    }
+    if ((target.percent ?? 0) === 100 && statusLive?.revisionName) {
+      return {...target, revisionName: statusLive.revisionName};
+    }
+    const tagged = status.find(
+      (candidate) => candidate.tag && candidate.tag === target.tag && candidate.revisionName
+    );
+    if (tagged?.revisionName) {
+      return {...target, revisionName: tagged.revisionName};
+    }
+    return target;
+  });
 };
 
 const pruneNotReadyTaggedTraffic = ({readyNames, traffic}) => {

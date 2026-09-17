@@ -576,14 +576,14 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
-            --revision-suffix=pr${{ github.event.pull_request.number }}-${{ github.run_id }}
+            --revision-suffix=pr${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
             ${{ steps.runtime-sa.outputs.flag }}
       - name: Tag preview revision
         run: |
           set -euo pipefail
           gcloud run services update-traffic "${{ env.GCP_BACKEND_SERVICE }}" \
             --region="${{ env.GCP_BACKEND_REGION }}" \
-            --update-tags="pr-${{ github.event.pull_request.number }}=${{ env.GCP_BACKEND_SERVICE }}-pr${{ github.event.pull_request.number }}-${{ github.run_id }}" \
+            --update-tags="pr-${{ github.event.pull_request.number }}=${{ env.GCP_BACKEND_SERVICE }}-pr${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}" \
             --quiet
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'

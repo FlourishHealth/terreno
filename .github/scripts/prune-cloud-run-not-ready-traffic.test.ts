@@ -90,10 +90,32 @@ describe("pruneNotReadyTaggedTraffic", () => {
     assert.deepEqual(names, ["ready-rev"]);
   });
 
+  it("resolves 100% latestRevision from status.traffic when spec omits revisionName", (): void => {
+    const {flagsFromDescribe} = require("./prune-cloud-run-not-ready-traffic.js") as {
+      flagsFromDescribe: (input: {revisions: unknown[]; service: unknown}) => string[];
+    };
+    const flags = flagsFromDescribe({
+      revisions: [
+        {
+          metadata: {name: "live-rev"},
+          status: {conditions: [{status: "True", type: "Ready"}]},
+        },
+      ],
+      service: {
+        spec: {traffic: [{latestRevision: true, percent: 100}]},
+        status: {traffic: [{percent: 100, revisionName: "live-rev"}]},
+      },
+    });
+    assert.deepEqual(flags, ["--to-revisions=live-rev=100", "--clear-tags"]);
+  });
+
   it("resolves the prune CLI from the workflow script directory", (): void => {
     const thisDir = dirname(fileURLToPath(import.meta.url));
     const workflowScriptDir = join(thisDir, "../workflows/scripts");
-    const cliPath = join(workflowScriptDir, "../../../.github/scripts/prune-cloud-run-not-ready-traffic.js");
+    const cliPath = join(
+      workflowScriptDir,
+      "../../../.github/scripts/prune-cloud-run-not-ready-traffic.js"
+    );
     assert.isTrue(existsSync(cliPath));
   });
 });
