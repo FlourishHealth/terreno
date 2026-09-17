@@ -18,6 +18,7 @@ import {
   type JSONValue,
   logger,
   type ModelRouterOptions,
+  maybeRecordAdminAudit,
   modelDescriptionToAdminFields,
   modelRouter,
   type OpenApiMiddleware,
@@ -219,8 +220,8 @@ export interface AdminOptions {
   /** Extra custom screens merged with built-ins (e.g. version-config) */
   customScreens?: AdminCustomScreenConfig[];
   /**
-   * Optional audit sink for admin CRUD after modelRouter succeeds.
-   * Consumers typically persist to an `AdminAuditLog` collection.
+   * Extra audit sink after successful admin CRUD. When `AuditApp` is registered,
+   * AdminApp also writes `AuditEvent` rows (`source: "admin"`) without this hook.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
@@ -783,6 +784,37 @@ export class AdminApp {
         const detail = err instanceof Error ? err.message : String(err);
         logger.error(`onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`);
       }
+    };
+
+    const safeFrameworkAdminAudit = async ({
+      after,
+      before,
+      extraRedact,
+      modelName,
+      recordLabel,
+      request,
+      verb,
+    }: {
+      after?: unknown;
+      before?: unknown;
+      extraRedact?: string[];
+      modelName: string;
+      recordLabel?: string;
+      request: express.Request;
+      verb: AdminAuditEvent["verb"];
+    }): Promise<void> => {
+      if (modelName === "AuditEvent") {
+        return;
+      }
+      void maybeRecordAdminAudit({
+        after,
+        before,
+        extraRedact,
+        modelName,
+        recordLabel,
+        req: request,
+        verb,
+      });
     };
 
     // Build config response with field metadata from Mongoose schemas
@@ -1498,49 +1530,84 @@ export class AdminApp {
             .build()
         : undefined;
 
-      const auditEligible = Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
-      const auditHooks = auditEligible
-        ? {
-            postCreate: async (value: unknown, request: express.Request): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "created",
-              });
-            },
-            postDelete: async (request: express.Request, value: unknown): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "deleted",
-              });
-            },
-            postUpdate: async (
-              value: unknown,
-              _cleanedBody: unknown,
-              request: express.Request,
-              _prev: unknown
-            ): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "updated",
-              });
-            },
+      const skipOnAdminAuditHook = config.model.modelName === "AdminAuditLog";
+      const auditHooks = {
+        postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "created",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
           }
-        : {};
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "created",
+          });
+        },
+        postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            before: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "deleted",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "deleted",
+          });
+        },
+        postUpdate: async (
+          value: unknown,
+          _cleanedBody: unknown,
+          request: express.Request,
+          prev: unknown
+        ): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            before: prev,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "updated",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "updated",
+          });
+        },
+      };
 
       const assertCanWriteUserAdminFlag = async (
         body: Record<string, unknown>,

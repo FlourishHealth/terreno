@@ -1,3 +1,4 @@
+import {buildAdminApiListQueryRequest} from "../adminApiQueryParams";
 import type {EndpointBuilder} from "../types";
 
 type AdminPayload = Record<string, unknown>;
@@ -35,10 +36,8 @@ export const buildAdminModelEndpoints = (
     [listKey]: build.query({
       providesTags: [`admin_${context.modelName}`],
       query: (params: Record<string, unknown> | undefined) => ({
+        ...buildAdminApiListQueryRequest(routePath, params),
         headers,
-        method: "GET",
-        params: params ?? {},
-        url: routePath,
       }),
       serializeQueryArgs: ({endpointName, queryArgs}) =>
         `${endpointName}:${organizationId ?? ""}:${JSON.stringify(queryArgs ?? {})}`,

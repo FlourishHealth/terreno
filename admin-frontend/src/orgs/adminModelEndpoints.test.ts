@@ -62,7 +62,6 @@ describe("adminModelEndpoints", () => {
     assert.deepEqual(list.query(undefined), {
       headers: {"X-Organization-Id": "org-1"},
       method: "GET",
-      params: {},
       url: "/admin/foods",
     });
     assert.deepEqual(read.query("food-1"), {

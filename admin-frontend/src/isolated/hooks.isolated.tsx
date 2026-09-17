@@ -125,16 +125,19 @@ describe("useAdminApi", () => {
     // Each endpoint's query fn produces expected URL/method
     const listDef = injected.adminList_User;
     expect(listDef.query({limit: 1})).toEqual({
+      headers: undefined,
       method: "GET",
       url: "/admin/users?limit=1",
     });
     expect(listDef.query(undefined)).toEqual({
+      headers: undefined,
       method: "GET",
       url: "/admin/users",
     });
 
     const readDef = injected.adminRead_User;
     expect(readDef.query("abc")).toEqual({
+      headers: undefined,
       method: "GET",
       url: "/admin/users/abc",
     });
@@ -143,6 +146,7 @@ describe("useAdminApi", () => {
     const createDef = injected.adminCreate_User;
     expect(createDef.query({name: "x"})).toEqual({
       body: {name: "x"},
+      headers: undefined,
       method: "POST",
       url: "/admin/users",
     });
@@ -151,6 +155,7 @@ describe("useAdminApi", () => {
     const updateDef = injected.adminUpdate_User;
     expect(updateDef.query({body: {x: 1}, id: "123"})).toEqual({
       body: {x: 1},
+      headers: undefined,
       method: "PATCH",
       url: "/admin/users/123",
     });
@@ -161,6 +166,7 @@ describe("useAdminApi", () => {
 
     const deleteDef = injected.adminDelete_User;
     expect(deleteDef.query("123")).toEqual({
+      headers: undefined,
       method: "DELETE",
       url: "/admin/users/123",
     });
@@ -168,6 +174,7 @@ describe("useAdminApi", () => {
     const bulkPatchDef = injected.adminBulkPatch_User;
     expect(bulkPatchDef.query({ids: ["123"], patch: {name: "Patched"}})).toEqual({
       body: {ids: ["123"], patch: {name: "Patched"}},
+      headers: undefined,
       method: "POST",
       url: "/admin/users/bulk-patch",
     });
@@ -189,24 +196,29 @@ describe("useAdminApi", () => {
     expect(
       injected.adminList_Todo.query({limit: 20, page: 1, q: "Alpha", sort: "-created"})
     ).toEqual({
+      headers: undefined,
       method: "GET",
       url: "/admin/todos?limit=20&page=1&q=Alpha&sort=-created",
     });
     expect(injected.adminRead_Todo.query("todo-alpha")).toEqual({
+      headers: undefined,
       method: "GET",
       url: "/admin/todos/todo-alpha",
     });
     expect(injected.adminCreate_Todo.query({title: "New"})).toEqual({
       body: {title: "New"},
+      headers: undefined,
       method: "POST",
       url: "/admin/todos",
     });
     expect(injected.adminUpdate_Todo.query({body: {completed: true}, id: "todo-alpha"})).toEqual({
       body: {completed: true},
+      headers: undefined,
       method: "PATCH",
       url: "/admin/todos/todo-alpha",
     });
     expect(injected.adminDelete_Todo.query("todo-alpha")).toEqual({
+      headers: undefined,
       method: "DELETE",
       url: "/admin/todos/todo-alpha",
     });
@@ -214,6 +226,7 @@ describe("useAdminApi", () => {
       injected.adminBulkPatch_Todo.query({ids: ["todo-alpha"], patch: {completed: true}})
     ).toEqual({
       body: {ids: ["todo-alpha"], patch: {completed: true}},
+      headers: undefined,
       method: "POST",
       url: "/admin/todos/bulk-patch",
     });

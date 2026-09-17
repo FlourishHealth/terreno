@@ -1,6 +1,35 @@
 export * from "./actions";
 export * from "./adminTypes";
 export * from "./api";
+export {AuditApp, type AuditAppOptions} from "./audit/auditApp";
+export {
+  type AuditEventDocument,
+  type AuditEventModel,
+  type AuditEventOperation,
+  type AuditEventSource,
+  type AuditEventVerb,
+  createAuditEventModel,
+} from "./audit/auditEventModel";
+export {
+  AUDIT_SECRET_HEADER,
+  auditEnqueueFromEnv,
+  type CloudTasksAuditEnqueueOptions,
+  createCloudTasksAuditEnqueue,
+} from "./audit/cloudTasksEnqueue";
+export {persistRbacAuditToAuditEvent} from "./audit/rbacSink";
+export {
+  type AuditEnqueue,
+  type AuditEventWrite,
+  type AuditRecorderOptions,
+  flushAuditRecorderForTests,
+  isAuditRecorderInstalled,
+  type ModelRouterAuditConfig,
+  type ModelRouterAuditOptions,
+  maybeRecordAdminAudit,
+  persistEnqueuedAuditEvent,
+  recordAuditEvent,
+  resetAuditRecorderForTests,
+} from "./audit/record";
 export * from "./auth";
 export * from "./authRecovery";
 export * from "./authTokens";
