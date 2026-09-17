@@ -1,8 +1,9 @@
 import * as Sentry from "@sentry/bun";
-import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
 import {
+  AuditApp,
   BetterAuthApp,
   backfillAdmins,
   ConsentApp,
@@ -50,8 +51,11 @@ import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
+import {exampleAdminHome} from "./exampleAdminConfig";
+import {createExampleJobsApp} from "./jobs/createExampleJobsApp";
+import {shouldStartJobsWorkerInApiProcess} from "./jobs/jobsStartWorker";
+import {registerJobsWorkerShutdown} from "./jobs/shutdownJobsWorker";
 import {resolveExampleMigrationsDir} from "./migrationsDir";
-import {AdminAuditLog} from "./models/adminAuditLog";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
@@ -371,7 +375,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
-      .register(new AIAdminApp())
+      .register(new AuditApp())
+      .register(new AIAdminApp());
+
+    const exampleJobsApp = createExampleJobsApp({accessControl: access});
+    terraApp.register(exampleJobsApp);
+
+    terraApp
+
       .register(
         new AdminApp({
           accessControl: access,
@@ -383,46 +394,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               name: "sync-lab",
             },
           ],
-          home: {
-            slots: {
-              contentTop: [],
-              main: ["modelStats"],
-              navGlobal: ["scriptRunner", "feature-flags-overrides"],
-              sidebar: ["versionConfig", "recentActivity"],
-            },
-            title: "Example administration",
-          },
+          home: exampleAdminHome,
           migrations: {dir: resolveExampleMigrationsDir()},
-          models: [
-            mcpServiceTokenAdminModel,
-            {
-              adminAccess: {},
-              displayName: "Audit log",
-              group: "Platform",
-              listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
-              model: AdminAuditLog,
-              pageSize: 50,
-              permissions: {create: false, delete: false, update: false},
-              routePath: "/audit-logs",
-              searchFields: ["modelName", "recordLabel"],
-              sortableFields: ["verb", "modelName", "createdAt"],
-            },
-          ],
-          onAdminAudit: async (event: AdminAuditEvent) => {
-            await AdminAuditLog.create({
-              actorId:
-                event.actorId && mongoose.isValidObjectId(event.actorId)
-                  ? new mongoose.Types.ObjectId(event.actorId)
-                  : undefined,
-              modelName: event.modelName,
-              recordId:
-                event.recordId && mongoose.isValidObjectId(event.recordId)
-                  ? new mongoose.Types.ObjectId(event.recordId)
-                  : undefined,
-              recordLabel: event.recordLabel,
-              verb: event.verb,
-            });
-          },
+          models: [mcpServiceTokenAdminModel],
           scripts: adminScripts,
         })
       )
@@ -468,6 +442,23 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }
 
     const app = terraApp.start();
+
+    if (
+      shouldStartJobsWorkerInApiProcess({
+        jobsStartWorkerEnv: process.env.JOBS_START_WORKER,
+        skipListen,
+      })
+    ) {
+      await exampleJobsApp.startWorker();
+      registerJobsWorkerShutdown(exampleJobsApp);
+      logger.info(
+        "[jobs] Worker started in API process (set JOBS_START_WORKER=false when using jobs:worker)"
+      );
+    } else if (!skipListen) {
+      logger.info(
+        "[jobs] API-process worker disabled (JOBS_START_WORKER=false); use bun run jobs:worker if needed"
+      );
+    }
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);

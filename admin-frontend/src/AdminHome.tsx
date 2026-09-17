@@ -1,6 +1,7 @@
 import {Box, Heading, Page, Spinner, Text} from "@terreno/ui";
 import React, {useMemo} from "react";
 import {useHomeWidget} from "./AdminProvider";
+import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -66,10 +67,7 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
   const {config, error, isLoading} = useAdminConfig(api, resolvedApiBase);
 
   const models = (config?.models ?? []) as AdminModelConfig[];
-  const auditModel = useMemo(
-    () => models.find((m) => m.name === "AdminAuditLog" || m.routePath.includes("audit-log")),
-    [models]
-  );
+  const auditModel = useMemo(() => models.find(isAuditLogModel), [models]);
   const featureFlagModel = useMemo(
     () => models.find((m) => m.name === "FeatureFlag" || m.displayName === "Feature Flags"),
     [models]

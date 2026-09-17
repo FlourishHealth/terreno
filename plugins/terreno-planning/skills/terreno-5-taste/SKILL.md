@@ -1,6 +1,6 @@
 ---
 name: terreno-5-taste
-description: Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable. Before any push: always pull latest master, then run the repository's prepush script when present (otherwise lint and typecheck affected packages) in a no-context subagent, then push and watch CI. Emit state and exit.
+description: "Perform one reactive iteration against the PR's current head. Wait through provider CLI hooks until async review bots and product CI finish (GitHub CLI or CircleCI CLI in a watch loop), inspect every discovered host, mergeability, and reviews, act on what is actionable. Before any push: always pull latest master, then run the repository's prepush script when present (otherwise lint and typecheck affected packages) in a no-context subagent, then push and watch CI. Emit state and exit."
 ---
 
 # Taste — react

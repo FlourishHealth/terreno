@@ -293,7 +293,8 @@ Expects backend to provide:
 
 When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
 `platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
-renders model or custom-screen links returned by the server.
+renders model or custom-screen links returned by the server. The shell lifts Audit Log, Feature
+Flags, and Jobs into the Platform section (Jobs still comes from `customScreens`).
 
 ### Custom screen page chrome
 

@@ -19,6 +19,7 @@ export const SCAN_ROOTS = [
   "example-backend/src",
   "example-frontend",
   "feature-flags/src",
+  "jobs/src",
   "mcp-server/src",
   "rtk/src",
   "scripts",
@@ -107,7 +108,11 @@ export const walkSourceFiles = (directory: string, files: string[] = []): string
 
   for (const entry of readdirSync(directory)) {
     const fullPath = join(directory, entry);
-    const stats = statSync(fullPath);
+    // Broken symlinks (e.g. stale CocoaPods headers) stat to undefined; skip them.
+    const stats = statSync(fullPath, {throwIfNoEntry: false});
+    if (!stats) {
+      continue;
+    }
     if (stats.isDirectory()) {
       if (shouldSkipDirectory(entry)) {
         continue;
