@@ -7,6 +7,7 @@ import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
 import {groupAdminModelsByGroup} from "./adminShellNav";
+import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -61,10 +62,6 @@ const NavButton: React.FC<{
     </Text>
   </Box>
 );
-
-const isAuditLogModel = (model: AdminModelConfig): boolean => {
-  return model.name === "AdminAuditLog" || model.routePath.includes("audit-log");
-};
 
 const isFeatureFlagModel = (model: AdminModelConfig): boolean => {
   return model.name === "FeatureFlag" || model.displayName === "Feature Flags";

@@ -50,8 +50,10 @@ Order in the rail:
    `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
-operators do not hunt for them among business collections. Jobs is a custom screen
-(`name: "jobs"`); the shell lifts it the same way.
+operators do not hunt for them among business collections. The Platform Audit Log
+row is `AuditEvent` when `AuditApp` is registered. `isAuditLogModel` also matches
+legacy `AdminAuditLog`, `audit-log`, and `audit-events` names. Jobs is a custom
+screen (`name: "jobs"`); the shell lifts it the same way.
 
 Below 768px the rail becomes a hamburger drawer. The main column is a body-style
 canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and
