@@ -20,6 +20,8 @@ export const DEDICATED_PACKAGE_CI_JOBS: {circleJob: string; ghaWorkflow: string}
 ];
 
 export const COVERAGE_COMMAND = "bun run test:coverage";
+export const NEW_FILE_LCOV_SCRIPT = "scripts/ci/check-new-file-coverage-lcov.sh";
+export const NEW_FILE_LCOV_CIRCLE_COMMAND = "check_new_file_lcov";
 
 /** Published packages with no dedicated *-ci workflow; covered by packages-ci. */
 export const MATRIX_PACKAGES = [
@@ -68,11 +70,15 @@ export const findDedicatedJobsMissingCoverage = ({
   const missing: string[] = [];
   for (const {circleJob, ghaWorkflow} of DEDICATED_PACKAGE_CI_JOBS) {
     const circleBlock = jobCommandBlock(continueConfig, circleJob);
-    if (!circleBlock || !sourceRunsCoverage(circleBlock)) {
+    if (
+      !circleBlock ||
+      !sourceRunsCoverage(circleBlock) ||
+      !circleBlock.includes(NEW_FILE_LCOV_CIRCLE_COMMAND)
+    ) {
       missing.push(`circleci:${circleJob}`);
     }
     const gha = ghaSources[ghaWorkflow] ?? "";
-    if (!sourceRunsCoverage(gha)) {
+    if (!sourceRunsCoverage(gha) || !gha.includes(NEW_FILE_LCOV_SCRIPT)) {
       missing.push(`gha:${ghaWorkflow}`);
     }
   }
@@ -142,7 +148,8 @@ export const findMatrixPackagesMissingCoverage = ({
   if (
     !sourceRunsCoverage(ghaSource) ||
     !ghaSource.includes("bun run lint") ||
-    !ghaSource.includes("bun run compile")
+    !ghaSource.includes("bun run compile") ||
+    !ghaSource.includes(NEW_FILE_LCOV_SCRIPT)
   ) {
     missing.push("gha:packages-ci.yml:commands");
   }
@@ -156,7 +163,8 @@ export const findMatrixPackagesMissingCoverage = ({
     !circleJob ||
     !sourceRunsCoverage(circleJob) ||
     !circleJob.includes("bun run lint") ||
-    !circleJob.includes("bun run compile")
+    !circleJob.includes("bun run compile") ||
+    !circleJob.includes(NEW_FILE_LCOV_CIRCLE_COMMAND)
   ) {
     missing.push("circleci:packages-ci");
   }

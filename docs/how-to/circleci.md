@@ -72,14 +72,14 @@ UI, RTK, and admin-frontend changes do **not** start `example-backend-ci`.
 Those packages are covered by `ui-ci` / `rtk-ci` / `packages-ci` plus e2e and
 admin-spa. `new-file-coverage` starts on package `src/` (and example app
 runtime paths including `example-frontend/components/`), not on every `*.ts`
-file in the repo (Playwright specs no longer compile the world). That job
-compiles `@terreno/api` and `@terreno/jobs` deps, then
-`bun run --filter '@terreno/api' compile` and
-`bun run --filter '@terreno/jobs' compile`. The coverage script also compiles
-each gated package's `@terreno/*` workspace deps so packages such as
-`admin-backend` can import `@terreno/jobs`. Workspace-dep compile uses
-`tsconfig.server.json` when present (so `@terreno/admin-spa` emits `src/dist`
-instead of the Expo app `tsconfig.json`).
+file in the repo (Playwright specs no longer compile the world). Package CI
+jobs that already ran `test:coverage` evaluate the 90% new-file gate against
+that LCOV (`scripts/ci/check-new-file-coverage-lcov.sh`). The dedicated
+`new-file-coverage` job skips those packages and only reruns tests for
+workspaces without a coverage job in the same pipeline (example apps). Reruns
+prefer colocated `*.test.ts` files and compile `@terreno/*` dist deps only
+when the package imports them. Coverage-script unit tests run in the cheap
+`coverage-scripts` job.
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
 `admin-table`, `syncdb`) instead of one container per spec file. Repository
@@ -206,6 +206,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Architectural PR review | `architectural-pr-review` (non-blocking; skip forks / missing secrets) |
 | Maestro E2E Tests | `maestro-e2e` (`include-demo` when ui/demo Maestro flows change) |
 | New file coverage | `new-file-coverage` |
+| Coverage gate scripts | `coverage-scripts` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
 | Netlify PR preview | `deploy-demo-preview`, `deploy-frontend-preview`, `deploy-docs-preview` |
 | GCP production | `gcp-cd-prod` |
@@ -301,7 +302,7 @@ for later steps.
 
 Package jobs that only lint/compile/test one workspace package stay on
 `medium` (including `mcp-server-ci`, `example-backend-ci`, and
-`new-file-coverage`). Do not put Docker Layer Caching on remote-docker jobs
+`new-file-coverage`). `coverage-scripts` is `small`. Do not put Docker Layer Caching on remote-docker jobs
 unless a profiled image build reuses layers enough to beat 200 credits/run.
 
 ## Nightly load test

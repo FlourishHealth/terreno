@@ -253,6 +253,16 @@ commands:
             bun test scripts/check-demo-coverage.test.ts
             bun run check:demo-coverage
 
+  check_new_file_lcov:
+    description: Fail if new source files in this package are below 90% in the package LCOV
+    parameters:
+      package:
+        type: string
+    steps:
+      - run:
+          name: Gate new files from << parameters.package >> LCOV
+          command: bash scripts/ci/check-new-file-coverage-lcov.sh "<< parameters.package >>"
+
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
     steps:
@@ -576,6 +586,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh api
+      - check_new_file_lcov:
+          package: api
 
   ai-ci:
     executor: node22_mongo
@@ -596,6 +608,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh ai
+      - check_new_file_lcov:
+          package: ai
 
   rtk-ci:
     executor: node22
@@ -615,6 +629,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh rtk
+      - check_new_file_lcov:
+          package: rtk
 
   ui-ci:
     executor: node22
@@ -633,6 +649,8 @@ jobs:
             bun run types
             bun run test:coverage
             bash ../scripts/upload-codecov.sh ui
+      - check_new_file_lcov:
+          package: ui
       - demo_lint_and_typecheck
 
   admin-backend-ci:
@@ -654,6 +672,8 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+      - check_new_file_lcov:
+          package: admin-backend
 
   admin-frontend-ci:
     executor: node22
@@ -672,6 +692,8 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+      - check_new_file_lcov:
+          package: admin-frontend
 
   syncdb-ci:
     executor: node22
@@ -688,6 +710,19 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh syncdb
+      - check_new_file_lcov:
+          package: syncdb
+
+  coverage-scripts:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Test coverage gate scripts
+          command: |
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
 
   new-file-coverage:
     executor: node22_mongo
@@ -700,17 +735,37 @@ jobs:
           name: Fetch coverage base
           command: git fetch origin master
       - run:
-          name: Compile coverage script dependencies
-          command: |
-            node .github/scripts/compile-workspace-deps.js api jobs
-            bun run --filter '@terreno/api' compile
-            bun run --filter '@terreno/jobs' compile
-      - run:
           name: Check new source file coverage
           command: |
+            set -euo pipefail
+            skip=()
+            add_skip() {
+              if [ "$1" = "true" ]; then
+                skip+=("$2")
+              fi
+            }
+            add_skip "<< pipeline.parameters.run-admin-backend >>" admin-backend
+            add_skip "<< pipeline.parameters.run-admin-frontend >>" admin-frontend
+            add_skip "<< pipeline.parameters.run-admin-spa >>" admin-spa
+            add_skip "<< pipeline.parameters.run-ai >>" ai
+            add_skip "<< pipeline.parameters.run-api >>" api
+            add_skip "<< pipeline.parameters.run-api-health >>" api-health
+            add_skip "<< pipeline.parameters.run-comms >>" comms
+            add_skip "<< pipeline.parameters.run-create-terreno-app >>" create-terreno-app
+            add_skip "<< pipeline.parameters.run-feature-flags >>" feature-flags
+            add_skip "<< pipeline.parameters.run-jobs >>" jobs
+            add_skip "<< pipeline.parameters.run-mcp-server >>" mcp-server
+            add_skip "<< pipeline.parameters.run-rtk >>" rtk
+            add_skip "<< pipeline.parameters.run-syncdb >>" syncdb
+            add_skip "<< pipeline.parameters.run-test-package >>" test
+            add_skip "<< pipeline.parameters.run-ui >>" ui
+            joined=""
+            if [ "${#skip[@]}" -gt 0 ]; then
+              joined="$(IFS=,; echo "${skip[*]}")"
+            fi
+            echo "Skipping packages with package-CI LCOV: ${joined:-none}"
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
-            bun run check:new-file-coverage --base="$base_sha" --threshold=90
+            bun run check:new-file-coverage --base="$base_sha" --threshold=90 --skip-packages="$joined"
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
   ui-demo-typecheck:
@@ -746,6 +801,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh comms
+      - check_new_file_lcov:
+          package: comms
 
   jobs-ci:
     executor: node22
@@ -764,6 +821,8 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+      - check_new_file_lcov:
+          package: jobs
 
   mcp-server-ci:
     executor: node22
@@ -789,6 +848,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh mcp-server
+      - check_new_file_lcov:
+          package: mcp-server
 
   create-terreno-app-ci:
     executor: node22
@@ -806,6 +867,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh create-terreno-app
+      - check_new_file_lcov:
+          package: create-terreno-app
 
   mcp-server-docker:
     executor: node22
@@ -1018,6 +1081,8 @@ jobs:
             bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
+      - check_new_file_lcov:
+          package: admin-spa
       - run:
           name: Install Playwright Chromium
           working_directory: ~/project/admin-spa
@@ -1073,6 +1138,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh "<< parameters.package >>"
+      - check_new_file_lcov:
+          package: << parameters.package >>
 
   # One container for the former eight policy jobs. Each used to checkout + bun
   # install on its own small/medium class and then sit in the queue behind e2e.
@@ -1930,6 +1997,7 @@ workflows:
   new-file-coverage:
     when: << pipeline.parameters.run-new-file-coverage >>
     jobs:
+      - coverage-scripts
       - new-file-coverage
 
   api:

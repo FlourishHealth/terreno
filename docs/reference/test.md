@@ -160,10 +160,15 @@ line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,
 `src/types` type modules, demo `story-config/*.config.tsx`, and Expo Router route
 files (`index`, `_layout`, `+not-found`, `[param]`, plus example recovery screens
 `forgotPassword` / `resetPassword` / `verifyEmail`) are excluded. A new implementation
-file that is absent from LCOV is treated as 0% covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
-globs) so Playwright `*.spec.ts` files are not collected. Globs are expanded in
-the coverage process before `bun test` is spawned, because spawn does not pass
-them through a shell. A glob that matches no files is omitted.
+file that is absent from LCOV is treated as 0% covered. Package CI jobs that
+already produced `coverage/lcov.info` run the 90% check against that report
+(`--package` + `--lcov`) so the dedicated job does not rerun the suite.
+When the dedicated job does rerun a package, it prefers colocated
+`foo.test.ts` / `foo.test.tsx` next to each new `foo.ts` and falls back to
+the package `bun test` paths only when a new file has no sibling test.
+It compiles `@terreno/*` workspace dist deps only when the package imports
+them. The gate still expands globs before spawn so Playwright `*.spec.ts`
+files are not collected. A glob that matches no files is omitted.
 
 Run the same check locally against a base commit:
 

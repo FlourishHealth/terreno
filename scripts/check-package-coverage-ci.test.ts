@@ -7,6 +7,8 @@ import {
   findMatrixPackagesMissingCoverage,
   jobCommandBlock,
   MATRIX_PACKAGES,
+  NEW_FILE_LCOV_CIRCLE_COMMAND,
+  NEW_FILE_LCOV_SCRIPT,
   parseCircleMatrixPackages,
   parseGhaMatrixPackages,
   runPackageCoverageCiCheck,
@@ -42,11 +44,11 @@ describe("findDedicatedJobsMissingCoverage", () => {
     const continueConfig = [
       "jobs:",
       "  api-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  ai-ci:",
       "    command: bun run test",
       "  rtk-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  ui-ci:",
       "    command: bun run test:ci",
       "  syncdb-ci:",
@@ -54,14 +56,14 @@ describe("findDedicatedJobsMissingCoverage", () => {
       "  comms-ci:",
       "    command: bun run test",
       "  mcp-server-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  admin-spa-ci:",
       "    command: bun run test:ci",
       "",
     ].join("\n");
     const ghaSources: Record<string, string> = {};
     for (const {ghaWorkflow} of DEDICATED_PACKAGE_CI_JOBS) {
-      ghaSources[ghaWorkflow] = COVERAGE_COMMAND;
+      ghaSources[ghaWorkflow] = `${COVERAGE_COMMAND}\n${NEW_FILE_LCOV_SCRIPT}`;
     }
     expect(findDedicatedJobsMissingCoverage({continueConfig, ghaSources})).toEqual([
       "circleci:admin-spa-ci",
