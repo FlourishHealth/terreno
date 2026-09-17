@@ -79,6 +79,10 @@ callback URL. A PR backend targets the matching `pr-<number>` worker tag and use
 service tags. An old callback then fails closed instead of reaching production or another
 PR.
 
+When the backend adopts `terreno-backend-runtime`, CD removes the obsolete legacy JWT
+secret mounts before applying the current secret set. The runtime identity is granted
+access only to secrets used by its revision.
+
 Queue IAM grants `cloudtasks.enqueuer` and `iam.serviceAccountUser` on
 `terreno-jobs-invoker` only to `terreno-backend-runtime`, the example API Cloud Run
 identity. The project default Compute Engine SA (MCP and any other service that omits a
