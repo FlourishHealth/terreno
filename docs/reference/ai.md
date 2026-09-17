@@ -367,7 +367,7 @@ new LangfuseApp({
 | `evaluation.enabled` | — | Register evaluation scoring routes |
 | `cache` | — | Prompt/trace TTL overrides |
 
-Client construction failures log a warning and skip the plugin so the API process still listens. Tracing init failures log and leave admin routes mounted. example-backend sets `enableTracing: false` when `MONGO_DB_NAME` is a PR preview database (`terreno-example-pr-*`) because OpenTelemetry startup has blocked Cloud Run from opening `PORT=3000`.
+Client construction failures log a warning and skip the plugin so the API process still listens. Tracing init failures log and leave admin routes mounted. example-backend does not register `LangfuseApp` when `MONGO_DB_NAME` is a PR preview database (`terreno-example-pr-*`). GitHub Actions preview deploys omit Langfuse secrets so that path matches the smoke container.
 
 Calls `shutdownLangfuseClient()` and `shutdownTracing()` on `SIGTERM`.
 

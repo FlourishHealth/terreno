@@ -437,16 +437,16 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       );
     }
 
-    // Register Langfuse plugin if configured. Preview revisions skip OTEL tracing:
-    // NodeSDK.start() has taken the Cloud Run container down before PORT=3000 opens.
-    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
-      const isPreviewDatabase = Boolean(
-        process.env.MONGO_DB_NAME?.startsWith("terreno-example-pr-")
-      );
+    // Langfuse OTEL/client init has crashed Cloud Run preview revisions before PORT
+    // opens. Smoke tests omit these keys; production deploy still registers Langfuse.
+    if (
+      process.env.LANGFUSE_SECRET_KEY &&
+      process.env.LANGFUSE_PUBLIC_KEY &&
+      !process.env.MONGO_DB_NAME?.startsWith("terreno-example-pr-")
+    ) {
       terraApp.register(
         new LangfuseApp({
           baseUrl: process.env.LANGFUSE_BASE_URL,
-          enableTracing: isPreviewDatabase ? false : undefined,
           organization: process.env.LANGFUSE_ORGANIZATION,
           project: process.env.LANGFUSE_PROJECT,
           projectId: process.env.LANGFUSE_PROJECT_ID,
