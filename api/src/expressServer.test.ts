@@ -904,8 +904,8 @@ describe("expressServer", () => {
           skipListen: false,
           userModel: typedUserModel,
         }).start();
-        // start() defers listen behind an awaited ensureSyncIndexes(), so the
-        // exit-on-listen-error path settles asynchronously.
+        // start() binds listen first, then awaits ensureSyncIndexes(), so the
+        // exit-on-listen-error path still settles asynchronously if listen throws.
         const deadline = Date.now() + 2_000;
         while (exit.mock.calls.length === 0 && Date.now() < deadline) {
           await new Promise((resolve) => setTimeout(resolve, 5));

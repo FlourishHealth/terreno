@@ -631,25 +631,23 @@ export class TerrenoApp {
 
   private completeStart = async (app: express.Application): Promise<void> => {
     if (!this.options.skipListen) {
+      const port = process.env.PORT || "9000";
+      const server = createServer(app);
+      for (const reg of this.registrations) {
+        if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+          reg.onServerCreated(server);
+        }
+      }
+      // Bind PORT before index/migration work so Cloud Run's startup probe can
+      // succeed while `ensureSyncIndexes` still runs. whenReady() still waits.
+      server.listen(port, () => {
+        logger.info(`Listening on port ${port}`);
+      });
       await ensureSyncIndexes();
     }
     await runStartupMigrations({
       migrations: this.options.migrations,
       mongoose,
-    });
-    if (this.options.skipListen) {
-      return;
-    }
-
-    const port = process.env.PORT || "9000";
-    const server = createServer(app);
-    for (const reg of this.registrations) {
-      if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-        reg.onServerCreated(server);
-      }
-    }
-    server.listen(port, () => {
-      logger.info(`Listening on port ${port}`);
     });
   };
 

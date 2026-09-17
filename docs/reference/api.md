@@ -86,7 +86,7 @@ const app = new TerrenoApp({userModel: User})
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
 
-`migrations.runOnStart` defaults to **false**. When `true`, `start()` runs wet `up` after `ensureSyncIndexes` and before listen. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
+`migrations.runOnStart` defaults to **false**. When `true`, `start()` binds listen first, then runs `ensureSyncIndexes`, then wet `up`. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
 
 ```typescript
 new TerrenoApp({
