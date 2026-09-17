@@ -828,7 +828,7 @@ enforcement hooks in the permission layer.
 **Title:** `Framework-level audit log`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Approved`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Planned`
 
 Generalizes the admin/consent audit patterns into a first-class audit log: an AuditEvent
 model, modelRouter hooks that record who changed what (with before/after diffs), org
