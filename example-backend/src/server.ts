@@ -459,6 +459,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         skipListen,
       })
     ) {
+      await terraApp.whenReady();
       await exampleJobsApp.startWorker();
       registerJobsWorkerShutdown(exampleJobsApp);
       logger.info(

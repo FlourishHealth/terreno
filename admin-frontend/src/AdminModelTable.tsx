@@ -44,6 +44,8 @@ import {
   subscribeAdminWindowRefresh,
 } from "./adminWindowRefresh";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
+import {shouldSkipOrgScopedAdminQuery} from "./orgs/shouldSkipOrgScopedAdminQuery";
+import {useOptionalOrgContext} from "./orgs/useOrgContext";
 import {
   type AdminApi,
   type AdminFieldConfig,
@@ -362,10 +364,15 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const navigation = useNavigation();
 
+  const organizationId = useOptionalOrgContext()?.organizationId;
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
     [config, modelName]
   );
+  const skipOrgScopedQuery = shouldSkipOrgScopedAdminQuery({
+    organizationId,
+    organizationScoped: modelConfig?.organizationScoped,
+  });
   const isWindowed = isWindowedAdminTable({
     hasFetchClient: Boolean(adminContext?.adminRpc),
     modelConfig,
@@ -471,7 +478,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     data: listData,
     isLoading: isListLoading,
     refetch,
-  } = useListQuery(listParams, {skip: !modelConfig});
+  } = useListQuery(listParams, {skip: !modelConfig || skipOrgScopedQuery});
   const [storeEpoch, setStoreEpoch] = useState(0);
   const listParamsRef = useRef(listParams);
   listParamsRef.current = listParams;
