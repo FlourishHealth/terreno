@@ -159,7 +159,7 @@ test.describe("Admin Todo CRUD smoke", () => {
     );
 
     await page.goto("/admin/AuditEvent");
-    await expect(page.getByTestId("admin-table-search")).toBeVisible({timeout: 15_000});
+    await expect(page.getByTestId("data-table-search")).toBeVisible({timeout: 15_000});
     await expect(page.getByText(editedTitle).locator("visible=true").first()).toBeVisible({
       timeout: 15_000,
     });
