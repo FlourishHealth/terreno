@@ -538,6 +538,14 @@ jobs:
           else
             echo "flag=" >> "$GITHUB_OUTPUT"
           fi
+      - name: Drop stale preview tag
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          gcloud run services update-traffic "${{ env.GCP_BACKEND_SERVICE }}" \
+            --region="${{ env.GCP_BACKEND_REGION }}" \
+            --remove-tags="pr-${{ github.event.pull_request.number }}" \
+            --quiet
       - name: Deploy to Cloud Run with tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -571,6 +579,7 @@ jobs:
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            --revision-suffix=pr${{ github.event.pull_request.number }}-${{ github.run_id }}
             ${{ steps.runtime-sa.outputs.flag }}
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'

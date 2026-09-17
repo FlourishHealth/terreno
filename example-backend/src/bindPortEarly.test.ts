@@ -40,4 +40,17 @@ describe("bindPortEarly", () => {
     assert.isFalse(body.healthy);
     assert.equal(body.details?.status, "starting");
   });
+
+  it("rejects when the port is already bound", async () => {
+    server = await bindPortEarly("0");
+    const address = server.address();
+    assert.isObject(address);
+    const port = (address as {port: number}).port;
+    try {
+      await bindPortEarly(String(port));
+      assert.fail("expected a second bind on the same port to reject");
+    } catch (error) {
+      assert.instanceOf(error, Error);
+    }
+  });
 });
