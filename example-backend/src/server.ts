@@ -51,7 +51,7 @@ import {settingsRouter} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
-import {bindPortEarly} from "./bindPortEarly";
+import {bindPortEarly, closeEarlyListenHolder} from "./bindPortEarly";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {exampleAdminHome} from "./exampleAdminConfig";
@@ -493,6 +493,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     return app;
   } catch (error) {
     logger.error(`Error setting up server: ${error}`);
+    if (httpServer) {
+      await closeEarlyListenHolder(httpServer);
+    }
     throw error;
   }
 };

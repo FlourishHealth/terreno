@@ -28,3 +28,18 @@ export const bindPortEarly = async (port: string): Promise<Server> => {
 
   return server;
 };
+
+/**
+ * Close the startup holder so a failed boot cannot keep PORT bound with 503s.
+ */
+export const closeEarlyListenHolder = async (server: Server): Promise<void> => {
+  await new Promise<void>((resolve, reject): void => {
+    server.close((error?: Error): void => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+};

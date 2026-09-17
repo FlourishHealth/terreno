@@ -538,22 +538,19 @@ jobs:
           else
             echo "flag=" >> "$GITHUB_OUTPUT"
           fi
-      - name: Drop stale preview tag
-        continue-on-error: true
+      - name: Rebuild traffic without not-ready preview tags
         run: |
-          set -euo pipefail
-          gcloud run services update-traffic "${{ env.GCP_BACKEND_SERVICE }}" \
-            --region="${{ env.GCP_BACKEND_REGION }}" \
-            --remove-tags="pr-${{ github.event.pull_request.number }}" \
-            --quiet
-      - name: Deploy to Cloud Run with tag
+          chmod +x .github/workflows/scripts/rebuild-cloud-run-ready-traffic.sh
+          .github/workflows/scripts/rebuild-cloud-run-ready-traffic.sh \
+            "${{ env.GCP_BACKEND_SERVICE }}" \
+            "${{ env.GCP_BACKEND_REGION }}"
+      - name: Deploy to Cloud Run without a tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:
           service: ${{ env.GCP_BACKEND_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
-          tag: pr-${{ github.event.pull_request.number }}
           no_traffic: true
           env_vars_update_strategy: overwrite
           env_vars: |
@@ -581,6 +578,13 @@ jobs:
             --allow-unauthenticated
             --revision-suffix=pr${{ github.event.pull_request.number }}-${{ github.run_id }}
             ${{ steps.runtime-sa.outputs.flag }}
+      - name: Tag preview revision
+        run: |
+          set -euo pipefail
+          gcloud run services update-traffic "${{ env.GCP_BACKEND_SERVICE }}" \
+            --region="${{ env.GCP_BACKEND_REGION }}" \
+            --update-tags="pr-${{ github.event.pull_request.number }}=${{ env.GCP_BACKEND_SERVICE }}-pr${{ github.event.pull_request.number }}-${{ github.run_id }}" \
+            --quiet
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
         continue-on-error: true

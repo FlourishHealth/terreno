@@ -3,7 +3,7 @@ import type {Server} from "node:http";
 
 import {assert} from "chai";
 
-import {bindPortEarly} from "./bindPortEarly";
+import {bindPortEarly, closeEarlyListenHolder} from "./bindPortEarly";
 
 const closeServer = async (server: Server | undefined): Promise<void> => {
   if (!server) {
@@ -49,6 +49,21 @@ describe("bindPortEarly", () => {
     try {
       await bindPortEarly(String(port));
       assert.fail("expected a second bind on the same port to reject");
+    } catch (error) {
+      assert.instanceOf(error, Error);
+    }
+  });
+
+  it("releases the port so a failed boot does not keep serving 503", async () => {
+    server = await bindPortEarly("0");
+    const address = server.address();
+    assert.isObject(address);
+    const port = (address as {port: number}).port;
+    await closeEarlyListenHolder(server);
+    server = undefined;
+    try {
+      await fetch(`http://127.0.0.1:${port}/health`);
+      assert.fail("expected fetch to fail after the holder closed");
     } catch (error) {
       assert.instanceOf(error, Error);
     }
