@@ -2,7 +2,7 @@
  * Tests for `terreno-migrate` argv parsing and command behavior.
  */
 import {beforeEach, describe, expect, it} from "bun:test";
-import {mkdtemp, rm, writeFile} from "node:fs/promises";
+import {mkdtemp, readdir, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import mongoose from "mongoose";
@@ -170,6 +170,75 @@ describe("runMigrateCli", () => {
     }
   });
 
+  it("generate writes a migration file for real Mongoose models", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "migrate-cli-gen-"));
+    const modelsDir = await mkdtemp(join(tmpdir(), "migrate-cli-models-"));
+    try {
+      const modelsPath = join(modelsDir, "models.ts");
+      const mongooseUrl = import.meta.resolve("mongoose");
+      await writeFile(
+        modelsPath,
+        `import mongoose from ${JSON.stringify(mongooseUrl)};
+
+const schema = new mongoose.Schema(
+  {title: {description: "Title", required: true, type: String}},
+  {collection: "cli_gen_todos"}
+);
+export const CliGenTodo = mongoose.models.CliGenTodo ?? mongoose.model("CliGenTodo", schema);
+`
+      );
+
+      const io = capture();
+      const code = await runMigrateCli({
+        argv: ["generate", "--dir", dir, "--models", modelsPath, "--name", "init"],
+        stderr: {write: io.writeErr},
+        stdout: {write: io.writeOut},
+      });
+      expect(io.stderr).toBe("");
+      expect(code).toBe(0);
+      expect(io.stdout).toMatch(/^Wrote .*-init\.ts\n$/);
+      const files = await readdir(dir);
+      expect(files).toHaveLength(1);
+      expect(files[0]).toEndWith("-init.ts");
+
+      const checkIo = capture();
+      expect(
+        await runMigrateCli({
+          argv: ["check", "--dir", dir],
+          stderr: {write: checkIo.writeErr},
+          stdout: {write: checkIo.writeOut},
+        })
+      ).toBe(0);
+      expect(checkIo.stdout).toContain("OK 1 migration(s)");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+      await rm(modelsDir, {force: true, recursive: true});
+    }
+  });
+
+  it("connects and disconnects itself when given a Mongo URI", async () => {
+    const {host, name, port} = mongoose.connection;
+    const uri = `mongodb://${host}:${port}/${name}`;
+    await mongoose.disconnect();
+    expect(mongoose.connection.readyState).toBe(0);
+
+    try {
+      const io = capture();
+      const code = await runMigrateCli({
+        argv: ["status", "--dir", fixtures("valid")],
+        env: {MONGODB_URI: uri, NODE_ENV: "test"},
+        stderr: {write: io.writeErr},
+        stdout: {write: io.writeOut},
+      });
+      expect(code).toBe(0);
+      expect(io.stdout).toContain("Applied (0)");
+      expect(io.stdout).toContain("Pending (2)");
+      expect(mongoose.connection.readyState).toBe(0);
+    } finally {
+      await mongoose.connect(uri);
+    }
+  });
+
   it("writes help to process stdout when io is omitted", async () => {
     expect(await runMigrateCli({argv: ["--help"]})).toBe(0);
     expect(await runMigrateCli({argv: ["nope"]})).toBe(1);
@@ -262,6 +331,18 @@ describe("runMigrateCli", () => {
     });
     expect(downCode).toBe(0);
     expect(await appliedIds()).toEqual(["20260910120000-alpha"]);
+
+    const statusIo = capture();
+    const statusCode = await runMigrateCli({
+      argv: ["status", "--dir", fixtures("valid")],
+      env: {NODE_ENV: "test"},
+      mongoose,
+      stderr: {write: statusIo.writeErr},
+      stdout: {write: statusIo.writeOut},
+    });
+    expect(statusCode).toBe(0);
+    expect(statusIo.stdout).toContain("Applied (1)\n20260910120000-alpha\n");
+    expect(statusIo.stdout).toContain("Pending (1)\n20260910120001-beta\n");
   });
 
   it("fails down when the target file has no down", async () => {
