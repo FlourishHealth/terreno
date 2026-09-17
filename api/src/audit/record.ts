@@ -2,7 +2,6 @@ import type {Request} from "express";
 import mongoose from "mongoose";
 
 import {logger} from "../logger";
-import {isValidObjectId} from "../utils";
 import type {AuditEventModel, AuditEventOperation, AuditEventVerb} from "./auditEventModel";
 import {changedFieldDiff, recordLabelFromDoc, toAuditPlain} from "./diff";
 
@@ -174,11 +173,19 @@ const organizationIdFromAuditContext = (
 };
 
 /** 24-hex ObjectIds only. mongoose.isValidObjectId also accepts 12-char strings. */
+const isCanonicalObjectId = (id: string): boolean => {
+  try {
+    return new mongoose.Types.ObjectId(id).toString() === id;
+  } catch {
+    return false;
+  }
+};
+
 export const actorIdForAuditWrite = (actorId?: string): string | undefined => {
   if (!actorId) {
     return undefined;
   }
-  if (!isValidObjectId(actorId)) {
+  if (!isCanonicalObjectId(actorId)) {
     logger.warn(`AuditEvent actorId is not an ObjectId, recording without an actor: ${actorId}`);
     return undefined;
   }

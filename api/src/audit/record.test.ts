@@ -138,6 +138,8 @@ describe("audit record helpers", () => {
 
   it("keeps the event when the actor id is not an ObjectId", async () => {
     registerAuditApp();
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    const warnSpy = spyOn(logger, "warn").mockImplementation(() => logger);
     await maybeRecordAdminAudit({
       after: {_id: "4", title: "String actor"},
       modelName: "Note",
@@ -147,6 +149,12 @@ describe("audit record helpers", () => {
     const event = await mongoose.connection.collection("auditevents").findOne({});
     assert.equal(event?.modelName, "Note");
     assert.isUndefined(event?.actorId);
+    assert.equal(errorSpy.mock.calls.length, 0);
+    assert.isTrue(
+      warnSpy.mock.calls.some((call) => String(call[0]).includes("recording without an actor"))
+    );
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 
   it("does not treat a 12-character string as an actor ObjectId", async () => {
