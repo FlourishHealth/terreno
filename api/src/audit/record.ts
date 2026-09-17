@@ -2,6 +2,7 @@ import type {Request} from "express";
 import mongoose from "mongoose";
 
 import {logger} from "../logger";
+import {ORGANIZATION_ID_HEADER} from "../orgs/orgContext";
 import type {AuditEventModel, AuditEventOperation, AuditEventVerb} from "./auditEventModel";
 import {changedFieldDiff, recordLabelFromDoc, toAuditPlain} from "./diff";
 
@@ -167,6 +168,11 @@ const organizationIdFromAuditContext = (
   const fromRequest = idString(organization);
   if (fromRequest) {
     return fromRequest;
+  }
+  const fromHeader =
+    typeof req.header === "function" ? req.header(ORGANIZATION_ID_HEADER)?.trim() : undefined;
+  if (fromHeader) {
+    return fromHeader;
   }
   const fromDoc = after?.organizationId ?? before?.organizationId;
   return idString(fromDoc);

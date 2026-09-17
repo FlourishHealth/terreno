@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 
 import type {UserModel as AuthUserModel} from "../auth";
 import {logger} from "../logger";
+import {ORGANIZATION_ID_HEADER} from "../orgs/orgContext";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
@@ -267,7 +268,7 @@ describe("audit record helpers", () => {
     assert.equal((event?.after as {title?: string})?.title, "Has default");
   });
 
-  it("reads organization from req.organization string and from document _id objects", async () => {
+  it("reads organization from request context, header, and document fields", async () => {
     registerAuditApp();
     await maybeRecordModelRouterAudit({
       after: {_id: "7", title: "Req org"},
@@ -285,6 +286,16 @@ describe("audit record helpers", () => {
       operation: "create",
       recordId: "8",
       req: {} as express.Request,
+      verb: "created",
+    });
+    await maybeRecordAdminAudit({
+      after: {_id: "8.5", title: "Header org"},
+      modelName: "Note",
+      req: {
+        header: (name: string): string | undefined => {
+          return name === ORGANIZATION_ID_HEADER ? "org-from-header" : undefined;
+        },
+      } as express.Request,
       verb: "created",
     });
     await maybeRecordModelRouterAudit({
@@ -325,6 +336,7 @@ describe("audit record helpers", () => {
       .toArray();
     assert.equal(events.find((row) => row.recordId === "7")?.organizationId, "org-string");
     assert.equal(events.find((row) => row.recordId === "8")?.organizationId, "org-nested");
+    assert.equal(events.find((row) => row.recordId === "8.5")?.organizationId, "org-from-header");
     assert.equal(events.find((row) => row.recordId === "9")?.organizationId, "org-from-id");
     assert.equal(events.find((row) => row.recordId === "10")?.organizationId, "org-id-field");
     assert.equal(events.find((row) => row.recordId === "11")?.organizationId, "42");
