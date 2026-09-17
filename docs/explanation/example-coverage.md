@@ -15,7 +15,7 @@ that file (and its imports) to a working example. Gaps stay explicit.
 | Owner permissions | yes — `OwnerQueryFilter` + `Permissions.IsOwner` in `example-backend/src/api/todos.ts` | yes — the todos screen only shows the signed-in user's rows after sync scopes apply | Also gated by RBAC `access: {resource: "todo"}`. |
 | Admin panel (embedded) | yes — Admin plugin registration in `example-backend/src/server.ts` | yes — `example-frontend/app/admin/` | Expo routes wrap `@terreno/admin-frontend` screens. |
 | Admin SPA | yes — `AdminSpaServeApp` in `example-backend/src/server.ts` | n/a | Standalone SPA is served from the backend; not a frontend route. |
-| AI streaming chat | yes — `example-backend/src/api/ai.ts` (`addGptRoutes`) | yes — `example-frontend/app/(tabs)/ai.tsx` (`GPTChat`) | |
+| AI streaming chat | yes — `example-backend/src/api/ai.ts` (`addGptRoutes`) | yes — `example-frontend/app/(tabs)/ai.tsx` (`GPTChat`, optional `mascot`) | Empty-chat mascot is consumer-owned; the example fox is not a framework default. |
 | AI structured output | no | no | `@terreno/ai` supports structured generation; the example only streams chat. Recorded gap — not claimed by a current tutorial. |
 | Feature flags + live updates | yes — `FeatureFlagsApp` in `example-backend/src/server.ts`, seed `example-backend/src/scripts/seed-feature-flags.ts` | yes — `useTerrenoFeatureFlags` in `example-frontend/app/_layout.tsx` | Socket-backed live updates share the realtime connection. |
 | Websockets / realtime | yes — `RealtimeApp` in `example-backend/src/server.ts`, `example-backend/src/websockets.ts` | yes — `useSocketConnection` in `example-frontend/app/_layout.tsx` | Sync deltas also use the socket (`SyncApp` + `@terreno/syncdb`). |

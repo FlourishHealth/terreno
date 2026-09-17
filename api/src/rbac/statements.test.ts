@@ -12,6 +12,7 @@ import {
 describe("rbac statements", () => {
   it("exports terreno default vocabulary", () => {
     expect(terrenoStatements.admin).toContain("access");
+    expect(terrenoStatements.admin).toContain("jobs");
     expect(ADMIN_PAGE_PERMISSION).toEqual({admin: ["access"]});
     expect(terrenoStatements.rbac).toContain("manageRoles");
     expect(terrenoStatements.user).toContain("read");

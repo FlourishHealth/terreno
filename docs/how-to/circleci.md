@@ -48,15 +48,18 @@ list pipelines on the slug above.
 | `.circleci/config.yml` | Setup workflow + `path-filtering` (this is the live config) |
 | `.circleci/continue-config.yml` | Real jobs/workflows gated by those params |
 
-Smoke job `config-ok` and fork-only `dco` always run on continuation.
+Fork-only `dco` and PR `architectural-pr-review` always start on continuation
+(review skips before checkout when the agentic/GitHub contexts are empty).
 `rulesync-check` runs only when generated-rule sources change (`run-rulesync`).
-`admin-backend/**` starts `admin-backend-ci`; `admin-frontend/**` starts
-`admin-frontend-ci`. Both jobs lint, compile, and run `test:coverage`.
+`admin-backend/**` and `admin-frontend/**` start `packages-ci` (lint, compile,
+`test:coverage`). Dedicated `admin-*-ci` job definitions stay in the config as
+the same command sequence.
 
 `.circleci/**` sets `run-circleci-config`. On **config-only** PRs that workflow
-runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`,
-`no-barrel-imports`, `source-rules`, `e2e` spec `login`). If the same pipeline
-already set `run-api`, `run-ui`, `run-e2e`, `run-example-backend`, or
+runs a representative slice (`api-ci`, `ui-ci`, `example-backend-ci`, `e2e`
+shard `auth`). `repo-policies` still starts from `run-repo-policies` (also set
+for `.circleci/**`); the kitchen-sink does not start a second copy. If the same
+pipeline already set `run-api`, `run-ui`, `run-e2e`, `run-example-backend`, or
 `run-admin-spa`, that kitchen-sink workflow is skipped so jobs are not doubled.
 `comms/**` also sets `run-example-backend` and `run-example-backend-script`,
 matching the GitHub Actions twins.
@@ -64,6 +67,29 @@ matching the GitHub Actions twins.
 The example-backend Docker job runs only when its image recipe changes
 (`Dockerfile`, `.dockerignore`, package manifests, or `bun.lock`). API/source
 changes are covered by preview CD builds and do not start a duplicate image job.
+
+UI, RTK, and admin-frontend changes do **not** start `example-backend-ci`.
+Those packages are covered by `ui-ci` / `rtk-ci` / `packages-ci` plus e2e and
+admin-spa. `new-file-coverage` starts on package `src/` (and example app
+runtime paths including `example-frontend/components/`), not on every `*.ts`
+file in the repo (Playwright specs no longer compile the world). That job
+compiles `@terreno/api` and `@terreno/jobs` deps, then
+`bun run --filter '@terreno/api' compile` and
+`bun run --filter '@terreno/jobs' compile`. The coverage script also compiles
+each gated package's `@terreno/*` workspace deps so packages such as
+`admin-backend` can import `@terreno/jobs`. Workspace-dep compile uses
+`tsconfig.server.json` when present (so `@terreno/admin-spa` emits `src/dist`
+instead of the Expo app `tsconfig.json`).
+
+Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
+`admin-table`, `syncdb`) instead of one container per spec file. Repository
+policy checks share one `repo-policies` job so eight small checkouts do not
+sit in the concurrency queue. `repo-policies` uses Node 22.14 because Knip's
+oxc-parser throws `ERR_REQUIRE_ESM` on the shared 22.11 executor.
+Require `repo-policies` in branch protection. Require `e2e-auth` /
+`e2e-app` / … only as path-filtered checks; config-only PRs post `e2e-auth`
+as the smoke shard and do not run the other four. Do not require the old
+`no-barrel-imports` / `e2e-login` names.
 
 ## Automatic deploys
 
@@ -120,9 +146,12 @@ project, leave fork-PR secret passing off, and attach that context **only** to
 unset, and it skips fork PRs. The job checks out `origin/master` before running
 the review script so a PR cannot rewrite the reviewer.
 
-The Netlify deploy helper validates its context before building, and the docs
-target disables Docusaurus minification for preview and production builds to
-remain within the available 8 GB CircleCI executor.
+Netlify and GCP jobs **halt as the first step** when `terreno-netlify` /
+`terreno-gcp` are empty, before checkout or `bun install`. Path filters still
+start those jobs so filling the context turns deploys on without a config
+change; skip-green no longer pays for a full `large` install. Docker Layer
+Caching is off (200 credits per job). The docs Netlify target disables
+Docusaurus minification so the build stays within the 8 GB `large` executor.
 
 `terreno-gcp` uses CircleCI OIDC (`CIRCLE_OIDC_TOKEN_V2`), never a JSON service
 account key. Set `circleci_org_id`, `circleci_project_id`, and
@@ -149,40 +178,33 @@ the same commands through the parameterized `packages-ci` job, gated by
 
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
-| Repository policies / No barrel imports | `no-barrel-imports` |
-| Repository policies / Production source rules | `source-rules` |
-| Explicit any baseline | `explicit-any` |
-| License coverage | `license-coverage` |
+| Repository policies (barrels, source rules, explicit any, licenses, changelog, parity, lifecycle, static analysis) | `repo-policies` |
 | Verify rules are in sync | `rulesync-check` |
 | `dco` | `dco` |
 | Run all tests (API CI) | `api-ci` |
-| _(new)_ Admin backend lint, compile, coverage | `admin-backend-ci` |
-| _(new)_ Admin frontend lint, compile, coverage | `admin-frontend-ci` |
+| Admin backend lint, compile, coverage | `packages-ci` (`admin-backend`) |
+| Admin frontend lint, compile, coverage | `packages-ci` (`admin-frontend`) |
 | Run all tests (AI CI) | `ai-ci` |
 | RTK Lint and Build | `rtk-ci` |
 | Syncdb Lint, Build, and Tests | `syncdb-ci` |
-| UI Lint, Build, Types, and Tests | `ui-ci` |
-| Demo TypeScript Check (UI dependency) | `ui-demo-typecheck` |
-| Demo Lint and TypeScript Check | `ui-demo-ci` |
+| UI Lint, Build, Types, and Tests + demo typecheck | `ui-ci` |
+| Demo Lint and TypeScript Check | `ui-demo-ci` (demo-only PRs) |
 | Lint, compile, and test communications | `comms-ci` |
 | Lint, Build, and Test (MCP) | `mcp-server-ci` |
 | Lint, compile, and coverage (create-terreno-app) | `create-terreno-app-ci` |
 | Build Docker Image (MCP) | `mcp-server-docker` |
 | Example Frontend Lint and Test | `example-frontend-ci` |
-| Example Backend Lint, Build, and Test | `example-backend-ci` |
-| Run admin script CLI | `example-backend-script-runner` |
+| Example Backend lint/test + admin script CLI | `example-backend-ci` |
+| Run admin script CLI (when backend CI did not already run) | `example-backend-script-runner` |
 | Build backend Docker image | `example-backend-docker` |
 | Admin SPA Build and E2E | `admin-spa-ci` |
 | Lint, compile, and coverage (matrix package) | `packages-ci` (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `test`) |
-| E2E · `<spec>` | `e2e` (matrix `spec`, including `admin` plus `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, `admin-comms-back`) |
+| E2E · `<shard>` | `e2e` (matrix `shard`: `auth`, `app`, `admin-core`, `admin-table`, `syncdb`) |
 | E2E Load · syncdb-loadlab | `e2e-load` (trigger-gated, see below) |
 | Admin SPA Backend Integration E2E | `admin-spa-integration` |
-| _(new)_ CircleCI path-filter parity | `circleci-parity` |
-| _(smoke)_ | `config-ok` |
 | _(e2e compile+export once)_ | `e2e-prepare` |
 | Architectural PR review | `architectural-pr-review` (non-blocking; skip forks / missing secrets) |
 | Maestro E2E Tests | `maestro-e2e` (`include-demo` when ui/demo Maestro flows change) |
-| Changelog fragments | `changelog-fragments` |
 | New file coverage | `new-file-coverage` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
 | Netlify PR preview | `deploy-demo-preview`, `deploy-frontend-preview`, `deploy-docs-preview` |
@@ -267,14 +289,20 @@ Edits to `.circleci/config.yml` / `continue-config.yml` /
 `example-frontend/playwright.circleci.config.ts` set `run-circleci-config`.
 When no package/e2e path param is also set, that workflow runs the slice above.
 CircleCI e2e compiles the workspace and `bun expo export`s **once** in
-`e2e-prepare`, then shards attach that dist (60s test timeout, `large` Docker).
-Keeping Metro alive next to Chromium gets SIGKILL on 8GB. `xlarge` is not on
-this project's plan. Chaos e2e treats a hidden Offline banner after `goOnline`
-as reconnect — a `client.stop()`/`start()` handshake hung 30s on the static
+`e2e-prepare` (`large`, 8 GB — the export heap is 3 GB). Five shards then
+attach that dist on `medium+` (6 GB, 15 credits/min). `xlarge` is not on this project's plan. In-job
+compile+export jobs (`maestro-e2e`, `admin-spa-integration`, `e2e-load`) stay
+on `large`. Chaos e2e treats a hidden Offline banner after `goOnline` as
+reconnect — a `client.stop()`/`start()` handshake hung 30s on the static
 export. `maestro-e2e` follows the same static-export rule: it exports
 example-frontend and serves the static `dist`. If the browsers image has no
 Xvfb on `:99`, a `background: true` fallback starts one and keeps it alive
 for later steps.
+
+Package jobs that only lint/compile/test one workspace package stay on
+`medium` (including `mcp-server-ci`, `example-backend-ci`, and
+`new-file-coverage`). Do not put Docker Layer Caching on remote-docker jobs
+unless a profiled image build reuses layers enough to beat 200 credits/run.
 
 ## Nightly load test
 

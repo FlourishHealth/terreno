@@ -19,7 +19,7 @@ export const ORGANIZATION_ACTIONS = [
 ] as const;
 
 export const terrenoStatements = {
-  admin: [ADMIN_PAGE_ACTION, "runScripts", "viewBackgroundTasks"],
+  admin: [ADMIN_PAGE_ACTION, "jobs", "runScripts", "viewBackgroundTasks"],
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,
   adminFeatureFlag: ADMIN_MODEL_ACCESS,

@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-15T23:22:13.630Z.
+> dates are promised. Last updated: 2026-09-17T00:08:43.525Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -20,7 +20,6 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, In progress) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
-- [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, In review)
 - [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, In review)
 - [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, In review) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
@@ -29,7 +28,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### ui
 
 - [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, Planned)
-- [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review)
+- [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review) — IP: [datatable-server-side-filtering](docs/implementationPlans/datatable-server-side-filtering.md)
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
 - [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
@@ -94,6 +93,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### api
 
 - [APIError standards-first redesign](https://github.com/FlourishHealth/terreno/issues/1080) (Breaking, Shipped) — IP: [apierror-standard-error-redesign](docs/implementationPlans/apierror-standard-error-redesign.md)
+- [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Shipped) — IP: [job-queues](docs/implementationPlans/job-queues.md)
 - [Modular API (TerrenoApp)](https://github.com/FlourishHealth/terreno/issues/1084) (Feature, Shipped) — IP: [ModularAPI](docs/implementationPlans/ModularAPI.md)
 - [OpenFeature adoption for feature flags](https://github.com/FlourishHealth/terreno/issues/1082) (Feature, Shipped) — IP: [feature-flags-openfeature](docs/implementationPlans/feature-flags-openfeature.md)
 - [Pluggable communications layer (@terreno/comms)](https://github.com/FlourishHealth/terreno/issues/1018) (Feature, Shipped) — IP: [comms-abstraction](docs/implementationPlans/comms-abstraction.md)

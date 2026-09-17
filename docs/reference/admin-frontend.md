@@ -158,6 +158,12 @@ Table view for a specific model with pagination, sorting, and actions.
 
 Features:
 - DataTable with columns from backend `listFields`
+- Toolbar search maps to list `q` (backend partial match + ObjectId lookup)
+- Declared `filters` map to DataTable column filters (`text` contains, `choice`
+  multi `$in`, `boolean`, `dateRange`, `ref` via `AdminRefField` in `renderFilter`)
+- Optional choice fields include **Empty**, which matches missing and null values.
+  Admin list requests serialize nested operators with bracket notation independently
+  of the host application's RTK base-query configuration.
 - Click row to edit
 - "Create New" button
 - Pagination controls
@@ -380,7 +386,8 @@ Expects backend to provide:
 
 When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
 `platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
-renders model or custom-screen links returned by the server.
+renders model or custom-screen links returned by the server. The shell lifts Audit Log, Feature
+Flags, and Jobs into the Platform section (Jobs still comes from `customScreens`).
 
 ### Custom screen page chrome
 

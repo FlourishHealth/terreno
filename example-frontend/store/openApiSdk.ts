@@ -13,12 +13,13 @@ export const addTagTypes = [
   "comms",
   "admin",
   "featureflags",
+  "jobs",
   "mcpservicetokens",
   "adminauditlogs",
   "consentforms",
   "consentresponses",
-  "organizations",
   "adminMigrations",
+  "organizations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -89,6 +90,13 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/mcp-service-tokens/${queryArg}`,
+        }),
+      }),
+      deleteAdminTodosById: build.mutation<DeleteAdminTodosByIdRes, DeleteAdminTodosByIdArgs>({
+        invalidatesTags: ["todos"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/todos/${queryArg}`,
         }),
       }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
@@ -444,6 +452,34 @@ const injectedRtkApi = api
       getGptTools: build.query<GetGptToolsRes, GetGptToolsArgs>({
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
+      }),
+      getJobs: build.query<GetJobsRes, GetJobsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          params: {
+            end: queryArg.end,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            scheduleId: queryArg.scheduleId,
+            start: queryArg.start,
+            status: queryArg.status,
+          },
+          url: `/jobs`,
+        }),
+      }),
+      getJobsById: build.query<GetJobsByIdRes, GetJobsByIdArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({url: `/jobs/${queryArg}`}),
+      }),
+      getJobsSchedules: build.query<GetJobsSchedulesRes, GetJobsSchedulesArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/schedules`}),
+      }),
+      getJobsStats: build.query<GetJobsStatsRes, GetJobsStatsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/stats`}),
       }),
       getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
         providesTags: ["organizations"],
@@ -840,31 +876,45 @@ const injectedRtkApi = api
           url: `/gpt/remix`,
         }),
       }),
-      postLoadtestTodosChurn: build.mutation<PostLoadtestTodosChurnRes, PostLoadtestTodosChurnArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: (queryArg) => ({
-            body: queryArg,
-            method: "POST",
-            url: `/loadtest/todos/churn`,
-          }),
-        }
-      ),
-      postLoadtestTodosClear: build.mutation<PostLoadtestTodosClearRes, PostLoadtestTodosClearArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: () => ({method: "POST", url: `/loadtest/todos/clear`}),
-        }
-      ),
-      postLoadtestTodosGenerate: build.mutation<
-        PostLoadtestTodosGenerateRes,
-        PostLoadtestTodosGenerateArgs
-      >({
-        invalidatesTags: ["loadtest"],
+      postJobsByIdCancel: build.mutation<PostJobsByIdCancelRes, PostJobsByIdCancelArgs>({
+        invalidatesTags: ["admin", "jobs"],
         query: (queryArg) => ({
-          body: queryArg,
           method: "POST",
-          url: `/loadtest/todos/generate`,
+          url: `/jobs/${queryArg}/cancel`,
+        }),
+      }),
+      postJobsByIdRequeue: build.mutation<PostJobsByIdRequeueRes, PostJobsByIdRequeueArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/requeue`,
+        }),
+      }),
+      postJobsByIdRetry: build.mutation<PostJobsByIdRetryRes, PostJobsByIdRetryArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/retry`,
+        }),
+      }),
+      postJobsSchedulesByNamePause: build.mutation<
+        PostJobsSchedulesByNamePauseRes,
+        PostJobsSchedulesByNamePauseArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/pause`,
+        }),
+      }),
+      postJobsSchedulesByNameResume: build.mutation<
+        PostJobsSchedulesByNameResumeRes,
+        PostJobsSchedulesByNameResumeArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/resume`,
         }),
       }),
       postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
@@ -1910,8 +1960,7 @@ export type CommsTestPushArgs = {
   title?: string;
 };
 export type PostCommsPushTokensRes =
-  /** status 200 Success */
-  | {
+  | /** status 200 Success */ {
       data?: object;
     }
   | /** status 201 Success */ {
@@ -2334,6 +2383,72 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetJobsSchedulesRes = /** status 200 Success */ {
+  data?: {
+    cron?: string;
+    enabled?: boolean;
+    handlerName?: string;
+    id?: string;
+    name?: string;
+    nextRunAt?: string;
+    timezone?: string;
+  }[];
+};
+export type GetJobsSchedulesArgs = undefined;
+export type PostJobsSchedulesByNamePauseRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNamePauseArgs = string;
+export type PostJobsSchedulesByNameResumeRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNameResumeArgs = string;
+export type GetJobsRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    attemptCount?: number;
+    id?: string;
+    name?: string;
+    status?: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetJobsArgs = {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+  scheduleId?: string;
+  start?: string;
+  end?: string;
+  q?: string;
+};
+export type GetJobsStatsRes = /** status 200 Success */ {
+  data?: {
+    byStatus?: object;
+    total?: number;
+  };
+};
+export type GetJobsStatsArgs = undefined;
+export type GetJobsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetJobsByIdArgs = string;
+export type PostJobsByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRetryArgs = string;
+export type PostJobsByIdRequeueRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRequeueArgs = string;
+export type PostJobsByIdCancelRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdCancelArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -3727,6 +3842,8 @@ export type PatchAdminTodosByIdArgs = {
     _syncSeq?: number;
   };
 };
+export type DeleteAdminTodosByIdRes = unknown;
+export type DeleteAdminTodosByIdArgs = string;
 export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3956,6 +4073,14 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
 export type PostOrgsRes = unknown;
 export type PostOrgsArgs = {
   /** Organization name */
@@ -4013,14 +4138,6 @@ export type DeleteOrgsByIdMembersAndMemberIdArgs = {
   id: string;
   memberId: string;
 };
-export type AdminMigrationsRunRes = /** status 201 Successful response */ {
-  data?: object;
-};
-export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
-export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
-  data?: object;
-};
-export type AdminMigrationsStatusArgs = undefined;
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -4134,6 +4251,15 @@ export const {
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetJobsSchedulesQuery,
+  usePostJobsSchedulesByNamePauseMutation,
+  usePostJobsSchedulesByNameResumeMutation,
+  useGetJobsQuery,
+  useGetJobsStatsQuery,
+  useGetJobsByIdQuery,
+  usePostJobsByIdRetryMutation,
+  usePostJobsByIdRequeueMutation,
+  usePostJobsByIdCancelMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminMcpServiceTokensBulkPatchMutation,
@@ -4163,12 +4289,15 @@ export const {
   useGetAdminTodosQuery,
   useGetAdminTodosByIdQuery,
   usePatchAdminTodosByIdMutation,
+  useDeleteAdminTodosByIdMutation,
   usePostAdminUsersBulkPatchMutation,
   usePostAdminUsersMutation,
   useGetAdminUsersQuery,
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
   usePostOrgsMutation,
   useGetOrgsQuery,
   useGetOrgsMineQuery,
@@ -4179,8 +4308,6 @@ export const {
   usePostOrgsByIdMembersMutation,
   usePatchOrgsByIdMembersAndMemberIdMutation,
   useDeleteOrgsByIdMembersAndMemberIdMutation,
-  useAdminMigrationsRunMutation,
-  useAdminMigrationsStatusQuery,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

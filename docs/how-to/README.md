@@ -19,6 +19,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
 - [Receive inbound webhooks](inbound-webhooks.md) — HMAC, Stripe, Twilio, and SendGrid signatures on `WebhooksApp`
+- [Durable background jobs](background-jobs.md) — `@terreno/jobs`: enqueue, workers, schedules, Cloud Tasks / Vercel Queues
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Seed a database](seed-a-database.md) — Idempotent sync, dry runs, and guarded reset-and-reseed
 - [Run MongoDB migrations](run-mongodb-migrations.md) — Versioned `up`/`down` files, `terreno-migrate`, production gate
@@ -36,6 +37,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Track upstream Expo](track-upstream-expo.md) — Morning probe for SDK betas; `release-X.Y.Z` loop log + native fingerprint deps
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
 - [Add organizations](add-organizations.md) — Opt into Membership-backed tenancy, RBAC, admin, and seeded examples
+- [Add a GPT chat mascot](add-gpt-chat-mascot.md) — Optional consumer-owned character on empty `GPTChat`
 
 ## Admin
 

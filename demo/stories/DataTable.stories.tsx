@@ -7,7 +7,7 @@ import {
   Text,
 } from "@terreno/ui";
 import type React from "react";
-import {type FC, useState} from "react";
+import {type FC, useCallback, useState} from "react";
 
 const CustomColumnComponent: FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
   cellData,
@@ -256,6 +256,80 @@ const buildLargeVirtualRows = (rowCount: number): DataTableCellData[][] =>
     {value: rowIndex % 2 === 0},
     {value: {text: `Badge ${rowIndex + 1}`}},
   ]);
+
+export const FilterableDataTable = (): React.ReactElement => {
+  const [search, setSearch] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
+  const [queryLog, setQueryLog] = useState<string>("{}");
+  const handleQueryChange = useCallback((params: Record<string, unknown>): void => {
+    setQueryLog(JSON.stringify(params));
+  }, []);
+  const columns: DataTableColumn[] = [
+    {
+      columnType: "text",
+      filter: {field: "name", kind: "text"},
+      sortable: true,
+      title: "Name",
+      width: 180,
+    },
+    {
+      columnType: "boolean",
+      filter: {field: "active", kind: "boolean"},
+      title: "Active",
+      width: 120,
+    },
+    {
+      columnType: "date",
+      filter: {field: "created", kind: "dateRange"},
+      title: "Created",
+      width: 180,
+    },
+    {
+      columnType: "text",
+      filter: {
+        field: "role",
+        kind: "choice",
+        options: [
+          {label: "Staff", value: "staff"},
+          {label: "Admin", value: "admin"},
+        ],
+      },
+      title: "Role",
+      width: 160,
+    },
+  ];
+  const data: DataTableCellData[][] = [
+    [{value: "Alice"}, {value: true}, {value: "2024-01-01"}, {value: "admin"}],
+    [{value: "Bob"}, {value: false}, {value: "2024-02-01"}, {value: "staff"}],
+  ];
+
+  return (
+    <Box direction="column" gap={3} height={500} maxWidth={900} padding={3}>
+      <Text>Latest query: {queryLog}</Text>
+      <DataTable
+        additionalFilters={[
+          {
+            field: "department",
+            kind: "choice",
+            label: "Department",
+            options: [
+              {label: "Engineering", value: "engineering"},
+              {label: "Operations", value: "operations"},
+            ],
+          },
+        ]}
+        columns={columns}
+        data={data}
+        filterValues={filterValues}
+        onFilterValuesChange={setFilterValues}
+        onQueryChange={handleQueryChange}
+        onSearchChange={setSearch}
+        search={search}
+        searchFields={["name", "role"]}
+      />
+    </Box>
+  );
+};
 
 export const LargeVirtualizedDataTable = (): React.ReactElement => {
   const [pinnedColumns, setPinnedColumns] = useState(1);

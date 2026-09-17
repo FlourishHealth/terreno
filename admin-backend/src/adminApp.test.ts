@@ -12,6 +12,7 @@ import {
   type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
+import {Job, JobsApp, unregisterJobsService} from "@terreno/jobs";
 import type express from "express";
 import mongoose from "mongoose";
 import supertest from "supertest";
@@ -517,6 +518,97 @@ describe("AdminApp script routes", () => {
 
     it("returns 401 for unauthenticated user", async () => {
       await supertest(app).get("/admin/scripts/runs").expect(401);
+    });
+  });
+
+  describe("script runs through durable jobs when JobsApp is registered", () => {
+    let jobsApp: JobsApp;
+
+    beforeEach(async () => {
+      await setupDb();
+      await Job.deleteMany({});
+      await BackgroundTask.deleteMany({});
+      jobsApp = new JobsApp({pollIntervalMs: 25});
+      const server = getBaseServer();
+      setupAuth(server, UserModel as unknown as UserModelType);
+      addAuthRoutes(server, UserModel as unknown as UserModelType);
+      jobsApp.register(server);
+      const admin = new AdminApp({
+        basePath: "/admin",
+        models: [],
+        scripts: [createTestScript(), createFailingScript()],
+      });
+      admin.register(server);
+      server.use(apiUnauthorizedMiddleware);
+      server.use(apiErrorMiddleware);
+      app = server;
+      adminAgent = await authAsUser(app, "admin");
+    });
+
+    afterEach(async () => {
+      unregisterJobsService();
+      await Job.deleteMany({});
+    });
+
+    it("returns taskId, persists a job row, and completes the BackgroundTask", async () => {
+      const res = await adminAgent.post("/admin/scripts/test-script/run").expect(201);
+      const taskId = res.body.taskId as string;
+      const job = await Job.findOne({name: "admin/script", "payload.taskId": taskId});
+      expect(job).not.toBeNull();
+      expect(job?.maxAttempts).toBe(1);
+      const outcome = await jobsApp.executeQueuedJob(String(job?._id));
+      expect(outcome.kind).toBe("executed");
+      const task = await BackgroundTask.findById(taskId);
+      expect(task?.status).toBe("completed");
+      expect(task?.result).toContain("Ran in dry mode");
+    });
+
+    it("marks the BackgroundTask failed when the script throws", async () => {
+      const res = await adminAgent.post("/admin/scripts/failing-script/run").expect(201);
+      const job = await Job.findOne({
+        name: "admin/script",
+        "payload.taskId": res.body.taskId,
+      });
+      expect(job).not.toBeNull();
+      await jobsApp.executeQueuedJob(String(job?._id));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.status).toBe("failed");
+      expect(task?.error).toBe("Script exploded");
+    });
+
+    it("marks the BackgroundTask failed when enqueue throws", async () => {
+      unregisterJobsService();
+      const throwingJobs = new JobsApp({
+        pollIntervalMs: 25,
+        runner: {
+          enqueue: async (): Promise<void> => {
+            throw new Error("Cloud Tasks unavailable");
+          },
+          id: "throw-enqueue",
+        },
+      });
+      const server = getBaseServer();
+      setupAuth(server, UserModel as unknown as UserModelType);
+      addAuthRoutes(server, UserModel as unknown as UserModelType);
+      throwingJobs.register(server);
+      const admin = new AdminApp({
+        basePath: "/admin",
+        models: [],
+        scripts: [createTestScript()],
+      });
+      admin.register(server);
+      server.use(apiUnauthorizedMiddleware);
+      server.use(apiErrorMiddleware);
+      const agent = await authAsUser(server, "admin");
+
+      const res = await agent.post("/admin/scripts/test-script/run").expect(500);
+      expect(res.body.title).toMatch(/enqueue/i);
+      const pending = await BackgroundTask.find({status: "pending"});
+      expect(pending).toHaveLength(0);
+      const failed = await BackgroundTask.find({taskType: "test-script"});
+      expect(failed).toHaveLength(1);
+      expect(failed[0]?.status).toBe("failed");
+      expect(failed[0]?.error).toContain("Cloud Tasks unavailable");
     });
   });
 

@@ -661,8 +661,11 @@ export const validateClaudePluginHost = ({
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
   }
-  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
-    errors.push("Claude plugin agents path must be ./agents/");
+  const expectedClaudeAgents = [...PLUGIN_AGENT_NAMES]
+    .sort()
+    .map((agentName) => `./agents/${agentName}.md`);
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(expectedClaudeAgents)) {
+    errors.push(`Claude plugin agents must be exactly ${expectedClaudeAgents.join(", ")}`);
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {

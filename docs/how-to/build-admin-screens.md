@@ -136,7 +136,8 @@ Do not add sidebar links in app code. The shell reads `/admin/config`.
 
 Platform links appear only when `platformTools` says they should. Pass
 `configurationPath`, `rolesPath`, and `versionConfigPath` into `AdminShellLayout`
-so those buttons have destinations.
+so those buttons have destinations. Jobs (`customScreens` name `jobs`) appears
+under Platform, not Screens.
 
 ## 7. Verify
 
