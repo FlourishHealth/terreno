@@ -4,6 +4,7 @@ import {
   OrgContextProvider,
   organizationFromPath,
   useAdminConfig,
+  useOptionalOrgContext,
 } from "@terreno/admin-frontend";
 import {createSyncDb, type SyncDb} from "@terreno/syncdb";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
@@ -13,10 +14,28 @@ import React, {useEffect, useMemo, useState} from "react";
 import {AdminGate} from "../components/AdminGate";
 import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
 import {StoreProvider, useAuth} from "../components/StoreProvider";
-import {createAdminSpaSyncDbConfig, resolveAdminSyncCollections} from "../store/adminSyncDb";
+import {
+  createAdminSpaSyncDbConfig,
+  resolveAdminSyncCollections,
+  setSpaAdminOrganizationId,
+} from "../store/adminSyncDb";
 import {terrenoApi} from "../store/sdk";
 
 const SPA_ADMIN_AUTH_HEADERS = (): HeadersInit => ({});
+
+const BindSpaAdminOrganization: React.FC = () => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+
+  // Keep admin-window mutate payloads on the currently selected organization.
+  useEffect(() => {
+    setSpaAdminOrganizationId(organizationId);
+    return (): void => {
+      setSpaAdminOrganizationId(undefined);
+    };
+  }, [organizationId]);
+
+  return null;
+};
 
 const SyncEnabledAdminProvider: React.FC<{
   apiBase: string;
@@ -72,7 +91,10 @@ const SyncEnabledAdminProvider: React.FC<{
       syncConflicts={syncConflicts}
       syncDb={client}
     >
-      <OrgContextProvider initialOrganization={routeOrganization}>{children}</OrgContextProvider>
+      <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindSpaAdminOrganization />
+        {children}
+      </OrgContextProvider>
     </AdminProvider>
   );
 };
@@ -125,7 +147,10 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
       getAuthHeaders={SPA_ADMIN_AUTH_HEADERS}
       routeBase=""
     >
-      <OrgContextProvider initialOrganization={routeOrganization}>{children}</OrgContextProvider>
+      <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindSpaAdminOrganization />
+        {children}
+      </OrgContextProvider>
     </AdminProvider>
   );
 };

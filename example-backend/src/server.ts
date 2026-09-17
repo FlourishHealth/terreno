@@ -460,11 +460,15 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       })
     ) {
       await terraApp.whenReady();
-      await exampleJobsApp.startWorker();
-      registerJobsWorkerShutdown(exampleJobsApp);
-      logger.info(
-        "[jobs] Worker started in API process (set JOBS_START_WORKER=false when using jobs:worker)"
-      );
+      try {
+        await exampleJobsApp.startWorker();
+        registerJobsWorkerShutdown(exampleJobsApp);
+        logger.info(
+          "[jobs] Worker started in API process (set JOBS_START_WORKER=false when using jobs:worker)"
+        );
+      } catch (error: unknown) {
+        logger.error(`[jobs] In-process worker failed to start; HTTP server remains up: ${error}`);
+      }
     } else if (!skipListen) {
       logger.info(
         "[jobs] API-process worker disabled (JOBS_START_WORKER=false); use bun run jobs:worker if needed"

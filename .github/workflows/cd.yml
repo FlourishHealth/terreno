@@ -565,7 +565,7 @@ jobs:
             ${{ steps.better-auth.outputs.secrets }}
           flags: |
             --port=3000
-            --memory=512Mi
+            --memory=1Gi
             --min-instances=0
             --max-instances=10
             --concurrency=80
@@ -574,6 +574,7 @@ jobs:
             ${{ steps.runtime-sa.outputs.flag }}
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
+        continue-on-error: true
         run: |
           revision="$(
             gcloud run revisions list \

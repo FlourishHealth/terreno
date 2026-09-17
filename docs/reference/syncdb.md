@@ -165,6 +165,7 @@ be passed to `betterAuthAdapter` directly.
 | `name` | `string` | — (required) | Persisted database name |
 | `collections` | `string[]` | — (required) | Collection names to sync (local tables + subscriptions) |
 | `windowCollections` | `string[]` | `[]` | Collections that join `{collection}\|admin`, skip snapshots/reconcile, and hydrate only known REST membership ids |
+| `organizationIdProvider` | `() => string \| undefined` | — | Read at send time: sets `X-Organization-Id` on HTTP sync calls and `organizationId` on socket mutate payloads |
 | `authProvider` | `AuthProvider` | — (required) | `{getToken, getUserId, onAuthChange, refresh?}` |
 | `baseUrl` | `string` | — | Server origin; required unless both `transport` and `httpChannel` are injected |
 | `transport` | `SyncTransport` | socket transport from `baseUrl` | Override for tests or custom wiring |

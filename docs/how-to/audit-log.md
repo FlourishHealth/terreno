@@ -51,7 +51,7 @@ Admin diffs also omit each model's `hiddenFields` and `excludeFields`.
 
 RBAC mutations fan into the same collection when `createAccess({auditSink: persistRbacAuditToAuditEvent})` is set. `source` is `rbac`.
 
-`organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from `X-Organization-Id`, then from the mutated document's `organizationId` string. The field is omitted when neither exists. This keeps audits of non-tenant admin models visible in the selected organization's audit log. Org-admin list filtering waits on org management UI.
+`organizationId` is copied onto the event when `req.organization` is set (`id` or `_id`), otherwise from the request org AsyncLocalStorage, then `X-Organization-Id`, then the mutated document's `organizationId` string. Socket admin-window mutates attach `organizationId` on the payload so non-tenant models still land in the selected organization's audit log. The field is omitted when none of those exist.
 
 `actorId` comes from `req.user.id` (or `_id`). Only a 24-hex Mongo ObjectId is stored;
 mongoose's looser `isValidObjectId` (12-character strings) is not used. Any other id

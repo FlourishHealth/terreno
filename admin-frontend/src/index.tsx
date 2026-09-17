@@ -109,6 +109,7 @@ export {
   organizationFromPath,
   organizationIdFromPath,
   organizationMatchesRoute,
+  useOptionalOrgContext,
   useOrgContext,
 } from "./orgs/useOrgContext";
 export type {

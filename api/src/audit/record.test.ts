@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 import type {UserModel as AuthUserModel} from "../auth";
 import {logger} from "../logger";
-import {ORGANIZATION_ID_HEADER} from "../orgs/orgContext";
+import {ORGANIZATION_ID_HEADER, runWithOrgContext} from "../orgs/orgContext";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
@@ -298,6 +298,14 @@ describe("audit record helpers", () => {
       } as express.Request,
       verb: "created",
     });
+    await runWithOrgContext({organization: {_id: "org-from-als"} as never}, async () => {
+      await maybeRecordAdminAudit({
+        after: {_id: "8.6", title: "Als org"},
+        modelName: "Note",
+        req: {} as express.Request,
+        verb: "created",
+      });
+    });
     await maybeRecordModelRouterAudit({
       after: {_id: "9", organizationId: "", title: "Empty org"},
       audit: true,
@@ -337,6 +345,7 @@ describe("audit record helpers", () => {
     assert.equal(events.find((row) => row.recordId === "7")?.organizationId, "org-string");
     assert.equal(events.find((row) => row.recordId === "8")?.organizationId, "org-nested");
     assert.equal(events.find((row) => row.recordId === "8.5")?.organizationId, "org-from-header");
+    assert.equal(events.find((row) => row.recordId === "8.6")?.organizationId, "org-from-als");
     assert.equal(events.find((row) => row.recordId === "9")?.organizationId, "org-from-id");
     assert.equal(events.find((row) => row.recordId === "10")?.organizationId, "org-id-field");
     assert.equal(events.find((row) => row.recordId === "11")?.organizationId, "42");

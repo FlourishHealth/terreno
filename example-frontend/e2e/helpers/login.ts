@@ -23,3 +23,22 @@ export const loginAs = async (page: Page, user = TEST_USER): Promise<void> => {
     .first()
     .waitFor({state: "visible"});
 };
+
+export const ensureLoggedOut = async (page: Page): Promise<void> => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.goto("/login");
+    if ((await page.getByTestId("login-screen").count()) > 0) {
+      return;
+    }
+    await page.goto("/profile");
+    const logout = page.getByTestId("profile-logout-button");
+    if ((await logout.count()) === 0) {
+      continue;
+    }
+    await logout.waitFor({state: "visible", timeout: 15_000});
+    await logout.click();
+    await page.getByTestId("login-screen").first().waitFor({state: "visible", timeout: 15_000});
+    return;
+  }
+  throw new Error("Could not reach a logged-out login screen");
+};

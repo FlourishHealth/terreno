@@ -4,6 +4,7 @@ import {
   OrgContextProvider,
   OrgSwitcher,
   organizationFromPath,
+  useOptionalOrgContext,
 } from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
@@ -14,8 +15,22 @@ import {useSelector} from "react-redux";
 import {ADMIN_ROUTE} from "@/constants/adminConstants";
 import {getAdminAuthHeaders} from "@/store/betterAuthApi";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
-import {adminSyncDb} from "@/store/syncdb";
+import {adminSyncDb, setAdminSyncOrganizationId} from "@/store/syncdb";
 import SyncLabScreen from "./SyncLabScreen";
+
+const BindAdminSyncOrganization: React.FC = () => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+
+  // Keep admin-window mutate payloads on the currently selected organization.
+  useEffect(() => {
+    setAdminSyncOrganizationId(organizationId);
+    return (): void => {
+      setAdminSyncOrganizationId(undefined);
+    };
+  }, [organizationId]);
+
+  return null;
+};
 
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main
@@ -112,6 +127,7 @@ const AdminLayoutContent: React.FC = () => {
       widgets={{screens: {"sync-lab": SyncLabScreen}}}
     >
       <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindAdminSyncOrganization />
         <AdminShellLayout
           api={terrenoApi}
           apiBase={ADMIN_ROUTE}
