@@ -103,6 +103,24 @@ describe("OrgSwitcher", () => {
     expect(screen.getByText("Organizations unavailable")).toBeTruthy();
   });
 
+  it("auto-selects the first organization alphabetically when none is selected", async () => {
+    mineState.data = {
+      data: [
+        {_id: "org-z", name: "Zulu Org"},
+        {_id: "org-a", name: "Alpha Org"},
+      ],
+    };
+    const changed = mock(() => {});
+    renderWithTheme(
+      <OrgContextProvider onOrganizationChange={changed}>
+        <OrgSwitcher api={api} />
+      </OrgContextProvider>
+    );
+
+    await act(async () => {});
+    expect(changed).toHaveBeenCalledWith({_id: "org-a", name: "Alpha Org"});
+  });
+
   it("selects an organization and navigates to its URL", async () => {
     mineState.data = {
       data: [

@@ -1,13 +1,20 @@
 import {Box, Card, Heading, printDateAndTime, Spinner, Text} from "@terreno/ui";
 import React, {useMemo} from "react";
+import {shouldSkipOrgScopedAdminQuery} from "../orgs/shouldSkipOrgScopedAdminQuery";
+import {useOptionalOrgContext} from "../orgs/useOrgContext";
 import type {AdminFieldValue, AdminHomeWidgetProps} from "../types";
 import {useAdminApi} from "../useAdminApi";
 
 export const RecentActivityWidget: React.FC<AdminHomeWidgetProps> = ({api, auditModel}) => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+  const skipOrgScopedQuery = shouldSkipOrgScopedAdminQuery({
+    organizationId,
+    organizationScoped: auditModel?.organizationScoped,
+  });
   const {useListQuery} = useAdminApi(api, auditModel?.routePath ?? "", auditModel?.name ?? "");
   const {data, isLoading, isError} = useListQuery(
     {limit: 8, page: 1, sort: auditModel?.defaultSort ?? "-created"},
-    {skip: !auditModel?.routePath}
+    {skip: !auditModel?.routePath || skipOrgScopedQuery}
   );
 
   const rows = useMemo((): Record<string, AdminFieldValue>[] => {

@@ -581,7 +581,7 @@ describe("admin window org-scoped mutation membership", () => {
     await WindowOrgTodoModel.deleteMany({});
   });
 
-  it("REST PATCH and admin-window sync both deny update of another org's row", async () => {
+  it("REST PATCH denies another org's row; admin-window sync is disabled for org-scoped models", async () => {
     const other = await WindowOrgTodoModel.create({
       organizationId: secondOrgId,
       title: "Other org",
@@ -608,12 +608,12 @@ describe("admin window org-scoped mutation membership", () => {
       )
       .expect(403);
 
-    expect(syncRes.body.nack.code).toBe("unauthorized");
+    expect(JSON.stringify(syncRes.body)).toContain("adminBroadcast");
     const reloaded = await WindowOrgTodoModel.findById(other._id).lean();
     expect(reloaded?.title).toBe("Other org");
   });
 
-  it("REST PATCH and admin-window sync both allow update of the current org's row", async () => {
+  it("REST PATCH allows update of the current org's row; admin-window sync stays disabled", async () => {
     const owned = await WindowOrgTodoModel.create({
       organizationId: firstOrgId,
       title: "Same org",
@@ -641,10 +641,10 @@ describe("admin window org-scoped mutation membership", () => {
           operation: "update",
         })
       )
-      .expect(200);
+      .expect(403);
 
-    expect(syncRes.body.ack.mutationId).toBe("admin-org-membership-allow");
-    const afterSync = await WindowOrgTodoModel.findById(owned._id).lean();
-    expect(afterSync?.title).toBe("Sync ok");
+    expect(JSON.stringify(syncRes.body)).toContain("adminBroadcast");
+    const afterSyncAttempt = await WindowOrgTodoModel.findById(owned._id).lean();
+    expect(afterSyncAttempt?.title).toBe("REST ok");
   });
 });

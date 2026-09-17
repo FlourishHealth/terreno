@@ -106,7 +106,8 @@ const routeOrganization = useMemo(
 ``````
 
 When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
-selects it automatically. With multiple organizations it renders a selector.
+selects it automatically. With multiple organizations it selects the first by
+name (then id) as a deterministic default and renders a selector.
 Its **Organization** label uses the shell's inverted text color.
 When `/orgs/mine` returns **403** (callers without org-admin memberships, per API
 docs), the switcher renders nothing instead of an error banner. Other failures
@@ -173,6 +174,10 @@ Features:
 - Pagination controls
 - Reference fields render as clickable links
 - Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. A windowed create or delete never touches the cached REST list, so the form flags the collection through `markAdminWindowMembershipStale` and the changelist refetches membership automatically — whether it stayed mounted behind the form or remounts when the form pops. A create also passes the new id as `awaitId`, because `mutate` only enqueues on the outbox and the first refetch can beat the server; the changelist retries up to three times, 700 ms apart — including after transient list failures — then leaves **Refresh** as the fallback. Passing only `api` keeps the RTK list.
+- Organization-scoped models report `organizationScoped: true` and
+  `adminBroadcast: false`. They use REST list and mutation paths until the sync
+  window protocol carries selected-organization context. Home widgets delay
+  those list queries until `OrgContextProvider` has selected an organization.
 
 ### AdminModelForm
 
@@ -201,7 +206,8 @@ When `AdminProvider` has `syncDb` plus a fetch client and the model config repor
 `adminBroadcast`, `syncCollection`, and a String `_id`, create/update/delete use the
 syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record so a
 deep-linked form can mutate locally. ObjectId models and hosts without the full
-windowed configuration keep the REST/RTK mutation path.
+windowed configuration keep the REST/RTK mutation path. Organization-scoped
+models always use REST/RTK regardless of String `_id`.
 
 Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
 Windowed form mutations set their own pending state before any asynchronous work, so

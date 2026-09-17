@@ -5,6 +5,7 @@ import React, {useCallback, useEffect} from "react";
 import type {AdminApi} from "../types";
 import {normalizeListData} from "./normalizeListData";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
+import {sortOrganizations} from "./sortOrganizations";
 import {useOrganizationsApi} from "./useOrganizationsApi";
 import {useOrgContext} from "./useOrgContext";
 
@@ -40,11 +41,13 @@ export const OrgSwitcher: React.FC<OrgSwitcherProps> = ({api, basePath, routeBas
     [organizations, routeBase, selectOrganization]
   );
 
-  // Select the sole available organization so single-org admins still get scoped requests.
+  // Deterministic default: pick the first org from /orgs/mine so org-scoped admin REST
+  // has X-Organization-Id before home widgets mount (multi-org operators included).
   useEffect(() => {
-    if (!organization && organizations.length === 1) {
-      selectOrganization(organizations[0]);
+    if (organization || organizations.length === 0) {
+      return;
     }
+    selectOrganization(sortOrganizations(organizations)[0]);
   }, [organization, organizations, selectOrganization]);
 
   if (isLoading) {

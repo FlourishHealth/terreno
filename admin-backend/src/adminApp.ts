@@ -35,6 +35,7 @@ import {
   scrubAdminFields,
   type TerrenoApp,
   type User,
+  updateSyncRegistryOptions,
   VersionConfig,
 } from "@terreno/api";
 import {tryGetJobsService} from "@terreno/jobs";
@@ -268,6 +269,8 @@ interface AdminModelMeta {
   fields: Record<string, AdminFieldMeta>;
   /** True when the model’s app `sync` config set `adminBroadcast`. */
   adminBroadcast: boolean;
+  /** True when AdminApp `organizations` is on and the model has `organizationId`. */
+  organizationScoped: boolean;
   /**
    * Sync collection tag (`routePath` without a leading slash) when
    * `adminBroadcast` is true. Omitted otherwise.
@@ -321,13 +324,31 @@ interface AdminConfigResponse {
 }
 
 const syncMetaForAdminModel = (
-  modelName: string
+  modelName: string,
+  isOrganizationScoped = false
 ): {adminBroadcast: boolean; syncCollection?: string} => {
+  if (isOrganizationScoped) {
+    return {adminBroadcast: false};
+  }
   const entry = findSyncEntryByModelName(modelName);
   if (entry?.config.adminBroadcast !== true) {
     return {adminBroadcast: false};
   }
   return {adminBroadcast: true, syncCollection: entry.collectionTag};
+};
+
+const disableOrgScopedAdminBroadcastSync = (modelName: string): void => {
+  const syncEntry = findSyncEntryByModelName(modelName);
+  if (syncEntry?.config.adminBroadcast !== true) {
+    return;
+  }
+  updateSyncRegistryOptions(syncEntry.routePath, {
+    ...syncEntry.options,
+    sync: {
+      ...syncEntry.config,
+      adminBroadcast: false,
+    },
+  });
 };
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
@@ -857,7 +878,8 @@ export class AdminApp {
           readonlyFields,
           schemaPaths: schemaPathKeys,
         });
-      const syncMeta = syncMetaForAdminModel(config.model.modelName);
+      const isOrgScopedModel = this.isOrganizationScoped(config);
+      const syncMeta = syncMetaForAdminModel(config.model.modelName, isOrgScopedModel);
 
       return {
         actions: config.actions ?? [],
@@ -875,6 +897,7 @@ export class AdminApp {
         listDisplayLinks: config.listDisplayLinks ?? [],
         listFields,
         name: configNames[configIndex] ?? config.model.modelName,
+        organizationScoped: isOrgScopedModel,
         pageSize: config.pageSize,
         permissions: {
           create: config.permissions?.create !== false,
@@ -1799,30 +1822,37 @@ export class AdminApp {
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
 
-      registerAdminBroadcastScope(config.model.modelName, {
-        listPermissions: adminPermission(true, "list"),
-        queryFilter: routerOptions.queryFilter,
-        readPermissions: adminPermission(true, "read"),
-      });
+      if (isOrganizationScoped) {
+        disableOrgScopedAdminBroadcastSync(config.model.modelName);
+      }
+      const syncEntry = findSyncEntryByModelName(config.model.modelName);
+      const adminBroadcastEnabled = syncEntry?.config.adminBroadcast === true;
+      if (adminBroadcastEnabled) {
+        registerAdminBroadcastScope(config.model.modelName, {
+          listPermissions: adminPermission(true, "list"),
+          queryFilter: routerOptions.queryFilter,
+          readPermissions: adminPermission(true, "read"),
+        });
 
-      registerAdminWindowMutationScope(config.model.modelName, {
-        accessControl: this.options.accessControl,
-        createPermissions: adminPermission(config.permissions?.create, "create"),
-        deletePermissions: adminPermission(config.permissions?.delete, "delete"),
-        modelName: config.model.modelName,
-        permissions: {
-          create: config.permissions?.create !== false,
-          delete: config.permissions?.delete !== false,
-          update: config.permissions?.update !== false,
-        },
-        postCreate: routerOptions.postCreate,
-        postDelete: routerOptions.postDelete,
-        postUpdate: routerOptions.postUpdate,
-        preCreate: routerOptions.preCreate,
-        preUpdate: routerOptions.preUpdate,
-        stripMutationData: (data) => stripProtectedFromBody(data),
-        updatePermissions: adminPermission(config.permissions?.update, "update"),
-      });
+        registerAdminWindowMutationScope(config.model.modelName, {
+          accessControl: this.options.accessControl,
+          createPermissions: adminPermission(config.permissions?.create, "create"),
+          deletePermissions: adminPermission(config.permissions?.delete, "delete"),
+          modelName: config.model.modelName,
+          permissions: {
+            create: config.permissions?.create !== false,
+            delete: config.permissions?.delete !== false,
+            update: config.permissions?.update !== false,
+          },
+          postCreate: routerOptions.postCreate,
+          postDelete: routerOptions.postDelete,
+          postUpdate: routerOptions.postUpdate,
+          preCreate: routerOptions.preCreate,
+          preUpdate: routerOptions.preUpdate,
+          stripMutationData: (data) => stripProtectedFromBody(data),
+          updatePermissions: adminPermission(config.permissions?.update, "update"),
+        });
+      }
 
       const modelBase = express.Router();
       if (isOrganizationScoped) {

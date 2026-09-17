@@ -151,7 +151,10 @@ Field metadata includes:
 - `enum` — Enum values if applicable
 - `default` — Default value
 - `ref` — Referenced model name for ObjectId refs
-- `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set `adminBroadcast`
+- `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set
+  `adminBroadcast`, except organization-scoped models (forced to `false`)
+- `organizationScoped` — `true` when `AdminApp({organizations: true})` manages a model with
+  an `organizationId` path
 - `syncCollection` — Sync collection tag (app `routePath` without a leading slash, e.g. `todos`) when `adminBroadcast` is true; omitted otherwise
 
 Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.
@@ -165,20 +168,21 @@ Without `accessControl`, that same page gate uses `Permissions.IsAdmin` (`user.a
 
 `AdminApp.register` also installs each model's list/read permissions and `queryFilter` on
 the sync admin window (`registerAdminBroadcastScope`). `GET /sync/entities` and
-`{collection}|admin` deltas then use that contract, not product `IsOwner`.
+`{collection}|admin` deltas then use that contract, not product `IsOwner`. Organization-scoped
+models are excluded because the current sync window protocol does not carry the selected
+organization context; they stay on REST so `X-Organization-Id` and `OrgQueryFilter` cannot be
+bypassed.
 
 For writes, AdminApp registers an admin-window mutation scope (`registerAdminWindowMutationScope`).
 Sync clients listed in `createSyncDb({windowCollections})` tag outbox rows with
 `mutationMode: "adminWindow"`. The server does not trust the marker alone: it also requires
 `adminBroadcast`, admin-window access (`admin:access` with RBAC, else `user.admin`), and the
 registered scope. Successful admin-window sync mutations enforce the same create/update/delete
-enabled flags, RBAC/`writeOwned` ownership, organization membership (`Permissions.IsOrganizationMember`
-on read/update/delete for org-scoped models, matching REST), readonly/hidden stripping, User
-admin-flag/role gates, and `onAdminAudit` post hooks as REST — via AdminApp executor callbacks
-on the shared sync write pipeline (Mongoose validation, conflict/baseVersion checks, and ledger
-ordering unchanged). HTTP `POST /sync/mutate` binds `X-Organization-Id` into org context for
-those permission checks. Product clients that omit the marker keep product sync permissions and
-hooks.
+enabled flags, RBAC/`writeOwned` ownership, readonly/hidden stripping, User admin-flag/role gates,
+and `onAdminAudit` post hooks as REST — via AdminApp executor callbacks on the shared sync write
+pipeline (Mongoose validation, conflict/baseVersion checks, and ledger ordering unchanged).
+Organization-scoped models do not register this scope and use REST mutations. Product clients
+that omit the marker keep product sync permissions and hooks.
 
 With `accessControl`, each model can use a standard admin resource with three actions:
 
