@@ -70,4 +70,17 @@ describe("persistRbacAuditToAuditEvent", () => {
     assert.equal(events[0]?.source, "rbac");
     assert.equal(events[0]?.modelName, "User");
   });
+
+  it("omits a 12-character actorId that mongoose would otherwise coerce", async () => {
+    await persistRbacAuditToAuditEvent({
+      action: "role.create",
+      actorId: "microsoft123",
+      permissionDelta: {gained: {todo: ["read"]}, lost: {}},
+      targetRoleName: "manager",
+    });
+    await flushAuditRecorderForTests();
+    const event = await mongoose.connection.collection("auditevents").findOne({});
+    assert.equal(event?.modelName, "RbacRole");
+    assert.isUndefined(event?.actorId);
+  });
 });

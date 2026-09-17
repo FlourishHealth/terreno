@@ -10,12 +10,14 @@ import {setupDb, UserModel} from "../tests";
 import {AuditApp} from "./auditApp";
 import {type AuditEventModel, createAuditEventModel} from "./auditEventModel";
 import {
+  actorIdForAuditWrite,
   installAuditRecorder,
   isAuditRecorderInstalled,
   maybeRecordAdminAudit,
   maybeRecordModelRouterAudit,
   recordAuditEvent,
   resetAuditRecorderForTests,
+  snapshotAuditBefore,
 } from "./record";
 
 const typedUserModel = UserModel as unknown as AuthUserModel;
@@ -145,6 +147,50 @@ describe("audit record helpers", () => {
     const event = await mongoose.connection.collection("auditevents").findOne({});
     assert.equal(event?.modelName, "Note");
     assert.isUndefined(event?.actorId);
+  });
+
+  it("does not treat a 12-character string as an actor ObjectId", async () => {
+    registerAuditApp();
+    await maybeRecordAdminAudit({
+      after: {_id: "5", title: "Twelve"},
+      modelName: "Note",
+      req: {user: {id: "microsoft123"}} as express.Request,
+      verb: "created",
+    });
+    const event = await mongoose.connection.collection("auditevents").findOne({});
+    assert.equal(event?.modelName, "Note");
+    assert.isUndefined(event?.actorId);
+  });
+
+  it("skips snapshotting when audit is off", () => {
+    const doc = {
+      toJSON: (): never => {
+        throw new Error("should not run");
+      },
+    };
+    assert.isUndefined(snapshotAuditBefore({doc}));
+  });
+
+  it("returns undefined when the audit snapshot toJSON throws", () => {
+    const errorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+    const previous = snapshotAuditBefore({
+      audit: true,
+      doc: {
+        toJSON: (): never => {
+          throw new Error("circular");
+        },
+      },
+    });
+    assert.isUndefined(previous);
+    assert.isTrue(
+      errorSpy.mock.calls.some((call) => String(call[0]).includes("Failed to snapshot"))
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("rejects 12-character actor ids that mongoose.isValidObjectId accepts", () => {
+    assert.isUndefined(actorIdForAuditWrite("microsoft123"));
+    assert.equal(actorIdForAuditWrite("507f1f77bcf86cd799439011"), "507f1f77bcf86cd799439011");
   });
 
   it("does not throw when admin audit serialization fails", async () => {

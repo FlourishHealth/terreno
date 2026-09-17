@@ -318,6 +318,42 @@ describe("modelRouter audit", () => {
     assert.equal(list.body.data[0].organizationId, "org-req");
   });
 
+  it("still updates when toJSON throws before the audit snapshot", async () => {
+    const throwSchema = new mongoose.Schema<{title: string}>(
+      {title: {description: "Title", required: true, type: String}},
+      {strict: "throw"}
+    );
+    throwSchema.plugin(createdUpdatedPlugin);
+    throwSchema.plugin(findOneOrNone);
+    throwSchema.plugin(findExactlyOne);
+    let shouldThrow = false;
+    throwSchema.set("toJSON", {
+      transform: (_doc, ret) => {
+        if (shouldThrow) {
+          throw new Error("circular");
+        }
+        return ret;
+      },
+      virtuals: true,
+    });
+    deleteNamedModel("ThrowNote");
+    const ThrowNote = mongoose.model<{title: string}>("ThrowNote", throwSchema);
+    const app = new TerrenoApp({
+      skipListen: true,
+      userModel: typedUserModel,
+    })
+      .register(new AuditApp())
+      .build();
+    app.use("/throw-notes", modelRouter(ThrowNote, {audit: true, permissions: notePermissions}));
+    const agent = await authAsUser(app, "notAdmin");
+    const created = await agent.post("/throw-notes").send({title: "Before"}).expect(201);
+    shouldThrow = true;
+    await agent.patch(`/throw-notes/${created.body.data._id}`).send({title: "After"});
+    const stored = await ThrowNote.findById(created.body.data._id).lean();
+    assert.equal(stored?.title, "After");
+    deleteNamedModel("ThrowNote");
+  });
+
   it("returns 201 without waiting for enqueue to finish", async () => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => {

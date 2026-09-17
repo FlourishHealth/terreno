@@ -1,8 +1,6 @@
-import mongoose from "mongoose";
-
 import type {RbacAuditWrite} from "../rbac/auditModel";
 import type {AuditEventOperation, AuditEventVerb} from "./auditEventModel";
-import {recordAuditEvent} from "./record";
+import {actorIdForAuditWrite, recordAuditEvent} from "./record";
 
 const RBAC_AUDIT_VERBS: Record<string, AuditEventVerb> = {
   "role.create": "created",
@@ -31,7 +29,7 @@ export const persistRbacAuditToAuditEvent = async (record: RbacAuditWrite): Prom
   }
   const before = record.permissionDelta?.lost ? {lost: record.permissionDelta.lost} : undefined;
   void recordAuditEvent({
-    actorId: mongoose.isValidObjectId(record.actorId) ? record.actorId : undefined,
+    actorId: actorIdForAuditWrite(record.actorId),
     after,
     before,
     modelName: record.targetRoleName ? "RbacRole" : "User",

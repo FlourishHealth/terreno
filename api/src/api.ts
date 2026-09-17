@@ -17,7 +17,11 @@ import {
 } from "./actions";
 import {enrichModelRouterOptions, type ModelRouterBuildContext} from "./adminModelRouter";
 import type {AdminConfig} from "./adminTypes";
-import {type ModelRouterAuditConfig, maybeRecordModelRouterAudit} from "./audit/record";
+import {
+  type ModelRouterAuditConfig,
+  maybeRecordModelRouterAudit,
+  snapshotAuditBefore,
+} from "./audit/record";
 import {authenticateMiddleware, omitUserRolesFromWriteBody, type User} from "./auth";
 import {registerCollection, replaceCollectionOptions} from "./collectionRegistry";
 import {
@@ -1056,7 +1060,7 @@ const _buildModelRouter = <T>(
       }
 
       let doc: Document<unknown, unknown, unknown> & T;
-      const previous = existingDoc.toJSON();
+      const previous = snapshotAuditBefore({audit: options.audit, doc: existingDoc});
       try {
         ({doc} = await executeUpdate<T>({
           body: req.body,
@@ -1121,7 +1125,7 @@ const _buildModelRouter = <T>(
         req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
       ).obj;
 
-      const previous = existingDoc.toJSON();
+      const previous = snapshotAuditBefore({audit: options.audit, doc: existingDoc});
       await executeDelete<T>({
         existingDoc,
         id: req.params.id as string,

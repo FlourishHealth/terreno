@@ -2,6 +2,7 @@ import type {Request} from "express";
 import mongoose from "mongoose";
 
 import {logger} from "../logger";
+import {isValidObjectId} from "../utils";
 import type {AuditEventModel, AuditEventOperation, AuditEventVerb} from "./auditEventModel";
 import {changedFieldDiff, recordLabelFromDoc, toAuditPlain} from "./diff";
 
@@ -172,16 +173,46 @@ const organizationIdFromAuditContext = (
   return idString(fromDoc);
 };
 
-/** Non-ObjectId actor ids (e.g. string auth ids) must not cost us the whole event. */
-const actorObjectId = (actorId?: string): mongoose.Types.ObjectId | undefined => {
+/** 24-hex ObjectIds only. mongoose.isValidObjectId also accepts 12-char strings. */
+export const actorIdForAuditWrite = (actorId?: string): string | undefined => {
   if (!actorId) {
     return undefined;
   }
-  if (!mongoose.isValidObjectId(actorId)) {
+  if (!isValidObjectId(actorId)) {
     logger.warn(`AuditEvent actorId is not an ObjectId, recording without an actor: ${actorId}`);
     return undefined;
   }
-  return new mongoose.Types.ObjectId(actorId);
+  return actorId;
+};
+
+const actorObjectId = (actorId?: string): mongoose.Types.ObjectId | undefined => {
+  const validId = actorIdForAuditWrite(actorId);
+  if (!validId) {
+    return undefined;
+  }
+  return new mongoose.Types.ObjectId(validId);
+};
+
+/** Capture pre-mutation state only when audit is on. A throwing toJSON must not fail the write. */
+export const snapshotAuditBefore = ({
+  audit,
+  doc,
+}: {
+  audit?: ModelRouterAuditConfig;
+  doc: {toJSON?: () => unknown};
+}): unknown => {
+  if (!audit) {
+    return undefined;
+  }
+  try {
+    if (typeof doc.toJSON === "function") {
+      return doc.toJSON();
+    }
+    return doc;
+  } catch (error: unknown) {
+    logger.error("Failed to snapshot document for AuditEvent", error);
+    return undefined;
+  }
 };
 
 const persistAuditEvent = async (write: AuditEventWrite): Promise<void> => {
