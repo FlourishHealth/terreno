@@ -33,6 +33,9 @@ parameters:
   run-comms:
     type: boolean
     default: false
+  run-jobs:
+    type: boolean
+    default: false
   run-mcp-server:
     type: boolean
     default: false
@@ -640,7 +643,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api
+          packages: api jobs
       - run:
           name: Lint / compile / test admin-backend
           working_directory: ~/project/admin-backend
@@ -699,8 +702,9 @@ jobs:
       - run:
           name: Compile coverage script dependencies
           command: |
-            node .github/scripts/compile-workspace-deps.js api
+            node .github/scripts/compile-workspace-deps.js api jobs
             bun run --filter '@terreno/api' compile
+            bun run --filter '@terreno/jobs' compile
       - run:
           name: Check new source file coverage
           command: |
@@ -742,6 +746,24 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh comms
+
+  jobs-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test jobs
+          working_directory: ~/project/jobs
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
 
   mcp-server-ci:
     executor: node22
@@ -910,7 +932,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa example-backend
+          packages: api ai api-health comms jobs admin-backend feature-flags ui rtk admin-frontend admin-spa example-backend
       - run:
           name: List admin scripts
           working_directory: ~/project/example-backend
@@ -1710,7 +1732,7 @@ jobs:
           steps:
             - setup_remote_docker
             - run:
-                name: Deploy backend preview
+                name: Deploy backend and isolated tasks preview
                 command: scripts/ci/gcp-deploy.sh backend-preview
 
   deploy-preview-manual:
@@ -1750,7 +1772,7 @@ jobs:
       - install_bun_and_deps
       - gcp-cli/install
       - run:
-          name: Clean Cloud Run tag and preview database
+          name: Clean backend/tasks tags and preview database
           environment:
             PR_NUMBER: << pipeline.parameters.preview-cleanup-pr >>
           command: |
@@ -1822,7 +1844,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags create-terreno-app mcp-server syncdb
+              api-health comms feature-flags jobs create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1840,7 +1862,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags create-terreno-app mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');
@@ -1944,6 +1966,11 @@ workflows:
     jobs:
       - comms-ci
 
+  jobs:
+    when: << pipeline.parameters.run-jobs >>
+    jobs:
+      - jobs-ci
+
   mcp-server:
     when: << pipeline.parameters.run-mcp-server >>
     jobs:
@@ -1990,7 +2017,7 @@ workflows:
     jobs:
       - packages-ci:
           package: admin-backend
-          compile-deps: api
+          compile-deps: api jobs
 
   admin-frontend:
     when: << pipeline.parameters.run-admin-frontend >>

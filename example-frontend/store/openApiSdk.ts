@@ -13,6 +13,7 @@ export const addTagTypes = [
   "comms",
   "admin",
   "featureflags",
+  "jobs",
   "mcpservicetokens",
   "adminauditlogs",
   "consentforms",
@@ -430,6 +431,34 @@ const injectedRtkApi = api
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
       }),
+      getJobs: build.query<GetJobsRes, GetJobsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          params: {
+            end: queryArg.end,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            scheduleId: queryArg.scheduleId,
+            start: queryArg.start,
+            status: queryArg.status,
+          },
+          url: `/jobs`,
+        }),
+      }),
+      getJobsById: build.query<GetJobsByIdRes, GetJobsByIdArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({url: `/jobs/${queryArg}`}),
+      }),
+      getJobsSchedules: build.query<GetJobsSchedulesRes, GetJobsSchedulesArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/schedules`}),
+      }),
+      getJobsStats: build.query<GetJobsStatsRes, GetJobsStatsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/stats`}),
+      }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -788,6 +817,74 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/gpt/remix`,
+        }),
+      }),
+      postJobsByIdCancel: build.mutation<PostJobsByIdCancelRes, PostJobsByIdCancelArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/cancel`,
+        }),
+      }),
+      postJobsByIdRequeue: build.mutation<PostJobsByIdRequeueRes, PostJobsByIdRequeueArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/requeue`,
+        }),
+      }),
+      postJobsByIdRetry: build.mutation<PostJobsByIdRetryRes, PostJobsByIdRetryArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/retry`,
+        }),
+      }),
+      postJobsSchedulesByNamePause: build.mutation<
+        PostJobsSchedulesByNamePauseRes,
+        PostJobsSchedulesByNamePauseArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/pause`,
+        }),
+      }),
+      postJobsSchedulesByNameResume: build.mutation<
+        PostJobsSchedulesByNameResumeRes,
+        PostJobsSchedulesByNameResumeArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/resume`,
+        }),
+      }),
+      postLoadtestTodosChurn: build.mutation<PostLoadtestTodosChurnRes, PostLoadtestTodosChurnArgs>(
+        {
+          invalidatesTags: ["loadtest"],
+          query: (queryArg) => ({
+            body: queryArg,
+            method: "POST",
+            url: `/loadtest/todos/churn`,
+          }),
+        }
+      ),
+      postLoadtestTodosClear: build.mutation<PostLoadtestTodosClearRes, PostLoadtestTodosClearArgs>(
+        {
+          invalidatesTags: ["loadtest"],
+          query: () => ({method: "POST", url: `/loadtest/todos/clear`}),
+        }
+      ),
+      postLoadtestTodosGenerate: build.mutation<
+        PostLoadtestTodosGenerateRes,
+        PostLoadtestTodosGenerateArgs
+      >({
+        invalidatesTags: ["loadtest"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/loadtest/todos/generate`,
         }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
@@ -2253,6 +2350,72 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetJobsSchedulesRes = /** status 200 Success */ {
+  data?: {
+    cron?: string;
+    enabled?: boolean;
+    handlerName?: string;
+    id?: string;
+    name?: string;
+    nextRunAt?: string;
+    timezone?: string;
+  }[];
+};
+export type GetJobsSchedulesArgs = undefined;
+export type PostJobsSchedulesByNamePauseRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNamePauseArgs = string;
+export type PostJobsSchedulesByNameResumeRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNameResumeArgs = string;
+export type GetJobsRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    attemptCount?: number;
+    id?: string;
+    name?: string;
+    status?: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetJobsArgs = {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+  scheduleId?: string;
+  start?: string;
+  end?: string;
+  q?: string;
+};
+export type GetJobsStatsRes = /** status 200 Success */ {
+  data?: {
+    byStatus?: object;
+    total?: number;
+  };
+};
+export type GetJobsStatsArgs = undefined;
+export type GetJobsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetJobsByIdArgs = string;
+export type PostJobsByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRetryArgs = string;
+export type PostJobsByIdRequeueRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRequeueArgs = string;
+export type PostJobsByIdCancelRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdCancelArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -4008,6 +4171,15 @@ export const {
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetJobsSchedulesQuery,
+  usePostJobsSchedulesByNamePauseMutation,
+  usePostJobsSchedulesByNameResumeMutation,
+  useGetJobsQuery,
+  useGetJobsStatsQuery,
+  useGetJobsByIdQuery,
+  usePostJobsByIdRetryMutation,
+  usePostJobsByIdRequeueMutation,
+  usePostJobsByIdCancelMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminMcpServiceTokensBulkPatchMutation,

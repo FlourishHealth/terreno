@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - package: admin-backend
-            compile_deps: api
+            compile_deps: api jobs
           - package: admin-frontend
             compile_deps: ui
           - package: api-health

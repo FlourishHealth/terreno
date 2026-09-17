@@ -70,6 +70,16 @@ For each model, creates standard modelRouter CRUD endpoints plus admin membershi
 - `PATCH {basePath}{routePath}/:id` — Update
 - `DELETE {basePath}{routePath}/:id` — Delete
 
+## Scripts
+
+`POST {basePath}/scripts/:name/run` creates a `BackgroundTask` and returns `{taskId}`. Poll
+`GET {basePath}/scripts/tasks/:id`. Cancel `DELETE {basePath}/scripts/tasks/:id`.
+
+When `JobsApp` is already registered, the run is enqueued as job `admin/script` (see
+[Durable background jobs](../how-to/background-jobs.md#admin-scripts)). Call
+`defineAdminScriptJob` on the worker process with the same script list. The CLI
+(`runScriptCli`) does not enqueue.
+
 ## Config Endpoint
 
 `GET {basePath}/config` returns metadata for all registered models:
@@ -196,6 +206,11 @@ Read and list responses include `_adminCapabilities.update` and
 `_adminCapabilities.delete` for each record. This keeps `writeOwned` forms and row controls
 read-only for records the current user does not own. Script metadata separately exposes run and
 history permissions so a history-only role never receives an enabled Run control.
+
+When `AuditApp` is registered, successful admin POST/PATCH/DELETE persist append-only
+`AuditEvent` rows with `source: "admin"`. `onAdminAudit` is an extra best-effort sink; it is
+not required for the framework log. Failures in either sink do not change the mutation HTTP
+status. `AuditEvent` itself is never audited.
 
 **Important:** Only expose models that should be editable via admin panel. Avoid sensitive internal models.
 

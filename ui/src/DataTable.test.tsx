@@ -651,6 +651,152 @@ describe("DataTable", () => {
     Platform.OS = originalOS;
   });
 
+  it("clears every native filter draft, including date range bounds, via Clear all", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "ios";
+    const onFilterValuesChange = mock(() => {});
+    const filterColumns = [
+      {
+        columnType: "boolean",
+        filter: {field: "active", kind: "boolean" as const},
+        title: "Active",
+        width: 100,
+      },
+      {
+        columnType: "date",
+        filter: {field: "created", kind: "dateRange" as const},
+        title: "Created",
+        width: 150,
+      },
+    ];
+    const {getByTestId, getByText} = renderWithTheme(
+      <DataTable
+        columns={filterColumns}
+        data={[[{value: true}, {value: "2026-01-01"}]]}
+        filterValues={{active: true, created_gte: "2026-01-01", created_lte: "2026-01-31"}}
+        onFilterValuesChange={onFilterValuesChange}
+      />
+    );
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-trigger"));
+    });
+    await waitFor(() => {
+      expect(getByText("Clear all")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Clear all"));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-sheet.primary"));
+    });
+    expect(onFilterValuesChange).toHaveBeenLastCalledWith({
+      active: undefined,
+      created_gte: undefined,
+      created_lte: undefined,
+    });
+    Platform.OS = originalOS;
+  });
+
+  it("renders the web additional filters trigger when toolbar-only filters are provided", () => {
+    const originalOS = Platform.OS;
+    const globalScope = globalThis as {document?: unknown; HTMLElement?: unknown};
+    const originalDocument = globalScope.document;
+    const originalHTMLElement = globalScope.HTMLElement;
+    Platform.OS = "web";
+    globalScope.HTMLElement = class FakeHTMLElement {};
+    globalScope.document = {body: {}};
+    try {
+      const {getByTestId} = renderWithTheme(
+        <DataTable
+          additionalFilters={[{field: "department", kind: "text", label: "Department"}]}
+          columns={sampleColumns}
+          data={sampleData}
+          filterValues={{}}
+          onFilterValuesChange={() => {}}
+        />
+      );
+      expect(getByTestId("data-table-additional-filters.trigger")).toBeTruthy();
+    } finally {
+      Platform.OS = originalOS;
+      globalScope.document = originalDocument;
+      globalScope.HTMLElement = originalHTMLElement;
+    }
+  });
+
+  it("syncs body and pinned lists when the more-content list scrolls", () => {
+    const MoreContent: MoreContentComponent = ({rowIndex}) => <Text>Row {rowIndex}</Text>;
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable
+        columns={sampleColumns}
+        data={sampleData}
+        moreContentComponent={MoreContent}
+        pinnedColumns={1}
+      />
+    );
+    const {FlatList: FlatListComp} = require("react-native");
+    const lists = UNSAFE_getAllByType(FlatListComp) as Array<{
+      props: {
+        onScroll?: (event: {nativeEvent: {contentOffset: {x: number; y: number}}}) => void;
+        ref?: {current: {scrollToOffset: (opts: {offset: number}) => void} | null};
+        showsVerticalScrollIndicator?: boolean;
+      };
+    }>;
+    const bodyList = lists.find((list) => list.props.showsVerticalScrollIndicator === true);
+    const satelliteLists = lists.filter(
+      (list) => list.props.showsVerticalScrollIndicator === false
+    );
+    expect(bodyList).toBeTruthy();
+    expect(satelliteLists).toHaveLength(2);
+    const [moreList, pinnedList] = satelliteLists;
+
+    const offsets: Record<string, number[]> = {body: [], more: [], pinned: []};
+    for (const [name, list] of Object.entries({
+      body: bodyList!,
+      more: moreList,
+      pinned: pinnedList,
+    })) {
+      list.props.ref!.current!.scrollToOffset = ({offset}) => {
+        offsets[name].push(offset);
+      };
+    }
+
+    act(() => {
+      moreList.props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: 120}}});
+    });
+    expect(offsets.body).toEqual([120]);
+    expect(offsets.pinned).toEqual([120]);
+    expect(offsets.more).toEqual([]);
+  });
+
+  it("re-aligns the more-content list to the body offset when it mounts without pinned columns", () => {
+    const MoreContent: MoreContentComponent = ({rowIndex}) => <Text>Row {rowIndex}</Text>;
+    const {UNSAFE_getAllByType, rerender} = renderWithTheme(
+      <DataTable columns={sampleColumns} data={sampleData} />
+    );
+    const {FlatList: FlatListComp} = require("react-native");
+    const findLists = () =>
+      UNSAFE_getAllByType(FlatListComp) as Array<{
+        props: {
+          onScroll?: (event: {nativeEvent: {contentOffset: {x: number; y: number}}}) => void;
+          showsVerticalScrollIndicator?: boolean;
+        };
+      }>;
+    expect(findLists()).toHaveLength(1);
+    act(() => {
+      findLists()[0].props.onScroll?.({nativeEvent: {contentOffset: {x: 0, y: 80}}});
+    });
+
+    rerender(
+      <DataTable columns={sampleColumns} data={sampleData} moreContentComponent={MoreContent} />
+    );
+    const lists = findLists();
+    expect(lists).toHaveLength(2);
+    expect(lists.some((list) => list.props.showsVerticalScrollIndicator === false)).toBe(true);
+
+    rerender(<DataTable columns={sampleColumns} data={sampleData} />);
+    expect(findLists()).toHaveLength(1);
+  });
+
   it("handleSort with no setSortColumn is a no-op", () => {
     const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
     const {UNSAFE_getAllByType} = renderWithTheme(

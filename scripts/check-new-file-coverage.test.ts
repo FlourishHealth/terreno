@@ -11,6 +11,7 @@ import {
   groupFilesByWorkspace,
   isCoverageSourceFile,
   parseNewFileCoverageArgs,
+  workspaceDepsCompileArgs,
 } from "./check-new-file-coverage";
 
 describe("parseNewFileCoverageArgs", () => {
@@ -35,12 +36,15 @@ describe("isCoverageSourceFile", () => {
     assert.isTrue(isCoverageSourceFile("ui/src/NewComponent.tsx"));
   });
 
-  it("excludes tests, stories, generated SDKs, and non-source files", () => {
+  it("excludes tests, stories, e2e helpers, generated SDKs, and non-source files", () => {
     assert.isFalse(isCoverageSourceFile("api/src/newRoute.test.ts"));
     assert.isFalse(isCoverageSourceFile("ui/src/NewComponent.stories.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/e2e/helpers/auditEvents.ts"));
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
+    assert.isFalse(isCoverageSourceFile("jobs/src/types.ts"));
+    assert.isFalse(isCoverageSourceFile("example-backend/src/jobsWorker.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
     assert.isFalse(isCoverageSourceFile("api/src/migrations/fixtures/bad-name/not-a-migration.ts"));
   });
@@ -208,5 +212,16 @@ describe("expandCoverageRunArgs", () => {
       assert.notInclude(path, "*");
       assert.notInclude(path, "node_modules");
     }
+  });
+});
+
+describe("workspaceDepsCompileArgs", () => {
+  it("points compile-workspace-deps at the gated package", () => {
+    const repoRoot = "/repo";
+    const packageRoot = "/repo/admin-backend";
+    assert.deepEqual(workspaceDepsCompileArgs({packageRoot, repoRoot}), [
+      "/repo/.github/scripts/compile-workspace-deps.js",
+      "/repo/admin-backend",
+    ]);
   });
 });

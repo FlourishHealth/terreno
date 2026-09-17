@@ -3,7 +3,12 @@ import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 
-import {collectBarrelImportViolations, collectInternalBarrelIndexFiles} from "./lib";
+import {
+  collectBarrelImportViolations,
+  collectInternalBarrelIndexFiles,
+  PACKAGE_PUBLIC_ENTRIES,
+  SCAN_ROOTS,
+} from "./lib";
 
 const createFixtureRepo = (): string => {
   const root = mkdtempSync(join(tmpdir(), "terreno-barrel-check-"));
@@ -11,19 +16,13 @@ const createFixtureRepo = (): string => {
   mkdirSync(join(root, "example-backend/src/models"), {recursive: true});
   mkdirSync(join(root, "example-backend/src/api"), {recursive: true});
   mkdirSync(join(root, "ui/src/icons"), {recursive: true});
-  writeFileSync(
-    join(root, "example-backend/src/models/index.ts"),
-    'export * from "./user";\n'
-  );
+  writeFileSync(join(root, "example-backend/src/models/index.ts"), 'export * from "./user";\n');
   writeFileSync(join(root, "example-backend/src/models/user.ts"), "export const User = 1;\n");
   writeFileSync(
     join(root, "example-backend/src/api/users.ts"),
     'import {User} from "../models";\nexport const users = User;\n'
   );
-  writeFileSync(
-    join(root, "ui/src/icons/index.ts"),
-    'export * from "./SparklesIcon";\n'
-  );
+  writeFileSync(join(root, "ui/src/icons/index.ts"), 'export * from "./SparklesIcon";\n');
   writeFileSync(
     join(root, "ui/src/icons/SparklesIcon.tsx"),
     "export const SparklesIcon = () => null;\n"
@@ -40,10 +39,7 @@ test("collectBarrelImportViolations flags directory imports that resolve to barr
   const root = createFixtureRepo();
 
   try {
-    const violations = collectBarrelImportViolations(root, [
-      "example-backend/src",
-      "ui/src",
-    ]);
+    const violations = collectBarrelImportViolations(root, ["example-backend/src", "ui/src"]);
 
     expect(violations).toHaveLength(2);
     expect(violations[0]?.importPath).toBe("../models");
@@ -92,4 +88,9 @@ test("collectInternalBarrelIndexFiles lists barrels but not package public entri
   } finally {
     rmSync(root, {force: true, recursive: true});
   }
+});
+
+test("SCAN_ROOTS and PACKAGE_PUBLIC_ENTRIES include @terreno/jobs", () => {
+  expect(SCAN_ROOTS).toContain("jobs/src");
+  expect(PACKAGE_PUBLIC_ENTRIES["@terreno/jobs"]).toMatch(/jobs\/src\/index\.ts$/);
 });

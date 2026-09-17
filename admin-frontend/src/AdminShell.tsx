@@ -7,6 +7,7 @@ import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
 import {groupAdminModelsByGroup} from "./adminShellNav";
+import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -62,12 +63,12 @@ const NavButton: React.FC<{
   </Box>
 );
 
-const isAuditLogModel = (model: AdminModelConfig): boolean => {
-  return model.name === "AdminAuditLog" || model.routePath.includes("audit-log");
-};
-
 const isFeatureFlagModel = (model: AdminModelConfig): boolean => {
   return model.name === "FeatureFlag" || model.displayName === "Feature Flags";
+};
+
+const isJobsScreen = (screen: AdminCustomScreen): boolean => {
+  return screen.name === "jobs";
 };
 
 interface AdminShellSidebarNavProps {
@@ -104,6 +105,8 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   const models = grouped.flatMap(({models: groupModels}) => groupModels);
   const auditLogModel = models.find(isAuditLogModel);
   const featureFlagModel = models.find(isFeatureFlagModel);
+  const jobsScreen = allCustomScreens.find(isJobsScreen);
+  const visibleCustomScreens = allCustomScreens.filter((screen) => !isJobsScreen(screen));
   const visibleGrouped = grouped
     .map(({group, models: groupModels}) => ({
       group,
@@ -117,6 +120,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
       (platformTools.version && versionConfigPath) ||
       auditLogModel ||
       featureFlagModel ||
+      jobsScreen ||
       (platformTools.configuration && configurationPath)
   );
 
@@ -170,12 +174,12 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {allCustomScreens.length > 0 ? (
+        {visibleCustomScreens.length > 0 ? (
           <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
-            {allCustomScreens.map((screen) => (
+            {visibleCustomScreens.map((screen) => (
               <NavButton
                 key={screen.name}
                 label={screen.displayName}
@@ -268,6 +272,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 testID="admin-shell-nav-feature-flags"
               />
             ) : null}
+            {jobsScreen ? (
+              <NavButton
+                label={jobsScreen.displayName}
+                onPress={() => {
+                  runNav(() => {
+                    navigate(`/${jobsScreen.name}`);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-jobs"
+              />
+            ) : null}
             {platformTools.configuration && configurationPath ? (
               <NavButton
                 label="Configuration"
@@ -292,7 +308,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
  * Admin UI v2 shell: grouped sidebar navigation, optional breadcrumbs, and main area.
  *
  * Intended for standalone admin SPA or embedded admin: pair with list/table/form screens
- * as `children`. Fetches `/admin/config` once for the sidebar (Tools, grouped Models, Screens).
+ * as `children`. Fetches `/admin/config` once for the sidebar (Platform, grouped Models, Screens).
  *
  * Below {@link ADMIN_SHELL_MOBILE_BREAKPOINT}px, the fixed sidebar becomes a hamburger-triggered
  * left slide-over drawer.

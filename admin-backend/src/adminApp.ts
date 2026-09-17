@@ -17,6 +17,7 @@ import {
   type JSONValue,
   logger,
   type ModelRouterOptions,
+  maybeRecordAdminAudit,
   modelDescriptionToAdminFields,
   modelRouter,
   type OpenApiMiddleware,
@@ -27,21 +28,26 @@ import {
   registerAdminWindowMutationScope,
   type ScriptArgDef,
   type ScriptArgValue,
-  type ScriptContext,
-  type ScriptResult,
   type ScriptRunner,
   scrubAdminFields,
-  TaskCancelledError,
   type TerrenoApp,
   type User,
   VersionConfig,
 } from "@terreno/api";
+import {tryGetJobsService} from "@terreno/jobs";
 import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
 import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
 import {mountAdminMigrationRoutes} from "./adminMigrations";
+import {
+  ADMIN_SCRIPT_JOB_NAME,
+  defineAdminScriptJob,
+  runRegisteredScriptTask,
+  tryCancelAdminScriptJob,
+  tryEnqueueAdminScriptJob,
+} from "./adminScriptJob";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -211,8 +217,8 @@ export interface AdminOptions {
   /** Extra custom screens merged with built-ins (e.g. version-config) */
   customScreens?: AdminCustomScreenConfig[];
   /**
-   * Optional audit sink for admin CRUD after modelRouter succeeds.
-   * Consumers typically persist to an `AdminAuditLog` collection.
+   * Extra audit sink after successful admin CRUD. When `AuditApp` is registered,
+   * AdminApp also writes `AuditEvent` rows (`source: "admin"`) without this hook.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
@@ -762,6 +768,37 @@ export class AdminApp {
         const detail = err instanceof Error ? err.message : String(err);
         logger.error(`onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`);
       }
+    };
+
+    const safeFrameworkAdminAudit = async ({
+      after,
+      before,
+      extraRedact,
+      modelName,
+      recordLabel,
+      request,
+      verb,
+    }: {
+      after?: unknown;
+      before?: unknown;
+      extraRedact?: string[];
+      modelName: string;
+      recordLabel?: string;
+      request: express.Request;
+      verb: AdminAuditEvent["verb"];
+    }): Promise<void> => {
+      if (modelName === "AuditEvent") {
+        return;
+      }
+      void maybeRecordAdminAudit({
+        after,
+        before,
+        extraRedact,
+        modelName,
+        recordLabel,
+        req: request,
+        verb,
+      });
     };
 
     // Build config response with field metadata from Mongoose schemas
@@ -1469,49 +1506,84 @@ export class AdminApp {
             .build()
         : undefined;
 
-      const auditEligible = Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
-      const auditHooks = auditEligible
-        ? {
-            postCreate: async (value: unknown, request: express.Request): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "created",
-              });
-            },
-            postDelete: async (request: express.Request, value: unknown): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "deleted",
-              });
-            },
-            postUpdate: async (
-              value: unknown,
-              _cleanedBody: unknown,
-              request: express.Request,
-              _prev: unknown
-            ): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "updated",
-              });
-            },
+      const skipOnAdminAuditHook = config.model.modelName === "AdminAuditLog";
+      const auditHooks = {
+        postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "created",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
           }
-        : {};
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "created",
+          });
+        },
+        postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            before: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "deleted",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "deleted",
+          });
+        },
+        postUpdate: async (
+          value: unknown,
+          _cleanedBody: unknown,
+          request: express.Request,
+          prev: unknown
+        ): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            before: prev,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "updated",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "updated",
+          });
+        },
+      };
 
       const assertCanWriteUserAdminFlag = async (
         body: Record<string, unknown>,
@@ -1863,6 +1935,10 @@ export class AdminApp {
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
     const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
     const scriptNames = scripts.map((s) => s.name);
+    const jobs = tryGetJobsService();
+    if (jobs) {
+      defineAdminScriptJob(jobs, (name) => scriptsByName.get(name));
+    }
 
     // GET /admin/scripts/runs — Paginated history of script runs (BackgroundTasks)
     router.get(
@@ -1977,6 +2053,7 @@ export class AdminApp {
         }
 
         const now = DateTime.now().toJSDate();
+        const queuedViaJobs = Boolean(tryGetJobsService()?.getDefinition(ADMIN_SCRIPT_JOB_NAME));
 
         let task: BackgroundTaskDocument;
         try {
@@ -1986,9 +2063,13 @@ export class AdminApp {
             logs: [
               {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
             ],
-            progress: {message: "Starting...", percentage: 0, stage: "Queued"},
-            startedAt: now,
-            status: "running",
+            progress: {
+              message: queuedViaJobs ? "Queued" : "Starting...",
+              percentage: 0,
+              stage: queuedViaJobs ? "Queued" : "Queued",
+            },
+            startedAt: queuedViaJobs ? undefined : now,
+            status: queuedViaJobs ? "pending" : "running",
             taskType: script.name,
           })) as BackgroundTaskDocument;
         } catch (err: unknown) {
@@ -2001,67 +2082,53 @@ export class AdminApp {
           });
         }
 
-        // Build context for cancellation, progress reporting, and arguments
-        const ctx: ScriptContext = {
-          addLog: async (level, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.addLog(level, message);
+        const taskId = task._id.toString();
+        let enqueued: {id: string} | undefined;
+        try {
+          enqueued = await tryEnqueueAdminScriptJob({
+            args: args.raw,
+            createdByName: user.name,
+            scriptName: script.name,
+            taskId,
+            wetRun: isWetRun,
+          });
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to enqueue durable job for ${script.name}: ${detail}`);
+          const failedAt = DateTime.now().toJSDate();
+          await BackgroundTask.updateOne(
+            {_id: task._id},
+            {
+              $set: {
+                completedAt: failedAt,
+                error: detail,
+                progress: {
+                  message: "Failed to enqueue",
+                  percentage: 100,
+                  stage: "Failed",
+                },
+                status: "failed",
+              },
             }
-          },
+          );
+          throw new APIError({
+            detail,
+            status: 500,
+            title: `Failed to enqueue script: ${script.name}`,
+          });
+        }
+        if (enqueued) {
+          return res.status(201).json({taskId});
+        }
+
+        void runRegisteredScriptTask({
           args,
-          checkCancellation: async () => {
-            await BackgroundTask.checkCancellation(task._id.toString());
-          },
-          updateProgress: async (percentage, stage, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.updateProgress(percentage, stage, message);
-            }
-          },
-        };
+          script,
+          taskId,
+          wetRun: isWetRun,
+        });
 
-        // Run the script asynchronously — use atomic updates to avoid overwriting
-        // cancellation or other intermediate state changes.
-        void (async () => {
-          try {
-            const result: ScriptResult = await script.runner(isWetRun, ctx);
-
-            // Atomically update only if still running (don't overwrite cancellation)
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  progress: {message: "Done", percentage: 100, stage: "Complete"},
-                  result: result.results,
-                  status: result.success ? "completed" : "failed",
-                },
-              }
-            );
-          } catch (err: unknown) {
-            if (err instanceof TaskCancelledError) {
-              return;
-            }
-            const message = err instanceof Error ? err.message : String(err);
-            logger.error(`Script ${script.name} failed: ${message}`);
-
-            // Atomically update only if still running
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  error: message,
-                  result: [message],
-                  status: "failed",
-                },
-              }
-            );
-          }
-        })();
-
-        return res.status(201).json({taskId: task._id.toString()});
+        return res.status(201).json({taskId});
       })
     );
 
@@ -2141,6 +2208,8 @@ export class AdminApp {
             title: "Task already completed or cancelled",
           });
         }
+
+        await tryCancelAdminScriptJob(task._id.toString());
 
         return res.json({message: "Task cancelled", task: cancelled.toObject()});
       })

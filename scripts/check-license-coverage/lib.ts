@@ -15,6 +15,7 @@ export const PUBLISHED_PACKAGES = [
   "comms",
   "create-terreno-app",
   "feature-flags",
+  "jobs",
   "mcp-server",
 ] as const;
 
