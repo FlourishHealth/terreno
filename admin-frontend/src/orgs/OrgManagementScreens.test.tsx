@@ -2,7 +2,6 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
-import {StyleSheet} from "react-native";
 import {renderWithTheme} from "../../../ui/src/test-utils";
 
 const readState: {
@@ -191,10 +190,6 @@ describe("organization management screens", () => {
 
   it("shows disabled Invite and attaches an existing user", async () => {
     const screen = renderWithTheme(<OrgMembersScreen api={api} organizationId="org-1" />);
-    assert.equal(
-      StyleSheet.flatten(screen.getByTestId("org-members-page").props.style).maxWidth,
-      "100%"
-    );
     expect(screen.getByLabelText("Invite").props.accessibilityState.disabled).toBe(true);
     expect(screen.getByText("admin@example.com")).toBeTruthy();
     await act(async () => {

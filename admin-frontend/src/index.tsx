@@ -101,16 +101,14 @@ export {
   type OrganizationSettings,
   organizationSettingsOf,
 } from "./orgs/organizationSettings";
-export {
-  organizationIdFromPath,
-  organizationMatchesRoute,
-  useRouteOrganizationInitial,
-} from "./orgs/routeOrganization";
 export {useOrganizationsApi} from "./orgs/useOrganizationsApi";
 export {
   OrgContextProvider,
   type OrgContextProviderProps,
   type OrgContextValue,
+  organizationFromPath,
+  organizationIdFromPath,
+  organizationMatchesRoute,
   useOrgContext,
 } from "./orgs/useOrgContext";
 export type {

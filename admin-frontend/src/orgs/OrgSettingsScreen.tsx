@@ -6,8 +6,8 @@ import {AdminScreenPage} from "../AdminScreenPage";
 import type {AdminApi} from "../types";
 import type {OrganizationSummary} from "./OrgDirectoryScreen";
 import {type OrganizationSettings, organizationSettingsOf} from "./organizationSettings";
-import {organizationMatchesRoute} from "./routeOrganization";
 import {useOrganizationsApi} from "./useOrganizationsApi";
+import {organizationMatchesRoute} from "./useOrgContext";
 
 export interface OrgSettingsScreenProps {
   api: AdminApi;

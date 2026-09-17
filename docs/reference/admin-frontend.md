@@ -82,12 +82,16 @@ Wrap organization-aware admin routes with `OrgContextProvider` and render
 organization navigates to `{routeBase}/orgs/:orgId` and adds
 `X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
 include the organization id, preventing rows cached for one org from appearing
-in another. Pass `useRouteOrganizationInitial()` as `initialOrganization` so
-context follows URL changes after mount without overriding a switcher selection
-while navigation is in progress.
+in another. Derive `initialOrganization` from the current pathname so context
+follows URL changes after mount without overriding a switcher selection while
+navigation is in progress.
 
 ``````typescript
-const routeOrganization = useRouteOrganizationInitial();
+const pathname = usePathname();
+const routeOrganization = useMemo(
+  () => organizationFromPath(pathname),
+  [pathname]
+);
 
 <OrgContextProvider initialOrganization={routeOrganization}>
   <AdminShellLayout

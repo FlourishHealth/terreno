@@ -15,6 +15,31 @@ export interface OrgContextProviderProps {
 
 const OrgContext = createContext<OrgContextValue | null>(null);
 
+/** Extract `/orgs/:orgId` from an admin pathname. */
+export const organizationIdFromPath = (pathname: string): string | undefined => {
+  const match = pathname.match(/\/orgs\/([^/]+)(?:\/|$)/);
+  return match?.[1];
+};
+
+export const organizationMatchesRoute = (
+  organization: OrganizationSummary | undefined,
+  organizationId: string
+): boolean => {
+  if (!organization) {
+    return false;
+  }
+  return String(organization._id) === String(organizationId);
+};
+
+/** Build the route-derived value for `OrgContextProvider.initialOrganization`. */
+export const organizationFromPath = (pathname: string): OrganizationSummary | undefined => {
+  const organizationId = organizationIdFromPath(pathname);
+  if (!organizationId) {
+    return undefined;
+  }
+  return {_id: organizationId, name: organizationId};
+};
+
 export const OrgContextProvider: React.FC<OrgContextProviderProps> = ({
   children,
   initialOrganization,

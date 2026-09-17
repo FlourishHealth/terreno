@@ -4,7 +4,13 @@ import {assert} from "chai";
 import React from "react";
 import {Text} from "react-native";
 import {renderWithTheme} from "../../../ui/src/test-utils";
-import {OrgContextProvider, useOrgContext} from "./useOrgContext";
+import {
+  OrgContextProvider,
+  organizationFromPath,
+  organizationIdFromPath,
+  organizationMatchesRoute,
+  useOrgContext,
+} from "./useOrgContext";
 
 const OrgIdProbe: React.FC = () => {
   const {organizationId} = useOrgContext();
@@ -12,6 +18,22 @@ const OrgIdProbe: React.FC = () => {
 };
 
 describe("useOrgContext", () => {
+  it("derives organization context from admin organization paths", () => {
+    assert.equal(organizationIdFromPath("/admin/orgs/org-alpha"), "org-alpha");
+    assert.equal(organizationIdFromPath("/admin/orgs/org-alpha/members"), "org-alpha");
+    assert.isUndefined(organizationFromPath("/admin/orgs"));
+    assert.deepEqual(organizationFromPath("/admin/orgs/org-alpha"), {
+      _id: "org-alpha",
+      name: "org-alpha",
+    });
+  });
+
+  it("matches loaded organizations to the active route id", () => {
+    assert.isTrue(organizationMatchesRoute({_id: "org-1", name: "Acme"}, "org-1"));
+    assert.isFalse(organizationMatchesRoute({_id: "org-1", name: "Acme"}, "org-2"));
+    assert.isFalse(organizationMatchesRoute(undefined, "org-1"));
+  });
+
   it("throws outside OrgContextProvider", () => {
     assert.throws(() => {
       renderWithTheme(<OrgIdProbe />);

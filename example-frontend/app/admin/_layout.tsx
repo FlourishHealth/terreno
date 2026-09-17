@@ -3,13 +3,13 @@ import {
   AdminShellLayout,
   OrgContextProvider,
   OrgSwitcher,
-  useRouteOrganizationInitial,
+  organizationFromPath,
 } from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, Text} from "@terreno/ui";
-import {Stack} from "expo-router";
-import React, {useEffect, useState} from "react";
+import {Stack, usePathname} from "expo-router";
+import React, {useEffect, useMemo, useState} from "react";
 import {useSelector} from "react-redux";
 import {ADMIN_ROUTE} from "@/constants/adminConstants";
 import {getAdminAuthHeaders} from "@/store/betterAuthApi";
@@ -33,7 +33,8 @@ const AdminLayoutContent: React.FC = () => {
   });
   const roles = profile?.roles ?? [];
   const isOrganizationOperator = roles.includes("operator") || roles.includes("superadmin");
-  const routeOrganization = useRouteOrganizationInitial();
+  const pathname = usePathname();
+  const routeOrganization = useMemo(() => organizationFromPath(pathname), [pathname]);
 
   // Admin uses a separate window-mode client so admin rows never pollute the
   // owner-scoped product store and the socket can join `{collection}|admin`.

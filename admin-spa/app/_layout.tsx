@@ -2,13 +2,13 @@ import {
   AdminProvider,
   type OrganizationSummary,
   OrgContextProvider,
+  organizationFromPath,
   useAdminConfig,
-  useRouteOrganizationInitial,
 } from "@terreno/admin-frontend";
 import {createSyncDb, type SyncDb} from "@terreno/syncdb";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, TerrenoProvider, Text} from "@terreno/ui";
-import {Stack} from "expo-router";
+import {Stack, usePathname} from "expo-router";
 import React, {useEffect, useMemo, useState} from "react";
 import {AdminGate} from "../components/AdminGate";
 import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
@@ -80,7 +80,8 @@ const SyncEnabledAdminProvider: React.FC<{
 const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) => {
   const {appConfig} = useAppConfig();
   const {authClient} = useAuth();
-  const routeOrganization = useRouteOrganizationInitial();
+  const pathname = usePathname();
+  const routeOrganization = useMemo(() => organizationFromPath(pathname), [pathname]);
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   const {config} = useAdminConfig(terrenoApi, apiBase);
   const syncCollections = useMemo(
