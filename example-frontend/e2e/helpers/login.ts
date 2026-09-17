@@ -2,7 +2,9 @@ import type {Page} from "@playwright/test";
 import {TEST_USER} from "../fixtures/testUsers";
 
 export const loginAs = async (page: Page, user = TEST_USER): Promise<void> => {
-  await page.goto("/login");
+  if ((await page.getByTestId("login-screen").count()) === 0) {
+    await page.goto("/login");
+  }
   await page.getByTestId("login-screen").waitFor({state: "visible"});
   await page.getByTestId("login-screen-email-input").fill(user.email);
   await page.getByTestId("login-screen-password-input").fill(user.password);
@@ -25,20 +27,32 @@ export const loginAs = async (page: Page, user = TEST_USER): Promise<void> => {
 };
 
 export const ensureLoggedOut = async (page: Page): Promise<void> => {
+  let lastError: unknown;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    await page.goto("/login");
-    if ((await page.getByTestId("login-screen").count()) > 0) {
+    try {
+      // Do not reload `/login` while a session cookie may still be valid: Better Auth
+      // rehydrates during `app-auth-loading` and the login screen never mounts.
+      if ((await page.getByTestId("login-screen").count()) > 0) {
+        return;
+      }
+      await page.goto("/profile");
+      const authLoading = page.getByTestId("app-auth-loading");
+      if ((await authLoading.count()) > 0) {
+        await authLoading.waitFor({state: "hidden", timeout: 15_000});
+      }
+      if ((await page.getByTestId("login-screen").count()) > 0) {
+        return;
+      }
+      const logout = page.getByTestId("profile-logout-button");
+      await logout.waitFor({state: "visible", timeout: 15_000});
+      await logout.click();
+      await page.getByTestId("login-screen").first().waitFor({state: "visible", timeout: 15_000});
       return;
+    } catch (error) {
+      lastError = error;
     }
-    await page.goto("/profile");
-    const logout = page.getByTestId("profile-logout-button");
-    if ((await logout.count()) === 0) {
-      continue;
-    }
-    await logout.waitFor({state: "visible", timeout: 15_000});
-    await logout.click();
-    await page.getByTestId("login-screen").first().waitFor({state: "visible", timeout: 15_000});
-    return;
   }
-  throw new Error("Could not reach a logged-out login screen");
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Could not reach a logged-out login screen");
 };

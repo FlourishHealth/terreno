@@ -178,6 +178,8 @@ Features:
   `adminBroadcast: false`. They use REST list and mutation paths until the sync
   window protocol carries selected-organization context. Home widgets delay
   those list queries until `OrgContextProvider` has selected an organization.
+  `AuditEvent` stays `organizationScoped: false` so Recent Activity and the
+  audit changelist still load unscoped rows when no organization is selected.
 
 ### AdminModelForm
 

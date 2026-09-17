@@ -566,6 +566,7 @@ jobs:
           flags: |
             --port=3000
             --memory=1Gi
+            --cpu-boost
             --min-instances=0
             --max-instances=10
             --concurrency=80

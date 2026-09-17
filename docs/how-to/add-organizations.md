@@ -154,7 +154,8 @@ app.register(projectOrgContextPlugin).register(projectRouter);
 ``````
 
 For admin CRUD, use `new AdminApp({accessControl: access, organizations:
-true})`. Models with an `organizationId` schema path are scoped automatically.
+true})`. Models with an `organizationId` schema path are scoped automatically,
+except `AuditEvent` (the platform audit log lists without a selected org).
 Admin-window `POST /sync/mutate` and socket `sync:mutate` use the same membership
 check as REST for update and delete when `X-Organization-Id` (HTTP) or
 `organizationId` (socket payload) is set. Admin `createSyncDb({organizationIdProvider})`

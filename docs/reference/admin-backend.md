@@ -154,7 +154,7 @@ Field metadata includes:
 - `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set
   `adminBroadcast`, except organization-scoped models (forced to `false`)
 - `organizationScoped` — `true` when `AdminApp({organizations: true})` manages a model with
-  an `organizationId` path
+  an `organizationId` path, except `AuditEvent` (platform log; rows may omit the field)
 - `syncCollection` — Sync collection tag (app `routePath` without a leading slash, e.g. `todos`) when `adminBroadcast` is true; omitted otherwise
 
 Field metadata is built from `describeModel()` via `modelDescriptionToAdminFields()` — not from a second OpenAPI property walk. Widget overrides (`fieldOverrides`) remain admin-backend configuration.

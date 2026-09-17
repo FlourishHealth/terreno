@@ -1759,6 +1759,37 @@ describe("AdminApp AuditEvent auto-write", () => {
     });
     assert.equal(create.status, 405, JSON.stringify(create.body));
   });
+
+  it("lists AuditEvent without an organization even when organizations is enabled", async () => {
+    const auditPlugin = new AuditApp();
+    const terrenoApp = {
+      getPlugins: () => [auditPlugin],
+      getRegistrations: () => [],
+    } as unknown as TerrenoApp;
+    const app = getBaseServer();
+    setupAuth(app, UserModel as unknown as UserModelType);
+    addAuthRoutes(app, UserModel as unknown as UserModelType);
+    auditPlugin.register(app);
+    new AdminApp({
+      basePath: "/admin",
+      models: [foodModelConfig],
+      organizations: true,
+    }).register(app, undefined, terrenoApp);
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+    const agent = await authAsUser(app, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    const auditMeta = (
+      config.body.models as Array<{name: string; organizationScoped?: boolean; routePath: string}>
+    ).find((model) => model.name === "AuditEvent" || model.routePath.includes("audit-events"));
+    assert.ok(
+      auditMeta,
+      JSON.stringify(config.body.models.map((model: {name: string}) => model.name))
+    );
+    assert.strictEqual(auditMeta?.organizationScoped, false);
+    const list = await agent.get("/admin/audit-events").expect(200);
+    assert.isArray(list.body.data);
+  });
 });
 
 describe("AdminApp per-model queryFilter", () => {

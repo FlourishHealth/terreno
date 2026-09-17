@@ -621,7 +621,15 @@ export class AdminApp {
   }
 
   private isOrganizationScoped(config: Pick<AdminModelConfig, "model">): boolean {
-    return Boolean(this.options.organizations && config.model.schema.path("organizationId"));
+    if (!this.options.organizations) {
+      return false;
+    }
+    // Platform audit rows may omit organizationId. Requiring a selected org hides
+    // those events and skips Recent Activity / the AuditEvent changelist.
+    if (config.model.modelName === "AuditEvent") {
+      return false;
+    }
+    return Boolean(config.model.schema.path("organizationId"));
   }
 
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
