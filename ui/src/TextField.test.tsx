@@ -356,11 +356,14 @@ describe("TextField", () => {
 
           fireEvent(input, "focus");
           ref?.(webInput as unknown as TextInput);
+          const preventDefault = mock(() => {});
+          fireEvent(getByTestId("pw.visibility-toggle"), "mouseDown", {preventDefault});
           fireEvent.press(getByTestId("pw.visibility-toggle"));
 
           assert.equal(requestAnimationFrameSpy.mock.calls.length, 1);
           assert.equal(focusSpy.mock.calls.length, 1);
           assert.deepEqual(setSelectionRangeSpy.mock.calls[0], [2, 5]);
+          assert.equal(preventDefault.mock.calls.length, 1);
         } finally {
           reactNative.Platform.OS = originalOS;
           globalThis.requestAnimationFrame = originalRequestAnimationFrame;
