@@ -48,7 +48,7 @@ GET  /announcements/pending?platform=&version=   → interrupt queue only (modal
 GET  /announcements/feed?platform=&version=      → changelog (all display modes)
 GET  /announcements/config                       → { defaultAcknowledgementPolicy } (admin)
 POST /announcements/:id/click                    → AnnouncementClickEvent
-POST /announcements/:id/acknowledge | impression → unchanged
+POST /announcements/:id/acknowledge | impression → same visibility as pending/feed (404 if hidden)
 
 AnnouncementNavigator
   modal  → blocks children (today)

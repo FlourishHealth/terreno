@@ -82,8 +82,8 @@ The plugin applies `matchAudienceByType` before `matchAudience`. When `isStaff` 
 |--------|------|-------------|
 | GET | `/announcements/pending` | Current interrupt (`modal` or `banner` only) + `remainingCount` (`platform` query: `ios` \| `android` \| `web`; optional `version` build number) |
 | GET | `/announcements/feed` | Paginated published changelog — all display modes (`platform` and optional `version` as above) |
-| POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version) |
-| POST | `/announcements/:id/impression` | Record a view |
+| POST | `/announcements/:id/acknowledge` | Record acknowledgement (idempotent per version). Same visibility as pending/feed; **404** when not visible. |
+| POST | `/announcements/:id/impression` | Record a view. Same visibility as pending/feed; **404** when not visible. |
 | POST | `/announcements/:id/click` | Record a primary-action click (`{ action: "primaryAction", platform? }`; optional `?version=` for min-build visibility). Returns **404** when not visible (checked before action/CTA validation). **400** when `action` is invalid, `primaryAction` is absent, or an explicit `platform` value is invalid. |
 
 `current` and feed items include resolved `requiresAcknowledgement` (boolean) and `displayMode` derived from policy resolution and stored fields above.
@@ -96,7 +96,7 @@ Optional integer build number on `GET /pending`, `GET /feed`, and help routes. W
 - `?version=10` (or higher) shows it
 - omitting `version` does **not** hide gated items
 
-`POST /announcements/:id/click` uses the same visibility rules as pending/feed (schedule, expiry, platform, min build, `audienceType`, and `matchAudience`). Returns **404** when the announcement is not visible to the caller (checked before action/CTA validation, to avoid leaking targeted rows). Returns **400** when `action` is not `"primaryAction"`, the announcement has no `primaryAction`, or an explicit body `platform` is not `ios` / `android` / `web` (omit `platform` to use query/user-agent resolution). Each click inserts a new row (not idempotent).
+`POST /announcements/:id/acknowledge`, `POST /announcements/:id/impression`, and `POST /announcements/:id/click` use the same visibility rules as pending/feed (schedule, expiry, platform, min build, `audienceType`, and `matchAudience`). All three return **404** when the announcement is not visible to the caller, so targeted IDs cannot be confirmed by writing event rows. Click checks visibility before action/CTA validation. Returns **400** when `action` is not `"primaryAction"`, the announcement has no `primaryAction`, or an explicit body `platform` is not `ios` / `android` / `web` (omit `platform` to use query/user-agent resolution). Each click inserts a new row (not idempotent). Acknowledge is idempotent per `(userId, announcementId, version)`.
 
 ## Admin routes
 

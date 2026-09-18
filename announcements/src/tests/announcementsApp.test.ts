@@ -257,6 +257,86 @@ describe("AnnouncementsApp", () => {
     expect(acknowledgements.length).toBe(1);
   });
 
+  it("POST acknowledge and impression return 404 when the announcement is not visible", async () => {
+    await Announcement.deleteMany({});
+    await AnnouncementAcknowledgement.deleteMany({});
+    await AnnouncementImpression.deleteMany({});
+
+    const visibilityApp = buildApp({
+      isStaff: (user) => (user as {admin?: boolean}).admin === true,
+      matchAudience: (_user, announcement) => {
+        const audience = announcement as {audience?: {include?: boolean}};
+        return audience.audience?.include !== false;
+      },
+    });
+    const staffAgent = await authAsUser(visibilityApp, "admin");
+    const patientAgent = await authAsUser(visibilityApp, "notAdmin");
+
+    const staffOnly = await Announcement.create({
+      audienceType: "staff",
+      body: "Staff",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Staff only",
+      version: 1,
+    });
+    await patientAgent.post(`/announcements/${staffOnly._id.toString()}/acknowledge`).expect(404);
+    await patientAgent
+      .post(`/announcements/${staffOnly._id.toString()}/impression`)
+      .send({platform: "web"})
+      .expect(404);
+
+    const excluded = await Announcement.create({
+      audience: {include: false},
+      audienceType: "all",
+      body: "Hidden",
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Custom excluded",
+      version: 1,
+    });
+    await staffAgent
+      .post(`/announcements/${excluded._id.toString()}/acknowledge?platform=web`)
+      .expect(404);
+    await staffAgent
+      .post(`/announcements/${excluded._id.toString()}/impression?platform=web`)
+      .send({platform: "web"})
+      .expect(404);
+
+    const expired = await Announcement.create({
+      body: "Expired",
+      expiresAt: DateTime.utc().minus({days: 1}).toJSDate(),
+      publishedAt: DateTime.utc().minus({days: 2}).toJSDate(),
+      status: "published",
+      title: "Expired",
+      version: 1,
+    });
+    await patientAgent.post(`/announcements/${expired._id.toString()}/acknowledge`).expect(404);
+    await patientAgent
+      .post(`/announcements/${expired._id.toString()}/impression`)
+      .send({platform: "web"})
+      .expect(404);
+
+    const gated = await Announcement.create({
+      body: "Gated",
+      minBuildNumber: 10,
+      publishedAt: DateTime.utc().toJSDate(),
+      status: "published",
+      title: "Min build",
+      version: 1,
+    });
+    await patientAgent
+      .post(`/announcements/${gated._id.toString()}/acknowledge?platform=web&version=9`)
+      .expect(404);
+    await patientAgent
+      .post(`/announcements/${gated._id.toString()}/impression?platform=web&version=9`)
+      .send({platform: "web"})
+      .expect(404);
+
+    assert.lengthOf(await AnnouncementAcknowledgement.find({}), 0);
+    assert.lengthOf(await AnnouncementImpression.find({}), 0);
+  });
+
   it("filters pending announcements with matchAudience", async () => {
     await Announcement.deleteMany({});
     await AnnouncementImpression.deleteMany({});

@@ -106,6 +106,40 @@ const resolveClickPlatform = (req: Request, bodyPlatform: unknown): Announcement
   return parsePlatform(req);
 };
 
+const requireVisibleAnnouncement = async ({
+  announcement,
+  isStaff,
+  matchAudience,
+  platform,
+  queryVersion,
+  user,
+}: {
+  announcement: AnnouncementDocument | null;
+  isStaff: (user: unknown) => boolean;
+  matchAudience: (user: unknown, announcement: AnnouncementDocument) => boolean | Promise<boolean>;
+  platform: AnnouncementPlatform;
+  queryVersion?: number;
+  user: unknown;
+}): Promise<AnnouncementDocument> => {
+  if (!announcement) {
+    throw new APIError({status: 404, title: "Announcement not found"});
+  }
+
+  const visible = await isAnnouncementVisibleToUser({
+    announcement,
+    isStaff,
+    matchAudience,
+    platform,
+    queryVersion,
+    user,
+  });
+  if (!visible) {
+    throw new APIError({status: 404, title: "Announcement not found"});
+  }
+
+  return announcement;
+};
+
 export class AnnouncementsApp implements TerrenoPlugin {
   private options: AnnouncementsOptions;
 
@@ -362,10 +396,14 @@ export class AnnouncementsApp implements TerrenoPlugin {
         }
 
         const userId = getUserId(user as {_id?: unknown; id?: string});
-        const announcement = await Announcement.findById(req.params.id);
-        if (announcement?.status !== "published") {
-          throw new APIError({status: 404, title: "Announcement not found"});
-        }
+        const announcement = await requireVisibleAnnouncement({
+          announcement: await Announcement.findById(req.params.id),
+          isStaff,
+          matchAudience,
+          platform: parsePlatform(req),
+          queryVersion: parseQueryVersion(req.query.version),
+          user,
+        });
 
         const existing = await findOneOrNoneFor(AnnouncementAcknowledgement, {
           announcementId: announcement._id,
@@ -396,13 +434,16 @@ export class AnnouncementsApp implements TerrenoPlugin {
         }
 
         const userId = getUserId(user as {_id?: unknown; id?: string});
-        const announcement = await Announcement.findById(req.params.id);
-        if (announcement?.status !== "published") {
-          throw new APIError({status: 404, title: "Announcement not found"});
-        }
-
         const bodyPlatform = (req.body as {platform?: unknown})?.platform;
         const platform = isValidPlatform(bodyPlatform) ? bodyPlatform : parsePlatform(req);
+        const announcement = await requireVisibleAnnouncement({
+          announcement: await Announcement.findById(req.params.id),
+          isStaff,
+          matchAudience,
+          platform,
+          queryVersion: parseQueryVersion(req.query.version),
+          user,
+        });
 
         await AnnouncementImpression.create({
           announcementId: announcement._id,
@@ -426,26 +467,16 @@ export class AnnouncementsApp implements TerrenoPlugin {
         }
 
         const userId = getUserId(user as {_id?: unknown; id?: string});
-        const announcement = await Announcement.findById(req.params.id);
-        if (!announcement) {
-          throw new APIError({status: 404, title: "Announcement not found"});
-        }
-
         const body = req.body as {action?: unknown; platform?: unknown};
         const platform = resolveClickPlatform(req, body.platform);
-        const queryVersion = parseQueryVersion(req.query.version);
-
-        const visible = await isAnnouncementVisibleToUser({
-          announcement,
+        const announcement = await requireVisibleAnnouncement({
+          announcement: await Announcement.findById(req.params.id),
           isStaff,
           matchAudience,
           platform,
-          queryVersion,
+          queryVersion: parseQueryVersion(req.query.version),
           user,
         });
-        if (!visible) {
-          throw new APIError({status: 404, title: "Announcement not found"});
-        }
 
         if (!isValidClickAction(body.action)) {
           throw new APIError({status: 400, title: "Invalid click action"});
