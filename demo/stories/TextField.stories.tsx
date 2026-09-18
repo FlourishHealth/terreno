@@ -52,6 +52,34 @@ export const TextFieldWithErrorMsgDemo = (): ReactElement => {
   );
 };
 
+export const TextFieldPasswordDemo = (): ReactElement => {
+  const [value, setValue] = useState("Passwordlol:P");
+  return (
+    <TextField
+      helperText="Press the eye to show or hide what you typed."
+      onChange={(v) => setValue(v)}
+      testID="demo-password-field"
+      title="Password"
+      type="password"
+      value={value}
+    />
+  );
+};
+
+export const TextFieldPasswordNoToggleDemo = (): ReactElement => {
+  const [value, setValue] = useState("Passwordlol:P");
+  return (
+    <TextField
+      helperText="The value can never be revealed here."
+      onChange={(v) => setValue(v)}
+      showVisibilityToggle={false}
+      title="Password"
+      type="password"
+      value={value}
+    />
+  );
+};
+
 export const TextFieldDisabledDemo = (): ReactElement => {
   const [value, setValue] = useState("");
   return (
