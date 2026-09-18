@@ -8,11 +8,11 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 - Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
 - **Workload Identity Federation** — GitHub and CircleCI providers share two impersonable service accounts:
-  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope)
+  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope, including `roles/logging.logWriter` so Infra Manager Cloud Build can write regional logs)
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
-- Cloud Tasks queue `terreno-example-jobs`, its queue-level dispatch pool limits, a
+- Cloud Tasks queue `terreno-example-jobs-v2`, its queue-level dispatch pool limits, a
   dedicated `terreno-backend-runtime` Cloud Run identity (the only runtime that can
   enqueue and `actAs` the callback SA), and a callback-only `terreno-jobs-invoker`
   OIDC service account. The private tasks Cloud Run service executes callbacks;
@@ -165,7 +165,7 @@ created copies before the first apply:
 
 ```bash
 terraform import google_cloud_tasks_queue.example_jobs \
-  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs
+  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs-v2
 terraform import google_service_account.jobs_tasks_invoker \
   projects/flourish-terreno/serviceAccounts/terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
 ```
@@ -221,6 +221,22 @@ terraform validate
 ```
 
 Don't `terraform apply` locally — Infra Manager is the source of truth for who can apply.
+
+## Never apply from a stale checkout
+
+`gcloud infra-manager deployments apply --local-source=terraform` applies whatever is on **your disk**, not what is on `master`. A checkout that is behind `master` plans destroys for everything merged since. On 2026-09-18 an apply from a pre-#1327 tree deleted the `terreno-example-jobs` queue, the `terreno-backend-runtime` and `terreno-jobs-invoker` service accounts, and terraform-admin's `roles/cloudtasks.admin` binding.
+
+Apply from CI (**Actions → CD → Run workflow** on `master` with `run_terraform=true`), or `git fetch origin master && git checkout master` first. Before confirming any manual apply, read the plan line in the build log and stop if it lists destroys you did not intend:
+
+```
+Plan: 5 to add, 3 to change, 15 to destroy.
+```
+
+Deleting a Cloud Tasks queue is effectively irreversible for a week: the name cannot be reused for ~7 days (`Error 400: The queue cannot be created because a queue with this name existed too recently`). Recovering one means bumping `jobs_queue_name` to a new name, which is why the queue is `terreno-example-jobs-v2`.
+
+## Debugging Infra Manager previews
+
+`gcloud infra-manager previews create` often fails with an empty `failed while running step:` line. GitHub `Terraform preview` and CircleCI `scripts/ci/gcp-deploy.sh terraform-preview` still run `previews describe` (`state`, `errorCode`, `errorLogs`) before delete. Cloud Build regional logs require `terraform-admin` to have `roles/logging.logWriter`.
 
 ## GCS + CDN static site hosting
 
