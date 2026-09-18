@@ -28,6 +28,54 @@ and persist state:
 | **Planning loop** (`terreno-planning-loop`) | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns pick-roast). Pass `phases=` to restrict. |
 | **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
 
+## `terreno-scan` — goal-driven code scans
+
+An optional second plugin that turns a long-term outcome into measured work. It depends
+on `terreno-planning`: scan stages discover and shape, the lifecycle implements and ships.
+
+| # | Stage | Contract |
+| --- | --- | --- |
+| 1 | **Aim** (`terreno-scan-1-aim`) | Charter the goal: metric, measured baseline, dry-run detection rules, exclusions, validity rule, severity rubric, slice policy, budget |
+| 2 | **Sweep** (`terreno-scan-2-sweep`) | Run the rules, shard the hits deterministically, map fresh parallel workers into candidate findings |
+| 3 | **Sift** (`terreno-scan-3-sift`) | Dedupe, adversarially verify, drop what does not reproduce, rank, write the findings report |
+| 4 | **Plot** (`terreno-scan-4-plot`) | Slice findings into PR-sized units with standalone Grow briefs, then hand the top slice to the lifecycle |
+| 5 | **Track** (`terreno-scan-5-track`) | Re-measure the metric, close or reopen findings with evidence, record the round, choose the next move |
+
+Two outer loops drive them:
+
+| Skill | Loop |
+| --- | --- |
+| **Scan campaign** (`terreno-scan-campaign`) | Aim once, then Sweep → Sift → Plot → lifecycle → Track, round after round, until the metric hits target, the budget is spent, or a genuine human decision is required. Stops at each gate. |
+| **Scan loop** (`terreno-scan-loop`) | Resident session: keeps the campaign moving **and** heartbeats over open campaign PRs — route, answer review through Taste, fix red CI, Track merges — refilling work up to `wipLimit`. Quiet ticks print nothing; each comment is answered exactly once. |
+
+Aim settles who reviews the PRs before any PR exists (`fixed`, `codeowners`, `blame`,
+`round-robin`, or an explicit `none`), verifies the handles, and records the `review`
+block. The loop applies it right after Brew and re-requests review once when requested
+changes are addressed. It never approves its own PRs and never merges under the default
+`mergePolicy: human`.
+
+```text
+Aim PASS → Sweep → Sift
+  Sift PASS (findings) → Plot → handoff: grow → Grow → Pick/Roast → Brew → Taste → Track
+  Sift PASS (dry)      → Track
+  Track PASS → Plot (backlog) | Sweep (empty) | null (target, budget, or regression)
+  Track PENDING (slice in flight) → campaign waits → fresh Track
+  Any BLOCKED → named human/external gate
+```
+
+No scan stage edits product code, commits, or opens a PR. Contracts and schemas:
+
+- [`references/scan-contract.md`](terreno-scan/references/scan-contract.md)
+- [`references/mapreduce.md`](terreno-scan/references/mapreduce.md)
+- [`references/goal-tracking.md`](terreno-scan/references/goal-tracking.md)
+- [`references/heartbeat.md`](terreno-scan/references/heartbeat.md)
+- [`references/pr-routing.md`](terreno-scan/references/pr-routing.md)
+- [`scan-result.schema.json`](terreno-scan/references/scan-result.schema.json)
+- [`scan-state.schema.json`](terreno-scan/references/scan-state.schema.json)
+- [`finding.schema.json`](terreno-scan/references/finding.schema.json)
+
+Reference docs: [`docs/reference/scan-plugin.md`](../docs/reference/scan-plugin.md).
+
 ## Composition
 
 ```text
@@ -154,6 +202,11 @@ are removed; invoke the canonical stages directly.
 | Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-pick-roast-loop` |
 | Codex | `terreno-planning` | [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) | `$terreno-pick-roast-loop` |
 | Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:pick-roast-loop` |
+
+The scan plugin publishes from the same marketplaces as `terreno-scan` on every host.
+Bounded rounds: `/terreno-scan-campaign` (Cursor), `$terreno-scan-campaign` (Codex),
+`/terreno-scan:campaign` (Claude Code, from the generated `terreno-scan-claude/`).
+Resident loop: `/terreno-scan-loop`, `$terreno-scan-loop`, `/terreno-scan:loop`.
 
 All three hosts ship continuous Pick–Roast, phase-planning, and Taste-sweep outer loops.
 Cursor and Claude Code also load the bundled `pre-commit` and `ui-verifier` agents;

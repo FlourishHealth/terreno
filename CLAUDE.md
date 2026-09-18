@@ -49,6 +49,15 @@ Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
 `docs/reference/lifecycle-plugin.md`.
 
+A second optional plugin, `terreno-scan`, runs goal-driven code scans: **Aim** (charter a
+measurable goal) → **Sweep** (shard + map the repository) → **Sift** (reduce to verified,
+ranked findings) → **Plot** (slice findings into Grow briefs) → **Track** (re-measure and
+choose the next move). `terreno-scan-campaign` runs bounded rounds; `terreno-scan-loop`
+stays resident, routing every PR to a named reviewer and heartbeating over open PRs to
+answer review, fix red CI, and track merges. Scan stages never edit code; Plot hands each
+slice to Grow and the lifecycle ships it. See `plugins/README.md` and
+`docs/reference/scan-plugin.md`.
+
 The installed planning plugin also ships the reusable Terreno app, docs, upgrade,
 deployment, and verification skills used by consumer projects. Repository-only roadmap,
 release, and maintenance workflows remain under `.rulesync/skills/`.
