@@ -11,11 +11,11 @@ Template: `.rulesync/skills/track-upstream-expo/references/loop-log.md`.
 - expoVersion: 58.0.0-preview.3
 - releaseBranch: release-58.0.0
 - loopStatus: open
-- updatedAt: 2026-09-17T12:08:20.000Z
+- updatedAt: 2026-09-18T12:19:09.000Z
 
 ## Next
 
-When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still peer `^57`), drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
+When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still peer `^57` as of 2026-09-18), drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
 
 ## Open
 
@@ -23,6 +23,18 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still pe
 - [ ] `mcp-server/src/bootstrap.ts` still scaffolds Expo `~57.0.14` (published `@terreno/*` is still 57.x)
 
 ## Tried (newest first)
+
+### 2026-09-18T12:19:09.000Z — 58.0.0-preview.3
+- Action: Resume loop. Merged `origin/master` (password TextField visibility toggle). Typed `TextField` internal ref as RN 0.88 `TextInputInstance` so `focus()` and the instance callback compile. Skipped TinyBase 9.7.1 / `10.0.0-beta.2` (still peer `expo-sqlite ^57`). Did not retry nested Bun overrides or `tinybase>expo` keys.
+- Result: worked
+- Evidence: `bun run compile` exit 0; `bun run lint` exit 0; `bun run frontend:lint` exit 0; `bun run ui:test` 2334 pass / 0 fail; `cd example-frontend && bunx expo-doctor` 20/20; `cd demo && bunx expo-doctor` 20/20; `bunx expo install --check` "Dependencies are up to date". `npm view tinybase version` 9.7.1 peers `expo-sqlite ^57.0.2`; dist-tag `beta` still `10.0.0-beta.2`. Catalog Expo stays `58.0.0-preview.3`.
+- Follow-up: see Open
+
+### 2026-09-18T12:11:36.000Z — probe
+- Action: `bun run expo:track-probe` from `origin/master`
+- Result: worked
+- Evidence: exit 0, `action: resume-loop`, `expoVersion: 58.0.0-preview.3`, `releaseBranch: release-58.0.0`, `loopStatus: open`. Merged `origin/master` into `release-58.0.0` (TextField password toggle).
+- Follow-up: see Open
 
 ### 2026-09-17T12:08:20.000Z — 58.0.0-preview.3
 - Action: Pin catalog Expo `58.0.0-preview.3` and Expo 58.0.3–58.0.5 module patches from `bundledNativeModules.json` (`expo-constants ~58.0.3`, `expo-dev-client ~58.0.3`, `expo-image-manipulator ~58.0.4`, `expo-image-picker ~58.0.3`, `expo-linking ~58.0.3`, `expo-modules-core ~58.0.3`, `expo-notifications ~58.0.3`, `expo-router ~58.0.4`, `expo-sharing ~58.0.5`, `expo-updates ~58.0.5`, `babel-preset-expo ~58.0.3`, `@expo/metro-runtime ~58.0.3`). RN stays `0.88.0-rc.0`. Skip TinyBase 10 (`10.0.0-beta.2` still peers `expo-sqlite ^57`).
@@ -153,6 +165,7 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still pe
 - ActionSheet maps boolean `keyboardShouldPersistTaps` to `"always"` / `"never"` (RN 0.87 FlatList).
 - `useUpgradeCheck` coalesces `AppState.current` with `?? ""`.
 - TinyBase native persister: cast DB through `unknown` for expo-sqlite 58 vs TinyBase's `^57` peer types.
+- 2026-09-18: `TextField` password-toggle internal ref is `TextInputInstance` (RN 0.88), not the `TextInput` component type. Master used `useRef<TextInput | null>` which failed `tsc` (`Property 'focus' does not exist on type 'TextInputType'`).
 - 2026-09-13: dropped `customConditions: ["react-native-legacy-deep-imports"]`. ui + admin-frontend compile against RN 0.87 `types_generated`. Refs use `ViewInstance` / `ScrollViewInstance` / `TextInputInstance`. Deep import `react-native/Libraries/StyleSheet/StyleSheetTypes` replaced with `DimensionValue` from `react-native`.
 - bun tests: mock Expo 58 `SharedRef` hole (`export {}` in `build/ts-declarations/SharedRef.js`).
 - 2026-09-12: `example-frontend` and `demo` `bunx expo-doctor` 20/20. Same-version bun `expo` duplicates gone after hoisted reinstall. `tinybase>expo` keys removed so `npm explain` works. Directory check excludes `@react-native-community/blur` (unmaintained, used by `@terreno/ui`).
@@ -201,7 +214,8 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still pe
 
 ### Other
 
-- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0`; continued to `58.0.0-preview.3` on 2026-09-17 (`npmTag: next`). Do not merge to master until the loop is `ready`.
+- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0`; continued to `58.0.0-preview.3` on 2026-09-17 (`npmTag: next`). Resume-loop 2026-09-18 at the same preview. Do not merge to master until the loop is `ready`.
 - `mcp-server` app bootstrap still emits Expo 57 until Terreno 58 is cut.
-- TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.2`).
+- TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.2`, rechecked 2026-09-18).
+- Password `TextField` visibility toggle (merged from master) uses `TextInputInstance` on this train.
 - example-frontend / demo `expo.doctor.reactNativeDirectoryCheck.exclude`: `@react-native-community/blur`.
