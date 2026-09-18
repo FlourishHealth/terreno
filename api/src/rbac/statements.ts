@@ -20,9 +20,16 @@ export const ORGANIZATION_ACTIONS = [
 
 export const terrenoStatements = {
   admin: [ADMIN_PAGE_ACTION, "jobs", "runScripts", "viewBackgroundTasks"],
+  adminAnnouncement: ADMIN_MODEL_ACCESS,
+  adminAnnouncementAcknowledgement: ADMIN_MODEL_ACCESS,
+  adminAnnouncementClickEvent: ADMIN_MODEL_ACCESS,
+  adminAnnouncementImpression: ADMIN_MODEL_ACCESS,
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,
   adminFeatureFlag: ADMIN_MODEL_ACCESS,
+  announcement: MODEL_CRUD,
+  announcementAcknowledgement: ["list", "read"],
+  announcementImpression: ["list", "read"],
   configuration: ["read", "update"],
   consentForm: MODEL_CRUD,
   consentResponse: ["list", "read"],

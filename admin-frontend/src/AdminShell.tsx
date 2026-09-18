@@ -6,7 +6,7 @@ import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {type AdminSidebarGroup, buildAdminSidebarGroups} from "./adminShellNav";
 import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
@@ -78,11 +78,10 @@ const isJobsScreen = (screen: AdminCustomScreen): boolean => {
 };
 
 interface AdminShellSidebarNavProps {
-  allCustomScreens: AdminCustomScreen[];
   configurationPath?: string;
   footer?: React.ReactNode;
-  grouped: ReturnType<typeof groupAdminModelsByGroup>;
   isOrganizationOperator?: boolean;
+  jobsScreen?: AdminCustomScreen;
   migrationsEnabled: boolean;
   navigate: (path: string) => void;
   onNavigate?: () => void;
@@ -91,16 +90,17 @@ interface AdminShellSidebarNavProps {
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
+  sidebarGroups: AdminSidebarGroup[];
   sidebarVariant: AdminShellSidebarVariant;
+  ungroupedScreens: AdminCustomScreen[];
   versionConfigPath: string;
 }
 
 const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
-  allCustomScreens,
   configurationPath,
   footer,
-  grouped,
   isOrganizationOperator,
+  jobsScreen,
   migrationsEnabled,
   navigate,
   onNavigate,
@@ -109,22 +109,25 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   platformTools,
   rolesPath,
   scripts,
+  sidebarGroups,
   sidebarVariant,
+  ungroupedScreens,
   versionConfigPath,
 }) => {
   const sidebarIsColorful = sidebarVariant === "colorful";
   const sectionLabelColor = sidebarIsColorful ? "inverted" : "secondaryDark";
-  const models = grouped.flatMap(({models: groupModels}) => groupModels);
+  const models = sidebarGroups.flatMap(({models: groupModels}) => groupModels);
   const auditLogModel = models.find(isAuditLogModel);
   const featureFlagModel = models.find(isFeatureFlagModel);
-  const jobsScreen = allCustomScreens.find(isJobsScreen);
-  const visibleCustomScreens = allCustomScreens.filter((screen) => !isJobsScreen(screen));
-  const visibleGrouped = grouped
-    .map(({group, models: groupModels}) => ({
+  const visibleSidebarGroups = sidebarGroups
+    .map(({customScreens, group, models: groupModels}) => ({
+      customScreens,
       group,
       models: groupModels.filter((model) => !isAuditLogModel(model) && !isFeatureFlagModel(model)),
     }))
-    .filter(({models: groupModels}) => groupModels.length > 0);
+    .filter(
+      ({customScreens, models: groupModels}) => customScreens.length > 0 || groupModels.length > 0
+    );
   const hasPlatformLinks = Boolean(
     (platformTools.scripts && scripts.length > 0) ||
       migrationsEnabled ||
@@ -176,16 +179,29 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             />
           ) : null}
         </Box>
-        {visibleGrouped.length > 0 ? (
+        {visibleSidebarGroups.length > 0 ? (
           <Box direction="column" gap={3} testID="admin-shell-nav-models">
             <Text bold color={sectionLabelColor} size="sm">
               Models
             </Text>
-            {visibleGrouped.map(({group, models: groupModels}) => (
+            {visibleSidebarGroups.map(({customScreens, group, models: groupModels}) => (
               <Box direction="column" gap={1} key={group}>
                 <Text bold color={sectionLabelColor} size="sm">
                   {group}
                 </Text>
+                {customScreens.map((screen) => (
+                  <NavButton
+                    key={screen.name}
+                    label={screen.displayName}
+                    onPress={() => {
+                      runNav(() => {
+                        navigate(`/${screen.name}`);
+                      });
+                    }}
+                    sidebarVariant={sidebarVariant}
+                    testID={`admin-shell-nav-screen-${screen.name}`}
+                  />
+                ))}
                 {groupModels.map((model) => (
                   <NavButton
                     key={model.name}
@@ -203,12 +219,12 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {visibleCustomScreens.length > 0 ? (
+        {ungroupedScreens.length > 0 ? (
           <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
-            {visibleCustomScreens.map((screen) => (
+            {ungroupedScreens.map((screen) => (
               <NavButton
                 key={screen.name}
                 label={screen.displayName}
@@ -444,17 +460,20 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     scripts: true,
     version: true,
   };
-  const grouped = groupAdminModelsByGroup(config.models as AdminModelConfig[]);
+  const jobsScreen = allCustomScreens.find(isJobsScreen);
+  const {groups: sidebarGroups, ungroupedScreens} = buildAdminSidebarGroups({
+    customScreens: allCustomScreens.filter((screen) => !isJobsScreen(screen)),
+    models: config.models as AdminModelConfig[],
+  });
 
   const sidebarIsColorful = sidebarVariant === "colorful";
   const showTopBar = Boolean(headerActions) || Boolean(breadcrumbs && breadcrumbs.length > 0);
 
   const sidebarNavProps: AdminShellSidebarNavProps = {
-    allCustomScreens,
     configurationPath,
     footer,
-    grouped,
     isOrganizationOperator,
+    jobsScreen,
     migrationsEnabled: Boolean(config.migrations?.enabled),
     navigate,
     organizationDirectoryPath,
@@ -462,7 +481,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     platformTools,
     rolesPath,
     scripts,
+    sidebarGroups,
     sidebarVariant,
+    ungroupedScreens,
     versionConfigPath,
   };
 

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/bun";
 import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
+import {AnnouncementsApp} from "@terreno/announcements";
 import {
   AuditApp,
   BetterAuthApp,
@@ -70,6 +71,7 @@ import {seedDefaultData} from "./scripts/seed-test-data";
 import "./types/models/organizationSettingsTypes";
 import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
+import type {UserDocument} from "./types/models/userTypes";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 import {createExampleInboundWebhooks} from "./webhooksExample";
@@ -446,7 +448,27 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           supportedLocales: ["en", "es"],
         })
       )
-      .register(notificationsApp);
+      .register(notificationsApp)
+      .register(
+        new AnnouncementsApp({
+          adminOverviewPermissions: [access.permission({adminAnnouncement: ["read"]})],
+          defaultAcknowledgementPolicy: "dismiss-only",
+          help: {enabled: true},
+          // audienceType staff/patient/all is composed inside the plugin via matchAudienceByType.
+          isStaff: (user) => (user as UserDocument).admin === true,
+          matchAudience: (user, announcement) => {
+            const audience = announcement.audience as {organizationIds?: string[]} | undefined;
+            const requiredOrganizationIds = audience?.organizationIds;
+            if (!requiredOrganizationIds?.length) {
+              return true;
+            }
+            const userOrganizationIds = (user as UserDocument).organizationIds ?? [];
+            return requiredOrganizationIds.some((organizationId) =>
+              userOrganizationIds.includes(organizationId)
+            );
+          },
+        })
+      );
 
     // Register the standalone admin SPA serve plugin when opted in. Gated on an env
     // flag so it stays off in tests and for backend-only consumers.

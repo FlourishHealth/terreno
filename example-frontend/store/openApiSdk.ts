@@ -19,6 +19,10 @@ export const addTagTypes = [
   "auditevents",
   "consentforms",
   "consentresponses",
+  "announcements",
+  "announcementacknowledgements",
+  "announcementimpressions",
+  "announcementclickevents",
   "adminMigrations",
   "notificationpreferences",
   "organizations",
@@ -64,6 +68,16 @@ const injectedRtkApi = api
           url: `/mcp/service-tokens`,
         }),
       }),
+      deleteAdminAnnouncementsById: build.mutation<
+        DeleteAdminAnnouncementsByIdRes,
+        DeleteAdminAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/announcements/${queryArg}`,
+        }),
+      }),
       deleteAdminConsentFormsById: build.mutation<
         DeleteAdminConsentFormsByIdRes,
         DeleteAdminConsentFormsByIdArgs
@@ -106,6 +120,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/users/${queryArg}`,
+        }),
+      }),
+      deleteAnnouncementsById: build.mutation<
+        DeleteAnnouncementsByIdRes,
+        DeleteAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/announcements/${queryArg}`,
         }),
       }),
       deleteCommsPushTokensById: build.mutation<
@@ -185,6 +209,123 @@ const injectedRtkApi = api
       deleteUsersById: build.mutation<DeleteUsersByIdRes, DeleteUsersByIdArgs>({
         invalidatesTags: ["users"],
         query: (queryArg) => ({method: "DELETE", url: `/users/${queryArg}`}),
+      }),
+      getAdminAnnouncementAcknowledgements: build.query<
+        GetAdminAnnouncementAcknowledgementsRes,
+        GetAdminAnnouncementAcknowledgementsArgs
+      >({
+        providesTags: ["announcementacknowledgements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            acknowledgedAt: queryArg.acknowledgedAt,
+            announcementId: queryArg.announcementId,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+          },
+          url: `/admin/announcement-acknowledgements/`,
+        }),
+      }),
+      getAdminAnnouncementAcknowledgementsById: build.query<
+        GetAdminAnnouncementAcknowledgementsByIdRes,
+        GetAdminAnnouncementAcknowledgementsByIdArgs
+      >({
+        providesTags: ["announcementacknowledgements"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-acknowledgements/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncementClickEvents: build.query<
+        GetAdminAnnouncementClickEventsRes,
+        GetAdminAnnouncementClickEventsArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            action: queryArg.action,
+            announcementId: queryArg.announcementId,
+            clickedAt: queryArg.clickedAt,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+          },
+          url: `/admin/announcement-click-events/`,
+        }),
+      }),
+      getAdminAnnouncementClickEventsById: build.query<
+        GetAdminAnnouncementClickEventsByIdRes,
+        GetAdminAnnouncementClickEventsByIdArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-click-events/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncementImpressions: build.query<
+        GetAdminAnnouncementImpressionsRes,
+        GetAdminAnnouncementImpressionsArgs
+      >({
+        providesTags: ["announcementimpressions"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            announcementId: queryArg.announcementId,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+            viewedAt: queryArg.viewedAt,
+          },
+          url: `/admin/announcement-impressions/`,
+        }),
+      }),
+      getAdminAnnouncementImpressionsById: build.query<
+        GetAdminAnnouncementImpressionsByIdRes,
+        GetAdminAnnouncementImpressionsByIdArgs
+      >({
+        providesTags: ["announcementimpressions"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-impressions/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncements: build.query<GetAdminAnnouncementsRes, GetAdminAnnouncementsArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            acknowledgementPolicy: queryArg.acknowledgementPolicy,
+            expiresAt: queryArg.expiresAt,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            priority: queryArg.priority,
+            publishedAt: queryArg.publishedAt,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            status: queryArg.status,
+            title: queryArg.title,
+            version: queryArg.version,
+          },
+          url: `/admin/announcements/`,
+        }),
+      }),
+      getAdminAnnouncementsById: build.query<
+        GetAdminAnnouncementsByIdRes,
+        GetAdminAnnouncementsByIdArgs
+      >({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({url: `/admin/announcements/${queryArg}`}),
       }),
       getAdminAuditEvents: build.query<GetAdminAuditEventsRes, GetAdminAuditEventsArgs>({
         providesTags: ["auditevents"],
@@ -370,6 +511,42 @@ const injectedRtkApi = api
       getAdminUsersById: build.query<GetAdminUsersByIdRes, GetAdminUsersByIdArgs>({
         providesTags: ["users"],
         query: (queryArg) => ({url: `/admin/users/${queryArg}`}),
+      }),
+      getAnnouncements: build.query<GetAnnouncementsRes, GetAnnouncementsArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            priority: queryArg.priority,
+            sort: queryArg.sort,
+            status: queryArg.status,
+            title: queryArg.title,
+          },
+          url: `/announcements/`,
+        }),
+      }),
+      getAnnouncementsById: build.query<GetAnnouncementsByIdRes, GetAnnouncementsByIdArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({url: `/announcements/${queryArg}`}),
+      }),
+      getAnnouncementsConfig: build.query<GetAnnouncementsConfigRes, GetAnnouncementsConfigArgs>({
+        providesTags: ["announcements"],
+        query: () => ({url: `/announcements/config`}),
+      }),
+      getAnnouncementsOverview: build.query<
+        GetAnnouncementsOverviewRes,
+        GetAnnouncementsOverviewArgs
+      >({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/announcements/overview`,
+        }),
       }),
       getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
         providesTags: ["admin", "comms"],
@@ -650,6 +827,17 @@ const injectedRtkApi = api
           url: `/todos/loadtestGenerate`,
         }),
       }),
+      patchAdminAnnouncementsById: build.mutation<
+        PatchAdminAnnouncementsByIdRes,
+        PatchAdminAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/admin/announcements/${queryArg.id}`,
+        }),
+      }),
       patchAdminConsentFormsById: build.mutation<
         PatchAdminConsentFormsByIdRes,
         PatchAdminConsentFormsByIdArgs
@@ -688,6 +876,16 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}`,
         }),
       }),
+      patchAnnouncementsById: build.mutation<PatchAnnouncementsByIdRes, PatchAnnouncementsByIdArgs>(
+        {
+          invalidatesTags: ["announcements"],
+          query: (queryArg) => ({
+            body: queryArg.body,
+            method: "PATCH",
+            url: `/announcements/${queryArg.id}`,
+          }),
+        }
+      ),
       patchFeatureFlagsFlagsById: build.mutation<
         PatchFeatureFlagsFlagsByIdRes,
         PatchFeatureFlagsFlagsByIdArgs
@@ -780,6 +978,60 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/users/${queryArg.id}`,
+        }),
+      }),
+      postAdminAnnouncementAcknowledgementsBulkPatch: build.mutation<
+        PostAdminAnnouncementAcknowledgementsBulkPatchRes,
+        PostAdminAnnouncementAcknowledgementsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcement-acknowledgements/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncementClickEventsBulkPatch: build.mutation<
+        PostAdminAnnouncementClickEventsBulkPatchRes,
+        PostAdminAnnouncementClickEventsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcement-click-events/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncementImpressionsBulkPatch: build.mutation<
+        PostAdminAnnouncementImpressionsBulkPatchRes,
+        PostAdminAnnouncementImpressionsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcement-impressions/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncements: build.mutation<PostAdminAnnouncementsRes, PostAdminAnnouncementsArgs>(
+        {
+          invalidatesTags: ["announcements"],
+          query: (queryArg) => ({
+            body: queryArg,
+            method: "POST",
+            url: `/admin/announcements/`,
+          }),
+        }
+      ),
+      postAdminAnnouncementsBulkPatch: build.mutation<
+        PostAdminAnnouncementsBulkPatchRes,
+        PostAdminAnnouncementsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcements/bulk-patch`,
         }),
       }),
       postAdminAuditEventsBulkPatch: build.mutation<
@@ -900,6 +1152,14 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/admin/users/bulk-patch`,
+        }),
+      }),
+      postAnnouncements: build.mutation<PostAnnouncementsRes, PostAnnouncementsArgs>({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/announcements/`,
         }),
       }),
       postCommsMessagesByIdRetry: build.mutation<
@@ -1741,7 +2001,7 @@ export type PostProjectsRes = /** status 201 Successful create */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -1778,7 +2038,7 @@ export type GetProjectsRes = /** status 200 Successful list */ {
     /** The document id (String so offline sync clients can mint ids) */
     _id: string;
     /** The organization (tenant) this project belongs to */
-    organizationId: string;
+    organizationId?: string;
     /** The title of the project */
     title: string;
     /** When this document was last updated */
@@ -1819,7 +2079,7 @@ export type GetProjectsByIdRes = /** status 200 Successful read */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -1838,7 +2098,7 @@ export type PatchProjectsByIdRes = /** status 200 Successful update */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -2586,6 +2846,8 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   customScreens?: {
     description?: string;
     displayName?: string;
+    group?: string;
+    icon?: string;
     name?: string;
   }[];
   home?: object;
@@ -3756,6 +4018,695 @@ export type GetAdminConsentResponsesByIdRes = /** status 200 Successful read */ 
   deleted?: boolean;
 };
 export type GetAdminConsentResponsesByIdArgs = string;
+export type PostAdminAnnouncementsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type PostAdminAnnouncementsRes = /** status 201 Successful create */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PostAdminAnnouncementsArgs = {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body?: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status?: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title?: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id?: string;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  title?:
+    | string
+    | {
+        $in?: string[];
+      };
+  status?:
+    | ("draft" | "published" | "archived")
+    | {
+        $in?: string[];
+      };
+  priority?:
+    | number
+    | {
+        /** Higher priority announcements appear first in the modal queue */
+        $gt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $gte?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lte?: number;
+      };
+  version?:
+    | number
+    | {
+        /** Content version — increments when published title/body changes */
+        $gt?: number;
+        /** Content version — increments when published title/body changes */
+        $gte?: number;
+        /** Content version — increments when published title/body changes */
+        $lt?: number;
+        /** Content version — increments when published title/body changes */
+        $lte?: number;
+      };
+  publishedAt?:
+    | string
+    | {
+        /** When the announcement was first published */
+        $gt?: string;
+        /** When the announcement was first published */
+        $gte?: string;
+        /** When the announcement was first published */
+        $lt?: string;
+        /** When the announcement was first published */
+        $lte?: string;
+      };
+  expiresAt?:
+    | string
+    | {
+        /** Optional expiry — hidden from pending/feed after this time */
+        $gt?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $gte?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $lt?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $lte?: string;
+      };
+  acknowledgementPolicy?:
+    | ("required" | "dismiss-only")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementsByIdRes = /** status 200 Successful read */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementsByIdArgs = string;
+export type PatchAdminAnnouncementsByIdRes = /** status 200 Successful update */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchAdminAnnouncementsByIdArgs = {
+  id: string;
+  body: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body?: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status?: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title?: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteAdminAnnouncementsByIdRes = unknown;
+export type DeleteAdminAnnouncementsByIdArgs = string;
+export type PostAdminAnnouncementAcknowledgementsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementAcknowledgementsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementAcknowledgementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** When the user acknowledged this announcement version */
+    acknowledgedAt: string;
+    /** Announcement that was acknowledged */
+    announcementId: string;
+    /** User who acknowledged the announcement */
+    userId: string;
+    /** Announcement version acknowledged by the user */
+    version: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementAcknowledgementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version acknowledged by the user */
+        $gt?: number;
+        /** Announcement version acknowledged by the user */
+        $gte?: number;
+        /** Announcement version acknowledged by the user */
+        $lt?: number;
+        /** Announcement version acknowledged by the user */
+        $lte?: number;
+      };
+  acknowledgedAt?:
+    | string
+    | {
+        /** When the user acknowledged this announcement version */
+        $gt?: string;
+        /** When the user acknowledged this announcement version */
+        $gte?: string;
+        /** When the user acknowledged this announcement version */
+        $lt?: string;
+        /** When the user acknowledged this announcement version */
+        $lte?: string;
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementAcknowledgementsByIdRes = /** status 200 Successful read */ {
+  /** When the user acknowledged this announcement version */
+  acknowledgedAt: string;
+  /** Announcement that was acknowledged */
+  announcementId: string;
+  /** User who acknowledged the announcement */
+  userId: string;
+  /** Announcement version acknowledged by the user */
+  version: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementAcknowledgementsByIdArgs = string;
+export type PostAdminAnnouncementImpressionsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementImpressionsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementImpressionsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Announcement that was viewed */
+    announcementId: string;
+    /** Client platform where the impression occurred */
+    platform?: "ios" | "android" | "web";
+    /** User who viewed the announcement */
+    userId: string;
+    /** Announcement version viewed by the user */
+    version: number;
+    /** When the announcement was viewed */
+    viewedAt: string;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementImpressionsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version viewed by the user */
+        $gt?: number;
+        /** Announcement version viewed by the user */
+        $gte?: number;
+        /** Announcement version viewed by the user */
+        $lt?: number;
+        /** Announcement version viewed by the user */
+        $lte?: number;
+      };
+  viewedAt?:
+    | string
+    | {
+        /** When the announcement was viewed */
+        $gt?: string;
+        /** When the announcement was viewed */
+        $gte?: string;
+        /** When the announcement was viewed */
+        $lt?: string;
+        /** When the announcement was viewed */
+        $lte?: string;
+      };
+  platform?:
+    | ("ios" | "android" | "web")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementImpressionsByIdRes = /** status 200 Successful read */ {
+  /** Announcement that was viewed */
+  announcementId: string;
+  /** Client platform where the impression occurred */
+  platform?: "ios" | "android" | "web";
+  /** User who viewed the announcement */
+  userId: string;
+  /** Announcement version viewed by the user */
+  version: number;
+  /** When the announcement was viewed */
+  viewedAt: string;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementImpressionsByIdArgs = string;
+export type PostAdminAnnouncementClickEventsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementClickEventsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementClickEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Which announcement action the user clicked */
+    action: "primaryAction";
+    /** Announcement whose primary action was clicked */
+    announcementId: string;
+    /** When the primary action was clicked */
+    clickedAt: string;
+    /** Client platform where the click occurred */
+    platform?: "ios" | "android" | "web";
+    /** User who clicked the announcement action */
+    userId: string;
+    /** Announcement version at click time */
+    version: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementClickEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version at click time */
+        $gt?: number;
+        /** Announcement version at click time */
+        $gte?: number;
+        /** Announcement version at click time */
+        $lt?: number;
+        /** Announcement version at click time */
+        $lte?: number;
+      };
+  action?:
+    | "primaryAction"
+    | {
+        $in?: string[];
+      };
+  clickedAt?:
+    | string
+    | {
+        /** When the primary action was clicked */
+        $gt?: string;
+        /** When the primary action was clicked */
+        $gte?: string;
+        /** When the primary action was clicked */
+        $lt?: string;
+        /** When the primary action was clicked */
+        $lte?: string;
+      };
+  platform?:
+    | ("ios" | "android" | "web")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementClickEventsByIdRes = /** status 200 Successful read */ {
+  /** Which announcement action the user clicked */
+  action: "primaryAction";
+  /** Announcement whose primary action was clicked */
+  announcementId: string;
+  /** When the primary action was clicked */
+  clickedAt: string;
+  /** Client platform where the click occurred */
+  platform?: "ios" | "android" | "web";
+  /** User who clicked the announcement action */
+  userId: string;
+  /** Announcement version at click time */
+  version: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementClickEventsByIdArgs = string;
 export type PostAdminTodosBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -4560,6 +5511,361 @@ export type PatchNotificationPreferencesByIdArgs = {
 };
 export type DeleteNotificationPreferencesByIdRes = unknown;
 export type DeleteNotificationPreferencesByIdArgs = string;
+export type GetAnnouncementsConfigRes = /** status 200 Success */ {
+  data?: {
+    /** "required" or "dismiss-only" */
+    defaultAcknowledgementPolicy?: string;
+  };
+};
+export type GetAnnouncementsConfigArgs = undefined;
+export type GetAnnouncementsOverviewRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    acknowledgementPolicy?: string;
+    audienceType?: string;
+    displayMode?: string;
+    expiresAt?: string;
+    metrics?: {
+      acknowledgements?: number;
+      clicks?: number;
+      impressions?: number;
+    };
+    priority?: number;
+    publishedAt?: string;
+    status?: string;
+    title?: string;
+    version?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+  totals?: {
+    acknowledgements?: number;
+    announcements?: number;
+    archived?: number;
+    clicks?: number;
+    draft?: number;
+    impressions?: number;
+    published?: number;
+  };
+};
+export type GetAnnouncementsOverviewArgs = {
+  page?: number;
+  limit?: number;
+};
+export type PostAnnouncementsRes = /** status 201 Successful create */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PostAnnouncementsArgs = {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body?: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status?: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title?: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id?: string;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAnnouncementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAnnouncementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  status?:
+    | ("draft" | "published" | "archived")
+    | {
+        $in?: string[];
+      };
+  priority?:
+    | number
+    | {
+        /** Higher priority announcements appear first in the modal queue */
+        $gt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $gte?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lte?: number;
+      };
+  title?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAnnouncementsByIdRes = /** status 200 Successful read */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAnnouncementsByIdArgs = string;
+export type PatchAnnouncementsByIdRes = /** status 200 Successful update */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchAnnouncementsByIdArgs = {
+  id: string;
+  body: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body?: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status?: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title?: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteAnnouncementsByIdRes = unknown;
+export type DeleteAnnouncementsByIdArgs = string;
 export type PostOrgsRes = unknown;
 export type PostOrgsArgs = {
   /** Organization name */
@@ -4764,6 +6070,21 @@ export const {
   usePostAdminConsentResponsesBulkPatchMutation,
   useGetAdminConsentResponsesQuery,
   useGetAdminConsentResponsesByIdQuery,
+  usePostAdminAnnouncementsBulkPatchMutation,
+  usePostAdminAnnouncementsMutation,
+  useGetAdminAnnouncementsQuery,
+  useGetAdminAnnouncementsByIdQuery,
+  usePatchAdminAnnouncementsByIdMutation,
+  useDeleteAdminAnnouncementsByIdMutation,
+  usePostAdminAnnouncementAcknowledgementsBulkPatchMutation,
+  useGetAdminAnnouncementAcknowledgementsQuery,
+  useGetAdminAnnouncementAcknowledgementsByIdQuery,
+  usePostAdminAnnouncementImpressionsBulkPatchMutation,
+  useGetAdminAnnouncementImpressionsQuery,
+  useGetAdminAnnouncementImpressionsByIdQuery,
+  usePostAdminAnnouncementClickEventsBulkPatchMutation,
+  useGetAdminAnnouncementClickEventsQuery,
+  useGetAdminAnnouncementClickEventsByIdQuery,
   usePostAdminTodosBulkPatchMutation,
   usePostAdminTodosMutation,
   useGetAdminTodosQuery,
@@ -4788,6 +6109,13 @@ export const {
   useGetNotificationPreferencesByIdQuery,
   usePatchNotificationPreferencesByIdMutation,
   useDeleteNotificationPreferencesByIdMutation,
+  useGetAnnouncementsConfigQuery,
+  useGetAnnouncementsOverviewQuery,
+  usePostAnnouncementsMutation,
+  useGetAnnouncementsQuery,
+  useGetAnnouncementsByIdQuery,
+  usePatchAnnouncementsByIdMutation,
+  useDeleteAnnouncementsByIdMutation,
   usePostOrgsMutation,
   useGetOrgsQuery,
   useGetOrgsMineQuery,

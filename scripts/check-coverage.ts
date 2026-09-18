@@ -483,8 +483,12 @@ export const writeMergedLcov = (cwd: string, coverage: Map<string, FileCoverage>
   return lcovPath;
 };
 
-const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; output: string}> => {
-  const srcRoot = join(process.cwd(), "src");
+const runBunTest = async (
+  args: readonly string[],
+  options?: {env?: Record<string, string>; workingDirectory?: string}
+): Promise<{exitCode: number; output: string}> => {
+  const workingDirectory = options?.workingDirectory ?? process.cwd();
+  const srcRoot = join(workingDirectory, "src");
   const prependSrcRoot =
     existsSync(srcRoot) &&
     !args.some((a) => a.startsWith("./") || /[/\\][^/\\]+\.test\.(t|j)sx?$/.test(a));
@@ -494,11 +498,12 @@ const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; o
 
   // mcp-server: TERRENO_MCP_DOCS_DIR races across files.
   // admin-frontend: mock.module doubles leak across concurrently loaded files.
-  const serialPackage = ["mcp-server", "admin-frontend"].includes(basename(process.cwd()));
+  const serialPackage = ["mcp-server", "admin-frontend"].includes(basename(workingDirectory));
   const mcpServerConcurrency = serialPackage ? (["--max-concurrency=1"] as const) : [];
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn("bun", ["test", ...mcpServerConcurrency, ...srcRootArg, ...args], {
-      env: {...process.env, FORCE_COLOR: "0"},
+      cwd: workingDirectory,
+      env: {...process.env, ...options?.env, FORCE_COLOR: "0"},
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -598,12 +603,11 @@ const main = async (): Promise<void> => {
     coverageDirs.push(dir);
     rmSync(dir, {force: true, recursive: true});
     console.info(`\n--- Isolated coverage pass for ${testFile} ---`);
-    const run = await runBunTest([
-      testFile,
-      "--coverage",
-      "--coverage-reporter=lcov",
-      `--coverage-dir=${dir}`,
-    ]);
+    const needsReducedPreload = testFile === "././src/isolated/hooks.isolated.tsx";
+    const run = await runBunTest(
+      [testFile, "--coverage", "--coverage-reporter=lcov", `--coverage-dir=${dir}`],
+      needsReducedPreload ? {env: {ADMIN_USE_REAL_API: "1"}} : undefined
+    );
     failIfTestsFailed(run.exitCode, run.output, `bun test ${testFile}`);
     mergeIsolatedLcov(mergedCoverage, onlyHitFiles(readLcov(dir)));
   }

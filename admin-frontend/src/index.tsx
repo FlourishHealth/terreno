@@ -31,6 +31,20 @@ export {AdminScriptRunModal} from "./AdminScriptRunModal";
 export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from "./AdminShell";
 export {AdminShellLayout, type AdminShellLayoutProps} from "./AdminShellLayout";
 export {AdminVersionConfig} from "./AdminVersionConfig";
+export {AnnouncementEditor} from "./AnnouncementEditor";
+export {AnnouncementList} from "./AnnouncementList";
+export {
+  AnnouncementOverview,
+  type AnnouncementOverviewMetrics,
+  type AnnouncementOverviewProps,
+  type AnnouncementOverviewResponse,
+  type AnnouncementOverviewRow,
+  type AnnouncementOverviewTotals,
+} from "./AnnouncementOverview";
+export {
+  ANNOUNCEMENTS_ADMIN_WIDGETS,
+  AnnouncementOverviewScreenWidget,
+} from "./AnnouncementOverviewScreenWidget";
 export {isAdminPageForbiddenError} from "./adminPageAccess";
 export {
   AdminAPIError,
@@ -40,7 +54,7 @@ export {
   bindAdminRequest,
   DEFAULT_ADMIN_REQUEST_TIMEOUT_MS,
 } from "./adminRequest";
-export {groupAdminModelsByGroup} from "./adminShellNav";
+export {buildAdminSidebarGroups, groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {ConsentFormEditor} from "./ConsentFormEditor";

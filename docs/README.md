@@ -41,6 +41,7 @@ Canonical copy, language rules, and the Django/Rails comparison:
 | [@terreno/admin-frontend](reference/admin-frontend.md) | Admin panel frontend screens for `@terreno/api` backends |
 | [@terreno/admin-spa](reference/admin-spa.md) | Standalone admin SPA (Expo Router web) plus Express serve plugin |
 | [@terreno/api-health](reference/api-health.md) | Health check plugin for `@terreno/api` |
+| [@terreno/announcements](reference/announcements.md) | In-app product update announcements |
 | [@terreno/comms](reference/comms.md) | Pluggable communications providers |
 | [@terreno/feature-flags](reference/feature-flags.md) | Feature flags and A/B testing plugin for `@terreno/api` |
 | [@terreno/mcp](reference/mcp-server.md) | MCP server that gives coding agents Terreno docs, codegen tools, and prompts |

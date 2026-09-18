@@ -18,7 +18,8 @@ const projectSchema = new mongoose.Schema<ProjectDocument, ProjectModel>(
     },
     organizationId: {
       description: "The organization (tenant) this project belongs to",
-      required: true,
+      // Optional on create: preCreate injects/validates tenant scope when omitted.
+      required: false,
       type: String,
     },
     title: {

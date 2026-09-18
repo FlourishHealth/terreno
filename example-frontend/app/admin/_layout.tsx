@@ -149,6 +149,7 @@ const AdminLayoutContent: React.FC = () => {
             <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
             <Stack.Screen name="configuration" options={{title: "Configuration"}} />
             <Stack.Screen name="roles" options={{title: "Roles"}} />
+            <Stack.Screen name="announcements/index" options={{title: "Announcements"}} />
             <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
             <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
             <Stack.Screen name="orgs/index" options={{title: "Organizations"}} />

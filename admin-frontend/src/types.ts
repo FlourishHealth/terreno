@@ -137,6 +137,9 @@ export interface AdminModelConfig {
 export interface AdminCustomScreen {
   description?: string;
   displayName: string;
+  /** Sidebar group label; grouped screens render with matching model groups in AdminShell. */
+  group?: string;
+  icon?: string;
   name: string;
 }
 

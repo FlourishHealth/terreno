@@ -2,6 +2,7 @@ import {beforeEach, describe, it, mock} from "bun:test";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerBack = mock(() => {});
@@ -25,28 +26,6 @@ mock.module("./useAdminConfig", () => ({
 }));
 
 const readSkipCalls: boolean[] = [];
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 1})})),
-      {isLoading: false},
-    ],
-    useCreateMutation: () => [
-      mock(() => ({unwrap: async () => ({_id: "new"})})),
-      {isLoading: false},
-    ],
-    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false, refetch: async () => ({})}),
-    useReadQuery: (_id: string, opts: {skip?: boolean}) => {
-      readSkipCalls.push(Boolean(opts.skip));
-      return {data: null, error: null, isLoading: false};
-    },
-    useUpdateMutation: () => [
-      mock(() => ({unwrap: async () => ({_id: "item-1"})})),
-      {isLoading: false},
-    ],
-  }),
-}));
 
 import {AdminModelForm} from "./AdminModelForm";
 import {AdminProvider} from "./AdminProvider";
@@ -69,6 +48,13 @@ const orgScopedModel = {
 describe("AdminModelForm org-scoped read skip", () => {
   beforeEach(() => {
     readSkipCalls.length = 0;
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useReadQuery: (_id: string, opts: {skip?: boolean}) => {
+        readSkipCalls.push(Boolean(opts.skip));
+        return {data: null, error: null, isLoading: false};
+      },
+    });
     configState.isLoading = false;
     configState.config = {
       models: [orgScopedModel],
