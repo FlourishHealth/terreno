@@ -330,6 +330,28 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                       },
                                       "type": "TextInput",
                                     },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "accessibilityLabel": "Show password",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": true,
+                                          "expanded": false,
+                                        },
+                                        "disabled": true,
+                                        "hitSlop": 8,
+                                        "onPress": [Function],
+                                        "style": {
+                                          "alignItems": "center",
+                                          "marginLeft": 8,
+                                          "width": 20,
+                                        },
+                                        "testID": "signup-screen-password-input.visibility-toggle",
+                                      },
+                                      "type": "Pressable",
+                                    },
                                   ],
                                   "props": {
                                     "style": {
