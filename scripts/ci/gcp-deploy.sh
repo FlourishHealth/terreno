@@ -166,17 +166,23 @@ case "$action" in
     location="${GCP_INFRA_MANAGER_LOCATION:-us-central1}"
     preview_id="${TF_DEPLOYMENT}-pr${PR_NUMBER}-${CIRCLE_BUILD_NUM:-manual}"
     trap 'gcloud infra-manager previews delete "$preview_id" --location="$location" --project="$GCP_PROJECT_ID" --quiet || true' EXIT
+    preview_create_status=0
     gcloud infra-manager previews create "$preview_id" \
       "--project=$GCP_PROJECT_ID" \
       "--location=$location" \
       "--deployment=projects/${GCP_PROJECT_ID}/locations/${location}/deployments/${TF_DEPLOYMENT}" \
       "--service-account=projects/${GCP_PROJECT_ID}/serviceAccounts/${GCP_TF_ADMIN_SA_PROD}" \
       --local-source=terraform \
-      --quiet
+      --quiet || preview_create_status=$?
+    # Dump errorCode/errorLogs even when create fails. gcloud often prints an
+    # empty "failed while running step:" line and nothing else.
     gcloud infra-manager previews describe "$preview_id" \
       "--location=$location" \
       "--project=$GCP_PROJECT_ID" \
-      --format='yaml(state,errorCode,errorLogs,buildResults)'
+      --format='yaml(state,errorCode,errorLogs,buildResults)' || true
+    if [ "$preview_create_status" -ne 0 ]; then
+      exit "$preview_create_status"
+    fi
     ;;
   terraform-apply)
     export GCP_SERVICE_ACCOUNT="${GCP_TF_ADMIN_SA_PROD:-}"

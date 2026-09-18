@@ -152,6 +152,7 @@ jobs:
             --local-source="terraform" \
             --quiet
       - name: Describe preview
+        if: always() && steps.preview.outputs.preview_id != ''
         run: |
           set -euo pipefail
           gcloud infra-manager previews describe \

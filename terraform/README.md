@@ -8,7 +8,7 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 - Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
 - **Workload Identity Federation** — GitHub and CircleCI providers share two impersonable service accounts:
-  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope)
+  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope, including `roles/logging.logWriter` so Infra Manager Cloud Build can write regional logs)
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
@@ -221,6 +221,10 @@ terraform validate
 ```
 
 Don't `terraform apply` locally — Infra Manager is the source of truth for who can apply.
+
+## Debugging Infra Manager previews
+
+`gcloud infra-manager previews create` often fails with an empty `failed while running step:` line. GitHub `Terraform preview` and CircleCI `scripts/ci/gcp-deploy.sh terraform-preview` still run `previews describe` (`state`, `errorCode`, `errorLogs`) before delete. Cloud Build regional logs require `terraform-admin` to have `roles/logging.logWriter`.
 
 ## GCS + CDN static site hosting
 

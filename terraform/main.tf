@@ -26,6 +26,9 @@ locals {
         # the Compute Engine default — serviceAccountAdmin doesn't grant it.
         "roles/iam.serviceAccountUser",
         "roles/iam.workloadIdentityPoolAdmin",
+        # Infra Manager Cloud Build runs as this SA. Without Logs Writer,
+        # regional build logs are empty and `gcloud builds log` returns nothing.
+        "roles/logging.logWriter",
         "roles/resourcemanager.projectIamAdmin",
         "roles/run.admin",
         "roles/secretmanager.admin",
