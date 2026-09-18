@@ -324,6 +324,9 @@ This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
 
 ## Local validation
 
+Map every CircleCI test job to a local command with
+[run tests locally](run-tests-locally.md). Config syntax:
+
 ```bash
 circleci config validate .circleci/config.yml
 circleci config validate .circleci/continue-config.yml
