@@ -222,6 +222,16 @@ terraform validate
 
 Don't `terraform apply` locally — Infra Manager is the source of truth for who can apply.
 
+## Never apply from a stale checkout
+
+`gcloud infra-manager deployments apply --local-source=terraform` applies whatever is on **your disk**, not what is on `master`. A checkout that is behind `master` plans destroys for everything merged since. On 2026-09-18 an apply from a pre-#1327 tree deleted the `terreno-example-jobs` queue, the `terreno-backend-runtime` and `terreno-jobs-invoker` service accounts, and terraform-admin's `roles/cloudtasks.admin` binding.
+
+Apply from CI (**Actions → CD → Run workflow** on `master` with `run_terraform=true`), or `git fetch origin master && git checkout master` first. Before confirming any manual apply, read the plan line in the build log and stop if it lists destroys you did not intend:
+
+```
+Plan: 5 to add, 3 to change, 15 to destroy.
+```
+
 ## Debugging Infra Manager previews
 
 `gcloud infra-manager previews create` often fails with an empty `failed while running step:` line. GitHub `Terraform preview` and CircleCI `scripts/ci/gcp-deploy.sh terraform-preview` still run `previews describe` (`state`, `errorCode`, `errorLogs`) before delete. Cloud Build regional logs require `terraform-admin` to have `roles/logging.logWriter`.
