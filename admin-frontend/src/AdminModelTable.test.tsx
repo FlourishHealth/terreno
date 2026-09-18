@@ -7,6 +7,7 @@ import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
@@ -43,25 +44,6 @@ const deleteFn = mock(() => ({unwrap: async () => ({})}));
 const patchFn = mock(() => ({unwrap: async () => ({})}));
 const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 0})}));
 const enqueueBackgroundFn = mock(() => ({unwrap: async () => ({taskId: "t1"})}));
-
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: (params: unknown) => {
-      listQueryArgs.push(params);
-      return {
-        data: listState.data,
-        error: null,
-        isLoading: listState.isLoading,
-        refetch: async () => ({data: listState.data}),
-      };
-    },
-    useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [patchFn, {isLoading: false}],
-  }),
-}));
 
 mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [enqueueBackgroundFn, {isLoading: false}],
@@ -142,6 +124,23 @@ describe("AdminModelTable", () => {
   const originalConsoleError = console.error;
 
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
+      useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useDeleteMutation: () => [deleteFn, {isLoading: false}],
+      useListQuery: (params: unknown) => {
+        listQueryArgs.push(params);
+        return {
+          data: listState.data,
+          error: null,
+          isLoading: listState.isLoading,
+          refetch: async () => ({data: listState.data}),
+        };
+      },
+      useReadQuery: () => ({data: null, error: null, isLoading: false}),
+      useUpdateMutation: () => [patchFn, {isLoading: false}],
+    });
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();

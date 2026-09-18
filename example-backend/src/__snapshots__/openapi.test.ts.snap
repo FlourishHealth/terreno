@@ -72,6 +72,3221 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
+    "/admin/announcement-acknowledgements/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "User who acknowledged the announcement",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "announcementId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement that was acknowledged",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement version acknowledged by the user",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Announcement version acknowledged by the user",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "description": "Announcement version acknowledged by the user",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "description": "Announcement version acknowledged by the user",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "description": "Announcement version acknowledged by the user",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "acknowledgedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the user acknowledged this announcement version",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the user acknowledged this announcement version",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the user acknowledged this announcement version",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the user acknowledged this announcement version",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the user acknowledged this announcement version",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "acknowledgedAt": {
+                            "description": "When the user acknowledged this announcement version",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "announcementId": {
+                            "description": "Announcement that was acknowledged",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "User who acknowledged the announcement",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Announcement version acknowledged by the user",
+                            "type": "number",
+                          },
+                        },
+                        "required": [
+                          "acknowledgedAt",
+                          "announcementId",
+                          "userId",
+                          "version",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementacknowledgements",
+        ],
+      },
+    },
+    "/admin/announcement-acknowledgements/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch AnnouncementAcknowledgement documents",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/announcement-acknowledgements/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgedAt": {
+                      "description": "When the user acknowledged this announcement version",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "announcementId": {
+                      "description": "Announcement that was acknowledged",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "User who acknowledged the announcement",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Announcement version acknowledged by the user",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "acknowledgedAt",
+                    "announcementId",
+                    "userId",
+                    "version",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementacknowledgements",
+        ],
+      },
+    },
+    "/admin/announcement-click-events/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "User who clicked the announcement action",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "announcementId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement whose primary action was clicked",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement version at click time",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Which announcement action the user clicked",
+                  "enum": [
+                    "primaryAction",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "clickedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the primary action was clicked",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Client platform where the click occurred",
+                  "enum": [
+                    "ios",
+                    "android",
+                    "web",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "action": {
+                            "description": "Which announcement action the user clicked",
+                            "enum": [
+                              "primaryAction",
+                            ],
+                            "type": "string",
+                          },
+                          "announcementId": {
+                            "description": "Announcement whose primary action was clicked",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "clickedAt": {
+                            "description": "When the primary action was clicked",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "platform": {
+                            "description": "Client platform where the click occurred",
+                            "enum": [
+                              "ios",
+                              "android",
+                              "web",
+                            ],
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "User who clicked the announcement action",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Announcement version at click time",
+                            "type": "number",
+                          },
+                        },
+                        "required": [
+                          "action",
+                          "announcementId",
+                          "clickedAt",
+                          "userId",
+                          "version",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementclickevents",
+        ],
+      },
+    },
+    "/admin/announcement-click-events/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch AnnouncementClickEvent documents",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/announcement-click-events/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "action": {
+                      "description": "Which announcement action the user clicked",
+                      "enum": [
+                        "primaryAction",
+                      ],
+                      "type": "string",
+                    },
+                    "announcementId": {
+                      "description": "Announcement whose primary action was clicked",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "clickedAt": {
+                      "description": "When the primary action was clicked",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "platform": {
+                      "description": "Client platform where the click occurred",
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "User who clicked the announcement action",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Announcement version at click time",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "action",
+                    "announcementId",
+                    "clickedAt",
+                    "userId",
+                    "version",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementclickevents",
+        ],
+      },
+    },
+    "/admin/announcement-impressions/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "User who viewed the announcement",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "announcementId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement that was viewed",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement version viewed by the user",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Announcement version viewed by the user",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "description": "Announcement version viewed by the user",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "description": "Announcement version viewed by the user",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "description": "Announcement version viewed by the user",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "viewedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the announcement was viewed",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the announcement was viewed",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the announcement was viewed",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the announcement was viewed",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the announcement was viewed",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Client platform where the impression occurred",
+                  "enum": [
+                    "ios",
+                    "android",
+                    "web",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "announcementId": {
+                            "description": "Announcement that was viewed",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "platform": {
+                            "description": "Client platform where the impression occurred",
+                            "enum": [
+                              "ios",
+                              "android",
+                              "web",
+                            ],
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "User who viewed the announcement",
+                            "format": "objectid",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Announcement version viewed by the user",
+                            "type": "number",
+                          },
+                          "viewedAt": {
+                            "description": "When the announcement was viewed",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "announcementId",
+                          "userId",
+                          "version",
+                          "viewedAt",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementimpressions",
+        ],
+      },
+    },
+    "/admin/announcement-impressions/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch AnnouncementImpression documents",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/announcement-impressions/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "announcementId": {
+                      "description": "Announcement that was viewed",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "platform": {
+                      "description": "Client platform where the impression occurred",
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "User who viewed the announcement",
+                      "format": "objectid",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Announcement version viewed by the user",
+                      "type": "number",
+                    },
+                    "viewedAt": {
+                      "description": "When the announcement was viewed",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "announcementId",
+                    "userId",
+                    "version",
+                    "viewedAt",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcementimpressions",
+        ],
+      },
+    },
+    "/admin/announcements/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement title shown in modal and changelog feed",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "draft",
+                  "description": "Lifecycle status: draft, published, or archived",
+                  "enum": [
+                    "draft",
+                    "published",
+                    "archived",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": 0,
+                  "description": "Higher priority announcements appear first in the modal queue",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": 1,
+                  "description": "Content version — increments when published title/body changes",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "default": 1,
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "default": 1,
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "default": 1,
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "default": 1,
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "publishedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When the announcement was first published",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "expiresAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Optional expiry — hidden from pending/feed after this time",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "acknowledgementPolicy",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                  "enum": [
+                    "required",
+                    "dismiss-only",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "acknowledgementPolicy": {
+                            "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                            "enum": [
+                              "required",
+                              "dismiss-only",
+                            ],
+                            "type": "string",
+                          },
+                          "archivedAt": {
+                            "description": "When the announcement was archived",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "audience": {
+                            "description": "Opaque targeting metadata consumed by matchAudience callback",
+                          },
+                          "audienceType": {
+                            "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                            "enum": [
+                              "staff",
+                              "patient",
+                              "all",
+                            ],
+                            "type": "string",
+                          },
+                          "body": {
+                            "description": "Markdown body shown in the announcement modal",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "displayMode": {
+                            "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                            "enum": [
+                              "modal",
+                              "banner",
+                              "feed",
+                            ],
+                            "type": "string",
+                          },
+                          "expiresAt": {
+                            "description": "Optional expiry — hidden from pending/feed after this time",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "minBuildNumber": {
+                            "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                            "type": "number",
+                          },
+                          "platforms": {
+                            "description": "Platforms that should receive this announcement",
+                            "items": {
+                              "enum": [
+                                "ios",
+                                "android",
+                                "web",
+                              ],
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
+                          "primaryAction": {
+                            "properties": {
+                              "label": {
+                                "description": "Button label for optional primary action",
+                                "type": "string",
+                              },
+                              "url": {
+                                "description": "Deep link or external URL opened by the primary action button",
+                                "type": "string",
+                              },
+                            },
+                            "type": "object",
+                          },
+                          "priority": {
+                            "description": "Higher priority announcements appear first in the modal queue",
+                            "type": "number",
+                          },
+                          "publishAt": {
+                            "description": "Optional scheduled publish time — hidden until this instant",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "publishedAt": {
+                            "description": "When the announcement was first published",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "status": {
+                            "description": "Lifecycle status: draft, published, or archived",
+                            "enum": [
+                              "draft",
+                              "published",
+                              "archived",
+                            ],
+                            "type": "string",
+                          },
+                          "title": {
+                            "description": "Announcement title shown in modal and changelog feed",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Content version — increments when published title/body changes",
+                            "type": "number",
+                          },
+                        },
+                        "required": [
+                          "body",
+                          "status",
+                          "title",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
+                  "archivedAt": {
+                    "description": "When the announcement was archived",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "audience": {
+                    "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
+                  },
+                  "body": {
+                    "description": "Markdown body shown in the announcement modal",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
+                  "expiresAt": {
+                    "description": "Optional expiry — hidden from pending/feed after this time",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
+                  },
+                  "platforms": {
+                    "description": "Platforms that should receive this announcement",
+                    "items": {
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "primaryAction": {
+                    "properties": {
+                      "label": {
+                        "description": "Button label for optional primary action",
+                        "type": "string",
+                      },
+                      "url": {
+                        "description": "Deep link or external URL opened by the primary action button",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "priority": {
+                    "description": "Higher priority announcements appear first in the modal queue",
+                    "type": "number",
+                  },
+                  "publishAt": {
+                    "description": "Optional scheduled publish time — hidden until this instant",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "publishedAt": {
+                    "description": "When the announcement was first published",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Lifecycle status: draft, published, or archived",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "Announcement title shown in modal and changelog feed",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "version": {
+                    "description": "Content version — increments when published title/body changes",
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
+    "/admin/announcements/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch Announcement documents",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/announcements/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
+                  "archivedAt": {
+                    "description": "When the announcement was archived",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "audience": {
+                    "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
+                  },
+                  "body": {
+                    "description": "Markdown body shown in the announcement modal",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
+                  "expiresAt": {
+                    "description": "Optional expiry — hidden from pending/feed after this time",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
+                  },
+                  "platforms": {
+                    "description": "Platforms that should receive this announcement",
+                    "items": {
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "primaryAction": {
+                    "properties": {
+                      "label": {
+                        "description": "Button label for optional primary action",
+                        "type": "string",
+                      },
+                      "url": {
+                        "description": "Deep link or external URL opened by the primary action button",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "priority": {
+                    "description": "Higher priority announcements appear first in the modal queue",
+                    "type": "number",
+                  },
+                  "publishAt": {
+                    "description": "Optional scheduled publish time — hidden until this instant",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "publishedAt": {
+                    "description": "When the announcement was first published",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Lifecycle status: draft, published, or archived",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "Announcement title shown in modal and changelog feed",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "version": {
+                    "description": "Content version — increments when published title/body changes",
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
     "/admin/audit-events/": {
       "get": {
         "parameters": [
@@ -814,6 +4029,12 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "displayName": {
+                            "type": "string",
+                          },
+                          "group": {
+                            "type": "string",
+                          },
+                          "icon": {
                             "type": "string",
                           },
                           "name": {
@@ -3339,7 +6560,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -3544,7 +6764,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -3677,7 +6896,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -4041,7 +7259,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -4239,7 +7456,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -4372,7 +7588,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -7576,6 +10791,1512 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/announcements/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "draft",
+                  "description": "Lifecycle status: draft, published, or archived",
+                  "enum": [
+                    "draft",
+                    "published",
+                    "archived",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": 0,
+                  "description": "Higher priority announcements appear first in the modal queue",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "default": 0,
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Announcement title shown in modal and changelog feed",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "acknowledgementPolicy": {
+                            "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                            "enum": [
+                              "required",
+                              "dismiss-only",
+                            ],
+                            "type": "string",
+                          },
+                          "archivedAt": {
+                            "description": "When the announcement was archived",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "audience": {
+                            "description": "Opaque targeting metadata consumed by matchAudience callback",
+                          },
+                          "audienceType": {
+                            "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                            "enum": [
+                              "staff",
+                              "patient",
+                              "all",
+                            ],
+                            "type": "string",
+                          },
+                          "body": {
+                            "description": "Markdown body shown in the announcement modal",
+                            "type": "string",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "displayMode": {
+                            "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                            "enum": [
+                              "modal",
+                              "banner",
+                              "feed",
+                            ],
+                            "type": "string",
+                          },
+                          "expiresAt": {
+                            "description": "Optional expiry — hidden from pending/feed after this time",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "minBuildNumber": {
+                            "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                            "type": "number",
+                          },
+                          "platforms": {
+                            "description": "Platforms that should receive this announcement",
+                            "items": {
+                              "enum": [
+                                "ios",
+                                "android",
+                                "web",
+                              ],
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
+                          "primaryAction": {
+                            "properties": {
+                              "label": {
+                                "description": "Button label for optional primary action",
+                                "type": "string",
+                              },
+                              "url": {
+                                "description": "Deep link or external URL opened by the primary action button",
+                                "type": "string",
+                              },
+                            },
+                            "type": "object",
+                          },
+                          "priority": {
+                            "description": "Higher priority announcements appear first in the modal queue",
+                            "type": "number",
+                          },
+                          "publishAt": {
+                            "description": "Optional scheduled publish time — hidden until this instant",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "publishedAt": {
+                            "description": "When the announcement was first published",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "status": {
+                            "description": "Lifecycle status: draft, published, or archived",
+                            "enum": [
+                              "draft",
+                              "published",
+                              "archived",
+                            ],
+                            "type": "string",
+                          },
+                          "title": {
+                            "description": "Announcement title shown in modal and changelog feed",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "version": {
+                            "description": "Content version — increments when published title/body changes",
+                            "type": "number",
+                          },
+                        },
+                        "required": [
+                          "body",
+                          "status",
+                          "title",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
+                  "archivedAt": {
+                    "description": "When the announcement was archived",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "audience": {
+                    "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
+                  },
+                  "body": {
+                    "description": "Markdown body shown in the announcement modal",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
+                  "expiresAt": {
+                    "description": "Optional expiry — hidden from pending/feed after this time",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
+                  },
+                  "platforms": {
+                    "description": "Platforms that should receive this announcement",
+                    "items": {
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "primaryAction": {
+                    "properties": {
+                      "label": {
+                        "description": "Button label for optional primary action",
+                        "type": "string",
+                      },
+                      "url": {
+                        "description": "Deep link or external URL opened by the primary action button",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "priority": {
+                    "description": "Higher priority announcements appear first in the modal queue",
+                    "type": "number",
+                  },
+                  "publishAt": {
+                    "description": "Optional scheduled publish time — hidden until this instant",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "publishedAt": {
+                    "description": "When the announcement was first published",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Lifecycle status: draft, published, or archived",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "Announcement title shown in modal and changelog feed",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "version": {
+                    "description": "Content version — increments when published title/body changes",
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
+    "/announcements/config": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "defaultAcknowledgementPolicy": {
+                          "description": ""required" or "dismiss-only"",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Get announcement plugin configuration",
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
+    "/announcements/overview": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "acknowledgementPolicy": {
+                            "type": "string",
+                          },
+                          "audienceType": {
+                            "type": "string",
+                          },
+                          "displayMode": {
+                            "type": "string",
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                          },
+                          "metrics": {
+                            "properties": {
+                              "acknowledgements": {
+                                "type": "number",
+                              },
+                              "clicks": {
+                                "type": "number",
+                              },
+                              "impressions": {
+                                "type": "number",
+                              },
+                            },
+                            "type": "object",
+                          },
+                          "priority": {
+                            "type": "number",
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                          },
+                          "status": {
+                            "type": "string",
+                          },
+                          "title": {
+                            "type": "string",
+                          },
+                          "version": {
+                            "type": "number",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                    "totals": {
+                      "properties": {
+                        "acknowledgements": {
+                          "type": "number",
+                        },
+                        "announcements": {
+                          "type": "number",
+                        },
+                        "archived": {
+                          "type": "number",
+                        },
+                        "clicks": {
+                          "type": "number",
+                        },
+                        "draft": {
+                          "type": "number",
+                        },
+                        "impressions": {
+                          "type": "number",
+                        },
+                        "published": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Admin overview of announcements with aggregate metrics",
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
+    "/announcements/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "acknowledgementPolicy": {
+                    "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                    "enum": [
+                      "required",
+                      "dismiss-only",
+                    ],
+                    "type": "string",
+                  },
+                  "archivedAt": {
+                    "description": "When the announcement was archived",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "audience": {
+                    "description": "Opaque targeting metadata consumed by matchAudience callback",
+                  },
+                  "audienceType": {
+                    "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                    "enum": [
+                      "staff",
+                      "patient",
+                      "all",
+                    ],
+                    "type": "string",
+                  },
+                  "body": {
+                    "description": "Markdown body shown in the announcement modal",
+                    "type": "string",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "displayMode": {
+                    "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                    "enum": [
+                      "modal",
+                      "banner",
+                      "feed",
+                    ],
+                    "type": "string",
+                  },
+                  "expiresAt": {
+                    "description": "Optional expiry — hidden from pending/feed after this time",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "minBuildNumber": {
+                    "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                    "type": "number",
+                  },
+                  "platforms": {
+                    "description": "Platforms that should receive this announcement",
+                    "items": {
+                      "enum": [
+                        "ios",
+                        "android",
+                        "web",
+                      ],
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "primaryAction": {
+                    "properties": {
+                      "label": {
+                        "description": "Button label for optional primary action",
+                        "type": "string",
+                      },
+                      "url": {
+                        "description": "Deep link or external URL opened by the primary action button",
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "priority": {
+                    "description": "Higher priority announcements appear first in the modal queue",
+                    "type": "number",
+                  },
+                  "publishAt": {
+                    "description": "Optional scheduled publish time — hidden until this instant",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "publishedAt": {
+                    "description": "When the announcement was first published",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Lifecycle status: draft, published, or archived",
+                    "enum": [
+                      "draft",
+                      "published",
+                      "archived",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "description": "Announcement title shown in modal and changelog feed",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "version": {
+                    "description": "Content version — increments when published title/body changes",
+                    "type": "number",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "acknowledgementPolicy": {
+                      "description": "Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time.",
+                      "enum": [
+                        "required",
+                        "dismiss-only",
+                      ],
+                      "type": "string",
+                    },
+                    "archivedAt": {
+                      "description": "When the announcement was archived",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "audience": {
+                      "description": "Opaque targeting metadata consumed by matchAudience callback",
+                    },
+                    "audienceType": {
+                      "description": "First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType.",
+                      "enum": [
+                        "staff",
+                        "patient",
+                        "all",
+                      ],
+                      "type": "string",
+                    },
+                    "body": {
+                      "description": "Markdown body shown in the announcement modal",
+                      "type": "string",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "displayMode": {
+                      "description": "Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry",
+                      "enum": [
+                        "modal",
+                        "banner",
+                        "feed",
+                      ],
+                      "type": "string",
+                    },
+                    "expiresAt": {
+                      "description": "Optional expiry — hidden from pending/feed after this time",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "minBuildNumber": {
+                      "description": "Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value",
+                      "type": "number",
+                    },
+                    "platforms": {
+                      "description": "Platforms that should receive this announcement",
+                      "items": {
+                        "enum": [
+                          "ios",
+                          "android",
+                          "web",
+                        ],
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "primaryAction": {
+                      "properties": {
+                        "label": {
+                          "description": "Button label for optional primary action",
+                          "type": "string",
+                        },
+                        "url": {
+                          "description": "Deep link or external URL opened by the primary action button",
+                          "type": "string",
+                        },
+                      },
+                      "type": "object",
+                    },
+                    "priority": {
+                      "description": "Higher priority announcements appear first in the modal queue",
+                      "type": "number",
+                    },
+                    "publishAt": {
+                      "description": "Optional scheduled publish time — hidden until this instant",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "publishedAt": {
+                      "description": "When the announcement was first published",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "Lifecycle status: draft, published, or archived",
+                      "enum": [
+                        "draft",
+                        "published",
+                        "archived",
+                      ],
+                      "type": "string",
+                    },
+                    "title": {
+                      "description": "Announcement title shown in modal and changelog feed",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "version": {
+                      "description": "Content version — increments when published title/body changes",
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "body",
+                    "status",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "announcements",
+        ],
+      },
+    },
     "/comms/dev/testPush": {
       "post": {
         "operationId": "comms_testPush",
@@ -8905,7 +13626,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -9110,7 +13830,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -9243,7 +13962,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -9507,7 +14225,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -9705,7 +14422,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -9838,7 +14554,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -13395,6 +18110,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
               "oneOf": [
                 {
                   "description": "The organization (tenant) this project belongs to",
+                  "required": false,
                   "type": "string",
                 },
                 {
@@ -13501,7 +18217,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                           },
                         },
                         "required": [
-                          "organizationId",
                           "title",
                           "_id",
                           "created",
@@ -13671,7 +18386,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",
@@ -13849,7 +18563,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",
@@ -14008,7 +18721,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     },
                   },
                   "required": [
-                    "organizationId",
                     "title",
                     "_id",
                     "created",

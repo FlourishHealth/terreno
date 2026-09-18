@@ -95,7 +95,10 @@ describe("projects organizationId immutability", () => {
       .patch(`/projects/${created._id}`)
       .set("Authorization", `Bearer ${token}`)
       .set("X-Organization-Id", orgA)
-      .send({organizationId: orgB});
+      // Include `title` so AJV update validation (compiled onto the shared
+      // `projectRouter` by earlier full-server tests) does not reject the
+      // body before the organizationId immutability plugin runs.
+      .send({organizationId: orgB, title: "stay or move"});
 
     assert.equal(res.status, 400);
     assert.equal(res.body.title, ORGANIZATION_ID_IMMUTABLE_TITLE);

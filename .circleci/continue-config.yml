@@ -775,6 +775,8 @@ jobs:
       - run:
           name: Fetch coverage base
           command: git fetch origin master
+      - compile_packages:
+          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa announcements
       - run:
           name: Check new source file coverage
           command: |
@@ -1036,7 +1038,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api ai api-health comms jobs admin-backend feature-flags ui rtk admin-frontend admin-spa example-backend
+          packages: api ai api-health comms jobs admin-backend feature-flags ui rtk admin-frontend admin-spa announcements example-backend
       - run:
           name: List admin scripts
           working_directory: ~/project/example-backend

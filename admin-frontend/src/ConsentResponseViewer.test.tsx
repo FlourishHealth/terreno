@@ -4,6 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi} from "./types";
 
 interface ReadState {
@@ -11,28 +12,6 @@ interface ReadState {
   isLoading: boolean;
 }
 const readState: ReadState = {data: undefined, isLoading: false};
-
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useListQuery: () => ({
-      data: {data: [], total: 0},
-      error: null,
-      isError: false,
-      isLoading: false,
-      refetch: mock(() => {}),
-    }),
-    useReadQuery: (_id: string, opts: {skip?: boolean}) => {
-      if (opts?.skip) {
-        return {data: undefined, isLoading: false};
-      }
-      return {data: readState.data, isLoading: readState.isLoading};
-    },
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-  }),
-}));
 
 const pdfCalls: unknown[] = [];
 let pdfImpl: (r: unknown) => Promise<void> = async () => {};
@@ -47,6 +26,15 @@ import {ConsentResponseViewer} from "./ConsentResponseViewer";
 
 describe("ConsentResponseViewer", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useReadQuery: (_id: string, opts: {skip?: boolean}) => {
+        if (opts?.skip) {
+          return {data: undefined, isLoading: false};
+        }
+        return {data: readState.data, isLoading: readState.isLoading};
+      },
+    });
     readState.data = undefined;
     readState.isLoading = false;
     pdfCalls.length = 0;

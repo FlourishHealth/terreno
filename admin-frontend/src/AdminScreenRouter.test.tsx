@@ -4,6 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse, BackgroundTask} from "./types";
 
 mock.module("expo-router", () => ({
@@ -26,23 +27,6 @@ mock.module("./useAdminConfig", () => ({
     config: configState.config,
     error: configState.error,
     isLoading: configState.isLoading,
-  }),
-}));
-
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useListQuery: () => ({
-      data: {data: [], total: 0},
-      error: null,
-      isError: false,
-      isLoading: false,
-      refetch: mock(() => {}),
-    }),
-    useReadQuery: () => ({data: undefined, isLoading: false}),
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
   }),
 }));
 
@@ -116,6 +100,21 @@ const baseConfig: AdminConfigResponse = {
 
 describe("AdminScreenRouter", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useBulkPatchMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useListQuery: () => ({
+        data: {data: [], total: 0},
+        error: null,
+        isError: false,
+        isLoading: false,
+        refetch: mock(() => {}),
+      }),
+      useReadQuery: () => ({data: undefined, isLoading: false}),
+      useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    });
     configState.config = baseConfig;
     configState.error = null;
     configState.isLoading = false;

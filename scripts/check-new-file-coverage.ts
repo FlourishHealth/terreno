@@ -18,15 +18,16 @@ const DEFAULT_THRESHOLD = 90;
 const normalizePath = (path: string): string => path.split(sep).join("/");
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|e2e|node_modules|isolated|tests|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)types\.ts$|(?:^|\/)jobsWorker\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|e2e|node_modules|isolated|tests|testing|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)types\.ts$|(?:^|\/)jobsWorker\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
- * segments such as `[id]`, and named recovery routes (`forgotPassword`, `resetPassword`,
- * `verifyEmail`). Those recovery screens are Playwright e2e; submit logic lives in
- * `lib/authRecoveryActions.ts`. Ordinary modules under `app/` stay gated.
+ * segments such as `[id]`, thin `create` wrappers, and named recovery routes
+ * (`forgotPassword`, `resetPassword`, `verifyEmail`). Those recovery screens are
+ * Playwright e2e; submit logic lives in `lib/authRecoveryActions.ts`. Ordinary
+ * modules under `app/` stay gated.
  */
 const EXPO_ROUTER_ENTRY_PATTERN =
-  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|\+[^/]+|\[[^/]+\]|forgotPassword|resetPassword|verifyEmail)\.tsx$/;
+  /(?:^|\/)app\/(?:.*\/)?(?:index|_layout|create|\+[^/]+|\[[^/]+\]|forgotPassword|resetPassword|verifyEmail)\.tsx$/;
 
 export interface NewFileCoverageFailure {
   path: string;
