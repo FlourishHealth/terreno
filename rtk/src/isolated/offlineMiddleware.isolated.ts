@@ -1,5 +1,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
+import type {QueuedMutation} from "../offlineSlice";
+
 mock.module("react-native", () => ({
   Platform: {OS: "web"},
   StyleSheet: {create: (styles: unknown) => styles},
@@ -20,22 +22,43 @@ mock.module("../constants", () => ({
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
-const {createOfflineMiddleware} = await import("../offlineMiddleware");
-const {selectConflicts, selectIsOnline, selectIsSyncing, selectOfflineQueue, setOnlineStatus} =
-  await import("../offlineSlice");
+const {createOfflineMiddleware, isNetworkFetchError, shouldReplayQueuedMutation} = await import(
+  "../offlineMiddleware"
+);
+const {
+  enqueue,
+  selectConflicts,
+  selectIsOnline,
+  selectIsSyncing,
+  selectOfflineQueue,
+  setOnlineStatus,
+  setSyncing,
+} = await import("../offlineSlice");
 
 interface TodoRecord {
   _id?: string;
   id?: string;
   title: string;
   completed?: boolean;
+  updated?: string | Date;
 }
+
+const persistedMutation = (id: string): QueuedMutation => ({
+  args: {body: {title: id}, id},
+  endpointName: "patchTodosById",
+  id,
+  timestamp: "2025-01-01T00:00:00.000Z",
+  type: "update",
+  userId: "test-user",
+});
 
 interface ListResponse {
   data: TodoRecord[];
 }
 
 type TestStore = ReturnType<typeof createTestStore>;
+
+const SET_USER_ACTION_TYPE = "test/setUser";
 
 const createResponse = ({
   data = {data: {_id: "123", title: "Synced"}},
@@ -97,7 +120,10 @@ const createTestStore = (endpoints = ["postTodos", "patchTodosById", "deleteTodo
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, offline.middleware),
     reducer: {
-      auth: (state = {userId: currentUserId}) => state,
+      auth: (
+        state: {userId?: string} = {userId: currentUserId},
+        action: {type: string; userId?: string}
+      ) => (action.type === SET_USER_ACTION_TYPE ? {userId: action.userId} : state),
       [api.reducerPath]: api.reducer,
       offline: offline.offlineReducer,
     },
@@ -192,6 +218,23 @@ describe("createOfflineMiddleware", () => {
       expect(selectIsOnline(store.getState())).toBe(false);
 
       store.dispatch(setOnlineStatus(true));
+      expect(selectIsOnline(store.getState())).toBe(true);
+    });
+
+    it("marks online again when any API request succeeds", async () => {
+      store.dispatch(setOnlineStatus(false));
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({data: []}), {
+            headers: {"content-type": "application/json"},
+            status: 200,
+          })
+        )
+      );
+
+      const result = await store.dispatch(api.endpoints.getTodos.initiate(undefined));
+
+      expect(result.status).toBe("fulfilled");
       expect(selectIsOnline(store.getState())).toBe(true);
     });
 
@@ -403,6 +446,18 @@ describe("createOfflineMiddleware", () => {
       });
 
       expect(getCachedTodos(store, {})).toEqual([{id: "1", title: "Keep"}]);
+    });
+
+    it("ignores rejected mutations without an endpoint name", () => {
+      store.dispatch(setOnlineStatus(false));
+      store.dispatch({
+        error: {message: "fetch failed"},
+        meta: {arg: {originalArgs: {id: "123"}}},
+        payload: {error: "Network error", status: "FETCH_ERROR"},
+        type: "terreno-rtk/executeMutation/rejected",
+      });
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
     });
 
     it("does not throw when no matching list cache is active", () => {
@@ -675,6 +730,64 @@ describe("createOfflineMiddleware", () => {
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);
     });
 
+    it("drops queued mutations owned by a different user instead of replaying them", async () => {
+      goOfflineAndQueue(store);
+      store.dispatch({type: SET_USER_ACTION_TYPE, userId: "someone-else"});
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+
+    it("resets a stuck syncing flag when coming online with an empty queue", async () => {
+      store.dispatch(setOnlineStatus(false));
+      store.dispatch(setSyncing(true));
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+
+    it("removes optimistic temp items from list caches after a create is replayed", async () => {
+      await seedTodosCache(store, {}, [{id: "1", title: "Existing"}]);
+      goOfflineAndQueue(store, {
+        endpointName: "postTodos",
+        originalArgs: {body: {title: "Offline new"}},
+      });
+      expect(getCachedTodos(store, {})).toHaveLength(2);
+
+      await syncQueuedMutations(store);
+
+      expect(getCachedTodos(store, {})).toEqual([{id: "1", title: "Existing"}]);
+    });
+
+    it("removes temp items for creates that end in a conflict or permanent failure", async () => {
+      await seedTodosCache(store, {}, []);
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {data: {_id: "remote"}}, status: 409}))
+      );
+      mockFetch.mockImplementationOnce(() => Promise.resolve(createResponse({status: 422})));
+      goOfflineAndQueue(store, {
+        endpointName: "postTodos",
+        originalArgs: {body: {title: "Conflicting"}},
+      });
+      queueRejectedMutation(store, {
+        endpointName: "postTodos",
+        originalArgs: {body: {title: "Invalid"}},
+      });
+      expect(getCachedTodos(store, {})).toHaveLength(2);
+
+      await syncQueuedMutations(store);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(selectConflicts(store.getState())).toHaveLength(1);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(getCachedTodos(store, {})).toEqual([]);
+    });
+
     it("handles response JSON parse failures like transient replay failures", async () => {
       mockFetch.mockImplementationOnce(() =>
         Promise.resolve({
@@ -689,6 +802,117 @@ describe("createOfflineMiddleware", () => {
       expect(selectOfflineQueue(store.getState())).toHaveLength(1);
       expect(selectIsSyncing(store.getState())).toBe(false);
     });
+  });
+
+  describe("conflict base timestamps", () => {
+    it("prefers the patch body _updatedAt over cached documents", async () => {
+      await seedTodoByIdCache(store, "123", {
+        _id: "123",
+        title: "Original",
+        updated: "2025-06-15T12:00:00.000Z",
+      });
+      goOfflineAndQueue(store, {
+        originalArgs: {body: {_updatedAt: "2025-01-01T00:00:00.000Z", title: "Body"}, id: "123"},
+      });
+
+      await syncQueuedMutations(store);
+
+      const [, options] = getFetchCall();
+      const headers = options.headers as Record<string, string>;
+      expect(headers["X-Unmodified-Since-ISO"]).toBe("2025-01-01T00:00:00.000Z");
+    });
+
+    it("falls back to the list cache updated string when no get-by-id entry exists", async () => {
+      await seedTodosCache(store, {}, [
+        {_id: "123", title: "Listed", updated: "2025-03-03T03:03:03.000Z"},
+      ]);
+      goOfflineAndQueue(store, {originalArgs: {body: {title: "Patched"}, id: "123"}});
+
+      await syncQueuedMutations(store);
+
+      const [, options] = getFetchCall();
+      const headers = options.headers as Record<string, string>;
+      expect(headers["X-Unmodified-Since-ISO"]).toBe("2025-03-03T03:03:03.000Z");
+    });
+
+    it("converts a list cache Date updated value to ISO", async () => {
+      const updated = new Date("2025-04-04T04:04:04.000Z");
+      await seedTodosCache(store, {}, [{id: "123", title: "Listed", updated}]);
+      goOfflineAndQueue(store, {originalArgs: {body: {title: "Patched"}, id: "123"}});
+
+      await syncQueuedMutations(store);
+
+      const [, options] = getFetchCall();
+      const headers = options.headers as Record<string, string>;
+      expect(new Date(headers["X-Unmodified-Since-ISO"]).toISOString()).toBe(updated.toISOString());
+    });
+  });
+
+  describe("logout and rehydrate", () => {
+    it("clears the queue and conflicts on logout", async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve(createResponse({data: {_id: "123"}, status: 409}))
+      );
+      goOfflineAndQueue(store);
+      await syncQueuedMutations(store);
+      goOfflineAndQueue(store);
+      expect(selectConflicts(store.getState())).toHaveLength(1);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+
+      store.dispatch({type: "auth/logout"});
+
+      expect(selectConflicts(store.getState())).toHaveLength(0);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("replays a persisted queue on the first rehydrate when already online", async () => {
+      store.dispatch(enqueue(persistedMutation("first")));
+      store.dispatch(setSyncing(true));
+      expect(selectIsOnline(store.getState())).toBe(true);
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects(120);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectIsSyncing(store.getState())).toBe(false);
+
+      store.dispatch(enqueue(persistedMutation("second")));
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects(120);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+    });
+
+    it("only resets a stuck syncing flag on rehydrate when the queue is empty", async () => {
+      store.dispatch(setSyncing(true));
+
+      store.dispatch({type: "persist/REHYDRATE"});
+      await waitForEffects();
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+  });
+});
+
+describe("offline middleware helpers", () => {
+  it("isNetworkFetchError inspects string errors and FETCH_ERROR payloads", () => {
+    expect(isNetworkFetchError({error: "Network Error"})).toBe(true);
+    expect(isNetworkFetchError({error: "load failed", status: "FETCH_ERROR"})).toBe(true);
+    expect(isNetworkFetchError({payload: {error: "fetch failed"}})).toBe(true);
+    expect(isNetworkFetchError({error: "No token found"})).toBe(false);
+    expect(isNetworkFetchError(null)).toBe(false);
+  });
+
+  it("shouldReplayQueuedMutation rejects missing users and legacy entries", () => {
+    const owned = persistedMutation("owned");
+    const legacy: QueuedMutation = {...owned, userId: undefined};
+    expect(shouldReplayQueuedMutation(owned, undefined)).toBe(false);
+    expect(shouldReplayQueuedMutation(legacy, "test-user")).toBe(false);
+    expect(shouldReplayQueuedMutation(owned, "test-user")).toBe(true);
+    expect(shouldReplayQueuedMutation(owned, "someone-else")).toBe(false);
   });
 });
 
