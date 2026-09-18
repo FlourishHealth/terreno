@@ -12,7 +12,7 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
-- Cloud Tasks queue `terreno-example-jobs`, its queue-level dispatch pool limits, a
+- Cloud Tasks queue `terreno-example-jobs-v2`, its queue-level dispatch pool limits, a
   dedicated `terreno-backend-runtime` Cloud Run identity (the only runtime that can
   enqueue and `actAs` the callback SA), and a callback-only `terreno-jobs-invoker`
   OIDC service account. The private tasks Cloud Run service executes callbacks;
@@ -165,7 +165,7 @@ created copies before the first apply:
 
 ```bash
 terraform import google_cloud_tasks_queue.example_jobs \
-  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs
+  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs-v2
 terraform import google_service_account.jobs_tasks_invoker \
   projects/flourish-terreno/serviceAccounts/terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
 ```
@@ -231,6 +231,8 @@ Apply from CI (**Actions → CD → Run workflow** on `master` with `run_terrafo
 ```
 Plan: 5 to add, 3 to change, 15 to destroy.
 ```
+
+Deleting a Cloud Tasks queue is effectively irreversible for a week: the name cannot be reused for ~7 days (`Error 400: The queue cannot be created because a queue with this name existed too recently`). Recovering one means bumping `jobs_queue_name` to a new name, which is why the queue is `terreno-example-jobs-v2`.
 
 ## Debugging Infra Manager previews
 

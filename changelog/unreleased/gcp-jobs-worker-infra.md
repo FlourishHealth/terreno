@@ -4,7 +4,7 @@ category: Added
 
 # GCP durable-jobs worker infrastructure
 
-Infra Manager now owns the example Cloud Tasks queue `terreno-example-jobs`, the
+Infra Manager now owns the example Cloud Tasks queue `terreno-example-jobs-v2`, the
 private `terreno-backend-example-tasks` Cloud Run service, the
 `terreno-backend-runtime` API identity (sole queue enqueuer / jobs-invoker
 `actAs`), and the `terreno-jobs-invoker` OIDC callback identity. CD deploys
