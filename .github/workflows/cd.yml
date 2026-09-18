@@ -540,14 +540,19 @@ jobs:
           else
             echo "flag=" >> "$GITHUB_OUTPUT"
           fi
-      - name: Deploy to Cloud Run with tag
+      - name: Rebuild traffic without not-ready preview tags
+        run: |
+          chmod +x .github/workflows/scripts/rebuild-cloud-run-ready-traffic.sh
+          .github/workflows/scripts/rebuild-cloud-run-ready-traffic.sh \
+            "${{ env.GCP_BACKEND_SERVICE }}" \
+            "${{ env.GCP_BACKEND_REGION }}"
+      - name: Deploy to Cloud Run without a tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:
           service: ${{ env.GCP_BACKEND_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
           image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
-          tag: pr-${{ github.event.pull_request.number }}
           no_traffic: true
           env_vars_update_strategy: overwrite
           env_vars: |
@@ -560,22 +565,31 @@ jobs:
             JOBS_START_WORKER=true
             ${{ steps.jobs.outputs.env_vars }}
             ${{ steps.better-auth.outputs.env_vars }}
+          secrets_update_strategy: overwrite
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
-            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
-            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
             ${{ steps.better-auth.outputs.secrets }}
           flags: |
             --port=3000
-            --memory=512Mi
+            --memory=1Gi
+            --cpu-boost
             --min-instances=0
             --max-instances=10
             --concurrency=80
             --timeout=300
             --allow-unauthenticated
+            --revision-suffix=pr${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
             ${{ steps.runtime-sa.outputs.flag }}
+      - name: Tag preview revision
+        run: |
+          set -euo pipefail
+          gcloud run services update-traffic "${{ env.GCP_BACKEND_SERVICE }}" \
+            --region="${{ env.GCP_BACKEND_REGION }}" \
+            --update-tags="pr-${{ github.event.pull_request.number }}=${{ env.GCP_BACKEND_SERVICE }}-pr${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --quiet
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
+        continue-on-error: true
         run: |
           revision="$(
             gcloud run revisions list \
@@ -585,6 +599,16 @@ jobs:
               jq -r --arg sha "$GITHUB_SHA" \
                 'first(.[] | select(.metadata.labels["commit-sha"] == $sha) | .metadata.name) // empty'
           )"
+          if [ -z "$revision" ]; then
+            revision="$(
+              gcloud run revisions list \
+                --service="${{ env.GCP_BACKEND_SERVICE }}" \
+                --region="${{ env.GCP_BACKEND_REGION }}" \
+                --format='value(metadata.name)' \
+                --sort-by=~metadata.creationTimestamp \
+                --limit=1
+            )"
+          fi
           if [ -z "$revision" ]; then
             echo "::warning::Could not identify the failed Cloud Run revision for $GITHUB_SHA"
             exit 0

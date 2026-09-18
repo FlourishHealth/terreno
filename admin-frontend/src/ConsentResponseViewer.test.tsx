@@ -14,12 +14,15 @@ const readState: ReadState = {data: undefined, isLoading: false};
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
-    useBulkPatchMutation: () => [async (): Promise<void> => undefined],
-    useDeleteMutation: () => [async (): Promise<void> => undefined],
+    useBulkPatchMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useListQuery: () => ({
-      data: undefined,
+      data: {data: [], total: 0},
+      error: null,
+      isError: false,
       isLoading: false,
-      refetch: async (): Promise<void> => undefined,
+      refetch: mock(() => {}),
     }),
     useReadQuery: (_id: string, opts: {skip?: boolean}) => {
       if (opts?.skip) {
@@ -27,7 +30,7 @@ mock.module("./useAdminApi", () => ({
       }
       return {data: readState.data, isLoading: readState.isLoading};
     },
-    useUpdateMutation: () => [async (): Promise<void> => undefined],
+    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
   }),
 }));
 

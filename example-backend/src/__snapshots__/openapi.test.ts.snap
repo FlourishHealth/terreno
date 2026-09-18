@@ -6671,13 +6671,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
-                          "organizationIds": {
-                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                            "items": {
-                              "type": "string",
-                            },
-                            "type": "array",
-                          },
                           "roles": {
                             "description": "RBAC role names assigned to this user",
                             "items": {
@@ -6827,13 +6820,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -6910,13 +6896,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -7226,13 +7205,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
                       "items": {
@@ -7375,13 +7347,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -7458,13 +7423,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -12714,6 +12672,704 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/orgs/": {
+      "get": {
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List all organizations",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "description": "Organization name",
+                    "required": true,
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Create an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/mine": {
+      "get": {
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List organizations the caller may switch into",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Soft-delete an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Read an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "disabled": {
+                    "description": "Disable the organization",
+                    "type": "boolean",
+                  },
+                  "name": {
+                    "description": "Organization name",
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Update an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}/members": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List organization members",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Existing user email",
+                    "type": "string",
+                  },
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "Existing user id",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Attach an existing user as a member",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}/members/{memberId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Remove a membership",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Membership status",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Update a membership",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
     "/projects/": {
       "get": {
         "parameters": [
@@ -15156,13 +15812,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
-                          "organizationIds": {
-                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                            "items": {
-                              "type": "string",
-                            },
-                            "type": "array",
-                          },
                           "roles": {
                             "description": "RBAC role names assigned to this user",
                             "items": {
@@ -15312,13 +15961,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -15395,13 +16037,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -15611,13 +16246,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
                       "items": {
@@ -15760,13 +16388,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -15843,13 +16464,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",

@@ -24,16 +24,19 @@ const EXPECTED_PATHS = [
   "backend/.env.example",
   "backend/biome.jsonc",
   "backend/package.json",
+  "backend/src/access.ts",
   "backend/src/api/users.ts",
   "backend/src/index.ts",
   "backend/src/models/appConfiguration.ts",
   "backend/src/models/index.ts",
   "backend/src/models/modelPlugins.ts",
+  "backend/src/models/organizationSettings.ts",
   "backend/src/models/user.ts",
   "backend/src/scripts/seed.ts",
   "backend/src/server.ts",
   "backend/src/types/index.ts",
   "backend/src/types/models/index.ts",
+  "backend/src/types/models/organizationSettingsTypes.ts",
   "backend/src/types/models/userTypes.ts",
   "backend/src/utils/betterAuthConfig.ts",
   "backend/src/utils/database.ts",
@@ -308,6 +311,23 @@ describe("generateAllFiles", () => {
     assert.include(server, "mongoose.connection.readyState");
     assert.include(server, "healthy: mongoConnected");
     assert.include(server, "process.env.PORT");
+  });
+
+  test("generated backend enables organizations with typed settings", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Org App",
+      appName: "org-app",
+    });
+    const access = files.find((file) => file.path === "backend/src/access.ts")?.content ?? "";
+    const server = files.find((file) => file.path === "backend/src/server.ts")?.content ?? "";
+    const settings =
+      files.find((file) => file.path === "backend/src/models/organizationSettings.ts")?.content ??
+      "";
+
+    assert.include(access, "organizations: true");
+    assert.include(server, "settingsSchema: organizationSettingsSchema");
+    assert.include(server, "Membership.findActiveForUser");
+    assert.include(settings, "createOrganizationSettingsSchema");
   });
 
   test("generated backend server returns express.Application from TerrenoApp.start()", () => {

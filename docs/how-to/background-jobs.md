@@ -224,8 +224,10 @@ that process would also tick schedules.
 PR previews use the same queue but different callback URLs and databases. GitHub Actions
 and CircleCI both deploy the `pr-<number>` tag on the tasks Cloud Run service before the
 API preview starts enqueueing. GitHub Actions uses `env_vars_update_strategy: overwrite`
-(CircleCI `--set-env-vars`) so `MONGO_DB_NAME` / `PR_NUMBER` on a tagged revision do not
-merge into the next production deploy. A task created by PR 123 targets that tag and reads
+and `secrets_update_strategy: overwrite` (CircleCI `--set-env-vars`) so `MONGO_DB_NAME` /
+`PR_NUMBER` and leftover secrets on a tagged revision do not merge into the next production
+or preview deploy. The preview smoke container receives the same `JOBS_*` env as Cloud Run.
+A task created by PR 123 targets that tag and reads
 `terreno-example-pr-123`; it cannot execute against another PR or production.
 
 ## Vercel Queues runner

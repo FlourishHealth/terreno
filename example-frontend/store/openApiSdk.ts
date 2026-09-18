@@ -19,6 +19,7 @@ export const addTagTypes = [
   "consentforms",
   "consentresponses",
   "adminMigrations",
+  "organizations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -91,6 +92,13 @@ const injectedRtkApi = api
           url: `/admin/mcp-service-tokens/${queryArg}`,
         }),
       }),
+      deleteAdminTodosById: build.mutation<DeleteAdminTodosByIdRes, DeleteAdminTodosByIdArgs>({
+        invalidatesTags: ["todos"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/todos/${queryArg}`,
+        }),
+      }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
         invalidatesTags: ["users"],
         query: (queryArg) => ({
@@ -127,6 +135,20 @@ const injectedRtkApi = api
           }),
         }
       ),
+      deleteOrgsById: build.mutation<DeleteOrgsByIdRes, DeleteOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({method: "DELETE", url: `/orgs/${queryArg}`}),
+      }),
+      deleteOrgsByIdMembersAndMemberId: build.mutation<
+        DeleteOrgsByIdMembersAndMemberIdRes,
+        DeleteOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -459,6 +481,22 @@ const injectedRtkApi = api
         providesTags: ["admin", "jobs"],
         query: () => ({url: `/jobs/stats`}),
       }),
+      getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/`}),
+      }),
+      getOrgsById: build.query<GetOrgsByIdRes, GetOrgsByIdArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}`}),
+      }),
+      getOrgsByIdMembers: build.query<GetOrgsByIdMembersRes, GetOrgsByIdMembersArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}/members`}),
+      }),
+      getOrgsMine: build.query<GetOrgsMineRes, GetOrgsMineArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/mine`}),
+      }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -612,6 +650,25 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/gpt/histories/${queryArg.id}/rating`,
+        }),
+      }),
+      patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}`,
+        }),
+      }),
+      patchOrgsByIdMembersAndMemberId: build.mutation<
+        PatchOrgsByIdMembersAndMemberIdRes,
+        PatchOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
         }),
       }),
       patchProjectsById: build.mutation<PatchProjectsByIdRes, PatchProjectsByIdArgs>({
@@ -860,31 +917,20 @@ const injectedRtkApi = api
           url: `/jobs/schedules/${queryArg}/resume`,
         }),
       }),
-      postLoadtestTodosChurn: build.mutation<PostLoadtestTodosChurnRes, PostLoadtestTodosChurnArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: (queryArg) => ({
-            body: queryArg,
-            method: "POST",
-            url: `/loadtest/todos/churn`,
-          }),
-        }
-      ),
-      postLoadtestTodosClear: build.mutation<PostLoadtestTodosClearRes, PostLoadtestTodosClearArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: () => ({method: "POST", url: `/loadtest/todos/clear`}),
-        }
-      ),
-      postLoadtestTodosGenerate: build.mutation<
-        PostLoadtestTodosGenerateRes,
-        PostLoadtestTodosGenerateArgs
-      >({
-        invalidatesTags: ["loadtest"],
+      postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
+        invalidatesTags: ["organizations"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
-          url: `/loadtest/todos/generate`,
+          url: `/orgs/`,
+        }),
+      }),
+      postOrgsByIdMembers: build.mutation<PostOrgsByIdMembersRes, PostOrgsByIdMembersArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/orgs/${queryArg.id}/members`,
         }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
@@ -1725,8 +1771,6 @@ export type PostUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1754,8 +1798,6 @@ export type PostUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -1784,8 +1826,6 @@ export type GetUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -1836,8 +1876,6 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1866,8 +1904,6 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1897,8 +1933,6 @@ export type PatchUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -1926,8 +1960,7 @@ export type CommsTestPushArgs = {
   title?: string;
 };
 export type PostCommsPushTokensRes =
-  /** status 200 Success */
-  | {
+  | /** status 200 Success */ {
       data?: object;
     }
   | /** status 201 Success */ {
@@ -3809,6 +3842,8 @@ export type PatchAdminTodosByIdArgs = {
     _syncSeq?: number;
   };
 };
+export type DeleteAdminTodosByIdRes = unknown;
+export type DeleteAdminTodosByIdArgs = string;
 export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3830,8 +3865,6 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -3859,8 +3892,6 @@ export type PostAdminUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -3889,8 +3920,6 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -3968,8 +3997,6 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -3998,8 +4025,6 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -4029,8 +4054,6 @@ export type PatchAdminUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -4058,6 +4081,63 @@ export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
   data?: object;
 };
 export type AdminMigrationsStatusArgs = undefined;
+export type PostOrgsRes = unknown;
+export type PostOrgsArgs = {
+  /** Organization name */
+  name: string;
+  /** App-defined organization settings */
+  settings?: object;
+};
+export type GetOrgsRes = unknown;
+export type GetOrgsArgs = undefined;
+export type GetOrgsMineRes = unknown;
+export type GetOrgsMineArgs = undefined;
+export type GetOrgsByIdRes = unknown;
+export type GetOrgsByIdArgs = string;
+export type PatchOrgsByIdRes = unknown;
+export type PatchOrgsByIdArgs = {
+  id: string;
+  body: {
+    /** Disable the organization */
+    disabled?: boolean;
+    /** Organization name */
+    name?: string;
+    /** App-defined organization settings */
+    settings?: object;
+  };
+};
+export type DeleteOrgsByIdRes = unknown;
+export type DeleteOrgsByIdArgs = string;
+export type GetOrgsByIdMembersRes = unknown;
+export type GetOrgsByIdMembersArgs = string;
+export type PostOrgsByIdMembersRes = unknown;
+export type PostOrgsByIdMembersArgs = {
+  id: string;
+  body: {
+    /** Existing user email */
+    email?: string;
+    /** Membership role */
+    roleName?: string;
+    /** Existing user id */
+    userId?: string;
+  };
+};
+export type PatchOrgsByIdMembersAndMemberIdRes = unknown;
+export type PatchOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+  body: {
+    /** Membership role */
+    roleName?: string;
+    /** Membership status */
+    status?: string;
+  };
+};
+export type DeleteOrgsByIdMembersAndMemberIdRes = unknown;
+export type DeleteOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+};
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -4209,6 +4289,7 @@ export const {
   useGetAdminTodosQuery,
   useGetAdminTodosByIdQuery,
   usePatchAdminTodosByIdMutation,
+  useDeleteAdminTodosByIdMutation,
   usePostAdminUsersBulkPatchMutation,
   usePostAdminUsersMutation,
   useGetAdminUsersQuery,
@@ -4217,6 +4298,16 @@ export const {
   useDeleteAdminUsersByIdMutation,
   useAdminMigrationsRunMutation,
   useAdminMigrationsStatusQuery,
+  usePostOrgsMutation,
+  useGetOrgsQuery,
+  useGetOrgsMineQuery,
+  useGetOrgsByIdQuery,
+  usePatchOrgsByIdMutation,
+  useDeleteOrgsByIdMutation,
+  useGetOrgsByIdMembersQuery,
+  usePostOrgsByIdMembersMutation,
+  usePatchOrgsByIdMembersAndMemberIdMutation,
+  useDeleteOrgsByIdMembersAndMemberIdMutation,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

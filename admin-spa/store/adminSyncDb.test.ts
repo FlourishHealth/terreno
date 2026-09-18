@@ -2,7 +2,11 @@ import {describe, it} from "bun:test";
 import type {AdminModelConfig} from "@terreno/admin-frontend";
 import {type BetterAuthReactClientLike, createSyncDb} from "@terreno/syncdb";
 import {assert} from "chai";
-import {createAdminSpaSyncDbConfig, resolveAdminSyncCollections} from "./adminSyncDb";
+import {
+  createAdminSpaSyncDbConfig,
+  resolveAdminSyncCollections,
+  setSpaAdminOrganizationId,
+} from "./adminSyncDb";
 
 const BASE_MODEL: AdminModelConfig = {
   defaultSort: "-created",
@@ -57,6 +61,9 @@ describe("createAdminSpaSyncDbConfig", () => {
     assert.deepEqual(config.windowCollections, ["todos"]);
     assert.equal(await config.authProvider.getUserId(), "admin-1");
     assert.equal(await config.authProvider.getToken(), "session-token");
+    setSpaAdminOrganizationId("org-spa");
+    assert.equal(config.organizationIdProvider?.(), "org-spa");
+    setSpaAdminOrganizationId(undefined);
   });
 
   it("builds a syncdb client from the config", () => {

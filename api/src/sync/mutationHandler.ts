@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import type {User} from "../auth";
 import {APIError, isAPIError} from "../errors";
 import {createFeatureFlaggedLogger, logger} from "../logger";
+import {resolveOrgContext, runWithOrgContext} from "../orgs/orgContext";
 import {findOneOrNoneFor} from "../plugins";
 import {
   type AdminWindowMutationScope,
@@ -519,6 +520,38 @@ const finalizeAlreadyApplied = async ({
  * - delete: idempotent already (executeDelete on an already-deleted tombstone is a no-op
  *   success in this codebase's soft-delete model), so no special tolerance is needed.
  */
+const organizationIdFromRequest = (request: express.Request): string | undefined => {
+  if (typeof request.header !== "function") {
+    return undefined;
+  }
+  const raw = request.header("X-Organization-Id");
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed;
+};
+
+const withRequestOrgContext = async ({
+  request,
+  run,
+  user,
+}: {
+  request: express.Request;
+  run: () => Promise<SyncMutationOutcome>;
+  user: User;
+}): Promise<SyncMutationOutcome> => {
+  const organizationId = organizationIdFromRequest(request);
+  if (!organizationId) {
+    return run();
+  }
+  const context = await resolveOrgContext({organizationId, required: false, user});
+  return runWithOrgContext(context, run);
+};
+
 const applyClaimedMutation = async ({
   claimed,
   entry,
@@ -537,6 +570,42 @@ const applyClaimedMutation = async ({
   scopeResolver?: SyncMutationScopeResolver;
   syncOptions?: SyncAppOptions;
   /** True when `claimed` was re-claimed from a stale lease rather than freshly inserted. */
+  isLeaseTakeover?: boolean;
+}): Promise<SyncMutationOutcome> => {
+  return withRequestOrgContext({
+    request,
+    run: () =>
+      applyClaimedMutationInContext({
+        claimed,
+        entry,
+        isLeaseTakeover,
+        mutation,
+        request,
+        scopeResolver,
+        syncOptions,
+        user,
+      }),
+    user,
+  });
+};
+
+const applyClaimedMutationInContext = async ({
+  claimed,
+  entry,
+  mutation,
+  request,
+  user,
+  scopeResolver,
+  syncOptions,
+  isLeaseTakeover = false,
+}: {
+  claimed: SyncMutationDocument;
+  entry: SyncRegistryEntry;
+  mutation: SyncMutateRequest;
+  request: express.Request;
+  user: User;
+  scopeResolver?: SyncMutationScopeResolver;
+  syncOptions?: SyncAppOptions;
   isLeaseTakeover?: boolean;
 }): Promise<SyncMutationOutcome> => {
   const mutationId = mutation.mutationId;

@@ -26,6 +26,7 @@ export const access = createAccess({
   auditSink: persistRbacAuditToAuditEvent,
   connection: mongoose.connection,
   defaultRoles: appDefaultRoles,
+  organizations: true,
   scopes: {
     "todo.delete": OwnerScope(),
     "todo.list": OwnerScope(),
