@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
 
 import {Field} from "./Field";
 import {renderWithTheme} from "./test-utils";
@@ -21,6 +22,23 @@ describe("Field", () => {
       <Field label="Password" onChange={() => {}} type="password" value="" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("reveals the password value from the visibility toggle", () => {
+    const {getByDisplayValue, getByTestId} = renderWithTheme(
+      <Field
+        label="Password"
+        onChange={() => {}}
+        testID="field-password"
+        type="password"
+        value="hunter2"
+      />
+    );
+
+    expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByTestId("field-password.visibility-toggle"));
+    expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(false);
   });
 
   it("renders email field", () => {

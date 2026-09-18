@@ -78,6 +78,71 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### TextField password visibility
+
+`type="password"` masks the value and renders a show/hide eye control at the end of the field.
+The control is uncontrolled — the field tracks whether the value is revealed and starts hidden.
+A disabled field cannot be revealed.
+
+``````typescript
+<TextField
+  title="Password"
+  type="password"
+  value={password}
+  onChange={setPassword}
+  autoComplete="current-password"
+/>
+``````
+
+Pass `showVisibilityToggle={false}` where revealing the value is unacceptable, such as a shared or
+on-camera screen:
+
+``````typescript
+<TextField showVisibilityToggle={false} title="Password" type="password" value={password} onChange={setPassword} />
+``````
+
+`Field` with `type="password"` renders the same control, and so do `LoginScreen` and `SignUpScreen`
+password fields.
+
+The toggle's test id defaults to `{testID}.visibility-toggle`, and `testIDs.visibilityToggle`
+overrides it:
+
+| Element | test id |
+| --- | --- |
+| Input | `{testID}` |
+| Label | `{testID}.label` |
+| Error | `{testID}.error` |
+| Helper | `{testID}.helper` |
+| Show/hide toggle | `{testID}.visibility-toggle` |
+
+### GPTChat
+
+Streaming chat surface for `@terreno/ai`. Histories, messages, submit, and optional MCP/tools stay under consumer control.
+
+Pass `mascot` when the app owns a character. Terreno ships none. The node renders only while `currentMessages` is empty, centered in the chat panel above the suggested prompts. The empty hero uses the message viewport height as a minimum so short content stays centered, while taller mascots still scroll. Streaming feedback shares that centered hero instead of creating a second pane. Omit the prop for the default empty chat.
+
+The composer row (attachment picker, tools, input, Send) is vertically centered, so controls stay aligned with the input as it grows. The attachment cell is omitted when `onAttachFiles` is not provided.
+
+```tsx
+<GPTChat
+  currentMessages={[]}
+  histories={histories}
+  mascot={
+    <Box alignItems="center">
+      <Heading size="lg">🦊</Heading>
+    </Box>
+  }
+  onCreateHistory={onCreateHistory}
+  onDeleteHistory={onDeleteHistory}
+  onSelectHistory={onSelectHistory}
+  onSubmit={onSubmit}
+/>
+```
+
+Operator steps: [Add a GPT chat mascot](../how-to/add-gpt-chat-mascot.md). Demo story: `GPTChat` → `Mascot`.
+The example AI screen demonstrates a consumer selecting one of four bundled mascot
+images once per mount.
+
 ### SplitPage
 
 Master-detail layout. Pass `listViewData` plus `renderListViewItem` for the list, and
@@ -589,6 +654,68 @@ import {TerrenoProvider} from "@terreno/ui";
   {children}
 </TerrenoProvider>
 ``````
+
+## DataTable server-side filtering
+
+`DataTable` is data-layer agnostic. Optional filter and search props emit a
+modelRouter-shaped JavaScript object through `onQueryChange`. The parent merges
+that object with `page`, `limit`, and `sort` before calling a list endpoint.
+
+Import the pure helper when building params outside the component:
+
+```typescript
+import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
+```
+
+### Query contract
+
+| UI | Wire param |
+| --- | --- |
+| Toolbar search (`search` + `searchFields`) | `$or: [{field: {$regex, $options: "i"}}, ...]` (user text escaped) |
+| Text column filter | `{field: {$regex, $options: "i"}}` |
+| Boolean column filter | `{field: true \| false}`; unset omits the key |
+| Date range | `field_gte` / `field_lte` ISO strings; either bound may be sent alone |
+| Number range | `{field: {$gte?, $lte?}}` |
+| Choice (one value) | `{field: string}` scalar equality |
+| Choice (many values) | `{field: {$in: string[]}}` |
+| Choice **Empty** (optional fields) | `{field: {$in: ["__empty__"]}}` on the wire; server maps to `null` (matches missing and null) |
+| Choice **Empty** + concrete | `{field: {$in: [...values, "__empty__"]}}` |
+
+`onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
+(250ms, same delay as admin list search).
+
+The server accepts only the documented nested operator keys. Text `$regex` values
+must be escaped literals; executable patterns and extra Mongo operators are rejected.
+
+Date range filters collect calendar days, so a range covers whole UTC days: **from**
+opens the chosen day (`00:00:00.000Z`) and **to** closes it (`23:59:59.999Z`), which
+keeps rows recorded later on the end day inside the range.
+
+Pass `emptyContent` to keep the table header, search, and filter controls mounted
+while showing an application-specific empty state below the header.
+Use `additionalFilters` for declared server filters whose fields are not visible
+columns; web shows one **More filters** popover and native includes them in the same sheet.
+
+### Platform chrome
+
+| Platform | Chrome |
+| --- | --- |
+| Web | Toolbar search + per-column `Filter` popovers (`column.filter`) |
+| Native | Toolbar search + one **Filters** sheet (`Modal`) with the same fields |
+
+Column headers use `Filter` with `iconOnly`, which renders a compact icon trigger
+(24px at the default `triggerSize="sm"`, 32px with `triggerSize="default"`) instead
+of a labeled button. Give it an accessible name with `triggerAccessibilityLabel`.
+
+A single-column popover offers only its own **Clear**, so it needs no per-field clear.
+The surfaces that host several filters at once — the **More filters** popover and the
+native **Filters** sheet — add a per-field **Clear filter** for booleans, whose toggle
+cannot otherwise express "unset".
+
+Omit `column.filter`, `searchFields`, and the related callbacks to keep today's
+sort/page-only table.
+
+Demo: `FilterableDataTable` story in the component demo (`demo:start`, port 8085).
 
 ## Related Documentation
 

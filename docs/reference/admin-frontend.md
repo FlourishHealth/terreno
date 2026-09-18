@@ -38,6 +38,104 @@ export default function AdminScreen() {
 
 ## Components
 
+### OrgDirectoryScreen
+
+`OrgDirectoryScreen` is the operator-only organization directory. It renders
+loading, error, and empty states plus actions to create, disable, and open an
+organization. **Open** also calls `selectOrganization` when the directory is
+inside `OrgContextProvider`, so `X-Organization-Id` is set even if the host
+callback only navigates.
+
+``````typescript
+const {selectOrganization} = useOrgContext();
+
+<OrgDirectoryScreen
+  api={api}
+  isOperator={currentUser.roles?.includes("operator") ?? false}
+  onEnterOrganization={(organization) => {
+    selectOrganization(organization);
+    router.push(`/admin/orgs/${organization._id}`);
+  }}
+  routeBase="/admin"
+/>
+``````
+
+Pass the same operator check to `AdminShellLayout` to expose the directory in
+navigation. Org-admins do not receive this link:
+
+``````typescript
+<AdminShellLayout
+  api={api}
+  apiBase="/admin"
+  isOrganizationOperator={isOperator}
+  organizationDirectoryPath="/orgs"
+  routeBase="/admin"
+>
+  {children}
+</AdminShellLayout>
+``````
+
+### OrgContextProvider and OrgSwitcher
+
+Wrap organization-aware admin routes with `OrgContextProvider` and render
+`OrgSwitcher` through the shell's `organizationSwitcher` slot. Selecting an
+organization navigates to `{routeBase}/orgs/:orgId` and adds
+`X-Organization-Id` to subsequent `useAdminApi` requests. Query cache keys also
+include the organization id, preventing rows cached for one org from appearing
+in another. Derive `initialOrganization` from the current pathname so context
+follows URL changes after mount without overriding a switcher selection while
+navigation is in progress.
+
+``````typescript
+const pathname = usePathname();
+const routeOrganization = useMemo(
+  () => organizationFromPath(pathname),
+  [pathname]
+);
+
+<OrgContextProvider initialOrganization={routeOrganization}>
+  <AdminShellLayout
+    api={api}
+    apiBase="/admin"
+    organizationSwitcher={<OrgSwitcher api={api} routeBase="/admin" />}
+    routeBase="/admin"
+  >
+    {children}
+  </AdminShellLayout>
+</OrgContextProvider>
+``````
+
+When `/orgs/mine` returns one organization, `OrgSwitcher` shows its name and
+selects it automatically. With multiple organizations it selects the first by
+name (then id) as a deterministic default and renders a selector.
+Its **Organization** label uses the shell's inverted text color.
+When `/orgs/mine` returns **403** (callers without org-admin memberships, per API
+docs), the switcher renders nothing instead of an error banner. Other failures
+still show "Organizations unavailable".
+
+`OrgDirectoryScreen` (operators only) lists every organization, including
+disabled ones. Each row offers **Disable** or **Re-enable**; re-enabling sends
+`PATCH /orgs/:id` with `{disabled: false}`.
+
+### OrgSettingsScreen and OrgMembersScreen
+
+Use `OrgSettingsScreen` at `/admin/orgs/:orgId` and `OrgMembersScreen` at
+`/admin/orgs/:orgId/members`. Both send the selected organization header.
+
+`OrgSettingsScreen` edits the organization name and app-defined settings JSON.
+Type settings in the host app by augmenting `OrganizationSettings` (exported from
+this package and from `@terreno/api`) and reading them with
+`organizationSettingsOf(organization)`. The JSON editor still sends a full
+settings object on save; the backend schema rejects unknown keys.
+It includes a Billing card marked unavailable; billing is outside the
+organization-management feature.
+
+`OrgMembersScreen` lists current memberships, attaches an existing user by
+email, changes member roles, and removes members. Backend errors such as
+`Cannot remove the last org-admin` are shown inline. Invite is intentionally
+disabled because invitation tokens and email belong to the later invitations
+feature. The members page uses the full available admin content width.
+
 ### AdminModelList
 
 Entry screen showing all available models as cards.
@@ -65,11 +163,25 @@ Table view for a specific model with pagination, sorting, and actions.
 
 Features:
 - DataTable with columns from backend `listFields`
+- Toolbar search maps to list `q` (backend partial match + ObjectId lookup)
+- Declared `filters` map to DataTable column filters (`text` contains, `choice`
+  multi `$in`, `boolean`, `dateRange`, `ref` via `AdminRefField` in `renderFilter`)
+- Optional choice fields include **Empty**, which matches missing and null values.
+  Admin list requests serialize nested operators with bracket notation independently
+  of the host application's RTK base-query configuration.
 - Click row to edit
 - "Create New" button
 - Pagination controls
 - Reference fields render as clickable links
 - Windowed TinyBase path when `AdminProvider` has `syncDb` plus a fetch client (`credentials` or `getAuthHeaders`) and `GET /admin/config` reports `adminBroadcast` + `syncCollection` on a String `_id` model: REST list is membership only, rows overlay TinyBase, and a TinyBase table listener rerenders known rows as `{collection}|admin` deltas arrive. **Refresh** (`testID="admin-table-refresh"`) re-queries REST and calls `hydrateWindow`. **Create** (`testID="admin-create-button"`) is in the table chrome, not the navigator header, because admin stacks use `headerShown: false`. **Save** / **Delete** (`testID="admin-save-button"` / `admin-delete-button`) are in the form chrome for the same reason. Page select-all and bulk actions use the rendered rows, so a row a live tombstone removed leaves the selection. RTK `refetch` error envelopes (`error` / `isError`) toast and skip hydrate; an in-flight Refresh is discarded when page, search, or sort changes. A windowed create or delete never touches the cached REST list, so the form flags the collection through `markAdminWindowMembershipStale` and the changelist refetches membership automatically — whether it stayed mounted behind the form or remounts when the form pops. A create also passes the new id as `awaitId`, because `mutate` only enqueues on the outbox and the first refetch can beat the server; the changelist retries up to three times, 700 ms apart — including after transient list failures — then leaves **Refresh** as the fallback. Passing only `api` keeps the RTK list.
+- Organization-scoped models report `organizationScoped: true` and
+  `adminBroadcast: false`. They use REST list and mutation paths until the sync
+  window protocol carries selected-organization context. Home widgets delay
+  those list queries until `OrgContextProvider` has selected an organization.
+  `AdminModelForm` uses the same skip for org-scoped edit reads so create/edit
+  does not hit the API with a missing `X-Organization-Id`.
+  `AuditEvent` stays `organizationScoped: false` so Recent Activity and the
+  audit changelist still load unscoped rows when no organization is selected.
 
 ### AdminModelForm
 
@@ -98,7 +210,8 @@ When `AdminProvider` has `syncDb` plus a fetch client and the model config repor
 `adminBroadcast`, `syncCollection`, and a String `_id`, create/update/delete use the
 syncdb mutation outbox. Edit update/delete first hydrate the REST-loaded record so a
 deep-linked form can mutate locally. ObjectId models and hosts without the full
-windowed configuration keep the REST/RTK mutation path.
+windowed configuration keep the REST/RTK mutation path. Organization-scoped
+models always use REST/RTK regardless of String `_id`.
 
 Pass the host's `useConflicts()` result as `syncConflicts` on `AdminProvider`.
 Windowed form mutations set their own pending state before any asynchronous work, so
@@ -287,7 +400,8 @@ Expects backend to provide:
 
 When RBAC is enabled, `/admin/config` is filtered for the current user. `AdminShell` uses its
 `platformTools` flags to hide denied Scripts, Roles, Version, and Configuration links, and only
-renders model or custom-screen links returned by the server.
+renders model or custom-screen links returned by the server. The shell lifts Audit Log, Feature
+Flags, and Jobs into the Platform section (Jobs still comes from `customScreens`).
 
 ### Custom screen page chrome
 

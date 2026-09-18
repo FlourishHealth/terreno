@@ -4,6 +4,7 @@ import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const REGRESSION_TITLE = "Review the sync status banner — admin window verified";
@@ -38,8 +39,10 @@ const readState: {data: Record<string, unknown> | null; isLoading: boolean} = {
   data: null,
   isLoading: false,
 };
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
+
+const configureUpdateDepthAdminApiDouble = (): void => {
+  resetUseAdminApiDouble();
+  configureUseAdminApiDouble({
     useBulkPatchMutation: () => [
       mock(() => ({unwrap: async () => ({updated: 1})})),
       {isLoading: false},
@@ -59,8 +62,8 @@ mock.module("./useAdminApi", () => ({
       mock(() => ({unwrap: async () => ({_id: "todo-1"})})),
       {isLoading: false},
     ],
-  }),
-}));
+  });
+};
 
 const syncDb: AdminSyncDb = {
   hydrateWindow: mock(async () => ({hydratedIds: ["todo-1"]})),
@@ -128,6 +131,7 @@ const renderTodoEditForm = (
 
 describe("AdminModelForm update-depth regression", () => {
   beforeEach(() => {
+    configureUpdateDepthAdminApiDouble();
     setOptions.mockClear();
     configState.config = {
       customScreens: [],
@@ -199,6 +203,7 @@ describe("AdminModelForm update-depth regression (setOptions triggers parent re-
   });
 
   beforeEach(() => {
+    configureUpdateDepthAdminApiDouble();
     mock.module("expo-router", () => ({
       router: {back: routerBack, push: routerPush},
       useNavigation: () => ({setOptions: setOptionsWithRerender}),
@@ -311,6 +316,7 @@ describe("AdminModelForm update-depth regression (unstable navigation)", () => {
   });
 
   beforeEach(() => {
+    configureUpdateDepthAdminApiDouble();
     mock.module("expo-router", () => ({
       router: {back: routerBack, push: routerPush},
       useNavigation: unstableUseNavigation,
@@ -357,6 +363,7 @@ const PER_CHAR_TITLE = "Review";
 
 describe("AdminModelForm update-depth regression (field onChange identity)", () => {
   beforeEach(() => {
+    configureUpdateDepthAdminApiDouble();
     setOptions.mockClear();
     configState.config = {
       customScreens: [],

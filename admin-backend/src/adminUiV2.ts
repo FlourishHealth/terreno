@@ -78,6 +78,8 @@ export interface AdminListFilterBoolean {
 
 export interface AdminListFilterChoice {
   choices: {label: string; value: string}[];
+  /** When true, filter UI offers Empty and parser accepts `__empty__` sentinel. */
+  allowEmpty?: boolean;
   field: string;
   kind: "choice";
   label?: string;

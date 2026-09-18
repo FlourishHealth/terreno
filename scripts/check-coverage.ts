@@ -4,12 +4,12 @@
  * non-zero exit code if either the function or line coverage is below the
  * threshold.
  *
- * Bun's built-in `coverageThreshold` key is parsed but does not cause a
- * non-zero exit when it uses the per-metric table form this repo relies on
- * (`{ line = 95, function = 95 }`) — verified on Bun 1.4.0, where only the
- * scalar form is enforced. See https://github.com/oven-sh/bun/issues/7367.
- * Until the table form is enforced, this script acts as the CI-side gate for
- * the 95% minimum coverage requirement declared in each package's bunfig.toml.
+ * Bun 1.4.2+ can fail the test process when bunfig `coverageThreshold` uses the
+ * per-metric table form (`{ line = 95, function = 95 }`). Isolated packages
+ * merge several LCOV passes, so that first-process exit is below the real
+ * union. This script continues when tests reported `0 fail` and an All files
+ * table, then enforces the 95% gate on the merged report. See
+ * https://github.com/oven-sh/bun/issues/7367.
  *
  * When the package contains tests in `src/isolated/*.isolated.{ts,tsx}`, each
  * isolated test file is run in its own `bun test` invocation (because those
@@ -44,6 +44,30 @@ const ESC = String.fromCharCode(27);
 const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;]*m`, "g");
 
 export const stripAnsi = (value: string): string => value.replace(ANSI_PATTERN, "");
+
+/**
+ * Bun 1.4.2+ can exit 1 for bunfig coverageThreshold even when every test
+ * passed. Isolated packages still need later LCOV merges, so treat that as
+ * non-fatal when the summary shows 0 fail and an All files table.
+ */
+export const isBunCoverageThresholdExit = (exitCode: number, output: string): boolean => {
+  if (exitCode === 0) {
+    return false;
+  }
+  const cleaned = stripAnsi(output);
+  if (!/\b0 fail\b/.test(cleaned)) {
+    return false;
+  }
+  return /\bAll files\b/.test(cleaned);
+};
+
+const failIfTestsFailed = (exitCode: number, output: string, label: string): void => {
+  if (exitCode === 0 || isBunCoverageThresholdExit(exitCode, output)) {
+    return;
+  }
+  console.error(`\n${label} exited with code ${exitCode}`);
+  process.exit(exitCode);
+};
 
 export interface CoverageSummary {
   functions: number;
@@ -459,8 +483,12 @@ export const writeMergedLcov = (cwd: string, coverage: Map<string, FileCoverage>
   return lcovPath;
 };
 
-const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; output: string}> => {
-  const srcRoot = join(process.cwd(), "src");
+const runBunTest = async (
+  args: readonly string[],
+  options?: {env?: Record<string, string>; workingDirectory?: string}
+): Promise<{exitCode: number; output: string}> => {
+  const workingDirectory = options?.workingDirectory ?? process.cwd();
+  const srcRoot = join(workingDirectory, "src");
   const prependSrcRoot =
     existsSync(srcRoot) &&
     !args.some((a) => a.startsWith("./") || /[/\\][^/\\]+\.test\.(t|j)sx?$/.test(a));
@@ -470,11 +498,12 @@ const runBunTest = async (args: readonly string[]): Promise<{exitCode: number; o
 
   // mcp-server: TERRENO_MCP_DOCS_DIR races across files.
   // admin-frontend: mock.module doubles leak across concurrently loaded files.
-  const serialPackage = ["mcp-server", "admin-frontend"].includes(basename(process.cwd()));
+  const serialPackage = ["mcp-server", "admin-frontend"].includes(basename(workingDirectory));
   const mcpServerConcurrency = serialPackage ? (["--max-concurrency=1"] as const) : [];
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn("bun", ["test", ...mcpServerConcurrency, ...srcRootArg, ...args], {
-      env: {...process.env, FORCE_COLOR: "0"},
+      cwd: workingDirectory,
+      env: {...process.env, ...options?.env, FORCE_COLOR: "0"},
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -538,10 +567,7 @@ const main = async (): Promise<void> => {
       "--coverage-reporter=lcov",
       `--coverage-dir=${coverageDir}`,
     ]);
-    if (exitCode !== 0) {
-      console.error(`\nbun test exited with code ${exitCode}`);
-      process.exit(exitCode);
-    }
+    failIfTestsFailed(exitCode, output, "bun test");
     const summary = parseAllFilesRow(output);
     if (!summary) {
       console.error('\nCould not find an "All files" row in the coverage output.');
@@ -568,10 +594,7 @@ const main = async (): Promise<void> => {
     "--coverage-reporter=lcov",
     `--coverage-dir=${mainDir}`,
   ]);
-  if (mainRun.exitCode !== 0) {
-    console.error(`\nbun test exited with code ${mainRun.exitCode}`);
-    process.exit(mainRun.exitCode);
-  }
+  failIfTestsFailed(mainRun.exitCode, mainRun.output, "bun test");
   mergeLcov(mergedCoverage, readLcov(mainDir));
 
   for (let index = 0; index < isolated.length; index += 1) {
@@ -580,16 +603,12 @@ const main = async (): Promise<void> => {
     coverageDirs.push(dir);
     rmSync(dir, {force: true, recursive: true});
     console.info(`\n--- Isolated coverage pass for ${testFile} ---`);
-    const run = await runBunTest([
-      testFile,
-      "--coverage",
-      "--coverage-reporter=lcov",
-      `--coverage-dir=${dir}`,
-    ]);
-    if (run.exitCode !== 0) {
-      console.error(`\nbun test ${testFile} exited with code ${run.exitCode}`);
-      process.exit(run.exitCode);
-    }
+    const needsReducedPreload = testFile === "././src/isolated/hooks.isolated.tsx";
+    const run = await runBunTest(
+      [testFile, "--coverage", "--coverage-reporter=lcov", `--coverage-dir=${dir}`],
+      needsReducedPreload ? {env: {ADMIN_USE_REAL_API: "1"}} : undefined
+    );
+    failIfTestsFailed(run.exitCode, run.output, `bun test ${testFile}`);
     mergeIsolatedLcov(mergedCoverage, onlyHitFiles(readLcov(dir)));
   }
 

@@ -60,7 +60,7 @@ the named stage when a concrete engineering action remains, but it does not repe
 failed approach without a new hypothesis. It keeps cycle details in execution state and
 presents one complete report at the end. At a human gate, the report must explain the
 overall goal/state, completed work, decisive evidence, options and impact, recommendation,
-then end with one exact question. It never invokes Grow, Brew, Taste, or product CI.
+then one exact question, then PR deployment URLs when a PR has them. It never invokes Grow, Brew, Taste, or product CI.
 
 ## Feature profile (formerly Grind)
 
@@ -91,7 +91,8 @@ product CI with `gh` or `circleci`, then acts. Before any push it always pulls l
 `master`, then spawns a fresh subagent with no parent conversation. When the repository
 root defines a `prepush` package script, the subagent runs that authoritative local gate.
 Otherwise it falls back to lint, typecheck, and locally affected tests in affected
-packages. Taste then pushes and watches CI.
+packages. Before that gate, Taste records last-run failed tests from the CI snapshot and
+re-verifies them locally. Taste then pushes and watches CI.
 
 ## UI scenario
 
@@ -111,7 +112,8 @@ packages. Taste then pushes and watches CI.
 2. Taste waits if those bots are still running, then runs the product-CI wait loop
    (`gh pr checks --watch` / `gh run watch` / `circleci run watch`) until jobs on SHA A
    are terminal. It sees a branch-caused CI failure, fixes it, always pulls latest
-   `master`, runs the root `prepush` script (or fallback lint, typecheck, and affected
+   `master`, records last-run failed tests and re-verifies them locally, then runs the
+   root `prepush` script (or fallback lint, typecheck, and affected
    tests) in a fresh subagent with no parent conversation, pushes SHA B, then watches
    review bots and product CI on B, and acts once on those results. A further push emits
    `PENDING` and exits.

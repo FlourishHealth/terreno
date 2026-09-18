@@ -73,6 +73,19 @@
       "title": "Roadmap"
     },
     {
+      "description": "Charter a measurable long-term goal, map-reduce the repository into findings, and drive each routed PR through the lifecycle.",
+      "skills": [
+        "terreno-scan-1-aim",
+        "terreno-scan-2-sweep",
+        "terreno-scan-3-sift",
+        "terreno-scan-4-plot",
+        "terreno-scan-5-track",
+        "terreno-scan-campaign",
+        "terreno-scan-loop"
+      ],
+      "title": "Code scans"
+    },
+    {
       "description": "Non-conflicting Expo deployment and platform workflows.",
       "skills": [
         "expo-api-routes",

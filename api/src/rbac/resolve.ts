@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
+import {getOrgContext} from "../orgs/orgContext";
 import {unionPermissionSets} from "./permissionUtils";
 import type {RbacRoleModel} from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
@@ -26,15 +27,18 @@ const getUserRoles = (user: User): string[] => {
   return withRoles.roles ?? [];
 };
 
-/** Include roles so a Mongo promotion (e.g. e2e `setUserAdmin`) is not stuck behind a 30s TTL. */
+/** Include org context and roles so tenant switches and Mongo promotions are not stuck behind TTL. */
 const permissionCacheKey = (user: User): string => {
+  const ctx = getOrgContext();
+  const organizationId = ctx?.organization?._id?.toString() ?? "";
+  const membershipRole = ctx?.membership?.roleName ?? "";
   const roles = [...getUserRoles(user)].sort().join(",");
-  return `${user.id}:${roles}`;
+  return `${user.id}::org=${organizationId}::role=${membershipRole}::roles=${roles}`;
 };
 
 const deletePermissionCacheForUser = (cache: Map<string, CacheEntry>, userId: string): void => {
   for (const key of [...cache.keys()]) {
-    if (key === userId || key.startsWith(`${userId}:`)) {
+    if (key === userId || key.startsWith(`${userId}:`) || key.startsWith(`${userId}::`)) {
       cache.delete(key);
     }
   }

@@ -36,6 +36,8 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 - `demoConfig.tsx` — registers stories so they appear in the home grid and `[component]` routes
 - `app/demo/` — user-facing showcase routes
 - `app/dev/` — developer playground routes
+- `assets/terreno-garden-banner.png` — two-card-wide banner at the upper-left of the demo grid
+- `assets/icon.png`, `adaptive-icon.png`, `favicon.png` — demo checklist branding
 - From the repo root, `bun run check:demo-coverage` fails CI when a `@terreno/ui` export has no story and no allowlist reason
 - `bun run --filter terreno-demo test:ci` mounts every registered story with `renderWithTheme`
 
@@ -44,6 +46,15 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 1. Create `stories/MyComponent.stories.tsx` with a `React.FC` demo using `@terreno/ui`.
 2. Add a `story-config/MyComponent.config.tsx` export (`name`, `interfaceName`, category).
 3. Import that config in `demoConfig.tsx` and add it to the exported list.
+
+## Home grid cards must not nest pressables
+
+The home grid renders every story preview inside a card, and the card's press target is an
+absolutely positioned sibling that covers the card rather than a wrapper around it. A wrapper
+would put one pressable inside another, which on web means `<button>` inside `<button>`. The
+HTML parser repairs that by closing the outer button early, so the static-rendered page loses
+the rest of the grid out of `#root` and onto `<body>`. `components/DemoCard.test.tsx`
+renders every configured card and fails if any pressable ends up inside another.
 
 ## Documentation
 

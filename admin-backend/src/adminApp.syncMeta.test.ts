@@ -5,7 +5,10 @@ import {
   apiUnauthorizedMiddleware,
   clearSyncRegistry,
   createdUpdatedPlugin,
+  getAdminBroadcastScope,
+  getSyncRegistry,
   isDeletedPlugin,
+  orgScopedPlugin,
   Permissions,
   registerSync,
   SyncApp,
@@ -112,6 +115,75 @@ describe("GET /admin/config sync window meta", () => {
     assert.isDefined(todoMeta);
     assert.strictEqual(todoMeta?.adminBroadcast, true);
     assert.strictEqual(todoMeta?.syncCollection, "todos");
+  });
+});
+
+interface ConfigOrgScopedTodo {
+  _id: string;
+  organizationId: mongoose.Types.ObjectId;
+  title: string;
+}
+
+const configOrgScopedTodoSchema = new mongoose.Schema<ConfigOrgScopedTodo>({
+  _id: {
+    default: (): string => new mongoose.Types.ObjectId().toHexString(),
+    description: "Client-minted string id",
+    type: String,
+  },
+  title: {description: "Todo title", required: true, type: String},
+});
+configOrgScopedTodoSchema.plugin(orgScopedPlugin);
+configOrgScopedTodoSchema.plugin(isDeletedPlugin);
+configOrgScopedTodoSchema.plugin(createdUpdatedPlugin);
+configOrgScopedTodoSchema.plugin(syncPlugin);
+
+const ConfigOrgScopedTodoModel =
+  mongoose.models.ConfigOrgScopedTodo ??
+  mongoose.model<ConfigOrgScopedTodo>("ConfigOrgScopedTodo", configOrgScopedTodoSchema);
+
+const orgScopedTodoModelConfig: AdminModelConfig = {
+  displayName: "Org todos",
+  listFields: ["title"],
+  model: ConfigOrgScopedTodoModel,
+  routePath: "/org-todos",
+};
+
+describe("GET /admin/config org-scoped sync window meta", () => {
+  afterEach(() => {
+    clearSyncRegistry();
+  });
+
+  it("forces adminBroadcast false and organizationScoped true when organizations is enabled", async () => {
+    clearSyncRegistry();
+    await setupDb();
+    registerSync({
+      config: {adminBroadcast: true, scope: {field: "organizationId", type: "tenant"}},
+      model: ConfigOrgScopedTodoModel,
+      options: syncOptions,
+      routePath: "/org-todos",
+    });
+    const app = getBaseServer();
+    setupAuth(app, UserModel as unknown as UserModelType);
+    addAuthRoutes(app, UserModel as unknown as UserModelType);
+    new AdminApp({
+      basePath: "/admin",
+      models: [orgScopedTodoModelConfig],
+      organizations: true,
+    }).register(app);
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+
+    const agent = await authAsUser(app, "admin");
+    const res = await agent.get("/admin/config").expect(200);
+    const todoMeta = (res.body.models as Record<string, unknown>[]).find(
+      (model) => model.name === "ConfigOrgScopedTodo"
+    );
+    assert.isDefined(todoMeta);
+    assert.strictEqual(todoMeta?.adminBroadcast, false);
+    assert.strictEqual(todoMeta?.organizationScoped, true);
+    assert.notProperty(todoMeta as object, "syncCollection");
+    assert.strictEqual(getSyncRegistry()[0]?.config.adminBroadcast, false);
+    assert.isUndefined(getAdminBroadcastScope("ConfigOrgScopedTodo"));
   });
 });
 

@@ -11,6 +11,7 @@ import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const routerBack = mock(() => {});
@@ -40,23 +41,6 @@ const readState: {data: Record<string, unknown> | null; isLoading: boolean} = {
 const createFn = mock((_: unknown) => ({unwrap: async () => ({_id: "new"})}));
 const updateFn = mock((_: unknown) => ({unwrap: async () => ({_id: "u"})}));
 const deleteFn = mock((_: unknown) => ({unwrap: async () => ({})}));
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [
-      mock(() => ({unwrap: async () => ({updated: 1})})),
-      {isLoading: false},
-    ],
-    useCreateMutation: () => [createFn, {isLoading: false}],
-    useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false, refetch: async () => ({})}),
-    useReadQuery: () => ({
-      data: readState.data,
-      error: null,
-      isLoading: readState.isLoading,
-    }),
-    useUpdateMutation: () => [updateFn, {isLoading: false}],
-  }),
-}));
 
 const syncMutateFn = mock((_args: unknown) => ({id: "sync-id", mutationId: "mutation-id"}));
 const hydrateWindowFn = mock(async (_args: unknown) => ({hydratedIds: ["todo-1"]}));
@@ -112,6 +96,18 @@ const config = {customScreens: [], models: [modelConfig], scripts: []};
 
 describe("AdminModelForm", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useCreateMutation: () => [createFn, {isLoading: false}],
+      useDeleteMutation: () => [deleteFn, {isLoading: false}],
+      useListQuery: () => ({data: {data: [], total: 0}, isLoading: false}),
+      useReadQuery: () => ({
+        data: readState.data,
+        error: null,
+        isLoading: readState.isLoading,
+      }),
+      useUpdateMutation: () => [updateFn, {isLoading: false}],
+    });
     routerBack.mockClear();
     setOptions.mockClear();
     createFn.mockClear();
@@ -701,6 +697,11 @@ describe("AdminModelForm", () => {
     await act(async () => {
       fireEvent.press(header.getByTestId("admin-save-button"));
     });
+    for (let attempt = 0; attempt < 30 && createFn.mock.calls.length === 0; attempt++) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
     expect(createFn).toHaveBeenCalled();
     expect(routerBack).toHaveBeenCalled();
   });

@@ -82,6 +82,8 @@ export interface HttpChannelConfig {
   authProvider: Pick<AuthProvider, "getToken">;
   /** Fetch implementation override for tests/SSR (defaults to global fetch). */
   fetchImpl?: FetchLike;
+  /** Selected organization id attached as `X-Organization-Id` when present. */
+  organizationIdProvider?: () => string | undefined;
 }
 
 /** Create an {@link HttpChannel} speaking @terreno/api's `/sync/*` routes. */
@@ -89,15 +91,18 @@ export const createHttpChannel = ({
   baseUrl,
   authProvider,
   fetchImpl,
+  organizationIdProvider,
 }: HttpChannelConfig): HttpChannel => {
   const fetcher: FetchLike = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
 
   const request = async (path: string, init?: RequestInit): Promise<Response> => {
     const token = await authProvider.getToken();
+    const organizationId = organizationIdProvider?.()?.trim();
     const headers: Record<string, string> = {
       Accept: "application/json",
       ...(init?.body !== undefined ? {"Content-Type": "application/json"} : {}),
       ...(token ? {Authorization: `Bearer ${token}`} : {}),
+      ...(organizationId ? {"X-Organization-Id": organizationId} : {}),
     };
     const response = await fetcher(`${baseUrl}${path}`, {...init, headers});
     if (response.status === 401) {
