@@ -280,7 +280,10 @@ resource "google_cloud_tasks_queue" "example_jobs" {
     max_retry_duration = "3600s"
   }
 
-  depends_on = [module.bootstrap]
+  # module.github_oidc grants terraform-admin roles/cloudtasks.admin. Without
+  # this ordering the queue can be created before that binding exists and the
+  # apply fails with a 403 on cloudtasks.queues.create.
+  depends_on = [module.bootstrap, module.github_oidc]
 }
 
 resource "google_service_account" "jobs_tasks_invoker" {
