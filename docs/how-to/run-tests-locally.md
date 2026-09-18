@@ -67,6 +67,10 @@ Full local suite: `bun run frontend:e2e`. Nightly load (`e2e-load` / `syncdb-loa
 not PR-blocking; run `bunx playwright test e2e/syncdb-loadlab.spec.ts` only when that job
 failed.
 
+CircleCI skips a shard no changed file can reach. Ask for the same verdict before
+pushing with `bun run check:e2e-affected` (see
+[the affected gate](circleci.md#e2e-affected-gate)).
+
 ## Admin SPA
 
 ```bash
