@@ -945,6 +945,13 @@ export interface AiSuggestionProps {
 export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
   type?: "email" | "password" | "phoneNumber" | "search" | "text" | "url";
 
+  /**
+   * Renders the show/hide eye control on `type="password"`. Set to `false` for fields where
+   * revealing the value is not acceptable, such as a shared or on-camera screen.
+   * @default true
+   */
+  showVisibilityToggle?: boolean;
+
   autoComplete?: "current-password" | "on" | "off" | "username";
   returnKeyType?: "done" | "go" | "next" | "search" | "send";
 
