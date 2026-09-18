@@ -20,6 +20,8 @@
       "!!coverage",
       "!!**/generated",
       "!!generated",
+      "!!**/expo-env.d.ts",
+      "!!expo-env.d.ts",
       "!!**/.git"
     ]
   },
