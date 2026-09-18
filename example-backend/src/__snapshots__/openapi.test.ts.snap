@@ -3287,7 +3287,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/admin/audit-logs/": {
+    "/admin/audit-events/": {
       "get": {
         "parameters": [
           {
@@ -3325,11 +3325,49 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "created",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When this document was created",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "verb",
             "schema": {
               "oneOf": [
                 {
-                  "description": "Mutation kind",
+                  "description": "Widget-compatible mutation verb",
                   "enum": [
                     "created",
                     "deleted",
@@ -3357,7 +3395,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "schema": {
               "oneOf": [
                 {
-                  "description": "Mongoose model name affected",
+                  "description": "Mongoose model name of the affected document",
                   "type": "string",
                 },
                 {
@@ -3380,7 +3418,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "schema": {
               "oneOf": [
                 {
-                  "description": "Human-readable label for the record",
+                  "description": "Short human-readable label for the affected record",
                   "type": "string",
                 },
                 {
@@ -3399,34 +3437,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
-            "name": "recordId",
-            "schema": {
-              "oneOf": [
-                {
-                  "description": "Primary key of the affected document",
-                  "type": "schemaobjectid",
-                },
-                {
-                  "properties": {
-                    "$in": {
-                      "items": {
-                        "type": "schemaobjectid",
-                      },
-                      "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
             "name": "actorId",
             "schema": {
               "oneOf": [
                 {
-                  "description": "User who performed the action",
+                  "description": "User who performed the mutation, when known",
                   "type": "schemaobjectid",
                 },
                 {
@@ -3436,39 +3451,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         "type": "schemaobjectid",
                       },
                       "type": "array",
-                    },
-                  },
-                  "type": "object",
-                },
-              ],
-            },
-          },
-          {
-            "in": "query",
-            "name": "createdAt",
-            "schema": {
-              "oneOf": [
-                {
-                  "format": "date-time",
-                  "type": "string",
-                },
-                {
-                  "properties": {
-                    "$gt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$gte": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$lt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
-                    "$lte": {
-                      "format": "date-time",
-                      "type": "string",
                     },
                   },
                   "type": "object",
@@ -3511,34 +3493,56 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "actorId": {
-                            "description": "User who performed the action",
+                            "description": "User who performed the mutation, when known",
                             "format": "objectid",
                             "type": "string",
+                          },
+                          "after": {
+                            "description": "Redacted changed fields after the mutation",
+                          },
+                          "before": {
+                            "description": "Redacted changed fields before the mutation",
                           },
                           "created": {
                             "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
-                          "createdAt": {
-                            "format": "date-time",
+                          "modelName": {
+                            "description": "Mongoose model name of the affected document",
                             "type": "string",
                           },
-                          "deleted": {
-                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                            "type": "boolean",
+                          "operation": {
+                            "description": "Fine-grained mutation kind",
+                            "enum": [
+                              "arrayPush",
+                              "arrayRemove",
+                              "arrayUpdate",
+                              "create",
+                              "delete",
+                              "update",
+                            ],
+                            "type": "string",
                           },
-                          "modelName": {
-                            "description": "Mongoose model name affected",
+                          "organizationId": {
+                            "description": "Tenant organization id when known",
                             "type": "string",
                           },
                           "recordId": {
                             "description": "Primary key of the affected document",
-                            "format": "objectid",
                             "type": "string",
                           },
                           "recordLabel": {
-                            "description": "Human-readable label for the record",
+                            "description": "Short human-readable label for the affected record",
+                            "type": "string",
+                          },
+                          "source": {
+                            "description": "Which framework surface wrote this event",
+                            "enum": [
+                              "admin",
+                              "modelRouter",
+                              "rbac",
+                            ],
                             "type": "string",
                           },
                           "updated": {
@@ -3546,12 +3550,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "format": "date-time",
                             "type": "string",
                           },
-                          "updatedAt": {
-                            "format": "date-time",
-                            "type": "string",
-                          },
                           "verb": {
-                            "description": "Mutation kind",
+                            "description": "Widget-compatible mutation verb",
                             "enum": [
                               "created",
                               "deleted",
@@ -3562,6 +3562,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         },
                         "required": [
                           "modelName",
+                          "operation",
+                          "source",
                           "verb",
                           "_id",
                           "created",
@@ -3635,11 +3637,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "adminauditlogs",
+          "auditevents",
         ],
       },
     },
-    "/admin/audit-logs/bulk-patch": {
+    "/admin/audit-events/bulk-patch": {
       "post": {
         "requestBody": {
           "content": {
@@ -3733,13 +3735,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "description": "The user is not allowed to perform this action on any document",
           },
         },
-        "summary": "Bulk patch AdminAuditLog documents",
+        "summary": "Bulk patch AuditEvent documents",
         "tags": [
           "admin",
         ],
       },
     },
-    "/admin/audit-logs/{id}": {
+    "/admin/audit-events/{id}": {
       "get": {
         "parameters": [
           {
@@ -3761,34 +3763,56 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "actorId": {
-                      "description": "User who performed the action",
+                      "description": "User who performed the mutation, when known",
                       "format": "objectid",
                       "type": "string",
+                    },
+                    "after": {
+                      "description": "Redacted changed fields after the mutation",
+                    },
+                    "before": {
+                      "description": "Redacted changed fields before the mutation",
                     },
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
-                    "createdAt": {
-                      "format": "date-time",
+                    "modelName": {
+                      "description": "Mongoose model name of the affected document",
                       "type": "string",
                     },
-                    "deleted": {
-                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
-                      "type": "boolean",
+                    "operation": {
+                      "description": "Fine-grained mutation kind",
+                      "enum": [
+                        "arrayPush",
+                        "arrayRemove",
+                        "arrayUpdate",
+                        "create",
+                        "delete",
+                        "update",
+                      ],
+                      "type": "string",
                     },
-                    "modelName": {
-                      "description": "Mongoose model name affected",
+                    "organizationId": {
+                      "description": "Tenant organization id when known",
                       "type": "string",
                     },
                     "recordId": {
                       "description": "Primary key of the affected document",
-                      "format": "objectid",
                       "type": "string",
                     },
                     "recordLabel": {
-                      "description": "Human-readable label for the record",
+                      "description": "Short human-readable label for the affected record",
+                      "type": "string",
+                    },
+                    "source": {
+                      "description": "Which framework surface wrote this event",
+                      "enum": [
+                        "admin",
+                        "modelRouter",
+                        "rbac",
+                      ],
                       "type": "string",
                     },
                     "updated": {
@@ -3796,12 +3820,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "format": "date-time",
                       "type": "string",
                     },
-                    "updatedAt": {
-                      "format": "date-time",
-                      "type": "string",
-                    },
                     "verb": {
-                      "description": "Mutation kind",
+                      "description": "Widget-compatible mutation verb",
                       "enum": [
                         "created",
                         "deleted",
@@ -3812,6 +3832,8 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                   },
                   "required": [
                     "modelName",
+                    "operation",
+                    "source",
                     "verb",
                     "_id",
                     "created",
@@ -3868,7 +3890,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
         },
         "tags": [
-          "adminauditlogs",
+          "auditevents",
         ],
       },
     },
@@ -9864,13 +9886,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
-                          "organizationIds": {
-                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                            "items": {
-                              "type": "string",
-                            },
-                            "type": "array",
-                          },
                           "roles": {
                             "description": "RBAC role names assigned to this user",
                             "items": {
@@ -10020,13 +10035,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -10103,13 +10111,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -10419,13 +10420,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
                       "items": {
@@ -10568,13 +10562,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -10651,13 +10638,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -16290,6 +16270,820 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/jobs": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "scheduleId",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "attemptCount": {
+                            "type": "number",
+                          },
+                          "id": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                          "status": {
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List background jobs",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/schedules": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "cron": {
+                            "type": "string",
+                          },
+                          "enabled": {
+                            "type": "boolean",
+                          },
+                          "handlerName": {
+                            "type": "string",
+                          },
+                          "id": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                          "nextRunAt": {
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "timezone": {
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List configured job schedules",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/schedules/{name}/pause": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Pause a job schedule",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/schedules/{name}/resume": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Resume a job schedule",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/stats": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "byStatus": {
+                          "type": "object",
+                        },
+                        "total": {
+                          "type": "number",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Aggregate background job counts by status",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Read one background job",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/{id}/cancel": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Cancel a pending, scheduled, or running job",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/{id}/requeue": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Requeue a dead, failed, or cancelled job",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
+    "/jobs/{id}/retry": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Retry a background job by creating a linked row",
+        "tags": [
+          "admin",
+          "jobs",
+        ],
+      },
+    },
     "/mcp/service-tokens": {
       "get": {
         "description": "Lists MCP service tokens owned by the signed-in user. Never includes plaintext or tokenHash.",
@@ -16590,6 +17384,704 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "Revoke an MCP service token",
         "tags": [
           "mcp",
+        ],
+      },
+    },
+    "/orgs/": {
+      "get": {
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List all organizations",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "description": "Organization name",
+                    "required": true,
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Create an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/mine": {
+      "get": {
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List organizations the caller may switch into",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Soft-delete an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Read an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "disabled": {
+                    "description": "Disable the organization",
+                    "type": "boolean",
+                  },
+                  "name": {
+                    "description": "Organization name",
+                    "type": "string",
+                  },
+                  "settings": {
+                    "description": "App-defined organization settings",
+                    "type": "object",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Update an organization",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}/members": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List organization members",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Existing user email",
+                    "type": "string",
+                  },
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "Existing user id",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Attach an existing user as a member",
+        "tags": [
+          "organizations",
+        ],
+      },
+    },
+    "/orgs/{id}/members/{memberId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Remove a membership",
+        "tags": [
+          "organizations",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "roleName": {
+                    "description": "Membership role",
+                    "type": "string",
+                  },
+                  "status": {
+                    "description": "Membership status",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Update a membership",
+        "tags": [
+          "organizations",
         ],
       },
     },
@@ -19032,13 +20524,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             ],
                             "type": "string",
                           },
-                          "organizationIds": {
-                            "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                            "items": {
-                              "type": "string",
-                            },
-                            "type": "array",
-                          },
                           "roles": {
                             "description": "RBAC role names assigned to this user",
                             "items": {
@@ -19188,13 +20673,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -19271,13 +20749,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
@@ -19487,13 +20958,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       ],
                       "type": "string",
                     },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
-                    },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
                       "items": {
@@ -19636,13 +21100,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     ],
                     "type": "string",
                   },
-                  "organizationIds": {
-                    "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                    "items": {
-                      "type": "string",
-                    },
-                    "type": "array",
-                  },
                   "roles": {
                     "description": "RBAC role names assigned to this user",
                     "items": {
@@ -19719,13 +21176,6 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                         null,
                       ],
                       "type": "string",
-                    },
-                    "organizationIds": {
-                      "description": "Organizations (tenants) the user belongs to, used for tenant-scoped sync",
-                      "items": {
-                        "type": "string",
-                      },
-                      "type": "array",
                     },
                     "roles": {
                       "description": "RBAC role names assigned to this user",
