@@ -65,3 +65,4 @@ jobs:
         env:
           COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/ci/check-new-file-coverage-lcov.sh ai
+        working-directory: .

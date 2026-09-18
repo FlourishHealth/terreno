@@ -119,7 +119,9 @@ that script. Published packages without a dedicated workflow
 (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `@terreno/test`)
 run the same lint, compile, and coverage commands via the parameterized
 `packages-ci` job. Retained GitHub Actions twins stay in lockstep (`on: []`),
-including `.github/workflows/packages-ci.yml`.
+including `.github/workflows/packages-ci.yml`. Those twins run
+`scripts/ci/check-new-file-coverage-lcov.sh` with `working-directory: .` and
+pass `secrets.CODECOV_TOKEN` into `upload-codecov`.
 
 Each of those jobs then uploads `coverage/lcov.info` to Codecov with a distinct
 flag (`api`, `ui`, `rtk`, …) via `scripts/upload-codecov.sh`. The script

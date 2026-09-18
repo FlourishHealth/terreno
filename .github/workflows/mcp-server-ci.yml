@@ -50,6 +50,7 @@ jobs:
         env:
           COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/ci/check-new-file-coverage-lcov.sh mcp-server
+        working-directory: .
 
   docker:
     name: Build Docker Image

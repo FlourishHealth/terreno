@@ -44,6 +44,7 @@ jobs:
         env:
           COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/ci/check-new-file-coverage-lcov.sh admin-spa
+        working-directory: .
 
       - name: Build web export
         run: bun run build:web

@@ -74,7 +74,10 @@ admin-spa. `new-file-coverage` starts on package `src/` (and example app
 runtime paths including `example-frontend/components/`), not on every `*.ts`
 file in the repo (Playwright specs no longer compile the world). Package CI
 jobs that already ran `test:coverage` evaluate the 90% new-file gate against
-that LCOV (`scripts/ci/check-new-file-coverage-lcov.sh`). The dedicated
+that LCOV (`scripts/ci/check-new-file-coverage-lcov.sh`). Retained GitHub
+Actions twins run that script with `working-directory: .` so a package-level
+`defaults.run` cwd cannot nest `{package}/coverage/lcov.info`. GHA
+`upload-codecov` steps pass `token: ${{ secrets.CODECOV_TOKEN }}`. The dedicated
 `new-file-coverage` job skips those packages and only reruns tests for
 workspaces without a coverage job in the same pipeline (example apps). Reruns
 prefer colocated `*.test.ts` files and compile `@terreno/*` dist deps only

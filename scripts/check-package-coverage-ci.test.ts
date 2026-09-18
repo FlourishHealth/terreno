@@ -4,6 +4,8 @@ import {
   COVERAGE_COMMAND,
   DEDICATED_PACKAGE_CI_JOBS,
   findDedicatedJobsMissingCoverage,
+  findGhaCodecovUploadsMissingToken,
+  findGhaLcovStepsMissingRepoRootCwd,
   findMatrixPackagesMissingCoverage,
   jobCommandBlock,
   MATRIX_PACKAGES,
@@ -72,6 +74,61 @@ describe("findDedicatedJobsMissingCoverage", () => {
       "circleci:syncdb-ci",
       "circleci:ui-ci",
     ]);
+  });
+});
+
+describe("findGhaLcovStepsMissingRepoRootCwd", () => {
+  it("flags Gate new files steps that inherit a package working-directory", () => {
+    const source = [
+      "defaults:",
+      "  run:",
+      "    working-directory: api",
+      "jobs:",
+      "  test:",
+      "    steps:",
+      "      - name: Gate new files from LCOV",
+      "        run: bash scripts/ci/check-new-file-coverage-lcov.sh api",
+      "",
+    ].join("\n");
+    expect(findGhaLcovStepsMissingRepoRootCwd({"api-ci.yml": source})).toEqual([
+      "gha:api-ci.yml:lcov-cwd",
+    ]);
+  });
+
+  it("accepts an explicit repo-root working-directory on the LCOV step", () => {
+    const source = [
+      "      - name: Gate new files from LCOV",
+      "        working-directory: .",
+      `        run: bash ${NEW_FILE_LCOV_SCRIPT} api`,
+      "",
+    ].join("\n");
+    expect(findGhaLcovStepsMissingRepoRootCwd({"api-ci.yml": source})).toEqual([]);
+  });
+});
+
+describe("findGhaCodecovUploadsMissingToken", () => {
+  it("flags upload-codecov steps without CODECOV_TOKEN", () => {
+    const source = [
+      "      - name: Upload coverage to Codecov",
+      "        uses: ./.github/actions/upload-codecov",
+      "        with:",
+      "          directory: api",
+      "          flag: api",
+      "",
+    ].join("\n");
+    expect(findGhaCodecovUploadsMissingToken({"api-ci.yml": source})).toEqual([
+      "gha:api-ci.yml:codecov-token",
+    ]);
+    const withToken = [
+      "      - name: Upload coverage to Codecov",
+      "        uses: ./.github/actions/upload-codecov",
+      "        with:",
+      "          directory: api",
+      "          flag: api",
+      "          token: ${{" + " secrets.CODECOV_TOKEN }}",
+      "",
+    ].join("\n");
+    expect(findGhaCodecovUploadsMissingToken({"api-ci.yml": withToken})).toEqual([]);
   });
 });
 

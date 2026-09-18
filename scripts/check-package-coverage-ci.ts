@@ -60,6 +60,53 @@ export const sourceRunsCoverage = (source: string): boolean => {
   return source.includes(COVERAGE_COMMAND);
 };
 
+const GHA_CODECOV_TOKEN_INPUT = "token: ${{" + " secrets.CODECOV_TOKEN }}";
+
+const nextGhaStepBlock = (source: string): string => {
+  const next = source.search(/\n {6}- /);
+  if (next < 0) {
+    return source;
+  }
+  return source.slice(0, next);
+};
+
+/** LCOV gate is repo-root-relative; package `defaults.run.working-directory` must not apply. */
+export const findGhaLcovStepsMissingRepoRootCwd = (
+  ghaSources: Record<string, string>
+): string[] => {
+  const missing: string[] = [];
+  for (const [file, source] of Object.entries(ghaSources)) {
+    if (!source.includes(NEW_FILE_LCOV_SCRIPT)) {
+      continue;
+    }
+    const parts = source.split("- name: Gate new files from LCOV");
+    for (let i = 1; i < parts.length; i++) {
+      const block = nextGhaStepBlock(parts[i]);
+      if (!block.includes("working-directory: .")) {
+        missing.push(`gha:${file}:lcov-cwd`);
+      }
+    }
+  }
+  return missing.sort();
+};
+
+export const findGhaCodecovUploadsMissingToken = (ghaSources: Record<string, string>): string[] => {
+  const missing: string[] = [];
+  for (const [file, source] of Object.entries(ghaSources)) {
+    if (!source.includes("uses: ./.github/actions/upload-codecov")) {
+      continue;
+    }
+    const parts = source.split("uses: ./.github/actions/upload-codecov");
+    for (let i = 1; i < parts.length; i++) {
+      const block = nextGhaStepBlock(parts[i]);
+      if (!block.includes(GHA_CODECOV_TOKEN_INPUT)) {
+        missing.push(`gha:${file}:codecov-token`);
+      }
+    }
+  }
+  return missing.sort();
+};
+
 export const findDedicatedJobsMissingCoverage = ({
   continueConfig,
   ghaSources,
@@ -82,6 +129,8 @@ export const findDedicatedJobsMissingCoverage = ({
       missing.push(`gha:${ghaWorkflow}`);
     }
   }
+  missing.push(...findGhaLcovStepsMissingRepoRootCwd(ghaSources));
+  missing.push(...findGhaCodecovUploadsMissingToken(ghaSources));
   return missing.sort();
 };
 
@@ -153,6 +202,8 @@ export const findMatrixPackagesMissingCoverage = ({
   ) {
     missing.push("gha:packages-ci.yml:commands");
   }
+  missing.push(...findGhaLcovStepsMissingRepoRootCwd({"packages-ci.yml": ghaSource}));
+  missing.push(...findGhaCodecovUploadsMissingToken({"packages-ci.yml": ghaSource}));
   const ghaPackages = parseGhaMatrixPackages(ghaSource);
   if (ghaPackages.join(",") !== [...MATRIX_PACKAGES].join(",")) {
     missing.push(`gha:packages-ci.yml:matrix:${ghaPackages.join("|") || "empty"}`);
