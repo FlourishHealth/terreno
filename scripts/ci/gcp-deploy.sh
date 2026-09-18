@@ -20,7 +20,7 @@ export GCP_PROJECT_ID="${GCP_PROJECT_ID:-flourish-terreno}"
 export GCP_BACKEND_REGION="${GCP_BACKEND_REGION:-us-central1}"
 export GCP_BACKEND_SERVICE="${GCP_BACKEND_SERVICE:-terreno-backend-example}"
 export GCP_TASKS_SERVICE="${GCP_TASKS_SERVICE:-terreno-backend-example-tasks}"
-export GCP_TASKS_QUEUE="${GCP_TASKS_QUEUE:-terreno-example-jobs}"
+export GCP_TASKS_QUEUE="${GCP_TASKS_QUEUE:-terreno-example-jobs-v2}"
 export GCP_TASKS_INVOKER_SA="${GCP_TASKS_INVOKER_SA:-terreno-jobs-invoker@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 export GCP_BACKEND_RUNTIME_SA="${GCP_BACKEND_RUNTIME_SA:-terreno-backend-runtime@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 export GCP_MCP_REGION="${GCP_MCP_REGION:-us-east1}"
@@ -166,17 +166,23 @@ case "$action" in
     location="${GCP_INFRA_MANAGER_LOCATION:-us-central1}"
     preview_id="${TF_DEPLOYMENT}-pr${PR_NUMBER}-${CIRCLE_BUILD_NUM:-manual}"
     trap 'gcloud infra-manager previews delete "$preview_id" --location="$location" --project="$GCP_PROJECT_ID" --quiet || true' EXIT
+    preview_create_status=0
     gcloud infra-manager previews create "$preview_id" \
       "--project=$GCP_PROJECT_ID" \
       "--location=$location" \
       "--deployment=projects/${GCP_PROJECT_ID}/locations/${location}/deployments/${TF_DEPLOYMENT}" \
       "--service-account=projects/${GCP_PROJECT_ID}/serviceAccounts/${GCP_TF_ADMIN_SA_PROD}" \
       --local-source=terraform \
-      --quiet
+      --quiet || preview_create_status=$?
+    # Dump errorCode/errorLogs even when create fails. gcloud often prints an
+    # empty "failed while running step:" line and nothing else.
     gcloud infra-manager previews describe "$preview_id" \
       "--location=$location" \
       "--project=$GCP_PROJECT_ID" \
-      --format='yaml(state,errorCode,errorLogs,buildResults)'
+      --format='yaml(state,errorCode,errorLogs,buildResults)' || true
+    if [ "$preview_create_status" -ne 0 ]; then
+      exit "$preview_create_status"
+    fi
     ;;
   terraform-apply)
     export GCP_SERVICE_ACCOUNT="${GCP_TF_ADMIN_SA_PROD:-}"

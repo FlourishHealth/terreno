@@ -11,6 +11,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 ## Contents
 
 - [Local-first data](local-first-data.md) — Why the local store is the UI source of truth
+- [Planning plugins](planning-plugins.md) — How the lifecycle and scan plugins divide discovery from delivery
 - [Loop engineering](loop-engineering.md) — Fresh-invocation lifecycle, state, evidence, and orchestration boundaries
 - [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and plan comments for Pick/Roast
 - [Install agent skills](../how-to/install-agent-skills.md) — `npx skills add FlourishHealth/terreno`

@@ -59,6 +59,12 @@ resource "google_cloud_run_v2_service" "this" {
     # The CD workflow rolls new image SHAs and env vars onto this service on
     # every deploy. Terraform owns the structural service definition (scaling,
     # ports, resources, IAM); the workflow owns the runtime payload.
+    #
+    # template[0].revision is deliberately NOT ignored. Ignoring it pins the
+    # revision name from state, so Terraform resends the live revision name
+    # alongside a structural change and Cloud Run rejects it with
+    # "Revision named '<name>' with different configuration already exists"
+    # (409). Leaving it unset lets Cloud Run generate a new revision name.
     ignore_changes = [
       template[0].containers[0].image,
       template[0].containers[0].env,
@@ -66,7 +72,6 @@ resource "google_cloud_run_v2_service" "this" {
       template[0].containers[0].resources[0].cpu_idle,
       template[0].containers[0].resources[0].startup_cpu_boost,
       template[0].labels,
-      template[0].revision,
       client,
       client_version,
     ]

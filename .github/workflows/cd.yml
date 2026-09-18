@@ -46,7 +46,7 @@ env:
   GCP_BACKEND_REGION: us-central1
   GCP_BACKEND_SERVICE: terreno-backend-example
   GCP_TASKS_SERVICE: terreno-backend-example-tasks
-  GCP_TASKS_QUEUE: terreno-example-jobs
+  GCP_TASKS_QUEUE: terreno-example-jobs-v2
   GCP_TASKS_INVOKER_SA: terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
   GCP_BACKEND_RUNTIME_SA: terreno-backend-runtime@flourish-terreno.iam.gserviceaccount.com
   GCP_MCP_REGION: us-east1
@@ -152,13 +152,15 @@ jobs:
             --local-source="terraform" \
             --quiet
       - name: Describe preview
+        if: always() && steps.preview.outputs.preview_id != ''
         run: |
           set -euo pipefail
+          # Create is the job failure. Describe can 404 if no preview object exists.
           gcloud infra-manager previews describe \
             "${{ steps.preview.outputs.preview_id }}" \
             --location="${{ steps.preview.outputs.location }}" \
             --project="${{ env.GCP_PROJECT_ID }}" \
-            --format='yaml(state,errorCode,errorLogs,buildResults)'
+            --format='yaml(state,errorCode,errorLogs,buildResults)' || true
       - name: Cleanup preview
         if: always()
         run: |

@@ -113,8 +113,11 @@ and skip when `NETLIFY_AUTH_TOKEN` or the site id is missing. The same skip
 applies to `gcp-cd-*` when `terreno-gcp` lacks WIF or SA emails, so GitHub
 `cd.yml` remains the live GCP writer. GitHub `terraform-preview` and
 `backend-deploy-preview` run only when
-`github.event.pull_request.head.repo.full_name == github.repository`. Fork
-PRs still present `repository: FlourishHealth/terreno` on the OIDC token, so
+`github.event.pull_request.head.repo.full_name == github.repository`.
+Terraform preview always describes the Infra Manager preview (state,
+`errorCode`, `errorLogs`) before delete, including when `previews create`
+fails. Fork PRs still present `repository: FlourishHealth/terreno` on the
+OIDC token, so
 WIF would accept them if those jobs ran. Netlify GHA jobs fail closed on
 forks (secrets withheld). After filling a context, confirm a CircleCI deploy
 URL, then set the matching GHA workflows to `on: []`. Turn off Netlify's
@@ -320,6 +323,9 @@ This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
 `{"run-e2e-load":true}` at `0 6 * * *` to retain the nightly run.
 
 ## Local validation
+
+Map every CircleCI test job to a local command with
+[run tests locally](run-tests-locally.md). Config syntax:
 
 ```bash
 circleci config validate .circleci/config.yml
