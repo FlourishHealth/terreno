@@ -1,0 +1,95 @@
+import {beforeEach, describe, it, mock} from "bun:test";
+import {assert} from "chai";
+import React from "react";
+import {renderWithTheme} from "../../ui/src/test-utils";
+import type {AdminApi, AdminConfigResponse} from "./types";
+
+const routerBack = mock(() => {});
+const routerPush = mock(() => {});
+
+mock.module("expo-router", () => ({
+  router: {back: routerBack, push: routerPush},
+  useNavigation: () => ({setOptions: mock(() => {})}),
+}));
+
+const configState: {config: AdminConfigResponse | null; isLoading: boolean} = {
+  config: null,
+  isLoading: false,
+};
+mock.module("./useAdminConfig", () => ({
+  useAdminConfig: () => ({
+    config: configState.config,
+    error: null,
+    isLoading: configState.isLoading,
+  }),
+}));
+
+const readSkipCalls: boolean[] = [];
+mock.module("./useAdminApi", () => ({
+  useAdminApi: () => ({
+    useBulkPatchMutation: () => [
+      mock(() => ({unwrap: async () => ({updated: 1})})),
+      {isLoading: false},
+    ],
+    useCreateMutation: () => [
+      mock(() => ({unwrap: async () => ({_id: "new"})})),
+      {isLoading: false},
+    ],
+    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    useListQuery: () => ({data: {data: [], total: 0}, isLoading: false, refetch: async () => ({})}),
+    useReadQuery: (_id: string, opts: {skip?: boolean}) => {
+      readSkipCalls.push(Boolean(opts.skip));
+      return {data: null, error: null, isLoading: false};
+    },
+    useUpdateMutation: () => [
+      mock(() => ({unwrap: async () => ({_id: "item-1"})})),
+      {isLoading: false},
+    ],
+  }),
+}));
+
+import {AdminModelForm} from "./AdminModelForm";
+import {AdminProvider} from "./AdminProvider";
+
+const orgScopedModel = {
+  adminBroadcast: false,
+  defaultSort: "-created",
+  displayName: "Projects",
+  fieldOrder: ["name"],
+  fields: {
+    _id: {required: true, type: "string"},
+    name: {required: true, type: "string"},
+  },
+  listFields: ["name"],
+  name: "Project",
+  organizationScoped: true,
+  routePath: "/admin/projects",
+};
+
+describe("AdminModelForm org-scoped read skip", () => {
+  beforeEach(() => {
+    readSkipCalls.length = 0;
+    configState.isLoading = false;
+    configState.config = {
+      models: [orgScopedModel],
+      schemaVersion: 1,
+    } as unknown as AdminConfigResponse;
+  });
+
+  it("skips edit reads until organization context is selected", () => {
+    renderWithTheme(
+      <AdminProvider api={{} as unknown as AdminApi} apiBase="/admin" getAuthHeaders={() => ({})}>
+        <AdminModelForm
+          api={{} as unknown as AdminApi}
+          apiBase="/admin"
+          itemId="item-1"
+          mode="edit"
+          modelName="Project"
+        />
+      </AdminProvider>
+    );
+
+    assert.isAtLeast(readSkipCalls.length, 1);
+    assert.isTrue(readSkipCalls[readSkipCalls.length - 1]);
+  });
+});

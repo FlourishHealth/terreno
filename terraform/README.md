@@ -8,10 +8,16 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 - Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
 - **Workload Identity Federation** — GitHub and CircleCI providers share two impersonable service accounts:
-  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope)
+  - `terraform-admin` — used by CircleCI terraform jobs (project-admin scope, including `roles/logging.logWriter` so Infra Manager Cloud Build can write regional logs)
   - `gh-deployer` — retained name; used by CircleCI application deploy jobs with the narrow roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
+- Cloud Tasks queue `terreno-example-jobs-v2`, its queue-level dispatch pool limits, a
+  dedicated `terreno-backend-runtime` Cloud Run identity (the only runtime that can
+  enqueue and `actAs` the callback SA), and a callback-only `terreno-jobs-invoker`
+  OIDC service account. The private tasks Cloud Run service executes callbacks;
+  Cloud Run worker pools are not used because they have no HTTP ingress. The
+  project default Compute Engine SA is not an enqueuer.
 - Secret Manager containers for backend sensitive env vars. Values are seeded out-of-band; CircleCI deploy jobs mount them by secret reference.
 
 The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.
@@ -154,6 +160,34 @@ terraform import 'module.tasks_artifact_registry.google_artifact_registry_reposi
   projects/flourish-terreno/locations/us-central1/repositories/terreno-backend-example-tasks
 ```
 
+The Cloud Tasks queue and callback identity are also Terraform-owned. Import manually
+created copies before the first apply:
+
+```bash
+terraform import google_cloud_tasks_queue.example_jobs \
+  projects/flourish-terreno/locations/us-central1/queues/terreno-example-jobs-v2
+terraform import google_service_account.jobs_tasks_invoker \
+  projects/flourish-terreno/serviceAccounts/terreno-jobs-invoker@flourish-terreno.iam.gserviceaccount.com
+```
+
+## Durable jobs deployment
+
+The API and private tasks service run the same image and register the same job handlers.
+The API persists a `Job`, then Cloud Tasks sends an OIDC-authenticated
+`POST /jobs/execute` to the tasks service. Queue rate limits cap the dispatch pool at 20
+callbacks and 20 dispatches per second by default. Keep `.github/workflows/cd.yml`
+`tasks-deploy-prod` on a 30-minute timeout, concurrency 20, and
+`--no-allow-unauthenticated` so a GitHub Actions roll cannot reopen the worker.
+
+PR previews do not create global infrastructure. GitHub Actions (`tasks-deploy-preview`
+before `backend-deploy-preview`) and CircleCI (`backend-preview`) both deploy matching
+`pr-<number>` tags for the tasks service before the API preview, then configure the API
+to target that exact tasks tag. GitHub Actions production deploys overwrite Cloud Run
+env vars (same as CircleCI `--set-env-vars`) so preview `MONGO_DB_NAME` / `PR_NUMBER`
+do not merge into production. Each tag also uses `terreno-example-pr-<number>`, so concurrent PRs share neither
+workers nor job rows. CircleCI cleanup and `.github/workflows/preview-cleanup.yml`
+both remove the API and tasks tags.
+
 ## Adding a third service account
 
 The `local.service_accounts` map in `main.tf` is the single source of truth. Add a new entry with its role set; Terraform will create the SA, bind project IAM, and grant `workloadIdentityUser` for every `github_repos` entry. Then read the new email out of `module.github_oidc.service_account_emails["<name>"]`.
@@ -187,6 +221,22 @@ terraform validate
 ```
 
 Don't `terraform apply` locally — Infra Manager is the source of truth for who can apply.
+
+## Never apply from a stale checkout
+
+`gcloud infra-manager deployments apply --local-source=terraform` applies whatever is on **your disk**, not what is on `master`. A checkout that is behind `master` plans destroys for everything merged since. On 2026-09-18 an apply from a pre-#1327 tree deleted the `terreno-example-jobs` queue, the `terreno-backend-runtime` and `terreno-jobs-invoker` service accounts, and terraform-admin's `roles/cloudtasks.admin` binding.
+
+Apply from CI (**Actions → CD → Run workflow** on `master` with `run_terraform=true`), or `git fetch origin master && git checkout master` first. Before confirming any manual apply, read the plan line in the build log and stop if it lists destroys you did not intend:
+
+```
+Plan: 5 to add, 3 to change, 15 to destroy.
+```
+
+Deleting a Cloud Tasks queue is effectively irreversible for a week: the name cannot be reused for ~7 days (`Error 400: The queue cannot be created because a queue with this name existed too recently`). Recovering one means bumping `jobs_queue_name` to a new name, which is why the queue is `terreno-example-jobs-v2`.
+
+## Debugging Infra Manager previews
+
+`gcloud infra-manager previews create` often fails with an empty `failed while running step:` line. GitHub `Terraform preview` and CircleCI `scripts/ci/gcp-deploy.sh terraform-preview` still run `previews describe` (`state`, `errorCode`, `errorLogs`) before delete. Cloud Build regional logs require `terraform-admin` to have `roles/logging.logWriter`.
 
 ## GCS + CDN static site hosting
 

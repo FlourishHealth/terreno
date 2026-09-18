@@ -148,31 +148,35 @@ describe("AdminScreenRouter", () => {
   });
 
   it("renders AdminModelTable for a configured model name", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, unmount} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="Food" />
     );
     expect(getByTestId("admin-list-Food")).toBeTruthy();
+    unmount();
   });
 
   it("renders built-in version-config screen widget", () => {
-    const {getByText} = renderWithTheme(
+    const {getByText, unmount} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="version-config" />
     );
     expect(getByText("Version Config")).toBeTruthy();
+    unmount();
   });
 
   it("shows missing widget placeholder for unregistered custom screens", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, unmount} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="ai-admin" />
     );
     expect(getByTestId("admin-missing-widget-ai-admin")).toBeTruthy();
+    unmount();
   });
 
   it("returns not-found for unknown routes", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByTestId, unmount} = renderWithTheme(
       <AdminScreenRouter api={adminApi} baseUrl="/admin" name="unknown-route" />
     );
     expect(getByTestId("admin-screen-not-found")).toBeTruthy();
+    unmount();
   });
 });
 

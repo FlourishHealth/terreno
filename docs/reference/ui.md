@@ -118,6 +118,43 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
 
+### TextField password visibility
+
+`type="password"` masks the value and renders a show/hide eye control at the end of the field.
+The control is uncontrolled — the field tracks whether the value is revealed and starts hidden.
+A disabled field cannot be revealed.
+
+``````typescript
+<TextField
+  title="Password"
+  type="password"
+  value={password}
+  onChange={setPassword}
+  autoComplete="current-password"
+/>
+``````
+
+Pass `showVisibilityToggle={false}` where revealing the value is unacceptable, such as a shared or
+on-camera screen:
+
+``````typescript
+<TextField showVisibilityToggle={false} title="Password" type="password" value={password} onChange={setPassword} />
+``````
+
+`Field` with `type="password"` renders the same control, and so do `LoginScreen` and `SignUpScreen`
+password fields.
+
+The toggle's test id defaults to `{testID}.visibility-toggle`, and `testIDs.visibilityToggle`
+overrides it:
+
+| Element | test id |
+| --- | --- |
+| Input | `{testID}` |
+| Label | `{testID}.label` |
+| Error | `{testID}.error` |
+| Helper | `{testID}.helper` |
+| Show/hide toggle | `{testID}.visibility-toggle` |
+
 ### GPTChat
 
 Streaming chat surface for `@terreno/ai`. Histories, messages, submit, and optional MCP/tools stay under consumer control.

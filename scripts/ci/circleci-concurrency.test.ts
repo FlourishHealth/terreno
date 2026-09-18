@@ -4,6 +4,7 @@ import {readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
 import {readMappings} from "../check-circleci-parity/lib";
+import {PACKAGE_CI_LCOV_SKIP} from "../check-new-file-coverage";
 import {jobCommandBlock} from "../check-package-coverage-ci";
 
 const repoRoot = join(import.meta.dir, "../..");
@@ -144,6 +145,10 @@ describe("CircleCI concurrency", () => {
       mappingMatches({mappings, parameter: "run-new-file-coverage", path: "api/src/api.ts"}),
       true
     );
+    assert.equal(
+      mappingMatches({mappings, parameter: "run-new-file-coverage", path: "jobs/src/index.ts"}),
+      true
+    );
     assert.doesNotMatch(setupConfig, /\.\*\\\.ts\$ run-new-file-coverage true/);
   });
 
@@ -192,11 +197,22 @@ describe("CircleCI concurrency", () => {
     assert.equal(mappingMatches({mappings, parameter: "run-e2e", path: component}), true);
   });
 
-  it("compiles @terreno/api and example-backend deps for new-file-coverage", () => {
+  it("reuses package-CI LCOV and splits coverage script tests", () => {
     const coverage = jobCommandBlock(continueConfig, "new-file-coverage");
     assert.ok(coverage);
-    assert.match(coverage, /compile-workspace-deps\.js api example-backend/);
-    assert.match(coverage, /bun run --filter '@terreno\/api' compile/);
-    assert.match(coverage, /bun run --filter '@terreno\/admin-spa' compile/);
+    assert.doesNotMatch(coverage, /bun run --filter '@terreno\/api' compile/);
+    assert.match(coverage, /--skip-packages=/);
+    const scripts = jobCommandBlock(continueConfig, "coverage-scripts");
+    assert.ok(scripts);
+    assert.match(scripts, /scripts\/check-new-file-coverage.test.ts/);
+    const apiCi = jobCommandBlock(continueConfig, "api-ci");
+    assert.ok(apiCi);
+    assert.match(apiCi, /check_new_file_lcov/);
+    for (const {packageName, pipelineParameter} of PACKAGE_CI_LCOV_SKIP) {
+      assert.match(
+        coverage,
+        new RegExp(`add_skip "<< pipeline.parameters.${pipelineParameter} >>" ${packageName}`)
+      );
+    }
   });
 });

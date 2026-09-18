@@ -2,6 +2,8 @@ import {Box, Card, Heading, IconButton, Spinner, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
+import {shouldSkipOrgScopedAdminQuery} from "../orgs/shouldSkipOrgScopedAdminQuery";
+import {useOptionalOrgContext} from "../orgs/useOrgContext";
 import type {AdminHomeWidgetProps, AdminModelConfig} from "../types";
 import {useAdminApi} from "../useAdminApi";
 
@@ -10,8 +12,16 @@ const ModelGridCard: React.FC<{
   model: AdminModelConfig;
   routeBase: string;
 }> = ({api, model, routeBase}) => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+  const skipOrgScopedQuery = shouldSkipOrgScopedAdminQuery({
+    organizationId,
+    organizationScoped: model.organizationScoped,
+  });
   const {useListQuery} = useAdminApi(api, model.routePath, model.name);
-  const {data, isLoading} = useListQuery({limit: 1, page: 1}, {skip: !model.routePath});
+  const {data, isLoading} = useListQuery(
+    {limit: 1, page: 1},
+    {skip: !model.routePath || skipOrgScopedQuery}
+  );
   const total = (data as {total?: number} | undefined)?.total;
   const fieldCount = Object.keys(model.fields).length;
   const createEnabled = model.permissions?.create !== false;

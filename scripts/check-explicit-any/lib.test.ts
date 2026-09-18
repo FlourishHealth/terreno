@@ -1,8 +1,8 @@
 import {expect, test} from "bun:test";
-import {assert} from "chai";
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 
 import {
   collectAnyUsages,
@@ -12,6 +12,7 @@ import {
   isExcludedFromBiome,
   isTestFile,
   runCheckExplicitAny,
+  SCAN_ROOTS,
 } from "./lib";
 
 const createFixtureRepo = (): string => {
@@ -85,10 +86,7 @@ test("collectAnyUsages classifies remediation status", () => {
     });
 
     const byFile = Object.fromEntries(
-      summary.usages.map((usage) => [
-        `${usage.file}:${usage.line}`,
-        usage.remediationStatus,
-      ])
+      summary.usages.map((usage) => [`${usage.file}:${usage.line}`, usage.remediationStatus])
     );
 
     expect(byFile["api/src/documented.ts:4"]).toBe("fully-documented");
@@ -176,8 +174,8 @@ test("formatSummaryText includes package breakdown", () => {
   const text = formatSummaryText({
     byPackage: {api: 3, ui: 2},
     byRemediationStatus: {
-      "fully-documented": 1,
       "file-blanket": 2,
+      "fully-documented": 1,
       "out-of-scope": 0,
       "suppressed-only": 1,
       violation: 1,
@@ -209,8 +207,8 @@ test("formatUsageListText prints file locations", () => {
   const text = formatUsageListText({
     byPackage: {},
     byRemediationStatus: {
-      "fully-documented": 0,
       "file-blanket": 1,
+      "fully-documented": 0,
       "out-of-scope": 0,
       "suppressed-only": 0,
       violation: 0,
@@ -261,4 +259,8 @@ test("isExcludedFromBiome matches biome exclusion globs", () => {
   const patterns = [/api\/src\/populate\.ts/];
   expect(isExcludedFromBiome("api/src/populate.ts", patterns)).toBe(true);
   expect(isExcludedFromBiome("api/src/auth.ts", patterns)).toBe(false);
+});
+
+test("SCAN_ROOTS includes jobs/src for published backend packages", () => {
+  expect(SCAN_ROOTS).toContain("jobs/src");
 });

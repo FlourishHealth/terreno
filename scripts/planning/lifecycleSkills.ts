@@ -344,14 +344,22 @@ export const validateStageContent = ({
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
-    if (!content.includes("If step 9 did not push")) {
+    if (!content.includes("If step 10 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
       errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(`${prefix}: Taste must order before-push as pull, then local gate, then watch`);
+      errors.push(
+        `${prefix}: Taste must order before-push as pull, then re-verify last-run failed tests, then local gate, then watch`
+      );
+    }
+    if (!content.includes("last-run failed tests")) {
+      errors.push(`${prefix}: Taste must record last-run failed tests from the CI snapshot`);
+    }
+    if (!content.includes("re-verify last-run failed tests")) {
+      errors.push(`${prefix}: Taste must re-verify last-run failed tests locally before push`);
     }
     if (!content.includes("fresh subagent")) {
       errors.push(`${prefix}: Taste must spawn a fresh subagent for the local pre-push gate`);
@@ -528,6 +536,12 @@ export const validateProductCiContract = (content: string): string[] => {
   if (!content.includes("counts as terminal `skipped`")) {
     errors.push("product-CI procedure must terminate documented non-applicable hosts");
   }
+  if (!content.includes("## Last-run failed tests")) {
+    errors.push("product-CI procedure must record last-run failed tests");
+  }
+  if (!content.includes("re-verifies them locally before any push")) {
+    errors.push("product-CI procedure must re-verify last-run failed tests before push");
+  }
   return errors;
 };
 
@@ -661,8 +675,11 @@ export const validateClaudePluginHost = ({
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
   }
-  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
-    errors.push("Claude plugin agents path must be ./agents/");
+  const expectedClaudeAgents = [...PLUGIN_AGENT_NAMES]
+    .sort()
+    .map((agentName) => `./agents/${agentName}.md`);
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(expectedClaudeAgents)) {
+    errors.push(`Claude plugin agents must be exactly ${expectedClaudeAgents.join(", ")}`);
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {

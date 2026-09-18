@@ -28,6 +28,21 @@ output "tasks_url" {
   description = "Default URL of the example backend tasks Cloud Run service."
 }
 
+output "jobs_queue_name" {
+  value       = google_cloud_tasks_queue.example_jobs.name
+  description = "Cloud Tasks queue used by the example backend durable-jobs runner."
+}
+
+output "jobs_tasks_invoker_sa_email" {
+  value       = google_service_account.jobs_tasks_invoker.email
+  description = "OIDC service account used by Cloud Tasks to invoke the jobs worker."
+}
+
+output "backend_runtime_sa_email" {
+  value       = google_service_account.backend_runtime.email
+  description = "Cloud Run runtime for the example API. Queue enqueuer and jobs-invoker actAs are bound only to this identity."
+}
+
 output "mcp_url" {
   value       = module.mcp_service.uri
   description = "Default URL of the MCP Cloud Run service."

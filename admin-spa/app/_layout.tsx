@@ -1,22 +1,48 @@
-import {AdminProvider, useAdminConfig} from "@terreno/admin-frontend";
+import {
+  AdminProvider,
+  type OrganizationSummary,
+  OrgContextProvider,
+  organizationFromPath,
+  useAdminConfig,
+  useOptionalOrgContext,
+} from "@terreno/admin-frontend";
 import {createSyncDb, type SyncDb} from "@terreno/syncdb";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, TerrenoProvider, Text} from "@terreno/ui";
-import {Stack} from "expo-router";
+import {Stack, usePathname} from "expo-router";
 import React, {useEffect, useMemo, useState} from "react";
 import {AdminGate} from "../components/AdminGate";
 import {AppConfigGate, useAppConfig} from "../components/AppConfigGate";
 import {StoreProvider, useAuth} from "../components/StoreProvider";
-import {createAdminSpaSyncDbConfig, resolveAdminSyncCollections} from "../store/adminSyncDb";
+import {
+  createAdminSpaSyncDbConfig,
+  resolveAdminSyncCollections,
+  setSpaAdminOrganizationId,
+} from "../store/adminSyncDb";
 import {terrenoApi} from "../store/sdk";
 
 const SPA_ADMIN_AUTH_HEADERS = (): HeadersInit => ({});
+
+const BindSpaAdminOrganization: React.FC = () => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+
+  // Keep admin-window mutate payloads on the currently selected organization.
+  useEffect(() => {
+    setSpaAdminOrganizationId(organizationId);
+    return (): void => {
+      setSpaAdminOrganizationId(undefined);
+    };
+  }, [organizationId]);
+
+  return null;
+};
 
 const SyncEnabledAdminProvider: React.FC<{
   apiBase: string;
   children: React.ReactNode;
   client: SyncDb;
-}> = ({apiBase, children, client}) => {
+  routeOrganization?: OrganizationSummary;
+}> = ({apiBase, children, client, routeOrganization}) => {
   const syncConflicts = useConflicts();
   const [isReady, setIsReady] = useState(false);
   const [startError, setStartError] = useState<string | undefined>();
@@ -65,7 +91,10 @@ const SyncEnabledAdminProvider: React.FC<{
       syncConflicts={syncConflicts}
       syncDb={client}
     >
-      {children}
+      <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindSpaAdminOrganization />
+        {children}
+      </OrgContextProvider>
     </AdminProvider>
   );
 };
@@ -73,6 +102,8 @@ const SyncEnabledAdminProvider: React.FC<{
 const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) => {
   const {appConfig} = useAppConfig();
   const {authClient} = useAuth();
+  const pathname = usePathname();
+  const routeOrganization = useMemo(() => organizationFromPath(pathname), [pathname]);
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   const {config} = useAdminConfig(terrenoApi, apiBase);
   const syncCollections = useMemo(
@@ -97,7 +128,11 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
   if (client) {
     return (
       <SyncDbProvider client={client}>
-        <SyncEnabledAdminProvider apiBase={apiBase} client={client}>
+        <SyncEnabledAdminProvider
+          apiBase={apiBase}
+          client={client}
+          routeOrganization={routeOrganization}
+        >
           {children}
         </SyncEnabledAdminProvider>
       </SyncDbProvider>
@@ -112,7 +147,10 @@ const AdminProviderBridge: React.FC<{children: React.ReactNode}> = ({children}) 
       getAuthHeaders={SPA_ADMIN_AUTH_HEADERS}
       routeBase=""
     >
-      {children}
+      <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindSpaAdminOrganization />
+        {children}
+      </OrgContextProvider>
     </AdminProvider>
   );
 };

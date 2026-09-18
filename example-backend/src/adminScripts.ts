@@ -2,24 +2,30 @@ import type {AdminScriptConfig} from "@terreno/admin-backend";
 import {
   ConsentForm,
   ConsentResponse,
+  createAuditEventModel,
   type ScriptContext,
   type ScriptResult,
   syncConsents,
 } from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
+import {getJobsService} from "@terreno/jobs";
+import mongoose from "mongoose";
 
 import {consentDefinitions} from "./consentDefinitions";
-import {AdminAuditLog} from "./models/adminAuditLog";
 import {Project} from "./models/project";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {seedDefaultData} from "./scripts/seed-test-data";
 
+const auditEventModel = (): ReturnType<typeof createAuditEventModel> => {
+  return createAuditEventModel(mongoose.connection);
+};
+
 const getResetRecordCounts = async (): Promise<Record<string, number>> => {
-  const [adminAuditLogs, consentForms, consentResponses, featureFlags, projects, todos] =
+  const [auditEvents, consentForms, consentResponses, featureFlags, projects, todos] =
     await Promise.all([
-      AdminAuditLog.countDocuments(),
+      auditEventModel().countDocuments(),
       ConsentForm.countDocuments(),
       ConsentResponse.countDocuments(),
       FeatureFlag.countDocuments(),
@@ -27,7 +33,7 @@ const getResetRecordCounts = async (): Promise<Record<string, number>> => {
       Todo.countDocuments({deleted: {$ne: true}}),
     ]);
   return {
-    adminAuditLogs,
+    auditEvents,
     consentForms,
     consentResponses,
     featureFlags,
@@ -48,7 +54,7 @@ const clearResettableData = async (): Promise<void> => {
   }
 
   await Promise.all([
-    AdminAuditLog.deleteMany({}),
+    auditEventModel().deleteMany({}),
     ConsentResponse.deleteMany({}),
     FeatureFlag.deleteMany({}),
   ]);
@@ -205,5 +211,26 @@ export const adminScripts: AdminScriptConfig[] = [
       "Reset example application data and restore defaults. Preserves users, authentication, RBAC roles, and script history.",
     name: "resetDatabase",
     runner: resetExampleDatabase,
+  },
+  {
+    description:
+      "Enqueue the example/dlq-demo job so the admin Jobs screen can demonstrate retry and dead-letter flows.",
+    name: "enqueueDlqDemoJob",
+    runner: async (wetRun) => {
+      if (!wetRun) {
+        return {
+          results: ["Dry run: would enqueue example/dlq-demo"],
+          success: true,
+        };
+      }
+      const job = await getJobsService().enqueue({
+        name: "example/dlq-demo",
+        payload: {source: "enqueueDlqDemoJob"},
+      });
+      return {
+        results: [`Enqueued example/dlq-demo as job ${String(job._id)}`],
+        success: true,
+      };
+    },
   },
 ];

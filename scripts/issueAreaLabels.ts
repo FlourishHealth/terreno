@@ -8,23 +8,24 @@
  * labels from a dropdown, so triage applies `type:*` from Kind.
  */
 export const AREA_BY_PACKAGE: Record<string, string> = {
-  docs: "area:docs",
-  examples: "area:examples",
-  mcp: "area:mcp",
-  plugins: "area:dx",
   "@terreno/admin-backend": "area:admin",
   "@terreno/admin-frontend": "area:admin",
   "@terreno/admin-spa": "area:admin",
   "@terreno/ai": "area:ai",
   "@terreno/api": "area:api",
   "@terreno/api-health": "area:api",
-  "@terreno/feature-flags": "area:api",
   "@terreno/comms": "area:api",
+  "@terreno/feature-flags": "area:api",
+  "@terreno/jobs": "area:api",
   "@terreno/mcp": "area:mcp",
   "@terreno/rtk": "area:syncdb",
   "@terreno/syncdb": "area:syncdb",
   "@terreno/test": "area:api",
   "@terreno/ui": "area:ui",
+  docs: "area:docs",
+  examples: "area:examples",
+  mcp: "area:mcp",
+  plugins: "area:dx",
 };
 
 export const KIND_BY_VALUE: Record<string, string> = {

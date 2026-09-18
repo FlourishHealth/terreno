@@ -480,6 +480,25 @@ const generateBackendIndex = (): string => {
 `;
 };
 
+const generateBackendAccess = (): string => {
+  return `import {
+  createAccess,
+  terrenoStatements,
+  type UserModel as TerrenoAuthUserModel,
+} from "@terreno/api";
+import mongoose from "mongoose";
+
+import {User} from "./models/user";
+
+export const access = createAccess({
+  connection: mongoose.connection,
+  organizations: true,
+  statements: terrenoStatements,
+  userModel: User as unknown as TerrenoAuthUserModel,
+});
+`;
+};
+
 const generateBackendServer = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
   return `import {AdminApp} from "@terreno/admin-backend";
@@ -490,6 +509,7 @@ import {
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
+  Membership,
   RealtimeApp,
   SyncApp,
   TerrenoApp,
@@ -497,9 +517,12 @@ import {
 } from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
+import {access} from "./access";
 import {userRouter} from "./api/users";
 import {AppConfiguration} from "./models/appConfiguration";
+import {organizationSettingsSchema} from "./models/organizationSettings";
 import {User} from "./models/user";
+import "./types/models/organizationSettingsTypes";
 import {buildBetterAuthConfig, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
 
@@ -514,6 +537,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     checkModelsStrict();
   }
 
+  await access.roles.seedDefaults();
+
   const betterAuthConfig = buildBetterAuthConfig();
   const betterAuthInstance = betterAuthConfig
     ? createBetterAuth({
@@ -526,11 +551,15 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     : undefined;
 
   const terraApp = new TerrenoApp({
+    accessControl: access,
     corsOrigin: getWebOrigins(),
     loggingOptions: {
       disableConsoleColors: isDeployed,
       level: "debug",
       logRequests: !isDeployed,
+    },
+    organizations: {
+      settingsSchema: organizationSettingsSchema,
     },
     skipListen,
     // noExplicitAny: User model type mismatch
@@ -577,7 +606,15 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         ],
       })
     )
-    .register(new SyncApp())
+    .register(
+      new SyncApp({
+        accessControl: access,
+        getUserScopes: async (user) => {
+          const memberships = await Membership.findActiveForUser(user.id);
+          return memberships.map((membership) => String(membership.organizationId));
+        },
+      })
+    )
     .register(
       new RealtimeApp({
         betterAuth: betterAuthInstance
@@ -636,12 +673,15 @@ export const connectToMongoDB = async (): Promise<void> => {
 `;
 };
 
-const generateBackendSeed = (): string => {
+const generateBackendSeed = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
   return `import {
   APIError,
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
+  Membership,
+  Organization,
   runSeedCli,
   seedBetterAuthUser,
   type SeedStep,
@@ -649,6 +689,7 @@ const generateBackendSeed = (): string => {
 } from "@terreno/api";
 import mongoose from "mongoose";
 
+import {access} from "../access";
 import {User} from "../models/user";
 import {buildBetterAuthConfig} from "../utils/betterAuthConfig";
 import {connectToMongoDB} from "../utils/database";
@@ -709,7 +750,52 @@ const seedSteps: SeedStep[] = [
           save: () => Promise<unknown>;
         };
         appUser.admin = definition.admin;
+        const roles = (appUser as unknown as {roles?: string[]}).roles ?? [];
+        if (definition.admin && !roles.includes("operator")) {
+          (appUser as unknown as {roles: string[]}).roles = [...roles, "operator"];
+        }
         await appUser.save();
+      }
+    },
+  },
+  {
+    description: "Create the default organization and attach the admin as org-admin",
+    name: "organization",
+    run: async (context) => {
+      await access.roles.seedDefaults();
+      const existing = await Organization.findOneOrNone({name: "${appDisplayName}"});
+      if (context.dryRun) {
+        context.changes.push({
+          change: existing ? "updated" : "created",
+          count: 1,
+          key: JSON.stringify({name: "${appDisplayName}"}),
+          model: Organization.modelName,
+        });
+        return;
+      }
+      const admin = await User.findByEmail("admin@example.com");
+      if (!admin) {
+        throw new APIError({
+          status: 500,
+          title: "Default organization requires admin@example.com",
+        });
+      }
+      const organization =
+        existing ??
+        (await Organization.create({
+          name: "${appDisplayName}",
+          ownerId: admin._id,
+        }));
+      const membership = await Membership.findOneOrNone({
+        organizationId: organization._id,
+        userId: admin._id,
+      });
+      if (!membership) {
+        await Membership.create({
+          organizationId: organization._id,
+          roleName: "org-admin",
+          userId: admin._id,
+        });
       }
     },
   },
@@ -924,8 +1010,32 @@ export const AppConfiguration = mongoose.model<AppConfigDocument>(
 `;
 };
 
+const generateBackendOrganizationSettings = (): string => {
+  return `import {createOrganizationSettingsSchema} from "@terreno/api";
+
+export const organizationSettingsSchema = createOrganizationSettingsSchema({
+  timezone: {
+    description: "IANA timezone used for organization-local dates",
+    type: String,
+  },
+});
+`;
+};
+
+const generateBackendOrganizationSettingsTypes = (): string => {
+  return `export interface AppOrganizationSettings {
+  timezone?: string;
+}
+
+declare module "@terreno/api" {
+  interface OrganizationSettings extends AppOrganizationSettings {}
+}
+`;
+};
+
 const generateBackendModelsIndex = (): string => {
   return `export * from "./appConfiguration";
+export * from "./organizationSettings";
 export * from "./user";
 `;
 };
@@ -956,7 +1066,8 @@ const generateBackendTypes = (): string => {
 };
 
 const generateBackendTypesModels = (): string => {
-  return `export * from "./userTypes";
+  return `export * from "./organizationSettingsTypes";
+export * from "./userTypes";
 `;
 };
 
@@ -2683,9 +2794,10 @@ export const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendTsConfig(), path: `${backendDir}/tsconfig.json`},
     {content: generateBackendBiomeJsonc(), path: `${backendDir}/biome.jsonc`},
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
+    {content: generateBackendAccess(), path: `${backendDir}/src/access.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
-    {content: generateBackendSeed(), path: `${backendDir}/src/scripts/seed.ts`},
+    {content: generateBackendSeed(args), path: `${backendDir}/src/scripts/seed.ts`},
     {
       content: generateBackendBetterAuthConfig(args),
       path: `${backendDir}/src/utils/betterAuthConfig.ts`,
@@ -2695,6 +2807,10 @@ export const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendModelPlugins(), path: `${backendDir}/src/models/modelPlugins.ts`},
     {content: generateBackendUserModel(), path: `${backendDir}/src/models/user.ts`},
     {
+      content: generateBackendOrganizationSettings(),
+      path: `${backendDir}/src/models/organizationSettings.ts`,
+    },
+    {
       content: generateBackendAppConfiguration(args),
       path: `${backendDir}/src/models/appConfiguration.ts`,
     },
@@ -2703,6 +2819,10 @@ export const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendTypes(), path: `${backendDir}/src/types/index.ts`},
     {content: generateBackendTypesModels(), path: `${backendDir}/src/types/models/index.ts`},
     {content: generateBackendUserTypes(), path: `${backendDir}/src/types/models/userTypes.ts`},
+    {
+      content: generateBackendOrganizationSettingsTypes(),
+      path: `${backendDir}/src/types/models/organizationSettingsTypes.ts`,
+    },
 
     // Frontend files
     {content: generateFrontendPackageJson(args), path: `${frontendDir}/package.json`},

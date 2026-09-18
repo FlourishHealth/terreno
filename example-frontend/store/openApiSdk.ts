@@ -14,12 +14,14 @@ export const addTagTypes = [
   "comms",
   "admin",
   "featureflags",
+  "jobs",
   "mcpservicetokens",
-  "adminauditlogs",
+  "auditevents",
   "consentforms",
   "consentresponses",
   "adminMigrations",
   "notificationpreferences",
+  "organizations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -155,6 +157,20 @@ const injectedRtkApi = api
           url: `/notifications/${queryArg}`,
         }),
       }),
+      deleteOrgsById: build.mutation<DeleteOrgsByIdRes, DeleteOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({method: "DELETE", url: `/orgs/${queryArg}`}),
+      }),
+      deleteOrgsByIdMembersAndMemberId: build.mutation<
+        DeleteOrgsByIdMembersAndMemberIdRes,
+        DeleteOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -170,29 +186,30 @@ const injectedRtkApi = api
         invalidatesTags: ["users"],
         query: (queryArg) => ({method: "DELETE", url: `/users/${queryArg}`}),
       }),
-      getAdminAuditLogs: build.query<GetAdminAuditLogsRes, GetAdminAuditLogsArgs>({
-        providesTags: ["adminauditlogs"],
+      getAdminAuditEvents: build.query<GetAdminAuditEventsRes, GetAdminAuditEventsArgs>({
+        providesTags: ["auditevents"],
         query: (queryArg) => ({
           params: {
             _id: queryArg._id,
             actorId: queryArg.actorId,
-            createdAt: queryArg.createdAt,
+            created: queryArg.created,
             limit: queryArg.limit,
             modelName: queryArg.modelName,
             page: queryArg.page,
             q: queryArg.q,
-            recordId: queryArg.recordId,
             recordLabel: queryArg.recordLabel,
             sort: queryArg.sort,
             verb: queryArg.verb,
           },
-          url: `/admin/audit-logs/`,
+          url: `/admin/audit-events/`,
         }),
       }),
-      getAdminAuditLogsById: build.query<GetAdminAuditLogsByIdRes, GetAdminAuditLogsByIdArgs>({
-        providesTags: ["adminauditlogs"],
-        query: (queryArg) => ({url: `/admin/audit-logs/${queryArg}`}),
-      }),
+      getAdminAuditEventsById: build.query<GetAdminAuditEventsByIdRes, GetAdminAuditEventsByIdArgs>(
+        {
+          providesTags: ["auditevents"],
+          query: (queryArg) => ({url: `/admin/audit-events/${queryArg}`}),
+        }
+      ),
       getAdminConfig: build.query<GetAdminConfigRes, GetAdminConfigArgs>({
         providesTags: ["admin"],
         query: () => ({url: `/admin/config`}),
@@ -459,6 +476,34 @@ const injectedRtkApi = api
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
       }),
+      getJobs: build.query<GetJobsRes, GetJobsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          params: {
+            end: queryArg.end,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            scheduleId: queryArg.scheduleId,
+            start: queryArg.start,
+            status: queryArg.status,
+          },
+          url: `/jobs`,
+        }),
+      }),
+      getJobsById: build.query<GetJobsByIdRes, GetJobsByIdArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({url: `/jobs/${queryArg}`}),
+      }),
+      getJobsSchedules: build.query<GetJobsSchedulesRes, GetJobsSchedulesArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/schedules`}),
+      }),
+      getJobsStats: build.query<GetJobsStatsRes, GetJobsStatsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/stats`}),
+      }),
       getNotificationPreferences: build.query<
         GetNotificationPreferencesRes,
         GetNotificationPreferencesArgs
@@ -501,6 +546,22 @@ const injectedRtkApi = api
       getNotificationsById: build.query<GetNotificationsByIdRes, GetNotificationsByIdArgs>({
         providesTags: ["notifications"],
         query: (queryArg) => ({url: `/notifications/${queryArg}`}),
+      }),
+      getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/`}),
+      }),
+      getOrgsById: build.query<GetOrgsByIdRes, GetOrgsByIdArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}`}),
+      }),
+      getOrgsByIdMembers: build.query<GetOrgsByIdMembersRes, GetOrgsByIdMembersArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}/members`}),
+      }),
+      getOrgsMine: build.query<GetOrgsMineRes, GetOrgsMineArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/mine`}),
       }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
@@ -678,6 +739,25 @@ const injectedRtkApi = api
           }),
         }
       ),
+      patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}`,
+        }),
+      }),
+      patchOrgsByIdMembersAndMemberId: build.mutation<
+        PatchOrgsByIdMembersAndMemberIdRes,
+        PatchOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       patchProjectsById: build.mutation<PatchProjectsByIdRes, PatchProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -702,15 +782,15 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
-      postAdminAuditLogsBulkPatch: build.mutation<
-        PostAdminAuditLogsBulkPatchRes,
-        PostAdminAuditLogsBulkPatchArgs
+      postAdminAuditEventsBulkPatch: build.mutation<
+        PostAdminAuditEventsBulkPatchRes,
+        PostAdminAuditEventsBulkPatchArgs
       >({
         invalidatesTags: ["admin"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
-          url: `/admin/audit-logs/bulk-patch`,
+          url: `/admin/audit-events/bulk-patch`,
         }),
       }),
       postAdminBackgroundTasks: build.mutation<
@@ -883,6 +963,47 @@ const injectedRtkApi = api
           url: `/gpt/remix`,
         }),
       }),
+      postJobsByIdCancel: build.mutation<PostJobsByIdCancelRes, PostJobsByIdCancelArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/cancel`,
+        }),
+      }),
+      postJobsByIdRequeue: build.mutation<PostJobsByIdRequeueRes, PostJobsByIdRequeueArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/requeue`,
+        }),
+      }),
+      postJobsByIdRetry: build.mutation<PostJobsByIdRetryRes, PostJobsByIdRetryArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/retry`,
+        }),
+      }),
+      postJobsSchedulesByNamePause: build.mutation<
+        PostJobsSchedulesByNamePauseRes,
+        PostJobsSchedulesByNamePauseArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/pause`,
+        }),
+      }),
+      postJobsSchedulesByNameResume: build.mutation<
+        PostJobsSchedulesByNameResumeRes,
+        PostJobsSchedulesByNameResumeArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/resume`,
+        }),
+      }),
       postNotificationPreferences: build.mutation<
         PostNotificationPreferencesRes,
         PostNotificationPreferencesArgs
@@ -911,6 +1032,22 @@ const injectedRtkApi = api
       >({
         invalidatesTags: ["notifications"],
         query: () => ({method: "POST", url: `/notifications/mark-all-read`}),
+      }),
+      postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/orgs/`,
+        }),
+      }),
+      postOrgsByIdMembers: build.mutation<PostOrgsByIdMembersRes, PostOrgsByIdMembersArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/orgs/${queryArg.id}/members`,
+        }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
         invalidatesTags: ["exampleprojects"],
@@ -1761,8 +1898,6 @@ export type PostUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1790,8 +1925,6 @@ export type PostUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -1820,8 +1953,6 @@ export type GetUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -1872,8 +2003,6 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1902,8 +2031,6 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1933,8 +2060,6 @@ export type PatchUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -2385,6 +2510,72 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetJobsSchedulesRes = /** status 200 Success */ {
+  data?: {
+    cron?: string;
+    enabled?: boolean;
+    handlerName?: string;
+    id?: string;
+    name?: string;
+    nextRunAt?: string;
+    timezone?: string;
+  }[];
+};
+export type GetJobsSchedulesArgs = undefined;
+export type PostJobsSchedulesByNamePauseRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNamePauseArgs = string;
+export type PostJobsSchedulesByNameResumeRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNameResumeArgs = string;
+export type GetJobsRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    attemptCount?: number;
+    id?: string;
+    name?: string;
+    status?: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetJobsArgs = {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+  scheduleId?: string;
+  start?: string;
+  end?: string;
+  q?: string;
+};
+export type GetJobsStatsRes = /** status 200 Success */ {
+  data?: {
+    byStatus?: object;
+    total?: number;
+  };
+};
+export type GetJobsStatsArgs = undefined;
+export type GetJobsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetJobsByIdArgs = string;
+export type PostJobsByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRetryArgs = string;
+export type PostJobsByIdRequeueRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRequeueArgs = string;
+export type PostJobsByIdCancelRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdCancelArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -2566,111 +2757,6 @@ export type GetAdminMcpServiceTokensByIdRes = /** status 200 Successful read */ 
 export type GetAdminMcpServiceTokensByIdArgs = string;
 export type DeleteAdminMcpServiceTokensByIdRes = unknown;
 export type DeleteAdminMcpServiceTokensByIdArgs = string;
-export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
-  failures?: any;
-  updated?: number;
-};
-export type PostAdminAuditLogsBulkPatchArgs = {
-  /** Document ids to update */
-  ids: string[];
-  /** Partial document; keys must be allowlisted for this model */
-  patch: object;
-};
-export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
-  data?: {
-    /** User who performed the action */
-    actorId?: string;
-    /** Mongoose model name affected */
-    modelName: string;
-    /** Primary key of the affected document */
-    recordId?: string;
-    /** Human-readable label for the record */
-    recordLabel?: string;
-    /** Mutation kind */
-    verb: "created" | "deleted" | "updated";
-    _id: string;
-    createdAt?: string;
-    updatedAt?: string;
-    /** When this document was last updated */
-    updated: string;
-    /** When this document was created */
-    created: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  }[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-};
-export type GetAdminAuditLogsArgs = {
-  _id?: {
-    $in?: string[];
-  };
-  q?:
-    | any
-    | {
-        $in?: any[];
-      };
-  verb?:
-    | ("created" | "deleted" | "updated")
-    | {
-        $in?: string[];
-      };
-  modelName?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordLabel?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  actorId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  createdAt?:
-    | string
-    | {
-        $gt?: string;
-        $gte?: string;
-        $lt?: string;
-        $lte?: string;
-      };
-  page?: number;
-  sort?: string;
-  limit?: number;
-};
-export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
-  /** User who performed the action */
-  actorId?: string;
-  /** Mongoose model name affected */
-  modelName: string;
-  /** Primary key of the affected document */
-  recordId?: string;
-  /** Human-readable label for the record */
-  recordLabel?: string;
-  /** Mutation kind */
-  verb: "created" | "deleted" | "updated";
-  _id: string;
-  createdAt?: string;
-  updatedAt?: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type GetAdminAuditLogsByIdArgs = string;
 export type PostAdminFeatureFlagsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3030,6 +3116,122 @@ export type PatchAdminFeatureFlagsByIdArgs = {
 };
 export type DeleteAdminFeatureFlagsByIdRes = unknown;
 export type DeleteAdminFeatureFlagsByIdArgs = string;
+export type PostAdminAuditEventsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAuditEventsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAuditEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** User who performed the mutation, when known */
+    actorId?: string;
+    /** Redacted changed fields after the mutation */
+    after?: any;
+    /** Redacted changed fields before the mutation */
+    before?: any;
+    /** Mongoose model name of the affected document */
+    modelName: string;
+    /** Fine-grained mutation kind */
+    operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+    /** Tenant organization id when known */
+    organizationId?: string;
+    /** Primary key of the affected document */
+    recordId?: string;
+    /** Short human-readable label for the affected record */
+    recordLabel?: string;
+    /** Which framework surface wrote this event */
+    source: "admin" | "modelRouter" | "rbac";
+    /** Widget-compatible mutation verb */
+    verb: "created" | "deleted" | "updated";
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAuditEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  verb?:
+    | ("created" | "deleted" | "updated")
+    | {
+        $in?: string[];
+      };
+  modelName?:
+    | string
+    | {
+        $in?: string[];
+      };
+  recordLabel?:
+    | string
+    | {
+        $in?: string[];
+      };
+  actorId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAuditEventsByIdRes = /** status 200 Successful read */ {
+  /** User who performed the mutation, when known */
+  actorId?: string;
+  /** Redacted changed fields after the mutation */
+  after?: any;
+  /** Redacted changed fields before the mutation */
+  before?: any;
+  /** Mongoose model name of the affected document */
+  modelName: string;
+  /** Fine-grained mutation kind */
+  operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+  /** Tenant organization id when known */
+  organizationId?: string;
+  /** Primary key of the affected document */
+  recordId?: string;
+  /** Short human-readable label for the affected record */
+  recordLabel?: string;
+  /** Which framework surface wrote this event */
+  source: "admin" | "modelRouter" | "rbac";
+  /** Widget-compatible mutation verb */
+  verb: "created" | "deleted" | "updated";
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+};
+export type GetAdminAuditEventsByIdArgs = string;
 export type PostAdminConsentFormsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3801,8 +4003,6 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -3830,8 +4030,6 @@ export type PostAdminUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -3860,8 +4058,6 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -3939,8 +4135,6 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -3969,8 +4163,6 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -4000,8 +4192,6 @@ export type PatchAdminUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -4370,6 +4560,63 @@ export type PatchNotificationPreferencesByIdArgs = {
 };
 export type DeleteNotificationPreferencesByIdRes = unknown;
 export type DeleteNotificationPreferencesByIdArgs = string;
+export type PostOrgsRes = unknown;
+export type PostOrgsArgs = {
+  /** Organization name */
+  name: string;
+  /** App-defined organization settings */
+  settings?: object;
+};
+export type GetOrgsRes = unknown;
+export type GetOrgsArgs = undefined;
+export type GetOrgsMineRes = unknown;
+export type GetOrgsMineArgs = undefined;
+export type GetOrgsByIdRes = unknown;
+export type GetOrgsByIdArgs = string;
+export type PatchOrgsByIdRes = unknown;
+export type PatchOrgsByIdArgs = {
+  id: string;
+  body: {
+    /** Disable the organization */
+    disabled?: boolean;
+    /** Organization name */
+    name?: string;
+    /** App-defined organization settings */
+    settings?: object;
+  };
+};
+export type DeleteOrgsByIdRes = unknown;
+export type DeleteOrgsByIdArgs = string;
+export type GetOrgsByIdMembersRes = unknown;
+export type GetOrgsByIdMembersArgs = string;
+export type PostOrgsByIdMembersRes = unknown;
+export type PostOrgsByIdMembersArgs = {
+  id: string;
+  body: {
+    /** Existing user email */
+    email?: string;
+    /** Membership role */
+    roleName?: string;
+    /** Existing user id */
+    userId?: string;
+  };
+};
+export type PatchOrgsByIdMembersAndMemberIdRes = unknown;
+export type PatchOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+  body: {
+    /** Membership role */
+    roleName?: string;
+    /** Membership status */
+    status?: string;
+  };
+};
+export type DeleteOrgsByIdMembersAndMemberIdRes = unknown;
+export type DeleteOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+};
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -4484,21 +4731,30 @@ export const {
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetJobsSchedulesQuery,
+  usePostJobsSchedulesByNamePauseMutation,
+  usePostJobsSchedulesByNameResumeMutation,
+  useGetJobsQuery,
+  useGetJobsStatsQuery,
+  useGetJobsByIdQuery,
+  usePostJobsByIdRetryMutation,
+  usePostJobsByIdRequeueMutation,
+  usePostJobsByIdCancelMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminMcpServiceTokensBulkPatchMutation,
   useGetAdminMcpServiceTokensQuery,
   useGetAdminMcpServiceTokensByIdQuery,
   useDeleteAdminMcpServiceTokensByIdMutation,
-  usePostAdminAuditLogsBulkPatchMutation,
-  useGetAdminAuditLogsQuery,
-  useGetAdminAuditLogsByIdQuery,
   usePostAdminFeatureFlagsBulkPatchMutation,
   usePostAdminFeatureFlagsMutation,
   useGetAdminFeatureFlagsQuery,
   useGetAdminFeatureFlagsByIdQuery,
   usePatchAdminFeatureFlagsByIdMutation,
   useDeleteAdminFeatureFlagsByIdMutation,
+  usePostAdminAuditEventsBulkPatchMutation,
+  useGetAdminAuditEventsQuery,
+  useGetAdminAuditEventsByIdQuery,
   usePostAdminConsentFormsBulkPatchMutation,
   usePostAdminConsentFormsMutation,
   useGetAdminConsentFormsQuery,
@@ -4532,6 +4788,16 @@ export const {
   useGetNotificationPreferencesByIdQuery,
   usePatchNotificationPreferencesByIdMutation,
   useDeleteNotificationPreferencesByIdMutation,
+  usePostOrgsMutation,
+  useGetOrgsQuery,
+  useGetOrgsMineQuery,
+  useGetOrgsByIdQuery,
+  usePatchOrgsByIdMutation,
+  useDeleteOrgsByIdMutation,
+  useGetOrgsByIdMembersQuery,
+  usePostOrgsByIdMembersMutation,
+  usePatchOrgsByIdMembersAndMemberIdMutation,
+  useDeleteOrgsByIdMembersAndMemberIdMutation,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

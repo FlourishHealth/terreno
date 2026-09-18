@@ -84,6 +84,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
     searchFields: ["title", "tags"],
     sortableFields: ["title", "completed", "created", "priority"],
   },
+  audit: true,
   collectionActions: {
     ...todoLoadTestCollectionActions,
     bulkComplete: {
