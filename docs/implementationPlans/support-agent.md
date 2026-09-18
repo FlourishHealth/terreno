@@ -70,14 +70,14 @@ Change the row before Approve if Pick should do something else.
 | D5 | Which model generates answers and embeddings? | The consumer injects both: `aiService: AIService` (existing `@terreno/ai`) and optional `embeddingModel: EmbeddingModel<string>` (Vercel AI SDK). No provider is hardcoded; `example-backend` wires Google (`@ai-sdk/google`) when its API key is present and falls back to lexical-only otherwise. | assumed |
 | D6 | How does the agent answer? | Retrieve → `AIService.generateJsonObject` with a grounded system prompt (constants at the top of `support/src/prompts.ts`) → `{answer, sources[], confidence: "high" \| "medium" \| "low", shouldEscalate}`. The prompt forbids answers not supported by the provided chunks; empty retrieval short-circuits to `shouldEscalate: true` without calling the model. | assumed |
 | D7 | Which surfaces? | **MCP tools** on the existing `/mcp` via `registerMCPTool` (`support_ask`, `support_search`, `support_get_document`, `support_list_sources`) and **REST** via `modelRouter("/support/questions", SupportQuestion, {collectionActions: {ask, search, gaps}, instanceActions: {feedback}})` plus admin `modelRouter("/support/documents", SupportDocument, {collectionActions: {reindex}})`. No `app.post`. | assumed |
-| D8 | Who may ask? | `IsAuthenticated` by default for `ask` / `search` / `support_*` tools; `permissions.ask` option lets consumers open it (e.g. `[]` for public help). Documents, reindex, and gaps are `IsAdmin`. | assumed |
+| D8 | Who may ask? | `IsAuthenticated` by default for `ask` / `search` / `support_*` tools. Public REST help requires both `permissions.ask: [Permissions.IsAny]` and `allowAnonymous: true` on the questions router; an empty permissions array disables an action. Documents, reindex, and gaps are `IsAdmin`. | assumed |
 | D9 | How is visibility enforced? | Announcements: `published` only for non-admins, `archived` opt-in, drafts never. Every source may implement `isVisible(user, doc)`; `SupportApp` also accepts a global `isVisible`. Filters run after retrieval and before generation, so hidden chunks never reach the prompt. | assumed |
 | D10 | Where do AI-authored docs live? | **`support/kb/**/*.md`** in the consumer backend with frontmatter `title`, `slug`, optional `audience`, `tags`, `related`. Indexed by `markdownDocsSource({dir})` at boot; `watch: true` re-indexes on change in development. | assumed |
 | D11 | How do agents keep docs current? | New plugin skill **`write-support-docs`** (installed with `terreno-planning`; generated Claude copy via `bun run skills:sync`), a **`terreno-support check`** CLI that fails on bad frontmatter / empty docs / duplicate slugs, and Roast criteria in this repo's Pick guidance: a user-visible feature PR adds or updates a `support/kb` doc. No hard CI coupling between route changes and docs in v1. | assumed |
 | D12 | When does the index refresh? | Incremental by `contentHash`: at boot (non-blocking), on `announcementsSource` post-save hooks, on `markdownDocsSource` file watch (dev), and via admin `POST /support/documents/reindex` (optionally per `sourceId`). Embedding failures log `warn` and leave chunks lexical-only. | assumed |
-| D13 | What is logged? | Every `ask` writes a `SupportQuestion` (question, answer, sources, confidence, `shouldEscalate`, `userId`, `channel: "mcp" \| "rest"`, `latencyMs`, `feedback`). `AIService` already logs the model call to `AIRequest` with `requestType: "support_answer"`. `gaps` groups low-confidence and thumbs-down questions for doc authors. | assumed |
+| D13 | What is logged? | Every `ask` writes a `SupportQuestion` (question, answer, sources, confidence, `shouldEscalate`, `ownerId`, `channel: "mcp" \| "rest"`, `latencyMs`, `feedback`). `ownerId` is the authenticated asker's id when present, enabling standard owner checks. `AIService` already logs the model call to `AIRequest` with `requestType: "support_answer"`. `gaps` groups low-confidence and thumbs-down questions for doc authors. | assumed |
 | D14 | Escalation? | `shouldEscalate` in the result plus an optional `onEscalate({question, user, result})` hook consumers wire to `@terreno/comms` or a ticketing API. No ticket model in v1. | assumed |
-| D15 | Follow-up questions? | Single-turn by default. Optional `conversationId` threads the last 5 `SupportQuestion` turns into the prompt as history. No separate conversation model. | assumed |
+| D15 | Follow-up questions? | Single-turn by default. Optional `conversationId` threads the last 5 `SupportQuestion` turns owned by the current authenticated user into the prompt as history; anonymous asks are always single-turn. No separate conversation model. | assumed |
 | D16 | Frontend in v1? | No. Avoids blocking on UI verification; the MCP surface is the deliverable the request names. `SupportChat` in `@terreno/ui` is Future Work. | assumed |
 
 ## Architecture
@@ -97,6 +97,7 @@ Consumer backend (example-backend)
     isVisible?: (user, doc) => boolean,
     onEscalate?: async ({question, user, result}) => void,
     permissions?: {ask: [Permissions.IsAuthenticated]},
+    allowAnonymous?: boolean, // requires ask: [Permissions.IsAny]
     retriever?: Retriever,     // replace hybrid default
     atlasVectorSearchIndex?: string,
   })
@@ -187,7 +188,7 @@ Mirror existing patterns:
 | `confidence` | `"high" \| "medium" \| "low"` | |
 | `shouldEscalate` | `boolean` | |
 | `escalatedAt` | `Date?` | set when `onEscalate` ran |
-| `userId` | `ObjectId?` | |
+| `ownerId` | `ObjectId?` | authenticated asker; used by owner permissions and conversation-history scoping |
 | `conversationId` | `string?` | |
 | `channel` | `"mcp" \| "rest"` | |
 | `latencyMs` | `number` | |
@@ -244,7 +245,7 @@ export class SupportApp implements TerrenoPlugin {}
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| `POST` | `/support/questions/ask` | `permissions.ask` (default `IsAuthenticated`) | body `{question, conversationId?}` → `SupportAnswer` |
+| `POST` | `/support/questions/ask` | `permissions.ask` (default `IsAuthenticated`) | body `{question, conversationId?}` → `SupportAnswer`; public use requires `ask: [Permissions.IsAny]` and `allowAnonymous: true` |
 | `POST` | `/support/questions/search` | same | body `{query, limit?, sourceIds?}` → `{data: [{title, excerpt, url, sourceId, documentId, score}]}` |
 | `GET` | `/support/questions/gaps` | `IsAdmin` | low-confidence + thumbs-down grouped by normalized question, `{count, lastAskedAt, sampleQuestions}` |
 | `POST` | `/support/questions/:id/feedback` | owner or admin | body `{rating, comment?}` |
@@ -399,8 +400,9 @@ Each criterion names its verification.
       call the model, still writes a `SupportQuestion`, and invokes `onEscalate` once. — Bun
       test with spies.
 - [ ] **AC6** `POST /support/questions/ask` returns 401 unauthenticated by default and 200
-      for an authenticated user; `permissions.ask: []` makes it 200 anonymously. `feedback`
-      by a non-owner non-admin is 403. — supertest.
+      for an authenticated user; `permissions.ask: [Permissions.IsAny]` with
+      `allowAnonymous: true` makes it 200 anonymously, while `permissions.ask: []` returns
+      405. `feedback` by a non-owner non-admin is 403. — supertest.
 - [ ] **AC7** Over the `/mcp` transport as an authenticated user, `tools/list` includes the
       four `support_*` tools, `support_ask` returns text JSON matching `SupportAnswer`, and
       `support_get_document` for an unknown id returns `isError: true`. — MCP integration

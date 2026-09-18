@@ -76,20 +76,20 @@ See: [`docs/implementationPlans/support-agent.md`](../implementationPlans/suppor
   - Acceptance: **AC4** — mock model receives a system prompt containing each retrieved chunk's text and nothing from non-retrieved fixtures; returned `sources` ⊆ retrieved documents; **AC5** (model part) — zero hits → no `doGenerate` call, `shouldEscalate: true`
 
 - [ ] **Task 2.2**: `SupportQuestion` log, feedback, escalation hook, conversation history
-  - Delivers: `SupportQuestion` model; every `ask` writes one row with `channel`, `latencyMs`, `aiRequestId`; `onEscalate` invoked once when `shouldEscalate`; `conversationId` threads the last 5 turns into the prompt; `recordFeedback({questionId, user, rating, comment})`
+  - Delivers: `SupportQuestion` model; every `ask` writes one row with `ownerId` for an authenticated asker, `channel`, `latencyMs`, `aiRequestId`; `onEscalate` invoked once when `shouldEscalate`; `conversationId` threads only the last 5 turns owned by the current authenticated user into the prompt; anonymous asks are single-turn; `recordFeedback({questionId, user, rating, comment})`
   - Files: `support/src/models/supportQuestion.ts`, `support/src/agent/supportAgent.ts`, `support/src/tests/questionLog.test.ts`
   - Blocked by: Task 2.1
   - Docs: `docs/reference/support.md` (SupportQuestion model, hooks table)
   - Skills: `mongoose-schema-safety`, `terreno-backend-api`, `update-docs`
-  - Acceptance: **AC5** (log + hook part) — escalated ask persists a `SupportQuestion` and calls a spy `onEscalate` exactly once; second ask with the same `conversationId` includes the first Q/A in the mock's prompt; feedback stores `{rating, comment, at}`
+  - Acceptance: **AC5** (log + hook part) — escalated ask persists a `SupportQuestion` and calls a spy `onEscalate` exactly once; second ask by the same user with the same `conversationId` includes the first Q/A in the mock's prompt, while another user's ask with that id has no history; feedback stores `{rating, comment, at}`
 
 - [ ] **Task 2.3**: `SupportApp` plugin + REST routes
-  - Delivers: `SupportApp implements TerrenoPlugin` (constructor per IP; boot-time non-blocking `reindex()`); `modelRouter("/support/questions", SupportQuestion, {collectionActions: {ask, search}, instanceActions: {feedback}, permissions})`; `modelRouter("/support/documents", SupportDocument, {collectionActions: {reindex}})` admin-only; OpenAPI registered
+  - Delivers: `SupportApp implements TerrenoPlugin` (constructor per IP; boot-time non-blocking `reindex()`); `modelRouter("/support/questions", SupportQuestion, {collectionActions: {ask, search}, instanceActions: {feedback}, permissions, allowAnonymous})`; public access requires `permissions.ask: [Permissions.IsAny]` with `allowAnonymous: true`; `modelRouter("/support/documents", SupportDocument, {collectionActions: {reindex}})` admin-only; OpenAPI registered
   - Files: `support/src/supportApp.ts`, `support/src/routes.ts`, `support/src/tests/routes.test.ts`, `support/src/index.ts`
   - Blocked by: Task 2.2
   - Docs: `docs/reference/support.md` (REST table, constructor options); `docs/explanation/model-router-actions.md` gets a one-line cross-link example
   - Skills: `model-router-actions`, `terreno-backend-api`, `backend-test-env`, `update-docs`
-  - Acceptance: **AC6** — supertest: unauthenticated `ask` 401; authenticated 200 with `SupportAnswer` shape; `permissions.ask: []` → anonymous 200; non-owner `feedback` 403; non-admin `reindex` 403; admin `reindex` returns indexer summary
+  - Acceptance: **AC6** — supertest: unauthenticated `ask` 401; authenticated 200 with `SupportAnswer` shape; `permissions.ask: [Permissions.IsAny]` with `allowAnonymous: true` → anonymous 200; `permissions.ask: []` → 405; non-owner `feedback` 403; non-admin `reindex` 403; admin `reindex` returns indexer summary
 
 - [ ] **Task 2.4**: Example-backend tracer (kb docs + wiring + SDK)
   - Delivers: `example-backend/support/kb/` with ≥ 3 docs about todos (create, complete, archive); `SupportApp` registered in `server.ts` with `markdownDocsSource`; `AIService` from existing `example-backend/src/api/ai.ts` provider; example-frontend SDK regenerated
