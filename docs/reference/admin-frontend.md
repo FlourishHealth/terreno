@@ -178,6 +178,8 @@ Features:
   `adminBroadcast: false`. They use REST list and mutation paths until the sync
   window protocol carries selected-organization context. Home widgets delay
   those list queries until `OrgContextProvider` has selected an organization.
+  `AdminModelForm` uses the same skip for org-scoped edit reads so create/edit
+  does not hit the API with a missing `X-Organization-Id`.
   `AuditEvent` stays `organizationScoped: false` so Recent Activity and the
   audit changelist still load unscoped rows when no organization is selected.
 
