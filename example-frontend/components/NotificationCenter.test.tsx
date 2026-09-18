@@ -95,6 +95,9 @@ mock.module("@terreno/ui", () => ({
 }));
 
 mock.module("expo-router", () => ({
+  // Include useLocalSearchParams so this incomplete mock does not break sibling
+  // suites that import it from "expo-router" under Bun's process-global mock.module.
+  useLocalSearchParams: () => ({}),
   useRouter: () => ({back: routerBack, push: routerPush}),
 }));
 
@@ -103,6 +106,9 @@ mock.module("@/hooks/useSyncDbReady", () => ({
 }));
 
 mock.module("@/store/sdk", () => ({
+  // Sibling suites import terrenoApi from this module under Bun's process-global
+  // mock.module; keep a stub so that named export stays resolvable.
+  terrenoApi: {reducerPath: "notification-center-test-api"},
   usePostNotificationsDevNotifyMutation: () => [sendTestNotification, {isLoading: false}],
 }));
 
