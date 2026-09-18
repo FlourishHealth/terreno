@@ -172,8 +172,8 @@ Injects RTK Query mutations for acknowledgement, impression, and primary-action 
 
 | Method | Route | Notes |
 |--------|-------|-------|
-| `acknowledge(id)` | `POST /announcements/:id/acknowledge` | Invalidates pending queue |
+| `acknowledge(id)` | `POST /announcements/:id/acknowledge` | Invalidates pending queue. Query includes `platform` and, when available, `version` (same visibility gate as pending/feed). |
 | `recordImpression(id)` | `POST /announcements/:id/impression` | Sends current `platform` in body |
-| `recordClick(id)` | `POST /announcements/:id/click` | Body `{ action: "primaryAction", platform }`; appends `?version=` when build number is a finite integer (same visibility gate as pending/feed) |
+| `recordClick(id)` | `POST /announcements/:id/click` | Body `{ action: "primaryAction", platform }`; query includes `platform` and, when available, `version` (same visibility gate as pending/feed) |
 
 `AnnouncementNavigator` wires `onPrimaryAction` for modal and banner surfaces: it calls `recordClick` once per primary CTA press (only when `primaryAction` is present), then opens the URL with `Linking`. Click POST failures log `console.warn` and do not block navigation. Standalone `AnnouncementScreen` / `AnnouncementBanner` usage without `onPrimaryAction` still opens the URL directly.

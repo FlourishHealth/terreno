@@ -28,6 +28,7 @@ describe("useAcknowledgeAnnouncement", () => {
     const impressionMutation = mock(() => ({unwrap: impressionUnwrap}));
     const clickMutation = mock(() => ({unwrap: clickUnwrap}));
     let clickQueryDef: MockMutationDef | undefined;
+    let acknowledgeQueryDef: MockMutationDef | undefined;
     const api = {
       enhanceEndpoints: mock(() => ({
         injectEndpoints: mock((opts: MockInjectOpts) => {
@@ -38,6 +39,9 @@ describe("useAcknowledgeAnnouncement", () => {
               expect(result.url).toContain("/announcements/a1/");
               if (result.url.includes("/click")) {
                 clickQueryDef = def;
+              }
+              if (result.url.includes("/acknowledge")) {
+                acknowledgeQueryDef = def;
               }
               return "mutation";
             }),
@@ -62,6 +66,7 @@ describe("useAcknowledgeAnnouncement", () => {
     };
     return {
       acknowledgeMutation,
+      acknowledgeQueryDef: () => acknowledgeQueryDef,
       api,
       clickMutation,
       clickQueryDef: () => clickQueryDef,
@@ -122,7 +127,10 @@ describe("useAcknowledgeAnnouncement", () => {
     assert.ok(clickDef);
     const queryResult = clickDef.query({announcementId: "announcement-42"});
     assert.strictEqual(queryResult.method, "POST");
-    assert.strictEqual(queryResult.url, "/api/announcements/announcement-42/click?version=42");
+    assert.strictEqual(
+      queryResult.url,
+      "/api/announcements/announcement-42/click?platform=web&version=42"
+    );
     assert.deepEqual(queryResult.body, {action: "primaryAction", platform: "web"});
 
     Platform.OS = originalOS;
@@ -145,8 +153,70 @@ describe("useAcknowledgeAnnouncement", () => {
     const clickDef = clickQueryDef();
     assert.ok(clickDef);
     const queryResult = clickDef.query({announcementId: "announcement-1"});
-    assert.strictEqual(queryResult.url, "/api/announcements/announcement-1/click");
+    assert.strictEqual(queryResult.url, "/api/announcements/announcement-1/click?platform=android");
     assert.deepEqual(queryResult.body, {action: "primaryAction", platform: "android"});
+
+    Platform.OS = originalOS;
+  });
+
+  it("posts acknowledge with platform and build version in the query", async () => {
+    const constantsState = {
+      expoConfig: {
+        extra: {
+          buildNumber: 42,
+        },
+      },
+    };
+    mock.module("expo-constants", () => ({
+      default: constantsState,
+    }));
+
+    const originalOS = Platform.OS;
+    Platform.OS = "ios";
+
+    const {api, acknowledgeMutation, acknowledgeQueryDef} = buildApi();
+    const {result} = renderHook(() =>
+      useAcknowledgeAnnouncement(api as unknown as AcknowledgeApi, "/api")
+    );
+
+    await result.current.acknowledge("announcement-42");
+
+    assert.strictEqual(acknowledgeMutation.mock.calls.length, 1);
+    assert.deepEqual(acknowledgeMutation.mock.calls[0], [{announcementId: "announcement-42"}]);
+
+    const acknowledgeDef = acknowledgeQueryDef();
+    assert.ok(acknowledgeDef);
+    const queryResult = acknowledgeDef.query({announcementId: "announcement-42"});
+    assert.strictEqual(queryResult.method, "POST");
+    assert.strictEqual(
+      queryResult.url,
+      "/api/announcements/announcement-42/acknowledge?platform=ios&version=42"
+    );
+
+    Platform.OS = originalOS;
+    mock.module("expo-constants", () => ({
+      default: {expoConfig: {extra: {buildNumber: undefined}}},
+    }));
+  });
+
+  it("omits version from acknowledge URL when build number is not finite", async () => {
+    mock.module("expo-constants", () => ({
+      default: {expoConfig: {extra: {buildNumber: undefined}}},
+    }));
+
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+
+    const {api, acknowledgeQueryDef} = buildApi();
+    renderHook(() => useAcknowledgeAnnouncement(api as unknown as AcknowledgeApi, "/api"));
+
+    const acknowledgeDef = acknowledgeQueryDef();
+    assert.ok(acknowledgeDef);
+    const queryResult = acknowledgeDef.query({announcementId: "announcement-1"});
+    assert.strictEqual(
+      queryResult.url,
+      "/api/announcements/announcement-1/acknowledge?platform=web"
+    );
 
     Platform.OS = originalOS;
   });

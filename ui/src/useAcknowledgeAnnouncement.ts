@@ -58,10 +58,15 @@ const enhancedApiCache = new WeakMap<
   Map<string, AcknowledgeAnnouncementEnhancedApi>
 >();
 
-const buildAnnouncementClickUrl = (base: string, announcementId: string): string => {
+const buildAnnouncementEventUrl = (
+  base: string,
+  announcementId: string,
+  action: "acknowledge" | "click"
+): string => {
+  const platform = getAnnouncementPlatform();
   const version = getAnnouncementBuildVersion();
-  const versionParam = version === undefined ? "" : `?version=${version}`;
-  return `${base}/announcements/${announcementId}/click${versionParam}`;
+  const versionParam = version === undefined ? "" : `&version=${version}`;
+  return `${base}/announcements/${announcementId}/${action}?platform=${platform}${versionParam}`;
 };
 
 const getEnhancedApi = (
@@ -84,7 +89,7 @@ const getEnhancedApi = (
         invalidatesTags: ["PendingAnnouncements"],
         query: ({announcementId}: {announcementId: string}) => ({
           method: "POST",
-          url: `${base}/announcements/${announcementId}/acknowledge`,
+          url: buildAnnouncementEventUrl(base, announcementId, "acknowledge"),
         }),
       }),
       recordAnnouncementClick: build.mutation({
@@ -95,7 +100,7 @@ const getEnhancedApi = (
             platform: getAnnouncementPlatform(),
           },
           method: "POST",
-          url: buildAnnouncementClickUrl(base, announcementId),
+          url: buildAnnouncementEventUrl(base, announcementId, "click"),
         }),
       }),
       recordAnnouncementImpression: build.mutation({
