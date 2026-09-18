@@ -27,6 +27,17 @@ describe("TextField", () => {
     it("warns when the device timezone cannot be determined", () => {
       mock.module("expo-localization", () => ({
         getCalendars: mock(() => []),
+        getLocales: mock(() => [
+          {
+            countryCode: "US",
+            decimalSeparator: ".",
+            digitGroupingSeparator: ",",
+            languageCode: "en",
+            measurementSystem: "US",
+            temperatureUnit: "F",
+            textDirection: "ltr",
+          },
+        ]),
       }));
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
 
@@ -42,6 +53,17 @@ describe("TextField", () => {
               id: "gregorian",
               locale: "en-US",
               timeZone: "America/New_York",
+            },
+          ]),
+          getLocales: mock(() => [
+            {
+              countryCode: "US",
+              decimalSeparator: ".",
+              digitGroupingSeparator: ",",
+              languageCode: "en",
+              measurementSystem: "US",
+              temperatureUnit: "F",
+              textDirection: "ltr",
             },
           ]),
         }));
