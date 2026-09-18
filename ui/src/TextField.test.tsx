@@ -194,6 +194,104 @@ describe("TextField", () => {
       expect(input.props.secureTextEntry).toBe(true);
     });
 
+    describe("password visibility toggle", () => {
+      it("should reveal and re-hide the value when the toggle is pressed", () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(false);
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+      });
+
+      it("should describe the next action on the toggle", () => {
+        const {getByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        const toggle = getByTestId("pw.visibility-toggle");
+        expect(toggle.props.accessibilityLabel).toBe("Show password");
+
+        fireEvent.press(toggle);
+        expect(getByTestId("pw.visibility-toggle").props.accessibilityLabel).toBe("Hide password");
+      });
+
+      it("should not render the toggle for non-password types", () => {
+        const {queryByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="email" type="email" value="" />
+        );
+
+        expect(queryByTestId("email.visibility-toggle")).toBeNull();
+      });
+
+      it("should not render the toggle when showVisibilityToggle is false", () => {
+        const {queryByTestId} = renderWithTheme(
+          <TextField
+            onChange={mockOnChange}
+            showVisibilityToggle={false}
+            testID="pw"
+            type="password"
+            value="hunter2"
+          />
+        );
+
+        expect(queryByTestId("pw.visibility-toggle")).toBeNull();
+      });
+
+      it("should keep the value hidden when the field is disabled", () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField disabled onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+      });
+
+      it("should accept a custom toggle test id", () => {
+        const {getByTestId} = renderWithTheme(
+          <TextField
+            onChange={mockOnChange}
+            testID="pw"
+            testIDs={{visibilityToggle: "custom-toggle"}}
+            type="password"
+            value="hunter2"
+          />
+        );
+
+        expect(getByTestId("custom-toggle")).toBeTruthy();
+      });
+
+      it("should not blur the input when the visibility toggle is pressed", async () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField
+            onBlur={mockOnBlur}
+            onChange={mockOnChange}
+            testID="pw"
+            trimOnBlur
+            type="password"
+            value="secret  "
+          />
+        );
+
+        const input = getByDisplayValue("secret  ");
+        fireEvent(input, "focus");
+        await act(async () => {
+          fireEvent.press(getByTestId("pw.visibility-toggle"));
+          await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+          });
+        });
+
+        expect(mockOnBlur).not.toHaveBeenCalled();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
     it("should render url type with correct keyboard", () => {
       const {getByDisplayValue} = renderWithTheme(
         <TextField onChange={mockOnChange} type="url" value="" />
