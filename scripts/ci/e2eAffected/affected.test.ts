@@ -97,6 +97,16 @@ describe("computeAffected", () => {
     );
   });
 
+  it("runs every shard when the gate itself changes", () => {
+    const repoRoot = createFixture();
+    const {affected, reasons} = decide({
+      changedFiles: ["scripts/ci/e2eAffected/affected.ts"],
+      repoRoot,
+    });
+    assert.isTrue(affected);
+    assert.match(reasons[0] ?? "", /changes this gate/);
+  });
+
   it("runs the shard for a file outside the analysed surface", () => {
     const repoRoot = createFixture();
     const {affected, reasons} = decide({

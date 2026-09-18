@@ -43,7 +43,7 @@ const INERT_PATTERNS: RegExp[] = [
 
 /** Scripts are build/CI tooling, except this gate, which must test itself. */
 const INERT_SCRIPTS = /^scripts\//;
-const GATE_DIRECTORY = /^scripts\/ci\/e2eAffected\//;
+export const GATE_DIRECTORY = /^scripts\/ci\/e2eAffected\//;
 
 /** Directories whose modules the import graph can resolve. */
 const SOURCE_PATTERNS: RegExp[] = [

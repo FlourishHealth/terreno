@@ -9,7 +9,7 @@
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
 import {join, relative, sep} from "node:path";
 
-import {classifyChangedFile} from "./changeScope";
+import {classifyChangedFile, GATE_DIRECTORY} from "./changeScope";
 import {
   changedRuntimeDependencies,
   isManifestChangeMaterial,
@@ -356,7 +356,11 @@ export const computeAffected = ({
       }
       continue;
     }
-    globalReasons.push(`${path} is outside the analysed surface`);
+    globalReasons.push(
+      GATE_DIRECTORY.test(path)
+        ? `${path} changes this gate, so every shard runs`
+        : `${path} is outside the analysed surface`
+    );
   }
 
   let lockfiles: {base: LockfileIndex; head: LockfileIndex} | undefined;
