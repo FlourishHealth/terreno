@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import {join} from "node:path";
 
-import {fingerprintKnipReport, type KnipReport} from "./lib";
+import {fingerprintKnipReport, type KnipReport, parseKnipReportStdout} from "./lib";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
 const DEPENDENCY_BASELINE_PATH = join(REPO_ROOT, ".dependency-cruiser-known-violations.json");
@@ -28,12 +28,18 @@ const DEPENDENCY_INPUTS = [
   "website/src",
 ];
 
-const runKnip = ({isProduction}: {isProduction: boolean}): KnipReport => {
+const runKnipOnce = ({
+  isProduction,
+  useCache,
+}: {
+  isProduction: boolean;
+  useCache: boolean;
+}): KnipReport => {
   const result = Bun.spawnSync({
     cmd: [
       "node",
       "node_modules/knip/bin/knip.js",
-      "--cache",
+      ...(useCache ? ["--cache"] : []),
       "--no-exit-code",
       "--reporter",
       "json",
@@ -50,7 +56,17 @@ const runKnip = ({isProduction}: {isProduction: boolean}): KnipReport => {
   if (stderr) {
     console.warn(stderr);
   }
-  return JSON.parse(result.stdout.toString()) as KnipReport;
+  return parseKnipReportStdout(result.stdout.toString());
+};
+
+const runKnip = ({isProduction}: {isProduction: boolean}): KnipReport => {
+  try {
+    return runKnipOnce({isProduction, useCache: true});
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Knip cache read failed (${message}); retrying without --cache.`);
+    return runKnipOnce({isProduction, useCache: false});
+  }
 };
 
 const collectKnipIssues = (): string[] => {
