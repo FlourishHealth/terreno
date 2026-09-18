@@ -9,12 +9,14 @@
  */
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import express from "express";
 import mongoose, {type Model} from "mongoose";
 import type {Server} from "socket.io";
 
 import type {JSONValue, ModelRouterOptions} from "../api";
 
+import {clearAdminBroadcastScopes, registerAdminBroadcastScope} from "../sync/adminBroadcastScope";
 import {
   emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
@@ -364,10 +366,12 @@ describe("matchesQuery", () => {
 describe("queryStore", () => {
   beforeEach(() => {
     clearQueryStore();
+    clearAdminBroadcastScopes();
   });
 
   afterEach(() => {
     clearQueryStore();
+    clearAdminBroadcastScopes();
   });
 
   describe("computeQueryId", () => {
@@ -1782,6 +1786,75 @@ describe("emitToDocumentAndQueryRooms", () => {
     });
   });
 
+  it("allows admin broadcast sockets without running product read permissions", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("sync:todos|admin", {admin: true, id: "admin-user"});
+    registerAdminBroadcastScope("Todo", {
+      listPermissions: [() => true],
+      readPermissions: [() => true],
+    });
+    const entry: RealtimeRegistryEntry = {
+      collectionName: "todos",
+      config: {methods: ["update"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        ...permissiveOptions,
+        permissions: {...permissiveOptions.permissions, read: [() => false]},
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "sync:todos|admin",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      {_id: "todo-1", ownerId: "owner-1"},
+      () => {}
+    );
+
+    assert.lengthOf(emissions, 1);
+  });
+
+  it("does not emit admin broadcast documents denied by the admin scope", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("sync:todos|admin", {admin: true, id: "admin-user"});
+    registerAdminBroadcastScope("Todo", {
+      listPermissions: [() => false],
+      readPermissions: [() => true],
+    });
+    const entry: RealtimeRegistryEntry = {
+      collectionName: "todos",
+      config: {methods: ["update"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: permissiveOptions,
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "sync:todos|admin",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      {_id: "todo-1", ownerId: "owner-1"},
+      () => {}
+    );
+
+    assert.isEmpty(emissions);
+  });
+
   it("does not emit hard delete metadata when read permission requires an object owner", async () => {
     const {addSocketToRoom, emissions, io} = makeIo();
     addSocketToRoom("model:todos", {id: "other-user"});
@@ -2496,6 +2569,43 @@ describe("startChangeStreamWatcher", () => {
     await invokeRegisteredChangeHandler(mockStream, {
       operationType: "drop",
     });
+  });
+
+  it("returns early when the mapped realtime operation is null", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    setConnectionDb(mockDb);
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {permissions: permissiveOptions.permissions},
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const {emissions, io} = createRecordingIo("model:todos");
+    let operationTypeReads = 0;
+    startChangeStreamWatcher(io, {}, true);
+
+    await invokeRegisteredChangeHandler(mockStream, {
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1"},
+      ns: {coll: "todos"},
+      get operationType(): string {
+        operationTypeReads += 1;
+        return operationTypeReads === 1 ? "insert" : "invalidate";
+      },
+    });
+
+    assert.isAtLeast(operationTypeReads, 2);
+    assert.isEmpty(emissions);
   });
 
   it("handles error/close/end events gracefully", async () => {
