@@ -540,6 +540,47 @@ commands:
               circleci step halt
             fi
 
+  resolve_affected_e2e_shards:
+    description: Record which Playwright shards the branch can break (fails open)
+    steps:
+      - run:
+          name: Resolve affected e2e shards
+          command: |
+            set -uo pipefail
+            git fetch --no-tags --quiet origin +refs/heads/master:refs/remotes/origin/master ||
+              echo "could not fetch origin/master; every shard will run"
+            if ! bun run scripts/ci/e2eAffected/check.ts --base origin/master \
+              --write e2e-affected.json; then
+              echo "affected analysis failed; every shard will run"
+              echo '{"shards":{}}' > e2e-affected.json
+            fi
+      - store_artifacts:
+          path: e2e-affected.json
+          destination: e2e-affected.json
+
+  halt_if_shard_unaffected:
+    description: Halt a Playwright shard no changed file can reach
+    parameters:
+      shard:
+        type: string
+    steps:
+      - run:
+          name: Skip << parameters.shard >> when unaffected
+          environment:
+            E2E_SHARD: << parameters.shard >>
+          command: |
+            set -uo pipefail
+            if [ ! -f e2e-affected.json ]; then
+              echo "no affected decision; running ${E2E_SHARD}"
+              exit 0
+            fi
+            verdict="$(node -e 'const decision = JSON.parse(require("node:fs").readFileSync("e2e-affected.json", "utf8")); const shard = (decision.shards || {})[process.env.E2E_SHARD]; process.stdout.write(shard && shard.affected === false ? "skip" : "run");' || echo run)"
+            if [ "$verdict" = "skip" ]; then
+              echo "No changed file reaches ${E2E_SHARD}; skipping (see the e2e-affected.json artifact on e2e-prepare)"
+              circleci-agent step halt
+            fi
+            echo "${E2E_SHARD} is affected; running Playwright"
+
   restore_e2e_dists:
     description: Unpack workspace dist trees produced by e2e-prepare
     steps:
@@ -1521,6 +1562,7 @@ jobs:
     steps:
       - checkout
       - install_bun_and_deps
+      - resolve_affected_e2e_shards
       - run:
           name: Compile workspace
           command: bun run compile
@@ -1545,6 +1587,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
+            - e2e-affected.json
             - e2e-dists.tgz
 
   e2e:
@@ -1555,6 +1598,9 @@ jobs:
     steps:
       - checkout
       - restore_e2e_dists
+      # Halt before bun install: an unaffected shard costs one container start.
+      - halt_if_shard_unaffected:
+          shard: << parameters.shard >>
       - install_bun_and_deps
       - run_example_frontend_e2e:
           spec: << parameters.shard >>

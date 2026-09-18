@@ -201,6 +201,7 @@
     "check:changelog": "bun run scripts/changelog/check.ts",
     "check:circleci-parity": "bun run scripts/check-circleci-parity/check.ts",
     "check:demo-coverage": "bun run scripts/check-demo-coverage.ts",
+    "check:e2e-affected": "bun run scripts/ci/e2eAffected/check.ts",
     "check:explicit-any": "bun run scripts/check-explicit-any/check.ts",
     "check:explicit-any:baseline": "bun run scripts/check-explicit-any/check.ts --check-baseline",
     "check:explicit-any:json": "bun run scripts/check-explicit-any/check.ts --json",

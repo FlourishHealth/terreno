@@ -85,7 +85,9 @@ when the package imports them. Coverage-script unit tests run in the cheap
 `coverage-scripts` job.
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
-`admin-table`, `syncdb`) instead of one container per spec file. Repository
+`admin-table`, `syncdb`) instead of one container per spec file. Each shard
+first checks the [affected gate](#e2e-affected-gate) and halts when no changed
+file can reach it. Repository
 policy checks share one `repo-policies` job so eight small checkouts do not
 sit in the concurrency queue. `repo-policies` uses Node 22.14 because Knip's
 oxc-parser throws `ERR_REQUIRE_ESM` on the shared 22.11 executor.
@@ -93,6 +95,48 @@ Require `repo-policies` in branch protection. Require `e2e-auth` /
 `e2e-app` / … only as path-filtered checks; config-only PRs post `e2e-auth`
 as the smoke shard and do not run the other four. Do not require the old
 `no-barrel-imports` / `e2e-login` names.
+
+## E2E affected gate
+
+Path filters decide whether e2e is a *candidate*; `scripts/ci/e2eAffected`
+decides which shards actually run. `e2e-prepare` runs
+
+```bash
+bun run check:e2e-affected --base origin/master --write e2e-affected.json
+```
+
+and persists the decision to the workspace (also stored as the
+`e2e-affected.json` artifact). Each shard reads it and calls
+`circleci-agent step halt` before `bun install` when it is unaffected, so an
+unneeded shard costs one container start instead of a full Playwright run.
+Run the same command locally to see what a branch would trigger.
+
+`e2e-prepare` always runs when a path filter starts the workflow: compiling the
+workspace and `bun expo export`ing the web bundle is the check that catches
+build breakage the shards would otherwise miss.
+
+The gate **fails open** — it runs every shard when the base revision cannot be
+resolved, when a module cannot be resolved, or when the analysis throws. A
+change is only skipped when it is provably outside a shard's surface:
+
+| Change | Decision |
+| --- | --- |
+| Module reachable from the shard's screens, specs, or `example-backend/src` | run |
+| Module nothing reachable imports (`ui/src/Avatar.tsx` today) | skip |
+| Type-only edit to a reachable module (interfaces, `type`, `declare`) | skip |
+| New export or lazy registry entry no consumer imports | skip |
+| Re-export barrel that repoints a binding the app imports | run |
+| `bun.lock` install the app resolves changing version | run |
+| `bun.lock` or `package.json` churn outside that closure | skip |
+| Docs, rules, `demo/**`, `scripts/**`, unit tests, snapshots, lint config | skip |
+| Anything else (`metro.config.js`, `app.json`, `.circleci/**`, patches) | run |
+
+Shard membership comes from `scripts/ci/e2eAffected/shards.ts`, which must
+mirror the spec groups in `run_example_frontend_e2e`. `shards.test.ts` fails
+when the two drift, when a spec is unassigned, or when a spec navigates to a
+screen its shard does not declare. It also asserts that `ui/src/index.tsx`
+stays a pass-through barrel — runtime code there would make every
+`@terreno/ui` change look reachable.
 
 ## Automatic deploys
 
