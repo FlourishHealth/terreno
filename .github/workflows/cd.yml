@@ -155,11 +155,12 @@ jobs:
         if: always() && steps.preview.outputs.preview_id != ''
         run: |
           set -euo pipefail
+          # Create is the job failure. Describe can 404 if no preview object exists.
           gcloud infra-manager previews describe \
             "${{ steps.preview.outputs.preview_id }}" \
             --location="${{ steps.preview.outputs.location }}" \
             --project="${{ env.GCP_PROJECT_ID }}" \
-            --format='yaml(state,errorCode,errorLogs,buildResults)'
+            --format='yaml(state,errorCode,errorLogs,buildResults)' || true
       - name: Cleanup preview
         if: always()
         run: |
