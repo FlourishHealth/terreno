@@ -1,5 +1,12 @@
 import {afterAll, beforeAll, beforeEach, describe, it} from "bun:test";
-import {configureNotificationService, generateTokens, Notification, TerrenoApp} from "@terreno/api";
+import {
+  configureNotificationService,
+  configureOpenApiValidator,
+  generateTokens,
+  Notification,
+  resetOpenApiValidatorConfig,
+  TerrenoApp,
+} from "@terreno/api";
 import {assert} from "chai";
 import supertest from "supertest";
 import {Todo} from "../models/todo";
@@ -20,6 +27,7 @@ describe("todo notifications", () => {
   beforeAll(() => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET || "test-secret";
     process.env.TOKEN_ISSUER = process.env.TOKEN_ISSUER || "example-backend-test";
+    configureOpenApiValidator();
     configureNotificationService({userModel: UserModel});
     app = new TerrenoApp({
       skipListen: true,
@@ -31,6 +39,7 @@ describe("todo notifications", () => {
 
   afterAll(() => {
     configureNotificationService({});
+    resetOpenApiValidatorConfig();
   });
 
   beforeEach(async () => {

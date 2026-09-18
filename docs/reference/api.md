@@ -855,7 +855,9 @@ setupServer({
 
 ### Using with modelRouter
 
-When validation is enabled globally, modelRouter automatically validates create and update requests:
+When validation is enabled globally, modelRouter automatically validates create and update requests.
+
+Create (POST) enforces Mongoose required fields. Update (PATCH) is partial: present fields are type-checked, but omitted required fields are allowed so a client can send `{completed: true}` without repeating `title`.
 
 ``````typescript
 import {modelRouter, Permissions} from "@terreno/api";
