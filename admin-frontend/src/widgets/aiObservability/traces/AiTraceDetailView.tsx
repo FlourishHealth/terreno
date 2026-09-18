@@ -18,6 +18,28 @@ export interface AiTraceDetailViewProps {
   onBack: () => void;
 }
 
+type SpanColumnStyle = {
+  flexBasis: number;
+  flexGrow: number;
+  flexShrink: number;
+  minWidth: number;
+};
+
+/**
+ * Hold the span list and span detail on one line. `flexBasis: 0` sizes both columns from the row
+ * width instead of their content, so a wide span value cannot break the flex line and drop the
+ * detail below the list, and `minWidth: 0` lets a column shrink rather than overflow the page.
+ */
+const spanColumnStyle = (grow: number): SpanColumnStyle => ({
+  flexBasis: 0,
+  flexGrow: grow,
+  flexShrink: 1,
+  minWidth: 0,
+});
+
+const SPAN_LIST_COLUMN = spanColumnStyle(2);
+const SPAN_DETAIL_COLUMN = spanColumnStyle(3);
+
 const SpanRow: React.FC<{
   maxDuration: number;
   onSelect: (span: TraceSpanNode) => void;
@@ -41,7 +63,7 @@ const SpanRow: React.FC<{
     >
       <Box width={12 + row.depth * 16} />
       <Badge status="info" value={row.span.kind} />
-      <Box flex="grow">
+      <Box flex="grow" minWidth={0}>
         <Text>{row.span.name}</Text>
       </Box>
       <Box flex="grow" height={8} rounding="full">
@@ -90,8 +112,13 @@ export const AiTraceDetailView: React.FC<AiTraceDetailViewProps> = ({detail, onB
         </Box>
         <Button onClick={onBack} text="Back to traces" variant="secondary" />
       </Box>
-      <Box direction="row" gap={4} wrap>
-        <Box flex="grow" gap={1} minWidth={240} testID="ai-trace-span-list">
+      <Box direction="row" gap={4} testID="ai-trace-span-columns" wrap={false}>
+        <Box
+          dangerouslySetInlineStyle={{__style: SPAN_LIST_COLUMN}}
+          direction="column"
+          gap={1}
+          testID="ai-trace-span-list"
+        >
           <Heading size="sm">Spans</Heading>
           {flat.map((row) => (
             <SpanRow
@@ -103,7 +130,12 @@ export const AiTraceDetailView: React.FC<AiTraceDetailViewProps> = ({detail, onB
             />
           ))}
         </Box>
-        <Box flex="grow" gap={2} minWidth={280} testID="ai-trace-span-detail">
+        <Box
+          dangerouslySetInlineStyle={{__style: SPAN_DETAIL_COLUMN}}
+          direction="column"
+          gap={2}
+          testID="ai-trace-span-detail"
+        >
           <Heading size="sm">Span detail</Heading>
           {selected ? (
             <>

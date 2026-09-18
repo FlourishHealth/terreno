@@ -372,7 +372,9 @@ and no trimmed key is available, the button is disabled and the hint explains wh
 `sensitive` badge, error line, numeric prompt count, span count, tokens, cost, latency, score count, and
 **Open**. Pagination uses `page` / `limit` / `more` / `total`.
 `ai-trace-detail?id=` shows the header, left span list (kind badge, indent, duration bar),
-right span detail with **collapsed** sensitive I/O, and scores (value + source).
+right span detail with **collapsed** sensitive I/O, and scores (value + source). The two columns
+size from the row width rather than their content, so a wide span value (multi-stage LLM spans embed
+`outputSchema` JSON) wraps inside the detail column instead of pushing it below the span list.
 
 `ai-review` shows Pending / In progress / Done / Skipped tabs with counts. Each tab is
 oldest-first and lists the trace action, prompt, assignee, waiting time, and status.

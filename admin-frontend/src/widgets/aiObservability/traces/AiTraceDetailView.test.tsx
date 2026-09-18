@@ -66,6 +66,45 @@ describe("AiTraceDetailView", () => {
     expect(queryByText("patient SSN 123-45-6789")).toBeNull();
   });
 
+  it("keeps the span list and detail side by side regardless of span content width", () => {
+    const wide = JSON.stringify({outputSchema: {properties: {phrase: {type: "string"}}}});
+    const {getByTestId} = renderWithTheme(
+      <AiTraceDetailView
+        detail={{
+          ...detail,
+          sensitive: false,
+          spans: [
+            {
+              children: [],
+              durationMs: 40,
+              id: "span-wide",
+              input: wide.repeat(20),
+              kind: "LLM",
+              name: "call-1",
+              output: wide.repeat(20),
+              startedAt: "2026-09-01T12:00:00.000Z",
+              status: "ok",
+            },
+          ],
+        }}
+        onBack={() => undefined}
+      />
+    );
+
+    const columns = getByTestId("ai-trace-span-columns").props.style;
+    assert.equal(columns.flexDirection, "row");
+    assert.equal(columns.flexWrap, "nowrap");
+
+    // flexBasis 0 keeps the wide span value from pushing the detail onto its own line.
+    const list = getByTestId("ai-trace-span-list").props.style;
+    const spanDetail = getByTestId("ai-trace-span-detail").props.style;
+    assert.equal(list.flexBasis, 0);
+    assert.equal(spanDetail.flexBasis, 0);
+    assert.equal(list.minWidth, 0);
+    assert.equal(spanDetail.minWidth, 0);
+    assert.isAbove(spanDetail.flexGrow, list.flexGrow);
+  });
+
   it("selects spans and navigates back", async () => {
     const onBack = mock(() => undefined);
     const {getByTestId, getByText} = renderWithTheme(
