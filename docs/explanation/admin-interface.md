@@ -30,7 +30,7 @@ origin in `apiBase` — that would rewrite in-app navigation.
 | --- | --- | --- |
 | Model changelist / form | `modelRouter({admin: ...})` or plugin `adminContribution()` | `AdminScreenRouter` → `AdminModelTable` / `AdminModelForm` (list filters live on `DataTable`, not a side drawer) |
 | Custom screen | `AdminApp.customScreens` or plugin `customScreens` (`name` + `displayName`) | Matching `AdminProvider.widgets.screens[name]`, or a dedicated Expo route |
-| Platform tool | Built-in (`scripts`, `roles`, `version`, `configuration`, audit log, feature flags) | Sidebar **Platform** section; visibility from `/admin/config.platformTools` |
+| Platform tool | Built-in (`scripts`, `roles`, `version`, `configuration`, audit log, feature flags, jobs) | Sidebar **Platform** section; visibility from `/admin/config.platformTools` (jobs is lifted from `customScreens`) |
 | Home widget | `AdminApp.home.slots` IDs | `AdminProvider.widgets.home` (built-ins already registered) |
 
 `GET /admin/config` is caller-specific. Models and custom screens without read
@@ -47,10 +47,13 @@ Order in the rail:
 2. **Models** grouped by `admin.group` (ungrouped models land in **General**). Custom screens with `group` render inside the matching group **before** model links for that group. A grouped screen with no models still gets its own group heading.
 3. **Screens** — only `customScreens` **without** `group` (plus optional host extras)
 4. **Platform** — Scripts (`/__scripts`), Migrations (`/__migrations` when
-   `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Configuration
+   `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
 
 Audit log and Feature Flags are models, but the shell lifts them into Platform so
-operators do not hunt for them among business collections.
+operators do not hunt for them among business collections. The Platform Audit Log
+row is `AuditEvent` when `AuditApp` is registered. `isAuditLogModel` also matches
+legacy `AdminAuditLog`, `audit-log`, and `audit-events` names. Jobs is a custom
+screen (`name: "jobs"`); the shell lifts it the same way.
 
 Below 768px the rail becomes a hamburger drawer. The main column is a body-style
 canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and

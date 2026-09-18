@@ -16,6 +16,7 @@ export interface User {
   age?: number;
   disabled?: boolean;
   organizationIds?: string[];
+  roles?: string[];
   tokenEpoch?: number;
   emailVerified?: boolean;
 }
@@ -68,6 +69,11 @@ const userSchema = new Schema<User>({
   organizationIds: {
     default: [],
     description: "Organization memberships",
+    type: [String],
+  },
+  roles: {
+    default: [],
+    description: "RBAC role names assigned to this user",
     type: [String],
   },
   tokenEpoch: {

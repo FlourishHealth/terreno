@@ -1,6 +1,6 @@
 # Lifecycle plugin reference
 
-Plugin: `terreno-planning` (`2.11.0`)
+Plugin: `terreno-planning` (`2.12.0`)
 
 Planning skills are model-invocable: agents may select them from descriptions, not only
 from slash commands. Grow, Brew, and Taste each implement one bounded transition. Pick continues an inner loop until the
@@ -14,7 +14,7 @@ loops that invoke those stages; they are not stages and must not appear as `stag
 | `terreno-2-pick` | approved task + branch/state | one implemented slice, then Roast, then the next task | Roast, or Brew when the list is done |
 | `terreno-3-roast` | Pick result + current diff | independent requirement/evidence verdict for the current task | emit Pick if tasks remain, else Brew; never invoke Pick; pass a task-scoped briefing; do not spawn two unconstrained reviewers |
 | `terreno-4-brew` | Roast PASS for every in-scope task + branch/evidence | pushed head + PR + product-CI trigger check + review-bot wait + attached evidence | Taste |
-| `terreno-5-taste` | PR + current state | one current-head reaction; before push: pull latest `master`, run root `prepush` when present (otherwise affected-package checks) in a no-context subagent, then watch CI | null or fresh Taste |
+| `terreno-5-taste` | PR + current state | one current-head reaction; before push: pull latest `master`, re-verify last-run failed tests locally, run root `prepush` when present (otherwise affected-package checks) in a no-context subagent, then watch CI | null or fresh Taste |
 
 Outer loops (not stages):
 
@@ -51,7 +51,8 @@ until async review bots (Bugbot, CodeQL, and similar) on the current head have r
 preferring provider CLI watch hooks or harness event subscriptions over sleep polling.
 Taste then waits in a loop for product CI using GitHub CLI (`gh pr checks --watch`,
 `gh run watch`) or CircleCI CLI (`circleci run watch`) until jobs are terminal or the
-wait times out. Before any push, Taste always pulls latest `master`, then spawns a
+wait times out. Before any push, Taste always pulls latest `master`, records last-run
+failed tests and re-verifies them locally, then spawns a
 fresh subagent with no parent conversation. If the repository root defines a `prepush`
 package script, Taste runs it as the authoritative local gate; otherwise it falls back
 to lint, typecheck, and locally affected tests in each affected package. Taste then

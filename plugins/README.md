@@ -12,7 +12,7 @@ copy as `terreno` (see [Hosts](#hosts)):
 | 2 | **Pick** (`terreno-2-pick`) | Build one slice, roast it, then pick the next until the list is done |
 | 3 | **Roast** (`terreno-3-roast`) | Prove the current task, then continue the pick-roast inner loop |
 | 4 | **Brew** (`terreno-4-brew`) | Final checks, commit/push, PR/evidence, confirm product CI on every discovered host, wait for review bots, then exit |
-| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; before push: pull latest `master`, then run root `prepush` when present (otherwise affected-package checks) in a no-context subagent, then push and watch |
+| 5 | **Taste** (`terreno-5-taste`) | Wait for review bots and product CI, one current-head reaction; record last-run failed tests and re-verify them locally before push; pull latest `master`, then run root `prepush` when present (otherwise affected-package checks) in a no-context subagent, then push and watch |
 
 Stages and outer loops are model-invocable; descriptions keep Pick/Brew/Taste from firing
 on casual chat. Grow, Brew, and Taste never own the full orchestration. Pick and Roast own
@@ -27,6 +27,54 @@ and persist state:
 | **Pick–Roast loop** (`terreno-pick-roast-loop`) | Work an approved plan through every Pick/Roast retry, resume only Pick or Roast, collect one run ledger, and stop only when complete or genuinely blocked on human input. |
 | **Planning loop** (`terreno-planning-loop`) | Walk Grow/Pick/Brew/Taste. Default Grow once, then Pick once (Pick owns pick-roast). Pass `phases=` to restrict. |
 | **Taste sweep** (`terreno-taste-sweep`) | Find the author's open non-draft PRs that are conflicting or failing, isolate each one, and reinvoke Taste until mergeable or blocked. |
+
+## `terreno-scan` — goal-driven code scans
+
+An optional second plugin that turns a long-term outcome into measured work. It depends
+on `terreno-planning`: scan stages discover and shape, the lifecycle implements and ships.
+
+| # | Stage | Contract |
+| --- | --- | --- |
+| 1 | **Aim** (`terreno-scan-1-aim`) | Charter the goal: metric, measured baseline, dry-run detection rules, exclusions, validity rule, severity rubric, slice policy, budget |
+| 2 | **Sweep** (`terreno-scan-2-sweep`) | Run the rules, shard the hits deterministically, map fresh parallel workers into candidate findings |
+| 3 | **Sift** (`terreno-scan-3-sift`) | Dedupe, adversarially verify, drop what does not reproduce, rank, write the findings report |
+| 4 | **Plot** (`terreno-scan-4-plot`) | Slice findings into PR-sized units with standalone Grow briefs, then hand the top slice to the lifecycle |
+| 5 | **Track** (`terreno-scan-5-track`) | Re-measure the metric, close or reopen findings with evidence, record the round, choose the next move |
+
+Two outer loops drive them:
+
+| Skill | Loop |
+| --- | --- |
+| **Scan campaign** (`terreno-scan-campaign`) | Aim once, then Sweep → Sift → Plot → lifecycle → Track, round after round, until the metric hits target, the budget is spent, or a genuine human decision is required. Stops at each gate. |
+| **Scan loop** (`terreno-scan-loop`) | Resident session: keeps the campaign moving **and** heartbeats over open campaign PRs — route, answer review through Taste, fix red CI, Track merges — refilling work up to `wipLimit`. Quiet ticks print nothing; each comment is answered exactly once. |
+
+Aim settles who reviews the PRs before any PR exists (`fixed`, `codeowners`, `blame`,
+`round-robin`, or an explicit `none`), verifies the handles, and records the `review`
+block. The loop applies it right after Brew and re-requests review once when requested
+changes are addressed. It never approves its own PRs and never merges under the default
+`mergePolicy: human`.
+
+```text
+Aim PASS → Sweep → Sift
+  Sift PASS (findings) → Plot → handoff: grow → Grow → Pick/Roast → Brew → Taste → Track
+  Sift PASS (dry)      → Track
+  Track PASS → Plot (backlog) | Sweep (empty) | null (target, budget, or regression)
+  Track PENDING (slice in flight) → campaign waits → fresh Track
+  Any BLOCKED → named human/external gate
+```
+
+No scan stage edits product code, commits, or opens a PR. Contracts and schemas:
+
+- [`references/scan-contract.md`](terreno-scan/references/scan-contract.md)
+- [`references/mapreduce.md`](terreno-scan/references/mapreduce.md)
+- [`references/goal-tracking.md`](terreno-scan/references/goal-tracking.md)
+- [`references/heartbeat.md`](terreno-scan/references/heartbeat.md)
+- [`references/pr-routing.md`](terreno-scan/references/pr-routing.md)
+- [`scan-result.schema.json`](terreno-scan/references/scan-result.schema.json)
+- [`scan-state.schema.json`](terreno-scan/references/scan-state.schema.json)
+- [`finding.schema.json`](terreno-scan/references/finding.schema.json)
+
+Reference docs: [`docs/reference/scan-plugin.md`](../docs/reference/scan-plugin.md).
 
 ## Composition
 
@@ -97,7 +145,8 @@ CodeQL, and similar review bots on the current head have reported, preferring pr
 CLI watch hooks or harness event subscriptions over sleep polling, then continue. Taste
 then waits in a loop for product CI using GitHub CLI or CircleCI CLI until jobs are
 terminal or the wait times out. Before any push, Taste always pulls latest `master`,
-then spawns a fresh subagent with no parent conversation. It runs the root `prepush`
+then spawns a fresh subagent with no parent conversation. It records last-run failed
+tests from the CI snapshot and re-verifies them locally, then runs the root `prepush`
 package script when present; otherwise it falls back to lint, typecheck, and locally
 affected tests in each affected package. It then pushes and watches product CI. Taste observes jobs on every discovered CI host (GitHub Actions, CircleCI,
 Buildkite, and similar), not only GitHub checks. Outer loops use the same native hooks
@@ -154,6 +203,11 @@ are removed; invoke the canonical stages directly.
 | Cursor | `terreno-planning` | [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) | `/terreno-pick-roast-loop` |
 | Codex | `terreno-planning` | [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) | `$terreno-pick-roast-loop` |
 | Claude Code | `terreno` | [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) | `/terreno:pick-roast-loop` |
+
+The scan plugin publishes from the same marketplaces as `terreno-scan` on every host.
+Bounded rounds: `/terreno-scan-campaign` (Cursor), `$terreno-scan-campaign` (Codex),
+`/terreno-scan:campaign` (Claude Code, from the generated `terreno-scan-claude/`).
+Resident loop: `/terreno-scan-loop`, `$terreno-scan-loop`, `/terreno-scan:loop`.
 
 All three hosts ship continuous Pick–Roast, phase-planning, and Taste-sweep outer loops.
 Cursor and Claude Code also load the bundled `pre-commit` and `ui-verifier` agents;

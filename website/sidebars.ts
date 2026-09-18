@@ -28,6 +28,7 @@ const sidebars: SidebarsConfig = {
         "reference/api-health",
         "reference/announcements",
         "reference/comms",
+        "reference/jobs",
         "reference/feature-flags",
         "reference/mcp-server",
         "reference/create-terreno-app",

@@ -1,5 +1,7 @@
 import {ANNOUNCEMENTS_ADMIN_WIDGETS} from "../AnnouncementOverviewScreenWidget";
 import {COMMS_ADMIN_WIDGETS} from "../comms/CommsDashboardScreenWidget";
+import {JOBS_ADMIN_WIDGETS} from "../jobs/JobsDashboardScreenWidget";
+import {JOBS_HOME_WIDGETS} from "../jobs/JobsHomeWidget";
 import type {
   AdminWidgetRegistry,
   FieldWidgetComponent,
@@ -19,6 +21,7 @@ import {VersionConfigWidget} from "./VersionConfigWidget";
 
 export const BUILT_IN_HOME_WIDGETS: Record<string, HomeWidgetComponent> = {
   "feature-flags-overrides": FeatureFlagsOverridesWidget,
+  ...JOBS_HOME_WIDGETS,
   modelStats: ModelsGridWidget,
   modelsGrid: ModelsGridWidget,
   recentActivity: RecentActivityWidget,
@@ -31,6 +34,7 @@ export const BUILT_IN_SCREEN_WIDGETS: Record<string, ScreenWidgetComponent> = {
   ...ANNOUNCEMENTS_ADMIN_WIDGETS,
   ...COMMS_ADMIN_WIDGETS,
   ...DOCUMENT_STORAGE_ADMIN_WIDGETS,
+  ...JOBS_ADMIN_WIDGETS,
   "version-config": VersionConfigScreenWidget,
 };
 

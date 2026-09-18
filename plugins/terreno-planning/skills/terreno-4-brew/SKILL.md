@@ -1,6 +1,6 @@
 ---
 name: terreno-4-brew
-description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit.
+description: "Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit."
 ---
 
 # Brew — submit

@@ -9,6 +9,7 @@ env:
   GCP_PROJECT_ID: flourish-terreno
   GCP_REGION: us-central1
   GCP_SERVICE_NAME: terreno-backend-example
+  GCP_TASKS_SERVICE: terreno-backend-example-tasks
 
 jobs:
   cleanup:
@@ -51,9 +52,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Remove Cloud Run preview tag
+      - name: Remove Cloud Run preview tags
         run: |
           gcloud run services update-traffic ${{ env.GCP_SERVICE_NAME }} \
+            --remove-tags=pr-${{ github.event.pull_request.number }} \
+            --region=${{ env.GCP_REGION }} || true
+          gcloud run services update-traffic ${{ env.GCP_TASKS_SERVICE }} \
             --remove-tags=pr-${{ github.event.pull_request.number }} \
             --region=${{ env.GCP_REGION }} || true
 

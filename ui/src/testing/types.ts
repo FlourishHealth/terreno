@@ -10,6 +10,8 @@ export interface FieldTestIDs {
   input?: string;
   error?: string;
   helper?: string;
+  /** Show/hide control on password fields. */
+  visibilityToggle?: string;
 }
 
 /** Sub-element test ids for Modal. */
@@ -42,6 +44,7 @@ export interface ResolvedFieldTestIDs {
   input?: string;
   error?: string;
   helper?: string;
+  visibilityToggle?: string;
 }
 
 export interface ResolvedModalTestIDs {

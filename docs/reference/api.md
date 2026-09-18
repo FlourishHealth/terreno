@@ -9,6 +9,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
+- [Organizations](#organizations)
 - [Request Validation](#request-validation)
 - [Middleware](#middleware)
 - [Logging & Tracing](#logging--tracing)
@@ -22,6 +23,10 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 ## Key exports
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
+- Organizations: `Organization`, `Membership`, `OrgsApp`, `orgScopedPlugin`,
+  `orgContextMiddleware`, `getOrgContext`, `OrgQueryFilter`,
+  `Permissions.IsOrganizationMember`, `organizationSlugFromName`
+- `AuditApp`, `createAuditEventModel`, `persistRbacAuditToAuditEvent`
 - `registerMCPTool`, `getMCPRegistry`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
@@ -79,9 +84,9 @@ const app = new TerrenoApp({userModel: User})
 - `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
 - `addMiddleware(fn)` — Add Express middleware
 - `build()` — Build Express app without listening
-- `start()` — Build and start server
+`start()` — Build and start server. Pass `httpServer` to attach to an already-listening `http.Server` instead of binding a new port (Cloud Run: bind `PORT` before MongoDB connect).
 
-`migrations.runOnStart` defaults to **false**. When `true`, `start()` runs wet `up` after `ensureSyncIndexes` and before listen. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
+`migrations.runOnStart` defaults to **false**. When `true`, `start()` binds listen first, then runs `ensureSyncIndexes`, then wet `up`. Production still requires `ALLOW_MIGRATIONS=true` (boot counts as `--force`). Omitted `migrations` never reads `terreno_migrations`.
 
 ```typescript
 new TerrenoApp({
@@ -126,6 +131,41 @@ new TerrenoApp({
 ```
 
 `mcpServiceTokens: true` is `{enabled: true}`. When enabled, TerrenoApp mounts the self-serve routes (passing its OpenAPI bundle) and sets `mcpServiceTokens` on MCP auth. Operator steps: [Connect an MCP client with a service token](../how-to/connect-mcp-service-token.md).
+
+### Audit log (`AuditApp`)
+
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+
+```typescript
+import {
+  AuditApp,
+  persistRbacAuditToAuditEvent,
+  TerrenoApp,
+  modelRouter,
+} from "@terreno/api";
+
+new TerrenoApp({userModel: User})
+  .register(new AuditApp()) // optional {retentionDays: 90}
+  .register(
+    modelRouter("/todos", Todo, {
+      audit: true, // or {redact: ["ssn"]}
+      permissions: {/* ... */},
+    })
+  )
+  .start();
+```
+
+| Surface | How it writes |
+| --- | --- |
+| `modelRouter` | `audit: true` or `{redact?: string[]}` after successful HTTP create/update/delete and array push/update/remove |
+| `AdminApp` | Auto when `AuditApp` is registered (`source: "admin"`). `onAdminAudit` is extra |
+| RBAC | `createAccess({auditSink: persistRbacAuditToAuditEvent})` (`source: "rbac"`) |
+
+HTTP is list+read only: `GET /audit-events` with `Permissions.IsAdmin`. Empty create/update/delete permission arrays mean POST/PATCH/DELETE return **405**, including `/admin/audit-events` (`admin.adminPermissions`). Non-admin list is also **405** (`permissionMiddleware`). There is no `isDeletedPlugin`; rows are not soft-deleted.
+
+`createAuditEventModel(connection, {retentionDays?})` is the factory for tests and scripts. Never audit `AuditEvent` itself. Diffs run on the request; persist is fire-and-forget (the HTTP handler does not await Mongo). Recorder failures (including serialization) log and leave the mutation 2xx. Secret field names (`password`, `hash`, `salt`, `token`, `secret`, `refreshToken`) are stripped at every object and array depth, including compound keys such as `tokenHash`. AdminApp diffs also omit `hiddenFields` and `excludeFields`.
+
+When `GCP_TASKS_AUDIT_QUEUE`, `AUDIT_TASKS_URL`, `GCP_PROJECT`, `GCP_LOCATION`, and `AUDIT_TASKS_SECRET` are set, `AuditApp` enqueues the write with Cloud Tasks (`@google-cloud/tasks` optional install) instead of writing Mongo in-process, and mounts `POST /internal/audit-events` (header `X-Terreno-Audit-Secret`) so the worker persists. Pass `enqueue` yourself to use any other queue. Default retention is forever (no TTL index). `new AuditApp({retentionDays: n})` for `n > 0` replaces the plugin `{created: 1}` index with `{created: 1, expireAfterSeconds: n * 86400}`. Drop that index yourself if you later remove TTL. Operator steps: [Enable the framework audit log](../how-to/audit-log.md).
 
 ### setupServer (Legacy)
 
@@ -367,6 +407,12 @@ Better Auth password and deletes those sessions when `BetterAuthApp` is register
 Optional `authMailTemplates` overrides
 subject/text/html per template id.
 
+In-process seed helpers (for example `seedBetterAuthUserInProcess`) should pass
+`disableRateLimit: true` on that throwaway Better Auth instance. Better Auth
+turns its built-in limiter on when `NODE_ENV=production`, so seeding six demo
+users during a preview smoke test otherwise 429s on the fourth signup. Do not
+set this on the public `BetterAuthApp`.
+
 **Endpoints (when enabled):**
 - `POST /api/auth/signup/email` — Email/password signup
 - `POST /api/auth/signin/email` — Email/password signin
@@ -431,6 +477,20 @@ Field descriptions appear in:
 ## Mongoose Plugins
 
 @terreno/api provides several Mongoose plugins to extend model functionality with common patterns.
+
+### orgScopedPlugin
+
+Adds a required indexed `organizationId` (ref `Organization`) to consumer schemas. Save fails
+without an organization. Use this on tenant-scoped models; query scoping lands with org context.
+After creation, `organizationId` is immutable — REST PATCH, admin writes, sync updates, and
+direct `doc.save()` / `updateOne()` attempts to retarget another organization return HTTP 400
+with title `organizationId cannot be changed`.
+
+``````typescript
+import {orgScopedPlugin} from "@terreno/api";
+
+projectSchema.plugin(orgScopedPlugin);
+``````
 
 ### findExactlyOne & findOneOrNone
 
@@ -617,6 +677,138 @@ export const addDefaultPlugins = (schema) => {
 
 // Apply to all schemas
 todoSchema.plugin(addDefaultPlugins);
+``````
+
+## Organizations
+
+Organizations are **opt-in**. Existing and single-tenant apps omit them: do not pass
+`organizations: true` to `createAccess` or `TerrenoApp`, and do not register `OrgsApp`.
+New apps from `create-terreno-app` enable organizations by default.
+
+| App kind | What to do |
+| --- | --- |
+| Existing / single-tenant | Leave `createAccess` and `TerrenoApp` without `organizations`. No `operator` seed, no membership grants, no `/orgs` routes. |
+| New app (bootstrap) | Generated `backend/src/access.ts` uses `createAccess({ organizations: true })`. `TerrenoApp({ organizations: true, accessControl: access })` mounts `OrgsApp`. Seed creates a default org and makes `admin@example.com` an `operator` and `org-admin`. |
+| Existing app adopting orgs | `createAccess({ organizations: true })`, `await access.roles.seedDefaults()`, and `TerrenoApp({ organizations: true, accessControl })` or `.register(new OrgsApp({ access, userModel }))`. |
+
+`Organization` and `Membership` models register on first use, not when you import `@terreno/api`.
+
+Native `Organization` and `Membership` models live in `@terreno/api`.
+
+| Model | Fields |
+| --- | --- |
+| `Organization` | `name` (required), `slug` (unique, generated from name), `ownerId`, `settings` (app-defined; Mixed until you register a nested schema), `disabled` |
+| `Membership` | `organizationId`, `userId`, `roleName` (`org-admin` \| `member`, default `member`), `status` (`active` \| `suspended`) |
+
+Compound unique index: `(organizationId, userId)`. Duplicate memberships throw a Mongo duplicate-key error.
+
+`Membership` statics: `findActiveForUser`, `isOrgAdmin`, `isMember` (active rows only). Per-org
+`org-admin` is stored on Membership, not on `user.roles`.
+
+### Organization.settings
+
+Do not add top-level fields to the native `Organization` model. Extend `settings`:
+
+| Helper | Role |
+| --- | --- |
+| `createOrganizationSettingsSchema(definition)` | Nested schema with `_id: false` and `strict: "throw"` |
+| `registerOrganizationSettings(schema)` | Validate settings on create/save/PATCH. Call with no argument to clear |
+| `organizationSettingsOf(organization)` | Type-safe read; defaults to `{}` |
+| `OrganizationSettings` | Empty interface for `declare module "@terreno/api"` merging |
+
+Pass `settingsSchema` on `TerrenoApp({ organizations: { settingsSchema } })` or `new OrgsApp({ settingsSchema })`. Keep settings fields optional or defaulted so existing documents still save. See [Add organizations](../how-to/add-organizations.md#3-type-organization-settings).
+
+### OrgsApp routes
+
+| Method | Path | Required access |
+| --- | --- | --- |
+| `POST` | `/orgs` | `organization:create` |
+| `GET` | `/orgs` | `organization:list` |
+| `GET` | `/orgs/mine` | Active org-admin membership, operator, or superadmin (disabled orgs omitted) |
+| `GET` | `/orgs/:id` | `organization:read` in that org |
+| `PATCH` | `/orgs/:id` | `organization:update`; disabling also requires `organization:disable` |
+| `DELETE` | `/orgs/:id` | `organization:delete` |
+| `GET` / `POST` | `/orgs/:id/members` | `organization:manageMembers` |
+| `PATCH` / `DELETE` | `/orgs/:id/members/:memberId` | `organization:manageMembers`; cannot remove or demote the last org-admin |
+
+Creating an organization does not create a membership automatically. Member
+attach accepts an existing `userId` or email (case-insensitive); it does not send
+an invitation. Disabling or deleting an organization suspends its memberships.
+Member attach, update, and remove routes reject disabled organizations with 403.
+Operators may still `GET` and `PATCH /orgs/:id` on a disabled organization to
+re-enable it; `GET /orgs` continues to list disabled organizations.
+
+### Request organization context
+
+Tenant-scoped routes run `orgContextMiddleware({required: true})` after auth, then
+`queryFilter: OrgQueryFilter`.
+
+| Condition | Result |
+| --- | --- |
+| `X-Organization-Id` present, organization disabled | 403 `Organization is disabled` |
+| `X-Organization-Id` present, caller is `operator`/`superadmin` or an active member, org enabled | `req.organization` set |
+| `X-Organization-Id` present, caller is not a member and not a platform org actor | 403 |
+| Tenant-scoped route, `operator`/`superadmin`, header omitted | 400 |
+| Caller is `org-admin` of exactly one enabled org, header omitted | that org is inferred |
+| Caller is `org-admin` of many orgs, header omitted | 400 |
+| Otherwise on tenant-scoped routes | 403 |
+
+`OrgQueryFilter` always ANDs `{organizationId: context.id}`. Client `organizationId` query params
+and `$or` cannot list another org.
+
+`user.admin` is not operator. Platform org actors are `user.roles` containing `operator` or
+`superadmin`.
+
+Use `Permissions.IsOrganizationMember` on read, update, and delete methods for
+tenant models. It requires the object's `organizationId` to match the active
+request organization context (AsyncLocalStorage from `orgContextMiddleware`, and
+from `X-Organization-Id` on `POST /sync/mutate`) for every caller. Platform actors (`operator` / `superadmin`) then pass; members
+must also hold an active Membership in that organization. Direct `GET` / `PATCH`
+by document id does not apply `OrgQueryFilter`, so this object-level check is
+what blocks cross-tenant reads and writes. `getOrgContext()` exposes the
+resolved organization to create hooks so they can overwrite client-provided
+organization ids. Duplicate organization names that generate the same slug,
+including slugs still held by soft-deleted organizations, return **409**
+`Organization name already in use` on `POST /orgs` and on rename
+via `PATCH /orgs/:id`. See [Add organizations](../how-to/add-organizations.md)
+for complete route wiring.
+
+### Organization RBAC
+
+`terrenoStatements.organization` actions: `create`, `list`, `read`, `update`, `delete`,
+`manageMembers`, `disable`.
+
+| Role | Where it lives | Organization grants |
+| --- | --- | --- |
+| `superadmin` | `user.roles` | `*` (includes every organization action) |
+| `operator` | seeded locked `user.roles` when `createAccess({ organizations: true })` | all `organization` actions, plus `admin:access` and `user:list\|read\|update` |
+| `org-admin` | `Membership.roleName` in the current org context | `organization:read\|update\|manageMembers` and `admin:access` |
+| `admin` | `user.roles` | none of `organization:*` |
+
+`createAccess({ organizations: true })` prepends a membership permission source (`ttlMs: 0`) and
+seeds the locked `operator` role. Without that flag, membership `org-admin` grants nothing extra
+and `operator` is not seeded. Putting `org-admin` on `user.roles` does not grant those permissions.
+Permission cache keys include the current organization id and membership role so org-admin grants
+do not leak across orgs.
+
+``````typescript
+import {createAccess, Membership, Organization, terrenoStatements} from "@terreno/api";
+
+const access = createAccess({
+  connection: mongoose.connection,
+  organizations: true,
+  statements: terrenoStatements,
+  userModel: User,
+});
+
+const org = await Organization.create({name: "Acme Corp", ownerId: user._id});
+// org.slug === "acme-corp"
+
+await Membership.create({
+  organizationId: org._id,
+  roleName: "org-admin",
+  userId: user._id,
+});
 ``````
 
 ## Request Validation
@@ -1461,6 +1653,13 @@ cronjob("0 * * * *", async () => {
 - `"0 0 * * *"` — Daily at midnight
 - `"0 */6 * * *"` — Every 6 hours
 
+**Process-local only:** `cronjob()` runs inside the current Node process. It does not
+persist work, retry across crashes, or share state between API and worker replicas. For
+durable queues, retries, dead-lettering, cron schedules stored in MongoDB, and admin
+visibility, use [`@terreno/jobs`](jobs.md) — see
+[Durable background jobs](../how-to/background-jobs.md). Use `wrapScript` (above) for
+one-shot CLI entrypoints, not queued work.
+
 ## Deprecations
 
 ### transformer (modelRouter option)
@@ -1549,8 +1748,11 @@ Complete reference of environment variables used by @terreno/api:
 | `GCP_PROJECT` | No | — | Google Cloud project ID (for Cloud Tasks, etc.) |
 | `GCP_LOCATION` | No | — | GCP region (e.g., "us-central1") |
 | `GCP_SERVICE_ACCOUNT_EMAIL` | No | — | Service account email for authentication |
-| `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Cloud Tasks queue name for notifications |
-| `GCP_TASK_PROCESSOR_QUEUE` | No | — | Cloud Tasks queue name for background jobs |
+| `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Legacy name in docs/tests only — **not** read by `@terreno/api` or `@terreno/jobs` |
+| `GCP_TASK_PROCESSOR_QUEUE` | No | — | Legacy name in docs/tests only — configure Cloud Tasks via `GcpCloudTasksRunner` options |
+| `GCP_TASKS_AUDIT_QUEUE` | No | — | Cloud Tasks queue name for off-process `AuditEvent` writes |
+| `AUDIT_TASKS_URL` | No | — | Worker URL Cloud Tasks POSTs audit writes to |
+| `AUDIT_TASKS_SECRET` | No | — | Shared secret for `X-Terreno-Audit-Secret` on the audit worker route |
 
 ### Other
 
@@ -1579,6 +1781,7 @@ SENTRY_DSN=https://...@sentry.io/...
 
 ## Learn more
 
+- [Enable the framework audit log](../how-to/audit-log.md)
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)

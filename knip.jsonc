@@ -47,7 +47,9 @@
     // Backwards-compatible public aliases intentionally point at the same implementation.
     "api/src/api.ts": ["duplicates"],
     "api/src/rbac/middleware.ts": ["duplicates"],
-    "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
+    "mcp-server/src/docs/templates/**": ["files", "exports", "types"],
+    // Tests load this CLI through createRequire(); Knip does not see those CJS exports.
+    ".github/scripts/prune-cloud-run-not-ready-traffic.js": ["exports"]
   },
   "ignoreFiles": [
     // Generated communications SDK is retained as a codegen contract even before a
@@ -318,10 +320,12 @@
         "@terreno/api-health!",
         "@terreno/comms!",
         "@terreno/feature-flags!",
+        "@terreno/jobs!",
         "@thream/socketio-jwt!",
         "ai!",
         "expo-server-sdk!",
         "express!",
+        "google-auth-library!",
         "ioredis!",
         "luxon!",
         "mongoose!",
@@ -333,6 +337,7 @@
       ],
       "entry": [
         "src/index.ts!",
+        "src/jobsWorker.ts!",
         "src/**/*.test.ts",
         "src/tests/setup.ts",
         "src/scripts/runAdminScript.ts",
@@ -348,6 +353,16 @@
       ]
     },
     "feature-flags": {
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
+    "jobs": {
+      // Cloud runner SDKs are optional peers loaded only when an app supplies them.
+      "ignoreDependencies": ["@google-cloud/tasks", "@vercel/queue"],
+      // Mongoose method/static interfaces and runner option types are used in-file.
+      "ignoreExportsUsedInFile": {"interface": true, "type": true},
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "!src/tests/**!"

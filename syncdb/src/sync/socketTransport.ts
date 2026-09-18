@@ -54,6 +54,8 @@ export interface SocketTransportConfig {
    * dev server does not fail the first handshake.
    */
   transports?: string[];
+  /** Selected organization id attached to mutate payloads when present. */
+  organizationIdProvider?: () => string | undefined;
 }
 
 interface PendingMutation {
@@ -86,12 +88,24 @@ interface PendingMutation {
  * subscribed collections because server-side subscription state is
  * per-connection.
  */
+const withOrganizationId = <T extends object>(
+  payload: T,
+  organizationIdProvider?: () => string | undefined
+): T & {organizationId?: string} => {
+  const organizationId = organizationIdProvider?.()?.trim();
+  if (!organizationId) {
+    return payload;
+  }
+  return {...payload, organizationId};
+};
+
 export const createSocketTransport = ({
   baseUrl,
   authProvider,
   timeoutMs = DEFAULT_MUTATION_TIMEOUT_MS,
   batchUnsupportedGraceMs = BATCH_UNSUPPORTED_GRACE_MS,
   transports = ["polling", "websocket"],
+  organizationIdProvider,
 }: SocketTransportConfig): SyncTransport => {
   const deltaListeners = new Set<(delta: SyncDelta) => void>();
   const subscribedListeners = new Set<(subscribed: SyncSubscribed) => void>();
@@ -303,13 +317,17 @@ export const createSocketTransport = ({
       pending.set(request.mutationId, {reject, resolve, timer});
       // The server both emits sync:ack/sync:nack and invokes this Socket.io
       // ack callback; whichever arrives first settles (settle is idempotent).
-      socket.emit("sync:mutate", request, (response: {ack?: SyncAck; nack?: SyncNack}) => {
-        if (response?.ack) {
-          settle(request.mutationId, {ack: response.ack, type: "ack"});
-        } else if (response?.nack) {
-          settle(request.mutationId, {nack: response.nack, type: "nack"});
+      socket.emit(
+        "sync:mutate",
+        withOrganizationId(request, organizationIdProvider),
+        (response: {ack?: SyncAck; nack?: SyncNack}) => {
+          if (response?.ack) {
+            settle(request.mutationId, {ack: response.ack, type: "ack"});
+          } else if (response?.nack) {
+            settle(request.mutationId, {nack: response.nack, type: "nack"});
+          }
         }
-      });
+      );
     });
 
   const sendMutationBatch = (
@@ -382,7 +400,7 @@ export const createSocketTransport = ({
 
       socket.emit(
         "sync:mutateBatch",
-        {...request, batchId},
+        withOrganizationId({...request, batchId}, organizationIdProvider),
         (response: {
           results?: ({type: "ack"; ack: SyncAck} | {type: "nack"; nack: SyncNack})[];
         }) => {

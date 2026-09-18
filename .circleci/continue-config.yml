@@ -33,6 +33,9 @@ parameters:
   run-comms:
     type: boolean
     default: false
+  run-jobs:
+    type: boolean
+    default: false
   run-mcp-server:
     type: boolean
     default: false
@@ -249,6 +252,16 @@ commands:
             set -euo pipefail
             bun test scripts/check-demo-coverage.test.ts
             bun run check:demo-coverage
+
+  check_new_file_lcov:
+    description: Fail if new source files in this package are below 90% in the package LCOV
+    parameters:
+      package:
+        type: string
+    steps:
+      - run:
+          name: Gate new files from << parameters.package >> LCOV
+          command: bash scripts/ci/check-new-file-coverage-lcov.sh "<< parameters.package >>"
 
   wait_for_mongo:
     description: Wait until MongoDB accepts TCP connections on localhost:27017
@@ -527,6 +540,47 @@ commands:
               circleci step halt
             fi
 
+  resolve_affected_e2e_shards:
+    description: Record which Playwright shards the branch can break (fails open)
+    steps:
+      - run:
+          name: Resolve affected e2e shards
+          command: |
+            set -uo pipefail
+            git fetch --no-tags --quiet origin +refs/heads/master:refs/remotes/origin/master ||
+              echo "could not fetch origin/master; every shard will run"
+            if ! bun run scripts/ci/e2eAffected/check.ts --base origin/master \
+              --write e2e-affected.json; then
+              echo "affected analysis failed; every shard will run"
+              echo '{"shards":{}}' > e2e-affected.json
+            fi
+      - store_artifacts:
+          path: e2e-affected.json
+          destination: e2e-affected.json
+
+  halt_if_shard_unaffected:
+    description: Halt a Playwright shard no changed file can reach
+    parameters:
+      shard:
+        type: string
+    steps:
+      - run:
+          name: Skip << parameters.shard >> when unaffected
+          environment:
+            E2E_SHARD: << parameters.shard >>
+          command: |
+            set -uo pipefail
+            if [ ! -f e2e-affected.json ]; then
+              echo "no affected decision; running ${E2E_SHARD}"
+              exit 0
+            fi
+            verdict="$(node -e 'const decision = JSON.parse(require("node:fs").readFileSync("e2e-affected.json", "utf8")); const shard = (decision.shards || {})[process.env.E2E_SHARD]; process.stdout.write(shard && shard.affected === false ? "skip" : "run");' || echo run)"
+            if [ "$verdict" = "skip" ]; then
+              echo "No changed file reaches ${E2E_SHARD}; skipping (see the e2e-affected.json artifact on e2e-prepare)"
+              circleci-agent step halt
+            fi
+            echo "${E2E_SHARD} is affected; running Playwright"
+
   restore_e2e_dists:
     description: Unpack workspace dist trees produced by e2e-prepare
     steps:
@@ -573,6 +627,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh api
+      - check_new_file_lcov:
+          package: api
 
   ai-ci:
     executor: node22_mongo
@@ -593,6 +649,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh ai
+      - check_new_file_lcov:
+          package: ai
 
   rtk-ci:
     executor: node22
@@ -612,6 +670,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh rtk
+      - check_new_file_lcov:
+          package: rtk
 
   ui-ci:
     executor: node22
@@ -630,6 +690,8 @@ jobs:
             bun run types
             bun run test:coverage
             bash ../scripts/upload-codecov.sh ui
+      - check_new_file_lcov:
+          package: ui
       - demo_lint_and_typecheck
 
   admin-backend-ci:
@@ -640,7 +702,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api
+          packages: api jobs
       - run:
           name: Lint / compile / test admin-backend
           working_directory: ~/project/admin-backend
@@ -651,6 +713,8 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+      - check_new_file_lcov:
+          package: admin-backend
 
   admin-frontend-ci:
     executor: node22
@@ -669,6 +733,8 @@ jobs:
             bun run lint
             bun run compile
             bun run test:coverage
+      - check_new_file_lcov:
+          package: admin-frontend
 
   syncdb-ci:
     executor: node22
@@ -685,6 +751,19 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh syncdb
+      - check_new_file_lcov:
+          package: syncdb
+
+  coverage-scripts:
+    executor: node22
+    resource_class: small
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - run:
+          name: Test coverage gate scripts
+          command: |
+            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
 
   new-file-coverage:
     executor: node22_mongo
@@ -699,16 +778,37 @@ jobs:
       - compile_packages:
           packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa announcements
       - run:
-          name: Compile coverage script dependencies
-          command: |
-            node .github/scripts/compile-workspace-deps.js api
-            bun run --filter '@terreno/api' compile
-      - run:
           name: Check new source file coverage
           command: |
+            set -euo pipefail
+            skip=()
+            add_skip() {
+              if [ "$1" = "true" ]; then
+                skip+=("$2")
+              fi
+            }
+            add_skip "<< pipeline.parameters.run-admin-backend >>" admin-backend
+            add_skip "<< pipeline.parameters.run-admin-frontend >>" admin-frontend
+            add_skip "<< pipeline.parameters.run-admin-spa >>" admin-spa
+            add_skip "<< pipeline.parameters.run-ai >>" ai
+            add_skip "<< pipeline.parameters.run-api >>" api
+            add_skip "<< pipeline.parameters.run-api-health >>" api-health
+            add_skip "<< pipeline.parameters.run-comms >>" comms
+            add_skip "<< pipeline.parameters.run-create-terreno-app >>" create-terreno-app
+            add_skip "<< pipeline.parameters.run-feature-flags >>" feature-flags
+            add_skip "<< pipeline.parameters.run-jobs >>" jobs
+            add_skip "<< pipeline.parameters.run-mcp-server >>" mcp-server
+            add_skip "<< pipeline.parameters.run-rtk >>" rtk
+            add_skip "<< pipeline.parameters.run-syncdb >>" syncdb
+            add_skip "<< pipeline.parameters.run-test-package >>" test
+            add_skip "<< pipeline.parameters.run-ui >>" ui
+            joined=""
+            if [ "${#skip[@]}" -gt 0 ]; then
+              joined="$(IFS=,; echo "${skip[*]}")"
+            fi
+            echo "Skipping packages with package-CI LCOV: ${joined:-none}"
             base_sha="$(git merge-base origin/master HEAD)"
-            bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-demo-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
-            bun run check:new-file-coverage --base="$base_sha" --threshold=90
+            bun run check:new-file-coverage --base="$base_sha" --threshold=90 --skip-packages="$joined"
 
   # Runs when ui changed (GHA: "Demo TypeScript Check (UI dependency)").
   ui-demo-typecheck:
@@ -744,6 +844,28 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh comms
+      - check_new_file_lcov:
+          package: comms
+
+  jobs-ci:
+    executor: node22
+    steps:
+      - checkout
+      - install_bun_and_deps
+      - compile_packages:
+          packages: api
+      - run:
+          name: Lint / compile / test jobs
+          working_directory: ~/project/jobs
+          environment:
+            CI: "true"
+          command: |
+            set -euo pipefail
+            bun run lint
+            bun run compile
+            bun run test:coverage
+      - check_new_file_lcov:
+          package: jobs
 
   mcp-server-ci:
     executor: node22
@@ -769,6 +891,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh mcp-server
+      - check_new_file_lcov:
+          package: mcp-server
 
   create-terreno-app-ci:
     executor: node22
@@ -786,6 +910,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh create-terreno-app
+      - check_new_file_lcov:
+          package: create-terreno-app
 
   mcp-server-docker:
     executor: node22
@@ -912,7 +1038,7 @@ jobs:
       - install_bun_and_deps
       - wait_for_mongo
       - compile_packages:
-          packages: api ai api-health admin-backend comms feature-flags ui rtk admin-frontend admin-spa announcements example-backend
+          packages: api ai api-health comms jobs admin-backend feature-flags ui rtk admin-frontend admin-spa announcements example-backend
       - run:
           name: List admin scripts
           working_directory: ~/project/example-backend
@@ -998,6 +1124,8 @@ jobs:
             bash ../scripts/upload-codecov.sh admin-spa
             bun run build:web
             bun run smoke
+      - check_new_file_lcov:
+          package: admin-spa
       - run:
           name: Install Playwright Chromium
           working_directory: ~/project/admin-spa
@@ -1053,6 +1181,8 @@ jobs:
             bun run compile
             bun run test:coverage
             bash ../scripts/upload-codecov.sh "<< parameters.package >>"
+      - check_new_file_lcov:
+          package: << parameters.package >>
 
   # One container for the former eight policy jobs. Each used to checkout + bun
   # install on its own small/medium class and then sit in the queue behind e2e.
@@ -1434,6 +1564,7 @@ jobs:
     steps:
       - checkout
       - install_bun_and_deps
+      - resolve_affected_e2e_shards
       - run:
           name: Compile workspace
           command: bun run compile
@@ -1458,6 +1589,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
+            - e2e-affected.json
             - e2e-dists.tgz
 
   e2e:
@@ -1468,6 +1600,9 @@ jobs:
     steps:
       - checkout
       - restore_e2e_dists
+      # Halt before bun install: an unaffected shard costs one container start.
+      - halt_if_shard_unaffected:
+          shard: << parameters.shard >>
       - install_bun_and_deps
       - run_example_frontend_e2e:
           spec: << parameters.shard >>
@@ -1712,7 +1847,7 @@ jobs:
           steps:
             - setup_remote_docker
             - run:
-                name: Deploy backend preview
+                name: Deploy backend and isolated tasks preview
                 command: scripts/ci/gcp-deploy.sh backend-preview
 
   deploy-preview-manual:
@@ -1752,7 +1887,7 @@ jobs:
       - install_bun_and_deps
       - gcp-cli/install
       - run:
-          name: Clean Cloud Run tag and preview database
+          name: Clean backend/tasks tags and preview database
           environment:
             PR_NUMBER: << pipeline.parameters.preview-cleanup-pr >>
           command: |
@@ -1824,7 +1959,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags create-terreno-app mcp-server syncdb
+              api-health comms feature-flags jobs create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1842,7 +1977,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags create-terreno-app mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');
@@ -1910,6 +2045,7 @@ workflows:
   new-file-coverage:
     when: << pipeline.parameters.run-new-file-coverage >>
     jobs:
+      - coverage-scripts
       - new-file-coverage
 
   api:
@@ -1945,6 +2081,11 @@ workflows:
     when: << pipeline.parameters.run-comms >>
     jobs:
       - comms-ci
+
+  jobs:
+    when: << pipeline.parameters.run-jobs >>
+    jobs:
+      - jobs-ci
 
   mcp-server:
     when: << pipeline.parameters.run-mcp-server >>
@@ -1992,7 +2133,7 @@ workflows:
     jobs:
       - packages-ci:
           package: admin-backend
-          compile-deps: api
+          compile-deps: api jobs
 
   admin-frontend:
     when: << pipeline.parameters.run-admin-frontend >>

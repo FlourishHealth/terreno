@@ -1,10 +1,8 @@
 import {useMemo} from "react";
-import {buildAdminApiListQueryRequest} from "./adminApiQueryParams";
 import {asDynamicHookApi} from "./dynamicHookApi";
+import {adminOrganizationHeaders, buildAdminModelEndpoints} from "./orgs/adminModelEndpoints";
+import {useOptionalOrgContext} from "./orgs/useOrgContext";
 import type {AdminApi, EndpointBuilder} from "./types";
-
-type AdminPayload = Record<string, unknown>;
-type TagArg = unknown;
 
 /**
  * Hook that generates RTK Query CRUD hooks for a specific admin model.
@@ -16,7 +14,7 @@ type TagArg = unknown;
  * @param api - RTK Query API instance to inject endpoints into
  * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
  * @param modelName - Name of the model for cache tag generation (e.g., "User")
- * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`, `useBulkPatchMutation`
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
  *
  * @example
  * ```typescript
@@ -48,75 +46,19 @@ type TagArg = unknown;
  *
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
- * @deprecated Terreno 57 compatibility for ObjectId/API-only model CRUD.
- * Terreno 58 removes this RTK `injectEndpoints` path and the required admin `api` prop.
  */
 export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+  const headers = useMemo(() => adminOrganizationHeaders(organizationId), [organizationId]);
   const enhancedApi = useMemo(() => {
-    const listKey = `adminList_${modelName}`;
-    const readKey = `adminRead_${modelName}`;
-    const createKey = `adminCreate_${modelName}`;
-    const updateKey = `adminUpdate_${modelName}`;
-    const deleteKey = `adminDelete_${modelName}`;
-    const bulkPatchKey = `adminBulkPatch_${modelName}`;
-
     const tagType = `admin_${modelName}`;
     return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
-      endpoints: (build: EndpointBuilder) => ({
-        [listKey]: build.query({
-          providesTags: [`admin_${modelName}`],
-          query: (params: Record<string, unknown> | undefined) =>
-            buildAdminApiListQueryRequest(routePath, params),
-        }),
-        [readKey]: build.query({
-          providesTags: (_result: TagArg, _error: TagArg, id: string) => [
-            {id, type: `admin_${modelName}`},
-          ],
-          query: (id: string) => ({
-            method: "GET",
-            url: `${routePath}/${id}`,
-          }),
-        }),
-        [createKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: (body: AdminPayload) => ({
-            body,
-            method: "POST",
-            url: routePath,
-          }),
-        }),
-        [updateKey]: build.mutation({
-          invalidatesTags: (_result: TagArg, _error: TagArg, {id}: {id: string}) => [
-            {id, type: `admin_${modelName}`},
-            `admin_${modelName}`,
-          ],
-          query: ({id, body}: {id: string; body: AdminPayload}) => ({
-            body,
-            method: "PATCH",
-            url: `${routePath}/${id}`,
-          }),
-        }),
-        [deleteKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: (id: string) => ({
-            method: "DELETE",
-            url: `${routePath}/${id}`,
-          }),
-        }),
-        [bulkPatchKey]: build.mutation({
-          invalidatesTags: [`admin_${modelName}`],
-          query: ({ids, patch}: {ids: string[]; patch: Record<string, unknown>}) => ({
-            body: {ids, patch},
-            method: "POST",
-            url: `${routePath}/bulk-patch`,
-          }),
-        }),
-      }),
+      endpoints: (build: EndpointBuilder) =>
+        buildAdminModelEndpoints(build, {headers, modelName, organizationId, routePath}),
       overrideExisting: true,
     });
-  }, [api, routePath, modelName]);
+  }, [api, headers, modelName, organizationId, routePath]);
 
-  // Extract the generated hooks dynamically
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const listKey = `adminList_${modelName}`;
   const readKey = `adminRead_${modelName}`;

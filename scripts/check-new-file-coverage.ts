@@ -15,9 +15,10 @@ import {
 } from "./check-coverage";
 
 const DEFAULT_THRESHOLD = 90;
+const normalizePath = (path: string): string => path.split(sep).join("/");
 const SOURCE_FILE_PATTERN = /\.(?:ts|tsx)$/;
 const EXCLUDED_SOURCE_PATTERN =
-  /(?:^|\/)(?:dist|coverage|node_modules|isolated|tests|testing|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)src\/types\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
+  /(?:^|\/)(?:dist|coverage|e2e|node_modules|isolated|tests|testing|fixtures)(?:\/|$)|(?:^|\/)types\/.+\.ts$|(?:^|\/)types\.ts$|(?:^|\/)jobsWorker\.ts$|(?:^|\/)story-config\/.+\.config\.tsx$|\.(?:test|spec|stories)\.(?:ts|tsx)$|openApiSdk\.ts$/;
 /**
  * Expo Router route files under `app/`: `index`, `_layout`, `+not-found`, dynamic
  * segments such as `[id]`, thin `create` wrappers, and named recovery routes
@@ -33,8 +34,11 @@ export interface NewFileCoverageFailure {
   summary: CoverageSummary | null;
 }
 
-interface ParsedArgs {
+export interface ParsedArgs {
   base: string;
+  lcovPath: string | null;
+  packageName: string | null;
+  skipPackages: string[];
   threshold: number;
 }
 
@@ -43,8 +47,37 @@ interface PackageCoverage {
   files: string[];
 }
 
+/** Packages whose dedicated CI already ran `test:coverage` and wrote LCOV. */
+export const PACKAGE_CI_LCOV_SKIP: {packageName: string; pipelineParameter: string}[] = [
+  {packageName: "admin-backend", pipelineParameter: "run-admin-backend"},
+  {packageName: "admin-frontend", pipelineParameter: "run-admin-frontend"},
+  {packageName: "admin-spa", pipelineParameter: "run-admin-spa"},
+  {packageName: "ai", pipelineParameter: "run-ai"},
+  {packageName: "api", pipelineParameter: "run-api"},
+  {packageName: "api-health", pipelineParameter: "run-api-health"},
+  {packageName: "comms", pipelineParameter: "run-comms"},
+  {packageName: "create-terreno-app", pipelineParameter: "run-create-terreno-app"},
+  {packageName: "feature-flags", pipelineParameter: "run-feature-flags"},
+  {packageName: "jobs", pipelineParameter: "run-jobs"},
+  {packageName: "mcp-server", pipelineParameter: "run-mcp-server"},
+  {packageName: "rtk", pipelineParameter: "run-rtk"},
+  {packageName: "syncdb", pipelineParameter: "run-syncdb"},
+  {packageName: "test", pipelineParameter: "run-test-package"},
+  {packageName: "ui", pipelineParameter: "run-ui"},
+];
+
+const splitCsv = (value: string): string[] => {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
 export const parseNewFileCoverageArgs = (argv: readonly string[]): ParsedArgs => {
   let base = "";
+  let lcovPath: string | null = null;
+  let packageName: string | null = null;
+  let skipPackages: string[] = [];
   let threshold = DEFAULT_THRESHOLD;
   for (const arg of argv) {
     const baseMatch = arg.match(/^--base=(.+)$/);
@@ -55,8 +88,96 @@ export const parseNewFileCoverageArgs = (argv: readonly string[]): ParsedArgs =>
     if (thresholdMatch) {
       threshold = Number(thresholdMatch[1]);
     }
+    const lcovMatch = arg.match(/^--lcov=(.+)$/);
+    if (lcovMatch) {
+      lcovPath = lcovMatch[1];
+    }
+    const packageMatch = arg.match(/^--package=(.+)$/);
+    if (packageMatch) {
+      packageName = packageMatch[1];
+    }
+    const skipMatch = arg.match(/^--skip-packages=(.*)$/);
+    if (skipMatch) {
+      skipPackages = splitCsv(skipMatch[1]);
+    }
   }
-  return {base, threshold};
+  return {base, lcovPath, packageName, skipPackages, threshold};
+};
+
+export const colocatedTestCandidates = (repoRelativeSource: string): string[] => {
+  const withoutExt = repoRelativeSource.replace(/\.tsx?$/, "");
+  return [
+    `${withoutExt}.test.ts`,
+    `${withoutExt}.test.tsx`,
+    `${withoutExt}.spec.ts`,
+    `${withoutExt}.spec.tsx`,
+  ];
+};
+
+export const findColocatedTests = ({
+  files,
+  packageRoot,
+  repoRoot,
+}: {
+  files: readonly string[];
+  packageRoot: string;
+  repoRoot: string;
+}): string[] | null => {
+  const tests = new Set<string>();
+  for (const file of files) {
+    const matches = colocatedTestCandidates(file).filter((candidate) =>
+      existsSync(join(repoRoot, candidate))
+    );
+    if (matches.length === 0) {
+      return null;
+    }
+    for (const match of matches) {
+      tests.add(normalizePath(relative(packageRoot, resolve(repoRoot, match))));
+    }
+  }
+  return [...tests].sort();
+};
+
+const terrenoPackageDir = (packageName: string): string => {
+  if (packageName === "@terreno/mcp") {
+    return "mcp-server";
+  }
+  return packageName.replace("@terreno/", "");
+};
+
+export const packageNeedsCompiledDistDeps = (packageRoot: string): boolean => {
+  const packageJsonPath = join(packageRoot, "package.json");
+  if (!existsSync(packageJsonPath)) {
+    return false;
+  }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+  };
+  const names = [
+    ...Object.keys(packageJson.dependencies ?? {}),
+    ...Object.keys(packageJson.devDependencies ?? {}),
+    ...Object.keys(packageJson.peerDependencies ?? {}),
+  ];
+  for (const name of names) {
+    if (!name.startsWith("@terreno/")) {
+      continue;
+    }
+    const depJsonPath = join(packageRoot, "..", terrenoPackageDir(name), "package.json");
+    if (!existsSync(depJsonPath)) {
+      continue;
+    }
+    const depJson = JSON.parse(readFileSync(depJsonPath, "utf8")) as {
+      exports?: {"."?: {default?: string}};
+      main?: string;
+    };
+    const entry = depJson.exports?.["."]?.default ?? depJson.main ?? "";
+    if (entry.includes("dist")) {
+      return true;
+    }
+  }
+  return false;
 };
 
 export const isCoverageSourceFile = (path: string): boolean => {
@@ -66,8 +187,6 @@ export const isCoverageSourceFile = (path: string): boolean => {
     !EXPO_ROUTER_ENTRY_PATTERN.test(path)
   );
 };
-
-const normalizePath = (path: string): string => path.split(sep).join("/");
 
 const findFileCoverage = (
   coverage: Map<string, FileCoverage>,
@@ -183,10 +302,12 @@ export const bunTestFileArgs = (testScript: string | undefined): string[] => {
 };
 
 export const coverageRunArgs = ({
+  colocatedTests,
   hasSrcDir,
   packageName,
   testScript,
 }: {
+  colocatedTests?: string[] | null;
   hasSrcDir: boolean;
   packageName: string;
   testScript?: string;
@@ -194,6 +315,10 @@ export const coverageRunArgs = ({
   const args: string[] = [];
   if (packageName === "mcp-server") {
     args.push("--max-concurrency=1");
+  }
+  if (colocatedTests && colocatedTests.length > 0) {
+    args.push(...colocatedTests);
+    return args;
   }
   const fileArgs = bunTestFileArgs(testScript);
   if (fileArgs.length > 0) {
@@ -204,6 +329,33 @@ export const coverageRunArgs = ({
     args.push("./**/*.test.ts", "./**/*.test.tsx");
   }
   return args;
+};
+
+export const workspaceDepsCompileArgs = ({
+  packageRoot,
+  repoRoot,
+}: {
+  packageRoot: string;
+  repoRoot: string;
+}): string[] => {
+  return [join(repoRoot, ".github/scripts/compile-workspace-deps.js"), packageRoot];
+};
+
+const compilePackageWorkspaceDeps = ({
+  packageRoot,
+  repoRoot,
+}: {
+  packageRoot: string;
+  repoRoot: string;
+}): void => {
+  if (!packageNeedsCompiledDistDeps(packageRoot)) {
+    console.info(`Skipping workspace dist compile for ${packageRoot} (no @terreno dist imports)`);
+    return;
+  }
+  execFileSync("node", workspaceDepsCompileArgs({packageRoot, repoRoot}), {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
 };
 
 /**
@@ -247,15 +399,33 @@ const readPackageTestScript = (packageRoot: string): string | undefined => {
 
 const runPackageCoverage = async ({
   coverageDir,
+  newSourceFiles,
   packageName,
   packageRoot,
+  repoRoot,
 }: {
   coverageDir: string;
+  newSourceFiles: readonly string[];
   packageName: string;
   packageRoot: string;
+  repoRoot: string;
 }): Promise<{exitCode: number; output: string}> => {
+  compilePackageWorkspaceDeps({packageRoot, repoRoot});
+  const colocatedTests = findColocatedTests({
+    files: newSourceFiles,
+    packageRoot,
+    repoRoot,
+  });
+  if (colocatedTests) {
+    console.info(`Running colocated tests for ${packageName}: ${colocatedTests.join(", ")}`);
+  } else {
+    console.info(
+      `No colocated tests for every new file in ${packageName}; running the package suite`
+    );
+  }
   const coverageArgs = expandCoverageRunArgs({
     args: coverageRunArgs({
+      colocatedTests,
       hasSrcDir: existsSync(join(packageRoot, "src")),
       packageName,
       testScript: readPackageTestScript(packageRoot),
@@ -297,21 +467,84 @@ const runPackageCoverage = async ({
   });
 };
 
+const reportFailures = (failures: NewFileCoverageFailure[], threshold: number): void => {
+  if (failures.length === 0) {
+    console.info(`\nEvery new source file meets the ${threshold}% coverage threshold.`);
+    return;
+  }
+
+  console.error(`\nNew source files below ${threshold}% coverage:`);
+  for (const failure of failures) {
+    if (!failure.summary) {
+      console.error(`- ${failure.path}: absent from LCOV (0% coverage)`);
+      continue;
+    }
+    console.error(
+      `- ${failure.path}: functions=${failure.summary.functions.toFixed(2)}%, ` +
+        `lines=${failure.summary.lines.toFixed(2)}%`
+    );
+  }
+  process.exit(1);
+};
+
 const main = async (): Promise<void> => {
-  const {base, threshold} = parseNewFileCoverageArgs(process.argv.slice(2));
+  const {base, lcovPath, packageName, skipPackages, threshold} = parseNewFileCoverageArgs(
+    process.argv.slice(2)
+  );
   if (!base) {
     console.error("Missing required --base=<git-sha> argument.");
     process.exit(1);
   }
+  if (lcovPath && !packageName) {
+    console.error("--lcov requires --package=<workspace>.");
+    process.exit(1);
+  }
 
   const repoRoot = resolve(import.meta.dir, "..");
+  const skipSet = new Set(skipPackages);
   const files = getAddedSourceFiles(repoRoot, base);
-  const packages = groupFilesByWorkspace({
+  let packages = groupFilesByWorkspace({
     files,
     workspaces: getWorkspaceNames(repoRoot),
   });
+  if (packageName) {
+    packages = packages.filter((entry) => entry.packageName === packageName);
+  }
+  const skipped = packages.filter((entry) => skipSet.has(entry.packageName));
+  for (const entry of skipped) {
+    console.info(
+      `Skipping ${entry.packageName}: package CI already ran test:coverage (${entry.files.length} new file(s)).`
+    );
+  }
+  packages = packages.filter((entry) => !skipSet.has(entry.packageName));
   if (packages.length === 0) {
     console.info("No new workspace source files require coverage.");
+    return;
+  }
+
+  if (lcovPath) {
+    const packageCoverage = packages[0];
+    if (!packageCoverage) {
+      console.info("No new workspace source files require coverage.");
+      return;
+    }
+    const absoluteLcov = resolve(repoRoot, lcovPath);
+    if (!existsSync(absoluteLcov)) {
+      console.error(`LCOV not found at ${absoluteLcov}`);
+      process.exit(1);
+    }
+    const packageRoot = join(repoRoot, packageCoverage.packageName);
+    const coverage = parseLcov(readFileSync(absoluteLcov, "utf8"), packageRoot);
+    reportFailures(
+      evaluateNewFileCoverage({
+        coverage,
+        files: packageCoverage.files,
+        packageRoot,
+        repoRoot,
+        threshold,
+      }),
+      threshold
+    );
     return;
   }
 
@@ -325,15 +558,17 @@ const main = async (): Promise<void> => {
       );
       const {exitCode, output} = await runPackageCoverage({
         coverageDir,
+        newSourceFiles: packageCoverage.files,
         packageName: packageCoverage.packageName,
         packageRoot,
+        repoRoot,
       });
       if (exitCode !== 0 && !isBunCoverageThresholdExit(exitCode, output)) {
         process.exit(exitCode);
       }
-      const lcovPath = join(coverageDir, "lcov.info");
-      const coverage = existsSync(lcovPath)
-        ? parseLcov(readFileSync(lcovPath, "utf8"))
+      const generatedLcov = join(coverageDir, "lcov.info");
+      const coverage = existsSync(generatedLcov)
+        ? parseLcov(readFileSync(generatedLcov, "utf8"))
         : new Map<string, FileCoverage>();
       allFailures.push(
         ...evaluateNewFileCoverage({
@@ -349,23 +584,7 @@ const main = async (): Promise<void> => {
     }
   }
 
-  if (allFailures.length === 0) {
-    console.info(`\nEvery new source file meets the ${threshold}% coverage threshold.`);
-    return;
-  }
-
-  console.error(`\nNew source files below ${threshold}% coverage:`);
-  for (const failure of allFailures) {
-    if (!failure.summary) {
-      console.error(`- ${failure.path}: absent from LCOV (0% coverage)`);
-      continue;
-    }
-    console.error(
-      `- ${failure.path}: functions=${failure.summary.functions.toFixed(2)}%, ` +
-        `lines=${failure.summary.lines.toFixed(2)}%`
-    );
-  }
-  process.exit(1);
+  reportFailures(allFailures, threshold);
 };
 
 if (import.meta.main) {

@@ -114,7 +114,9 @@ native configuration for Cursor, Claude Code, Codex CLI, GitHub Copilot, Copilot
 Google Antigravity CLI, and Devin.
 
 Post-edit events run the changed-file Biome command. Stop events run both repository-wide
-ratchets. Hook failure and retry behavior differs by host, so CircleCI remains the merge
+ratchets. `analyze:full` retries Knip without `--cache` when a concurrent stop-hook and
+prepush run corrupt or lock the cache, so the stop hook does not fail with empty JSON.
+Hook failure and retry behavior differs by host, so CircleCI remains the merge
 gate and the real Git pre-commit hook covers commits made outside an agent.
 
 `simple-git-hooks` installs the pre-commit hook during `bun install` through the root

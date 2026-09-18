@@ -22,11 +22,13 @@ describe("example-backend access statements", () => {
       [...appStatements.adminAnnouncementImpression],
       ["read", "write", "writeOwned"]
     );
+    assert.deepEqual([...appStatements.adminAuditEvent], ["list", "read"]);
     assert.deepEqual([...appStatements.adminAuditLog], ["list", "read"]);
     assert.deepEqual([...appStatements.adminMcpServiceToken], ["read", "write", "writeOwned"]);
     assert.includeMembers([...appStatements.todo], ["list", "read"]);
     assert.deepEqual([...appStatements.adminTodo], ["read", "write", "writeOwned"]);
     assert.deepEqual([...appStatements.adminUser], ["read", "write", "writeOwned"]);
     assert.includeMembers([...appStatements.adminScreen], ["showcase", "syncLab"]);
+    assert.includeMembers([...appStatements.admin], ["access", "jobs"]);
   });
 });

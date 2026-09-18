@@ -109,6 +109,20 @@ export const isIsolatedOrRepoScriptTestFile = (file: string): boolean => {
   return file.includes(".test.");
 };
 
+export const parseKnipReportStdout = (stdout: string): KnipReport => {
+  const trimmed = stdout.trim();
+  if (!trimmed) {
+    throw new Error("Knip produced empty JSON output");
+  }
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end < start) {
+    throw new Error("Knip produced non-JSON output");
+  }
+  const parsed = JSON.parse(trimmed.slice(start, end + 1)) as Partial<KnipReport>;
+  return {issues: Array.isArray(parsed.issues) ? parsed.issues : []};
+};
+
 export const fingerprintKnipReport = ({
   mode,
   report,
@@ -118,7 +132,7 @@ export const fingerprintKnipReport = ({
 }): string[] => {
   const fingerprints: string[] = [];
 
-  for (const fileIssues of report.issues) {
+  for (const fileIssues of report.issues ?? []) {
     for (const [issueType, value] of Object.entries(fileIssues)) {
       if (issueType === "file" || issueType === "owners" || !Array.isArray(value)) {
         continue;

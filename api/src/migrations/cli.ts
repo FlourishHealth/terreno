@@ -66,7 +66,7 @@ const errorMessage = (error: unknown): string => {
 };
 
 const isMongooseModel = (value: unknown): value is Model<MongooseDocument> => {
-  if (typeof value !== "object" || value === null) {
+  if ((typeof value !== "object" && typeof value !== "function") || value === null) {
     return false;
   }
   return "schema" in value && "modelName" in value;

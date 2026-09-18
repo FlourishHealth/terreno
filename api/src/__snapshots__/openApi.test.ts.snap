@@ -256,6 +256,14 @@ exports[`openApi gets the openapi.json 1`] = `
                                   },
                                   "type": "array",
                                 },
+                                "roles": {
+                                  "default": [],
+                                  "description": "RBAC role names assigned to this user",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
                                 },
@@ -375,6 +383,14 @@ exports[`openApi gets the openapi.json 1`] = `
                               "organizationIds": {
                                 "default": [],
                                 "description": "Organization memberships",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
+                              },
+                              "roles": {
+                                "default": [],
+                                "description": "RBAC role names assigned to this user",
                                 "items": {
                                   "type": "string",
                                 },
@@ -610,6 +626,14 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -729,6 +753,14 @@ exports[`openApi gets the openapi.json 1`] = `
                       "organizationIds": {
                         "default": [],
                         "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
                         "items": {
                           "type": "string",
                         },
@@ -893,6 +925,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -1012,6 +1052,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },
@@ -1306,6 +1354,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -1425,6 +1481,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },
@@ -1653,6 +1717,14 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -1772,6 +1844,14 @@ exports[`openApi gets the openapi.json 1`] = `
                       "organizationIds": {
                         "default": [],
                         "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
                         "items": {
                           "type": "string",
                         },
@@ -1936,6 +2016,14 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -2055,6 +2143,14 @@ exports[`openApi gets the openapi.json 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },
@@ -2426,6 +2522,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   },
                                   "type": "array",
                                 },
+                                "roles": {
+                                  "default": [],
+                                  "description": "RBAC role names assigned to this user",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
                                 },
@@ -2545,6 +2649,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                               "organizationIds": {
                                 "default": [],
                                 "description": "Organization memberships",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
+                              },
+                              "roles": {
+                                "default": [],
+                                "description": "RBAC role names assigned to this user",
                                 "items": {
                                   "type": "string",
                                 },
@@ -2780,6 +2892,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -2899,6 +3019,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "organizationIds": {
                         "default": [],
                         "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
                         "items": {
                           "type": "string",
                         },
@@ -3063,6 +3191,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -3182,6 +3318,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },
@@ -3476,6 +3620,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -3595,6 +3747,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },
@@ -3823,6 +3983,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
                         },
@@ -3942,6 +4110,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "organizationIds": {
                         "default": [],
                         "description": "Organization memberships",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
                         "items": {
                           "type": "string",
                         },
@@ -4106,6 +4282,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
                           },
@@ -4225,6 +4409,14 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "organizationIds": {
                           "default": [],
                           "description": "Organization memberships",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
                           "items": {
                             "type": "string",
                           },

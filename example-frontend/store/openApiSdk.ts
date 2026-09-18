@@ -13,6 +13,7 @@ export const addTagTypes = [
   "comms",
   "admin",
   "featureflags",
+  "jobs",
   "mcpservicetokens",
   "adminauditlogs",
   "consentforms",
@@ -22,6 +23,7 @@ export const addTagTypes = [
   "announcementimpressions",
   "announcementclickevents",
   "adminMigrations",
+  "organizations",
   "mcp",
 ] as const;
 const injectedRtkApi = api
@@ -157,6 +159,20 @@ const injectedRtkApi = api
           }),
         }
       ),
+      deleteOrgsById: build.mutation<DeleteOrgsByIdRes, DeleteOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({method: "DELETE", url: `/orgs/${queryArg}`}),
+      }),
+      deleteOrgsByIdMembersAndMemberId: build.mutation<
+        DeleteOrgsByIdMembersAndMemberIdRes,
+        DeleteOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -614,6 +630,50 @@ const injectedRtkApi = api
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
       }),
+      getJobs: build.query<GetJobsRes, GetJobsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          params: {
+            end: queryArg.end,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            scheduleId: queryArg.scheduleId,
+            start: queryArg.start,
+            status: queryArg.status,
+          },
+          url: `/jobs`,
+        }),
+      }),
+      getJobsById: build.query<GetJobsByIdRes, GetJobsByIdArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({url: `/jobs/${queryArg}`}),
+      }),
+      getJobsSchedules: build.query<GetJobsSchedulesRes, GetJobsSchedulesArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/schedules`}),
+      }),
+      getJobsStats: build.query<GetJobsStatsRes, GetJobsStatsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/stats`}),
+      }),
+      getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/`}),
+      }),
+      getOrgsById: build.query<GetOrgsByIdRes, GetOrgsByIdArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}`}),
+      }),
+      getOrgsByIdMembers: build.query<GetOrgsByIdMembersRes, GetOrgsByIdMembersArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}/members`}),
+      }),
+      getOrgsMine: build.query<GetOrgsMineRes, GetOrgsMineArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/mine`}),
+      }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -788,6 +848,25 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/gpt/histories/${queryArg.id}/rating`,
+        }),
+      }),
+      patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}`,
+        }),
+      }),
+      patchOrgsByIdMembersAndMemberId: build.mutation<
+        PatchOrgsByIdMembersAndMemberIdRes,
+        PatchOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
         }),
       }),
       patchProjectsById: build.mutation<PatchProjectsByIdRes, PatchProjectsByIdArgs>({
@@ -1055,6 +1134,63 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/gpt/remix`,
+        }),
+      }),
+      postJobsByIdCancel: build.mutation<PostJobsByIdCancelRes, PostJobsByIdCancelArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/cancel`,
+        }),
+      }),
+      postJobsByIdRequeue: build.mutation<PostJobsByIdRequeueRes, PostJobsByIdRequeueArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/requeue`,
+        }),
+      }),
+      postJobsByIdRetry: build.mutation<PostJobsByIdRetryRes, PostJobsByIdRetryArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/retry`,
+        }),
+      }),
+      postJobsSchedulesByNamePause: build.mutation<
+        PostJobsSchedulesByNamePauseRes,
+        PostJobsSchedulesByNamePauseArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/pause`,
+        }),
+      }),
+      postJobsSchedulesByNameResume: build.mutation<
+        PostJobsSchedulesByNameResumeRes,
+        PostJobsSchedulesByNameResumeArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/resume`,
+        }),
+      }),
+      postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/orgs/`,
+        }),
+      }),
+      postOrgsByIdMembers: build.mutation<PostOrgsByIdMembersRes, PostOrgsByIdMembersArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/orgs/${queryArg.id}/members`,
         }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
@@ -1895,8 +2031,6 @@ export type PostUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -1924,8 +2058,6 @@ export type PostUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -1954,8 +2086,6 @@ export type GetUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -2006,8 +2136,6 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -2036,8 +2164,6 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -2067,8 +2193,6 @@ export type PatchUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -2096,8 +2220,7 @@ export type CommsTestPushArgs = {
   title?: string;
 };
 export type PostCommsPushTokensRes =
-  /** status 200 Success */
-  | {
+  | /** status 200 Success */ {
       data?: object;
     }
   | /** status 201 Success */ {
@@ -2520,6 +2643,72 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetJobsSchedulesRes = /** status 200 Success */ {
+  data?: {
+    cron?: string;
+    enabled?: boolean;
+    handlerName?: string;
+    id?: string;
+    name?: string;
+    nextRunAt?: string;
+    timezone?: string;
+  }[];
+};
+export type GetJobsSchedulesArgs = undefined;
+export type PostJobsSchedulesByNamePauseRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNamePauseArgs = string;
+export type PostJobsSchedulesByNameResumeRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNameResumeArgs = string;
+export type GetJobsRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    attemptCount?: number;
+    id?: string;
+    name?: string;
+    status?: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetJobsArgs = {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+  scheduleId?: string;
+  start?: string;
+  end?: string;
+  q?: string;
+};
+export type GetJobsStatsRes = /** status 200 Success */ {
+  data?: {
+    byStatus?: object;
+    total?: number;
+  };
+};
+export type GetJobsStatsArgs = undefined;
+export type GetJobsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetJobsByIdArgs = string;
+export type PostJobsByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRetryArgs = string;
+export type PostJobsByIdRequeueRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRequeueArgs = string;
+export type PostJobsByIdCancelRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdCancelArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -4627,8 +4816,6 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -4656,8 +4843,6 @@ export type PostAdminUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id?: string;
@@ -4686,8 +4871,6 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id: string;
@@ -4765,8 +4948,6 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -4795,8 +4976,6 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
   /** Incremented on password reset to invalidate outstanding refresh tokens */
   tokenEpoch?: number;
   _id: string;
@@ -4826,8 +5005,6 @@ export type PatchAdminUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
     /** Incremented on password reset to invalidate outstanding refresh tokens */
     tokenEpoch?: number;
     _id?: string;
@@ -5210,6 +5387,63 @@ export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
   data?: object;
 };
 export type AdminMigrationsStatusArgs = undefined;
+export type PostOrgsRes = unknown;
+export type PostOrgsArgs = {
+  /** Organization name */
+  name: string;
+  /** App-defined organization settings */
+  settings?: object;
+};
+export type GetOrgsRes = unknown;
+export type GetOrgsArgs = undefined;
+export type GetOrgsMineRes = unknown;
+export type GetOrgsMineArgs = undefined;
+export type GetOrgsByIdRes = unknown;
+export type GetOrgsByIdArgs = string;
+export type PatchOrgsByIdRes = unknown;
+export type PatchOrgsByIdArgs = {
+  id: string;
+  body: {
+    /** Disable the organization */
+    disabled?: boolean;
+    /** Organization name */
+    name?: string;
+    /** App-defined organization settings */
+    settings?: object;
+  };
+};
+export type DeleteOrgsByIdRes = unknown;
+export type DeleteOrgsByIdArgs = string;
+export type GetOrgsByIdMembersRes = unknown;
+export type GetOrgsByIdMembersArgs = string;
+export type PostOrgsByIdMembersRes = unknown;
+export type PostOrgsByIdMembersArgs = {
+  id: string;
+  body: {
+    /** Existing user email */
+    email?: string;
+    /** Membership role */
+    roleName?: string;
+    /** Existing user id */
+    userId?: string;
+  };
+};
+export type PatchOrgsByIdMembersAndMemberIdRes = unknown;
+export type PatchOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+  body: {
+    /** Membership role */
+    roleName?: string;
+    /** Membership status */
+    status?: string;
+  };
+};
+export type DeleteOrgsByIdMembersAndMemberIdRes = unknown;
+export type DeleteOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+};
 export type CreateMcpServiceTokenRes = /** status 200 Success */ {
   data?: {
     created?: string;
@@ -5323,6 +5557,15 @@ export const {
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetJobsSchedulesQuery,
+  usePostJobsSchedulesByNamePauseMutation,
+  usePostJobsSchedulesByNameResumeMutation,
+  useGetJobsQuery,
+  useGetJobsStatsQuery,
+  useGetJobsByIdQuery,
+  usePostJobsByIdRetryMutation,
+  usePostJobsByIdRequeueMutation,
+  usePostJobsByIdCancelMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
   usePostAdminMcpServiceTokensBulkPatchMutation,
@@ -5383,6 +5626,16 @@ export const {
   useDeleteAnnouncementsByIdMutation,
   useAdminMigrationsRunMutation,
   useAdminMigrationsStatusQuery,
+  usePostOrgsMutation,
+  useGetOrgsQuery,
+  useGetOrgsMineQuery,
+  useGetOrgsByIdQuery,
+  usePatchOrgsByIdMutation,
+  useDeleteOrgsByIdMutation,
+  useGetOrgsByIdMembersQuery,
+  usePostOrgsByIdMembersMutation,
+  usePatchOrgsByIdMembersAndMemberIdMutation,
+  useDeleteOrgsByIdMembersAndMemberIdMutation,
   useCreateMcpServiceTokenMutation,
   useListMcpServiceTokensQuery,
   useRevokeMcpServiceTokenMutation,

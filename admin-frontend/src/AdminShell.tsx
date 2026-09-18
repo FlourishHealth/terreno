@@ -7,6 +7,7 @@ import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
 import {type AdminSidebarGroup, buildAdminSidebarGroups} from "./adminShellNav";
+import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
@@ -36,6 +37,12 @@ export interface AdminShellProps {
   headerActions?: React.ReactNode;
   /** Path to RBAC roles screen (e.g. "/roles") */
   rolesPath?: string;
+  /** Path to the platform organization directory. Only shown to organization operators. */
+  organizationDirectoryPath?: string;
+  /** Organization switcher rendered above sidebar navigation. */
+  organizationSwitcher?: React.ReactNode;
+  /** Whether the current user may list every organization. */
+  isOrganizationOperator?: boolean;
   routeBase?: string;
   /** Extra custom screens merged with backend config for nav cards */
   customScreens?: AdminCustomScreen[];
@@ -62,23 +69,27 @@ const NavButton: React.FC<{
   </Box>
 );
 
-const isAuditLogModel = (model: AdminModelConfig): boolean => {
-  return model.name === "AdminAuditLog" || model.routePath.includes("audit-log");
-};
-
 const isFeatureFlagModel = (model: AdminModelConfig): boolean => {
   return model.name === "FeatureFlag" || model.displayName === "Feature Flags";
+};
+
+const isJobsScreen = (screen: AdminCustomScreen): boolean => {
+  return screen.name === "jobs";
 };
 
 interface AdminShellSidebarNavProps {
   configurationPath?: string;
   footer?: React.ReactNode;
+  isOrganizationOperator?: boolean;
+  jobsScreen?: AdminCustomScreen;
+  migrationsEnabled: boolean;
   navigate: (path: string) => void;
   onNavigate?: () => void;
+  organizationDirectoryPath?: string;
+  organizationSwitcher?: React.ReactNode;
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
-  migrationsEnabled: boolean;
   sidebarGroups: AdminSidebarGroup[];
   sidebarVariant: AdminShellSidebarVariant;
   ungroupedScreens: AdminCustomScreen[];
@@ -88,12 +99,16 @@ interface AdminShellSidebarNavProps {
 const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   configurationPath,
   footer,
+  isOrganizationOperator,
+  jobsScreen,
+  migrationsEnabled,
   navigate,
   onNavigate,
+  organizationDirectoryPath,
+  organizationSwitcher,
   platformTools,
   rolesPath,
   scripts,
-  migrationsEnabled,
   sidebarGroups,
   sidebarVariant,
   ungroupedScreens,
@@ -120,6 +135,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
       (platformTools.version && versionConfigPath) ||
       auditLogModel ||
       featureFlagModel ||
+      jobsScreen ||
       (platformTools.configuration && configurationPath)
   );
 
@@ -134,6 +150,11 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   return (
     <>
       <Box direction="column" flex="grow" gap={4} minHeight={0} overflow="scrollY">
+        {organizationSwitcher ? (
+          <Box paddingX={1} testID="admin-shell-organization-switcher">
+            {organizationSwitcher}
+          </Box>
+        ) : null}
         <Box direction="column">
           <NavButton
             label="Home"
@@ -145,6 +166,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             sidebarVariant={sidebarVariant}
             testID="admin-shell-nav-home"
           />
+          {isOrganizationOperator && organizationDirectoryPath ? (
+            <NavButton
+              label="Organizations"
+              onPress={() => {
+                runNav(() => {
+                  navigate(organizationDirectoryPath);
+                });
+              }}
+              sidebarVariant={sidebarVariant}
+              testID="admin-shell-nav-organizations"
+            />
+          ) : null}
         </Box>
         {visibleSidebarGroups.length > 0 ? (
           <Box direction="column" gap={3} testID="admin-shell-nav-models">
@@ -284,6 +317,18 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
                 testID="admin-shell-nav-feature-flags"
               />
             ) : null}
+            {jobsScreen ? (
+              <NavButton
+                label={jobsScreen.displayName}
+                onPress={() => {
+                  runNav(() => {
+                    navigate(`/${jobsScreen.name}`);
+                  });
+                }}
+                sidebarVariant={sidebarVariant}
+                testID="admin-shell-nav-jobs"
+              />
+            ) : null}
             {platformTools.configuration && configurationPath ? (
               <NavButton
                 label="Configuration"
@@ -308,7 +353,7 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
  * Admin UI v2 shell: grouped sidebar navigation, optional breadcrumbs, and main area.
  *
  * Intended for standalone admin SPA or embedded admin: pair with list/table/form screens
- * as `children`. Fetches `/admin/config` once for the sidebar (Tools, grouped Models, Screens).
+ * as `children`. Fetches `/admin/config` once for the sidebar (Platform, grouped Models, Screens).
  *
  * Below {@link ADMIN_SHELL_MOBILE_BREAKPOINT}px, the fixed sidebar becomes a hamburger-triggered
  * left slide-over drawer.
@@ -327,6 +372,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   customScreens: propCustomScreens,
   footer,
   headerActions,
+  isOrganizationOperator,
+  organizationDirectoryPath,
+  organizationSwitcher,
   rolesPath,
   routeBase,
   sidebarVariant = "colorful",
@@ -412,8 +460,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     scripts: true,
     version: true,
   };
+  const jobsScreen = allCustomScreens.find(isJobsScreen);
   const {groups: sidebarGroups, ungroupedScreens} = buildAdminSidebarGroups({
-    customScreens: allCustomScreens,
+    customScreens: allCustomScreens.filter((screen) => !isJobsScreen(screen)),
     models: config.models as AdminModelConfig[],
   });
 
@@ -423,8 +472,12 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const sidebarNavProps: AdminShellSidebarNavProps = {
     configurationPath,
     footer,
+    isOrganizationOperator,
+    jobsScreen,
     migrationsEnabled: Boolean(config.migrations?.enabled),
     navigate,
+    organizationDirectoryPath,
+    organizationSwitcher,
     platformTools,
     rolesPath,
     scripts,

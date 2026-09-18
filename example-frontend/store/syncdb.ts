@@ -50,6 +50,13 @@ export const syncDb: SyncDb = createSyncDb({
   name: SYNC_DB_NAME,
 });
 
+let adminOrganizationId: string | undefined;
+
+/** Bind the admin window client's mutate payloads to the selected organization. */
+export const setAdminSyncOrganizationId = (organizationId?: string): void => {
+  adminOrganizationId = organizationId;
+};
+
 /**
  * Admin windows use a separate store/socket so `{collection}|admin` rows never
  * enter the owner-scoped product store for the same collection.
@@ -59,6 +66,7 @@ export const adminSyncDb: SyncDb = createSyncDb({
   baseUrl,
   collections: [...SYNC_COLLECTIONS],
   name: ADMIN_SYNC_DB_NAME,
+  organizationIdProvider: () => adminOrganizationId,
   windowCollections: [...SYNC_COLLECTIONS],
 });
 
