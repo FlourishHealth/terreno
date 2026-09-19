@@ -113,6 +113,10 @@ const config: BetterAuthConfig = {
 };
 ```
 
+Throwaway in-process seed apps (CLI / container smoke tests that call Better Auth
+sign-up many times) should set `disableRateLimit: true` on that instance only.
+Better Auth enables its limiter in production, which 429s the fourth seeded user.
+
 ### 3. Register BetterAuthApp Plugin
 
 Use the TerrenoApp plugin system:

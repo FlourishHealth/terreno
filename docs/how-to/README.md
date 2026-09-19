@@ -15,6 +15,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Create a Terreno app](create-a-terreno-app.md) — Scaffold a full-stack app with `create-terreno-app` (Bun or npm)
 - [Update dependencies](update-dependencies.md) — Daily rolling PR, exercise test, Expo fingerprint freeze
 - [CircleCI](circleci.md) — Dual-run CI on CircleCI (package CI / policy / e2e; deploys later)
+- [Run tests locally](run-tests-locally.md) — Map every CircleCI test job to a Cursor Cloud / laptop command
 - [GitHub Actions CI](github-actions-ci.md) — Cut PR runtime: docs previews, compile-once e2e, pinned Bun
 - [Add feature flags](add-feature-flags.md) — Add feature flags, A/B testing, and OpenFeature migration
 - [Rate limiting](rate-limiting.md) — Opt-in HTTP limiter on `TerrenoApp` (memory or Redis)
@@ -37,6 +38,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Upgrade Terreno](upgrade-terreno.md) — Lockstep `@terreno/*` bumps, note range, order, rollback
 - [Track upstream Expo](track-upstream-expo.md) — Morning probe for SDK betas; `release-X.Y.Z` loop log + native fingerprint deps
 - [Migrate from @terreno/rtk to @terreno/syncdb](migrate-rtk-to-syncdb.md) — Move data sync to the local-first layer
+- [Add organizations](add-organizations.md) — Opt into Membership-backed tenancy, RBAC, admin, and seeded examples
 - [Add a GPT chat mascot](add-gpt-chat-mascot.md) — Optional consumer-owned character on empty `GPTChat`
 
 ## Admin

@@ -72,7 +72,9 @@ variable "tasks_service_name" {
 variable "jobs_queue_name" {
   description = "Cloud Tasks queue used to dispatch example-backend durable jobs."
   type        = string
-  default     = "terreno-example-jobs"
+  # Cloud Tasks blocks reusing a deleted queue name for ~7 days, so recovering a
+  # deleted queue means picking a new name rather than waiting out the cooldown.
+  default = "terreno-example-jobs-v2"
 }
 
 variable "jobs_queue_max_concurrent_dispatches" {

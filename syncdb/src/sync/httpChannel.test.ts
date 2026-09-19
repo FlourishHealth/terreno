@@ -57,6 +57,27 @@ describe("createHttpChannel", () => {
       expect(headersOf(requests[0]).Authorization).toBe("Bearer token-123");
     });
 
+    it("attaches X-Organization-Id when an organizationIdProvider returns an id", async () => {
+      const {fetchImpl, requests} = makeFetch(() =>
+        json({
+          cursor: 0,
+          entities: [],
+          frontierSeq: 0,
+          hasMore: false,
+          oldestRetainedSeq: 0,
+          stream: "todos|owner:u1",
+        })
+      );
+      const channel = createHttpChannel({
+        authProvider,
+        baseUrl: "http://api",
+        fetchImpl,
+        organizationIdProvider: () => "org-selected",
+      });
+      await channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"});
+      expect(headersOf(requests[0])["X-Organization-Id"]).toBe("org-selected");
+    });
+
     it("forwards the legacyCursor token (C3) when provided", async () => {
       const page = {
         cursor: 0,

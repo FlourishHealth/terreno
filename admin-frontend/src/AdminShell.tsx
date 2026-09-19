@@ -6,7 +6,7 @@ import {useWindowDimensions} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 import {isAdminPageForbiddenError} from "./adminPageAccess";
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {type AdminSidebarGroup, buildAdminSidebarGroups} from "./adminShellNav";
 import {isAuditLogModel} from "./isAuditLogModel";
 import type {AdminApi, AdminConfigResponse, AdminCustomScreen, AdminModelConfig} from "./types";
 import {resolveAdminBases} from "./types";
@@ -37,6 +37,12 @@ export interface AdminShellProps {
   headerActions?: React.ReactNode;
   /** Path to RBAC roles screen (e.g. "/roles") */
   rolesPath?: string;
+  /** Path to the platform organization directory. Only shown to organization operators. */
+  organizationDirectoryPath?: string;
+  /** Organization switcher rendered above sidebar navigation. */
+  organizationSwitcher?: React.ReactNode;
+  /** Whether the current user may list every organization. */
+  isOrganizationOperator?: boolean;
   routeBase?: string;
   /** Extra custom screens merged with backend config for nav cards */
   customScreens?: AdminCustomScreen[];
@@ -72,47 +78,56 @@ const isJobsScreen = (screen: AdminCustomScreen): boolean => {
 };
 
 interface AdminShellSidebarNavProps {
-  allCustomScreens: AdminCustomScreen[];
   configurationPath?: string;
   footer?: React.ReactNode;
-  grouped: ReturnType<typeof groupAdminModelsByGroup>;
+  isOrganizationOperator?: boolean;
+  jobsScreen?: AdminCustomScreen;
+  migrationsEnabled: boolean;
   navigate: (path: string) => void;
   onNavigate?: () => void;
+  organizationDirectoryPath?: string;
+  organizationSwitcher?: React.ReactNode;
   platformTools: NonNullable<AdminConfigResponse["platformTools"]>;
   rolesPath?: string;
   scripts: {name: string}[];
-  migrationsEnabled: boolean;
+  sidebarGroups: AdminSidebarGroup[];
   sidebarVariant: AdminShellSidebarVariant;
+  ungroupedScreens: AdminCustomScreen[];
   versionConfigPath: string;
 }
 
 const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
-  allCustomScreens,
   configurationPath,
   footer,
-  grouped,
+  isOrganizationOperator,
+  jobsScreen,
+  migrationsEnabled,
   navigate,
   onNavigate,
+  organizationDirectoryPath,
+  organizationSwitcher,
   platformTools,
   rolesPath,
   scripts,
-  migrationsEnabled,
+  sidebarGroups,
   sidebarVariant,
+  ungroupedScreens,
   versionConfigPath,
 }) => {
   const sidebarIsColorful = sidebarVariant === "colorful";
   const sectionLabelColor = sidebarIsColorful ? "inverted" : "secondaryDark";
-  const models = grouped.flatMap(({models: groupModels}) => groupModels);
+  const models = sidebarGroups.flatMap(({models: groupModels}) => groupModels);
   const auditLogModel = models.find(isAuditLogModel);
   const featureFlagModel = models.find(isFeatureFlagModel);
-  const jobsScreen = allCustomScreens.find(isJobsScreen);
-  const visibleCustomScreens = allCustomScreens.filter((screen) => !isJobsScreen(screen));
-  const visibleGrouped = grouped
-    .map(({group, models: groupModels}) => ({
+  const visibleSidebarGroups = sidebarGroups
+    .map(({customScreens, group, models: groupModels}) => ({
+      customScreens,
       group,
       models: groupModels.filter((model) => !isAuditLogModel(model) && !isFeatureFlagModel(model)),
     }))
-    .filter(({models: groupModels}) => groupModels.length > 0);
+    .filter(
+      ({customScreens, models: groupModels}) => customScreens.length > 0 || groupModels.length > 0
+    );
   const hasPlatformLinks = Boolean(
     (platformTools.scripts && scripts.length > 0) ||
       migrationsEnabled ||
@@ -135,6 +150,11 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
   return (
     <>
       <Box direction="column" flex="grow" gap={4} minHeight={0} overflow="scrollY">
+        {organizationSwitcher ? (
+          <Box paddingX={1} testID="admin-shell-organization-switcher">
+            {organizationSwitcher}
+          </Box>
+        ) : null}
         <Box direction="column">
           <NavButton
             label="Home"
@@ -146,17 +166,42 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             sidebarVariant={sidebarVariant}
             testID="admin-shell-nav-home"
           />
+          {isOrganizationOperator && organizationDirectoryPath ? (
+            <NavButton
+              label="Organizations"
+              onPress={() => {
+                runNav(() => {
+                  navigate(organizationDirectoryPath);
+                });
+              }}
+              sidebarVariant={sidebarVariant}
+              testID="admin-shell-nav-organizations"
+            />
+          ) : null}
         </Box>
-        {visibleGrouped.length > 0 ? (
+        {visibleSidebarGroups.length > 0 ? (
           <Box direction="column" gap={3} testID="admin-shell-nav-models">
             <Text bold color={sectionLabelColor} size="sm">
               Models
             </Text>
-            {visibleGrouped.map(({group, models: groupModels}) => (
+            {visibleSidebarGroups.map(({customScreens, group, models: groupModels}) => (
               <Box direction="column" gap={1} key={group}>
                 <Text bold color={sectionLabelColor} size="sm">
                   {group}
                 </Text>
+                {customScreens.map((screen) => (
+                  <NavButton
+                    key={screen.name}
+                    label={screen.displayName}
+                    onPress={() => {
+                      runNav(() => {
+                        navigate(`/${screen.name}`);
+                      });
+                    }}
+                    sidebarVariant={sidebarVariant}
+                    testID={`admin-shell-nav-screen-${screen.name}`}
+                  />
+                ))}
                 {groupModels.map((model) => (
                   <NavButton
                     key={model.name}
@@ -174,12 +219,12 @@ const AdminShellSidebarNav: React.FC<AdminShellSidebarNavProps> = ({
             ))}
           </Box>
         ) : null}
-        {visibleCustomScreens.length > 0 ? (
+        {ungroupedScreens.length > 0 ? (
           <Box direction="column" gap={1} testID="admin-shell-nav-screens">
             <Text bold color={sectionLabelColor} size="sm">
               Screens
             </Text>
-            {visibleCustomScreens.map((screen) => (
+            {ungroupedScreens.map((screen) => (
               <NavButton
                 key={screen.name}
                 label={screen.displayName}
@@ -327,6 +372,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   customScreens: propCustomScreens,
   footer,
   headerActions,
+  isOrganizationOperator,
+  organizationDirectoryPath,
+  organizationSwitcher,
   rolesPath,
   routeBase,
   sidebarVariant = "colorful",
@@ -412,22 +460,30 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     scripts: true,
     version: true,
   };
-  const grouped = groupAdminModelsByGroup(config.models as AdminModelConfig[]);
+  const jobsScreen = allCustomScreens.find(isJobsScreen);
+  const {groups: sidebarGroups, ungroupedScreens} = buildAdminSidebarGroups({
+    customScreens: allCustomScreens.filter((screen) => !isJobsScreen(screen)),
+    models: config.models as AdminModelConfig[],
+  });
 
   const sidebarIsColorful = sidebarVariant === "colorful";
   const showTopBar = Boolean(headerActions) || Boolean(breadcrumbs && breadcrumbs.length > 0);
 
   const sidebarNavProps: AdminShellSidebarNavProps = {
-    allCustomScreens,
     configurationPath,
     footer,
-    grouped,
+    isOrganizationOperator,
+    jobsScreen,
     migrationsEnabled: Boolean(config.migrations?.enabled),
     navigate,
+    organizationDirectoryPath,
+    organizationSwitcher,
     platformTools,
     rolesPath,
     scripts,
+    sidebarGroups,
     sidebarVariant,
+    ungroupedScreens,
     versionConfigPath,
   };
 

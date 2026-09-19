@@ -158,6 +158,11 @@ export const evaluateDemoCoverage = ({
  */
 export const DEMO_COVERAGE_ALLOWLIST: AllowlistEntry[] = [
   {
+    name: "AnnouncementNavigator",
+    reason:
+      "Requires a consumer RTK Query `api`; AnnouncementBanner and AnnouncementScreen stories cover both rendered surfaces",
+  },
+  {
     name: "BarsFilterIcon",
     reason: "SVG used inside Filter; the Icon and Filter stories already show the glyph",
   },

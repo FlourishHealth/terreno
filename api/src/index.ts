@@ -96,6 +96,12 @@ export * from "./openApiBuilder";
 export * from "./openApiCompat";
 export * from "./openApiEtag";
 export * from "./openApiValidator";
+export * from "./orgs/organizationModel";
+export * from "./orgs/organizationSettings";
+export * from "./orgs/orgContext";
+export * from "./orgs/orgPermissions";
+export * from "./orgs/orgPlugin";
+export * from "./orgs/orgsApp";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
@@ -123,11 +129,17 @@ export {
   backfillAdmins,
 } from "./rbac/backfillAdmins";
 export * from "./rbac/fieldViews";
+export {
+  MEMBERSHIP_ORG_ADMIN_PERMISSION_SOURCE_NAME,
+  membershipOrgAdminPermissionSource,
+  ORG_ADMIN_PERMISSION_BUNDLE,
+} from "./rbac/membershipOrgAdminSource";
 export * from "./rbac/middleware";
 export * from "./rbac/permissionUtils";
 export {
   createRbacRoleModel,
   expandRolePermissions,
+  organizationOperatorRole,
   type RbacRoleDocument,
   type RbacRoleModel,
   READ_ONLY_ROLE_PERMISSIONS,

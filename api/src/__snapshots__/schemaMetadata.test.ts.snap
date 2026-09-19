@@ -98,7 +98,6 @@ exports[`describeModel returns a field graph snapshot for the fixture schema 1`]
   "tags": {
     "default": undefined,
     "description": "Search tags",
-    "enum": undefined,
     "isArray": true,
     "item": {
       "description": undefined,

@@ -72,17 +72,22 @@ UI, RTK, and admin-frontend changes do **not** start `example-backend-ci`.
 Those packages are covered by `ui-ci` / `rtk-ci` / `packages-ci` plus e2e and
 admin-spa. `new-file-coverage` starts on package `src/` (and example app
 runtime paths including `example-frontend/components/`), not on every `*.ts`
-file in the repo (Playwright specs no longer compile the world). That job
-compiles `@terreno/api` and `@terreno/jobs` deps, then
-`bun run --filter '@terreno/api' compile` and
-`bun run --filter '@terreno/jobs' compile`. The coverage script also compiles
-each gated package's `@terreno/*` workspace deps so packages such as
-`admin-backend` can import `@terreno/jobs`. Workspace-dep compile uses
-`tsconfig.server.json` when present (so `@terreno/admin-spa` emits `src/dist`
-instead of the Expo app `tsconfig.json`).
+file in the repo (Playwright specs no longer compile the world). Package CI
+jobs that already ran `test:coverage` evaluate the 90% new-file gate against
+that LCOV (`scripts/ci/check-new-file-coverage-lcov.sh`). Retained GitHub
+Actions twins run that script with `working-directory: .` so a package-level
+`defaults.run` cwd cannot nest `{package}/coverage/lcov.info`. GHA
+`upload-codecov` steps pass `token: ${{ secrets.CODECOV_TOKEN }}`. The dedicated
+`new-file-coverage` job skips those packages and only reruns tests for
+workspaces without a coverage job in the same pipeline (example apps). Reruns
+prefer colocated `*.test.ts` files and compile `@terreno/*` dist deps only
+when the package imports them. Coverage-script unit tests run in the cheap
+`coverage-scripts` job.
 
 Playwright runs five shards after `e2e-prepare` (`auth`, `app`, `admin-core`,
-`admin-table`, `syncdb`) instead of one container per spec file. Repository
+`admin-table`, `syncdb`) instead of one container per spec file. Each shard
+first checks the [affected gate](#e2e-affected-gate) and halts when no changed
+file can reach it. Repository
 policy checks share one `repo-policies` job so eight small checkouts do not
 sit in the concurrency queue. `repo-policies` uses Node 22.14 because Knip's
 oxc-parser throws `ERR_REQUIRE_ESM` on the shared 22.11 executor.
@@ -90,6 +95,48 @@ Require `repo-policies` in branch protection. Require `e2e-auth` /
 `e2e-app` / … only as path-filtered checks; config-only PRs post `e2e-auth`
 as the smoke shard and do not run the other four. Do not require the old
 `no-barrel-imports` / `e2e-login` names.
+
+## E2E affected gate
+
+Path filters decide whether e2e is a *candidate*; `scripts/ci/e2eAffected`
+decides which shards actually run. `e2e-prepare` runs
+
+```bash
+bun run check:e2e-affected --base origin/master --write e2e-affected.json
+```
+
+and persists the decision to the workspace (also stored as the
+`e2e-affected.json` artifact). Each shard reads it and calls
+`circleci-agent step halt` before `bun install` when it is unaffected, so an
+unneeded shard costs one container start instead of a full Playwright run.
+Run the same command locally to see what a branch would trigger.
+
+`e2e-prepare` always runs when a path filter starts the workflow: compiling the
+workspace and `bun expo export`ing the web bundle is the check that catches
+build breakage the shards would otherwise miss.
+
+The gate **fails open** — it runs every shard when the base revision cannot be
+resolved, when a module cannot be resolved, or when the analysis throws. A
+change is only skipped when it is provably outside a shard's surface:
+
+| Change | Decision |
+| --- | --- |
+| Module reachable from the shard's screens, specs, or `example-backend/src` | run |
+| Module nothing reachable imports (`ui/src/Avatar.tsx` today) | skip |
+| Type-only edit to a reachable module (interfaces, `type`, `declare`) | skip |
+| New export or lazy registry entry no consumer imports | skip |
+| Re-export barrel that repoints a binding the app imports | run |
+| `bun.lock` install the app resolves changing version | run |
+| `bun.lock` or `package.json` churn outside that closure | skip |
+| Docs, rules, `demo/**`, `scripts/**`, unit tests, snapshots, lint config | skip |
+| Anything else (`metro.config.js`, `app.json`, `.circleci/**`, patches) | run |
+
+Shard membership comes from `scripts/ci/e2eAffected/shards.ts`, which must
+mirror the spec groups in `run_example_frontend_e2e`. `shards.test.ts` fails
+when the two drift, when a spec is unassigned, or when a spec navigates to a
+screen its shard does not declare. It also asserts that `ui/src/index.tsx`
+stays a pass-through barrel — runtime code there would make every
+`@terreno/ui` change look reachable.
 
 ## Automatic deploys
 
@@ -113,8 +160,11 @@ and skip when `NETLIFY_AUTH_TOKEN` or the site id is missing. The same skip
 applies to `gcp-cd-*` when `terreno-gcp` lacks WIF or SA emails, so GitHub
 `cd.yml` remains the live GCP writer. GitHub `terraform-preview` and
 `backend-deploy-preview` run only when
-`github.event.pull_request.head.repo.full_name == github.repository`. Fork
-PRs still present `repository: FlourishHealth/terreno` on the OIDC token, so
+`github.event.pull_request.head.repo.full_name == github.repository`.
+Terraform preview always describes the Infra Manager preview (state,
+`errorCode`, `errorLogs`) before delete, including when `previews create`
+fails. Fork PRs still present `repository: FlourishHealth/terreno` on the
+OIDC token, so
 WIF would accept them if those jobs ran. Netlify GHA jobs fail closed on
 forks (secrets withheld). After filling a context, confirm a CircleCI deploy
 URL, then set the matching GHA workflows to `on: []`. Turn off Netlify's
@@ -206,6 +256,7 @@ the same commands through the parameterized `packages-ci` job, gated by
 | Architectural PR review | `architectural-pr-review` (non-blocking; skip forks / missing secrets) |
 | Maestro E2E Tests | `maestro-e2e` (`include-demo` when ui/demo Maestro flows change) |
 | New file coverage | `new-file-coverage` |
+| Coverage gate scripts | `coverage-scripts` |
 | Netlify production | `deploy-demo`, `deploy-frontend`, `deploy-docs` |
 | Netlify PR preview | `deploy-demo-preview`, `deploy-frontend-preview`, `deploy-docs-preview` |
 | GCP production | `gcp-cd-prod` |
@@ -301,7 +352,7 @@ for later steps.
 
 Package jobs that only lint/compile/test one workspace package stay on
 `medium` (including `mcp-server-ci`, `example-backend-ci`, and
-`new-file-coverage`). Do not put Docker Layer Caching on remote-docker jobs
+`new-file-coverage`). `coverage-scripts` is `small`. Do not put Docker Layer Caching on remote-docker jobs
 unless a profiled image build reuses layers enough to beat 200 credits/run.
 
 ## Nightly load test
@@ -320,6 +371,9 @@ This replaces the GHA cron / `workflow_dispatch` / `load-test` label triggers in
 `{"run-e2e-load":true}` at `0 6 * * *` to retain the nightly run.
 
 ## Local validation
+
+Map every CircleCI test job to a local command with
+[run tests locally](run-tests-locally.md). Config syntax:
 
 ```bash
 circleci config validate .circleci/config.yml

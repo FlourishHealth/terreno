@@ -26,6 +26,9 @@ locals {
         # the Compute Engine default — serviceAccountAdmin doesn't grant it.
         "roles/iam.serviceAccountUser",
         "roles/iam.workloadIdentityPoolAdmin",
+        # Infra Manager Cloud Build runs as this SA. Without Logs Writer,
+        # regional build logs are empty and `gcloud builds log` returns nothing.
+        "roles/logging.logWriter",
         "roles/resourcemanager.projectIamAdmin",
         "roles/run.admin",
         "roles/secretmanager.admin",
@@ -277,7 +280,10 @@ resource "google_cloud_tasks_queue" "example_jobs" {
     max_retry_duration = "3600s"
   }
 
-  depends_on = [module.bootstrap]
+  # module.github_oidc grants terraform-admin roles/cloudtasks.admin. Without
+  # this ordering the queue can be created before that binding exists and the
+  # apply fails with a 403 on cloudtasks.queues.create.
+  depends_on = [module.bootstrap, module.github_oidc]
 }
 
 resource "google_service_account" "jobs_tasks_invoker" {
