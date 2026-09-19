@@ -1437,6 +1437,43 @@ describe("emitSyncDeltaForChange", () => {
     expect(io.emissions.filter((e) => e.event === "sync:delta")).toHaveLength(0);
   });
 
+  it("logs and skips changes without a full document", async () => {
+    const entry = ownerEntry();
+    const io = makeTrackedIo();
+    const logs: string[] = [];
+
+    await emitSyncDeltaForChange({
+      change: makeChange({operationType: "update"}),
+      docId: "doc-no-image",
+      entry,
+      io,
+      logDebug: (message) => logs.push(message),
+    });
+
+    assert.deepEqual(logs, ["[sync] Skipping sockStuff/doc-no-image: change has no fullDocument"]);
+    assert.isEmpty(io.emissions);
+  });
+
+  it("skips changes whose operation type does not map to a sync method", async () => {
+    const entry = ownerEntry();
+    const io = makeTrackedIo();
+    const logs: string[] = [];
+
+    await emitSyncDeltaForChange({
+      change: makeChange({
+        fullDocument: {_id: "doc-invalid", _syncSeq: 1, ownerId: "user1"},
+        operationType: "invalidate",
+      }),
+      docId: "doc-invalid",
+      entry,
+      io,
+      logDebug: (message) => logs.push(message),
+    });
+
+    assert.isEmpty(logs);
+    assert.isEmpty(io.emissions);
+  });
+
   it("applies the sync responseHandler to delta data", async () => {
     clearSyncRegistry();
     registerSync({

@@ -20,7 +20,12 @@ export class LangfuseApp implements TerrenoPlugin {
   register(app: express.Application): void {
     const organization = this.options.organization ?? "flourish-health";
     const project = this.options.project ?? "terreno";
-    initLangfuseClient(this.options);
+    try {
+      initLangfuseClient(this.options);
+    } catch (err) {
+      logger.warn(`Langfuse client initialization failed; continuing without Langfuse: ${err}`);
+      return;
+    }
 
     if (this.options.enableTracing !== false) {
       try {

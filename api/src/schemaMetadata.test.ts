@@ -281,6 +281,20 @@ describe("fieldDescriptionToOpenApiProperty", () => {
       items: {type: "string"},
       type: "array",
     });
+    expect(
+      fieldDescriptionToOpenApiProperty({
+        description: "Platforms",
+        enum: ["ios", "android", "web"],
+        isArray: true,
+        item: {enum: ["ios", "android", "web"], kind: "string", required: false},
+        kind: "string",
+        required: false,
+      })
+    ).toEqual({
+      description: "Platforms",
+      items: {enum: ["ios", "android", "web"], type: "string"},
+      type: "array",
+    });
     expect(fieldDescriptionToOpenApiProperty(embeddedField)).toEqual(
       expect.objectContaining({
         description: "Profile",

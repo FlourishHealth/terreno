@@ -1,3 +1,4 @@
+import {ANNOUNCEMENTS_ADMIN_WIDGETS} from "../AnnouncementOverviewScreenWidget";
 import {COMMS_ADMIN_WIDGETS} from "../comms/CommsDashboardScreenWidget";
 import {JOBS_ADMIN_WIDGETS} from "../jobs/JobsDashboardScreenWidget";
 import {JOBS_HOME_WIDGETS} from "../jobs/JobsHomeWidget";
@@ -30,6 +31,7 @@ export const BUILT_IN_HOME_WIDGETS: Record<string, HomeWidgetComponent> = {
 
 export const BUILT_IN_SCREEN_WIDGETS: Record<string, ScreenWidgetComponent> = {
   ...AI_ADMIN_WIDGETS,
+  ...ANNOUNCEMENTS_ADMIN_WIDGETS,
   ...COMMS_ADMIN_WIDGETS,
   ...DOCUMENT_STORAGE_ADMIN_WIDGETS,
   ...JOBS_ADMIN_WIDGETS,

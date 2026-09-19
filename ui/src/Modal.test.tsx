@@ -3,7 +3,7 @@ import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 // Import Platform the same way the source modules do (ESM named import) so the web blur effect
 // (which reads Platform.OS directly in Modal.tsx) observes the value the test sets.
-import {Platform as ImportedPlatform} from "react-native";
+import {Platform as ImportedPlatform, type ScaledSize, useWindowDimensions} from "react-native";
 import {Gesture} from "react-native-gesture-handler";
 
 import {Modal} from "./Modal";
@@ -115,6 +115,26 @@ const restorePlatformOS = (): void => {
 };
 
 let isNativeSpy: ReturnType<typeof spyOn> | undefined;
+
+type WindowDimensionsImpl = () => ScaledSize;
+type MockableUseWindowDimensions = WindowDimensionsImpl & {
+  mockImplementation?: (impl: WindowDimensionsImpl) => void;
+};
+
+const setWindowWidth = (width: number): (() => void) => {
+  const windowDimensions = useWindowDimensions as MockableUseWindowDimensions;
+  if (typeof windowDimensions.mockImplementation !== "function") {
+    return (): void => {};
+  }
+  windowDimensions.mockImplementation(
+    (): ScaledSize => ({fontScale: 1, height: 924, scale: 1, width})
+  );
+  return (): void => {
+    windowDimensions.mockImplementation?.(
+      (): ScaledSize => ({fontScale: 1, height: 924, scale: 1, width: 1024})
+    );
+  };
+};
 
 /**
  * Forces `isNative()` to a fixed value so the Modal's platform branch is deterministic.
@@ -472,6 +492,37 @@ describe("Modal web platform", () => {
     const {Pressable} = require("react-native");
     const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
     expect(findBackdropPressable(pressables)).toBeTruthy();
+  });
+
+  it("stacks long modal actions at narrow web widths", () => {
+    const restoreWindowWidth = setWindowWidth(400);
+    try {
+      const {getByText, UNSAFE_root} = renderWithTheme(
+        <Modal
+          onDismiss={() => {}}
+          primaryButtonOnClick={() => {}}
+          primaryButtonText="Got it"
+          secondaryButtonOnClick={() => {}}
+          secondaryButtonText="Read the announcement docs"
+          title="Announcement"
+          visible
+        >
+          <Text>Launch details</Text>
+        </Modal>
+      );
+
+      assert.exists(getByText("Read the announcement docs"));
+      assert.exists(getByText("Got it"));
+      const stackedActionRows = UNSAFE_root.findAll(
+        (node) =>
+          node.props?.style?.alignSelf === "stretch" &&
+          node.props?.style?.flexDirection === "column" &&
+          node.props?.style?.gap === 12
+      );
+      assert.isAtLeast(stackedActionRows.length, 1);
+    } finally {
+      restoreWindowWidth();
+    }
   });
 
   it("dismisses when the backdrop is pressed and persistOnBackgroundClick is false", () => {

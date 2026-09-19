@@ -56,7 +56,7 @@ This is a refactor of the existing strong workflow, not a parallel implementatio
 | AP2 | Sensitive-data rules cover credentials, customer data, PII/PHI, and evidence media |
 | AP3 | Canonical stages are Grow, Pick, Roast, Brew, Taste |
 | AP4 | Stages discover supporting skills by description; exact skill names are never universal dependencies |
-| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI. Before any push: always pull latest `master`, then run the repository root's `prepush` package script when present (otherwise affected-package lint, typecheck, and tests) in a fresh subagent with no parent conversation, then push and watch CI (`gh` / `circleci`). The outer loop reinvokes on Taste `PENDING` |
+| AP5 | Taste is one observe/act/emit iteration after in-process waits for async review bots and product CI. Before any push: always pull latest `master`, record last-run failed tests and re-verify them locally, then run the repository root's `prepush` package script when present (otherwise affected-package lint, typecheck, and tests) in a fresh subagent with no parent conversation, then push and watch CI (`gh` / `circleci`). The outer loop reinvokes on Taste `PENDING` |
 | AP6 | Shared results use compact `v: 2` YAML; required keys are `v`, `stage`, `status`, `next`, `action`; empty keys are omitted; YAML is collapsed for humans |
 | AP7 | Existing repository state convention wins; fallback reuses loop-owned `.terreno/pipeline/<slug>.json`, not committed by default |
 | AP8 | Brew emits PR/head state and exits; direct Taste invocation is standalone compatibility only |
@@ -166,7 +166,8 @@ provider CLI watch hooks or harness subscriptions, then waits in a loop for prod
 using GitHub CLI (`gh pr checks --watch`, `gh run watch`) or CircleCI CLI
 (`circleci run watch`) until jobs on every discovered host are terminal or the wait
 times out. It then classifies mergeability and reviews, performs one bounded set of
-actionable fixes. Before any push it always pulls latest `master`, then spawns a fresh
+actionable fixes. Before any push it always pulls latest `master`, records last-run
+failed tests and re-verifies them locally, then spawns a fresh
 subagent with no parent conversation to run root `prepush` when present, falling back to
 lint, typecheck, and locally affected tests in each affected package. It then pushes and
 watches review bots and product CI. It may act

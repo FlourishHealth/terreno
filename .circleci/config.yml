@@ -181,6 +181,7 @@ workflows:
             bun\.lock run-new-file-coverage true
             .*\.ts$ run-repo-policies true
             .*\.tsx$ run-repo-policies true
+            jobs/src/.* run-new-file-coverage true
             api/src/.* run-new-file-coverage true
             ai/src/.* run-new-file-coverage true
             ui/src/.* run-new-file-coverage true
@@ -225,6 +226,7 @@ workflows:
             scripts/check-license-coverage/.* run-repo-policies true
             scripts/changelog/.* run-repo-policies true
             scripts/check-new-file-coverage\.ts run-new-file-coverage true
+            scripts/ci/check-new-file-coverage-lcov\.sh run-new-file-coverage true
             changelog/.* run-repo-policies true
             CHANGELOG.md run-repo-policies true
             docs/explanation/no-barrel-imports\.md run-repo-policies true

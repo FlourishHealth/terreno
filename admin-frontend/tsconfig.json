@@ -32,7 +32,8 @@
     "src/**/*.test.ts",
     "src/**/*.isolated.tsx",
     "src/**/*.isolated.ts",
-    "src/isolated/**"
+    "src/isolated/**",
+    "src/testing/**"
   ],
   "include": ["src"]
 }

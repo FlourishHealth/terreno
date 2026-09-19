@@ -51,9 +51,10 @@ const toJsonDuration = (duration: GcpDuration | undefined): string | undefined =
 };
 
 const defaultAuth = (): GcpTasksAuth => {
-  const auth = new GoogleAuth({scopes: [CLOUD_TASKS_SCOPE]});
+  let auth: GoogleAuth | undefined;
   return {
     getClient: async (): Promise<GcpTasksTokenClient> => {
+      auth ??= new GoogleAuth({scopes: [CLOUD_TASKS_SCOPE]});
       const tokenClient = await auth.getClient();
       return {
         request: async (options: GcpTasksHttpRequest): Promise<{data?: GcpCreateTaskResponse}> => {

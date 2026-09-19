@@ -1,10 +1,11 @@
 import type {User} from "../auth";
 import {APIError} from "../errors";
 import {normalizeRbacAuditSinks} from "./auditModel";
+import {membershipOrgAdminPermissionSource} from "./membershipOrgAdminSource";
 import {createIsPermitted, createRequireAccess} from "./middleware";
 import {createPermissionResolver} from "./resolve";
 import {createRoleManager} from "./roleManager";
-import {createRbacRoleModel} from "./roleModel";
+import {createRbacRoleModel, organizationOperatorRole} from "./roleModel";
 import {mergeStatements, type Statements} from "./statements";
 import type {
   AccessCheckArgs,
@@ -39,19 +40,26 @@ export const createAccess = <S extends Statements>(options: AccessOptions<S>): T
 
   const mergedStatements = mergeStatements(options.statements) as S;
   const rbacRoleModel = createRbacRoleModel(options.connection);
+  const extraRoles = [...(options.defaultRoles ?? [])];
+  if (options.organizations && !extraRoles.some((role) => role.name === "operator")) {
+    extraRoles.push(organizationOperatorRole);
+  }
+  const sources = options.organizations
+    ? [membershipOrgAdminPermissionSource(), ...(options.sources ?? [])]
+    : (options.sources ?? []);
 
   const resolver = createPermissionResolver({
     cacheTtlMs: options.cacheTtlMs,
     rbacRoleModel,
     resolvePermissions: options.resolvePermissions,
-    sources: options.sources,
+    sources,
     statements: mergedStatements,
   });
 
   const {roleManager} = createRoleManager({
     auditSinks,
     connection: options.connection,
-    defaultRoles: options.defaultRoles,
+    defaultRoles: extraRoles,
     getActorPermissions: (user) => resolver.resolvePermissionsForUser(user),
     getPreviewPermissions: (user) => resolver.resolvePermissionsForUserUncached(user),
     invalidateCache: resolver.invalidateCache,

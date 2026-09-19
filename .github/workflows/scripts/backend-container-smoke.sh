@@ -195,6 +195,26 @@ else
   log "::warning::Better Auth secret '$BETTER_AUTH_SECRET_ID' not accessible; smoke test runs without better-auth."
 fi
 
+if [ "$SMOKE_MODE" = "preview" ]; then
+  require_env GCP_TASKS_SERVICE
+  require_env GCP_BACKEND_REGION
+  require_env GCP_TASKS_QUEUE
+  require_env GCP_TASKS_INVOKER_SA
+  TASKS_URL="$(
+    gcloud run services describe "$GCP_TASKS_SERVICE" \
+      --region="$GCP_BACKEND_REGION" \
+      --format='value(status.url)'
+  )"
+  append_env_literal "$ENV_FILE" JOBS_START_WORKER true
+  append_env_literal "$ENV_FILE" JOBS_RUNNER gcp-cloud-tasks
+  append_env_literal "$ENV_FILE" GCP_TASKS_PROJECT "$GCP_PROJECT_ID"
+  append_env_literal "$ENV_FILE" GCP_TASKS_LOCATION "$GCP_BACKEND_REGION"
+  append_env_literal "$ENV_FILE" GCP_TASKS_QUEUE "$GCP_TASKS_QUEUE"
+  append_env_literal "$ENV_FILE" GCP_TASKS_PUBLIC_URL "https://pr-${PR_NUMBER}---${TASKS_URL#https://}"
+  append_env_literal "$ENV_FILE" GCP_TASKS_OIDC_AUDIENCE "$TASKS_URL"
+  append_env_literal "$ENV_FILE" GCP_TASKS_SERVICE_ACCOUNT_EMAIL "$GCP_TASKS_INVOKER_SA"
+fi
+
 log "Starting smoke-test container name=$CONTAINER_NAME image=$SMOKE_IMAGE host_port=$HOST_PORT timeout=${HEALTH_TIMEOUT_SEC}s"
 
 docker run -d \

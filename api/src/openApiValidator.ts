@@ -38,12 +38,11 @@ import Ajv, {type ErrorObject, type ValidateFunction} from "ajv";
 import addFormats from "ajv-formats";
 import type {NextFunction, Request, Response} from "express";
 import type {Model} from "mongoose";
-import m2s from "mongoose-to-swagger";
 import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "./adminTypes";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import type {OpenApiSchema, OpenApiSchemaProperty} from "./openApiBuilder";
-import {fixMixedFields} from "./populate";
+import {getOpenApiSpecForModel} from "./populate";
 
 /**
  * Global configuration for OpenAPI validation.
@@ -412,7 +411,7 @@ const propertiesToSchema = (
   properties: Record<string, OpenApiSchemaProperty>,
   requiredFields?: string[]
 ): OpenApiSchema => {
-  // Extract required fields from properties that have required: true
+  // Extract required fields from properties marked required: true (OpenAPI builder style).
   const autoRequired = Object.entries(properties)
     .filter(([_, prop]) => prop.required === true)
     .map(([key]) => key);
@@ -794,10 +793,6 @@ export const validateResponseData = (
   return {valid: true};
 };
 
-const m2sOptions = {
-  props: ["readOnly", "required", "enum", "default"],
-};
-
 /**
  * Extract an OpenAPI-compatible schema from a Mongoose model.
  * This allows you to use the same schema definitions for both documentation
@@ -807,17 +802,16 @@ const m2sOptions = {
  * @returns Schema properties suitable for validation
  */
 export const getSchemaFromModel = <T>(model: Model<T>): Record<string, OpenApiSchemaProperty> => {
-  const modelSwagger = m2s(model, m2sOptions);
-  fixMixedFields(model.schema, modelSwagger.properties);
-  return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
+  const {properties} = getOpenApiSpecForModel(model);
+  return properties as Record<string, OpenApiSchemaProperty>;
 };
 
 /**
  * Extract required field names from a Mongoose model's swagger schema.
  */
 const getRequiredFieldsFromModel = <T>(model: Model<T>): string[] => {
-  const modelSwagger = m2s(model, m2sOptions);
-  return (modelSwagger.required as string[]) ?? [];
+  const {required} = getOpenApiSpecForModel(model);
+  return required;
 };
 
 /**

@@ -44,8 +44,8 @@ app-level nav inside admin.
 Order in the rail:
 
 1. **Home** → `{routeBase}/`
-2. **Models** grouped by `admin.group` (ungrouped models land in **General**)
-3. **Screens** from config `customScreens` (plus optional host extras)
+2. **Models** grouped by `admin.group` (ungrouped models land in **General**). Custom screens with `group` render inside the matching group **before** model links for that group. A grouped screen with no models still gets its own group heading.
+3. **Screens** — only `customScreens` **without** `group` (plus optional host extras)
 4. **Platform** — Scripts (`/__scripts`), Migrations (`/__migrations` when
    `migrations.enabled`), Roles, Version, Audit Log, Feature Flags, Jobs, Configuration
 
@@ -66,7 +66,7 @@ canvas (`neutral-050`). Nested `Page` screens use `color="transparent"` and
 | Concern | Location |
 | --- | --- |
 | Which models appear | `modelRouter` `admin` block, or plugin `adminContribution()` |
-| Extra non-CRUD pages | `AdminApp.customScreens` + `widgets.screens` with the **same** `name` |
+| Extra non-CRUD pages | `AdminApp.customScreens` + `widgets.screens` with the **same** `name`. Optional `group` places the screen in that sidebar group (see **Models** above). |
 | Home dashboard composition | `AdminApp.home.slots` |
 | Field widgets | `admin.fieldOverrides.widget` + `widgets.fields` |
 | Expo files | `app/admin/_layout.tsx` (shell once) or per-route shell in admin-spa |

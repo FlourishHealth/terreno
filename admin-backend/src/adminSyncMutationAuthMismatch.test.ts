@@ -13,6 +13,9 @@ import {
   createdUpdatedPlugin,
   findOneOrNoneFor,
   isDeletedPlugin,
+  Membership,
+  Organization,
+  orgScopedPlugin,
   Permissions,
   registerSync,
   SyncApp,
@@ -468,5 +471,180 @@ describe("admin window sync mutation authorization", () => {
     expect(auditEvents).toHaveLength(1);
     expect(auditEvents[0]?.verb).toBe("updated");
     expect(auditEvents[0]?.actorId).toBe(actorId);
+  });
+});
+
+interface WindowOrgTodo {
+  _id: string;
+  organizationId: mongoose.Types.ObjectId;
+  title: string;
+  _syncSeq?: number;
+}
+
+const windowOrgTodoSchema = new mongoose.Schema<WindowOrgTodo>({
+  _id: {
+    default: (): string => new mongoose.Types.ObjectId().toHexString(),
+    description: "Client-minted string id",
+    type: String,
+  },
+  title: {description: "Todo title", required: true, type: String},
+});
+windowOrgTodoSchema.plugin(orgScopedPlugin);
+windowOrgTodoSchema.plugin(isDeletedPlugin);
+windowOrgTodoSchema.plugin(createdUpdatedPlugin);
+windowOrgTodoSchema.plugin(syncPlugin);
+
+const WindowOrgTodoModel =
+  mongoose.models.WindowOrgTodo ??
+  mongoose.model<WindowOrgTodo>("WindowOrgTodo", windowOrgTodoSchema);
+
+const buildOrgWindowHarness = (): express.Application => {
+  clearSyncRegistry();
+  registerSync({
+    config: {adminBroadcast: true, scope: {field: "organizationId", type: "tenant"}},
+    model: WindowOrgTodoModel,
+    options: {
+      permissions: {
+        create: [Permissions.IsAuthenticated],
+        delete: [Permissions.IsAuthenticated],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsAuthenticated],
+        update: [Permissions.IsAuthenticated],
+      },
+      sync: {adminBroadcast: true, scope: {field: "organizationId", type: "tenant" as const}},
+    },
+    routePath: "/window-org-todos",
+  });
+
+  const accessControl = createAccess({
+    connection: mongoose.connection,
+    organizations: true,
+    resolvePermissions: async ({user}) => {
+      if (user?.admin) {
+        return {admin: ["access"], adminWindowOrgTodo: ["read", "write"]};
+      }
+      return {};
+    },
+    statements: {...terrenoStatements, adminWindowOrgTodo: ADMIN_MODEL_ACCESS},
+    userModel: UserModel as unknown as UserModelType,
+  });
+
+  const app = getBaseServer();
+  setupAuth(app, UserModel as unknown as UserModelType);
+  addAuthRoutes(app, UserModel as unknown as UserModelType);
+  new AdminApp({
+    accessControl,
+    basePath: "/admin",
+    models: [
+      {
+        adminAccess: {resource: "adminWindowOrgTodo"},
+        displayName: "Window org todos",
+        listFields: ["title", "organizationId"],
+        model: WindowOrgTodoModel,
+        routePath: "/window-org-todos",
+      },
+    ],
+    organizations: true,
+  }).register(app);
+  new SyncApp({accessControl}).register(app);
+  app.use(apiUnauthorizedMiddleware);
+  app.use(apiErrorMiddleware);
+  return app;
+};
+
+describe("admin window org-scoped mutation membership", () => {
+  let agent: TestAgent;
+  let firstOrgId: string;
+  let secondOrgId: string;
+
+  beforeEach(async () => {
+    const [admin] = await setupDb();
+    admin.roles = ["operator"];
+    await admin.save();
+    await Promise.all([
+      Membership.deleteMany({}),
+      Organization.deleteMany({}),
+      WindowOrgTodoModel.deleteMany({}),
+    ]);
+    const app = buildOrgWindowHarness();
+    agent = await authAsUser(app, "admin");
+    const [firstOrg, secondOrg] = await Organization.create([
+      {name: "First Org", ownerId: admin._id},
+      {name: "Second Org", ownerId: admin._id},
+    ]);
+    firstOrgId = String(firstOrg._id);
+    secondOrgId = String(secondOrg._id);
+  });
+
+  afterEach(async () => {
+    clearSyncRegistry();
+    await WindowOrgTodoModel.deleteMany({});
+  });
+
+  it("REST PATCH denies another org's row; admin-window sync is disabled for org-scoped models", async () => {
+    const other = await WindowOrgTodoModel.create({
+      organizationId: secondOrgId,
+      title: "Other org",
+    });
+
+    await agent
+      .patch(`/admin/window-org-todos/${other._id}`)
+      .set("X-Organization-Id", firstOrgId)
+      .send({title: "REST blocked"})
+      .expect(403);
+
+    const syncRes = await agent
+      .post("/sync/mutate")
+      .set("X-Organization-Id", firstOrgId)
+      .send(
+        adminWindowMutate({
+          baseVersion: other._syncSeq ?? 1,
+          collection: "window-org-todos",
+          data: {title: "Sync blocked"},
+          id: other._id,
+          mutationId: "admin-org-membership-deny",
+          operation: "update",
+        })
+      )
+      .expect(403);
+
+    expect(JSON.stringify(syncRes.body)).toContain("adminBroadcast");
+    const reloaded = await WindowOrgTodoModel.findById(other._id).lean();
+    expect(reloaded?.title).toBe("Other org");
+  });
+
+  it("REST PATCH allows update of the current org's row; admin-window sync stays disabled", async () => {
+    const owned = await WindowOrgTodoModel.create({
+      organizationId: firstOrgId,
+      title: "Same org",
+    });
+
+    await agent
+      .patch(`/admin/window-org-todos/${owned._id}`)
+      .set("X-Organization-Id", firstOrgId)
+      .send({title: "REST ok"})
+      .expect(200);
+
+    const afterRest = await WindowOrgTodoModel.findById(owned._id).lean();
+    expect(afterRest?.title).toBe("REST ok");
+
+    const syncRes = await agent
+      .post("/sync/mutate")
+      .set("X-Organization-Id", firstOrgId)
+      .send(
+        adminWindowMutate({
+          baseVersion: afterRest?._syncSeq ?? 2,
+          collection: "window-org-todos",
+          data: {title: "Sync ok"},
+          id: owned._id,
+          mutationId: "admin-org-membership-allow",
+          operation: "update",
+        })
+      )
+      .expect(403);
+
+    expect(JSON.stringify(syncRes.body)).toContain("adminBroadcast");
+    const afterSyncAttempt = await WindowOrgTodoModel.findById(owned._id).lean();
+    expect(afterSyncAttempt?.title).toBe("REST ok");
   });
 });

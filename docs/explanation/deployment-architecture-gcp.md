@@ -77,7 +77,8 @@ Production and PR revisions share one queue safely because every task stores its
 callback URL. A PR backend targets the matching `pr-<number>` worker tag and uses
 `terreno-example-pr-<number>` as its Mongo database. Removing a preview removes both
 service tags. An old callback then fails closed instead of reaching production or another
-PR.
+PR. A failed backend preview tag cannot stay on a not-Ready revision: CD rebuilds traffic
+from Ready tags, deploys the new revision without `--tag`, then tags it.
 
 Queue IAM grants `cloudtasks.enqueuer` and `iam.serviceAccountUser` on
 `terreno-jobs-invoker` only to `terreno-backend-runtime`, the example API Cloud Run

@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {ANNOUNCEMENTS_ADMIN_WIDGETS} from "../AnnouncementOverviewScreenWidget";
 import {COMMS_ADMIN_WIDGETS} from "../comms/CommsDashboardScreenWidget";
 import {JOBS_ADMIN_WIDGETS} from "../jobs/JobsDashboardScreenWidget";
 import {JOBS_HOME_WIDGETS, JobsHomeWidget} from "../jobs/JobsHomeWidget";
@@ -25,11 +26,12 @@ describe("plugin admin widget registries", () => {
     ]);
   });
 
-  it("exports documents, AI request, comms, and jobs screen widgets by custom screen name", () => {
+  it("exports documents, AI request, comms, jobs, and announcements screen widgets by custom screen name", () => {
     expect(DOCUMENT_STORAGE_ADMIN_WIDGETS.documents).toBeDefined();
     expect(AI_ADMIN_WIDGETS["ai-requests"]).toBeDefined();
     expect(COMMS_ADMIN_WIDGETS.comms).toBeDefined();
     expect(JOBS_ADMIN_WIDGETS.jobs).toBeDefined();
+    expect(ANNOUNCEMENTS_ADMIN_WIDGETS.announcements).toBeDefined();
   });
 
   it("exports jobs home widgets by contribution id", () => {

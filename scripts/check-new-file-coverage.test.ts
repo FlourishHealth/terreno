@@ -5,11 +5,15 @@ import {assert} from "chai";
 import {parseLcov} from "./check-coverage";
 import {
   bunTestFileArgs,
+  colocatedTestCandidates,
   coverageRunArgs,
   evaluateNewFileCoverage,
   expandCoverageRunArgs,
+  findColocatedTests,
   groupFilesByWorkspace,
   isCoverageSourceFile,
+  PACKAGE_CI_LCOV_SKIP,
+  packageNeedsCompiledDistDeps,
   parseNewFileCoverageArgs,
   workspaceDepsCompileArgs,
 } from "./check-new-file-coverage";
@@ -18,6 +22,9 @@ describe("parseNewFileCoverageArgs", () => {
   it("requires callers to provide a base and defaults to 90 percent", () => {
     assert.deepEqual(parseNewFileCoverageArgs(["--base=abc123"]), {
       base: "abc123",
+      lcovPath: null,
+      packageName: null,
+      skipPackages: [],
       threshold: 90,
     });
   });
@@ -25,8 +32,29 @@ describe("parseNewFileCoverageArgs", () => {
   it("accepts a custom threshold", () => {
     assert.deepEqual(parseNewFileCoverageArgs(["--base=abc123", "--threshold=95"]), {
       base: "abc123",
+      lcovPath: null,
+      packageName: null,
+      skipPackages: [],
       threshold: 95,
     });
+  });
+
+  it("accepts lcov reuse, package filter, and skip list", () => {
+    assert.deepEqual(
+      parseNewFileCoverageArgs([
+        "--base=abc123",
+        "--package=api",
+        "--lcov=api/coverage/lcov.info",
+        "--skip-packages=api, ui",
+      ]),
+      {
+        base: "abc123",
+        lcovPath: "api/coverage/lcov.info",
+        packageName: "api",
+        skipPackages: ["api", "ui"],
+        threshold: 90,
+      }
+    );
   });
 });
 
@@ -43,6 +71,8 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
+    assert.isFalse(isCoverageSourceFile("announcements/src/types.ts"));
+    assert.isFalse(isCoverageSourceFile("admin-frontend/src/testing/useAdminApiDouble.ts"));
     assert.isFalse(isCoverageSourceFile("jobs/src/types.ts"));
     assert.isFalse(isCoverageSourceFile("example-backend/src/jobsWorker.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
@@ -59,6 +89,7 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("example-frontend/app/forgotPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/resetPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/verifyEmail.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/admin/announcements/create.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
   });
 });
@@ -184,6 +215,71 @@ describe("coverageRunArgs", () => {
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
       ["--max-concurrency=1", "src"]
+    );
+  });
+
+  it("prefers colocated tests over the full package suite", () => {
+    assert.deepEqual(
+      coverageRunArgs({
+        colocatedTests: ["src/new.ts"].flatMap(() => ["src/new.test.ts"]),
+        hasSrcDir: true,
+        packageName: "api",
+        testScript: "bun test",
+      }),
+      ["src/new.test.ts"]
+    );
+  });
+});
+
+describe("findColocatedTests", () => {
+  const repoRoot = resolve(import.meta.dir, "..");
+
+  it("maps a source file to sibling test files", () => {
+    assert.deepEqual(colocatedTestCandidates("api/src/errors.ts"), [
+      "api/src/errors.test.ts",
+      "api/src/errors.test.tsx",
+      "api/src/errors.spec.ts",
+      "api/src/errors.spec.tsx",
+    ]);
+    assert.deepEqual(
+      findColocatedTests({
+        files: ["api/src/errors.ts"],
+        packageRoot: join(repoRoot, "api"),
+        repoRoot,
+      }),
+      ["src/errors.test.ts"]
+    );
+  });
+
+  it("returns null when any new file lacks a colocated test", () => {
+    assert.isNull(
+      findColocatedTests({
+        files: ["api/src/errors.ts", "api/src/does-not-exist-for-coverage.ts"],
+        packageRoot: join(repoRoot, "api"),
+        repoRoot,
+      })
+    );
+  });
+});
+
+describe("packageNeedsCompiledDistDeps", () => {
+  const repoRoot = resolve(import.meta.dir, "..");
+
+  it("is true when workspace deps publish from dist", () => {
+    assert.isTrue(packageNeedsCompiledDistDeps(join(repoRoot, "admin-backend")));
+    assert.isTrue(packageNeedsCompiledDistDeps(join(repoRoot, "api")));
+  });
+});
+
+describe("PACKAGE_CI_LCOV_SKIP", () => {
+  it("covers every published package with a coverage CI job", () => {
+    assert.include(
+      PACKAGE_CI_LCOV_SKIP.map((entry) => entry.packageName),
+      "api"
+    );
+    assert.include(
+      PACKAGE_CI_LCOV_SKIP.map((entry) => entry.pipelineParameter),
+      "run-jobs"
     );
   });
 });

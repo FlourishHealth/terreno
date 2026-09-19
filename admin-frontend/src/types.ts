@@ -90,6 +90,8 @@ export interface AdminModelConfig {
    * is true. Omitted on other models.
    */
   syncCollection?: string;
+  /** True when the admin host enables organizations and the model has `organizationId`. */
+  organizationScoped?: boolean;
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
@@ -135,6 +137,9 @@ export interface AdminModelConfig {
 export interface AdminCustomScreen {
   description?: string;
   displayName: string;
+  /** Sidebar group label; grouped screens render with matching model groups in AdminShell. */
+  group?: string;
+  icon?: string;
   name: string;
 }
 

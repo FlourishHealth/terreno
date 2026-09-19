@@ -28,6 +28,7 @@
     "@shopify/react-native-skia": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "catalog:",
+    "expo-constants": "catalog:",
     "expo-document-picker": "catalog:",
     "expo-font": "catalog:",
     "expo-haptics": "catalog:",

@@ -89,6 +89,18 @@ export const expandRolePermissions = (
   readActions: readonly string[] = READ_ACTIONS
 ): PermissionSet => expandRolePermissionSpec(spec, statements, readActions);
 
+/** Locked platform role seeded only when `createAccess({organizations: true})`. */
+export const organizationOperatorRole: RoleDefinition = {
+  displayName: "Operator",
+  isLocked: true,
+  name: "operator",
+  permissions: {
+    admin: ["access"],
+    organization: ["create", "list", "read", "update", "delete", "manageMembers", "disable"],
+    user: ["list", "read", "update"],
+  },
+};
+
 export const terrenoDefaultRoles: RoleDefinition[] = [
   {
     displayName: "Super Admin",
@@ -103,6 +115,10 @@ export const terrenoDefaultRoles: RoleDefinition[] = [
     name: "admin",
     permissions: {
       admin: ["access"],
+      adminAnnouncement: ["read", "write", "writeOwned"],
+      adminAnnouncementAcknowledgement: ["read"],
+      adminAnnouncementClickEvent: ["read"],
+      adminAnnouncementImpression: ["read"],
       configuration: ["read", "update"],
       user: ["create", "list", "read", "update"],
     },

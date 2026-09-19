@@ -6,6 +6,8 @@ import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import {useAdminContext} from "./adminContext";
 import {isWindowedAdminTable} from "./adminWindowedTable";
 import {markAdminWindowMembershipStale} from "./adminWindowRefresh";
+import {shouldSkipOrgScopedAdminQuery} from "./orgs/shouldSkipOrgScopedAdminQuery";
+import {useOptionalOrgContext} from "./orgs/useOrgContext";
 import type {
   AdminApi,
   AdminFieldConfig,
@@ -302,6 +304,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   });
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const adminContext = useAdminContext();
+  const organizationId = useOptionalOrgContext()?.organizationId;
   const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -327,8 +330,13 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     modelName
   );
 
+  const skipOrgScopedQuery = shouldSkipOrgScopedAdminQuery({
+    organizationId,
+    organizationScoped: modelConfig?.organizationScoped,
+  });
+
   const {data: itemData, isLoading: isItemLoading} = useReadQuery(itemId ?? "", {
-    skip: mode !== "edit" || !itemId || !modelConfig,
+    skip: mode !== "edit" || !itemId || !modelConfig || skipOrgScopedQuery,
   });
 
   const [createItem, {isLoading: isCreating}] = useCreateMutation();

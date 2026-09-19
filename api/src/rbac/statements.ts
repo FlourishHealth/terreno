@@ -8,15 +8,33 @@ export const ADMIN_PAGE_PERMISSION = {
   [ADMIN_PAGE_RESOURCE]: [ADMIN_PAGE_ACTION],
 } as const;
 
+export const ORGANIZATION_ACTIONS = [
+  "create",
+  "list",
+  "read",
+  "update",
+  "delete",
+  "manageMembers",
+  "disable",
+] as const;
+
 export const terrenoStatements = {
   admin: [ADMIN_PAGE_ACTION, "jobs", "runScripts", "viewBackgroundTasks"],
+  adminAnnouncement: ADMIN_MODEL_ACCESS,
+  adminAnnouncementAcknowledgement: ADMIN_MODEL_ACCESS,
+  adminAnnouncementClickEvent: ADMIN_MODEL_ACCESS,
+  adminAnnouncementImpression: ADMIN_MODEL_ACCESS,
   adminConsentForm: ADMIN_MODEL_ACCESS,
   adminConsentResponse: ADMIN_MODEL_ACCESS,
   adminFeatureFlag: ADMIN_MODEL_ACCESS,
+  announcement: MODEL_CRUD,
+  announcementAcknowledgement: ["list", "read"],
+  announcementImpression: ["list", "read"],
   configuration: ["read", "update"],
   consentForm: MODEL_CRUD,
   consentResponse: ["list", "read"],
   featureFlag: MODEL_CRUD,
+  organization: ORGANIZATION_ACTIONS,
   rbac: ["read", "manageRoles", "assignRoles"],
   user: ["create", "list", "read", "update", "delete", "impersonate", "setPassword"],
 } as const;

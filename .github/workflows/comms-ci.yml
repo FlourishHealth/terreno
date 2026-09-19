@@ -52,3 +52,8 @@ jobs:
           directory: comms
           flag: comms
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Gate new files from LCOV
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/check-new-file-coverage-lcov.sh comms
+        working-directory: .
