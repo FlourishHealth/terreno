@@ -73,6 +73,13 @@
     "node": "22"
   },
   "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@react-native-community/blur"
+        ]
+      }
+    },
     "install": {
       "exclude": [
         "@shopify/react-native-skia"
