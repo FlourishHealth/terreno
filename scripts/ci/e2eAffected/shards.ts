@@ -63,8 +63,9 @@ export const E2E_SHARDS: ShardDefinition[] = [
       `${APP}/(tabs)/ai.tsx`,
       `${APP}/(tabs)/pdf.tsx`,
       `${APP}/(tabs)/files.tsx`,
+      `${APP}/notifications.tsx`,
     ],
-    specs: ["todos", "profile", "realtime", "ai-chat", "pdf"],
+    specs: ["todos", "profile", "realtime", "ai-chat", "pdf", "notifications"],
   },
   {
     blocksPullRequest: true,

@@ -201,6 +201,14 @@ export const DEMO_COVERAGE_ALLOWLIST: AllowlistEntry[] = [
   },
   {name: "Host", reason: "Portal host is application shell, not a visual story"},
   {name: "IconRegistryProvider", reason: "Icon registry is application shell"},
+  {
+    name: "NotificationInbox",
+    reason: "Notification Center pattern demo already mounts the inbox list",
+  },
+  {
+    name: "NotificationPreferences",
+    reason: "Notification Center pattern demo already mounts channel preferences",
+  },
   {name: "Portal", reason: "Portal is a host primitive, not a visual story"},
   {name: "PortalContext", reason: "React context object, not a visual component"},
   {

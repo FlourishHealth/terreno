@@ -135,6 +135,7 @@ export interface CommsSendOptions {
   extraMetadata?: Record<string, unknown>;
   isRetry?: boolean;
   retriedFromId?: string;
+  userId?: mongoose.Types.ObjectId | string;
 }
 
 export interface RetryMessageOptions {

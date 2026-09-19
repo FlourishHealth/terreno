@@ -49,6 +49,7 @@ import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
 import {MobileAddressAutocompleteConfiguration} from "@story-config/MobileAddressAutocomplete.config";
 import {ModalConfiguration} from "@story-config/Modal.config";
 import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
+import {NotificationCenterConfiguration} from "@story-config/NotificationCenter.config";
 import {NumberFieldConfiguration} from "@story-config/NumberField.config";
 import {NumberPickerActionSheetConfiguration} from "@story-config/NumberPickerActionSheet.config";
 import {OAuthButtonsConfiguration} from "@story-config/OAuthButtons.config";
@@ -314,6 +315,7 @@ const Config: DemoConfigurationBase[] = [
   // MessageConfiguration,
   ModalConfiguration,
   MobileAddressAutocompleteConfiguration,
+  NotificationCenterConfiguration,
   MultiselectFieldConfiguration,
   NumberFieldConfiguration,
   NumberPickerActionSheetConfiguration,
