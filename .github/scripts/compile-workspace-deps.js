@@ -10,7 +10,8 @@
  *
  * Optional extra package directories (absolute or relative to this script's cwd)
  * compile each package's @terreno/* deps in one process so a shared `compiled`
- * set skips duplicate `tsc` work:
+ * set skips duplicate `tsc` work. Packages with `tsconfig.server.json`
+ * (admin-spa) compile that config so the published `src/dist` entry exists:
  *   node compile-workspace-deps.js /path/to/api /path/to/rtk
  */
 const fs = require("fs");
@@ -37,6 +38,14 @@ const resolveMonorepoPackageDir = (fromDir, packageName) => {
   return resolved;
 };
 
+const compileCommandForDir = (dir) => {
+  const resolved = path.resolve(dir);
+  if (fs.existsSync(path.join(resolved, "tsconfig.server.json"))) {
+    return "bun tsc -p tsconfig.server.json";
+  }
+  return "bun tsc";
+};
+
 const compile = (dir) => {
   const resolved = path.resolve(dir);
   if (compiled.has(resolved)) {
@@ -59,38 +68,42 @@ const compile = (dir) => {
     }
   }
 
-  console.log(`Compiling ${depPkg.name} (${resolved})`);
-  execSync("bun tsc", {cwd: resolved, stdio: "inherit"});
-  if (depPkg.name === "@terreno/mcp") {
-    fs.cpSync(path.join(resolved, "src", "docs"), path.join(resolved, "dist", "docs"), {
-      recursive: true,
-    });
-  }
+  const compileCmd = compileCommandForDir(resolved);
+  console.log(`Compiling ${depPkg.name} (${resolved}) with ${compileCmd}`);
+  execSync(compileCmd, {cwd: resolved, stdio: "inherit"});
 };
 
-const packageDirs =
-  process.argv.slice(2).length > 0
-    ? process.argv.slice(2).map((dir) => path.resolve(dir))
-    : [process.cwd()];
+const run = () => {
+  const packageDirs =
+    process.argv.slice(2).length > 0
+      ? process.argv.slice(2).map((dir) => path.resolve(dir))
+      : [process.cwd()];
 
-for (const packageDir of packageDirs) {
-  const pkgPath = path.join(packageDir, "package.json");
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-  for (const t of DEP_TYPES) {
-    for (const [name] of Object.entries(pkg[t] || {})) {
-      if (!isTerrenoMonorepoDep(name)) {
-        continue;
-      }
-      const depDir = resolveMonorepoPackageDir(packageDir, name);
-      if (depDir) {
-        compile(depDir);
+  for (const packageDir of packageDirs) {
+    const pkgPath = path.join(packageDir, "package.json");
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    for (const t of DEP_TYPES) {
+      for (const [name] of Object.entries(pkg[t] || {})) {
+        if (!isTerrenoMonorepoDep(name)) {
+          continue;
+        }
+        const depDir = resolveMonorepoPackageDir(packageDir, name);
+        if (depDir) {
+          compile(depDir);
+        }
       }
     }
   }
+
+  if (compiled.size === 0) {
+    console.log("No @terreno monorepo dependencies to compile");
+  } else {
+    console.log(`Compiled ${compiled.size} @terreno monorepo dependency(ies)`);
+  }
+};
+
+if (require.main === module) {
+  run();
 }
 
-if (compiled.size === 0) {
-  console.log("No @terreno monorepo dependencies to compile");
-} else {
-  console.log(`Compiled ${compiled.size} @terreno monorepo dependency(ies)`);
-}
+module.exports = {compileCommandForDir};

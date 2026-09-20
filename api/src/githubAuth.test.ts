@@ -1,8 +1,6 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
-import mongoose, {model, Schema} from "mongoose";
+import mongoose, {type Model, model, Schema} from "mongoose";
 import passport from "passport";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
@@ -72,22 +70,26 @@ const testUserSchema = new Schema<TestUser>({
   username: {description: "The user's username", type: String},
 });
 
-testUserSchema.plugin(passportLocalMongoose as any, {
-  attemptsField: "attempts",
-  interval: 1,
-  limitAttempts: true,
-  maxAttempts: 3,
-  maxInterval: 1,
-  usernameCaseInsensitive: true,
-  usernameField: "email",
-});
+testUserSchema.plugin(
+  passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
+  {
+    attemptsField: "attempts",
+    interval: 1,
+    limitAttempts: true,
+    maxAttempts: 3,
+    maxInterval: 1,
+    usernameCaseInsensitive: true,
+    usernameField: "email",
+  }
+);
 testUserSchema.plugin(createdUpdatedPlugin);
 testUserSchema.plugin(isDisabledPlugin);
 testUserSchema.plugin(githubUserPlugin);
 
 // Get or create model to avoid model redefinition errors
 const GitHubTestUserModel =
-  mongoose.models.GitHubTestUser || model<TestUser>("GitHubTestUser", testUserSchema);
+  (mongoose.models.GitHubTestUser as Model<TestUser> | undefined) ??
+  model<TestUser>("GitHubTestUser", testUserSchema);
 
 // Connect to database before tests
 const connectDb = async () => {
@@ -114,9 +116,9 @@ describe("githubUserPlugin", () => {
 
   it("githubId is indexed and sparse", () => {
     const githubIdPath = testUserSchema.path("githubId");
-    expect((githubIdPath as any).options.index).toBe(true);
-    expect((githubIdPath as any).options.sparse).toBe(true);
-    expect((githubIdPath as any).options.unique).toBe(true);
+    expect(githubIdPath.options.index).toBe(true);
+    expect(githubIdPath.options.sparse).toBe(true);
+    expect(githubIdPath.options.unique).toBe(true);
   });
 });
 
@@ -136,7 +138,7 @@ describe("GitHub auth routes", () => {
       email: "test@example.com",
       name: "Test User",
     });
-    await (testUser as any).setPassword("password123");
+    await (testUser as unknown as PasswordedDocument).setPassword("password123");
     await testUser.save();
 
     function addRoutes(router: express.Router): void {
@@ -152,7 +154,7 @@ describe("GitHub auth routes", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -187,8 +189,8 @@ describe("GitHub auth routes", () => {
     // Link github to this user
     const user = await GitHubTestUserModel.findOne({email: "test@example.com"});
     if (user) {
-      (user as any).githubId = "99999";
-      (user as any).githubUsername = "testghuser";
+      user.githubId = "99999";
+      user.githubUsername = "testghuser";
       await user.save();
     }
 
@@ -202,8 +204,8 @@ describe("GitHub auth routes", () => {
 
     // Verify github fields are cleared
     const updatedUser = await GitHubTestUserModel.findOne({email: "test@example.com"});
-    expect((updatedUser as any).githubId).toBeUndefined();
-    expect((updatedUser as any).githubUsername).toBeUndefined();
+    expect(updatedUser?.githubId).toBeUndefined();
+    expect(updatedUser?.githubUsername).toBeUndefined();
   });
 
   it("user can have both password and GitHub auth", async () => {
@@ -214,8 +216,8 @@ describe("GitHub auth routes", () => {
     }
 
     // Link GitHub
-    (user as any).githubId = "88888";
-    (user as any).githubUsername = "linkeduser";
+    user.githubId = "88888";
+    user.githubUsername = "linkeduser";
     await user.save();
 
     // Can still login with password
@@ -230,8 +232,8 @@ describe("GitHub auth routes", () => {
     // and we verify GitHub fields are set
     const updatedUser = await GitHubTestUserModel.findOne({email: "test@example.com"});
     expect(updatedUser).toBeDefined();
-    expect((updatedUser as any).githubId).toBe("88888");
-    expect((updatedUser as any).githubUsername).toBe("linkeduser");
+    expect(updatedUser?.githubId).toBe("88888");
+    expect(updatedUser?.githubUsername).toBe("linkeduser");
   });
 });
 
@@ -253,7 +255,7 @@ describe("GitHub auth disabled", () => {
     app = new TerrenoApp({
       configureApp: addRoutes,
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -282,7 +284,10 @@ interface VerifyError {
   message?: string;
 }
 
-type VerifiedUser = any;
+type VerifiedUser = {
+  _id: mongoose.Types.ObjectId | string;
+  email?: string;
+} & Partial<GitHubUserFields>;
 
 interface VerifyStrategy {
   _verify: (
@@ -316,7 +321,7 @@ const invokeGitHubVerify = (
 };
 
 describe("GitHub strategy verify callback", () => {
-  const testApp = {get: () => {}, use: () => {}} as any;
+  const testApp = {get: () => {}, use: () => {}} as unknown as express.Application;
 
   beforeEach(async () => {
     await connectDb();
@@ -325,7 +330,7 @@ describe("GitHub strategy verify callback", () => {
 
   it("uses custom findOrCreateUser when provided", async () => {
     const customUser = {_id: "custom-user-id", email: "custom@example.com"};
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
       clientSecret: "secret",
@@ -338,7 +343,7 @@ describe("GitHub strategy verify callback", () => {
   });
 
   it("creates a new user when no existing GitHub or email user", async () => {
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
       clientSecret: "secret",
@@ -366,9 +371,9 @@ describe("GitHub strategy verify callback", () => {
       githubId: "gh-existing-1",
       githubUsername: "ghuser",
       name: "GH User",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
       clientSecret: "secret",
@@ -379,16 +384,16 @@ describe("GitHub strategy verify callback", () => {
       username: "ghuser",
     });
     expect(result.err).toBeNull();
-    expect(result.user._id.toString()).toBe((existingUser as any)._id.toString());
+    expect(result.user._id.toString()).toBe(existingUser._id.toString());
   });
 
   it("links GitHub to authenticated user when allowAccountLinking=true", async () => {
     const existingUser = await GitHubTestUserModel.create({
       email: "link@example.com",
       name: "Link User",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: true,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -410,9 +415,9 @@ describe("GitHub strategy verify callback", () => {
   it("rejects linking when allowAccountLinking=false", async () => {
     const existingUser = await GitHubTestUserModel.create({
       email: "nolink@example.com",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: false,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -422,19 +427,19 @@ describe("GitHub strategy verify callback", () => {
     const req = {user: existingUser};
     const result = await invokeGitHubVerify(req, "access", "refresh", {id: "gh-nolink-1"});
     expect(result.err).toBeDefined();
-    expect((result.err as any).status).toBe(400);
+    expect(result.err?.status).toBe(400);
   });
 
   it("rejects linking when GitHub account belongs to another user", async () => {
     const userA = await GitHubTestUserModel.create({
       email: "a@example.com",
-    } as any);
+    });
     await GitHubTestUserModel.create({
       email: "b@example.com",
       githubId: "gh-other-1",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: true,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -444,15 +449,15 @@ describe("GitHub strategy verify callback", () => {
     const req = {user: userA};
     const result = await invokeGitHubVerify(req, "access", "refresh", {id: "gh-other-1"});
     expect(result.err).toBeDefined();
-    expect((result.err as any).status).toBe(400);
+    expect(result.err?.status).toBe(400);
   });
 
   it("links GitHub to existing email user when allowAccountLinking is not false", async () => {
     await GitHubTestUserModel.create({
       email: "emailuser@example.com",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
       clientSecret: "secret",
@@ -471,9 +476,9 @@ describe("GitHub strategy verify callback", () => {
   it("rejects email-link when allowAccountLinking=false", async () => {
     await GitHubTestUserModel.create({
       email: "emailnolink@example.com",
-    } as any);
+    });
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: false,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -485,12 +490,12 @@ describe("GitHub strategy verify callback", () => {
       id: "gh-email-nolink-1",
     });
     expect(result.err).toBeDefined();
-    expect((result.err as any).status).toBe(400);
+    expect(result.err?.status).toBe(400);
   });
 
   it("returns error when thrown during lookup", async () => {
     // Set up strategy with findOrCreateUser that throws
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
       clientSecret: "secret",
@@ -527,7 +532,7 @@ describe("addGitHubAuthRoutes link endpoints", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     }).build();
     agent = supertest.agent(app);
   });
@@ -553,8 +558,8 @@ describe("addGitHubAuthRoutes link endpoints", () => {
       githubId: "77777",
       githubProfileUrl: "http://profile",
       githubUsername: "ghunlink",
-    } as any);
-    await (user as any).setPassword("password123");
+    });
+    await (user as unknown as PasswordedDocument).setPassword("password123");
     await user.save();
 
     const loginRes = await agent
@@ -568,9 +573,9 @@ describe("addGitHubAuthRoutes link endpoints", () => {
       .expect(200);
 
     const updatedUser = await GitHubTestUserModel.findOne({email: "unlinkme@example.com"});
-    expect((updatedUser as any).githubId).toBeUndefined();
-    expect((updatedUser as any).githubAvatarUrl).toBeUndefined();
-    expect((updatedUser as any).githubProfileUrl).toBeUndefined();
+    expect(updatedUser?.githubId).toBeUndefined();
+    expect(updatedUser?.githubAvatarUrl).toBeUndefined();
+    expect(updatedUser?.githubProfileUrl).toBeUndefined();
   });
 });
 

@@ -10,11 +10,15 @@ import {APIError} from "../errors";
 import {logger} from "../logger";
 import type {PermissionMethod} from "../permissions";
 import {canReadDocumentRealtime, maskRealtimeDocument} from "../rbac/realtimeAccess";
+import {
+  authorizeAdminBroadcastDocument,
+  isAdminBroadcastSocketRoom,
+} from "../sync/adminBroadcastScope";
 import {computeStableFrontier, SyncScopeMove} from "../sync/models";
 import {findSyncEntryByCollectionName, type SyncRegistryEntry} from "../sync/registry";
 import {serializeSyncPayload} from "../sync/serialize";
 import {syncRoomForStream} from "../sync/socketHandlers";
-import {resolveStreamForDoc} from "../sync/streams";
+import {adminBroadcastStream, resolveStreamForDoc} from "../sync/streams";
 import type {SyncDelta, SyncMutationOperation, SyncResyncHint} from "../sync/types";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
@@ -58,10 +62,10 @@ let restartAttempts = 0;
 let restartTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** First restart delay; doubles per consecutive attempt up to the max. */
-export const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
+const CHANGE_STREAM_RESTART_BASE_DELAY_MS = 250;
 
 /** Ceiling for the restart backoff — a long outage retries once every 30s, forever. */
-export const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
+const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
 
 /**
  * Socket event telling clients their cached cursors may have gaps and they must
@@ -69,6 +73,7 @@ export const CHANGE_STREAM_RESTART_MAX_DELAY_MS = 30_000;
  * (`ChangeStreamHistoryLost`), which is the one failure a resume token cannot repair.
  * Payload: {@link SyncResyncHint}.
  */
+/** @internal */
 export const SYNC_RESYNC_EVENT = "sync:resync-required";
 
 /** MongoDB error code / codeName for an unresumable change stream (oplog rolled past). */
@@ -116,6 +121,7 @@ const serializePerEntity = (key: string, task: () => Promise<void>): void => {
  * events are internal (counters/ledger/markers/keys), and processing them would emit
  * spurious deltas or reprocess scope-move markers. Exported for testing.
  */
+/** @internal */
 export const DEFAULT_IGNORED_COLLECTIONS = [
   "socketio",
   "sessions",
@@ -137,6 +143,7 @@ export const DEFAULT_IGNORED_COLLECTIONS = [
  *
  * Exported for testing.
  */
+/** @internal */
 export const mapOperationType = (
   operationType: string,
   change: ChangeStreamDocument,
@@ -192,9 +199,14 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
  * `RealtimeRegistryEntry` and `SyncRegistryEntry` satisfy it structurally.
  */
 export interface AuthorizedEmitEntry {
+  collectionTag?: string;
   modelName: string;
   options: {permissions: {read: PermissionMethod<unknown>[]}};
+  routePath?: string;
 }
+
+const emitCollectionTag = (entry: AuthorizedEmitEntry): string | undefined =>
+  entry.collectionTag ?? (entry.routePath ? getCollectionTag(entry.routePath) : undefined);
 
 const canReadDocument = async (
   entry: AuthorizedEmitEntry,
@@ -206,6 +218,7 @@ const canReadDocument = async (
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
+/** @internal */
 export const resolveRooms = (
   entry: RealtimeRegistryEntry,
   doc: Record<string, unknown>,
@@ -243,6 +256,7 @@ export const resolveRooms = (
  * Ensure serialized documents include `id` to match REST API responses.
  * Change stream fullDocument payloads are raw BSON objects with `_id` only.
  */
+/** @internal */
 export const ensureApiId = (data: unknown): unknown => {
   if (data == null || typeof data !== "object" || Array.isArray(data)) {
     return data;
@@ -270,6 +284,7 @@ export const ensureApiId = (data: unknown): unknown => {
  * would risk leaking unsanitized fields (e.g. `hash`/`salt`) that the handler
  * was supposed to strip.
  */
+/** @internal */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
   doc: Record<string, unknown>,
@@ -357,6 +372,22 @@ export const emitPayloadToAuthorizedRoom = async ({
       // Hard deletes have no document context; use an empty object so object-scoped
       // permission helpers fail closed instead of treating the check as preflight.
       const permissionDocument = fullDocument ?? {};
+      const collectionTag = emitCollectionTag(entry);
+      if (collectionTag && isAdminBroadcastSocketRoom(room, collectionTag)) {
+        const adminDecision = await authorizeAdminBroadcastDocument({
+          doc: fullDocument,
+          modelName: entry.modelName,
+          user,
+        });
+        if (adminDecision === "deny") {
+          logDebug(`[realtime] Skipped ${room} for ${socket.id}: admin broadcast scope denied`);
+          continue;
+        }
+        if (adminDecision === "allow") {
+          socket.emit(eventName, await buildPayload(user));
+          continue;
+        }
+      }
       const canRead = await canReadDocument(entry, user, permissionDocument);
       if (!canRead) {
         logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);
@@ -373,6 +404,7 @@ export const emitPayloadToAuthorizedRoom = async ({
   }
 };
 
+/** @internal */
 export const emitToAuthorizedRoom = async (
   io: Server,
   room: string,
@@ -413,6 +445,7 @@ export const emitToAuthorizedRoom = async (
  *
  * Exported for testing.
  */
+/** @internal */
 export const emitToDocumentAndQueryRooms = async (
   io: Server,
   collection: string,
@@ -718,37 +751,44 @@ export const emitSyncDeltaForChange = async ({
     method = "create";
   }
 
-  const frontierSeq = await computeStableFrontier({stream});
-  const delta: SyncDelta = {
-    collection: entry.collectionTag,
-    frontierSeq,
-    id: docId,
-    method,
-    seq,
-    stream,
-    ...(deleted ? {deleted: true} : {}),
+  const emitLiveDelta = async (targetStream: string): Promise<void> => {
+    const frontierSeq = await computeStableFrontier({stream: targetStream});
+    const liveDelta: SyncDelta = {
+      collection: entry.collectionTag,
+      frontierSeq,
+      id: docId,
+      method,
+      seq,
+      stream: targetStream,
+      ...(deleted ? {deleted: true} : {}),
+    };
+    await emitPayloadToAuthorizedRoom({
+      // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
+      buildPayload: deleted
+        ? () => liveDelta
+        : async (user) => {
+            const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
+            const data = ensureApiId(
+              await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
+            );
+            return {...liveDelta, data};
+          },
+      entry,
+      eventName: "sync:delta",
+      fullDocument,
+      io,
+      logDebug,
+      room: syncRoomForStream(targetStream),
+    });
+    logDebug(
+      `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${targetStream} frontier=${frontierSeq}`
+    );
   };
-  await emitPayloadToAuthorizedRoom({
-    // C7: tombstone deltas carry no data (only id/seq/deleted); live deltas serialize.
-    buildPayload: deleted
-      ? () => delta
-      : async (user) => {
-          const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
-          const data = ensureApiId(
-            await serializeSyncPayload({doc: fullDocument, entry, method, req: syntheticReq})
-          );
-          return {...delta, data};
-        },
-    entry,
-    eventName: "sync:delta",
-    fullDocument,
-    io,
-    logDebug,
-    room: syncRoomForStream(stream),
-  });
-  logDebug(
-    `[sync] Emitted sync:delta ${method} for ${entry.collectionTag}/${docId} seq=${seq} stream=${stream} frontier=${frontierSeq}`
-  );
+
+  await emitLiveDelta(stream);
+  if (entry.config.adminBroadcast === true) {
+    await emitLiveDelta(adminBroadcastStream(entry.collectionTag));
+  }
 };
 
 /**

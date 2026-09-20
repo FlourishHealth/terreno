@@ -42,6 +42,24 @@ export const baseUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({email: {description: "The user's email address", index: true, type: String}});
 };
 
+export interface EmailVerified {
+  emailVerified: boolean;
+}
+
+/**
+ * Opt-in `emailVerified` field for user schemas. Defaults to false so existing
+ * documents stay unverified until they complete the email-verification flow.
+ */
+export const emailVerificationPlugin = (schema: Parameters<typeof baseUserPlugin>[0]): void => {
+  schema.add({
+    emailVerified: {
+      default: false,
+      description: "Whether the user has verified their email address",
+      type: Boolean,
+    },
+  });
+};
+
 /** For models with the isDeletedPlugin, extend this interface to add the appropriate fields. */
 export interface IsDeleted {
   // Whether the model should be treated as deleted or not.

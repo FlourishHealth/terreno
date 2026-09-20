@@ -4,6 +4,19 @@ name: New file coverage
 on: []
 
 jobs:
+  coverage-scripts:
+    name: Test coverage gate scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-workspace
+
+      - name: Test coverage gate scripts
+        run: bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts scripts/check-package-coverage-ci.test.ts scripts/upload-codecov.test.ts
+
   new-file-coverage:
     name: Require 90% coverage on new source files
     runs-on: ubuntu-latest
@@ -27,19 +40,11 @@ jobs:
             exit 1
           fi
 
-      - name: Compile workspace for coverage tests
-        run: |
-          node .github/scripts/compile-workspace-deps.js api
-          bun run --filter '@terreno/api' compile
-
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: "6.0"
           mongodb-image: mirror.gcr.io/library/mongo
-
-      - name: Test coverage gate
-        run: bun test scripts/check-new-file-coverage.test.ts scripts/check-coverage.test.ts
 
       - name: Check new source file coverage
         env:

@@ -111,7 +111,9 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 ## Tools
 
 Code generation tools return TypeScript/JavaScript code as text. **Code generation tools do not
-write files** — the AI assistant receives the code and writes it to appropriate locations.
+write files** — the AI assistant receives the code and writes it to appropriate locations. Scaffold
+a new app with [`create-terreno-app`](create-terreno-app.md) (`bunx create-terreno-app`), not an MCP
+tool.
 
 The local `browser` tool is different: its `screenshot` action writes the requested image path so an
 agent can attach the rendered result as verification evidence. It keeps one headless session alive
@@ -145,8 +147,11 @@ BM25-style keyword search over markdown bundled with the MCP server: `docs/resou
   queries: string[];       // Required — one or more search phrases
   packages?: string[];     // Optional — filter by package id or scope, e.g. ["api", "@terreno/ui"]
   tokenLimit?: number;      // Approximate max tokens of markdown (default 3000)
+  version?: string;         // Optional @terreno/* lockstep version (e.g. 57.2.0). Omit for current `next` docs.
 }
 ``````
+
+Unmatched versions fall back to the nearest retained snapshot (`website/versioned_docs/`, copied into `docs/versioned/` at MCP build). The response names the resolved version and includes a note when a fallback happened. Pass the consumer app's `@terreno/*` version from `application_info` or `package.json`. Range prefixes such as `^57.2.0` are stripped before matching.
 
 ### terreno_get_component_docs
 
@@ -157,12 +162,15 @@ Returns the full props table for a single `@terreno/ui` component from `ui-types
 ``````typescript
 {
   component: string;        // e.g. "Button", "TextField"
+  version?: string;         // Optional @terreno/* lockstep version. Omit for current TypeDoc props.
 }
 ``````
 
+When `version` matches a retained docs snapshot, the tool returns that version's generated component page (MDX chrome stripped). Snapshot filenames may be hyphenated (`text-field.mdx`) or concatenated (`userinactivity.mdx`); lookup tries both. Otherwise it uses current `ui-types-documentation.json` and notes the fallback.
+
 ### terreno_get_upgrade_guide
 
-Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages.
+Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to `@terreno/*` packages. The response always lists which versions in the range **have** notes. If some or all versions have none, it names those gaps — an empty concatenation would look like “nothing changed,” which is usually false. `fromVersion` must be less than or equal to `toVersion`. Note format: `mcp-server/src/docs/upgrades/README.md`.
 
 **Parameters:**
 
@@ -360,47 +368,6 @@ Validate a Mongoose schema against Terreno conventions.
 - Recommendations for fixes
 - Severity levels (error, warning, info)
 
-### terreno_bootstrap_app
-
-Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose backend, Cursor rules, MCP settings).
-
-**Parameters:**
-
-``````typescript
-{
-  appName: string;           // kebab-case (e.g., "my-app")
-  appDisplayName: string;    // Human-readable name
-  description?: string;
-  mcpServerUrl?: string;     // Default: https://mcp.terreno.app
-}
-``````
-
-**Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
-
-The generated Profile tab (`frontend/app/(tabs)/profile.tsx`) uses `@terreno/ui` `TapToEdit` for name, email, and password. Each field saves independently with `PATCH /auth/me` (`usePatchMeMutation`). Name and email each have their own `useEffect`, so saving one field does not wipe an in-progress edit on the other.
-
-The generated app is expected to install and boot with no manual follow-up, so the
-scaffold deliberately ships no binary assets and no references to files it does not
-create:
-
-- **Fonts** come from `@terreno/ui`. `TerrenoProvider` wraps children in
-  `TerrenoFontProvider`, which loads Nunito and Titillium Web from
-  `@expo-google-fonts/*`. The generated `app/_layout.tsx` calls no `useFonts` of its own.
-- **Icon, splash, and favicon** are left unset in `app.json` so Expo uses its built-in
-  defaults. Point them at real files once the app has branding.
-- **`metro.config.js`** pins every `jspdf` request to `jspdf/dist/jspdf.es.min.js` on web
-  and drops it on native. `@terreno/admin-frontend` pulls jspdf in for consent-PDF export,
-  and jspdf's CommonJS and Node builds contain an AMD-style `require(["html2canvas"], cb)`
-  call that Metro's static transform cannot parse — without the override it fails the whole
-  bundle, including Expo Router's static web render.
-- **Auth-gated routes** use `<Stack.Protected guard={...}>`. Wrapping `Stack.Screen`
-  children in a conditional or fragment instead crashes the navigator.
-- **`tsconfig.json`** sets no `baseUrl`; it is deprecated in TypeScript 6 and makes `tsc`
-  abort with TS5101 before checking a single file. `paths` resolve relative to the tsconfig.
-- **Declared dependencies** include every package generated frontend source imports
-  (`react-native-reanimated`, `redux-persist`, `@reduxjs/toolkit`, `@expo/vector-icons`,
-  `lodash`, `luxon`, and the rest). Do not rely on transitive installs for those.
-
 ### terreno_bootstrap_ai_rules
 
 Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).
@@ -435,7 +402,7 @@ Multi-step workflow prompts that guide AI assistants through complex tasks.
 
 ### terreno_bootstrap
 
-Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstrap_app` and `terreno_bootstrap_ai_rules` tools.
+Workflow prompt for scaffolding a new Terreno app. Instructs the assistant to run `bunx create-terreno-app`, then `terreno_bootstrap_ai_rules`.
 
 **Arguments:**
 

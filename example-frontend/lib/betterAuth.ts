@@ -24,24 +24,48 @@ export const signInWithSocial = async (provider: "google" | "github" | "apple"):
   await betterAuthClient.signIn.social({provider});
 };
 
-export const signInWithEmail = async (email: string, password: string): Promise<void> => {
-  await betterAuthClient.signIn.email({email, password});
+interface BetterAuthActionResult {
+  error?: {message?: string} | null;
+}
+
+const getPasswordResetRedirectUrl = (): string => {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/resetPassword`;
+  }
+  return `${getAppScheme()}://resetPassword`;
 };
 
-export const signUpWithEmail = async (
-  email: string,
-  password: string,
-  name: string
-): Promise<void> => {
-  await betterAuthClient.signUp.email({email, name, password});
+export const requestPasswordReset = async (email: string): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch("/request-password-reset", {
+    body: {email, redirectTo: getPasswordResetRedirectUrl()},
+    method: "POST",
+  });
+  return {error: result.error};
 };
 
-export const signOut = async (): Promise<void> => {
-  await betterAuthClient.signOut();
+export const resetPasswordWithToken = async ({
+  newPassword,
+  token,
+}: {
+  newPassword: string;
+  token: string;
+}): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch("/reset-password", {
+    body: {newPassword, token},
+    method: "POST",
+  });
+  return {error: result.error};
 };
 
-export const getSession = async () => {
-  return betterAuthClient.getSession();
+export const verifyEmailWithToken = async ({
+  token,
+}: {
+  token: string;
+}): Promise<BetterAuthActionResult> => {
+  const result = await betterAuthClient.$fetch(`/verify-email?token=${encodeURIComponent(token)}`, {
+    method: "GET",
+  });
+  return {error: result.error};
 };
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

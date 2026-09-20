@@ -1,5 +1,6 @@
 [test]
-preload = "./src/__tests__/preload.ts"
+# Array form: Knip's Bun plugin calls `preload.map` and crashes on a scalar string.
+preload = ["./src/__tests__/preload.ts"]
 # `databaseQuery` and the Metro/CDP session are external-driver adapters. Focused tests
 # cover validation, connection sharing, event capture, and evaluation; driver-heavy
 # tails are excluded so the 95% gate measures deterministic application logic.

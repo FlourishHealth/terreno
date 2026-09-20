@@ -185,7 +185,6 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -233,6 +232,11 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "email": {
                                   "type": "string",
                                 },
+                                "emailVerified": {
+                                  "default": false,
+                                  "description": "Whether the user has verified their email address",
+                                  "type": "boolean",
+                                },
                                 "hash": {
                                   "type": "string",
                                 },
@@ -252,8 +256,21 @@ exports[`openApi gets the openapi.json 1`] = `
                                   },
                                   "type": "array",
                                 },
+                                "roles": {
+                                  "default": [],
+                                  "description": "RBAC role names assigned to this user",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
+                                },
+                                "tokenEpoch": {
+                                  "default": 0,
+                                  "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                  "type": "number",
                                 },
                                 "updated": {
                                   "description": "When this document was last updated",
@@ -305,7 +322,6 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -348,6 +364,11 @@ exports[`openApi gets the openapi.json 1`] = `
                               "email": {
                                 "type": "string",
                               },
+                              "emailVerified": {
+                                "default": false,
+                                "description": "Whether the user has verified their email address",
+                                "type": "boolean",
+                              },
                               "hash": {
                                 "type": "string",
                               },
@@ -367,8 +388,21 @@ exports[`openApi gets the openapi.json 1`] = `
                                 },
                                 "type": "array",
                               },
+                              "roles": {
+                                "default": [],
+                                "description": "RBAC role names assigned to this user",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
+                              },
                               "salt": {
                                 "type": "string",
+                              },
+                              "tokenEpoch": {
+                                "default": 0,
+                                "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                "type": "number",
                               },
                               "updated": {
                                 "description": "When this document was last updated",
@@ -397,7 +431,6 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "type": "string",
                               },
                             },
-                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -522,7 +555,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -570,6 +602,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -589,8 +626,21 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -642,7 +692,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -685,6 +734,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -704,8 +758,21 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "type": "array",
                       },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -734,7 +801,6 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -788,7 +854,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -836,6 +901,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -855,8 +925,21 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -908,7 +991,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -951,6 +1033,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -970,8 +1057,21 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1000,7 +1100,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1184,7 +1283,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -1232,6 +1330,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -1251,8 +1354,21 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -1304,7 +1420,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -1347,6 +1462,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1366,8 +1486,21 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1396,7 +1529,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -1514,7 +1646,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -1562,6 +1693,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1581,8 +1717,21 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1634,7 +1783,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -1677,6 +1825,11 @@ exports[`openApi gets the openapi.json 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -1696,8 +1849,21 @@ exports[`openApi gets the openapi.json 1`] = `
                         },
                         "type": "array",
                       },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -1726,7 +1892,6 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -1780,7 +1945,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -1828,6 +1992,11 @@ exports[`openApi gets the openapi.json 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -1847,8 +2016,21 @@ exports[`openApi gets the openapi.json 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -1900,7 +2082,6 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -1943,6 +2124,11 @@ exports[`openApi gets the openapi.json 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -1962,8 +2148,21 @@ exports[`openApi gets the openapi.json 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -1992,7 +2191,6 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -2253,7 +2451,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -2301,6 +2498,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "email": {
                                   "type": "string",
                                 },
+                                "emailVerified": {
+                                  "default": false,
+                                  "description": "Whether the user has verified their email address",
+                                  "type": "boolean",
+                                },
                                 "hash": {
                                   "type": "string",
                                 },
@@ -2320,8 +2522,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   },
                                   "type": "array",
                                 },
+                                "roles": {
+                                  "default": [],
+                                  "description": "RBAC role names assigned to this user",
+                                  "items": {
+                                    "type": "string",
+                                  },
+                                  "type": "array",
+                                },
                                 "salt": {
                                   "type": "string",
+                                },
+                                "tokenEpoch": {
+                                  "default": 0,
+                                  "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                  "type": "number",
                                 },
                                 "updated": {
                                   "description": "When this document was last updated",
@@ -2373,7 +2588,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -2416,6 +2630,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                               "email": {
                                 "type": "string",
                               },
+                              "emailVerified": {
+                                "default": false,
+                                "description": "Whether the user has verified their email address",
+                                "type": "boolean",
+                              },
                               "hash": {
                                 "type": "string",
                               },
@@ -2435,8 +2654,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 },
                                 "type": "array",
                               },
+                              "roles": {
+                                "default": [],
+                                "description": "RBAC role names assigned to this user",
+                                "items": {
+                                  "type": "string",
+                                },
+                                "type": "array",
+                              },
                               "salt": {
                                 "type": "string",
+                              },
+                              "tokenEpoch": {
+                                "default": 0,
+                                "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                                "type": "number",
                               },
                               "updated": {
                                 "description": "When this document was last updated",
@@ -2465,7 +2697,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "type": "string",
                               },
                             },
-                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -2590,7 +2821,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -2638,6 +2868,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -2657,8 +2892,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -2710,7 +2958,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -2753,6 +3000,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -2772,8 +3024,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "type": "array",
                       },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -2802,7 +3067,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -2856,7 +3120,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -2904,6 +3167,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -2923,8 +3191,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -2976,7 +3257,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -3019,6 +3299,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3038,8 +3323,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3068,7 +3366,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -3252,7 +3549,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -3300,6 +3596,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -3319,8 +3620,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -3372,7 +3686,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -3415,6 +3728,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3434,8 +3752,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3464,7 +3795,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -3582,7 +3912,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -3630,6 +3959,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -3649,8 +3983,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -3702,7 +4049,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -3745,6 +4091,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                       "email": {
                         "type": "string",
                       },
+                      "emailVerified": {
+                        "default": false,
+                        "description": "Whether the user has verified their email address",
+                        "type": "boolean",
+                      },
                       "hash": {
                         "type": "string",
                       },
@@ -3764,8 +4115,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         },
                         "type": "array",
                       },
+                      "roles": {
+                        "default": [],
+                        "description": "RBAC role names assigned to this user",
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
                       "salt": {
                         "type": "string",
+                      },
+                      "tokenEpoch": {
+                        "default": 0,
+                        "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                        "type": "number",
                       },
                       "updated": {
                         "description": "When this document was last updated",
@@ -3794,7 +4158,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -3848,7 +4211,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -3896,6 +4258,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "email": {
                             "type": "string",
                           },
+                          "emailVerified": {
+                            "default": false,
+                            "description": "Whether the user has verified their email address",
+                            "type": "boolean",
+                          },
                           "hash": {
                             "type": "string",
                           },
@@ -3915,8 +4282,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             },
                             "type": "array",
                           },
+                          "roles": {
+                            "default": [],
+                            "description": "RBAC role names assigned to this user",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "salt": {
                             "type": "string",
+                          },
+                          "tokenEpoch": {
+                            "default": 0,
+                            "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                            "type": "number",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -3968,7 +4348,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -4011,6 +4390,11 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "email": {
                           "type": "string",
                         },
+                        "emailVerified": {
+                          "default": false,
+                          "description": "Whether the user has verified their email address",
+                          "type": "boolean",
+                        },
                         "hash": {
                           "type": "string",
                         },
@@ -4030,8 +4414,21 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           },
                           "type": "array",
                         },
+                        "roles": {
+                          "default": [],
+                          "description": "RBAC role names assigned to this user",
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
                         "salt": {
                           "type": "string",
+                        },
+                        "tokenEpoch": {
+                          "default": 0,
+                          "description": "Incremented on password reset to invalidate outstanding refresh tokens",
+                          "type": "number",
                         },
                         "updated": {
                           "description": "When this document was last updated",
@@ -4060,7 +4457,6 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -4337,7 +4733,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                                   "type": "string",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -4390,7 +4785,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                                   "$ref": "#/components/schemas/LimitedUser",
                                 },
                               },
-                              "required": [],
                               "type": "object",
                             },
                             "type": "array",
@@ -4426,7 +4820,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                                 "type": "string",
                               },
                             },
-                            "required": [],
                             "type": "object",
                           },
                           "tags": {
@@ -4551,7 +4944,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -4604,7 +4996,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "$ref": "#/components/schemas/LimitedUser",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -4640,7 +5031,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -4694,7 +5084,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -4747,7 +5136,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "$ref": "#/components/schemas/LimitedUser",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -4783,7 +5171,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -4967,7 +5354,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -5020,7 +5406,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "$ref": "#/components/schemas/LimitedUser",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -5056,7 +5441,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {
@@ -5174,7 +5558,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -5227,7 +5610,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "$ref": "#/components/schemas/LimitedUser",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "type": "array",
@@ -5263,7 +5645,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                         "type": "string",
                       },
                     },
-                    "required": [],
                     "type": "object",
                   },
                   "tags": {
@@ -5317,7 +5698,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "type": "string",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -5370,7 +5750,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                             "$ref": "#/components/schemas/LimitedUser",
                           },
                         },
-                        "required": [],
                         "type": "object",
                       },
                       "type": "array",
@@ -5406,7 +5785,6 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "type": "string",
                         },
                       },
-                      "required": [],
                       "type": "object",
                     },
                     "tags": {

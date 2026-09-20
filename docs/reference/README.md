@@ -12,10 +12,13 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/admin-frontend](admin-frontend.md) — Admin panel UI components
 - [@terreno/admin-spa](admin-spa.md) — Standalone admin SPA + Express serve plugin
 - [@terreno/api-health](api-health.md) — Health check TerrenoPlugin
+- [@terreno/announcements](announcements.md) — In-app product update announcements
 - [@terreno/comms](comms.md) — Pluggable mail, SMS, push, and verification providers
+- [@terreno/jobs](jobs.md) — Durable background jobs, schedules, and queue runners
 - [@terreno/feature-flags](feature-flags.md) — Feature flags and A/B testing plugin
 - [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
 - [@terreno/cli](cli.md) — `terreno` CLI for docs, codegen, bootstrap, and OpenAPI REST
+- [create-terreno-app](create-terreno-app.md) — Scaffold CLI (`bunx create-terreno-app`)
 - [@terreno/test](test.md) — Bun test helpers and in-memory MongoDB
 
 ## Legacy
@@ -31,6 +34,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 - [UI performance](ui-performance.md) — Component render benchmarks
 - [Lifecycle plugin](lifecycle-plugin.md) — Grow/Pick/Roast/Brew/Taste contracts, results, and transitions
+- [Scan plugin](scan-plugin.md) — Aim/Sweep/Sift/Plot/Track goal campaigns that feed the lifecycle
 - [Install agent skills](../how-to/install-agent-skills.md) — Published `skills/` tree for `npx skills`
 - [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and Pick plan comments
 - Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog

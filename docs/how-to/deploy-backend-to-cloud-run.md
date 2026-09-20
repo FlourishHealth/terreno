@@ -106,6 +106,7 @@ Expect `"healthy": true`.
 | Live feature flags / realtime never update; log mentions replica set | MongoDB is standalone, not a replica set | Use Atlas or `replSet` — change streams required (`feature-flags/src/featureFlagsApp.ts`) |
 | Bun-compiled container never opens its port while creating indexes | OpenTelemetry Mongoose instrumentation patched an already-loaded Mongoose module | Do not explicitly patch Mongoose in the compiled binary; retain HTTP/Express tracing |
 | Container hangs before listening when cloud logging initializes | A network logging transport blocks startup | Log to stdout/stderr during boot; Cloud Run ingests both streams |
+| `gcloud run deploy --tag` fails citing an old revision that never became Ready | That tag still points at the failed revision; `--remove-tags` keeps it in the traffic spec | Rebuild traffic with `--to-revisions=<live>=100` plus `--set-tags` of Ready tags only, deploy `--no-traffic` without `--tag`, then `--update-tags` the new revision |
 | First request after idle is slow; sockets reconnect constantly | Scaled to zero | Set `--min-instances=1` for user-facing services |
 | Browser API calls blocked by CORS | `corsOrigin` / Better Auth `trustedOrigins` missing web origin | Add your CDN URL to backend CORS and auth config |
 

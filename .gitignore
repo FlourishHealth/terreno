@@ -79,3 +79,6 @@ website/node_modules/
 
 .claude/worktrees/
 .terreno-skills-sync/
+.terreno/pipeline/
+.terreno/scan/
+.roast-probe/

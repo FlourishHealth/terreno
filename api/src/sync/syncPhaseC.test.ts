@@ -1,13 +1,11 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import {model, Schema} from "mongoose";
+import {type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import type {ModelRouterOptions} from "../api";
-import {addAuthRoutes, setupAuth, type User} from "../auth";
-import {Permissions} from "../permissions";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth, type User} from "../auth";
+import {Permissions, type RESTMethod} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {DEFAULT_IGNORED_COLLECTIONS} from "../realtime/changeStreamWatcher";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
@@ -34,6 +32,13 @@ interface PhaseCTodo extends IsDeleted {
   title: string;
   ownerId: string;
   _syncSeq?: number;
+}
+
+interface SnapshotEntity {
+  id: string;
+  seq: number;
+  deleted: boolean;
+  data: {title?: string} | null;
 }
 
 const phaseCTodoSchema = new Schema<PhaseCTodo>({
@@ -83,7 +88,7 @@ phaseCProjectSchema.plugin(createdUpdatedPlugin);
 phaseCProjectSchema.plugin(syncPlugin);
 const PhaseCProjectModel = model<PhaseCProject>("SyncPhaseCProject", phaseCProjectSchema);
 
-const authedOptions = {
+const authedOptions: ModelRouterOptions<unknown> = {
   permissions: {
     create: [Permissions.IsAuthenticated],
     delete: [Permissions.IsAuthenticated],
@@ -91,7 +96,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+};
 
 // Per-user tenant membership, mutable so join tests can extend it.
 const userOrgs = new Map<string, string[]>();
@@ -114,19 +119,19 @@ describe("Phase C sync routes", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: PhaseCTodoModel as any,
+      model: PhaseCTodoModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/phaseCTodos",
     });
     registerSync({
       config: {scope: {field: "orgId", type: "tenant"}},
-      model: PhaseCProjectModel as any,
+      model: PhaseCProjectModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/phaseCProjects",
     });
     registerSync({
       config: {scope: {type: "owner"}},
-      model: PhaseCNoteModel as any,
+      model: PhaseCNoteModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/phaseCNotes",
     });
@@ -141,8 +146,8 @@ describe("Phase C sync routes", () => {
     ]);
 
     app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({
       getUserScopes: (user: User, entry: SyncRegistryEntry) => {
         // Custom-scoped entries (used by the $or snapshotFilter test) resolve their
@@ -166,7 +171,7 @@ describe("Phase C sync routes", () => {
   describe("C2 — per-stream cursors and /sync/streams", () => {
     it("GET /sync/streams returns owner + tenant streams reflecting memberships", async () => {
       const res = await agent.get("/sync/streams").expect(200);
-      const streams: string[] = res.body.streams.map((s: any) => s.stream);
+      const streams: string[] = res.body.streams.map((s: {stream: string}) => s.stream);
       expect(streams).toContain(ownerStream());
       expect(streams).toContain("phaseCProjects|tenant:org1");
       expect(streams).toContain("phaseCProjects|tenant:org2");
@@ -209,13 +214,15 @@ describe("Phase C sync routes", () => {
 
     it("reflects a tenant join in /sync/streams (new stream becomes available)", async () => {
       let res = await agent.get("/sync/streams").expect(200);
-      expect(res.body.streams.map((s: any) => s.stream)).not.toContain(
+      expect(res.body.streams.map((s: {stream: string}) => s.stream)).not.toContain(
         "phaseCProjects|tenant:org3"
       );
       // Join org3.
       userOrgs.set(notAdminId, ["org1", "org2", "org3"]);
       res = await agent.get("/sync/streams").expect(200);
-      expect(res.body.streams.map((s: any) => s.stream)).toContain("phaseCProjects|tenant:org3");
+      expect(res.body.streams.map((s: {stream: string}) => s.stream)).toContain(
+        "phaseCProjects|tenant:org3"
+      );
       // And the newly-joined stream is now snapshottable.
       await PhaseCProjectModel.create({orgId: "org3", title: "joined"});
       const snap = await agent
@@ -240,7 +247,7 @@ describe("Phase C sync routes", () => {
         ownerId: notAdminId,
         title: `legacy-${String(i).padStart(4, "0")}`,
       }));
-      await PhaseCTodoModel.collection.insertMany(legacy as any);
+      await PhaseCTodoModel.collection.insertMany(legacy as unknown as PhaseCTodo[]);
       // A couple of modern (stamped) docs after the legacy stratum.
       await PhaseCTodoModel.create({ownerId: notAdminId, title: "modern-1"});
       await PhaseCTodoModel.create({ownerId: notAdminId, title: "modern-2"});
@@ -284,14 +291,14 @@ describe("Phase C sync routes", () => {
       await PhaseCTodoModel.collection.insertMany([
         {deleted: false, ownerId: notAdminId, title: "legacy-a"},
         {deleted: false, ownerId: notAdminId, title: "legacy-b"},
-      ] as any);
+      ] as unknown as PhaseCTodo[]);
       await PhaseCTodoModel.create({ownerId: notAdminId, title: "stamped"});
 
       const page1 = await agent
         .get(`/sync/snapshot?stream=${enc(ownerStream())}&limit=10`)
         .expect(200);
       // First page is the legacy stratum (seq 0), with a legacyCursor.
-      expect(page1.body.entities.every((e: any) => e.seq === 0)).toBe(true);
+      expect(page1.body.entities.every((e: SnapshotEntity) => e.seq === 0)).toBe(true);
       expect(page1.body.legacyCursor).toBeDefined();
       expect(page1.body.hasMore).toBe(true);
 
@@ -304,7 +311,7 @@ describe("Phase C sync routes", () => {
         .expect(200);
       // Legacy stratum exhausted; falls through to seq paging (no legacyCursor).
       expect(page2.body.legacyCursor).toBeUndefined();
-      const stamped = page2.body.entities.find((e: any) => e.data?.title === "stamped");
+      const stamped = page2.body.entities.find((e: SnapshotEntity) => e.data?.title === "stamped");
       expect(stamped?.seq).toBe(1);
     });
 
@@ -322,7 +329,7 @@ describe("Phase C sync routes", () => {
           deleted: false,
           ownerId: notAdminId,
           title: `legacy note ${i}`,
-        })) as any
+        })) as unknown as PhaseCNote[]
       );
       await PhaseCNoteModel.create({
         _id: "note-modern",
@@ -364,7 +371,7 @@ describe("Phase C sync routes", () => {
     it("Task 9.14: 400s (not 500s) on a malformed legacyCursor for an ObjectId-keyed model", async () => {
       await PhaseCTodoModel.collection.insertMany([
         {deleted: false, ownerId: notAdminId, title: "legacy-a"},
-      ] as any);
+      ] as unknown as PhaseCTodo[]);
       await agent
         .get(`/sync/snapshot?stream=${enc(ownerStream())}&legacyCursor=not-an-object-id`)
         .expect(400);
@@ -427,21 +434,21 @@ describe("Phase C sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: PhaseCTodoModel as any,
+        model: PhaseCTodoModel as unknown as Model<unknown>,
         options: {
           ...authedOptions,
           permissions: {
-            ...(authedOptions as any).permissions,
+            ...authedOptions.permissions,
             read: [
-              (_method: any, _user: any, doc?: any) => {
+              (_method: RESTMethod, _user?: User, doc?: unknown) => {
                 if (!doc) {
                   return true;
                 }
-                return !String(doc.title).endsWith("-secret");
+                return !String((doc as PhaseCTodo).title).endsWith("-secret");
               },
             ],
           },
-        } as unknown as ModelRouterOptions<any>,
+        } as unknown as ModelRouterOptions<unknown>,
         routePath: "/phaseCTodos",
       });
 
@@ -450,7 +457,7 @@ describe("Phase C sync routes", () => {
       await PhaseCTodoModel.create({ownerId: notAdminId, title: "visible-2"});
 
       const res = await agent.get(`/sync/snapshot?stream=${enc(ownerStream())}`).expect(200);
-      const titles = res.body.entities.map((e: any) => e.data.title);
+      const titles = res.body.entities.map((e: SnapshotEntity) => e.data.title);
       expect(titles).toEqual(["visible-1", "visible-2"]);
       // The cursor advanced past the denied doc (seq 3), so it is never re-fetched.
       expect(res.body.cursor).toBe(3);
@@ -461,13 +468,13 @@ describe("Phase C sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: PhaseCTodoModel as any,
+        model: PhaseCTodoModel as unknown as Model<unknown>,
         options: {
           ...authedOptions,
           permissions: {
-            ...(authedOptions as any).permissions,
+            ...authedOptions.permissions,
             read: [
-              (_method: any, _user: any, doc?: any) => {
+              (_method: RESTMethod, _user?: User, doc?: unknown) => {
                 if (!doc) {
                   return true;
                 }
@@ -475,7 +482,7 @@ describe("Phase C sync routes", () => {
               },
             ],
           },
-        } as unknown as ModelRouterOptions<any>,
+        } as unknown as ModelRouterOptions<unknown>,
         routePath: "/phaseCTodos",
       });
 
@@ -520,7 +527,7 @@ describe("Phase C sync routes", () => {
           scope: (doc: Record<string, unknown>) => String(doc.ownerId),
           snapshotFilter: () => ({$or: [{ownerId: notAdminId}, {ownerId: "shared"}]}),
         },
-        model: PhaseCTodoModel as any,
+        model: PhaseCTodoModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/phaseCTodos",
       });
@@ -533,14 +540,16 @@ describe("Phase C sync routes", () => {
 
       const customStream = `phaseCTodos|custom:${notAdminId}`;
       const res = await agent.get(`/sync/snapshot?stream=${enc(customStream)}`).expect(200);
-      const byTitle = new Map(res.body.entities.map((e: any) => [e.id, e]));
+      const byTitle = new Map<string, SnapshotEntity>(
+        res.body.entities.map((e: SnapshotEntity) => [e.id, e])
+      );
       // "other" is excluded by the $or filter; "mine" appears as a tombstone (data null).
       const titles = res.body.entities
-        .filter((e: any) => !e.deleted)
-        .map((e: any) => e.data.title)
+        .filter((e: SnapshotEntity) => !e.deleted)
+        .map((e: SnapshotEntity) => e.data.title)
         .sort();
       expect(titles).toEqual(["shared"]);
-      const tombstone = byTitle.get(String(mine._id)) as any;
+      const tombstone = byTitle.get(String(mine._id));
       expect(tombstone?.deleted).toBe(true);
       expect(tombstone?.data).toBeNull();
     });
@@ -610,14 +619,14 @@ describe("Phase C sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: PhaseCTodoModel as any,
+        model: PhaseCTodoModel as unknown as Model<unknown>,
         options: {
           ...authedOptions,
-          responseHandler: (value: any, method: string) => {
+          responseHandler: async (value: {title?: string}, method: string) => {
             seenMethods.push(method);
             return method === "read" ? {shape: "read", title: value.title} : value;
           },
-        } as unknown as ModelRouterOptions<any>,
+        } as unknown as ModelRouterOptions<unknown>,
         routePath: "/phaseCTodos",
       });
       await PhaseCTodoModel.create({ownerId: notAdminId, title: "rh"});
@@ -631,7 +640,7 @@ describe("Phase C sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: PhaseCTodoModel as any,
+        model: PhaseCTodoModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/dupTag",
       });
@@ -641,7 +650,7 @@ describe("Phase C sync routes", () => {
       expect(() =>
         registerSync({
           config: {scope: {field: "orgId", type: "tenant"}},
-          model: PhaseCProjectModel as any,
+          model: PhaseCProjectModel as unknown as Model<unknown>,
           options: authedOptions,
           routePath: "/dupTag",
         })
@@ -700,11 +709,13 @@ describe("Phase C sync routes", () => {
       const rebootstrap = await agent
         .get(`/sync/snapshot?stream=${enc(stream)}&cursor=0`)
         .expect(200);
-      const ids = rebootstrap.body.entities.map((e: any) => e.id).sort();
+      const ids = rebootstrap.body.entities.map((e: SnapshotEntity) => e.id).sort();
       expect(ids).toEqual(
         [String(keep._id), String((await PhaseCTodoModel.findOne({title: "later"}))?._id)].sort()
       );
-      expect(rebootstrap.body.entities.some((e: any) => e.id === String(doomed._id))).toBe(false);
+      expect(
+        rebootstrap.body.entities.some((e: SnapshotEntity) => e.id === String(doomed._id))
+      ).toBe(false);
     });
 
     it("a live never-deleted early doc no longer pins the retention floor", async () => {

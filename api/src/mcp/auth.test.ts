@@ -1,9 +1,11 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import jwt from "jsonwebtoken";
 import mongoose, {Schema} from "mongoose";
 
 import type {UserModel} from "../auth";
 import type {BetterAuthInstance} from "../betterAuthSetup";
+import {McpServiceToken} from "../models/mcpServiceToken";
 import {findOneOrNone} from "../plugins";
 import {extractUserFromHeaders} from "./auth";
 
@@ -46,6 +48,7 @@ const signToken = (payload: Record<string, unknown>, secret = "test-token-secret
 describe("extractUserFromHeaders", () => {
   beforeEach(async () => {
     await UserTestModel.deleteMany({});
+    await McpServiceToken.deleteMany({});
     process.env.TOKEN_SECRET = "test-token-secret";
   });
 
@@ -68,6 +71,50 @@ describe("extractUserFromHeaders", () => {
     const user = await extractUserFromHeaders({authorization: `Bearer ${token}`}, {userModel});
 
     expect(String((user as unknown as MCPAuthUserFields)?._id)).toBe(created._id.toString());
+  });
+
+  it("resolves the owner of an active MCP service token before JWT verification", async () => {
+    const created = await UserTestModel.create({email: "mcp-token@example.com"});
+    const issued = await McpServiceToken.issueFor({_id: created._id}, {name: "Perplexity"});
+
+    const user = await extractUserFromHeaders(
+      {authorization: `Bearer ${issued.token}`},
+      {mcpServiceTokens: true, userModel}
+    );
+
+    assert.equal(String((user as unknown as MCPAuthUserFields)?._id), created._id.toString());
+
+    await Bun.sleep(10);
+    const usedToken = await McpServiceToken.findById(issued.mcpServiceToken._id);
+    assert.isDefined(usedToken?.lastUsedAt);
+  });
+
+  it("rejects revoked MCP service tokens", async () => {
+    const created = await UserTestModel.create({email: "revoked-mcp-token@example.com"});
+    const issued = await McpServiceToken.issueFor({_id: created._id}, {name: "Revoked"});
+    await McpServiceToken.revokeForUser({_id: created._id}, issued.mcpServiceToken._id);
+
+    const user = await extractUserFromHeaders(
+      {authorization: `Bearer ${issued.token}`},
+      {mcpServiceTokens: true, userModel}
+    );
+
+    assert.isUndefined(user);
+  });
+
+  it("rejects MCP service tokens belonging to disabled users", async () => {
+    const created = await UserTestModel.create({
+      disabled: true,
+      email: "disabled-mcp-token@example.com",
+    });
+    const issued = await McpServiceToken.issueFor({_id: created._id}, {name: "Disabled"});
+
+    const user = await extractUserFromHeaders(
+      {authorization: `Bearer ${issued.token}`},
+      {mcpServiceTokens: true, userModel}
+    );
+
+    assert.isUndefined(user);
   });
 
   it("accepts a raw token without the Bearer prefix", async () => {

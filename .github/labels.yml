@@ -57,6 +57,12 @@
 - name: status:needs-info
   color: "FBCA04"
   description: "Waiting on reporter for more detail"
+- name: status:ready-for-dev
+  color: "0E8A16"
+  description: "Unstarted; unattended agents may claim and implement"
+- name: status:in-progress
+  color: "1D76DB"
+  description: "Claimed; an agent or human is implementing"
 - name: status:blocked
   color: "B60205"
   description: "Blocked on another issue, PR, or external dependency"

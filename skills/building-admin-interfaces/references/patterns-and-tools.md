@@ -17,7 +17,7 @@ on `AdminProvider`; do not pass the deprecated `customScreens` prop on
 Plugin backend IDs arrive via `adminContribution()`. First-party React lives in
 `@terreno/admin-frontend`. Third-party plugins ship their own frontend package;
 the host spreads it into `widgets`. See
-[Admin plugin frontend widgets](../../../../docs/explanation/admin-plugin-frontend.md).
+[Admin plugin frontend widgets](../../../docs/explanation/admin-plugin-frontend.md).
 
 ## Model admin metadata that affects UI
 
@@ -28,7 +28,7 @@ Set these on `modelRouter({admin: ...})` rather than cloning tables:
 - `group`, `recordTitleField`, `pageSize`
 - `actions` / `bulkPatchAllowlist` for changelist bulk work
 
-Reference: [admin-config](../../../../docs/reference/admin-config.md).
+Reference: [admin-config](../../../docs/reference/admin-config.md).
 
 ## Platform tools
 
@@ -42,7 +42,9 @@ Reference: [admin-config](../../../../docs/reference/admin-config.md).
 
 ## Data and MCP
 
-- Admin HTTP: `useAdminConfig`, `useAdminApi`, or generated SDK hooks.
+- Admin String-`_id` collection CRUD: windowed syncdb with `adminBroadcast`.
+- Framework admin RPC: host-bound `adminRequest`; do not add `injectEndpoints`.
+- ObjectId/API-only compatibility CRUD: `useAdminApi` until Terreno 58.
 - After backend route changes: `cd example-frontend && bun run sdk` (non-synced
   only). Do not generate RTK CRUD for synced product collections.
 - MCP: `terreno_install_admin` scaffolds wiring; still follow this skill for

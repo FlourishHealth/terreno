@@ -73,10 +73,3 @@ export const Modals = () => {
     </>
   );
 };
-export const ModalStories = {
-  component: Modal,
-  stories: {
-    Modals: () => <Modals />,
-  },
-  title: "Modal",
-};

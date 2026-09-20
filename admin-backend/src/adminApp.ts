@@ -5,6 +5,7 @@ import {
   type AnyTerrenoAccess,
   APIError,
   asyncHandler,
+  auditActorIdFromRequest,
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
@@ -12,31 +13,45 @@ import {
   createOpenApiBuilder,
   createScriptArgs,
   describeModel,
+  findSyncEntryByModelName,
+  getOrgContext,
   type JSONValue,
   logger,
   type ModelRouterOptions,
+  maybeRecordAdminAudit,
   modelDescriptionToAdminFields,
   modelRouter,
   type OpenApiMiddleware,
+  OrgQueryFilter,
+  orgContextMiddleware,
   type PermissionMethod,
   Permissions,
   type PopulatePath,
+  registerAdminBroadcastScope,
+  registerAdminWindowMutationScope,
   type ScriptArgDef,
   type ScriptArgValue,
-  type ScriptContext,
-  type ScriptResult,
   type ScriptRunner,
   scrubAdminFields,
-  TaskCancelledError,
   type TerrenoApp,
   type User,
+  updateSyncRegistryOptions,
   VersionConfig,
 } from "@terreno/api";
+import {tryGetJobsService} from "@terreno/jobs";
 import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
 import {assignUniqueAdminConfigNames, findAdminModelMetaByRoutePath} from "./adminConfigIdentity";
+import {mountAdminMigrationRoutes} from "./adminMigrations";
+import {
+  ADMIN_SCRIPT_JOB_NAME,
+  defineAdminScriptJob,
+  runRegisteredScriptTask,
+  tryCancelAdminScriptJob,
+  tryEnqueueAdminScriptJob,
+} from "./adminScriptJob";
 import {
   ADMIN_LIST_SEARCH_PARAM,
   andMongoFilters,
@@ -187,6 +202,9 @@ export interface AdminCustomScreenConfig {
   name: string;
   /** Optional subtitle or help text shown with the screen card in the admin UI */
   description?: string;
+  /** Sidebar group label; grouped screens render with matching model groups in AdminShell. */
+  group?: string;
+  icon?: string;
   /** RBAC or custom authorization for exposing this screen in admin metadata/navigation. */
   adminAccess?: Pick<AdminAccessConfig, "authorize" | "resource"> & {action?: string};
 }
@@ -206,13 +224,23 @@ export interface AdminOptions {
   /** Extra custom screens merged with built-ins (e.g. version-config) */
   customScreens?: AdminCustomScreenConfig[];
   /**
-   * Optional audit sink for admin CRUD after modelRouter succeeds.
-   * Consumers typically persist to an `AdminAuditLog` collection.
+   * Extra audit sink after successful admin CRUD. When `AuditApp` is registered,
+   * AdminApp also writes `AuditEvent` rows (`source: "admin"`) without this hook.
    */
   onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
   /** When set, admin shell entry requires `admin:access`; model CRUD also requires
    * resource/action permissions (for example `user:update`) from the same Access instance. */
   accessControl?: AnyTerrenoAccess;
+  /**
+   * When `dir` is set, admin exposes GET/POST `/migrations` and
+   * `GET /admin/config` includes `migrations.enabled: true`.
+   */
+  migrations?: {dir: string};
+  /**
+   * Scope admin CRUD for models with an `organizationId` schema path.
+   * Default false so existing single-tenant admin panels remain unchanged.
+   */
+  organizations?: boolean;
 }
 
 interface AdminFieldMeta {
@@ -242,6 +270,15 @@ interface AdminModelMeta {
   fieldOrder?: string[];
   fieldsets?: AdminFieldsetInput[];
   fields: Record<string, AdminFieldMeta>;
+  /** True when the model’s app `sync` config set `adminBroadcast`. */
+  adminBroadcast: boolean;
+  /** True when AdminApp `organizations` is on and the model has `organizationId`. */
+  organizationScoped: boolean;
+  /**
+   * Sync collection tag (`routePath` without a leading slash) when
+   * `adminBroadcast` is true. Omitted otherwise.
+   */
+  syncCollection?: string;
   filters: AdminListFilter[];
   group?: string;
   hiddenFields: string[];
@@ -286,7 +323,36 @@ interface AdminConfigResponse {
   schemaVersion: number;
   scripts: AdminScriptMeta[];
   widgetIds: string[];
+  migrations?: {enabled: boolean};
 }
+
+const syncMetaForAdminModel = (
+  modelName: string,
+  isOrganizationScoped = false
+): {adminBroadcast: boolean; syncCollection?: string} => {
+  if (isOrganizationScoped) {
+    return {adminBroadcast: false};
+  }
+  const entry = findSyncEntryByModelName(modelName);
+  if (entry?.config.adminBroadcast !== true) {
+    return {adminBroadcast: false};
+  }
+  return {adminBroadcast: true, syncCollection: entry.collectionTag};
+};
+
+const disableOrgScopedAdminBroadcastSync = (modelName: string): void => {
+  const syncEntry = findSyncEntryByModelName(modelName);
+  if (syncEntry?.config.adminBroadcast !== true) {
+    return;
+  }
+  updateSyncRegistryOptions(syncEntry.routePath, {
+    ...syncEntry.options,
+    sync: {
+      ...syncEntry.config,
+      adminBroadcast: false,
+    },
+  });
+};
 
 const buildAllModelAdminsMap = (models: ResolvedAdminModel[]): AdminModelAdminMap => {
   const map: AdminModelAdminMap = {};
@@ -311,7 +377,8 @@ const scrubAdminResponse = (
 const buildAdminListQueryFilter = (
   config: ResolvedAdminModel,
   /** Resolved (possibly derived) search fields from `/admin/config`, not just explicit config. */
-  resolvedSearchFields?: string[]
+  resolvedSearchFields?: string[],
+  isOrganizationScoped = false
 ): NonNullable<ModelRouterOptions<unknown>["queryFilter"]> => {
   const base = config.queryFilter;
   const searchFields = resolvedSearchFields ?? config.searchFields ?? [];
@@ -348,8 +415,17 @@ const buildAdminListQueryFilter = (
       }
       merged = {...merged, ...baseResult};
     }
+    if (isOrganizationScoped) {
+      merged = {...merged, ...OrgQueryFilter(user, merged)};
+    }
     const result = andMongoFilters(merged, searchClause);
-    return {...result, [ADMIN_LIST_SEARCH_PARAM]: undefined};
+    const overrides: Record<string, unknown> = {...filter};
+    for (const key of consumedKeys) {
+      if (!(key in overrides)) {
+        overrides[key] = undefined;
+      }
+    }
+    return {...result, ...overrides, [ADMIN_LIST_SEARCH_PARAM]: undefined};
   };
 };
 
@@ -453,19 +529,14 @@ const coerceAdminFlag = (value: unknown): boolean => {
   throw new APIError({status: 400, title: "admin must be a boolean"});
 };
 
-const auditActorId = (request: express.Request): string | undefined => {
-  const user = request.user as {_id?: unknown} | undefined;
-  if (!user || user._id == null) {
-    return undefined;
-  }
-  return String(user._id);
-};
+const auditActorId = auditActorIdFromRequest;
 
 interface ArraySchemaTypeCompatibility {
   caster?: mongoose.SchemaType;
   getEmbeddedSchemaType?: () => mongoose.SchemaType | undefined;
 }
 
+/** @internal */
 export const getArrayEmbeddedSchemaType = (
   schemaPath: mongoose.SchemaType
 ): mongoose.SchemaType | undefined => {
@@ -552,9 +623,28 @@ export class AdminApp {
     this.options = options;
   }
 
+  private isOrganizationScoped(config: Pick<AdminModelConfig, "model">): boolean {
+    if (!this.options.organizations) {
+      return false;
+    }
+    // Platform audit rows may omit organizationId. Requiring a selected org hides
+    // those events and skips Recent Activity / the AuditEvent changelist.
+    if (config.model.modelName === "AuditEvent") {
+      return false;
+    }
+    return Boolean(config.model.schema.path("organizationId"));
+  }
+
   private adminAccessPermissions(): PermissionMethod<unknown>[] {
     if (this.options.accessControl) {
       return [this.options.accessControl.permission({admin: [ADMIN_PAGE_ACTION]})];
+    }
+    return [Permissions.IsAdmin];
+  }
+
+  private adminRunScriptsPermissions(): PermissionMethod<unknown>[] {
+    if (this.options.accessControl) {
+      return [this.options.accessControl.permission({admin: ["runScripts"]})];
     }
     return [Permissions.IsAdmin];
   }
@@ -728,6 +818,37 @@ export class AdminApp {
       }
     };
 
+    const safeFrameworkAdminAudit = async ({
+      after,
+      before,
+      extraRedact,
+      modelName,
+      recordLabel,
+      request,
+      verb,
+    }: {
+      after?: unknown;
+      before?: unknown;
+      extraRedact?: string[];
+      modelName: string;
+      recordLabel?: string;
+      request: express.Request;
+      verb: AdminAuditEvent["verb"];
+    }): Promise<void> => {
+      if (modelName === "AuditEvent") {
+        return;
+      }
+      void maybeRecordAdminAudit({
+        after,
+        before,
+        extraRedact,
+        modelName,
+        recordLabel,
+        req: request,
+        verb,
+      });
+    };
+
     // Build config response with field metadata from Mongoose schemas
     const configNames = assignUniqueAdminConfigNames(
       modelConfigs.map((config) => ({
@@ -768,9 +889,12 @@ export class AdminApp {
           readonlyFields,
           schemaPaths: schemaPathKeys,
         });
+      const isOrgScopedModel = this.isOrganizationScoped(config);
+      const syncMeta = syncMetaForAdminModel(config.model.modelName, isOrgScopedModel);
 
       return {
         actions: config.actions ?? [],
+        adminBroadcast: syncMeta.adminBroadcast,
         bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
@@ -784,6 +908,7 @@ export class AdminApp {
         listDisplayLinks: config.listDisplayLinks ?? [],
         listFields,
         name: configNames[configIndex] ?? config.model.modelName,
+        organizationScoped: isOrgScopedModel,
         pageSize: config.pageSize,
         permissions: {
           create: config.permissions?.create !== false,
@@ -796,6 +921,7 @@ export class AdminApp {
         routePath: `${basePath}${config.routePath}`,
         searchFields,
         sortableFields,
+        ...(syncMeta.syncCollection ? {syncCollection: syncMeta.syncCollection} : {}),
       };
     });
 
@@ -912,6 +1038,7 @@ export class AdminApp {
       return {
         ...baseConfigResponse,
         customScreens: authorizedScreens.map(({adminAccess: _adminAccess, ...screen}) => screen),
+        migrations: {enabled: Boolean(this.options.migrations?.dir)},
         models: authorizedModels,
         platformTools: {
           configuration: canReadConfiguration,
@@ -944,6 +1071,8 @@ export class AdminApp {
                 properties: {
                   description: {type: "string"},
                   displayName: {type: "string"},
+                  group: {type: "string"},
+                  icon: {type: "string"},
                   name: {type: "string"},
                 },
                 type: "object",
@@ -1154,6 +1283,7 @@ export class AdminApp {
 
     // Mount search endpoint for each model
     for (const config of modelConfigs) {
+      const isOrganizationScoped = this.isOrganizationScoped(config);
       // Determine searchable fields from the actual Mongoose schema type,
       // not the OpenAPI type (which reports ObjectId as "string")
       const searchableFields: string[] = [];
@@ -1176,6 +1306,7 @@ export class AdminApp {
       app.get(
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
+        ...(isOrganizationScoped ? [orgContextMiddleware({required: true})] : []),
         asyncHandler(async (req, res) => {
           if (
             !(await checkPermissions(
@@ -1216,10 +1347,11 @@ export class AdminApp {
             q,
           });
           try {
-            const scoped = await buildAdminListQueryFilter(config, modelMeta?.searchFields)(
-              req.user as User | undefined,
-              {}
-            );
+            const scoped = await buildAdminListQueryFilter(
+              config,
+              modelMeta?.searchFields,
+              isOrganizationScoped
+            )(req.user as User | undefined, {});
             if (scoped === null) {
               return res.json({data: []});
             }
@@ -1248,6 +1380,7 @@ export class AdminApp {
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
+      const isOrganizationScoped = this.isOrganizationScoped(config);
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const readonlySet = new Set(config.readonlyFields ?? []);
       const excludeFieldSet = new Set(config.excludeFields ?? []);
@@ -1264,10 +1397,14 @@ export class AdminApp {
         if (allowed === false) {
           return [];
         }
-        return this.resourceActionPermissions(config, action);
+        const permissions = this.resourceActionPermissions(config, action);
+        if (isOrganizationScoped && action !== "create") {
+          return [...permissions, Permissions.IsOrganizationMember];
+        }
+        return permissions;
       };
 
-      const updatePermissions = this.resourceActionPermissions(config, "update");
+      const updatePermissions = adminPermission(config.permissions?.update, "update");
 
       const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
         if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -1429,49 +1566,84 @@ export class AdminApp {
             .build()
         : undefined;
 
-      const auditEligible = Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
-      const auditHooks = auditEligible
-        ? {
-            postCreate: async (value: unknown, request: express.Request): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "created",
-              });
-            },
-            postDelete: async (request: express.Request, value: unknown): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "deleted",
-              });
-            },
-            postUpdate: async (
-              value: unknown,
-              _cleanedBody: unknown,
-              request: express.Request,
-              _prev: unknown
-            ): Promise<void> => {
-              const doc = auditDocumentToPlain(value);
-              const rid = doc._id;
-              await safeOnAdminAudit(request, {
-                actorId: auditActorId(request),
-                modelName: config.model.modelName,
-                recordId: rid != null ? String(rid) : undefined,
-                recordLabel: auditLabelFromListFields(doc, config.listFields),
-                verb: "updated",
-              });
-            },
+      const skipOnAdminAuditHook = config.model.modelName === "AdminAuditLog";
+      const auditHooks = {
+        postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "created",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
           }
-        : {};
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "created",
+          });
+        },
+        postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            before: value,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "deleted",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "deleted",
+          });
+        },
+        postUpdate: async (
+          value: unknown,
+          _cleanedBody: unknown,
+          request: express.Request,
+          prev: unknown
+        ): Promise<void> => {
+          const doc = auditDocumentToPlain(value);
+          const rid = doc._id;
+          const recordLabel = auditLabelFromListFields(doc, config.listFields);
+          await safeFrameworkAdminAudit({
+            after: value,
+            before: prev,
+            extraRedact: [...hiddenFieldSet, ...excludeFieldSet],
+            modelName: config.model.modelName,
+            recordLabel,
+            request,
+            verb: "updated",
+          });
+          if (skipOnAdminAuditHook) {
+            return;
+          }
+          await safeOnAdminAudit(request, {
+            actorId: auditActorId(request),
+            modelName: config.model.modelName,
+            recordId: rid != null ? String(rid) : undefined,
+            recordLabel,
+            verb: "updated",
+          });
+        },
+      };
 
       const assertCanWriteUserAdminFlag = async (
         body: Record<string, unknown>,
@@ -1617,6 +1789,9 @@ export class AdminApp {
             return body;
           }
           const record = body as Record<string, unknown>;
+          if (isOrganizationScoped) {
+            record.organizationId = getOrgContext()?.organization?._id;
+          }
           if (
             !(await checkPermissions(
               "create",
@@ -1648,7 +1823,11 @@ export class AdminApp {
           listFields: config.listFields,
           searchFields: modelMeta?.searchFields ?? config.searchFields,
         }),
-        queryFilter: buildAdminListQueryFilter(config, modelMeta?.searchFields),
+        queryFilter: buildAdminListQueryFilter(
+          config,
+          modelMeta?.searchFields,
+          isOrganizationScoped
+        ),
         responseHandler: async (value, _method, request): Promise<JSONValue> =>
           addRecordCapabilities(value, request),
         sort: config.defaultSort ?? "-created",
@@ -1656,7 +1835,42 @@ export class AdminApp {
         ...(auditHooks.postDelete ? {postDelete: auditHooks.postDelete} : {}),
       };
 
+      if (isOrganizationScoped) {
+        disableOrgScopedAdminBroadcastSync(config.model.modelName);
+      }
+      const syncEntry = findSyncEntryByModelName(config.model.modelName);
+      const adminBroadcastEnabled = syncEntry?.config.adminBroadcast === true;
+      if (adminBroadcastEnabled) {
+        registerAdminBroadcastScope(config.model.modelName, {
+          listPermissions: adminPermission(true, "list"),
+          queryFilter: routerOptions.queryFilter,
+          readPermissions: adminPermission(true, "read"),
+        });
+
+        registerAdminWindowMutationScope(config.model.modelName, {
+          accessControl: this.options.accessControl,
+          createPermissions: adminPermission(config.permissions?.create, "create"),
+          deletePermissions: adminPermission(config.permissions?.delete, "delete"),
+          modelName: config.model.modelName,
+          permissions: {
+            create: config.permissions?.create !== false,
+            delete: config.permissions?.delete !== false,
+            update: config.permissions?.update !== false,
+          },
+          postCreate: routerOptions.postCreate,
+          postDelete: routerOptions.postDelete,
+          postUpdate: routerOptions.postUpdate,
+          preCreate: routerOptions.preCreate,
+          preUpdate: routerOptions.preUpdate,
+          stripMutationData: (data) => stripProtectedFromBody(data),
+          updatePermissions: adminPermission(config.permissions?.update, "update"),
+        });
+      }
+
       const modelBase = express.Router();
+      if (isOrganizationScoped) {
+        modelBase.use(authenticateMiddleware(), orgContextMiddleware({required: true}));
+      }
       modelBase.use(validateAdminSortParam(modelMeta?.sortableFields ?? []));
       modelBase.post(
         "/bulk-patch",
@@ -1776,7 +1990,7 @@ export class AdminApp {
     }
 
     // Mount script routes
-    if (scriptConfigs.length > 0) {
+    if (scriptConfigs.length > 0 || this.options.migrations?.dir) {
       const scriptsRouter = express.Router();
       scriptsRouter.use(authenticateMiddleware());
 
@@ -1784,11 +1998,24 @@ export class AdminApp {
 
       app.use(`${basePath}/scripts`, scriptsRouter);
     }
+
+    mountAdminMigrationRoutes({
+      app,
+      basePath,
+      dir: this.options.migrations?.dir,
+      ...(openApiMw ? {openApi: openApiMw} : {}),
+      runPermissions: this.adminRunScriptsPermissions(),
+      statusPermissions: this.adminAccessPermissions(),
+    });
   }
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
     const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
     const scriptNames = scripts.map((s) => s.name);
+    const jobs = tryGetJobsService();
+    if (jobs) {
+      defineAdminScriptJob(jobs, (name) => scriptsByName.get(name));
+    }
 
     // GET /admin/scripts/runs — Paginated history of script runs (BackgroundTasks)
     router.get(
@@ -1903,6 +2130,7 @@ export class AdminApp {
         }
 
         const now = DateTime.now().toJSDate();
+        const queuedViaJobs = Boolean(tryGetJobsService()?.getDefinition(ADMIN_SCRIPT_JOB_NAME));
 
         let task: BackgroundTaskDocument;
         try {
@@ -1912,9 +2140,13 @@ export class AdminApp {
             logs: [
               {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
             ],
-            progress: {message: "Starting...", percentage: 0, stage: "Queued"},
-            startedAt: now,
-            status: "running",
+            progress: {
+              message: queuedViaJobs ? "Queued" : "Starting...",
+              percentage: 0,
+              stage: queuedViaJobs ? "Queued" : "Queued",
+            },
+            startedAt: queuedViaJobs ? undefined : now,
+            status: queuedViaJobs ? "pending" : "running",
             taskType: script.name,
           })) as BackgroundTaskDocument;
         } catch (err: unknown) {
@@ -1927,67 +2159,53 @@ export class AdminApp {
           });
         }
 
-        // Build context for cancellation, progress reporting, and arguments
-        const ctx: ScriptContext = {
-          addLog: async (level, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.addLog(level, message);
+        const taskId = task._id.toString();
+        let enqueued: {id: string} | undefined;
+        try {
+          enqueued = await tryEnqueueAdminScriptJob({
+            args: args.raw,
+            createdByName: user.name,
+            scriptName: script.name,
+            taskId,
+            wetRun: isWetRun,
+          });
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to enqueue durable job for ${script.name}: ${detail}`);
+          const failedAt = DateTime.now().toJSDate();
+          await BackgroundTask.updateOne(
+            {_id: task._id},
+            {
+              $set: {
+                completedAt: failedAt,
+                error: detail,
+                progress: {
+                  message: "Failed to enqueue",
+                  percentage: 100,
+                  stage: "Failed",
+                },
+                status: "failed",
+              },
             }
-          },
+          );
+          throw new APIError({
+            detail,
+            status: 500,
+            title: `Failed to enqueue script: ${script.name}`,
+          });
+        }
+        if (enqueued) {
+          return res.status(201).json({taskId});
+        }
+
+        void runRegisteredScriptTask({
           args,
-          checkCancellation: async () => {
-            await BackgroundTask.checkCancellation(task._id.toString());
-          },
-          updateProgress: async (percentage, stage, message) => {
-            const current = await BackgroundTask.findById(task._id);
-            if (current) {
-              await current.updateProgress(percentage, stage, message);
-            }
-          },
-        };
+          script,
+          taskId,
+          wetRun: isWetRun,
+        });
 
-        // Run the script asynchronously — use atomic updates to avoid overwriting
-        // cancellation or other intermediate state changes.
-        void (async () => {
-          try {
-            const result: ScriptResult = await script.runner(isWetRun, ctx);
-
-            // Atomically update only if still running (don't overwrite cancellation)
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  progress: {message: "Done", percentage: 100, stage: "Complete"},
-                  result: result.results,
-                  status: result.success ? "completed" : "failed",
-                },
-              }
-            );
-          } catch (err: unknown) {
-            if (err instanceof TaskCancelledError) {
-              return;
-            }
-            const message = err instanceof Error ? err.message : String(err);
-            logger.error(`Script ${script.name} failed: ${message}`);
-
-            // Atomically update only if still running
-            await BackgroundTask.findOneAndUpdate(
-              {_id: task._id, status: "running"},
-              {
-                $set: {
-                  completedAt: DateTime.now().toJSDate(),
-                  error: message,
-                  result: [message],
-                  status: "failed",
-                },
-              }
-            );
-          }
-        })();
-
-        return res.status(201).json({taskId: task._id.toString()});
+        return res.status(201).json({taskId});
       })
     );
 
@@ -2067,6 +2285,8 @@ export class AdminApp {
             title: "Task already completed or cancelled",
           });
         }
+
+        await tryCancelAdminScriptJob(task._id.toString());
 
         return res.json({message: "Task cancelled", task: cancelled.toObject()});
       })

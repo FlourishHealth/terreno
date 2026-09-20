@@ -277,6 +277,70 @@ describe("Tooltip", () => {
     }
   });
 
+  it("keeps the tooltip off screen until the trigger has been measured", async () => {
+    const {getByTestId, UNSAFE_getAllByType, toJSON} = renderWithTheme(
+      <Tooltip idealPosition="top" text="Measured placement">
+        <Text>Trigger</Text>
+      </Tooltip>
+    );
+
+    const tree = toJSON() as TestNode;
+    const root = tree.children?.[0] as TestNode;
+
+    await act(async () => {
+      root.props.onTouchStart?.({nativeEvent: {}});
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    const {StyleSheet, View: ViewComp} = await import("react-native");
+    const findPlacementStyle = () => {
+      const positioned = UNSAFE_getAllByType(ViewComp).find(
+        (node: {props: {style?: unknown; onLayout?: unknown}}) =>
+          Boolean(node.props.onLayout) &&
+          StyleSheet.flatten(node.props.style)?.position === "absolute"
+      );
+      return StyleSheet.flatten(positioned?.props.style) as
+        | {left?: number; opacity?: number; top?: number}
+        | undefined;
+    };
+
+    // Before layout the trigger position is unknown, so the tooltip must stay hidden
+    // and out of the way rather than rendering in the corner of the screen.
+    const beforeLayout = findPlacementStyle();
+    expect(beforeLayout?.opacity).toBe(0);
+    expect(beforeLayout?.left).toBeLessThan(0);
+    expect(beforeLayout?.top).toBeLessThan(0);
+
+    const positionedView = UNSAFE_getAllByType(ViewComp).find(
+      (node: {props: {onLayout?: unknown}}) => Boolean(node.props.onLayout)
+    ) as {props: TestNode["props"]} | undefined;
+    const wrapper = UNSAFE_getAllByType(ViewComp).find((node: {props: {hitSlop?: object}}) =>
+      Boolean(node.props.hitSlop)
+    );
+    const fiber = (wrapper as unknown as {_fiber?: {ref?: {current: unknown}}})?._fiber;
+    if (fiber?.ref && typeof fiber.ref === "object") {
+      (fiber.ref as {current: unknown}).current = {
+        measure: (callback: MeasureCallback) => {
+          callback(0, 0, 100, 40, 200, 300);
+        },
+      };
+    }
+
+    await act(async () => {
+      positionedView?.props.onLayout?.({
+        nativeEvent: {layout: {height: 30, width: 150, x: 0, y: 0}},
+      });
+    });
+
+    const afterLayout = findPlacementStyle();
+    expect(afterLayout?.opacity).toBe(1);
+    expect(afterLayout?.top).toBe(300 - 30 - 6);
+    expect(afterLayout?.left).toBe(200 + 100 / 2 - 150 / 2);
+    expect(getByTestId("tooltip-container")).toBeTruthy();
+  });
+
   it("getTooltipPosition returns empty when not measured", () => {
     const result = getTooltipPosition({
       children: {},

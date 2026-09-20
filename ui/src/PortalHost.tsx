@@ -22,6 +22,16 @@ interface PortalEntry {
   key: string;
 }
 
+// react-native-web only polyfills the React Native `pointerEvents` values
+// ("box-none", "box-only") for styles registered through StyleSheet.create, and
+// silently drops `pointerEvents` from inline style objects. Registering here keeps
+// the portal layer transparent to hover and touch instead of covering the app with
+// an event-swallowing overlay whenever a portal is mounted.
+const styles = StyleSheet.create({
+  content: {flex: 1, pointerEvents: "box-none"},
+  portal: {bottom: 0, left: 0, pointerEvents: "box-none", position: "absolute", right: 0, top: 0},
+});
+
 export const PortalContext = createContext<PortalManager | null>(null);
 
 /**
@@ -58,15 +68,11 @@ export const Host: FC<{children?: ReactNode; style?: StyleProp<ViewStyle>}> = ({
 
   return (
     <PortalContext.Provider value={manager}>
-      <View collapsable={false} style={[{flex: 1, pointerEvents: "box-none"}, style]}>
+      <View collapsable={false} style={[styles.content, style]}>
         {children}
       </View>
       {portals.map(({children: portalChildren, key}) => (
-        <View
-          collapsable={false}
-          key={key}
-          style={[StyleSheet.absoluteFill, {pointerEvents: "box-none"}]}
-        >
+        <View collapsable={false} key={key} style={styles.portal}>
           {portalChildren}
         </View>
       ))}

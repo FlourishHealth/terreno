@@ -67,6 +67,14 @@ const Login: React.FC = () => {
     }));
   }, [isSubmitting, socialLoading, handleSocialLogin]);
 
+  const handleSignUpPress = useCallback((): void => {
+    router.push("/signup");
+  }, [router]);
+
+  const handleForgotPassword = useCallback((): void => {
+    router.push("/forgotPassword");
+  }, [router]);
+
   const isLoading = isSubmitting || Boolean(socialLoading);
 
   return (
@@ -78,7 +86,8 @@ const Login: React.FC = () => {
       ]}
       loading={isLoading}
       oauthProviders={oauthProviders}
-      onSignUpPress={() => router.push("/signup")}
+      onForgotPassword={handleForgotPassword}
+      onSignUpPress={handleSignUpPress}
       onSubmit={handleSubmit}
       testID="login-screen"
     />

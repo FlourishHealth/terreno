@@ -1,5 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, userEvent} from "@testing-library/react-native";
+import {assert} from "chai";
+import type {ReactElement} from "react";
+import type {TextInput} from "react-native";
 import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
 
@@ -21,6 +24,53 @@ describe("TextField", () => {
   });
 
   describe("basic rendering", () => {
+    it("warns when the device timezone cannot be determined", () => {
+      mock.module("expo-localization", () => ({
+        getCalendars: mock(() => []),
+        getLocales: mock(() => [
+          {
+            countryCode: "US",
+            decimalSeparator: ".",
+            digitGroupingSeparator: ",",
+            languageCode: "en",
+            measurementSystem: "US",
+            temperatureUnit: "F",
+            textDirection: "ltr",
+          },
+        ]),
+      }));
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        renderWithTheme(<TextField onChange={mockOnChange} value="" />);
+        assert.equal(warnSpy.mock.calls.length, 1);
+        assert.equal(warnSpy.mock.calls[0]?.[0], "Could not automatically determine timezone.");
+      } finally {
+        mock.module("expo-localization", () => ({
+          getCalendars: mock(() => [
+            {
+              calendar: "gregorian",
+              id: "gregorian",
+              locale: "en-US",
+              timeZone: "America/New_York",
+            },
+          ]),
+          getLocales: mock(() => [
+            {
+              countryCode: "US",
+              decimalSeparator: ".",
+              digitGroupingSeparator: ",",
+              languageCode: "en",
+              measurementSystem: "US",
+              temperatureUnit: "F",
+              textDirection: "ltr",
+            },
+          ]),
+        }));
+        warnSpy.mockRestore();
+      }
+    });
+
     it("should render with default props", () => {
       const {getByDisplayValue} = renderWithTheme(
         <TextField onChange={mockOnChange} value="test value" />
@@ -191,6 +241,214 @@ describe("TextField", () => {
 
       const input = getByDisplayValue("");
       expect(input.props.secureTextEntry).toBe(true);
+    });
+
+    describe("password visibility toggle", () => {
+      it("should reveal and re-hide the value when the toggle is pressed", () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(false);
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+      });
+
+      it("should describe the next action on the toggle", () => {
+        const {getByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        const toggle = getByTestId("pw.visibility-toggle");
+        expect(toggle.props.accessibilityLabel).toBe("Show password");
+
+        fireEvent.press(toggle);
+        expect(getByTestId("pw.visibility-toggle").props.accessibilityLabel).toBe("Hide password");
+      });
+
+      it("should not render the toggle for non-password types", () => {
+        const {queryByTestId} = renderWithTheme(
+          <TextField onChange={mockOnChange} testID="email" type="email" value="" />
+        );
+
+        expect(queryByTestId("email.visibility-toggle")).toBeNull();
+      });
+
+      it("should not render the toggle when showVisibilityToggle is false", () => {
+        const {queryByTestId} = renderWithTheme(
+          <TextField
+            onChange={mockOnChange}
+            showVisibilityToggle={false}
+            testID="pw"
+            type="password"
+            value="hunter2"
+          />
+        );
+
+        expect(queryByTestId("pw.visibility-toggle")).toBeNull();
+      });
+
+      it("should keep the value hidden when the field is disabled", () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField disabled onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+        );
+
+        fireEvent.press(getByTestId("pw.visibility-toggle"));
+        expect(getByDisplayValue("hunter2").props.secureTextEntry).toBe(true);
+      });
+
+      it("should accept a custom toggle test id", () => {
+        const {getByTestId} = renderWithTheme(
+          <TextField
+            onChange={mockOnChange}
+            testID="pw"
+            testIDs={{visibilityToggle: "custom-toggle"}}
+            type="password"
+            value="hunter2"
+          />
+        );
+
+        expect(getByTestId("custom-toggle")).toBeTruthy();
+      });
+
+      it("should not blur the input when the visibility toggle is pressed", async () => {
+        const {getByDisplayValue, getByTestId} = renderWithTheme(
+          <TextField
+            onBlur={mockOnBlur}
+            onChange={mockOnChange}
+            testID="pw"
+            trimOnBlur
+            type="password"
+            value="secret  "
+          />
+        );
+
+        const input = getByDisplayValue("secret  ");
+        fireEvent(input, "focus");
+        await act(async () => {
+          fireEvent.press(getByTestId("pw.visibility-toggle"));
+          await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+          });
+        });
+
+        expect(mockOnBlur).not.toHaveBeenCalled();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+
+      it("refocuses and restores selection on web when toggled while focused", () => {
+        const reactNative = require("react-native") as {Platform: {OS: string}};
+        const originalOS = reactNative.Platform.OS;
+        const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+        const requestAnimationFrameSpy = mock((callback: FrameRequestCallback): number => {
+          callback(0);
+          return 1;
+        });
+        reactNative.Platform.OS = "web";
+        globalThis.requestAnimationFrame = requestAnimationFrameSpy;
+
+        try {
+          const {getByDisplayValue, getByTestId} = renderWithTheme(
+            <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+          );
+          const input = getByDisplayValue("hunter2");
+          const webInput: {
+            focus: () => void;
+            selectionEnd: number;
+            selectionStart: number;
+            setSelectionRange: (start: number, end: number) => void;
+          } = {
+            focus: () => {},
+            selectionEnd: 0,
+            selectionStart: 0,
+            setSelectionRange: () => {},
+          };
+          const focusSpy = mock(() => {});
+          const setSelectionRangeSpy = mock((_start: number, _end: number) => {});
+          const ref = (input.props as unknown as {ref?: (value: TextInput | null) => void}).ref;
+          assert.isFunction(ref);
+          webInput.focus = focusSpy;
+          webInput.selectionStart = 2;
+          webInput.selectionEnd = 5;
+          webInput.setSelectionRange = setSelectionRangeSpy;
+
+          fireEvent(input, "focus");
+          ref?.(webInput as unknown as TextInput);
+          const preventDefault = mock(() => {});
+          fireEvent(getByTestId("pw.visibility-toggle"), "mouseDown", {preventDefault});
+          fireEvent.press(getByTestId("pw.visibility-toggle"));
+
+          assert.equal(requestAnimationFrameSpy.mock.calls.length, 1);
+          assert.equal(focusSpy.mock.calls.length, 1);
+          assert.deepEqual(setSelectionRangeSpy.mock.calls[0], [2, 5]);
+          assert.equal(preventDefault.mock.calls.length, 1);
+        } finally {
+          reactNative.Platform.OS = originalOS;
+          globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+        }
+      });
+
+      it("refocuses with a timeout when requestAnimationFrame is unavailable on web", async () => {
+        const reactNative = require("react-native") as {Platform: {OS: string}};
+        const originalOS = reactNative.Platform.OS;
+        const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+        const originalSetTimeout = globalThis.setTimeout;
+        let scheduledRefocus: (() => void) | undefined;
+        const setTimeoutSpy = spyOn(globalThis, "setTimeout").mockImplementation(
+          (handler, timeout, ...args) => {
+            scheduledRefocus = handler as unknown as () => void;
+            return originalSetTimeout(() => {}, timeout, ...args);
+          }
+        );
+        reactNative.Platform.OS = "web";
+        globalThis.requestAnimationFrame = undefined;
+
+        try {
+          const {getByDisplayValue, getByTestId} = renderWithTheme(
+            <TextField onChange={mockOnChange} testID="pw" type="password" value="hunter2" />
+          );
+          const input = getByDisplayValue("hunter2");
+          const webInput = {focus: () => void 0};
+          const ref = (input.props as unknown as {ref?: (value: TextInput | null) => void}).ref;
+          assert.isFunction(ref);
+          const focusSpy = mock(() => {});
+          webInput.focus = focusSpy;
+
+          fireEvent(input, "focus");
+          ref?.(webInput as unknown as TextInput);
+          fireEvent.press(getByTestId("pw.visibility-toggle"));
+
+          assert.isAtLeast(setTimeoutSpy.mock.calls.length, 1);
+          ref?.(webInput as unknown as TextInput);
+          scheduledRefocus?.();
+          assert.equal(focusSpy.mock.calls.length, 1);
+        } finally {
+          setTimeoutSpy.mockRestore();
+          reactNative.Platform.OS = originalOS;
+          globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+        }
+      });
+    });
+
+    it("calls both onEnter and onSubmitEditing when submitting", () => {
+      const onSubmitEditing = mock(() => {});
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField
+          onChange={mockOnChange}
+          onEnter={mockOnEnter}
+          onSubmitEditing={onSubmitEditing}
+          value=""
+        />
+      );
+
+      getByDisplayValue("").props.onSubmitEditing();
+
+      assert.equal(mockOnEnter.mock.calls.length, 1);
+      assert.equal(onSubmitEditing.mock.calls.length, 1);
     });
 
     it("should render url type with correct keyboard", () => {
@@ -538,6 +796,169 @@ describe("TextField", () => {
       );
       fireEvent(getByDisplayValue(""), "focus");
       expect(mockOnFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores onChangeText when the text matches the controlled value", async () => {
+      const onChange = mock(() => {});
+      const {getByDisplayValue} = renderWithTheme(
+        <TextField onChange={onChange} value="stable title" />
+      );
+
+      await act(async () => {
+        fireEvent.changeText(getByDisplayValue("stable title"), "stable title");
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("keeps a stable onChangeText callback across value and onChange updates while invoking the latest onChange", async () => {
+      const onChange1 = mock(() => {});
+      const onChange2 = mock(() => {});
+      const {getByDisplayValue, rerender} = renderWithTheme(
+        <TextField onChange={onChange1} value="hello" />
+      );
+
+      const initialOnChangeText = getByDisplayValue("hello").props.onChangeText;
+
+      rerender(<TextField onChange={onChange2} value="world" />);
+
+      const input = getByDisplayValue("world");
+      expect(input.props.onChangeText).toBe(initialOnChangeText);
+
+      await act(async () => {
+        fireEvent.changeText(input, "updated");
+      });
+
+      expect(onChange2).toHaveBeenCalledWith("updated");
+      expect(onChange1).not.toHaveBeenCalled();
+    });
+
+    it("preserves per-character typing when onChangeText identity churn would trigger stale RN Web rebinds", async () => {
+      const savedOS = PlatformModule.OS;
+      const perCharTitle = "Review";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = "";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+
+        for (let i = 0; i < perCharTitle.length; i++) {
+          const partial = perCharTitle.slice(0, i + 1);
+          const field = view.getByDisplayValue(value);
+          const previousOnChangeText = field.props.onChangeText;
+
+          await act(async () => {
+            fireEvent.changeText(field, partial);
+          });
+
+          view.rerender(renderField());
+
+          const fieldAfterChange = view.getByDisplayValue(value);
+          expect(fieldAfterChange.props.onChangeText).toBe(previousOnChangeText);
+          expect(fieldAfterChange.props.value).toBe(partial);
+        }
+
+        expect(view.getByDisplayValue(value).props.value).toBe(perCharTitle);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("disables browser autocorrect and spellcheck on web", () => {
+      const savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByDisplayValue} = renderWithTheme(
+          <TextField onChange={mockOnChange} type="text" value="controlled title" />
+        );
+        const input = getByDisplayValue("controlled title");
+        expect(input.props.autoCorrect).toBe(false);
+        expect(input.props.spellCheck).toBe(false);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("does not recurse when synthetic onChange alternates by a single-space autocorrect delta", async () => {
+      const savedOS = PlatformModule.OS;
+      const withoutSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reachthreshold fo maximum update depth exc";
+      const withSpace =
+        "Tetginsbhep al attempt to trigger loop crash now via extended typed input to reach threshold fo maximum update depth exc";
+
+      try {
+        PlatformModule.OS = "web";
+        let value = withoutSpace;
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const renderField = (): ReactElement => (
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        const view = renderWithTheme(renderField());
+        const alternates = [withSpace, withoutSpace];
+
+        for (let i = 0; i < 6; i++) {
+          const nextText = alternates[i % 2];
+          await act(async () => {
+            fireEvent.changeText(view.getByDisplayValue(value), nextText);
+          });
+          view.rerender(renderField());
+        }
+
+        expect(onChange.mock.calls.length).toBe(1);
+        expect(onChange.mock.calls[0]?.[0]).toBe(withSpace);
+        expect(value).toBe(withSpace);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("allows backspace and retype after the oscillation window", async () => {
+      const savedOS = PlatformModule.OS;
+      const originalNow = performance.now.bind(performance);
+      let fakeNow = 10_000;
+
+      try {
+        PlatformModule.OS = "web";
+        performance.now = () => fakeNow;
+
+        let value = "hello";
+        const onChange = mock((next: string) => {
+          value = next;
+        });
+
+        const view = renderWithTheme(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hell");
+        });
+        view.rerender(
+          <TextField onChange={onChange} testID="admin-field-title" type="text" value={value} />
+        );
+
+        fakeNow += 600;
+        await act(async () => {
+          fireEvent.changeText(view.getByDisplayValue(value), "hello");
+        });
+
+        expect(onChange.mock.calls.map((call) => call[0])).toEqual(["hell", "hello"]);
+      } finally {
+        performance.now = originalNow;
+        PlatformModule.OS = savedOS;
+      }
     });
   });
 });

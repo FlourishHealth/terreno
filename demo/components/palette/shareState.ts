@@ -10,7 +10,7 @@ import {ANCHOR_FAMILIES} from "./paletteTypes";
  */
 
 /** Query-string parameter that carries the encoded state. */
-export const SHARE_PARAM = "s";
+const SHARE_PARAM = "s";
 
 export interface ShareState {
   anchors: PaletteAnchors;
@@ -32,6 +32,7 @@ const fromBase64Url = (token: string): string | undefined => {
 };
 
 /** Encode anchors + fonts into a compact, URL-safe token. */
+/** @internal */
 export const encodeShareState = (state: ShareState): string => {
   const payload = JSON.stringify({a: state.anchors, f: state.fonts});
   return toBase64Url(payload);

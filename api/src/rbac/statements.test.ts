@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 
 import {
   ADMIN_PAGE_PERMISSION,
@@ -12,13 +13,27 @@ import {
 describe("rbac statements", () => {
   it("exports terreno default vocabulary", () => {
     expect(terrenoStatements.admin).toContain("access");
+    expect(terrenoStatements.admin).toContain("jobs");
     expect(ADMIN_PAGE_PERMISSION).toEqual({admin: ["access"]});
     expect(terrenoStatements.rbac).toContain("manageRoles");
     expect(terrenoStatements.user).toContain("read");
     expect(terrenoStatements.configuration).toContain("update");
     expect(terrenoStatements.featureFlag).toEqual(["create", "list", "read", "update", "delete"]);
+    expect(terrenoStatements.organization).toEqual([
+      "create",
+      "list",
+      "read",
+      "update",
+      "delete",
+      "manageMembers",
+      "disable",
+    ]);
     expect(terrenoStatements.consentForm).toEqual(["create", "list", "read", "update", "delete"]);
     expect(terrenoStatements.consentResponse).toEqual(["list", "read"]);
+    assert.deepEqual(
+      [...terrenoStatements.adminAnnouncementClickEvent],
+      ["read", "write", "writeOwned"]
+    );
   });
 
   it("merges app statements over terreno defaults", () => {
@@ -40,6 +55,9 @@ describe("rbac statements", () => {
     expect(expanded.featureFlag).toEqual([...terrenoStatements.featureFlag]);
     expect(expanded.consentForm).toEqual([...terrenoStatements.consentForm]);
     expect(expanded.consentResponse).toEqual([...terrenoStatements.consentResponse]);
+    assert.deepEqual(expanded.adminAnnouncementClickEvent, [
+      ...terrenoStatements.adminAnnouncementClickEvent,
+    ]);
   });
 
   it("expands read-only sentinel to read-ish actions", () => {
@@ -56,6 +74,7 @@ describe("rbac statements", () => {
     expect(expanded.featureFlag).toEqual(["list", "read"]);
     expect(expanded.consentForm).toEqual(["list", "read"]);
     expect(expanded.consentResponse).toEqual(["list", "read"]);
+    expect(expanded.organization).toEqual(["list", "read"]);
   });
 
   it("returns concrete permission sets unchanged", () => {

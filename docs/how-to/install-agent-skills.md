@@ -8,19 +8,25 @@ npx skills add FlourishHealth/terreno --skill terreno-1-grow
 ```
 
 That copies the committed `skills/` tree: lifecycle stages (Grow, Pick, Roast, Brew,
-Taste), outer loops (`terreno-planning-loop`, `terreno-taste-sweep`), repository
-skills, and published package skills.
+Taste), three outer loops, combined Terreno app workflows, and optional repository
+skills.
 
 ## Install as a host plugin
 
-The same lifecycle stages ship as a host plugin. Stage names differ by host because
-Claude Code takes a plugin skill's command from the frontmatter `name`.
+Two plugins ship from this marketplace: the combined lifecycle and Terreno app workflows,
+and the optional goal-driven scan plugin. Stage names differ by host because Claude Code
+takes a plugin skill's command from the frontmatter `name`.
 
-| Host | Plugin | Invoke Grow |
-| --- | --- | --- |
-| Cursor | `terreno-planning` | `/terreno-1-grow` |
-| Codex | `terreno-planning` | `$terreno-1-grow` |
-| Claude Code | `terreno` | `/terreno:1-grow` |
+| Host | Plugin | Invoke Grow | Scan plugin | Invoke Aim |
+| --- | --- | --- | --- | --- |
+| Cursor | `terreno-planning` | `/terreno-1-grow` | `terreno-scan` | `/terreno-scan-1-aim` |
+| Codex | `terreno-planning` | `$terreno-1-grow` | `terreno-scan` | `$terreno-scan-1-aim` |
+| Claude Code | `terreno` | `/terreno:1-grow` | `terreno-scan` | `/terreno-scan:1-aim` |
+
+`terreno-scan` depends on the lifecycle plugin: Plot hands each slice to Grow. Its
+resident loop (`/terreno-scan:loop`, `/terreno-scan-loop`, `$terreno-scan-loop`) keeps a
+goal running and heartbeats over the PRs it opens. See the
+[scan plugin reference](../reference/scan-plugin.md).
 
 ### Cursor
 
@@ -31,6 +37,7 @@ Install `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://gith
 ```text
 codex plugin marketplace add FlourishHealth/terreno
 codex plugin install terreno-planning --source terreno-plugins
+codex plugin install terreno-scan --source terreno-plugins
 $terreno-1-grow
 ```
 
@@ -44,33 +51,44 @@ Codex installs the canonical plugin at
 ```text
 /plugin marketplace add FlourishHealth/terreno
 /plugin install terreno@terreno-plugins
+/plugin install terreno-scan@terreno-plugins
 /terreno:1-grow
 ```
 
 Marketplace: [`.claude-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.claude-plugin/marketplace.json).
-Claude Code stages come from the generated copy at
-[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
+Claude Code stages, app skills, and agents come from the generated copy at
+[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude);
+scan stages come from
+[`plugins/terreno-scan-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-scan-claude).
 
 ## What you get
 
 | Group | Skills |
 | --- | --- |
-| Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-planning-loop`, `terreno-taste-sweep` |
-| Terreno apps | backend, UI, admin interfaces, data, schema, SDK |
+| Lifecycle | `terreno-1-grow` … `terreno-5-taste`, `terreno-pick-roast-loop`, `terreno-planning-loop`, `terreno-taste-sweep` |
+| Terreno apps | backend, UI, admin interfaces, data, schema, SDK, prompts, upgrades, deployment |
 | Docs | `update-docs`, `update-agent-docs`, architecture skills |
-| GitHub | commit, issues, PR, review, verify, release, deploy |
+| GitHub | issues, review, UI verification, release, dependency updates |
+| Code scans | `terreno-scan-1-aim` … `terreno-scan-5-track`, `terreno-scan-campaign`, `terreno-scan-loop` |
+| Expo and native | `track-upstream-expo`, `upgrading-expo`, deployment / EAS skills |
+| Plugin agents | `pre-commit`, `ui-verifier` |
 
 `skills.sh.json` at the repo root groups those names on [skills.sh](https://skills.sh).
+Cursor and Claude Code load the bundled plugin agents. Codex loads the combined skill
+set but does not currently expose plugin-defined agents.
 
 ## Keep copies in sync (Terreno maintainers)
 
 Canonical sources:
 
-1. `.rulesync/skills/` — repository skills (`bun run rules` generates agent copies)
-2. `plugins/terreno-planning/skills/` — portable lifecycle stages
-3. `<package>/.ai/skills/` — published package skills; these overlay the repo copies
+1. `plugins/terreno-planning/skills/` — lifecycle and reusable Terreno app workflows
+2. `plugins/terreno-planning/agents/` — reusable verification agents
+3. `plugins/terreno-scan/skills/` — scan stages and the campaign loop
+4. `.rulesync/skills/` — repository-only and optional Expo skills (`bun run rules` generates agent copies)
+5. `<package>/.ai/skills/` — package/MCP-specific copies; not installable overlays
 
-`plugins/terreno-claude/` is generated from source 2 with shortened stage names.
+`plugins/terreno-claude/` is generated from sources 1 and 2, and
+`plugins/terreno-scan-claude/` from source 3, both with shortened skill names.
 Codex uses the canonical plugin plus committed `.codex-plugin/plugin.json` and
 `.agents/plugins/marketplace.json` — do not generate a third plugin tree.
 
@@ -82,6 +100,14 @@ bun run check:lifecycle-skills
 ```
 
 Do not hand-edit `skills/`.
+
+## Keep native hooks in sync
+
+Repository-level hooks are canonical in `.rulesync/hooks.json`; shared commands live in
+`.rulesync/hooks/`. Run `bun run rules` after either changes. Rulesync generates the
+native stop-hook configuration for Cursor, Claude Code, GitHub Copilot, and Devin. The
+committed quality hook runs both `bun run lint` and `bun run compile` before
+an agent finishes.
 
 ## Write human docs with the skills
 

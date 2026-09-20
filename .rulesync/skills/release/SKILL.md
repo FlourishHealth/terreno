@@ -11,9 +11,9 @@ Cut a new Terreno release end-to-end: gather commits, write organized release no
 ## How releases work in this repo
 
 - Pushing a tag matching `X.Y.Z` (no `v` prefix, e.g. `0.18.0`) triggers `.github/workflows/publish-on-tag.yml`.
-- That workflow publishes **twelve packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/comms`, `@terreno/feature-flags`, `@terreno/mcp`. (`demo` and the example apps are not published.)
+- That workflow publishes **fourteen packages, all at the same version**: `@terreno/api`, `@terreno/test`, `@terreno/ui`, `@terreno/rtk`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`, `@terreno/ai`, `@terreno/api-health`, `@terreno/comms`, `@terreno/feature-flags`, `@terreno/jobs`, `@terreno/mcp`, `@terreno/syncdb`. (`demo` and the example apps are not published.)
 - Every publish job waits on `breaking-change-documentation`, which runs `bun run check:upgrade-docs "<tag>"` against the tagged commit. That job fails the whole release when the tag's `CHANGELOG.md` has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` section for the version but `mcp-server/src/docs/upgrades/<version>.md` is missing — so assembled changelog entries and the upgrade note must be on master *before* tagging.
-- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, `comms`, `feature-flags`, and `mcp` depend on `publish-api` and `publish-test`; `admin-spa` also waits on `publish-rtk` and `publish-admin-frontend`. `api`, `test`, and `ui` publish independently. A `ui`, `api`, or `test` failure cascades.
+- Publish jobs are chained: `rtk`, `admin-frontend`, and `admin-spa` depend on `publish-ui`; `admin-backend`, `ai`, `api-health`, `comms`, `feature-flags`, `jobs`, and `mcp` depend on `publish-api` and `publish-test`; `admin-spa` also waits on `publish-rtk` and `publish-admin-frontend`. `api`, `test`, `ui`, and `syncdb` publish independently. A `ui`, `api`, or `test` failure cascades.
 - After the master version bump, the workflow dispatches `demo-deploy.yml` against the release tag, and for `X.Y.0` tags also cuts the versioned docs.
 - After successful publishes, the workflow commits `chore: bump package versions to X.Y.Z` back to master and sends a Zoom notification. Prerelease tags (`-beta`, `-alpha`) skip the master bump.
 
@@ -98,7 +98,8 @@ Organize the commits — never ship the raw auto-generated list. Order sections 
 Rules:
 
 - Lead with breaking changes, then features, then fixes. Omit empty sections.
-- `[coverage]`, `[alignRules]`, lockfile updates, dependabot bumps, and similar mechanical commits go in the collapsed **Tests & housekeeping** section, one line each.
+- `[coverage]`, `[alignRules]`, lockfile updates, `update-dependencies` bumps, and similar mechanical commits go in the collapsed **Tests & housekeeping** section, one line each.
+- Expo SDK, React Native, and other `isFingerprintSkip` packages are **not** bumped by `update-dependencies`. Include those native upgrades in this release (see `upgrading-expo`).
 - Merge commits that belong to one feature (e.g. an IP/plan commit plus its implementation) into a single bullet.
 - Describe user-facing impact, not implementation detail. Keep `(#123)` PR references — GitHub autolinks them.
 
@@ -111,7 +112,7 @@ Before creating the tag:
 1. Preview pending notes: `bun run changelog:preview`. If there are no fragments, stop — do not cut an empty release (see Step 2).
 2. Run `bun run changelog:assemble X.Y.Z`. That command uses today's ISO date via Luxon (`DateTime.now().toISODate()`), folds fragments into a new `## [X.Y.Z] - YYYY-MM-DD` section in [`CHANGELOG.md`](../../CHANGELOG.md), leaves `## [Unreleased]` as a pointer at `changelog/unreleased/`, and deletes the assembled fragment files.
 3. Confirm the new version section is **non-empty** and grouped under Keep a Changelog headings.
-4. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` in the same commit — the tag-time `breaking-change-documentation` job fails the release without it. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
+4. If the new section has a `### Breaking`, `### Changed`, `### Deprecated`, or `### Removed` heading, write `mcp-server/src/docs/upgrades/X.Y.Z.md` **in the same commit as the assembled changelog**, using the template in [`mcp-server/src/docs/upgrades/README.md`](../../mcp-server/src/docs/upgrades/README.md). Add a changelog line `Upgrade note: [\`mcp-server/src/docs/upgrades/X.Y.Z.md\`](mcp-server/src/docs/upgrades/X.Y.Z.md).` under the version heading. The tag-time `breaking-change-documentation` job fails the release without the file. Verify locally with `bun run check:upgrade-docs X.Y.Z`.
 5. Commit the assembled changelog, deleted fragments, and the upgrade note on `master` before tagging. When `master` requires a PR, merge that PR first and only then create the release, so the tagged commit contains both files.
 
 ## Step 6: Create the release
@@ -134,12 +135,12 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 2. Verify every package is live on npm (allow a couple of minutes of registry lag):
 
    ```bash
-   for p in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags mcp; do
+   for p in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs mcp syncdb; do
      echo "@terreno/$p: $(npm view "@terreno/$p" version)"
    done
    ```
 
-   All twelve must report `$VERSION`.
+   All fourteen must report `$VERSION`.
 
 3. Confirm the `chore: bump package versions to $VERSION` commit landed on master (`git fetch origin master && git log origin/master -1 --oneline`). Skipped for prereleases.
 

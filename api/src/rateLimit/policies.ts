@@ -12,7 +12,7 @@ const stripQueryAndFragment = (url: string): string => {
 };
 
 /** Strip query, fragment, and a trailing slash so `/auth/login/` matches `/auth/login`. */
-export const normalizeRequestPath = (url: string): string => {
+const normalizeRequestPath = (url: string): string => {
   const withoutQuery = stripQueryAndFragment(url);
   const withoutSlash =
     withoutQuery.length > 1 && withoutQuery.endsWith("/")
@@ -22,7 +22,7 @@ export const normalizeRequestPath = (url: string): string => {
 };
 
 /** Prefer Express `req.path` (routing) over the raw request-target. */
-export const requestPath = (req: Request): string => {
+const requestPath = (req: Request): string => {
   const raw = req.path || req.url || req.originalUrl || "";
   return normalizeRequestPath(raw);
 };
@@ -31,6 +31,10 @@ const JWT_CREDENTIAL_EXCHANGE_EXACT = new Set([
   "/auth/login",
   "/auth/signup",
   "/auth/refresh_token",
+  "/auth/forgotpassword",
+  "/auth/resetpassword",
+  "/resetpassword",
+  "/auth/verifyemail",
 ]);
 
 /**
@@ -61,10 +65,16 @@ export const shouldSkipRateLimit = (
   return false;
 };
 
+// `requestPath` lowercases, so camelCase routes live here as lowercase.
 const AUTH_EXACT = new Set([
   "/auth/login",
   "/auth/signup",
   "/auth/refresh_token",
+  "/auth/forgotpassword",
+  "/auth/resetpassword",
+  "/resetpassword",
+  "/auth/sendverification",
+  "/auth/verifyemail",
   "/auth/github",
   "/auth/github/callback",
   "/auth/github/failure",
@@ -79,7 +89,10 @@ const betterAuthAuthPrefixes = (basePath: string): string[] => {
     `${base}/sign-in`,
     `${base}/sign-up`,
     `${base}/forget-password`,
+    `${base}/request-password-reset`,
     `${base}/reset-password`,
+    `${base}/send-verification-email`,
+    `${base}/verify-email`,
     `${base}/callback`,
   ];
 };

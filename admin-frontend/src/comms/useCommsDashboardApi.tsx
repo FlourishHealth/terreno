@@ -1,12 +1,12 @@
 import {useMemo} from "react";
+import {withQueryString} from "../adminRpc";
 import {asDynamicHookApi} from "../dynamicHookApi";
 import type {AdminApi, EndpointBuilder} from "../types";
+import {useAdminRpc, useAdminRpcMutation, useAdminRpcQuery} from "../useAdminRpc";
 import type {CommsDashboardFilters} from "./commsDashboardParams";
 import type {CommsMessageRow} from "./commsMessagePayload";
 
-export type {CommsMessageAttempt, CommsMessageRow} from "./commsMessagePayload";
-
-export interface CommsListResponse {
+interface CommsListResponse {
   data: CommsMessageRow[];
   limit: number;
   more: boolean;
@@ -36,7 +36,7 @@ export interface CommsStatsResponse {
   };
 }
 
-export interface CommsRetryManyResponse {
+interface CommsRetryManyResponse {
   retried: CommsMessageRow[];
   skipped: Array<{id: string; reason: string}>;
 }
@@ -46,8 +46,10 @@ const DETAIL_KEY = "commsDashboardDetail";
 const STATS_KEY = "commsDashboardStats";
 const RETRY_KEY = "commsDashboardRetry";
 const RETRY_MANY_KEY = "commsDashboardRetryMany";
+const COMMS_MESSAGE_TAGS = ["commsMessages"] as const;
 
 export const useCommsDashboardApi = (api: AdminApi) => {
+  const rpc = useAdminRpc();
   const enhancedApi = useMemo(
     () =>
       api.enhanceEndpoints({addTagTypes: ["commsMessages"]}).injectEndpoints({
@@ -96,6 +98,57 @@ export const useCommsDashboardApi = (api: AdminApi) => {
   );
 
   const hooks = asDynamicHookApi(enhancedApi);
+  if (rpc) {
+    return {
+      useDetailQuery: (id: string) =>
+        useAdminRpcQuery<CommsMessageRow | {data: CommsMessageRow}>({
+          providesTags: COMMS_MESSAGE_TAGS,
+          rpc,
+          url: `/comms/messages/${id}`,
+        }),
+      useListQuery: (
+        params: CommsDashboardFilters & {
+          limit?: number;
+        }
+      ) =>
+        useAdminRpcQuery<CommsListResponse>({
+          providesTags: COMMS_MESSAGE_TAGS,
+          rpc,
+          url: withQueryString({params: params as Record<string, unknown>, url: "/comms/messages"}),
+        }),
+      useRetryManyMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc, {
+          invalidatesTags: COMMS_MESSAGE_TAGS,
+        });
+        return [
+          (body: Record<string, unknown>) =>
+            trigger({body, method: "POST", url: "/comms/messages/retryMany"}),
+          meta,
+        ] as [
+          (body: Record<string, unknown>) => {unwrap: () => Promise<CommsRetryManyResponse>},
+          {isLoading: boolean},
+        ];
+      },
+      useRetryMutation: () => {
+        const [trigger, meta] = useAdminRpcMutation(rpc, {
+          invalidatesTags: COMMS_MESSAGE_TAGS,
+        });
+        return [
+          (id: string) => trigger({method: "POST", url: `/comms/messages/${id}/retry`}),
+          meta,
+        ] as [
+          (id: string) => {unwrap: () => Promise<CommsMessageRow | {data: CommsMessageRow}>},
+          {isLoading: boolean},
+        ];
+      },
+      useStatsQuery: (params: CommsDashboardFilters) =>
+        useAdminRpcQuery<CommsStatsResponse>({
+          providesTags: COMMS_MESSAGE_TAGS,
+          rpc,
+          url: withQueryString({params: params as Record<string, unknown>, url: "/comms/stats"}),
+        }),
+    };
+  }
   return {
     useDetailQuery: hooks.useCommsDashboardDetailQuery as (id: string) => {
       data?: CommsMessageRow | {data: CommsMessageRow};

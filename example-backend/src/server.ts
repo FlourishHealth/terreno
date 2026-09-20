@@ -1,8 +1,10 @@
 import * as Sentry from "@sentry/bun";
-import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {AIAdminApp, LangfuseApp} from "@terreno/ai";
+import {AnnouncementsApp} from "@terreno/announcements";
 import {
+  AuditApp,
   BetterAuthApp,
   backfillAdmins,
   ConsentApp,
@@ -11,10 +13,12 @@ import {
   createBetterAuth,
   getMongoClientFromMongoose,
   logger,
+  Membership,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   RealtimeApp,
   rbacRouter,
+  registerOrganizationSettings,
   SyncApp,
   syncConsents,
   TerrenoApp,
@@ -40,26 +44,34 @@ import mongoose from "mongoose";
 import twilio from "twilio";
 import {access} from "./access";
 import {adminScripts} from "./adminScripts";
-import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes} from "./api/ai";
-import {addDevCommsRoutes} from "./api/commsDev";
-import {addLoadTestRoutes} from "./api/loadtest";
-import {projectRouter} from "./api/projects";
-import {addSettingsRoutes} from "./api/settings";
+import {addAiRoutes, aiModelsRouter} from "./api/ai";
+import {commsDevRouter} from "./api/commsDev";
+import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
+import {projectOrgContextPlugin, projectRouter} from "./api/projects";
+import {settingsRouter} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {usersRouter} from "./api/users";
 import {registerUsersTodoStatusTool} from "./api/usersTodoStatus";
+import {bindPortEarly, closeEarlyListenHolder} from "./bindPortEarly";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
-import {AdminAuditLog} from "./models/adminAuditLog";
+import {exampleAdminHome} from "./exampleAdminConfig";
+import {createExampleJobsApp} from "./jobs/createExampleJobsApp";
+import {shouldStartJobsWorkerInApiProcess} from "./jobs/jobsStartWorker";
+import {registerJobsWorkerShutdown} from "./jobs/shutdownJobsWorker";
+import {resolveExampleMigrationsDir} from "./migrationsDir";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
+import {organizationSettingsSchema} from "./models/organizationSettings";
 import {User} from "./models/user";
 import {seedDefaultData} from "./scripts/seed-test-data";
+import "./types/models/organizationSettingsTypes";
 import {resolveTwilioSmsEnvConfig} from "./twilioSmsEnv";
 import {resolveTwilioVerifyEnvConfig} from "./twilioVerifyEnv";
+import type {UserDocument} from "./types/models/userTypes";
 import {buildBetterAuthConfig, getAuthProvider, getWebOrigins} from "./utils/betterAuthConfig";
 import {connectToMongoDB} from "./utils/database";
+import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
@@ -92,6 +104,10 @@ const createOpenApiAwareRouteRegistration = (
 };
 
 export const start = async (skipListen = false): Promise<express.Application> => {
+  // Cloud Run probes PORT as soon as the process starts. Bind before Mongo so a
+  // slow connect/seed cannot fail the revision.
+  const httpServer = skipListen ? undefined : await bindPortEarly(process.env.PORT || "9000");
+
   // Connect to MongoDB first
   await connectToMongoDB();
   await access.roles.seedDefaults();
@@ -151,11 +167,20 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
+    registerOrganizationSettings(organizationSettingsSchema);
+
     const terraApp = new TerrenoApp({
       accessControl: access,
+      authOptions: {
+        publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+        sendMail: async (message) => {
+          await getCommsService().sendMail(message);
+        },
+      },
       // Reflect specific web origins (never "*") so Better Auth's credentialed
       // cross-origin requests from the Expo web frontend pass the browser CORS check.
       corsOrigin: getWebOrigins(),
+      httpServer,
       // Cloud Run captures stdout/stderr. Keeping the console transport avoids making
       // startup depend on LoggingWinston network/auth callbacks before the port opens.
       loggingOptions: {
@@ -164,6 +189,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
       },
+      mcpServiceTokens: {
+        enabled: true,
+        publicMcpUrl: process.env.PUBLIC_API_URL ?? process.env.BETTER_AUTH_URL,
+      },
+      migrations: {dir: resolveExampleMigrationsDir()},
+      organizations: {
+        settingsSchema: organizationSettingsSchema,
+      },
       // App-owned env: @terreno/api does not read RATE_LIMIT_ENABLED. Unset = limiter off.
       rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined,
       skipListen,
@@ -171,6 +204,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     }).configure(AppConfiguration);
 
     registerUsersTodoStatusTool();
+
+    // Build inbound webhooks before CommsApp so Twilio/SendGrid routes can be added,
+    // then register the plugin after CommsApp so those routes are mounted.
+    const inboundWebhooks = createExampleInboundWebhooks();
 
     // Register Better Auth first: registrations mount in order, so its session
     // middleware must be installed before any routes (admin, SPA, model routers)
@@ -187,22 +224,25 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     terraApp
       .register(rbacRouter({access, userModel: User as unknown as TerrenoAuthUserModel}))
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
-      .register(
-        createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
-      )
-      .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
-      .register(createOpenApiAwareRouteRegistration(addLoadTestRoutes))
-      .register(createOpenApiAwareRouteRegistration(addDevCommsRoutes))
+      .register(aiModelsRouter)
+      .register(settingsRouter)
       .register(todoRouter)
+      .register(projectOrgContextPlugin)
       .register(projectRouter)
-      .register(usersRouter)
+      .register(usersRouter);
+    if (commsDevRouter) {
+      terraApp.register(commsDevRouter);
+    }
+    terraApp
       // SyncApp mounts the @terreno/syncdb HTTP routes (/sync/snapshot, /sync/mutate,
       // /sync/key) and publishes getUserScopes so RealtimeApp's socket handlers can
-      // resolve tenant streams (projects are scoped by the user's organizationIds).
+      // resolve tenant streams from active organization memberships.
       .register(
         new SyncApp({
-          getUserScopes: (user) => {
-            return (user as unknown as {organizationIds?: string[]}).organizationIds ?? [];
+          accessControl: access,
+          getUserScopes: async (user) => {
+            const memberships = await Membership.findActiveForUser(user.id);
+            return memberships.map((membership) => String(membership.organizationId));
           },
         })
       )
@@ -236,9 +276,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           },
           debug: websocketsDebug,
           // Required by the tenant-scoped `projects` sync stream: socket authorization
-          // otherwise falls back to the synthetic JWT-claim user, which carries no
-          // `organizationIds`, so tenant streams resolve to nothing and `admin` is
-          // trusted from the token instead of the database (Task 9.21).
+          // must load the persisted user id before Membership-based tenant streams resolve.
           userModel: User as unknown as TerrenoAuthUserModel,
         })
       );
@@ -301,6 +339,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         : undefined;
       const verificationProvider =
         twilioVerifyProvider ?? (isDeployed ? undefined : new ConsoleVerificationProvider());
+      const inboundWebhookPublicUrl = (
+        process.env.PUBLIC_API_URL ??
+        process.env.COMMS_WEBHOOK_PUBLIC_URL ??
+        ""
+      ).replace(/\/$/, "");
 
       terraApp.register(
         new CommsApp(
@@ -311,6 +354,8 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 ...(verificationProvider ? {verification: verificationProvider} : {}),
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 push: pushProvider,
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
             : {
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
@@ -318,10 +363,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 push: pushProvider,
                 sms: smsProvider ?? new ConsoleSmsProvider(),
                 verification: verificationProvider ?? new ConsoleVerificationProvider(),
+                webhooks: inboundWebhooks,
+                ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
         )
       );
     }
+
+    terraApp.register(inboundWebhooks);
 
     terraApp
       .register(
@@ -343,7 +392,14 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
-      .register(new AIAdminApp())
+      .register(new AuditApp())
+      .register(new AIAdminApp());
+
+    const exampleJobsApp = createExampleJobsApp({accessControl: access});
+    terraApp.register(exampleJobsApp);
+
+    terraApp
+
       .register(
         new AdminApp({
           accessControl: access,
@@ -355,44 +411,10 @@ export const start = async (skipListen = false): Promise<express.Application> =>
               name: "sync-lab",
             },
           ],
-          home: {
-            slots: {
-              contentTop: [],
-              main: ["modelStats"],
-              navGlobal: ["scriptRunner", "feature-flags-overrides"],
-              sidebar: ["versionConfig", "recentActivity"],
-            },
-            title: "Example administration",
-          },
-          models: [
-            {
-              adminAccess: {},
-              displayName: "Audit log",
-              group: "Platform",
-              listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
-              model: AdminAuditLog,
-              pageSize: 50,
-              permissions: {create: false, delete: false, update: false},
-              routePath: "/audit-logs",
-              searchFields: ["modelName", "recordLabel"],
-              sortableFields: ["verb", "modelName", "createdAt"],
-            },
-          ],
-          onAdminAudit: async (event: AdminAuditEvent) => {
-            await AdminAuditLog.create({
-              actorId:
-                event.actorId && mongoose.isValidObjectId(event.actorId)
-                  ? new mongoose.Types.ObjectId(event.actorId)
-                  : undefined,
-              modelName: event.modelName,
-              recordId:
-                event.recordId && mongoose.isValidObjectId(event.recordId)
-                  ? new mongoose.Types.ObjectId(event.recordId)
-                  : undefined,
-              recordLabel: event.recordLabel,
-              verb: event.verb,
-            });
-          },
+          home: exampleAdminHome,
+          migrations: {dir: resolveExampleMigrationsDir()},
+          models: [mcpServiceTokenAdminModel],
+          organizations: true,
           scripts: adminScripts,
         })
       )
@@ -401,6 +423,26 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           auditTrail: true,
           resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
           supportedLocales: ["en", "es"],
+        })
+      )
+      .register(
+        new AnnouncementsApp({
+          adminOverviewPermissions: [access.permission({adminAnnouncement: ["read"]})],
+          defaultAcknowledgementPolicy: "dismiss-only",
+          help: {enabled: true},
+          // audienceType staff/patient/all is composed inside the plugin via matchAudienceByType.
+          isStaff: (user) => (user as UserDocument).admin === true,
+          matchAudience: (user, announcement) => {
+            const audience = announcement.audience as {organizationIds?: string[]} | undefined;
+            const requiredOrganizationIds = audience?.organizationIds;
+            if (!requiredOrganizationIds?.length) {
+              return true;
+            }
+            const userOrganizationIds = (user as UserDocument).organizationIds ?? [];
+            return requiredOrganizationIds.some((organizationId) =>
+              userOrganizationIds.includes(organizationId)
+            );
+          },
         })
       );
 
@@ -423,8 +465,13 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       );
     }
 
-    // Register Langfuse plugin if configured
-    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+    // Langfuse OTEL/client init has crashed Cloud Run preview revisions before PORT
+    // opens. Smoke tests omit these keys; production deploy still registers Langfuse.
+    if (
+      process.env.LANGFUSE_SECRET_KEY &&
+      process.env.LANGFUSE_PUBLIC_KEY &&
+      !process.env.MONGO_DB_NAME?.startsWith("terreno-example-pr-")
+    ) {
       terraApp.register(
         new LangfuseApp({
           baseUrl: process.env.LANGFUSE_BASE_URL,
@@ -439,6 +486,28 @@ export const start = async (skipListen = false): Promise<express.Application> =>
 
     const app = terraApp.start();
 
+    if (
+      shouldStartJobsWorkerInApiProcess({
+        jobsStartWorkerEnv: process.env.JOBS_START_WORKER,
+        skipListen,
+      })
+    ) {
+      await terraApp.whenReady();
+      try {
+        await exampleJobsApp.startWorker();
+        registerJobsWorkerShutdown(exampleJobsApp);
+        logger.info(
+          "[jobs] Worker started in API process (set JOBS_START_WORKER=false when using jobs:worker)"
+        );
+      } catch (error: unknown) {
+        logger.error(`[jobs] In-process worker failed to start; HTTP server remains up: ${error}`);
+      }
+    } else if (!skipListen) {
+      logger.info(
+        "[jobs] API-process worker disabled (JOBS_START_WORKER=false); use bun run jobs:worker if needed"
+      );
+    }
+
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
     const totalBootTimeMs = Math.round(totalBootTime[0] * 1000 + totalBootTime[1] * 0.000001);
@@ -446,6 +515,9 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     return app;
   } catch (error) {
     logger.error(`Error setting up server: ${error}`);
+    if (httpServer) {
+      await closeEarlyListenHolder(httpServer);
+    }
     throw error;
   }
 };

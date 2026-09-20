@@ -1,5 +1,5 @@
 import {getCalendars} from "expo-localization";
-import {type FC, useMemo, useState} from "react";
+import {type FC, useCallback, useMemo, useRef, useState} from "react";
 import {
   type DimensionValue,
   type KeyboardTypeOptions,
@@ -18,6 +18,11 @@ import {FieldTitle} from "./fieldElements/FieldTitle";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {resolveFieldTestIDsFromProps} from "./testing/resolveTestId";
+import {
+  createTextFieldOscillationState,
+  recordTextFieldOscillation,
+  shouldSuppressTextFieldOscillation,
+} from "./textFieldOscillationGuard";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -58,6 +63,13 @@ const textContentMap: {
   username: "username",
 };
 
+interface WebTextInputRef {
+  focus: () => void;
+  selectionEnd: number | null;
+  selectionStart: number | null;
+  setSelectionRange: (start: number, end: number) => void;
+}
+
 export const TextField: FC<TextFieldProps> = ({
   title,
   disabled,
@@ -71,6 +83,7 @@ export const TextField: FC<TextFieldProps> = ({
   onIconClick,
   trimOnBlur = true,
   type = "text",
+  showVisibilityToggle = true,
   autoComplete,
   inputRef,
   multiline,
@@ -97,6 +110,50 @@ export const TextField: FC<TextFieldProps> = ({
 
   const [focused, setFocused] = useState(false);
   const [height, setHeight] = useState(rows * 40);
+  const [isValueRevealed, setIsValueRevealed] = useState(false);
+  const textInputRef = useRef<TextInput | null>(null);
+
+  const isPasswordField = type === "password";
+  const hasVisibilityToggle = isPasswordField && showVisibilityToggle;
+
+  /**
+   * Toggles password visibility without blurring the input. Refocuses when the field was focused so
+   * trim-on-blur, parent blur handlers, and the native keyboard stay intact.
+   */
+  const handleVisibilityTogglePress = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
+    const wasFocused = focused;
+    const webInput =
+      Platform.OS === "web" ? (textInputRef.current as unknown as WebTextInputRef | null) : null;
+    const selection =
+      webInput?.selectionStart !== null &&
+      webInput?.selectionStart !== undefined &&
+      webInput.selectionEnd !== null
+        ? {end: webInput.selectionEnd, start: webInput.selectionStart}
+        : undefined;
+    setIsValueRevealed((previous) => !previous);
+    if (wasFocused) {
+      const refocusInput = (): void => {
+        textInputRef.current?.focus();
+        if (selection && webInput) {
+          webInput.setSelectionRange(selection.start, selection.end);
+        }
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(refocusInput);
+      } else {
+        setTimeout(refocusInput, 0);
+      }
+    }
+  }, [disabled, focused]);
+
+  const preventVisibilityToggleBlur = useCallback((event: {preventDefault: () => void}): void => {
+    event.preventDefault();
+  }, []);
+  const visibilityToggleWebProps =
+    Platform.OS === "web" ? {onMouseDown: preventVisibilityToggleBlur} : {};
 
   let borderColor = focused ? theme.border.focus : theme.border.dark;
   if (disabled) {
@@ -139,8 +196,46 @@ export const TextField: FC<TextFieldProps> = ({
     console.warn(`${type} is not yet supported`);
   }
 
+  // RN Web browser autocorrect/spellcheck fights controlled `value` and can oscillate
+  // between variants (e.g. "reachthreshold" vs "reach threshold"), firing onChangeText forever.
   const shouldAutocorrect =
-    ["text", "textarea"].includes(type) && (!autoComplete || autoComplete === "on");
+    Platform.OS !== "web" &&
+    ["text", "textarea"].includes(type) &&
+    (!autoComplete || autoComplete === "on");
+
+  const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  const oscillationRef = useRef(createTextFieldOscillationState());
+  valueRef.current = value;
+  onChangeRef.current = onChange;
+
+  const handleChangeText = useCallback((text: string): void => {
+    const currentValue = valueRef.current ?? "";
+    if (text === currentValue) {
+      return;
+    }
+
+    const now = performance.now();
+    const oscillationState = oscillationRef.current;
+    if (
+      shouldSuppressTextFieldOscillation({
+        currentValue,
+        now,
+        state: oscillationState,
+        text,
+      })
+    ) {
+      return;
+    }
+
+    recordTextFieldOscillation({
+      currentValue,
+      now,
+      state: oscillationState,
+      text,
+    });
+    onChangeRef.current(text);
+  }, []);
 
   const keyboardType = keyboardMap[type];
   const textContentType = textContentMap[type || "text"];
@@ -180,6 +275,7 @@ export const TextField: FC<TextFieldProps> = ({
           }}
         >
           <TextInput
+            {...(Platform.OS === "web" ? {spellCheck: false} : {})}
             accessibilityHint="Enter text here"
             accessibilityState={{disabled}}
             aria-label="Text input field"
@@ -208,7 +304,7 @@ export const TextField: FC<TextFieldProps> = ({
               }
               setFocused(false);
             }}
-            onChangeText={onChange}
+            onChangeText={handleChangeText}
             onContentSizeChange={(event) => {
               if (!grow) {
                 return;
@@ -235,11 +331,12 @@ export const TextField: FC<TextFieldProps> = ({
             placeholderTextColor={theme.text.secondaryLight}
             readOnly={disabled}
             ref={(ref) => {
+              textInputRef.current = ref;
               if (inputRef) {
                 inputRef(ref);
               }
             }}
-            secureTextEntry={type === "password"}
+            secureTextEntry={isPasswordField && !isValueRevealed}
             style={defaultTextInputStyles}
             testID={fieldTestIDs.input}
             textContentType={textContentType}
@@ -249,6 +346,26 @@ export const TextField: FC<TextFieldProps> = ({
           {Boolean(iconName) && (
             <Pressable aria-role="button" onPress={onIconClick}>
               <Icon iconName={iconName!} size="md" />
+            </Pressable>
+          )}
+          {hasVisibilityToggle && (
+            <Pressable
+              {...visibilityToggleWebProps}
+              accessibilityLabel={isValueRevealed ? "Hide password" : "Show password"}
+              accessibilityRole="button"
+              accessibilityState={{disabled, expanded: isValueRevealed}}
+              disabled={disabled}
+              hitSlop={8}
+              onPress={handleVisibilityTogglePress}
+              // Fixed width keeps the input from reflowing: the eye-slash glyph is wider than the eye.
+              style={{alignItems: "center", marginLeft: 8, width: 20}}
+              testID={fieldTestIDs.visibilityToggle}
+            >
+              <Icon
+                color={disabled ? "extraLight" : "link"}
+                iconName={isValueRevealed ? "eye-slash" : "eye"}
+                size="md"
+              />
             </Pressable>
           )}
         </View>

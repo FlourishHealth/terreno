@@ -15,6 +15,36 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 7
+    # Native/Expo packages change the Expo fingerprint. Agents bump those only
+    # during a release (update-dependencies skill + fingerprintRisk.ts). Keep
+    # this ignore list aligned with isFingerprintSkip.
+    ignore:
+      - dependency-name: "@expo/config-plugins"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: "@react-native-community/slider"
+      - dependency-name: "@react-native-picker/picker"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "@shopify/flash-list"
+      - dependency-name: "@shopify/react-native-skia"
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "react-native"
+      # Dependabot has no negative glob. List native packages explicitly so
+      # JavaScript-only react-native-web remains eligible for root updates.
+      - dependency-name: "react-native-actions-sheet"
+      - dependency-name: "react-native-calendars"
+      - dependency-name: "react-native-drawer-layout"
+      - dependency-name: "react-native-gesture-handler"
+      - dependency-name: "react-native-markdown-display"
+      - dependency-name: "react-native-modalize"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-svg"
+      - dependency-name: "react-native-swiper-flatlist"
+      - dependency-name: "react-native-webview"
+      - dependency-name: "react-native-worklets"
     groups:
       root:
         applies-to: version-updates

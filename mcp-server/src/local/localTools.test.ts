@@ -15,16 +15,19 @@ describe("local MCP runtime tools", () => {
   let projectRoot: string;
   let previousEval: string | undefined;
   let previousMetroUrl: string | undefined;
+  let previousMongoUri: string | undefined;
   let previousProjectRoot: string | undefined;
 
   beforeEach((): void => {
     projectRoot = mkdtempSync(join(tmpdir(), "terreno-local-tools-"));
     previousEval = process.env.TERRENO_MCP_EVAL;
     previousMetroUrl = process.env.TERRENO_METRO_URL;
+    previousMongoUri = process.env.MONGO_URI;
     previousProjectRoot = process.env.TERRENO_PROJECT_ROOT;
     process.env.TERRENO_PROJECT_ROOT = projectRoot;
     Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
     Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
+    Reflect.deleteProperty(process.env, "MONGO_URI");
   });
 
   afterEach((): void => {
@@ -40,6 +43,11 @@ describe("local MCP runtime tools", () => {
       Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
     } else {
       process.env.TERRENO_METRO_URL = previousMetroUrl;
+    }
+    if (previousMongoUri === undefined) {
+      Reflect.deleteProperty(process.env, "MONGO_URI");
+    } else {
+      process.env.MONGO_URI = previousMongoUri;
     }
     if (previousProjectRoot === undefined) {
       Reflect.deleteProperty(process.env, "TERRENO_PROJECT_ROOT");
@@ -66,6 +74,39 @@ describe("local MCP runtime tools", () => {
     } catch (error) {
       assert.include(String(error), "Unknown or missing browser action");
     }
+  });
+
+  it("routes local tool calls and returns static schema without Mongo", async (): Promise<void> => {
+    const modelsDir = join(projectRoot, "backend", "src", "models");
+    mkdirSync(modelsDir, {recursive: true});
+    writeFileSync(
+      join(projectRoot, "backend", ".env"),
+      ["# no database configured", "INVALID_LINE", "OTHER=value"].join("\n")
+    );
+    writeFileSync(join(modelsDir, "todo.ts"), "export const todoSchema = {title: String};\n");
+    writeFileSync(join(modelsDir, "index.ts"), "export * from './todo';\n");
+
+    const application = await handleLocalToolCall("application_info", {});
+    const schema = await handleLocalToolCall("database_schema", {summary: false});
+    const query = await handleLocalToolCall("database_query", {operation: "invalid"});
+    const logs = await handleLocalToolCall("read_logs", {sources: ["backend", 42]});
+    const error = await handleLocalToolCall("last_error", {sources: ["browser", null]});
+    const state = await handleLocalToolCall("get_rtk_state", {slice: 42});
+    const evaluation = await handleLocalToolCall("evaluate", {code: 42});
+    const unknown = await handleLocalToolCall("unknown", {});
+
+    assert.include(application.content[0]?.text ?? "", "Terreno");
+    assert.include(schema.content[0]?.text ?? "", "### todo.ts");
+    assert.include(schema.content[0]?.text ?? "", "Live MongoDB");
+    assert.include(query.content[0]?.text ?? "", "Unsupported operation");
+    assert.include(logs.content[0]?.text ?? "", '"entries"');
+    assert.include(error.content[0]?.text ?? "", "No recent error-level entries");
+    assert.include(state.content[0]?.text ?? "", "Could not connect");
+    assert.include(evaluation.content[0]?.text ?? "", "Refused");
+    assert.equal(unknown.content[0]?.text, "Unknown tool: unknown");
+
+    const summary = await handleLocalToolCall("database_schema", {summary: true});
+    assert.include(summary.content[0]?.text ?? "", "Found 1 model file(s)");
   });
 
   it("merges example-backend and browser JSONL logs", async (): Promise<void> => {

@@ -25,15 +25,19 @@ IP: [comms-adapter-twilio-sms](../implementationPlans/comms-adapter-twilio-sms.m
   - Depends on: 1.1
   - Acceptance: compile + boot without twilio installed when unconfigured
 
-## Phase 2 — Delivery callbacks + opt-outs (gated on inbound-webhooks)
+## Phase 2 — Delivery callbacks + opt-outs (owned by inbound-webhooks)
+
+HTTP routes and mapping land in [inbound-webhooks](../implementationPlans/inbound-webhooks.md)
+Tasks 3.2–3.3. The tables in the Twilio SMS IP remain the contract. Do not Pick these on
+this adapter branch.
 
 - [ ] **Task 2.1**: Status callback route
   - Description: webhook endpoint with Twilio signature verification via inbound-webhooks framework; status mapping per IP table incl. `ErrorCode` propagation
   - Files: `comms/src/adapters/twilioSms.ts`, webhook registration
-  - Depends on: inbound-webhooks IP
+  - Depends on: inbound-webhooks Task 3.2
   - Acceptance: signed payload updates `CommsMessage.status` (+ `errorCode` on failure); unsigned rejected 401
 - [ ] **Task 2.2**: STOP/START opt-out handling
   - Description: inbound keyword webhook → `OptOutEvent` → consumer `onOptOut`; opt-in (START) emitted symmetrically
   - Files: `comms/src/adapters/twilioSms.ts`, webhook registration + tests
-  - Depends on: 2.1
+  - Depends on: inbound-webhooks Task 3.2
   - Acceptance: STOP fixture fires `onOptOut` with `reason: "sms-stop"`; 21610 on later sends classified `permanent`

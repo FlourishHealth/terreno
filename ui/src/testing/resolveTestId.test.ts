@@ -69,6 +69,7 @@ describe("resolveFieldTestIDs", () => {
       helper: "signup.email.helper",
       input: "signup.email",
       label: "signup.email.label",
+      visibilityToggle: "signup.email.visibility-toggle",
     });
   });
 
@@ -77,12 +78,14 @@ describe("resolveFieldTestIDs", () => {
       resolveFieldTestIDs("signup.email", {
         input: "custom-input",
         label: "custom-label",
+        visibilityToggle: "custom-toggle",
       })
     ).toEqual({
       error: "signup.email.error",
       helper: "signup.email.helper",
       input: "custom-input",
       label: "custom-label",
+      visibilityToggle: "custom-toggle",
     });
   });
 });

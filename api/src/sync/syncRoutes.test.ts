@@ -1,20 +1,24 @@
-// noExplicitAny: test model typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test model typing
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
-import {model, Schema, Types} from "mongoose";
+import {type Model, model, Schema, Types} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {type ModelRouterOptions, modelRouter} from "../api";
-import {addAuthRoutes, setupAuth} from "../auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "../auth";
 import {APIError} from "../errors";
 import {OwnerQueryFilter, Permissions} from "../permissions";
 import {createdUpdatedPlugin, type IsDeleted, isDeletedPlugin} from "../plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "../tests";
+import {registerAdminBroadcastScope} from "./adminBroadcastScope";
 import {SyncCounter, SyncKey, SyncMutation} from "./models";
 import {MAX_SYNC_MUTATIONS_PER_BATCH} from "./mutationHandler";
-import {clearSyncRegistry, registerSync} from "./registry";
-import {MAX_ENTITY_FETCH, MAX_SYNC_HTTP_MUTATIONS_PER_SECOND} from "./routes";
+import {clearSyncRegistry, getSyncRegistry, registerSync, type SyncRegistryEntry} from "./registry";
+import {
+  buildSnapshotScopeFilter,
+  MAX_ENTITY_FETCH,
+  MAX_SYNC_HTTP_MUTATIONS_PER_SECOND,
+} from "./routes";
 import {SyncApp} from "./syncApp";
 import {syncPlugin} from "./syncSeqPlugin";
 
@@ -69,6 +73,41 @@ routeBannerSchema.plugin(createdUpdatedPlugin);
 routeBannerSchema.plugin(syncPlugin);
 const RouteBannerModel = model<RouteBanner>("SyncRouteBanner", routeBannerSchema);
 
+interface RouteNote extends IsDeleted {
+  _id: string;
+  body: string;
+  ownerId: string;
+  _syncSeq?: number;
+}
+
+// Client-minted string `_id`s (the syncdb default): entity ids are passed through uncast.
+const routeNoteSchema = new Schema<RouteNote>({
+  _id: {description: "Client-minted note id", type: String},
+  body: {description: "The note body", required: true, type: String},
+  ownerId: {description: "The user who owns this note", type: String},
+});
+routeNoteSchema.plugin(isDeletedPlugin);
+routeNoteSchema.plugin(createdUpdatedPlugin);
+routeNoteSchema.plugin(syncPlugin);
+const RouteNoteModel = model<RouteNote>("SyncRouteNote", routeNoteSchema);
+
+interface SnapshotEntity {
+  id: string;
+  seq: number;
+  deleted: boolean;
+  data: {name: string} | null;
+}
+
+interface StreamInfo {
+  collection: string;
+  stream: string;
+}
+
+interface MutationResult {
+  type: string;
+  ack: {seq: number};
+}
+
 const authedOptions = {
   permissions: {
     create: [Permissions.IsAuthenticated],
@@ -77,7 +116,7 @@ const authedOptions = {
     read: [Permissions.IsAuthenticated],
     update: [Permissions.IsAuthenticated],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 const adminOnlyOptions = {
   permissions: {
@@ -87,7 +126,7 @@ const adminOnlyOptions = {
     read: [Permissions.IsAdmin],
     update: [Permissions.IsAdmin],
   },
-} as unknown as ModelRouterOptions<any>;
+} as unknown as ModelRouterOptions<unknown>;
 
 // The shared test database can be dropped by another test file mid-suite
 // (configurationPlugin.test.ts drops it in an afterAll); rebuild the unique indexes the
@@ -116,13 +155,13 @@ describe("sync routes", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
-      model: RouteStuffModel as any,
+      model: RouteStuffModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/routeStuff",
     });
     registerSync({
       config: {scope: {field: "orgId", type: "tenant"}},
-      model: RouteProjectModel as any,
+      model: RouteProjectModel as unknown as Model<unknown>,
       options: authedOptions,
       routePath: "/routeProjects",
     });
@@ -136,8 +175,8 @@ describe("sync routes", () => {
     ]);
 
     app = getBaseServer();
-    setupAuth(app as any, UserModel as any);
-    addAuthRoutes(app as any, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     new SyncApp({
       getUserScopes: () => ["org1"],
     }).register(app);
@@ -189,11 +228,42 @@ describe("sync routes", () => {
       await agent.get(`/sync/snapshot?stream=${s}&limit=1e9`).expect(400);
     });
 
+    it("400s for an all-digit cursor that is not a safe integer", async () => {
+      const s = encodeURIComponent(ownerStream());
+      const res = await agent
+        .get(`/sync/snapshot?stream=${s}&cursor=99999999999999999999`)
+        .expect(400);
+      expect(res.body.title).toMatch(/Invalid cursor/);
+    });
+
+    it("surfaces scope-move markers as tombstones on the old stream (C4)", async () => {
+      const doc = await RouteStuffModel.create({name: "moving", ownerId: notAdminId});
+      const initial = await agent
+        .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
+        .expect(200);
+      expect(initial.body.entities.map((e: SnapshotEntity) => e.id)).toEqual([String(doc._id)]);
+
+      doc.ownerId = "someoneElse";
+      await doc.save();
+
+      const res = await agent
+        .get(
+          `/sync/snapshot?stream=${encodeURIComponent(ownerStream())}&cursor=${initial.body.cursor}`
+        )
+        .expect(200);
+      const tombstone = res.body.entities.find((e: SnapshotEntity) => e.id === String(doc._id));
+      expect(tombstone).toBeDefined();
+      expect(tombstone.deleted).toBe(true);
+      expect(tombstone.data).toBeNull();
+      expect(tombstone.seq).toBeGreaterThan(initial.body.cursor);
+      expect(res.body.hasMore).toBe(false);
+    });
+
     it("enforces the model's list permissions", async () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
@@ -217,8 +287,11 @@ describe("sync routes", () => {
         .expect(200);
       expect(res.body.stream).toBe(ownerStream());
       expect(res.body.entities).toHaveLength(2);
-      expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["mine 1", "mine 2"]);
-      expect(res.body.entities.map((e: any) => e.seq)).toEqual([1, 2]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.data.name)).toEqual([
+        "mine 1",
+        "mine 2",
+      ]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.seq)).toEqual([1, 2]);
       expect(res.body.cursor).toBe(2);
       expect(res.body.hasMore).toBe(false);
       // C1/C7 response fields present.
@@ -244,8 +317,8 @@ describe("sync routes", () => {
         .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}&cursor=${cursor}`)
         .expect(200);
       expect(res.body.entities).toHaveLength(2);
-      const updated = res.body.entities.find((e: any) => e.id === String(doc1._id));
-      const tombstone = res.body.entities.find((e: any) => e.id === String(doc2._id));
+      const updated = res.body.entities.find((e: SnapshotEntity) => e.id === String(doc1._id));
+      const tombstone = res.body.entities.find((e: SnapshotEntity) => e.id === String(doc2._id));
       expect(updated.data.name).toBe("first updated");
       expect(updated.deleted).toBe(false);
       expect(tombstone.deleted).toBe(true);
@@ -276,7 +349,7 @@ describe("sync routes", () => {
       expect(page3.body.hasMore).toBe(false);
 
       const names = [...page1.body.entities, ...page2.body.entities, ...page3.body.entities].map(
-        (e: any) => e.data.name
+        (e: SnapshotEntity) => e.data.name
       );
       expect(names).toEqual(["item 1", "item 2", "item 3", "item 4", "item 5"]);
     });
@@ -304,8 +377,8 @@ describe("sync routes", () => {
 
     it("500s for tenant collections when no getUserScopes resolver is configured", async () => {
       const bareApp = getBaseServer();
-      setupAuth(bareApp as any, UserModel as any);
-      addAuthRoutes(bareApp as any, UserModel as any);
+      setupAuth(bareApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(bareApp, UserModel as unknown as AuthUserModel);
       new SyncApp().register(bareApp);
       const bareAgent = await authAsUser(bareApp, "notAdmin");
       await bareAgent.get("/sync/snapshot?stream=routeProjects%7Ctenant%3Aorg1").expect(500);
@@ -315,10 +388,10 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {
-          responseHandler: (doc) => ({redactedName: `x-${(doc as any).name}`}),
+          responseHandler: (doc) => ({redactedName: `x-${(doc as RouteStuff).name}`}),
           scope: {type: "owner"},
         },
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/routeStuff",
       });
@@ -327,6 +400,132 @@ describe("sync routes", () => {
         .get(`/sync/snapshot?stream=${encodeURIComponent(ownerStream())}`)
         .expect(200);
       expect(res.body.entities[0].data).toEqual({redactedName: "x-secret"});
+    });
+  });
+
+  describe("buildSnapshotScopeFilter", () => {
+    it("500s for a custom scope entry that has no snapshotFilter result", () => {
+      // Registration rejects this shape up front, so build the entry directly.
+      const entry: SyncRegistryEntry = {
+        collectionName: "syncroutestuffs",
+        collectionTag: "routeStuff",
+        config: {scope: () => "custom"},
+        modelName: RouteStuffModel.modelName,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      };
+      expect(() => buildSnapshotScopeFilter({entry, scopeValue: "custom"})).toThrow(
+        expect.objectContaining({status: 500, title: expect.stringMatching(/snapshotFilter/)})
+      );
+    });
+
+    it("returns the snapshotFilter result for a custom scope", () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {
+          scope: () => "custom",
+          snapshotFilter: () => ({name: "keep"}),
+        },
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      const [entry] = getSyncRegistry();
+      expect(
+        buildSnapshotScopeFilter({
+          entry,
+          scopeValue: "custom",
+          snapshotFilterResult: {name: "keep"},
+        })
+      ).toEqual({name: "keep"});
+    });
+  });
+
+  describe("GET /sync/streams", () => {
+    it("requires authentication", async () => {
+      await server.get("/sync/streams").expect(401);
+    });
+
+    it("omits collections the caller is not allowed to list", async () => {
+      registerSync({
+        config: {scope: {type: "broadcast"}},
+        model: RouteBannerModel as unknown as Model<unknown>,
+        options: adminOnlyOptions,
+        routePath: "/routeBanners",
+      });
+
+      const res = await agent.get("/sync/streams").expect(200);
+      const collections = res.body.streams.map((s: StreamInfo) => s.collection);
+      expect(collections).toContain("routeStuff");
+      expect(collections).not.toContain("routeBanners");
+
+      const adminRes = await adminAgent.get("/sync/streams").expect(200);
+      expect(adminRes.body.streams).toContainEqual({
+        collection: "routeBanners",
+        stream: "routeBanners|all",
+      });
+    });
+
+    it("500s when a tenant collection has no getUserScopes resolver", async () => {
+      const bareApp = getBaseServer();
+      setupAuth(bareApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(bareApp, UserModel as unknown as AuthUserModel);
+      new SyncApp().register(bareApp);
+      const bareAgent = await authAsUser(bareApp, "notAdmin");
+
+      const res = await bareAgent.get("/sync/streams").expect(500);
+      expect(res.body.title).toMatch(/Failed to resolve streams for routeProjects/);
+    });
+  });
+
+  describe("GET /sync/entities", () => {
+    it("requires authentication", async () => {
+      await server.get("/sync/entities?collection=routeStuff&ids=abc").expect(401);
+    });
+
+    it("400s when the collection parameter is missing", async () => {
+      const res = await agent.get("/sync/entities?ids=abc").expect(400);
+      expect(res.body.title).toMatch(/collection/);
+    });
+
+    it("400s when no ids are supplied", async () => {
+      const res = await agent.get("/sync/entities?collection=routeStuff&ids=,").expect(400);
+      expect(res.body.title).toMatch(/ids/);
+    });
+
+    it("404s for an unknown collection", async () => {
+      const res = await agent.get("/sync/entities?collection=nope&ids=abc").expect(404);
+      expect(res.body.title).toMatch(/Unknown sync collection: nope/);
+    });
+
+    it("403s when the caller may not list the collection", async () => {
+      registerSync({
+        config: {scope: {type: "broadcast"}},
+        model: RouteBannerModel as unknown as Model<unknown>,
+        options: adminOnlyOptions,
+        routePath: "/routeBanners",
+      });
+      const doc = await RouteBannerModel.create({name: "secret", ownerId: adminId});
+      const res = await agent
+        .get(`/sync/entities?collection=routeBanners&ids=${doc._id}`)
+        .expect(403);
+      expect(res.body.title).toMatch(/denied/);
+    });
+
+    it("passes string ids through uncast for models with string _ids", async () => {
+      registerSync({
+        config: {scope: {type: "owner"}},
+        model: RouteNoteModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeNotes",
+      });
+      await RouteNoteModel.collection.deleteMany({});
+      await RouteNoteModel.create({_id: "note-1", body: "hello", ownerId: notAdminId});
+
+      const res = await agent
+        .get("/sync/entities?collection=routeNotes&ids=note-1,not-an-object-id")
+        .expect(200);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.id)).toEqual(["note-1"]);
     });
   });
 
@@ -500,7 +699,7 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: adminOnlyOptions,
         routePath: "/routeStuff",
       });
@@ -556,13 +755,13 @@ describe("sync routes", () => {
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "owner"}},
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: {
           ...authedOptions,
           preCreate: () => {
             throw new APIError({status: 500, title: "database exploded"});
           },
-        } as unknown as ModelRouterOptions<any>,
+        } as unknown as ModelRouterOptions<unknown>,
         routePath: "/routeStuff",
       });
       const res = await agent
@@ -624,8 +823,8 @@ describe("sync routes", () => {
       const mutations = Array.from({length: 5}, (_v, i) => create(`batch-http-${i}`, `item ${i}`));
       const res = await agent.post("/sync/mutate/batch").send({mutations}).expect(200);
       expect(res.body.results).toHaveLength(5);
-      expect(res.body.results.every((r: any) => r.type === "ack")).toBe(true);
-      const seqs = res.body.results.map((r: any) => r.ack.seq);
+      expect(res.body.results.every((r: MutationResult) => r.type === "ack")).toBe(true);
+      const seqs = res.body.results.map((r: MutationResult) => r.ack.seq);
       expect(seqs).toEqual([1, 2, 3, 4, 5]);
     });
 
@@ -737,7 +936,114 @@ describe("sync routes", () => {
       const atCap = await agent
         .get(`/sync/entities?collection=routeStuff&ids=${ids.slice(0, MAX_ENTITY_FETCH).join(",")}`)
         .expect(200);
-      expect(atCap.body.entities.map((e: any) => e.id)).toEqual([String(doc._id)]);
+      expect(atCap.body.entities.map((e: SnapshotEntity) => e.id)).toEqual([String(doc._id)]);
+    });
+  });
+
+  describe("GET /sync/entities admin window (Task 3.4)", () => {
+    it("returns another owner's ids for an admin when adminBroadcast is true", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      const mine = await RouteStuffModel.create({name: "theirs", ownerId: notAdminId});
+      const missingId = new Types.ObjectId().toString();
+
+      const res = await adminAgent
+        .get(`/sync/entities?collection=routeStuff&ids=${mine._id},${missingId}`)
+        .expect(200);
+      assert.equal(res.body.entities.length, 1);
+      assert.equal(res.body.entities[0].id, String(mine._id));
+    });
+
+    it("still scopes a non-admin to streams they belong to when adminBroadcast is true", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      const theirs = await RouteStuffModel.create({name: "admin-owned", ownerId: adminId});
+
+      const res = await agent
+        .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
+        .expect(200);
+      assert.deepEqual(res.body.entities, []);
+    });
+
+    it("does not cross-owner hydrate when accessControl denies admin:access", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      const theirs = await RouteStuffModel.create({name: "flag-admin-owned", ownerId: notAdminId});
+      const gatedApp = getBaseServer();
+      setupAuth(gatedApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(gatedApp, UserModel as unknown as AuthUserModel);
+      new SyncApp({
+        accessControl: {
+          can: async () => ({allowed: false}),
+        } as never,
+        getUserScopes: () => ["org1"],
+      }).register(gatedApp);
+      const gatedAdmin = await authAsUser(gatedApp, "admin");
+
+      const res = await gatedAdmin
+        .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
+        .expect(200);
+      assert.deepEqual(res.body.entities, []);
+    });
+
+    it("omits ids excluded by a registered AdminApp queryFilter", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      registerAdminBroadcastScope("SyncRouteStuff", {
+        listPermissions: [() => true],
+        queryFilter: () => ({ownerId: adminId}),
+        readPermissions: [() => true],
+      });
+      const inScope = await RouteStuffModel.create({name: "in-tenant", ownerId: adminId});
+      const outOfScope = await RouteStuffModel.create({name: "other-tenant", ownerId: notAdminId});
+
+      const res = await adminAgent
+        .get(`/sync/entities?collection=routeStuff&ids=${inScope._id},${outOfScope._id}`)
+        .expect(200);
+      assert.deepEqual(
+        res.body.entities.map((entity: SnapshotEntity) => entity.id),
+        [String(inScope._id)]
+      );
+    });
+
+    it("returns no entities when AdminApp list permission is denied", async () => {
+      clearSyncRegistry();
+      registerSync({
+        config: {adminBroadcast: true, scope: {type: "owner"}},
+        model: RouteStuffModel as unknown as Model<unknown>,
+        options: authedOptions,
+        routePath: "/routeStuff",
+      });
+      registerAdminBroadcastScope("SyncRouteStuff", {
+        listPermissions: [() => false],
+        readPermissions: [() => true],
+      });
+      const theirs = await RouteStuffModel.create({name: "hidden-model", ownerId: notAdminId});
+
+      const res = await adminAgent
+        .get(`/sync/entities?collection=routeStuff&ids=${theirs._id}`)
+        .expect(200);
+      assert.deepEqual(res.body.entities, []);
     });
   });
 
@@ -768,20 +1074,23 @@ describe("sync routes", () => {
 
     /** Register the banner model for sync + REST with the given queryFilter and re-auth. */
     const setupBanners = async (
-      queryFilter: ModelRouterOptions<any>["queryFilter"]
+      queryFilter: ModelRouterOptions<unknown>["queryFilter"]
     ): Promise<{bannerAgent: TestAgent}> => {
-      const bannerOptions = {...authedOptions, queryFilter} as ModelRouterOptions<any>;
+      const bannerOptions = {...authedOptions, queryFilter} as ModelRouterOptions<unknown>;
       clearSyncRegistry();
       registerSync({
         config: {scope: {type: "broadcast"}},
-        model: RouteBannerModel as any,
+        model: RouteBannerModel as unknown as Model<unknown>,
         options: bannerOptions,
         routePath: "/routeBanners",
       });
       const bannerApp = getBaseServer();
-      setupAuth(bannerApp as any, UserModel as any);
-      addAuthRoutes(bannerApp as any, UserModel as any);
-      bannerApp.use("/routeBanners", modelRouter(RouteBannerModel as any, bannerOptions));
+      setupAuth(bannerApp, UserModel as unknown as AuthUserModel);
+      addAuthRoutes(bannerApp, UserModel as unknown as AuthUserModel);
+      bannerApp.use(
+        "/routeBanners",
+        modelRouter(RouteBannerModel as unknown as Model<unknown>, bannerOptions)
+      );
       new SyncApp().register(bannerApp);
       return {bannerAgent: await authAsUser(bannerApp, "notAdmin")};
     };
@@ -796,13 +1105,13 @@ describe("sync routes", () => {
       await RouteBannerModel.create({name: "theirs", ownerId: "someoneElse"});
 
       const rest = await bannerAgent.get("/routeBanners").expect(200);
-      const restIds = rest.body.data.map((d: any) => String(d._id));
+      const restIds = rest.body.data.map((d: RouteBanner) => String(d._id));
       expect(restIds).toEqual([String(mine._id)]);
 
       const snapshot = await bannerAgent
         .get(`/sync/snapshot?stream=${encodeURIComponent(bannerStream)}`)
         .expect(200);
-      expect(snapshot.body.entities.map((e: any) => e.id)).toEqual(restIds);
+      expect(snapshot.body.entities.map((e: SnapshotEntity) => e.id)).toEqual(restIds);
     });
 
     it("filters GET /sync/entities by the queryFilter", async () => {
@@ -852,7 +1161,7 @@ describe("sync routes", () => {
           scope: {type: "owner"},
           snapshotFilter: () => ({name: "keep"}),
         },
-        model: RouteStuffModel as any,
+        model: RouteStuffModel as unknown as Model<unknown>,
         options: authedOptions,
         routePath: "/routeStuff",
       });
@@ -862,7 +1171,7 @@ describe("sync routes", () => {
       const res = await agent
         .get(`/sync/snapshot?stream=${encodeURIComponent(`routeStuff|owner:${notAdminId}`)}`)
         .expect(200);
-      expect(res.body.entities.map((e: any) => e.data.name)).toEqual(["keep"]);
+      expect(res.body.entities.map((e: SnapshotEntity) => e.data.name)).toEqual(["keep"]);
     });
   });
 });

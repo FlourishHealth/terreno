@@ -165,13 +165,15 @@ const failedResult = (error: unknown): SendResult => {
 
 export class TwilioSmsProvider implements SmsProvider {
   readonly id = "twilio";
+  private readonly authToken: string;
   private readonly client: TwilioSmsClient;
   private readonly fromNumber?: string;
   private readonly messagingServiceSid?: string;
-  private readonly statusCallbackUrl?: string;
+  private statusCallbackUrl?: string;
 
   constructor(options?: TwilioSmsProviderOptions) {
     const {accountSid, authToken} = resolveCredentials(options);
+    this.authToken = authToken;
     this.fromNumber = options?.fromNumber ?? process.env.TWILIO_FROM_NUMBER;
     this.messagingServiceSid =
       options?.messagingServiceSid ?? process.env.TWILIO_MESSAGING_SERVICE_SID;
@@ -184,6 +186,16 @@ export class TwilioSmsProvider implements SmsProvider {
 
     this.client = loadTwilio()(accountSid, authToken);
   }
+
+  getAuthToken = (): string => {
+    return this.authToken;
+  };
+
+  applyDefaultStatusCallbackUrl = (url: string): void => {
+    if (!this.statusCallbackUrl) {
+      this.statusCallbackUrl = url;
+    }
+  };
 
   async sendSms(message: SmsMessage): Promise<SendResult> {
     const to = toE164(message.to);

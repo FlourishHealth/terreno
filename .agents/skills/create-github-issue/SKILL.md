@@ -23,7 +23,8 @@ Operator overview: [`docs/how-to/github-issue-lifecycle.md`](../../docs/how-to/g
 
 ## When not to use
 
-- Selecting and implementing existing issues — use `work-github-issues`
+- Selecting and implementing existing issues in chat — use `work-github-issues`
+- Unattended pickup of labeled issues — use `implement-ready-for-dev`
 - Approved IP public tracking — use `roadmap-item`
 - Community idea without a decision to build — open a Discussion
 - You are about to implement in this turn — skip the issue only if the user said not to track it
@@ -109,8 +110,8 @@ If the user chose the form instead, do not also run `gh issue create`.
 
 ### 7. Report
 
-Return the issue URL. Next action: invoke `work-github-issues` when they want a
-Pick plan posted and implemented.
+Return the issue URL. Next action: invoke `work-github-issues` to plan in chat, or
+apply `status:ready-for-dev` (after triage) so `implement-ready-for-dev` can claim it.
 
 ## Success conditions
 

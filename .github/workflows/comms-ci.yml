@@ -42,7 +42,18 @@ jobs:
       - name: Compile
         run: bun run compile
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         env:
           CI: true
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: comms
+          flag: comms
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Gate new files from LCOV
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/check-new-file-coverage-lcov.sh comms
+        working-directory: .

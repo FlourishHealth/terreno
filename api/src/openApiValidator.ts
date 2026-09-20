@@ -38,12 +38,11 @@ import Ajv, {type ErrorObject, type ValidateFunction} from "ajv";
 import addFormats from "ajv-formats";
 import type {NextFunction, Request, Response} from "express";
 import type {Model} from "mongoose";
-import m2s from "mongoose-to-swagger";
-
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "./adminTypes";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import type {OpenApiSchema, OpenApiSchemaProperty} from "./openApiBuilder";
-import {fixMixedFields} from "./populate";
+import {getOpenApiSpecForModel} from "./populate";
 
 /**
  * Global configuration for OpenAPI validation.
@@ -185,6 +184,11 @@ const getAjvInstance = (): Ajv => {
       validateSchema: false,
     });
     addFormats(instance as unknown as Parameters<typeof addFormats>[0]);
+    instance.addKeyword({
+      keyword: ESCAPED_REGEX_LITERAL_KEYWORD,
+      type: "string",
+      validate: (_enabled: boolean, data: string) => isEscapedRegexLiteral(data),
+    });
     ajvCache.set(key, instance);
   }
 
@@ -210,6 +214,44 @@ const VALID_JSON_SCHEMA_TYPES = new Set([
   "object",
   "null",
 ]);
+
+const REGEX_META_CHARACTERS = new Set([
+  "\\",
+  ".",
+  "*",
+  "+",
+  "?",
+  "^",
+  "$",
+  "{",
+  "}",
+  "(",
+  ")",
+  "|",
+  "[",
+  "]",
+]);
+
+/** Accepts literal text and escaped metacharacters (e.g. `\\.`), rejects executable patterns. */
+export const isEscapedRegexLiteral = (value: string): boolean => {
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === "\\") {
+      const escapedCharacter = value[index + 1];
+      if (!escapedCharacter || !REGEX_META_CHARACTERS.has(escapedCharacter)) {
+        return false;
+      }
+      index += 1;
+      continue;
+    }
+    if (REGEX_META_CHARACTERS.has(character)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const ESCAPED_REGEX_LITERAL_KEYWORD = "escapedRegexLiteral";
 
 // mongoose-to-swagger emits non-standard type strings for some Mongoose types
 const MONGOOSE_TYPE_MAP: Record<string, {type: string; format?: string}> = {
@@ -261,7 +303,59 @@ const sanitizeSchemaForAjv = (schema: Record<string, unknown>): Record<string, u
     );
   }
 
+  if (Array.isArray(result.oneOf)) {
+    result.oneOf = result.oneOf.map((entry) =>
+      typeof entry === "object" && entry !== null
+        ? sanitizeSchemaForAjv(entry as Record<string, unknown>)
+        : entry
+    );
+  }
+
+  if (typeof result.required === "boolean") {
+    delete result.required;
+  }
+
   return result;
+};
+
+const stripBooleanRequiredFlag = (schema: OpenApiSchemaProperty): OpenApiSchemaProperty => {
+  if (schema.required === true || schema.required === false) {
+    const {required: _, ...rest} = schema;
+    const cleaned = {...rest} as OpenApiSchemaProperty;
+    if (cleaned.properties) {
+      cleaned.properties = Object.fromEntries(
+        Object.entries(cleaned.properties).map(([key, value]) => [
+          key,
+          stripBooleanRequiredFlag(value),
+        ])
+      );
+    }
+    if (cleaned.items) {
+      cleaned.items = stripBooleanRequiredFlag(cleaned.items);
+    }
+    if (cleaned.oneOf) {
+      cleaned.oneOf = cleaned.oneOf.map((entry) => stripBooleanRequiredFlag(entry));
+    }
+    return cleaned;
+  }
+  if (schema.properties) {
+    return {
+      ...schema,
+      properties: Object.fromEntries(
+        Object.entries(schema.properties).map(([key, value]) => [
+          key,
+          stripBooleanRequiredFlag(value),
+        ])
+      ),
+    };
+  }
+  if (schema.items) {
+    return {...schema, items: stripBooleanRequiredFlag(schema.items)};
+  }
+  if (schema.oneOf) {
+    return {...schema, oneOf: schema.oneOf.map((entry) => stripBooleanRequiredFlag(entry))};
+  }
+  return schema;
 };
 
 /**
@@ -317,18 +411,17 @@ const propertiesToSchema = (
   properties: Record<string, OpenApiSchemaProperty>,
   requiredFields?: string[]
 ): OpenApiSchema => {
-  // Extract required fields from properties that have required: true
+  // Extract required fields from properties marked required: true (OpenAPI builder style).
   const autoRequired = Object.entries(properties)
-    .filter(([_, prop]) => prop.required)
+    .filter(([_, prop]) => prop.required === true)
     .map(([key]) => key);
 
   const allRequired = [...new Set([...(requiredFields ?? []), ...autoRequired])];
 
-  // Strip `required` from individual properties — AJV only accepts `required` at schema level
+  // Strip boolean `required` from individual properties — AJV only accepts `required` arrays on objects
   const cleanedProperties: Record<string, OpenApiSchemaProperty> = {};
   for (const [key, prop] of Object.entries(properties)) {
-    const {required: _, ...rest} = prop;
-    cleanedProperties[key] = rest as OpenApiSchemaProperty;
+    cleanedProperties[key] = stripBooleanRequiredFlag(prop);
   }
 
   const schema: OpenApiSchema = {
@@ -700,10 +793,6 @@ export const validateResponseData = (
   return {valid: true};
 };
 
-const m2sOptions = {
-  props: ["readOnly", "required", "enum", "default"],
-};
-
 /**
  * Extract an OpenAPI-compatible schema from a Mongoose model.
  * This allows you to use the same schema definitions for both documentation
@@ -713,17 +802,16 @@ const m2sOptions = {
  * @returns Schema properties suitable for validation
  */
 export const getSchemaFromModel = <T>(model: Model<T>): Record<string, OpenApiSchemaProperty> => {
-  const modelSwagger = m2s(model, m2sOptions);
-  fixMixedFields(model.schema, modelSwagger.properties);
-  return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
+  const {properties} = getOpenApiSpecForModel(model);
+  return properties as Record<string, OpenApiSchemaProperty>;
 };
 
 /**
  * Extract required field names from a Mongoose model's swagger schema.
  */
 const getRequiredFieldsFromModel = <T>(model: Model<T>): string[] => {
-  const modelSwagger = m2s(model, m2sOptions);
-  return (modelSwagger.required as string[]) ?? [];
+  const {required} = getOpenApiSpecForModel(model);
+  return required;
 };
 
 /**
@@ -828,6 +916,81 @@ export const createModelValidators = <T>(
   };
 };
 
+const choiceEmptyInItemSchema = (baseItem: OpenApiSchemaProperty): OpenApiSchemaProperty => {
+  if (baseItem.enum) {
+    return {
+      oneOf: [
+        {enum: baseItem.enum, type: "string"},
+        {enum: [ADMIN_LIST_CHOICE_EMPTY_VALUE], type: "string"},
+      ],
+    };
+  }
+  return {
+    oneOf: [
+      stripBooleanRequiredFlag(baseItem),
+      {enum: [ADMIN_LIST_CHOICE_EMPTY_VALUE], type: "string"},
+    ],
+  };
+};
+
+const buildInOperatorSchema = (itemSchema: OpenApiSchemaProperty): OpenApiSchemaProperty => ({
+  additionalProperties: false,
+  properties: {
+    $in: {
+      items: itemSchema,
+      minItems: 1,
+      type: "array",
+    },
+  },
+  required: ["$in"],
+  type: "object",
+});
+
+const buildRegexOperatorSchema = (): OpenApiSchemaProperty => ({
+  additionalProperties: false,
+  properties: {
+    $options: {enum: ["i"], type: "string"},
+    $regex: {escapedRegexLiteral: true, type: "string"},
+  },
+  required: ["$regex", "$options"],
+  type: "object",
+});
+
+const buildRangeOperatorSchema = (valueSchema: OpenApiSchemaProperty): OpenApiSchemaProperty => ({
+  additionalProperties: false,
+  properties: {
+    $gt: valueSchema,
+    $gte: valueSchema,
+    $lt: valueSchema,
+    $lte: valueSchema,
+  },
+  type: "object",
+});
+
+/** Query schema for string/enum fields: scalar, `$in`, or escaped `$regex`. */
+export const buildStringListQueryFieldSchema = (
+  fieldSchema: OpenApiSchemaProperty
+): OpenApiSchemaProperty => {
+  const scalar = stripBooleanRequiredFlag(fieldSchema);
+  const inItems = fieldSchema.enum
+    ? choiceEmptyInItemSchema(fieldSchema)
+    : stripBooleanRequiredFlag(fieldSchema);
+  return {
+    oneOf: [scalar, buildInOperatorSchema(inItems), buildRegexOperatorSchema()],
+  };
+};
+
+/** Query schema for number/date fields: scalar or comparison operators. */
+export const buildNumericListQueryFieldSchema = (
+  fieldSchema: OpenApiSchemaProperty
+): OpenApiSchemaProperty => {
+  const scalar = stripBooleanRequiredFlag(fieldSchema);
+  const valueSchema = stripBooleanRequiredFlag(fieldSchema);
+  return {
+    oneOf: [scalar, buildRangeOperatorSchema(valueSchema)],
+  };
+};
+
 /**
  * Build a query parameter schema from a model's Mongoose schema and queryFields array.
  * Always includes pagination parameters (limit, page, sort).
@@ -849,13 +1012,19 @@ export const buildQuerySchemaFromFields = <T>(
 
   for (const field of queryFields) {
     const modelField = modelSchema[field];
-    if (modelField) {
-      // Use the model's type info, but mark as not required for queries
-      querySchema[field] = {...modelField, required: false};
-    } else {
-      // Field not in model schema — allow as string
-      querySchema[field] = {type: "string"};
+    if (!modelField) {
+      querySchema[field] = buildStringListQueryFieldSchema({type: "string"});
+      continue;
     }
+    if (modelField.type === "boolean") {
+      querySchema[field] = stripBooleanRequiredFlag(modelField);
+      continue;
+    }
+    if (modelField.type === "number" || modelField.format === "date-time") {
+      querySchema[field] = buildNumericListQueryFieldSchema(modelField);
+      continue;
+    }
+    querySchema[field] = buildStringListQueryFieldSchema(modelField);
   }
 
   return querySchema;

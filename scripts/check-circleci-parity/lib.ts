@@ -17,11 +17,13 @@ export const WORKFLOW_PARAMETERS: Record<string, string> = {
   "ai-ci": "run-ai",
   "api-ci": "run-api",
   "comms-ci": "run-comms",
+  "create-terreno-app-ci": "run-create-terreno-app",
   "e2e-ci": "run-e2e",
   "example-backend-ci": "run-example-backend",
   "example-backend-docker": "run-example-backend-docker",
   "example-backend-script-runner": "run-example-backend-script",
   "example-frontend-ci": "run-example-frontend",
+  "jobs-ci": "run-jobs",
   "mcp-server-ci": "run-mcp-server",
   "new-file-coverage": "run-new-file-coverage",
   "repo-policies": "run-repo-policies",
@@ -105,9 +107,7 @@ export const readWorkflowPaths = ({
   repoRoot: string;
   workflow: string;
 }): string[] => {
-  const doc = parseYaml<WorkflowConfig>(
-    join(repoRoot, ".github", "workflows", `${workflow}.yml`)
-  );
+  const doc = parseYaml<WorkflowConfig>(join(repoRoot, ".github", "workflows", `${workflow}.yml`));
   // Some YAML parsers read the `on:` key as the boolean `true`.
   const triggers = doc?.on ?? doc?.true ?? {};
   const paths: string[] = [];

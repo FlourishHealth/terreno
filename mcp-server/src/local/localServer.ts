@@ -3,7 +3,7 @@ import {serveStdio} from "@modelcontextprotocol/server/stdio";
 
 import {handleLocalToolCall, localMcpTools} from "./localTools.js";
 
-const createLocalMcpServer = (): Server => {
+export const createLocalMcpServer = (): Server => {
   const server = new Server(
     {
       name: "terreno-mcp-local",

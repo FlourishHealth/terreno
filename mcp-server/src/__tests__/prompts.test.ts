@@ -351,6 +351,7 @@ describe("prompts", () => {
       expect(content).toContain("0.21.0");
       expect(content).toContain("terreno_get_upgrade_guide");
       expect(content).toContain("upgrading-expo");
+      expect(content).toContain("upgrading-terreno");
     });
   });
 
@@ -364,7 +365,8 @@ describe("prompts", () => {
 
       expect(content).toContain("my-bootstrap-app");
       expect(content).toContain("My Bootstrap App");
-      expect(content).toContain("terreno_bootstrap_app");
+      expect(content).toContain("bunx create-terreno-app");
+      expect(content).not.toContain("terreno_bootstrap_app");
       expect(content).toContain("terreno_bootstrap_ai_rules");
     });
   });

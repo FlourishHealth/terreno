@@ -1,0 +1,27 @@
+{
+  "rulesync": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".rulesync/hooks/quality-check.sh antigravity-cli",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run analyze:fast",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

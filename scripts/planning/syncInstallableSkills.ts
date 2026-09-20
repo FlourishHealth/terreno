@@ -21,35 +21,32 @@ interface SkillGroup {
   title: string;
 }
 
-const PACKAGE_SKILL_OWNERS = [
-  "api",
-  "ui",
-  "rtk",
-  "admin-backend",
-  "admin-frontend",
-] as const;
-
 const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
+
+/** Plugin trees whose skills install through `npx skills add`; later entries win on name. */
+const INSTALLABLE_PLUGIN_DIRECTORIES = ["plugins/terreno-planning", "plugins/terreno-scan"];
 
 export const SKILL_GROUPS: SkillGroup[] = [
   {
-    title: "Lifecycle",
-    description: "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus planning-loop and taste-sweep outer loops.",
+    description:
+      "Bounded Grow → Pick/Roast inner loop → Brew → Taste, plus continuous Pick-Roast, planning, and taste-sweep outer loops.",
     skills: [
       "terreno-1-grow",
       "terreno-2-pick",
       "terreno-3-roast",
       "terreno-4-brew",
       "terreno-5-taste",
+      "terreno-pick-roast-loop",
       "terreno-planning-loop",
       "terreno-taste-sweep",
     ],
+    title: "Lifecycle",
   },
   {
-    title: "Terreno apps",
     description: "Backend, UI, data, and schema conventions for Terreno apps.",
     skills: [
       "terreno-backend-api",
+      "model-router-actions",
       "terreno-ui",
       "terreno-data-fetching",
       "mongoose-schema-safety",
@@ -59,9 +56,9 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "backend-test-env",
       "ai-prompt-governance",
     ],
+    title: "Terreno apps",
   },
   {
-    title: "Docs and architecture",
     description: "Read architecture docs first; write and regenerate them in the same slice.",
     skills: [
       "update-docs",
@@ -72,24 +69,25 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "build-terreno-app",
       "design-blend",
     ],
+    title: "Docs and architecture",
   },
   {
-    title: "GitHub and shipping",
-    description: "Commit, PR, review, verification, release, and deploy workflows.",
+    description: "Review, verification, issue, release, and deploy workflows.",
     skills: [
-      "commit",
       "create-github-issue",
-      "create-pr",
+      "implement-ready-for-dev",
       "respond-to-review",
       "verify-ui-changes",
       "work-github-issues",
       "fix-conflicts",
       "release",
+      "update-dependencies",
+      "upgrading-terreno",
       "deploy-gcp",
     ],
+    title: "GitHub and shipping",
   },
   {
-    title: "Roadmap",
     description: "Frontier, triage, promote, item, and review skills for the roadmap.",
     skills: [
       "roadmap-frontier",
@@ -99,27 +97,34 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "roadmap-triage",
       "claude-design-to-linear",
     ],
+    title: "Roadmap",
   },
   {
-    title: "Expo and native",
-    description: "Expo, native modules, and platform-specific app skills.",
+    description:
+      "Charter a measurable long-term goal, map-reduce the repository into findings, and drive each routed PR through the lifecycle.",
     skills: [
-      "add-app-clip",
-      "building-native-ui",
-      "eas-update-insights",
+      "terreno-scan-1-aim",
+      "terreno-scan-2-sweep",
+      "terreno-scan-3-sift",
+      "terreno-scan-4-plot",
+      "terreno-scan-5-track",
+      "terreno-scan-campaign",
+      "terreno-scan-loop",
+    ],
+    title: "Code scans",
+  },
+  {
+    description: "Non-conflicting Expo deployment and platform workflows.",
+    skills: [
       "expo-api-routes",
-      "expo-brownfield",
       "expo-cicd-workflows",
       "expo-deployment",
       "expo-dev-client",
-      "expo-module",
-      "expo-observe",
-      "expo-tailwind-setup",
-      "expo-ui",
-      "native-data-fetching",
+      "track-upstream-expo",
       "upgrading-expo",
       "use-dom",
     ],
+    title: "Expo and native",
   },
 ];
 
@@ -136,9 +141,10 @@ This directory is generated. Canonical sources:
 
 | Source | Owns |
 | --- | --- |
-| \`plugins/terreno-planning/skills/\` | Grow, Pick, Roast, Brew, Taste, plus planning-loop and taste-sweep |
-| \`.rulesync/skills/\` | Repository and domain skills |
-| \`<package>/.ai/skills/\` | Published package skills (overlay the repo copies) |
+| \`plugins/terreno-planning/skills/\` | Lifecycle, Terreno app, docs, upgrade, deploy, and UI-verification workflows |
+| \`plugins/terreno-planning/agents/\` | Pre-commit and UI verification agents |
+| \`.rulesync/skills/\` | Terreno-repository-only and optional non-conflicting Expo skills |
+| \`<package>/.ai/skills/\` | Package/MCP-specific copies; not installable overlays |
 
 Regenerate with \`bun run skills:sync\`. Human-facing docs stay the architecture source;
 follow \`update-docs\` and the lifecycle documentation contract.
@@ -160,6 +166,83 @@ const listSkillDirectories = (directory: string): string[] =>
 
 export const rewriteSharedPluginLinks = (content: string): string =>
   content.replaceAll(SHARED_PLUGIN_REFERENCE_PREFIX, "references/");
+
+export const rewritePluginLinksForInstallable = (content: string): string =>
+  rewriteSharedPluginLinks(content)
+    .replaceAll("../../../../../docs/", "../../../docs/")
+    .replaceAll("../../../../docs/", "../../docs/")
+    .replaceAll("../../../../../.github/", "../../../.github/")
+    .replaceAll("../../../../.github/", "../../.github/");
+
+const SHARED_PLUGIN_REFERENCE_HREF = /\.\.\/\.\.\/references\/([A-Za-z0-9._-]+\.(?:md|json))/g;
+
+export const listSharedPluginReferenceHrefs = (content: string): string[] => {
+  const names = new Set<string>();
+  for (const match of content.matchAll(SHARED_PLUGIN_REFERENCE_HREF)) {
+    names.add(match[1]);
+  }
+  return [...names].sort();
+};
+
+const collectMarkdownAndJsonFiles = (directory: string, files: string[] = []): string[] => {
+  if (!existsSync(directory)) {
+    return files;
+  }
+
+  for (const entry of readdirSync(directory, {withFileTypes: true})) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      collectMarkdownAndJsonFiles(path, files);
+      continue;
+    }
+    if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".json"))) {
+      files.push(path);
+    }
+  }
+  return files;
+};
+
+export const collectLinkedPluginReferences = ({
+  pluginReferences,
+  skillSource,
+}: {
+  pluginReferences: string;
+  skillSource: string;
+}): string[] => {
+  const names = new Set<string>();
+  for (const filePath of collectMarkdownAndJsonFiles(skillSource)) {
+    for (const name of listSharedPluginReferenceHrefs(readFileSync(filePath, "utf8"))) {
+      names.add(name);
+    }
+  }
+
+  for (const name of names) {
+    if (!existsSync(join(pluginReferences, name))) {
+      throw new Error(`missing plugin reference ${name} linked from ${skillSource}`);
+    }
+  }
+
+  return [...names].sort();
+};
+
+const copyLinkedPluginReferences = ({
+  destination,
+  pluginReferences,
+  skillSource,
+}: {
+  destination: string;
+  pluginReferences: string;
+  skillSource: string;
+}): void => {
+  const names = collectLinkedPluginReferences({pluginReferences, skillSource});
+  if (names.length === 0) {
+    return;
+  }
+  mkdirSync(destination, {recursive: true});
+  for (const name of names) {
+    cpSync(join(pluginReferences, name), join(destination, name));
+  }
+};
 
 const writeCopiedTree = ({
   destination,
@@ -248,7 +331,9 @@ export const validateSkillGroupings = (skillNames: string[]): string[] => {
   return errors;
 };
 
-export const buildSkillsShConfig = (skillNames: string[]): {
+export const buildSkillsShConfig = (
+  skillNames: string[]
+): {
   config: Record<string, unknown>;
   errors: string[];
 } => {
@@ -256,8 +341,8 @@ export const buildSkillsShConfig = (skillNames: string[]): {
   return {
     config: {
       $schema: "https://skills.sh/schemas/skills.sh.schema.json",
-      notGrouped: "bottom",
       groupings: SKILL_GROUPS,
+      notGrouped: "bottom",
     },
     errors,
   };
@@ -281,27 +366,20 @@ export const buildInstallableSkillsTree = ({
     });
   }
 
-  const pluginSkills = join(rootDirectory, "plugins/terreno-planning/skills");
-  const pluginReferences = join(rootDirectory, "plugins/terreno-planning/references");
-  for (const skillName of listSkillDirectories(pluginSkills)) {
-    const skillDestination = join(destination, skillName);
-    writeCopiedTree({
-      destination: skillDestination,
-      source: join(pluginSkills, skillName),
-      transformMarkdown: rewriteSharedPluginLinks,
-    });
-    writeCopiedTree({
-      destination: join(skillDestination, "references"),
-      source: pluginReferences,
-    });
-  }
-
-  for (const packageName of PACKAGE_SKILL_OWNERS) {
-    const packageSkills = join(rootDirectory, packageName, ".ai/skills");
-    for (const skillName of listSkillDirectories(packageSkills)) {
+  for (const pluginDirectory of INSTALLABLE_PLUGIN_DIRECTORIES) {
+    const pluginSkills = join(rootDirectory, pluginDirectory, "skills");
+    const pluginReferences = join(rootDirectory, pluginDirectory, "references");
+    for (const skillName of listSkillDirectories(pluginSkills)) {
+      const skillDestination = join(destination, skillName);
       writeCopiedTree({
-        destination: join(destination, skillName),
-        source: join(packageSkills, skillName),
+        destination: skillDestination,
+        source: join(pluginSkills, skillName),
+        transformMarkdown: rewritePluginLinksForInstallable,
+      });
+      copyLinkedPluginReferences({
+        destination: join(skillDestination, "references"),
+        pluginReferences,
+        skillSource: join(pluginSkills, skillName),
       });
     }
   }

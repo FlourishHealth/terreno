@@ -19,6 +19,7 @@ import {
   baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
+  emailVerificationPlugin,
   excludeArchivedPlugin,
   findExactlyOne,
   findOneOrNone,
@@ -91,6 +92,19 @@ describe("baseUserPlugin", () => {
     const emailPath = testSchema.path("email");
     expect(emailPath).toBeDefined();
     expect((emailPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+});
+
+describe("emailVerificationPlugin", () => {
+  it("adds emailVerified defaulting to false", () => {
+    const testSchema = new Schema({});
+    emailVerificationPlugin(testSchema);
+
+    const emailVerifiedPath = testSchema.path("emailVerified");
+    expect(emailVerifiedPath).toBeDefined();
+    expect((emailVerifiedPath as unknown as {options: {default: boolean}}).options.default).toBe(
+      false
+    );
   });
 });
 

@@ -92,6 +92,31 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 };
 ``````
 
+Set `publicAppUrl`, `sendMail`, and `renderAuthMail` from `@terreno/comms` so password-reset and
+email-verification mail match the JWT recovery templates. The hooks throw 501 and do not send when
+`publicAppUrl` is missing. JWT `POST /auth/resetPassword` updates the Better Auth password and
+deletes Better Auth sessions when this plugin is registered. Better Auth password reset updates
+the JWT password and `tokenEpoch` for the matching app User so dual-enrolled accounts cannot keep
+the old passport hash.
+
+```typescript
+import {getCommsService, renderAuthMail} from "@terreno/comms";
+
+const config: BetterAuthConfig = {
+  enabled: true,
+  publicAppUrl: process.env.FRONTEND_URL || "http://localhost:8082",
+  renderAuthMail,
+  sendMail: async (message) => {
+    await getCommsService().sendMail(message);
+  },
+  // ...
+};
+```
+
+Throwaway in-process seed apps (CLI / container smoke tests that call Better Auth
+sign-up many times) should set `disableRateLimit: true` on that instance only.
+Better Auth enables its limiter in production, which 429s the fourth seeded user.
+
 ### 3. Register BetterAuthApp Plugin
 
 Use the TerrenoApp plugin system:

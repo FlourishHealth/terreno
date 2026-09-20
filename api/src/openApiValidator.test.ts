@@ -1,11 +1,11 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import type {ErrorObject} from "ajv";
 import type {NextFunction, Request, Response} from "express";
+import mongoose from "mongoose";
 
+import {ADMIN_LIST_CHOICE_EMPTY_VALUE} from "./adminTypes";
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import type {OpenApiSchemaProperty} from "./openApiBuilder";
 import {
   buildQuerySchemaFromFields,
@@ -14,6 +14,7 @@ import {
   createValidator,
   getOpenApiValidatorConfig,
   getSchemaFromModel,
+  isEscapedRegexLiteral,
   isOpenApiValidatorConfigured,
   resetOpenApiValidatorConfig,
   validateModelRequestBody,
@@ -40,8 +41,8 @@ const requiredRouterOptions = {
 
 const setupFreshApp = async () => {
   const freshApp = getBaseServer();
-  setupAuth(freshApp, UserModel as any);
-  addAuthRoutes(freshApp, UserModel as any);
+  setupAuth(freshApp, UserModel as unknown as AuthUserModel);
+  addAuthRoutes(freshApp, UserModel as unknown as AuthUserModel);
   return freshApp;
 };
 
@@ -268,9 +269,133 @@ describe("openApiValidator", () => {
       expect(schema.hidden).toBeUndefined();
     });
 
-    it("marks query fields as not required", () => {
+    it("does not mark query fields as required", () => {
       const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
-      expect(schema.name.required).toBe(false);
+      expect(schema.name.required).toBeUndefined();
+    });
+  });
+
+  describe("choice list query validation", () => {
+    const priorityListSchema = new mongoose.Schema({
+      name: {required: true, type: String},
+      priority: {enum: ["low", "high"], type: String},
+    });
+    const PriorityListModel =
+      mongoose.models.OpenApiPriorityList ??
+      mongoose.model("OpenApiPriorityList", priorityListSchema);
+
+    const assertQueryAccepted = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true});
+      const schema = buildQuerySchemaFromFields(PriorityListModel, ["priority"]);
+      const middleware = validateQueryParams(schema);
+      let nextCalled = false;
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+      middleware(req, {} as Response, () => {
+        nextCalled = true;
+      });
+      expect(nextCalled).toBe(true);
+    };
+
+    it("accepts scalar and $in choice query shapes", () => {
+      assertQueryAccepted({limit: "25", page: "1", priority: "high"});
+      assertQueryAccepted({limit: "25", page: "1", priority: {$in: ["high"]}});
+      assertQueryAccepted({
+        limit: "25",
+        page: "1",
+        priority: {$in: ["high", ADMIN_LIST_CHOICE_EMPTY_VALUE]},
+      });
+    });
+
+    it("rejects invalid choice query shapes", () => {
+      configureOpenApiValidator({coerceTypes: true});
+      const schema = buildQuerySchemaFromFields(PriorityListModel, ["priority"]);
+      const middleware = validateQueryParams(schema);
+      const req = {
+        method: "GET",
+        path: "/test",
+        query: {limit: "25", page: "1", priority: {$in: ["high", "missing"]}},
+      } as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
+    });
+  });
+
+  describe("isEscapedRegexLiteral", () => {
+    it("accepts literal text and escaped metacharacters", () => {
+      expect(isEscapedRegexLiteral("alice")).toBe(true);
+      expect(isEscapedRegexLiteral("\\.\\*")).toBe(true);
+    });
+
+    it("rejects executable regex patterns", () => {
+      expect(isEscapedRegexLiteral(".*")).toBe(false);
+      expect(isEscapedRegexLiteral("^x")).toBe(false);
+      expect(isEscapedRegexLiteral("[a-z]")).toBe(false);
+    });
+  });
+
+  describe("query operator hardening", () => {
+    const assertQueryRejected = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
+      const middleware = validateQueryParams(schema);
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
+    };
+
+    const assertQueryAccepted = (query: Record<string, unknown>): void => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["name"]);
+      const middleware = validateQueryParams(schema);
+      let nextCalled = false;
+      const req = {method: "GET", path: "/test", query: {...query}} as unknown as Request;
+      middleware(req, {} as Response, () => {
+        nextCalled = true;
+      });
+      expect(nextCalled).toBe(true);
+    };
+
+    it("accepts escaped literal regex operators", () => {
+      assertQueryAccepted({
+        name: {$options: "i", $regex: "Green Beans"},
+      });
+      assertQueryAccepted({
+        name: {$options: "i", $regex: "\\.\\*"},
+      });
+    });
+
+    it("rejects executable regex operators even when removeAdditional is false", () => {
+      assertQueryRejected({
+        name: {$options: "i", $regex: ".*"},
+      });
+      assertQueryRejected({
+        name: {$options: "i", $regex: "^x"},
+      });
+    });
+
+    it("rejects extra nested operators on $in objects", () => {
+      assertQueryRejected({
+        name: {$in: ["Apple"], $ne: "Banana"},
+      });
+    });
+
+    it("rejects extra nested operators on range objects", () => {
+      configureOpenApiValidator({coerceTypes: true, removeAdditional: false});
+      const schema = buildQuerySchemaFromFields(FoodModel, ["calories"]);
+      const middleware = validateQueryParams(schema);
+      const req = {
+        method: "GET",
+        path: "/test",
+        query: {calories: {$gte: 1, $where: "1"}},
+      } as unknown as Request;
+
+      expect(() => {
+        middleware(req, {} as Response, () => {});
+      }).toThrow();
     });
   });
 
@@ -283,8 +408,8 @@ describe("openApiValidator", () => {
       });
 
       let nextCalled = false;
-      const req = {body: {}} as any;
-      const res = {} as any;
+      const req = {body: {}} as unknown as Request;
+      const res = {} as Response;
       const next = () => {
         nextCalled = true;
       };
@@ -300,8 +425,8 @@ describe("openApiValidator", () => {
         name: {required: true, type: "string"},
       });
 
-      const req = {body: {}, method: "POST", path: "/test"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test"} as unknown as Request;
+      const res = {} as Response;
 
       expect(() => {
         middleware(req, res, () => {});
@@ -322,8 +447,8 @@ describe("openApiValidator", () => {
       );
 
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/test"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test"} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -343,8 +468,8 @@ describe("openApiValidator", () => {
       const middleware = validateRequestBody({name: {required: true, type: "string"}});
 
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/test"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test"} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -362,8 +487,8 @@ describe("openApiValidator", () => {
       );
 
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/test"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test"} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -377,8 +502,8 @@ describe("openApiValidator", () => {
       const middleware = validateRequestBody({name: {required: true, type: "string"}});
 
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/test"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test"} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -396,8 +521,8 @@ describe("openApiValidator", () => {
       });
 
       let nextCalled = false;
-      const req = {method: "GET", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -412,8 +537,8 @@ describe("openApiValidator", () => {
         page: {type: "number"},
       });
 
-      const req = {method: "GET", path: "/test", query: {page: "3"}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {page: "3"}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {});
 
       expect(req.query.page).toBe(3);
@@ -426,8 +551,8 @@ describe("openApiValidator", () => {
         page: {required: true, type: "number"},
       });
 
-      const req = {method: "GET", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
       // Required top-level property missing triggers an error
       // We need required: [] at schema level via required: true on property. Confirm via calling.
       expect(() => {
@@ -436,7 +561,7 @@ describe("openApiValidator", () => {
     });
 
     it("uses onError callback for query validation", () => {
-      let captured: any[] = [];
+      let captured: ErrorObject[] = [];
       configureOpenApiValidator({coerceTypes: false});
 
       const middleware = validateQueryParams(
@@ -449,8 +574,8 @@ describe("openApiValidator", () => {
       );
 
       let nextCalled = false;
-      const req = {method: "GET", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -468,8 +593,8 @@ describe("openApiValidator", () => {
       );
 
       let nextCalled = false;
-      const req = {method: "GET", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -496,10 +621,7 @@ describe("openApiValidator", () => {
 
     it("returns errors for invalid response shape", () => {
       configureOpenApiValidator({coerceTypes: false, validateResponses: true});
-      const result = validateResponseData(
-        {name: 42 as any},
-        {name: {required: true, type: "string"}}
-      );
+      const result = validateResponseData({name: 42}, {name: {required: true, type: "string"}});
       expect(result.valid).toBe(false);
       expect(result.errors).toBeDefined();
     });
@@ -520,8 +642,8 @@ describe("openApiValidator", () => {
         method: "POST",
         path: "/test",
         query: {page: "2"},
-      } as any;
-      const res = {} as any;
+      } as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -536,8 +658,8 @@ describe("openApiValidator", () => {
       const middleware = createValidator({});
 
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -553,8 +675,8 @@ describe("openApiValidator", () => {
       });
 
       let nextCalled = false;
-      const req = {method: "GET", path: "/test", query: {page: "5"}} as any;
-      const res = {} as any;
+      const req = {method: "GET", path: "/test", query: {page: "5"}} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -617,8 +739,8 @@ describe("openApiValidator", () => {
         query: {page: {type: "number"}},
       });
 
-      const req = {body: {}, method: "POST", path: "/test", query: {}} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/test", query: {}} as unknown as Request;
+      const res = {} as Response;
 
       let nextCalled = false;
       middleware(req, res, () => {
@@ -645,8 +767,8 @@ describe("openApiValidator", () => {
       configureOpenApiValidator({coerceTypes: false});
       const {create} = createModelValidators(RequiredModel);
 
-      const req = {body: {name: 123}, method: "POST", path: "/required"} as any;
-      const res = {} as any;
+      const req = {body: {name: 123}, method: "POST", path: "/required"} as unknown as Request;
+      const res = {} as Response;
       expect(() => {
         create(req, res, () => {});
       }).toThrow();
@@ -656,8 +778,8 @@ describe("openApiValidator", () => {
       const {update} = createModelValidators(RequiredModel);
 
       let nextCalled = false;
-      const req = {body: {about: "info"}, method: "PATCH", path: "/required"} as any;
-      const res = {} as any;
+      const req = {body: {about: "info"}, method: "PATCH", path: "/required"} as unknown as Request;
+      const res = {} as Response;
       update(req, res, () => {
         nextCalled = true;
       });
@@ -679,14 +801,14 @@ describe("openApiValidator", () => {
         body: {extra: "strip me", name: "Apple"},
         method: "POST",
         path: "/required",
-      } as any;
-      create(req, {} as any, () => {});
+      } as unknown as Request;
+      create(req, {} as Response, () => {});
       expect(removedProps).toContain("extra");
     });
 
     it("supports onError option", () => {
       configureOpenApiValidator({coerceTypes: false});
-      let errorHandled: any[] = [];
+      let errorHandled: ErrorObject[] = [];
       const {create} = createModelValidators(RequiredModel, {
         onError: (errors) => {
           errorHandled = errors;
@@ -694,8 +816,8 @@ describe("openApiValidator", () => {
       });
 
       // Wrong type triggers error handler
-      const req = {body: {name: 42}, method: "POST", path: "/required"} as any;
-      create(req, {} as any, () => {});
+      const req = {body: {name: 42}, method: "POST", path: "/required"} as unknown as Request;
+      create(req, {} as Response, () => {});
       expect(errorHandled.length).toBeGreaterThan(0);
     });
   });
@@ -708,8 +830,8 @@ describe("openApiValidator", () => {
     it("creates a validator from a Mongoose model", () => {
       const middleware = validateModelRequestBody(RequiredModel);
 
-      const req = {body: {}, method: "POST", path: "/required"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/required"} as unknown as Request;
+      const res = {} as Response;
       expect(() => {
         middleware(req, res, () => {});
       }).toThrow();
@@ -722,8 +844,8 @@ describe("openApiValidator", () => {
 
       // Without 'name' required, empty body passes
       let nextCalled = false;
-      const req = {body: {}, method: "POST", path: "/required"} as any;
-      const res = {} as any;
+      const req = {body: {}, method: "POST", path: "/required"} as unknown as Request;
+      const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;
       });
@@ -738,6 +860,65 @@ describe("openApiValidator", () => {
       expect(schema.name).toBeDefined();
       expect(schema.about).toBeDefined();
     });
+
+    it("puts enum constraints on array items, not the array property", () => {
+      const enumArraySchema = new mongoose.Schema({
+        values: {
+          default: ["alpha", "beta"],
+          enum: ["alpha", "beta"],
+          type: [String],
+        },
+      });
+      const EnumArrayModel =
+        mongoose.models.OpenApiValidatorEnumArray ??
+        mongoose.model("OpenApiValidatorEnumArray", enumArraySchema);
+
+      const schema = getSchemaFromModel(EnumArrayModel);
+      expect(schema.values).toEqual({
+        items: {enum: ["alpha", "beta"], type: "string"},
+        type: "array",
+      });
+    });
+  });
+
+  describe("enum array request bodies", () => {
+    const enumArraySchema = new mongoose.Schema({
+      label: {required: true, type: String},
+      values: {
+        enum: ["alpha", "beta"],
+        type: [String],
+      },
+    });
+    const EnumArrayModel =
+      mongoose.models.OpenApiValidatorEnumArrayRoute ??
+      mongoose.model("OpenApiValidatorEnumArrayRoute", enumArraySchema);
+
+    const enumArrayRouterOptions = {
+      permissions: {
+        create: [Permissions.IsAuthenticated],
+        delete: [Permissions.IsAdmin],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsAuthenticated],
+        update: [Permissions.IsAuthenticated],
+      },
+      queryFields: ["label"],
+      sort: "-label" as const,
+    };
+
+    it("accepts enum array values on create when validation is enabled", async () => {
+      configureOpenApiValidator();
+
+      const freshApp = await setupFreshApp();
+      freshApp.use("/enum-arrays", modelRouter(EnumArrayModel, enumArrayRouterOptions));
+      const admin = await authAsUser(freshApp, "admin");
+
+      const res = await admin
+        .post("/enum-arrays")
+        .send({label: "sample", values: ["alpha", "beta"]})
+        .expect(201);
+
+      expect(res.body.data.values).toEqual(["alpha", "beta"]);
+    });
   });
 
   describe("getOpenApiValidatorConfig", () => {
@@ -747,7 +928,7 @@ describe("openApiValidator", () => {
       expect(config.removeAdditional).toBe(false);
 
       // Mutating the returned copy should not affect internal state
-      (config as any).removeAdditional = true;
+      config.removeAdditional = true;
       expect(getOpenApiValidatorConfig().removeAdditional).toBe(false);
     });
   });

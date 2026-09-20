@@ -39,14 +39,19 @@ jobs:
         run: bun run compile
         working-directory: syncdb
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         working-directory: syncdb
         env:
           CI: true
-
-      - name: Isolated tests
-        run: bun test ./src/isolated/defaultPersisterFactoryNative.isolated.ts
-        working-directory: syncdb
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-codecov
+        with:
+          directory: syncdb
+          flag: syncdb
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Gate new files from LCOV
         env:
-          CI: true
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/check-new-file-coverage-lcov.sh syncdb
+        working-directory: .

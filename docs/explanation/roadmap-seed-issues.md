@@ -194,8 +194,8 @@ example-backend Dockerfile with CI validation.
 **Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`deploy-to-vercel`, Status=`Planned`
 
 Documents Expo web export on Vercel, preview-deployment CORS and Better Auth origin handling,
-and a deploy-vercel skill with websocket verification. Requires a spike on backend hosting
-options.
+Vercel Functions WebSockets (Public Beta) operator docs, and a deploy-vercel skill with
+websocket verification. Requires a spike on backend hosting options.
 
 - **Implementation plan:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deploy-to-vercel.md)
 - **Tasks:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deploy-to-vercel.md)
@@ -467,15 +467,18 @@ equivalents, and sends the emails through `@terreno/comms`.
 **Title:** `Inbound webhook framework`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`inbound-webhooks`, Status=`Planned`
+
+**GitHub:** https://github.com/FlourishHealth/terreno/issues/1172
 
 Terreno has outbound notifiers (Slack, Google Chat, Zoom) but no framework for receiving
 webhooks from external services. Adds a plugin for registering webhook endpoints with
 signature verification, raw-body handling, idempotency/replay protection, and event
-dispatch — required by Stripe billing and by Twilio/Expo delivery status callbacks.
+dispatch — required by Stripe billing and by Twilio/SendGrid delivery status callbacks
+(Expo push polls receipts and does not use this plugin).
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/inbound-webhooks.md)
+- **Tasks:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/inbound-webhooks.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -550,7 +553,9 @@ org-admins manage only the current org. Invites and billing are design-only plac
 
 - **Implementation plan:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/org-management-ui.md)
 - **Tasks:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/org-management-ui.md)
-- **RTK flag:** Partial — admin screens use generated SDK / `useAdminApi`
+- **RTK flag:** Partial — custom non-synced routes use the generated SDK;
+  ObjectId admin compatibility may use `useAdminApi` in Terreno 57, while
+  eligible String-`_id` CRUD uses windowed syncdb
 - **Depends on:** rbac-permissions
 
 ---
@@ -602,15 +607,15 @@ same binary. Manifest finalized 2026-08-09 (decisions D1/D3/D7); TenTap excluded
 **Title:** `create-terreno-app scaffolding CLI`
 
 **Labels:** `area:dx`, `type:feature`
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`create-terreno-app`, Status=`In progress`
 
 Today the MCP bootstrap tool returns markdown instructions and writes no files. This ships
 a real `create-terreno-app` CLI (or template repo) that produces a running, deployable app
 — backend, Expo app, env files, seeded auth — in one command, with the MCP bootstrap
 delegating to it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/create-terreno-app.md)
+- **Tasks:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/create-terreno-app.md)
 - **RTK flag:** Partial — scaffold output follows the syncdb + Better Auth direction
 - **Depends on:** deployment-foundation
 
@@ -659,14 +664,14 @@ root views and system chrome follow the scheme.
 **Title:** `DataTable server-side filtering and search`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`datatable-server-side-filtering`, Status=`Planned`
 
 DataTable sorts and paginates but has no filter UI. Adds per-column filter controls and a
 search box that emit modelRouter-compatible query params (`queryFields`, `$and`/`$or`), so
 list screens get server-side filtering without custom plumbing. Admin tables adopt it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [datatable-server-side-filtering.md](../implementationPlans/datatable-server-side-filtering.md)
+- **Tasks:** [datatable-server-side-filtering.md](../tasks/datatable-server-side-filtering.md)
 - **RTK flag:** Partial — query wiring examples depend on the frontend data layer
 - **Depends on:** —
 
@@ -823,17 +828,20 @@ enforcement hooks in the permission layer.
 **Title:** `Framework-level audit log`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Planned`
 
 Generalizes the admin/consent audit patterns into a first-class audit log: an AuditEvent
 model, modelRouter hooks that record who changed what (with before/after diffs), org
 scoping, retention policy, and an admin viewer — a hard requirement for compliance-minded
 B2B customers.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1186.
+
+- **Implementation plan:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/framework-audit-log.md)
+- **Tasks:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/framework-audit-log.md)
+- **How-to:** [audit-log.md](../how-to/audit-log.md)
 - **RTK flag:** None
-- **Depends on:** org-management-ui
+- **Depends on:** — (optional `organizationId` now; org-admin list filter waits on org-management-ui)
 
 ---
 
@@ -863,15 +871,19 @@ Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1
 **Title:** `Durable background jobs`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`job-queues`, Status=`Shipped`
 
-Terreno has an in-process cron helper and admin script runner but no durable queue. Adds a
-job abstraction with retries, scheduling, and dead-lettering — Mongo-backed by default with
-a Redis/BullMQ driver — so email sends, webhook retries, and billing sync survive restarts.
+Adds `@terreno/jobs`: Mongo-recorded jobs with retries, schedules, dead-lettering, in-process or
+standalone workers, and pluggable runners (Mongo, GCP Cloud Tasks, Vercel Queues, custom).
+Email/webhook/billing consumers enqueue later; this item ships the queue.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
-- **RTK flag:** None
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1188.
+
+- **Implementation plan:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/job-queues.md)
+- **Tasks:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/job-queues.md)
+- **How-to:** [background-jobs.md](../how-to/background-jobs.md)
+- **Reference:** [jobs.md](../reference/jobs.md)
+- **RTK flag:** Partial — admin screens use generated SDK
 - **Depends on:** —
 
 ---
@@ -880,15 +892,17 @@ a Redis/BullMQ driver — so email sends, webhook retries, and billing sync surv
 
 **Title:** `MongoDB migrations tooling`
 
-**Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Labels:** `area:api`, `type:feature`  
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=`mongodb-migrations-tooling`, Status=`Planned`
 
 A migrations runner for Terreno apps: versioned migration files, up/down with a lock
-collection, CI checks, and integration with the mongoose-schema-safety guidance — replacing
-ad-hoc backfill scripts.
+collection, CI checks, CLI generate-from-schema-diff, optional boot apply, and an admin
+Migrations page — replacing ad-hoc backfill scripts for once-per-environment schema changes.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1189.
+
+- **Implementation plan:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/mongodb-migrations-tooling.md)
+- **Tasks:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/mongodb-migrations-tooling.md)
 - **RTK flag:** None
 - **Depends on:** —
 

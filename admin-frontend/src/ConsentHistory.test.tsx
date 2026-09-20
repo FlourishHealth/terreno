@@ -1,6 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {renderWithTheme} from "../../ui/src/test-utils";
 
 import {ConsentHistory} from "./ConsentHistory";
 import type {ConsentHistoryEntry} from "./useConsentHistory";

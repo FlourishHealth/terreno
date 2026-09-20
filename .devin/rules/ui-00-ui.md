@@ -259,6 +259,9 @@ interface BaseFieldProps {
 />
 ```
 
+`type="password"` masks the value and adds a show/hide eye control (test id
+`{testID}.visibility-toggle`). Pass `showVisibilityToggle={false}` to remove it.
+
 ### SelectField
 
 ```typescript
@@ -385,6 +388,7 @@ const [value, setValue, isLoading] = useStoredState<string>("key", "default");
 - Icons use FontAwesome 6 names via `iconName` props
 - Always support React Native Web — no platform-specific code without fallbacks
 - Use inline styles over `StyleSheet.create`
+- Declare `pointerEvents` through `StyleSheet.create` — react-native-web drops it from inline styles, so `box-none` / `box-only` containers silently become event-swallowing overlays on web
 - Use Luxon for all date operations
 
 ## Testing

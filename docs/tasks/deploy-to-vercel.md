@@ -16,18 +16,24 @@ See: [`docs/implementationPlans/deploy-to-vercel.md`](../implementationPlans/dep
 Close every **Open TODO** in the IP before writing the how-to guide.
 
 - [ ] **Task 0.1**: Spike `@terreno/api` on Vercel
-  - Description: Prototype whether Socket.io, MongoDB change streams, and `@terreno/ai` SSE can run on Vercel (all-in-one candidate). Record runtime limits, cold starts, session affinity, and SSE buffering. Compare against split topology (Vercel web + long-running backend).
+  - Description: Prototype whether Socket.io, MongoDB change streams, and `@terreno/ai` SSE can run on Vercel (all-in-one candidate). Treat [Vercel Functions WebSockets (Public Beta)](https://vercel.com/docs/functions/websockets) as the vendor contract. Record Fluid compute, max-duration disconnects, instance pinning (not affinity across reconnects), Redis for cross-instance fan-out, Function billing while sockets are open, cold starts, and SSE buffering. Compare against split topology (Vercel web + long-running backend).
   - Files: spike notes in PR / IP update; optional scratch `example-backend/vercel.json`
   - Depends on: none
   - Acceptance: IP questions **V1**, **V2**, and **V3** updated with a recorded decision; all IP Open TODO checkboxes checked or explicitly deferred with owner.
 
+- [ ] **Task 0.2**: Write Vercel Functions WebSocket operator docs
+  - Description: Create `docs/how-to/vercel-function-websockets.md` from the IP section **Vercel Functions WebSockets (Public Beta)**. Cite `https://vercel.com/docs/functions/websockets`; do not copy Vercel examples. Cover Fluid compute, HTTP Upgrade + Firewall/rate limits, websocket-only Socket.IO, `export default` HTTP server vs `TerrenoApp.start()`, instance pinning, max-duration reconnects, Redis (`RealtimeApp` adapter), Function billing while connected, and verification (`WEBSOCKETS_DEBUG`, DevTools WS, no polling fallback). Mark **beta**. Do not recommend all-in-one topology until V1 is decided. Link from `docs/how-to/README.md` and later from `docs/how-to/deploy-web-to-vercel.md` and `docs/how-to/websocket-integration.md`.
+  - Files: `docs/how-to/vercel-function-websockets.md` (new), `docs/how-to/README.md`, `docs/how-to/websocket-integration.md`
+  - Depends on: none (may ship before Task 0.1 closes; must re-verify against the Vercel page at ship time)
+  - Acceptance: every required operator section from the IP is present; the Vercel URL is cited; Next.js `experimental_upgradeWebSocket`, Bun, and Python examples are out of scope; `corsOrigin: true` is not recommended; listed in the how-to index.
+
 ## Phase 1: Core how-to guide
 
 - [ ] **Task 1.1**: Write the Vercel deployment guide for `single` output
-  - Description: Create `docs/how-to/deploy-web-to-vercel.md`. Open with a "What goes where" section using the **topology decided in Phase 0** (interim split layout until spike closes; do not document all-in-one until V1 is decided). Then: prerequisites; backend host setup per V1 outcome; `vercel.json` for `single` output; `EXPO_PUBLIC_API_URL`; deploy + verify. Link `docs/explanation/deployment-baseline.md` instead of restating baseline requirements.
+  - Description: Create `docs/how-to/deploy-web-to-vercel.md`. Open with a "What goes where" section using the **topology decided in Phase 0** (interim split layout until spike closes; do not document all-in-one until V1 is decided). Then: prerequisites; backend host setup per V1 outcome; `vercel.json` for `single` output; `EXPO_PUBLIC_API_URL`; deploy + verify. Link `docs/explanation/deployment-baseline.md` instead of restating baseline requirements. Link `docs/how-to/vercel-function-websockets.md` wherever sockets on Functions are mentioned.
   - Files: `docs/how-to/deploy-web-to-vercel.md` (new), `docs/how-to/README.md`
-  - Depends on: `deployment-foundation` Phase 4
-  - Acceptance: every config key verified against current Expo docs; the "what goes where" reasoning is present in the first section; the guide links rather than duplicates the baseline explainer; listed in the how-to index.
+  - Depends on: `deployment-foundation` Phase 4, Task 0.2
+  - Acceptance: every config key verified against current Expo docs; the "what goes where" reasoning is present in the first section; the guide links rather than duplicates the baseline explainer; listed in the how-to index; websocket Functions page is linked, not duplicated.
 
 - [ ] **Task 1.2**: `[RTK]` Add the verification section
   - Description: Add a "Verify the deployment" section with four checks, each with the expected result and what failure means: (1) the root URL loads the app; (2) a deep link loads directly on refresh (proves the SPA rewrite works); (3) login succeeds, proving the API call reaches the backend and CORS is configured; (4) the websocket connects, proving realtime and live feature flags work. For check 4, give a concrete way to verify — browser devtools Network tab filtered to WS, or the client's debug logging flag (find the actual flag name in the client package, `WEBSOCKETS_DEBUG` at time of writing) — and explain that the app looks fine when this is broken, which is why it must be checked explicitly.
@@ -84,7 +90,7 @@ Close every **Open TODO** in the IP before writing the how-to guide.
   - Acceptance: frontmatter complete; the production-deploy confirmation gate is present; the verification step includes the websocket check; no command appears in the skill that is absent from the how-to guide.
 
 - [ ] **Task 4.2**: Add the troubleshooting reference
-  - Description: Create `.rulesync/skills/deploy-vercel/references/troubleshooting.md` covering at least these six, each with the literal symptom the user sees: blank white page after deploy (missing rewrites); 404 on refreshing a deep link (same root cause, different symptom); network requests going to `localhost:4000` in production (`EXPO_PUBLIC_API_URL` absent at build time); CORS error text quoted verbatim from a browser console; websocket connection failing while the rest of the app works; and SSE responses arriving all at once on server output (the buffering caveat). For each, give the fix and the file or setting to change.
+  - Description: Create `.rulesync/skills/deploy-vercel/references/troubleshooting.md` covering at least these six, each with the literal symptom the user sees: blank white page after deploy (missing rewrites); 404 on refreshing a deep link (same root cause, different symptom); network requests going to `localhost:4000` in production (`EXPO_PUBLIC_API_URL` absent at build time); CORS error text quoted verbatim from a browser console; websocket connection failing while the rest of the app works (Fluid off, long-polling fallback, or max-duration close — link `docs/how-to/vercel-function-websockets.md`); and SSE responses arriving all at once on server output (the buffering caveat). For each, give the fix and the file or setting to change.
   - Files: `.rulesync/skills/deploy-vercel/references/troubleshooting.md` (new)
   - Depends on: Task 4.1
   - Acceptance: at least six entries; each quotes a real error string or describes a precisely observable symptom; each names the file or setting to change.

@@ -90,7 +90,7 @@ export const setSyncLabRemoteRate = (rate: number): void => {
   emit();
 };
 
-export const setShowSyncDevPanel = (show: boolean): void => {
+const setShowSyncDevPanel = (show: boolean): void => {
   if (ratesState.showDevPanel === show) {
     return;
   }
