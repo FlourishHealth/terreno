@@ -38,5 +38,5 @@ export const createLocalMcpServer = (options: LocalMcpServerOptions = {}): Serve
 };
 
 export const startLocalMcpServer = async (): Promise<void> => {
-  serveStdio(createLocalMcpServer, {legacy: "serve"});
+  serveStdio(() => createLocalMcpServer(), {legacy: "serve"});
 };
