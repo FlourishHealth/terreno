@@ -594,6 +594,9 @@ const getBodyValidationMiddleware = <T>(
       validationOptions.excludeFields = excludeFields;
     }
   }
+  if (operation === "update") {
+    validationOptions.partial = true;
+  }
 
   return validateModelRequestBody(model, validationOptions);
 };

@@ -6,7 +6,8 @@
  *
  * Validation is always installed as middleware but only activates after
  * `configureOpenApiValidator()` is called. This makes it safe to include
- * in modelRouter by default.
+ * in modelRouter by default. Create bodies enforce Mongoose required fields;
+ * PATCH/update bodies are partial (present fields only).
  *
  * @module openApiValidator
  *
@@ -409,14 +410,20 @@ const formatValidationErrors = (errors: ErrorObject[]): string => {
  */
 const propertiesToSchema = (
   properties: Record<string, OpenApiSchemaProperty>,
-  requiredFields?: string[]
+  requiredFields?: string[],
+  options?: {partial?: boolean}
 ): OpenApiSchema => {
   // Extract required fields from properties marked required: true (OpenAPI builder style).
-  const autoRequired = Object.entries(properties)
-    .filter(([_, prop]) => prop.required === true)
-    .map(([key]) => key);
+  // PATCH bodies are partial: omit mongoose/OpenAPI required so one field can be sent.
+  const autoRequired = options?.partial
+    ? []
+    : Object.entries(properties)
+        .filter(([_, prop]) => prop.required === true)
+        .map(([key]) => key);
 
-  const allRequired = [...new Set([...(requiredFields ?? []), ...autoRequired])];
+  const allRequired = options?.partial
+    ? []
+    : [...new Set([...(requiredFields ?? []), ...autoRequired])];
 
   // Strip boolean `required` from individual properties — AJV only accepts `required` arrays on objects
   const cleanedProperties: Record<string, OpenApiSchemaProperty> = {};
@@ -454,6 +461,12 @@ export interface RequestBodyValidatorOptions {
   required?: string[];
 
   /**
+   * When true, skip schema-level `required` (PATCH / partial update bodies).
+   * Present fields are still type-checked.
+   */
+  partial?: boolean;
+
+  /**
    * Fields to exclude from validation (e.g. fields set by preCreate hooks).
    * Excluded fields are removed from both the schema properties and the required array.
    */
@@ -485,7 +498,9 @@ export const validateRequestBody = (
   schema: Record<string, OpenApiSchemaProperty>,
   options?: RequestBodyValidatorOptions
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
-  const fullSchema = propertiesToSchema(schema, options?.required);
+  const fullSchema = propertiesToSchema(schema, options?.required, {
+    partial: options?.partial,
+  });
 
   return (req: Request, _res: Response, next: NextFunction): void => {
     // No-op if not configured
@@ -827,7 +842,7 @@ export const validateModelRequestBody = <T>(
   options?: RequestBodyValidatorOptions
 ): ((req: Request, res: Response, next: NextFunction) => void) => {
   let schema = getSchemaFromModel(model);
-  let requiredFields = getRequiredFieldsFromModel(model);
+  let requiredFields = options?.partial ? [] : getRequiredFieldsFromModel(model);
 
   if (options?.excludeFields?.length) {
     const excluded = new Set(options.excludeFields);
@@ -837,7 +852,7 @@ export const validateModelRequestBody = <T>(
 
   return validateRequestBody(schema, {
     ...options,
-    required: [...(options?.required ?? []), ...requiredFields],
+    required: options?.partial ? [] : [...(options?.required ?? []), ...requiredFields],
   });
 };
 
@@ -912,6 +927,7 @@ export const createModelValidators = <T>(
       enabled: options?.validateUpdate,
       onAdditionalPropertiesRemoved: options?.onAdditionalPropertiesRemoved,
       onError: options?.onError,
+      partial: true,
     }),
   };
 };

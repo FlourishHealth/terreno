@@ -118,11 +118,14 @@ deploy_backend() {
   if [ "$tag" = "prod" ]; then
     env_vars+=",CORS_ORIGINS=https://terreno-frontend.netlify.app"
   else
-    args+=(--no-traffic)
+    args+=(--no-traffic --no-cpu-throttling)
     env_vars+=",CORS_ORIGINS=https://pr-${PR_NUMBER}--terreno-frontend.netlify.app,MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},SEED_DEFAULTS=true"
   fi
   args+=("--set-secrets=$secrets" "--set-env-vars=$env_vars")
   gcloud "${args[@]}"
+  if [[ "$tag" == pr-* ]]; then
+    scripts/ci/wait-cloud-run-health.sh "$(tagged_service_url "$GCP_BACKEND_SERVICE" "$tag")"
+  fi
 }
 
 deploy_tasks() {

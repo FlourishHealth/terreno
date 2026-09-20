@@ -9,10 +9,14 @@ import {
   ConsentForm,
   type ConsentFormType,
   ConsentResponse,
+  findSyncEntryByModelName,
   logger,
   Membership,
+  Notification,
   Organization,
+  Permissions,
   registerOrganizationSettings,
+  registerSync,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -44,6 +48,27 @@ import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
 import {seedAnnouncements} from "./seed-announcements";
 import {seedFeatureFlags} from "./seed-feature-flags";
+
+const ensureNotificationSyncRegistered = (): void => {
+  if (findSyncEntryByModelName("Notification")) {
+    return;
+  }
+  registerSync({
+    config: {scope: {type: "owner"}},
+    model: Notification,
+    options: {
+      permissions: {
+        create: [],
+        delete: [Permissions.IsOwner],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+      },
+      sync: {scope: {type: "owner"}},
+    },
+    routePath: "/notifications",
+  });
+};
 
 interface SeedUser {
   admin?: boolean;
@@ -79,6 +104,14 @@ interface SeedCommsMessage {
   status: CommsMessageStatus;
   subject?: string;
   to: string;
+}
+
+interface SeedNotification {
+  archived?: boolean;
+  body: string;
+  minutesAgo: number;
+  read?: boolean;
+  title: string;
 }
 
 const TEST_USERS: SeedUser[] = [
@@ -124,6 +157,27 @@ const SEED_ORGANIZATIONS = [
 ];
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
+
+const SEED_NOTIFICATIONS: SeedNotification[] = [
+  {
+    body: "Open the bell to preview the notification drawer.",
+    minutesAgo: 5,
+    title: "Welcome to notifications",
+  },
+  {
+    body: "Completed items now create an activity notification.",
+    minutesAgo: 45,
+    read: true,
+    title: "Todo activity is connected",
+  },
+  {
+    archived: true,
+    body: "Archived notifications remain available on the full history page.",
+    minutesAgo: 180,
+    read: true,
+    title: "Archived example",
+  },
+];
 
 const SEED_COMMS_MESSAGES: SeedCommsMessage[] = [
   {
@@ -473,6 +527,35 @@ const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<voi
   }
 };
 
+const seedNotifications = async (context: SeedContext, owner: UserDocument): Promise<void> => {
+  ensureNotificationSyncRegistered();
+  const seededAt = DateTime.utc();
+  for (const notification of SEED_NOTIFICATIONS) {
+    const values = {
+      archivedAt: notification.archived ? seededAt.toJSDate() : null,
+      body: notification.body,
+      created: seededAt.minus({minutes: notification.minutesAgo}).toJSDate(),
+      href: "/",
+      kind: "seed",
+      ownerId: owner._id,
+      readAt: notification.read ? seededAt.toJSDate() : null,
+      title: notification.title,
+    };
+    await context.upsert(Notification, {ownerId: owner._id, title: notification.title}, values);
+    if (context.dryRun) {
+      continue;
+    }
+    const seededNotification = await Notification.findExactlyOne({
+      ownerId: owner._id,
+      title: notification.title,
+    });
+    if (seededNotification.get("_syncSeq") == null) {
+      seededNotification.markModified("body");
+      await seededNotification.save();
+    }
+  }
+};
+
 /** Seed current, representative delivery logs so the comms dashboard is useful after setup. */
 const seedCommsMessages = async (context: SeedContext, admin: UserDocument): Promise<void> => {
   const seededAt = DateTime.utc();
@@ -631,6 +714,22 @@ export const seedSteps: SeedStep[] = [
     run: async (context) => {
       if (seededUsers[0]) {
         await seedTodos(context, seededUsers[0]);
+      }
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "notifications",
+    reset: async (context) => {
+      const seededNotifications = await Notification.find({
+        deleted: {$in: [false, true]},
+        kind: "seed",
+      });
+      await softDeleteAll(context, seededNotifications, Notification.modelName);
+    },
+    run: async (context) => {
+      if (seededUsers[0]) {
+        await seedNotifications(context, seededUsers[0]);
       }
     },
   },

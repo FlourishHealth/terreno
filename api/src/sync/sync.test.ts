@@ -232,9 +232,10 @@ describe("registerSync validation", () => {
     ).toThrow(/workspaceId/);
   });
 
-  it("throws on duplicate registration", () => {
+  it("treats duplicate registration of the same model as a no-op", () => {
     registerStuff();
-    expect(() => registerStuff()).toThrow(/already registered/);
+    registerStuff();
+    expect(getSyncRegistry()).toHaveLength(1);
   });
 
   it("registers a compliant model and exposes lookup helpers", () => {
