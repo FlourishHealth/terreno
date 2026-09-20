@@ -16,6 +16,7 @@ export interface User {
   age?: number;
   disabled?: boolean;
   organizationIds?: string[];
+  roles?: string[];
   tokenEpoch?: number;
   emailVerified?: boolean;
 }
@@ -70,6 +71,11 @@ const userSchema = new Schema<User>({
     description: "Organization memberships",
     type: [String],
   },
+  roles: {
+    default: [],
+    description: "RBAC role names assigned to this user",
+    type: [String],
+  },
   tokenEpoch: {
     default: 0,
     description: "Incremented on password reset to invalidate outstanding refresh tokens",
@@ -82,10 +88,12 @@ userSchema.plugin(
   passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
   {
     attemptsField: "attempts",
-    interval: process.env.NODE_ENV === "test" ? 1 : 100,
+    interval: 1,
     limitAttempts: true,
     maxAttempts: 3,
-    maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
+    // Test-only schema: maxInterval 0 caps calculatedInterval at 0 so AttemptTooSoon
+    // never preempts maxAttempts lockout under rapid supertest logins.
+    maxInterval: 0,
     usernameCaseInsensitive: true,
     usernameField: "email",
   }

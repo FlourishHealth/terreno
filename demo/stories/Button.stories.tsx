@@ -40,6 +40,15 @@ const BUTTON_VARIANT_EXAMPLES: ButtonVariantExample[] = [
   {iconName: "ghost", text: "Ghost", variant: "ghost"},
 ];
 
+const BUTTON_STATE_VARIANTS: {label: string; variant: ButtonProps["variant"]}[] = [
+  {label: "Primary", variant: "primary"},
+  {label: "Secondary", variant: "secondary"},
+  {label: "Outline", variant: "outline"},
+  {label: "Muted", variant: "muted"},
+  {label: "Destructive", variant: "destructive"},
+  {label: "Ghost", variant: "ghost"},
+];
+
 const handleDemoClick = (): void => {
   console.info("clicked");
 };
@@ -120,6 +129,40 @@ export const ButtonVariants: React.FC<Partial<ButtonProps>> = (props = {}) => {
         </Box>
       </Box>
     </>
+  );
+};
+
+export const ButtonStates: React.FC<Partial<ButtonProps>> = (props = {}) => {
+  return (
+    <Box direction="column" gap={4}>
+      {BUTTON_STATE_VARIANTS.map(({label, variant}) => (
+        <Box alignItems="center" direction="row" gap={4} key={variant}>
+          <Box width={100}>
+            <Text>{label}</Text>
+          </Box>
+          <Box alignItems="center" gap={1}>
+            <Text>Default</Text>
+            <Button
+              onClick={handleDemoClick}
+              state="default"
+              text={`${label} default`}
+              variant={variant}
+              {...props}
+            />
+          </Box>
+          <Box alignItems="center" gap={1}>
+            <Text>Active</Text>
+            <Button
+              onClick={handleDemoClick}
+              state="active"
+              text={`${label} active`}
+              variant={variant}
+              {...props}
+            />
+          </Box>
+        </Box>
+      ))}
+    </Box>
   );
 };
 

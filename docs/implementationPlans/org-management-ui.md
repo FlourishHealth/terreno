@@ -51,7 +51,10 @@ frames are **not** acceptance criteria for this IP (see [Claude Design brief](#c
 | Q12 | Who creates orgs | `operator` and `superadmin` only (API + `/admin/orgs`) |
 
 **Recorded assumptions (not grilled):** `org-admin` / `member` live on Membership (per org).
-`operator` / `superadmin` live on `user.roles`. Inherit native models, slugs, soft-delete,
+`operator` / `superadmin` live on `user.roles`. Organizations are **opt-in**
+(`createAccess({ organizations: true })` + `TerrenoApp({ organizations: true })` or `OrgsApp`);
+existing single-tenant apps omit that flag. New apps from bootstrap enable organizations by
+default. Inherit native models, slugs, soft-delete,
 last-admin guards, and `X-Organization-Id` from the superseded IP. Admin data layer stays
 RTK/OpenAPI.
 
@@ -300,8 +303,10 @@ logs in, sees switcher, members table for that org only.
 
 ## Feature Flags & Migrations
 
-New collections; `OrgsApp` opt-in. Adopting apps backfill `organizationId` with a documented
-recipe (formal migrator is `mongo-migrations`).
+New collections; organizations are opt-in (`createAccess({ organizations: true })` plus
+`OrgsApp` / `TerrenoApp({ organizations: true })`). Existing single-tenant apps are unchanged.
+New apps from `terreno_bootstrap_app` enable organizations by default. Adopting apps backfill
+`organizationId` with a documented recipe (formal migrator is `mongo-migrations`).
 
 Example-backend **breaking for the example app only:** remove `User.organizationIds`;
 resolve tenants via Membership. Seed users: `operator@example.com` (`operator`), two

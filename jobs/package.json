@@ -1,0 +1,82 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "cron": "^4.3.4",
+    "express": "catalog:",
+    "luxon": "catalog:"
+  },
+  "description": "Durable background jobs plugin for @terreno/api — part of Terreno, the batteries-included TypeScript framework for universal apps.",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/supertest": "catalog:",
+    "chai": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./runners/gcpCloudTasks": {
+      "default": "./dist/runners/gcpCloudTasks.js",
+      "types": "./dist/runners/gcpCloudTasks.d.ts"
+    },
+    "./runners/vercelQueues": {
+      "default": "./dist/runners/vercelQueues.js",
+      "types": "./dist/runners/vercelQueues.d.ts"
+    }
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "background-jobs",
+    "queue",
+    "api",
+    "express",
+    "terreno"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/jobs",
+  "peerDependencies": {
+    "@google-cloud/tasks": "7.1.0",
+    "@vercel/queue": "^0.5.1",
+    "mongoose": "^8.0.0 || ^9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@google-cloud/tasks": {
+      "optional": true
+    },
+    "@vercel/queue": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test",
+    "test:agent": "AGENT=1 bun test --only-failures",
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  },
+  "types": "dist/index.d.ts",
+  "version": "57.2.0"
+}

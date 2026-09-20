@@ -1,6 +1,7 @@
-import {AdminRolesList, AdminShellLayout} from "@terreno/admin-frontend";
+import {AdminRolesList} from "@terreno/admin-frontend";
 import React from "react";
 
+import {AdminSpaShell} from "../../components/AdminSpaShell";
 import {useAppConfig} from "../../components/AppConfigGate";
 import {terrenoApi} from "../../store/sdk";
 
@@ -9,16 +10,9 @@ const RolesRoute: React.FC = () => {
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
 
   return (
-    <AdminShellLayout
-      api={terrenoApi}
-      apiBase={apiBase}
-      breadcrumbs={[{href: "/", label: "Admin"}, {label: "Roles"}]}
-      configurationPath="/configuration"
-      rolesPath="/roles"
-      routeBase=""
-    >
+    <AdminSpaShell breadcrumbs={[{href: "/", label: "Admin"}, {label: "Roles"}]}>
       <AdminRolesList api={terrenoApi} apiBase={apiBase} routeBase="" />
-    </AdminShellLayout>
+    </AdminSpaShell>
   );
 };
 

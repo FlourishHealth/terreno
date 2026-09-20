@@ -68,6 +68,12 @@ export interface SyncDbConfig {
   baseUrl?: string;
   /** Transport override (tests inject a fake; default is the socket transport). */
   transport?: SyncTransport;
+  /**
+   * Optional selected organization id for `X-Organization-Id` on HTTP sync
+   * calls and the `organizationId` field on socket mutate payloads. Read at
+   * send time so admin org switches apply without reconnecting.
+   */
+  organizationIdProvider?: () => string | undefined;
   /** HTTP channel override (default is built from baseUrl when present). */
   httpChannel?: HttpChannel;
   /** Persister factory override (default is the platform default factory). */
@@ -311,11 +317,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       authProvider: config.authProvider,
       // biome-ignore lint/style/noNonNullAssertion: guarded above — no transport implies baseUrl.
       baseUrl: config.baseUrl!,
+      organizationIdProvider: config.organizationIdProvider,
     });
   const httpChannel =
     config.httpChannel ??
     (config.baseUrl
-      ? createHttpChannel({authProvider: config.authProvider, baseUrl: config.baseUrl})
+      ? createHttpChannel({
+          authProvider: config.authProvider,
+          baseUrl: config.baseUrl,
+          organizationIdProvider: config.organizationIdProvider,
+        })
       : undefined);
 
   const store = createSyncStore({

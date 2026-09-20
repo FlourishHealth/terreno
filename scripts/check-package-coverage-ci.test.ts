@@ -4,9 +4,13 @@ import {
   COVERAGE_COMMAND,
   DEDICATED_PACKAGE_CI_JOBS,
   findDedicatedJobsMissingCoverage,
+  findGhaCodecovUploadsMissingToken,
+  findGhaLcovStepsMissingRepoRootCwd,
   findMatrixPackagesMissingCoverage,
   jobCommandBlock,
   MATRIX_PACKAGES,
+  NEW_FILE_LCOV_CIRCLE_COMMAND,
+  NEW_FILE_LCOV_SCRIPT,
   parseCircleMatrixPackages,
   parseGhaMatrixPackages,
   runPackageCoverageCiCheck,
@@ -42,11 +46,11 @@ describe("findDedicatedJobsMissingCoverage", () => {
     const continueConfig = [
       "jobs:",
       "  api-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  ai-ci:",
       "    command: bun run test",
       "  rtk-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  ui-ci:",
       "    command: bun run test:ci",
       "  syncdb-ci:",
@@ -54,14 +58,14 @@ describe("findDedicatedJobsMissingCoverage", () => {
       "  comms-ci:",
       "    command: bun run test",
       "  mcp-server-ci:",
-      `    command: ${COVERAGE_COMMAND}`,
+      `    command: ${COVERAGE_COMMAND} ${NEW_FILE_LCOV_CIRCLE_COMMAND}`,
       "  admin-spa-ci:",
       "    command: bun run test:ci",
       "",
     ].join("\n");
     const ghaSources: Record<string, string> = {};
     for (const {ghaWorkflow} of DEDICATED_PACKAGE_CI_JOBS) {
-      ghaSources[ghaWorkflow] = COVERAGE_COMMAND;
+      ghaSources[ghaWorkflow] = `${COVERAGE_COMMAND}\n${NEW_FILE_LCOV_SCRIPT}`;
     }
     expect(findDedicatedJobsMissingCoverage({continueConfig, ghaSources})).toEqual([
       "circleci:admin-spa-ci",
@@ -70,6 +74,61 @@ describe("findDedicatedJobsMissingCoverage", () => {
       "circleci:syncdb-ci",
       "circleci:ui-ci",
     ]);
+  });
+});
+
+describe("findGhaLcovStepsMissingRepoRootCwd", () => {
+  it("flags Gate new files steps that inherit a package working-directory", () => {
+    const source = [
+      "defaults:",
+      "  run:",
+      "    working-directory: api",
+      "jobs:",
+      "  test:",
+      "    steps:",
+      "      - name: Gate new files from LCOV",
+      "        run: bash scripts/ci/check-new-file-coverage-lcov.sh api",
+      "",
+    ].join("\n");
+    expect(findGhaLcovStepsMissingRepoRootCwd({"api-ci.yml": source})).toEqual([
+      "gha:api-ci.yml:lcov-cwd",
+    ]);
+  });
+
+  it("accepts an explicit repo-root working-directory on the LCOV step", () => {
+    const source = [
+      "      - name: Gate new files from LCOV",
+      "        working-directory: .",
+      `        run: bash ${NEW_FILE_LCOV_SCRIPT} api`,
+      "",
+    ].join("\n");
+    expect(findGhaLcovStepsMissingRepoRootCwd({"api-ci.yml": source})).toEqual([]);
+  });
+});
+
+describe("findGhaCodecovUploadsMissingToken", () => {
+  it("flags upload-codecov steps without CODECOV_TOKEN", () => {
+    const source = [
+      "      - name: Upload coverage to Codecov",
+      "        uses: ./.github/actions/upload-codecov",
+      "        with:",
+      "          directory: api",
+      "          flag: api",
+      "",
+    ].join("\n");
+    expect(findGhaCodecovUploadsMissingToken({"api-ci.yml": source})).toEqual([
+      "gha:api-ci.yml:codecov-token",
+    ]);
+    const withToken = [
+      "      - name: Upload coverage to Codecov",
+      "        uses: ./.github/actions/upload-codecov",
+      "        with:",
+      "          directory: api",
+      "          flag: api",
+      "          token: ${{" + " secrets.CODECOV_TOKEN }}",
+      "",
+    ].join("\n");
+    expect(findGhaCodecovUploadsMissingToken({"api-ci.yml": withToken})).toEqual([]);
   });
 });
 

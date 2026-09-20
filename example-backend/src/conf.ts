@@ -103,6 +103,14 @@ Configuration.register("ADMIN_SPA_DIST_DIR", {
   type: "string",
 });
 
+Configuration.register("MIGRATIONS_DIR", {
+  description:
+    "On-disk directory of timestamped migration files. Required in compiled deploys " +
+    "(for example Cloud Run), where import.meta.url resolves to $bunfs.",
+  envVar: "MIGRATIONS_DIR",
+  type: "string",
+});
+
 Configuration.register("PR_SERVICE_URL", {
   defaultValue: "EXAMPLE-ue.a.run.app",
   description: "Cloud run service URL for PR environments",

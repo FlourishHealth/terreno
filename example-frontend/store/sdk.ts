@@ -156,6 +156,7 @@ export interface GetGptHistoriesArgs {
 }
 
 export const terrenoApi = openapi
+  .enhanceEndpoints({addTagTypes: ["gptHistories", "profile"]})
   .injectEndpoints({
     endpoints: (builder) => ({
       deleteGptHistoriesById: builder.mutation<void, {id: string}>({
@@ -278,6 +279,22 @@ export const terrenoApi = openapi
           url: "/gpt/histories",
         }),
       }),
+      postNotificationsDevNotify: builder.mutation<
+        {notificationId: string},
+        {body?: string; href?: string; kind?: string; title?: string} | undefined
+      >({
+        query: (body) => ({
+          body: body ?? {},
+          method: "POST",
+          url: "/notifications/dev/notify",
+        }),
+      }),
+      postNotificationsMarkAllRead: builder.mutation<{modified: number}, void>({
+        query: () => ({
+          method: "POST",
+          url: "/notifications/mark-all-read",
+        }),
+      }),
       setAdminUserPassword: builder.mutation<
         {data: {_id: string; message: string}},
         SetAdminUserPasswordRequest
@@ -321,6 +338,7 @@ export const {
   usePostAuthSendVerificationMutation,
   usePostAuthVerifyEmailMutation,
   usePostCommsDevTestPushMutation,
+  usePostNotificationsDevNotifyMutation,
   useGetAiModelsQuery,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;

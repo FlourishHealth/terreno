@@ -1,0 +1,37 @@
+import {DemoConfiguration} from "@config";
+import {NotificationBell} from "@terreno/ui";
+import type {ReactElement} from "react";
+
+import {NotificationCenterDemo} from "../stories/NotificationCenter.stories";
+
+const renderNotificationCenterDemo = (): ReactElement => <NotificationCenterDemo />;
+
+export const NotificationCenterConfiguration: DemoConfiguration = {
+  additionalDocumentation: [],
+  a11yNotes: [],
+  category: "Pattern",
+  component: NotificationBell,
+  demo: renderNotificationCenterDemo,
+  demoOptions: {},
+  description: "Presentational notification bell, inbox list, and channel preferences.",
+  interfaceName: "NotificationBellProps",
+  name: "Notification Center",
+  props: {},
+  related: ["NotificationBell", "NotificationInbox", "NotificationPreferences"],
+  status: {
+    android: "ready",
+    documentation: "ready",
+    figma: "notSupported",
+    ios: "ready",
+    web: "ready",
+  },
+  stories: {},
+  usage: {
+    do: [
+      "Pass fixture or syncdb-backed items into NotificationInbox from the app layer.",
+      "Wrap the inbox in Modal or a sheet in the host screen.",
+      "Use renderBadge and renderIcon when the product has custom notification visuals.",
+    ],
+    doNot: ["Import @terreno/syncdb from @terreno/ui components."],
+  },
+};

@@ -11,11 +11,13 @@ Understanding-oriented documentation: concepts, architecture, and context.
 ## Contents
 
 - [Local-first data](local-first-data.md) — Why the local store is the UI source of truth
+- [Planning plugins](planning-plugins.md) — How the lifecycle and scan plugins divide discovery from delivery
 - [Loop engineering](loop-engineering.md) — Fresh-invocation lifecycle, state, evidence, and orchestration boundaries
 - [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and plan comments for Pick/Roast
 - [Install agent skills](../how-to/install-agent-skills.md) — `npx skills add FlourishHealth/terreno`
 - [AI-powered workflows](ai-workflows.md) — Autonomous documentation, testing, and maintenance workflows
 - [Authentication architecture](authentication.md) — Better Auth, JWT, and optional MCP service tokens
+- [Organization tenancy](organizations.md) — Optional Membership-backed tenancy, context, and isolation boundaries
 - [Configuration system](configuration-system.md) — Runtime configuration with database persistence
 - [Dependency management](dependency-management.md) — Catalog pins, exercise tests, fingerprint freeze
 - [Modular API design](modular-api-design.md) — 🚧 Why TerrenoApp replaces setupServer

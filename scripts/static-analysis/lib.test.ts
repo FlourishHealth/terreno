@@ -5,7 +5,9 @@ import {
   fingerprintKnipReport,
   groupFilesByBiomeDirectory,
   isIsolatedOrRepoScriptTestFile,
+  type KnipReport,
   parseChangedFileOutput,
+  parseKnipReportStdout,
   selectAnalyzableFiles,
   unusedFilePathsFromKnipReport,
 } from "./lib";
@@ -39,6 +41,22 @@ describe("static-analysis helpers", (): void => {
       {cwd: "/repo/api", files: ["src/a.ts"]},
       {cwd: "/repo/scripts", files: ["check.ts"]},
     ]);
+  });
+
+  test("parses Knip JSON even when stdout has a leading warning", (): void => {
+    const report = parseKnipReportStdout(
+      'warn cache locked\n{"issues":[{"file":"src/a.ts","exports":[{"name":"unused"}]}]}'
+    );
+
+    assert.deepEqual(report.issues, [{exports: [{name: "unused"}], file: "src/a.ts"}]);
+  });
+
+  test("treats a Knip object without issues as an empty report", (): void => {
+    assert.deepEqual(parseKnipReportStdout("{}").issues, []);
+    assert.deepEqual(
+      fingerprintKnipReport({mode: "default", report: {issues: undefined} as KnipReport}),
+      []
+    );
   });
 
   test("fingerprints Knip issues without unstable source positions", (): void => {

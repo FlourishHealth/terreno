@@ -15,6 +15,7 @@ export const SCAN_ROOTS = [
   "example-backend/src",
   "example-frontend",
   "feature-flags/src",
+  "jobs/src",
   "mcp-server/src",
   "rtk/src",
   "test/src",
@@ -33,7 +34,7 @@ const IGNORED_DIR_NAMES = new Set([
 ]);
 
 /** Package name → absolute path to the package public entry index file. */
-const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
+export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/admin-backend": resolve(REPO_ROOT, "admin-backend/src/index.ts"),
   "@terreno/admin-frontend": resolve(REPO_ROOT, "admin-frontend/src/index.tsx"),
   "@terreno/admin-spa": resolve(REPO_ROOT, "admin-spa/src/index.ts"),
@@ -42,6 +43,7 @@ const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/api-health": resolve(REPO_ROOT, "api-health/src/index.ts"),
   "@terreno/comms": resolve(REPO_ROOT, "comms/src/index.ts"),
   "@terreno/feature-flags": resolve(REPO_ROOT, "feature-flags/src/index.ts"),
+  "@terreno/jobs": resolve(REPO_ROOT, "jobs/src/index.ts"),
   "@terreno/mcp": resolve(REPO_ROOT, "mcp-server/src/index.ts"),
   "@terreno/rtk": resolve(REPO_ROOT, "rtk/src/index.ts"),
   "@terreno/test": resolve(REPO_ROOT, "test/src/index.ts"),

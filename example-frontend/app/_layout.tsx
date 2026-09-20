@@ -19,6 +19,7 @@ import {
 } from "@terreno/rtk";
 import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
+  AnnouncementNavigator,
   Banner,
   Box,
   Button,
@@ -309,6 +310,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="verifyEmail" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 
@@ -368,10 +370,30 @@ const RootLayoutNav = (): React.ReactElement => {
               />
             )}
           />
+          {stack}
         </SyncDbProvider>
-      ) : null}
-      {stack}
+      ) : (
+        stack
+      )}
     </SyncConflictsProvider>
+  );
+
+  const frequencyUserId = profile?.id ?? profile?._id ?? userId;
+
+  // skipFirstLaunch: false so seeded interrupts show on first login; default max 1/session
+  // is fine because seed archives legacy all-audience modals and targets staff vs patient.
+  const announcementWrapped = userId ? (
+    <AnnouncementNavigator
+      api={terrenoApi}
+      frequency={{
+        skipFirstLaunch: false,
+        userId: frequencyUserId,
+      }}
+    >
+      <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+    </AnnouncementNavigator>
+  ) : (
+    <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
   );
 
   if (userId && !profile?.admin) {
@@ -380,11 +402,7 @@ const RootLayoutNav = (): React.ReactElement => {
       profileLoaded: !!profile,
       userId,
     });
-    return (
-      <ConsentNavigator api={terrenoApi}>
-        <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
-      </ConsentNavigator>
-    );
+    return <ConsentNavigator api={terrenoApi}>{announcementWrapped}</ConsentNavigator>;
   }
 
   console.debug("[RootLayout] Skipping ConsentNavigator", {
@@ -392,7 +410,7 @@ const RootLayoutNav = (): React.ReactElement => {
     profileLoaded: !!profile,
     userId: userId ?? "none",
   });
-  return <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>;
+  return announcementWrapped;
 };
 
 export default RootLayout;

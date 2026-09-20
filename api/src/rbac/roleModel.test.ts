@@ -1,9 +1,15 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import mongoose from "mongoose";
 
 import {setupDb} from "../tests";
 import {createRbacAuditModel} from "./auditModel";
-import {createRbacRoleModel, expandRolePermissions, terrenoDefaultRoles} from "./roleModel";
+import {
+  createRbacRoleModel,
+  expandRolePermissions,
+  organizationOperatorRole,
+  terrenoDefaultRoles,
+} from "./roleModel";
 import {READ_ONLY_ROLE_PERMISSIONS, terrenoStatements} from "./statements";
 
 describe("rbac role model", () => {
@@ -11,6 +17,15 @@ describe("rbac role model", () => {
     const names = terrenoDefaultRoles.map((role) => role.name);
 
     expect(names).toEqual(["superadmin", "admin", "auditor", "member"]);
+
+    const admin = terrenoDefaultRoles.find((role) => role.name === "admin");
+    assert.isObject(admin?.permissions);
+    if (!admin?.permissions || admin.permissions === "*" || "readOnly" in admin.permissions) {
+      assert.fail("Expected concrete admin permissions");
+    }
+    assert.deepEqual(admin.permissions.adminAnnouncementAcknowledgement, ["read"]);
+    assert.deepEqual(admin.permissions.adminAnnouncementClickEvent, ["read"]);
+    assert.deepEqual(admin.permissions.adminAnnouncementImpression, ["read"]);
   });
 
   it("seeds default roles with expanded permissions", async () => {
@@ -25,10 +40,28 @@ describe("rbac role model", () => {
     expect(superadmin.permissions.featureFlag).toContain("list");
     expect(superadmin.permissions.consentForm).toContain("list");
     expect(superadmin.permissions.consentResponse).toEqual(["list", "read"]);
+    expect(superadmin.permissions.organization).toContain("list");
+
+    expect(await RbacRole.findOne({name: "operator"})).toBeNull();
 
     const auditor = await RbacRole.findExactlyOne({name: "auditor"});
     expect(auditor.permissions.user).toEqual(["list", "read"]);
     expect(auditor.permissions.rbac).toEqual(["read"]);
+  });
+
+  it("seeds the locked operator role when passed as an extra role", async () => {
+    await setupDb();
+    const RbacRole = createRbacRoleModel(mongoose.connection);
+    await RbacRole.seedDefaults({
+      extraRoles: [organizationOperatorRole],
+      statements: terrenoStatements,
+    });
+
+    const operator = await RbacRole.findExactlyOne({name: "operator"});
+    expect(operator.isLocked).toBe(true);
+    expect(operator.permissions.organization).toEqual([...terrenoStatements.organization]);
+    expect(operator.permissions.admin).toEqual(["access"]);
+    expect(operator.permissions.user).toEqual(["list", "read", "update"]);
   });
 
   it("upserts default roles without duplicating", async () => {

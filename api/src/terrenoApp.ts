@@ -1,8 +1,9 @@
 import {EventEmitter} from "node:events";
-import {createServer} from "node:http";
+import {createServer, type Server as HttpServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import cors from "cors";
 import express from "express";
+import mongoose from "mongoose";
 import qs from "qs";
 import type {AdminChangeEvent, TerrenoAppAdminEvent} from "./adminTypes";
 import type {ModelRouterRegistration} from "./api";
@@ -18,6 +19,7 @@ import {
   type ConfigurationModelLike,
 } from "./configurationApp";
 import {
+  APIError,
   apiErrorMiddleware,
   apiFallthroughErrorMiddleware,
   apiUnauthorizedMiddleware,
@@ -32,8 +34,10 @@ import {
   resolveMcpServiceTokensOption,
 } from "./mcp/serviceTokens";
 import {jsonResponseRequestIdMiddleware} from "./middleware";
+import {runStartupMigrations, type StartupMigrationsOption} from "./migrations/runner";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {OrgsApp, type OrgsAppOptions} from "./orgs/orgsApp";
 import {applyRateLimitTrustProxy} from "./rateLimit/applyTrustProxy";
 import {createRateLimitStore} from "./rateLimit/createStore";
 import {createRateLimitMiddleware} from "./rateLimit/middleware";
@@ -87,6 +91,12 @@ export interface TerrenoAppOptions {
   githubAuth?: GitHubAuthOptions;
   /** Skip calling app.listen() in start() method (useful for testing) */
   skipListen?: boolean;
+  /**
+   * Already-listening HTTP server. `start()` attaches the Express app to it
+   * instead of creating and binding a new server, so Cloud Run can see PORT
+   * before MongoDB connect and plugin registration finish.
+   */
+  httpServer?: HttpServer;
   /** Sentry configuration options */
   sentryOptions?: Sentry.BunOptions;
   /** Maximum number of array items in query parameters (default: 200) */
@@ -104,6 +114,13 @@ export interface TerrenoAppOptions {
    * RBAC access controller injected into model routers and `/auth/me` enrichment.
    */
   accessControl?: import("./rbac/types").AnyTerrenoAccess;
+  /**
+   * Multi-tenant organizations. Default off so existing single-tenant apps stay unchanged.
+   * New apps from `terreno_bootstrap_app` pass `true`. Requires `accessControl` from
+   * `createAccess({ organizations: true })`. Pass `{ settingsSchema }` to type and
+   * validate `Organization.settings`.
+   */
+  organizations?: boolean | Omit<OrgsAppOptions, "access" | "userModel">;
   /**
    * Runs after CORS and before the `addMiddleware` chain and JSON body parsing.
    * Use to attach early middleware via `app.use(...)` before JSON parsing.
@@ -125,6 +142,12 @@ export interface TerrenoAppOptions {
    * mounts `/mcp/service-tokens` and accepts `Authorization: Bearer mcp_…` on `/mcp`.
    */
   mcpServiceTokens?: McpServiceTokensAppOption;
+  /**
+   * Versioned MongoDB migrations. `runOnStart` defaults to false. When true, wet `up`
+   * runs after listen and `ensureSyncIndexes`. Production still requires
+   * `ALLOW_MIGRATIONS=true`.
+   */
+  migrations?: StartupMigrationsOption;
 }
 
 /**
@@ -195,6 +218,7 @@ export class TerrenoApp {
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
   private configurationApp: ConfigurationApp | null = null;
   private readonly adminEvents = new EventEmitter();
+  private bootPromise: Promise<void> = Promise.resolve();
 
   /**
    * Create a new TerrenoApp builder.
@@ -546,6 +570,31 @@ export class TerrenoApp {
    * ```
    */
   start(): express.Application {
+    if (this.options.organizations) {
+      if (!this.options.accessControl) {
+        throw new APIError({
+          status: 500,
+          title:
+            "TerrenoApp organizations requires accessControl from createAccess({ organizations: true })",
+        });
+      }
+      const hasOrgsPlugin = this.registrations.some(
+        (registration) =>
+          !this.isModelRouterRegistration(registration) && registration instanceof OrgsApp
+      );
+      if (!hasOrgsPlugin) {
+        const orgConfig =
+          typeof this.options.organizations === "object" ? this.options.organizations : {};
+        this.register(
+          new OrgsApp({
+            ...orgConfig,
+            access: this.options.accessControl,
+            userModel: this.options.userModel,
+          })
+        );
+      }
+    }
+
     // If realtime option is set, auto-register the RealtimeApp plugin
     if (this.options.realtime) {
       const hasRealtimePlugin = this.registrations.some(
@@ -568,41 +617,55 @@ export class TerrenoApp {
     }
 
     const app = this.build();
-
+    this.bootPromise = this.completeStart(app);
     if (!this.options.skipListen) {
-      const port = process.env.PORT || "9000";
-      // Await sync index creation before listening: the per-model snapshot indexes (a
-      // failed createIndex degrades the snapshot/catch-up query to a table scan) and the
-      // bookkeeping-model indexes enqueued by SyncApp (the unique mutationId index is what
-      // makes duplicate mutation deliveries idempotent, and the unique stream index is what
-      // keeps the counter upsert race from minting duplicate seqs). Either failure is a
-      // loud startup error rather than a silent correctness cliff. No-op when no sync
-      // models or SyncApp are registered. Detached because start() returns synchronously.
-      void (async (): Promise<void> => {
-        try {
-          await ensureSyncIndexes();
-          const server = createServer(app);
-
-          // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
-          for (const reg of this.registrations) {
-            if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
-              reg.onServerCreated(server);
-            }
-          }
-
-          server.listen(port, () => {
-            logger.info(`Listening on port ${port}`);
-          });
-        } catch (error) {
-          const stack = error instanceof Error ? error.stack : String(error);
-          logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
-          process.exit(1);
-        }
-      })();
+      void this.bootPromise.catch((error: unknown) => {
+        const stack = error instanceof Error ? error.stack : String(error);
+        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
+        process.exit(1);
+      });
     }
-
     return app;
   }
+
+  /**
+   * Resolves after startup migrations (and listen, unless `skipListen`).
+   * Tests with `skipListen` should await this instead of assuming `start()` is idle.
+   */
+  whenReady(): Promise<void> {
+    return this.bootPromise;
+  }
+
+  private completeStart = async (app: express.Application): Promise<void> => {
+    if (!this.options.skipListen) {
+      const port = process.env.PORT || "9000";
+      const existingServer = this.options.httpServer;
+      const server = existingServer ?? createServer(app);
+      if (existingServer) {
+        existingServer.removeAllListeners("request");
+        existingServer.on("request", app);
+      }
+      for (const reg of this.registrations) {
+        if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+          reg.onServerCreated(server);
+        }
+      }
+      // Bind PORT before index/migration work so Cloud Run's startup probe can
+      // succeed while `ensureSyncIndexes` still runs. whenReady() still waits.
+      if (!existingServer) {
+        server.listen(port, () => {
+          logger.info(`Listening on port ${port}`);
+        });
+      } else {
+        logger.info(`Listening on port ${port}`);
+      }
+      await ensureSyncIndexes();
+    }
+    await runStartupMigrations({
+      migrations: this.options.migrations,
+      mongoose,
+    });
+  };
 
   private isModelRouterRegistration(
     registration: ModelRouterRegistration | TerrenoPlugin

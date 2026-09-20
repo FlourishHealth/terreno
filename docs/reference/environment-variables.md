@@ -69,6 +69,8 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 | `FRONTEND_URL` | example-backend CORS and `authOptions.publicAppUrl` | ❌ | `http://localhost:8082` | No | server |
 | `API_URL` | microservice split | ❌ | — | No | server |
 | `DISABLE_LOG_ALL_REQUESTS` | `@terreno/api` logging | ❌ | — | No | server |
+| `ALLOW_MIGRATIONS` | `@terreno/api` `terreno-migrate` | ❌ | unset | No | server |
+| `MIGRATIONS_DIR` | example-backend Dockerfile / `resolveMigrationDir` | ❌ | `<cwd>/migrations` when `dir` is `$bunfs` | No | server |
 
 ## Client / build-time
 
@@ -237,6 +239,24 @@ secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
 | `TERRENO_MCP_EVAL` | MCP eval | ❌ | — | No | tooling |
 | `TERRENO_PROJECT_ROOT` | MCP local | ❌ | — | No | tooling |
 
+## Background jobs
+
+| Variable | Read by | Required | Default | Secret | Scope |
+|----------|---------|----------|---------|--------|-------|
+| `JOBS_START_WORKER` | example-backend (`jobsStartWorker.ts`) | ❌ | `true` (unset) | No | server |
+
+`@terreno/jobs` itself does **not** read environment variables — pass `JobsApp` and runner
+options explicitly. `JOBS_START_WORKER` only gates whether the example API process calls
+`jobsApp.startWorker()` after listen. Set `false` when running the standalone
+`bun run jobs:worker` process against the same MongoDB.
+
+`JOB_TRACE_LOGS` is an optional app convention for verbose worker logging (see
+[API logging & tracing](api.md#logging--tracing)); not read by the jobs package.
+
+Legacy names `GCP_TASKS_NOTIFICATIONS_QUEUE` and `GCP_TASK_PROCESSOR_QUEUE` appear in
+example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
+`GcpCloudTasksRunner` constructor config instead. See [Jobs reference](jobs.md).
+
 ## Example backend (app-specific)
 
 | Variable | Read by | Required | Default | Secret | Scope |
@@ -244,6 +264,14 @@ secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
 | `OTEL_SERVICE_NAME` | OpenTelemetry (example-backend) | ❌ | `example-backend` | No | server |
 | `PR_NUMBER` | PR preview deploy | ❌ | — | No | server |
 | `PR_SERVICE_URL` | PR preview deploy | ❌ | — | No | server |
+| `JOBS_RUNNER` | example-backend | ❌ | `mongo` | No | server |
+| `JOBS_START_WORKER` | example-backend | ❌ | `true` with Mongo | No | server |
+| `GCP_TASKS_PROJECT` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_LOCATION` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_QUEUE` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_PUBLIC_URL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_OIDC_AUDIENCE` | example-backend Cloud Tasks runner | ❌ | `{publicUrl}/jobs/execute`; deployed Cloud Run uses the canonical tasks-service root URL so tagged PR callbacks pass platform IAM | No | server |
+| `GCP_TASKS_SERVICE_ACCOUNT_EMAIL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
 | `DEFAULT_PAGE_SIZE` | Configuration model | ❌ | `20` | No | server |
 | `CRON_SECRET_KEY` | tests | ❌ | — | Yes | tooling |
 | `WIDGET_CLIENT_SECRET` | widgets | ❌ | — | Yes | server |
@@ -278,3 +306,4 @@ secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
 - [Build for web](../how-to/build-for-web.md)
 - [Configure Better Auth](../how-to/configure-better-auth.md)
 - [Rate limiting](../how-to/rate-limiting.md)
+- [Durable background jobs](../how-to/background-jobs.md)

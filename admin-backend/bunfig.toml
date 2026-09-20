@@ -4,8 +4,9 @@ root = "./src"
 coveragePathIgnorePatterns = [
   "**/*.test.ts",
   "**/tests/**",
-  "../api/**",
-  "../test/**",
+  # Sibling workspace packages are compiled into `dist/` for this package's CI run;
+  # they carry their own coverage gates.
+  "../**",
   "dist/**",
   "**/node_modules/**",
 ]

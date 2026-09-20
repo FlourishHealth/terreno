@@ -31,8 +31,9 @@ descriptions):
 **Path:** Settings → Branches → Branch protection rules → `master`
 
 - Require a pull request before merging
-- Require status checks to pass (include Repository policies, package CI, and
-  Rulesync Check jobs relevant to the change)
+- Require status checks to pass (include CircleCI `repo-policies`, package CI,
+  and Rulesync Check jobs relevant to the change — see the check name map in
+  [how-to/circleci.md](../how-to/circleci.md))
 - Require branches to be up to date before merging
 - Do not allow bypassing the above settings
 
@@ -50,9 +51,9 @@ as GitHub App checks; they are not CircleCI jobs.
 
 **Path:** Settings → Environments
 
-Same-repo PR jobs in `cd.yml` (`Terraform preview`, `Backend deploy (preview)`)
-skip when `head.repo.full_name != github.repository`. Also restrict the
-`gcp-cd-preview` environment (create it on first deploy if missing) with a
+Same-repo PR jobs in `cd.yml` (`Terraform preview`, `Tasks deploy (preview)`,
+`Backend deploy (preview)`) skip when `head.repo.full_name != github.repository`.
+Also restrict the `gcp-cd-preview` environment (create it on first deploy if missing) with a
 **deployment branch policy** or **required reviewers** so a fork that edits
 `cd.yml` cannot mint a prod WIF token.
 

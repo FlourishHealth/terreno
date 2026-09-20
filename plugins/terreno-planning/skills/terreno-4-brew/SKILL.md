@@ -1,6 +1,6 @@
 ---
 name: terreno-4-brew
-description: Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit.
+description: "Move a Roast-verified implementation into GitHub review: final checks, branch hygiene, commit/push, PR setup, evidence attachment, confirm product CI on every discovered host (GitHub Actions, CircleCI, Buildkite, and similar), and wait in-process for async review bots (Bugbot, CodeQL) before exit."
 ---
 
 # Brew — submit
@@ -11,6 +11,7 @@ records bot outcomes but does not implement fixes.
 
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 [`documentation contract`](../../references/documentation-contract.md),
+[`PR deployments`](../../references/pr-deployments.md),
 [`product CI`](../../references/product-ci.md),
 [`async review bots`](../../references/async-review-bots.md),
 [`independent review procedure`](../../references/independent-review.md), and
@@ -54,11 +55,17 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
    using repository conflict guidance and rerunning affected checks. A conflict requiring
    a design/behavior choice is `BLOCKED`.
 8. **Create/update PR.** Apply the GitHub attention contract and any stricter repository
-   template. The visible body uses only `Why`, `What changed`, and `Verification`, stays
-   under 250 words, names untested risk explicitly, and puts optional detail plus the
-   stage-result YAML in one expandable Details block. Preserve human-edited title/body;
-   make only accurate minimal edits. Attach only decisive UI/runtime artifacts without
-   sensitive data.
+   template. On create, set the title to `[ticket] Short feature title` (Linear
+   `TEAM-n` or GitHub `#n`; feature only, no `feat:` / `IP Approved` / `Task list`).
+   Initialize `Why` from the IP's original justification and `What changed` from a
+   brief overview of the approved IP and intended outcomes. Keep both stable unless
+   scope or facts change. Always include reproducible testing instructions in
+   `Verification`; update those instructions, evidence, and remaining risks as testing
+   changes without rewriting the body around the latest turn. The visible body uses
+   only `Why`, `What changed`, and `Verification`, stays under 250 words, and puts
+   optional detail plus the stage-result YAML in one expandable Details block.
+   Preserve human-edited title/body; make only accurate minimal edits. Attach only
+   decisive UI/runtime artifacts without sensitive data.
 9. **Do not announce.** Do not post a PR comment for creation, readiness, check results,
    or evidence already present in the body. A top-level comment is allowed only for one
    blocking human action that cannot live in an existing review thread.
@@ -75,7 +82,8 @@ must follow the [`GitHub attention contract`](../../references/github-attention-
     - review-bot timeout → `PENDING` with `next: taste` and `wait`
     - required host untriggered after grace → `FAIL` with `next: brew`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
-    Collapse per the lifecycle contract. Brew itself never executes Taste.
+    Collapse per the lifecycle contract. Close the chat with PR deployment URLs when
+    the PR has them. Brew itself never executes Taste.
 
 ## Supporting skills
 

@@ -180,6 +180,10 @@ export const validateStageContent = ({
     errors.push(`${prefix}: must load the shared lifecycle contract`);
   }
 
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${prefix}: must load the PR deployments chat closer`);
+  }
+
   if (!content.includes("../../references/documentation-contract.md")) {
     errors.push(`${prefix}: must load the shared documentation contract`);
   }
@@ -275,6 +279,18 @@ export const validateStageContent = ({
     if (!content.includes("../../references/github-attention-contract.md")) {
       errors.push(`${prefix}: Brew must load the GitHub attention contract`);
     }
+    if (!content.includes("[ticket] Short feature title")) {
+      errors.push(`${prefix}: Brew must set PR titles to [ticket] Short feature title`);
+    }
+    if (!content.includes("IP's original justification")) {
+      errors.push(`${prefix}: Brew must preserve the IP's original justification in the PR body`);
+    }
+    if (!content.includes("reproducible testing instructions")) {
+      errors.push(`${prefix}: Brew must always include reproducible testing instructions`);
+    }
+    if (!content.includes("without rewriting the body around the latest turn")) {
+      errors.push(`${prefix}: Brew must keep the PR overview stable across testing updates`);
+    }
     if (!content.includes("../../references/async-review-bots.md")) {
       errors.push(`${prefix}: Brew must load the async review-bot wait procedure`);
     }
@@ -328,14 +344,22 @@ export const validateStageContent = ({
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
     }
-    if (!content.includes("If step 9 did not push")) {
+    if (!content.includes("If step 10 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
       errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
     }
     if (!content.includes("Before any push, in this order")) {
-      errors.push(`${prefix}: Taste must order before-push as pull, then local gate, then watch`);
+      errors.push(
+        `${prefix}: Taste must order before-push as pull, then re-verify last-run failed tests, then local gate, then watch`
+      );
+    }
+    if (!content.includes("last-run failed tests")) {
+      errors.push(`${prefix}: Taste must record last-run failed tests from the CI snapshot`);
+    }
+    if (!content.includes("re-verify last-run failed tests")) {
+      errors.push(`${prefix}: Taste must re-verify last-run failed tests locally before push`);
     }
     if (!content.includes("fresh subagent")) {
       errors.push(`${prefix}: Taste must spawn a fresh subagent for the local pre-push gate`);
@@ -447,8 +471,35 @@ export const validateGithubAttentionContract = (content: string): string[] => {
   if (!content.includes("Default to silence")) {
     errors.push("GitHub attention contract must default PR comments to silence");
   }
+  if (!content.includes("preview/demo URLs")) {
+    errors.push("GitHub attention contract must keep preview URLs out of PR comments");
+  }
   if (!content.includes("<details>")) {
     errors.push("GitHub attention contract must put optional detail behind disclosure");
+  }
+  if (!content.includes("[FH-1632]")) {
+    errors.push("GitHub attention contract must show Linear ticket title format [FH-1632]");
+  }
+  if (!content.includes("[#412]")) {
+    errors.push("GitHub attention contract must show GitHub issue title format [#412]");
+  }
+  if (!content.includes("IP Approved")) {
+    errors.push("GitHub attention contract must forbid lifecycle labels such as IP Approved");
+  }
+  if (!content.includes("feat:")) {
+    errors.push("GitHub attention contract must forbid conventional-commit prefixes such as feat:");
+  }
+  if (!content.includes("IP's initial justification")) {
+    errors.push("GitHub attention contract must preserve the IP's initial justification");
+  }
+  if (!content.includes("overview of the approved IP")) {
+    errors.push("GitHub attention contract must include an overview of the approved IP");
+  }
+  if (!content.includes("Always include executable testing instructions")) {
+    errors.push("GitHub attention contract must always include executable testing instructions");
+  }
+  if (!content.includes("Do not regenerate the rest of the body from the latest turn")) {
+    errors.push("GitHub attention contract must keep the PR body stable across turns");
   }
 
   return errors;
@@ -485,6 +536,12 @@ export const validateProductCiContract = (content: string): string[] => {
   if (!content.includes("counts as terminal `skipped`")) {
     errors.push("product-CI procedure must terminate documented non-applicable hosts");
   }
+  if (!content.includes("## Last-run failed tests")) {
+    errors.push("product-CI procedure must record last-run failed tests");
+  }
+  if (!content.includes("re-verifies them locally before any push")) {
+    errors.push("product-CI procedure must re-verify last-run failed tests before push");
+  }
   return errors;
 };
 
@@ -508,6 +565,26 @@ export const validateAsyncReviewBotsContract = (content: string): string[] => {
   return errors;
 };
 
+export const validatePrDeploymentsContract = (content: string): string[] => {
+  const errors: string[] = [];
+  for (const phrase of [
+    "last visible section",
+    "environmentUrl",
+    "Do not wait for",
+    "Do not post the links as a PR comment",
+    'Do not write "no deployments."',
+    "## Demo",
+  ]) {
+    if (!content.includes(phrase)) {
+      errors.push(`PR deployments contract is missing required phrase: ${phrase}`);
+    }
+  }
+  if (!content.includes("gh api graphql") && !content.includes('gh api "')) {
+    errors.push("PR deployments contract must show how to list GitHub Deployments");
+  }
+  return errors;
+};
+
 export const validateOuterLoopContent = ({
   content,
   directory,
@@ -518,6 +595,9 @@ export const validateOuterLoopContent = ({
   const errors: string[] = [];
   if (content.includes("disable-model-invocation: true")) {
     errors.push(`${directory}: outer-loop skills must allow model invocation`);
+  }
+  if (!content.includes("../../references/pr-deployments.md")) {
+    errors.push(`${directory}: outer loop must load the PR deployments chat closer`);
   }
   if (directory === "terreno-pick-roast-loop") {
     for (const marker of [
@@ -595,8 +675,11 @@ export const validateClaudePluginHost = ({
   if (claudeManifest.skills !== "./skills/") {
     errors.push("Claude plugin skills path must be ./skills/");
   }
-  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(["./agents/"])) {
-    errors.push("Claude plugin agents path must be ./agents/");
+  const expectedClaudeAgents = [...PLUGIN_AGENT_NAMES]
+    .sort()
+    .map((agentName) => `./agents/${agentName}.md`);
+  if (JSON.stringify(claudeManifest.agents) !== JSON.stringify(expectedClaudeAgents)) {
+    errors.push(`Claude plugin agents must be exactly ${expectedClaudeAgents.join(", ")}`);
   }
 
   if (!claudeMarketplace.name || claudeMarketplace.name === claudeManifest.name) {
@@ -878,6 +961,9 @@ export const validateLifecyclePlugin = ({
   );
   errors.push(...validateAsyncReviewBotsContract(asyncReviewBots));
 
+  const prDeployments = readFileSync(join(pluginDirectory, "references/pr-deployments.md"), "utf8");
+  errors.push(...validatePrDeploymentsContract(prDeployments));
+
   const pluginReadme = readFileSync(join(rootDirectory, "plugins/README.md"), "utf8");
   if (!pluginReadme.includes("documentation-contract.md")) {
     errors.push("plugins/README.md must document the documentation contract");
@@ -994,6 +1080,9 @@ export const validateLifecyclePlugin = ({
   }
   if (!lifecycleContract.includes("pick-roast-loop.md")) {
     errors.push("lifecycle contract must name the pick-roast inner loop");
+  }
+  if (!lifecycleContract.includes("last visible section")) {
+    errors.push("lifecycle contract must close wait/done chats with PR demo URLs");
   }
 
   const loopEngineering = readFileSync(

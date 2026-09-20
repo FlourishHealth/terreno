@@ -259,7 +259,7 @@ describe("generateSyncDbSdk", () => {
     }
   });
 
-  it("rejects collection names that are not TypeScript identifiers", async () => {
+  it("rejects unsafe sync collection names", async () => {
     const spec = await loadSpec(fixturePath);
     const discovered = discoverCollections({spec});
     const first = discovered[0];
@@ -275,7 +275,7 @@ describe("generateSyncDbSdk", () => {
           },
         ],
       })
-    ).toThrow(/not a TypeScript identifier/);
+    ).toThrow(/not a valid sync collection name/);
   });
 
   it("rejects invalid retries overrides", async () => {

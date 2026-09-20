@@ -14,6 +14,7 @@ requirement → verification method → evidence → PASS / FAIL / BLOCKED
 
 Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
 [`documentation contract`](references/documentation-contract.md),
+[`PR deployments`](references/pr-deployments.md),
 [`pick-roast loop`](references/pick-roast-loop.md), and
 [`subagent briefing`](references/subagent-briefing.md).
 

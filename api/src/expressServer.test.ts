@@ -904,8 +904,8 @@ describe("expressServer", () => {
           skipListen: false,
           userModel: typedUserModel,
         }).start();
-        // start() defers listen behind an awaited ensureSyncIndexes(), so the
-        // exit-on-listen-error path settles asynchronously.
+        // start() binds listen first, then awaits ensureSyncIndexes(), so the
+        // exit-on-listen-error path still settles asynchronously if listen throws.
         const deadline = Date.now() + 2_000;
         while (exit.mock.calls.length === 0 && Date.now() < deadline) {
           await new Promise((resolve) => setTimeout(resolve, 5));
@@ -971,6 +971,54 @@ describe("expressServer", () => {
 
       expect(app).toBeDefined();
       await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    it("attaches the Express app to an already-listening httpServer", async () => {
+      const http = await import("node:http");
+      const holder = http.createServer((_req, res) => {
+        res.writeHead(503);
+        res.end("starting");
+      });
+      await new Promise<void>((resolve) => {
+        holder.listen(0, "127.0.0.1", () => {
+          resolve();
+        });
+      });
+      const address = holder.address();
+      const port = typeof address === "object" && address ? address.port : 0;
+      try {
+        new TerrenoApp({
+          configureApp: (app) => {
+            app.get("/ping", (_req, res) => {
+              res.json({ok: true});
+            });
+          },
+          httpServer: holder,
+          skipListen: false,
+          userModel: typedUserModel,
+        }).start();
+        const deadline = Date.now() + 2_000;
+        let status = 0;
+        while (Date.now() < deadline) {
+          const response = await fetch(`http://127.0.0.1:${port}/ping`);
+          status = response.status;
+          if (status === 200) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        expect(status).toBe(200);
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          holder.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        });
+      }
     });
   });
 
