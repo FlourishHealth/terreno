@@ -1,4 +1,4 @@
-import {appendFileSync, mkdirSync} from "node:fs";
+import {appendFileSync, existsSync, mkdirSync, statSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
 import express from "express";
 import {DateTime} from "luxon";
@@ -8,6 +8,7 @@ const MAX_LEVEL_LENGTH = 32;
 const MAX_MESSAGE_LENGTH = 8000;
 const MAX_STACK_LENGTH = 16_000;
 const BROWSER_LOG_BODY_LIMIT = "256kb";
+const MAX_BROWSER_LOG_FILE_BYTES = 5 * 1024 * 1024;
 
 const shouldEnableBrowserLogs = (): boolean => {
   if (process.env.NODE_ENV === "production") {
@@ -29,6 +30,14 @@ interface BrowserLogPayload {
   timestamp?: string;
 }
 
+const isLoopbackAddress = (address: string | undefined): boolean => {
+  return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+};
+
+const isBrowserLogRequestAllowed = (req: express.Request): boolean => {
+  return Boolean(req.user) || isLoopbackAddress(req.socket.remoteAddress);
+};
+
 /**
  * Dev-only ingestion for the Terreno MCP `read_logs` tool: POST batches of client
  * console / global error lines as JSONL under `.terreno/logs/browser.log`.
@@ -39,6 +48,12 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
   }
 
   app.post("/__terreno/browser-logs", express.json({limit: BROWSER_LOG_BODY_LIMIT}), (req, res) => {
+    if (!isBrowserLogRequestAllowed(req)) {
+      res
+        .status(403)
+        .json({error: "Browser log ingestion requires a local or authenticated client"});
+      return;
+    }
     const body = req.body as {entries?: unknown} | undefined;
     if (!Array.isArray(body?.entries) || body.entries.length === 0) {
       res.status(400).json({error: "Expected { entries: [...] }"});
@@ -75,7 +90,13 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
     }
 
     if (lines.length > 0) {
-      appendFileSync(path, `${lines.join("\n")}\n`, {encoding: "utf-8", mode: 0o600});
+      const payload = `${lines.join("\n")}\n`;
+      const currentSize = existsSync(path) ? statSync(path).size : 0;
+      if (currentSize + Buffer.byteLength(payload) > MAX_BROWSER_LOG_FILE_BYTES) {
+        writeFileSync(path, payload, {encoding: "utf-8", mode: 0o600});
+      } else {
+        appendFileSync(path, payload, {encoding: "utf-8", mode: 0o600});
+      }
     }
 
     res.status(204).end();

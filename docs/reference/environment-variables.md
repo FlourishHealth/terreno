@@ -69,7 +69,7 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 | `FRONTEND_URL` | example-backend CORS and `authOptions.publicAppUrl` | ❌ | `http://localhost:8082` | No | server |
 | `API_URL` | microservice split | ❌ | — | No | server |
 | `DISABLE_LOG_ALL_REQUESTS` | `@terreno/api` logging | ❌ | — | No | server |
-| `TERRENO_BROWSER_LOGS` | `@terreno/api` dev log ingestion | ❌ | enabled only in development | No | server |
+| `TERRENO_BROWSER_LOGS` | `@terreno/api` dev log ingestion | ❌ | enabled only in development; loopback or authenticated requests only | No | server |
 | `ALLOW_MIGRATIONS` | `@terreno/api` `terreno-migrate` | ❌ | unset | No | server |
 | `MIGRATIONS_DIR` | example-backend Dockerfile / `resolveMigrationDir` | ❌ | `<cwd>/migrations` when `dir` is `$bunfs` | No | server |
 

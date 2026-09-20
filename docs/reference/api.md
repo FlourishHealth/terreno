@@ -14,6 +14,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Middleware](#middleware)
 - [Logging & Tracing](#logging--tracing)
 - [Extensibility](#extensibility)
+- [In-app notifications](#in-app-notifications)
 - [Webhooks & Notifications](#webhooks--notifications)
 - [HTTP Client](#http-client)
 - [Utilities](#utilities)
@@ -854,7 +855,9 @@ setupServer({
 
 ### Using with modelRouter
 
-When validation is enabled globally, modelRouter automatically validates create and update requests:
+When validation is enabled globally, modelRouter automatically validates create and update requests.
+
+Create (POST) enforces Mongoose required fields. Update (PATCH) is partial: present fields are type-checked, but omitted required fields are allowed so a client can send `{completed: true}` without repeating `title`.
 
 ``````typescript
 import {modelRouter, Permissions} from "@terreno/api";
@@ -1263,10 +1266,15 @@ To correlate with Cloud Trace, ensure clients or load balancers send `x-cloud-tr
 `TERRENO_BROWSER_LOGS=true` in another non-production environment. Production always returns 404;
 set `TERRENO_BROWSER_LOGS=false` to disable the route in development.
 
+The route accepts loopback requests for local browser development. Non-loopback clients must
+authenticate through the app's normal JWT or Better Auth middleware. `TerrenoApp` mounts the route
+after its optional rate limiter, so configured API limits also apply to ingestion.
+
 The request body is `{entries: Array<{level?, message?, stack?, timestamp?}>}`. Batches are capped
 at 100 entries and 256 kB. Accepted rows are truncated to bounded field lengths and appended as
-mode-`0600` JSONL under `<backend cwd>/.terreno/logs/browser.log`. The local MCP `read_logs` /
-`last_error` tools and `terreno logs --sources browser` consume that file.
+mode-`0600` JSONL under `<backend cwd>/.terreno/logs/browser.log`. The file restarts with the latest
+batch before it would exceed 5 MB. The local MCP `read_logs` / `last_error` tools and
+`terreno logs --sources browser` consume that file.
 
 ### Message style
 
@@ -1368,6 +1376,79 @@ setupServer({
 - Testable in isolation
 - Optional/configurable functionality
 - Clean separation of concerns
+
+## In-app notifications
+
+Owner-scoped inbox and channel preferences via `NotificationsApp` (`ConsentApp` pattern).
+This is separate from inbound webhooks and outbound Slack/Chat/Zoom notifiers below.
+
+### Register
+
+```typescript
+import {NotificationsApp, getNotificationService, notificationsBeforeSend} from "@terreno/api";
+
+new TerrenoApp({userModel: User}).register(
+  new NotificationsApp({
+    getComms: getCommsService, // optional; duck-typed, no @terreno/comms import in api
+    retainDays: 0,
+    userModel: User,
+  })
+);
+```
+
+### Collections
+
+| Model | Route | Sync | Client create |
+|---|---|---|---|
+| `Notification` | `/notifications` | owner | **No** (`create: []`) |
+| `NotificationPreference` | `/notification-preferences` | owner | Yes (lazy defaults) |
+
+`Notification` fields: `ownerId`, `title`, `body`, `href?`, `kind?`, `readAt?` (null = unread),
+`archivedAt?` (null = active inbox).
+Index: `{ownerId: 1, created: -1}`.
+
+`NotificationPreference` fields: `ownerId` (unique among non-deleted rows), `inapp`, `mail`,
+`push`, `sms` (default `true`). Missing preference row = all channels on. Preference updates
+accept only the four channel booleans; `ownerId` is immutable. Soft-deleting a preference
+row does not block a later create for the same owner.
+
+`notify()` comms fan-out isolates mail, SMS, and push: a rejection from one provider is
+logged and does not skip later channels.
+
+### `notify(input)`
+
+Server-only seam. Writes the inbox when `inapp` is on, then optionally calls
+`getComms().sendMail` / `sendSms` / `sendPushToUser` when that channel is on and a
+destination exists. Comms errors after the inbox write are logged and do not fail `notify()`.
+
+### HTTP
+
+| Method | Path | Notes |
+|---|---|---|
+| GET/PATCH/DELETE | `/notifications/:id` + list | Owner-scoped; **create disabled** |
+| POST | `/notifications/mark-all-read` | Sets `readAt` on caller's unread rows |
+| CRUD | `/notification-preferences` | Owner-scoped sync |
+
+PATCH on notifications: `readAt` (ISO date or `null` to unread) and `archivedAt` (ISO date
+or `null`). Other keys are stripped. Dismiss sets `archivedAt` via syncdb update so the
+row stays in the snapshot. DELETE remains a retention tombstone (`isDeletedPlugin`), not
+the inbox archive path.
+
+The example backend uses todo router lifecycle hooks to call `notify()`: create emits
+`Todo added`, the first incomplete-to-complete update emits `Todo completed`, and delete
+emits `Todo deleted`.
+
+### `notificationsBeforeSend`
+
+Duck-typed hook for `CommsApp({beforeSend})`. Cancels when the user's preference for that
+channel is `false`. Never cancels `verification`.
+
+### Retention
+
+`retainDays` default `0` (no sweep). When `retainDays > 0`, `sweepExpired()` tombstones rows
+with `created` older than N days. No Mongo TTL index.
+
+How-to: [In-app notifications](../how-to/in-app-notifications.md).
 
 ## Webhooks & Notifications
 
@@ -1738,7 +1819,7 @@ Complete reference of environment variables used by @terreno/api:
 |----------|----------|---------|-------------|
 | `USE_SENTRY_LOGGING` | No | — | Set to `"true"` to enable Sentry error tracking |
 | `SENTRY_DSN` | No | — | Sentry Data Source Name (required if USE_SENTRY_LOGGING=true) |
-| `TERRENO_BROWSER_LOGS` | No | enabled in development | Set `"false"` to disable dev ingestion or `"true"` to opt in outside development; production stays disabled |
+| `TERRENO_BROWSER_LOGS` | No | enabled in development | Set `"false"` to disable dev ingestion or `"true"` to opt in outside development; production stays disabled and non-loopback clients must authenticate |
 | `SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Sentry trace sampling rate (0.0 to 1.0) |
 | `DISABLE_LOG_ALL_REQUESTS` | No | — | Set to `"true"` to disable request logging |
 | `SLOW_REQUEST_THRESHOLD_MS` | No | `3000` | Log warning for requests slower than this (milliseconds) |

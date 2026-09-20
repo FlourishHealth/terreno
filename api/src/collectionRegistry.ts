@@ -74,6 +74,9 @@ export const registerCollection = <T>({
   const wasSyncEnabled = existing?.surfaces.sync ?? false;
 
   if (options.sync && wasSyncEnabled) {
+    if (existing?.model.modelName === model.modelName) {
+      return;
+    }
     const collectionTag = routePath.replace(/^\//, "");
     throw new APIError({
       status: 500,

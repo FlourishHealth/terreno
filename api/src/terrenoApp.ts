@@ -392,7 +392,6 @@ export class TerrenoApp {
       }
     }
 
-    addTerrenoDevBrowserLogsRoute(app);
     app.use(express.json(jsonBodyParserOptions));
     app.use(express.urlencoded(urlencodedBodyParserOptions) as unknown as express.RequestHandler);
 
@@ -426,6 +425,8 @@ export class TerrenoApp {
       const store = createRateLimitStore(rateLimit);
       app.use(createRateLimitMiddleware(store, rateLimit));
     }
+
+    addTerrenoDevBrowserLogsRoute(app);
 
     if (!options.authOptions) {
       options.authOptions = {};

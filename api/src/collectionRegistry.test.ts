@@ -135,7 +135,7 @@ describe("CollectionRegistry", () => {
     expect(getSyncRegistry()[0]?.options).toBe(updatedOptions);
   });
 
-  it("rejects re-registering sync at the same route path", () => {
+  it("treats re-registering the same model at the same route path as a no-op", () => {
     clearSyncRegistry();
     registerSync({
       config: {scope: {type: "owner"}},
@@ -143,14 +143,13 @@ describe("CollectionRegistry", () => {
       options: syncOptions,
       routePath: "/catalogTodos",
     });
-    expect(() =>
-      registerSync({
-        config: {scope: {type: "owner"}},
-        model: CatalogTodoModel,
-        options: syncOptions,
-        routePath: "/catalogTodos",
-      })
-    ).toThrow(/already registered/);
+    registerSync({
+      config: {scope: {type: "owner"}},
+      model: CatalogTodoModel,
+      options: syncOptions,
+      routePath: "/catalogTodos",
+    });
+    expect(getSyncRegistry()).toHaveLength(1);
   });
 
   it("clearCollectionRegistry resets deferred sync index tasks", async () => {

@@ -69,7 +69,8 @@ The session persists between MCP calls. `snapshot` returns visible text and up t
 elements so the agent can choose selectors and verify state without image guessing. `screenshot`
 saves the viewport for the PR or walkthrough.
 WebView console output is not added to `browser.log`; call `read_logs` alongside this flow when the
-running app posts browser logs to the backend collector.
+running app posts browser logs to the backend collector. The collector accepts local-loopback
+traffic before login; devices or remote browsers must send the app's normal authentication.
 
 The equivalent one-process CLI sequence is:
 

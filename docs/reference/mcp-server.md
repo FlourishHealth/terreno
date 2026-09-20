@@ -545,7 +545,7 @@ Returns comprehensive code style guide from project documentation.
 | `TERRENO_PROJECT_ROOT` | nearest Terreno project root | Override local package, database, and log discovery |
 | `TERRENO_METRO_URL` | Frontend script port or `http://localhost:8082` | Metro origin used for `/events` and CDP discovery |
 | `TERRENO_MCP_EVAL` | Disabled | Set to `1` to enable local MCP `evaluate` and `navigate` |
-| `TERRENO_BROWSER_LOGS` | Enabled only when `NODE_ENV=development` | Set to `true` to opt in in another non-production environment or `false` to disable; production always rejects the route |
+| `TERRENO_BROWSER_LOGS` | Enabled only when `NODE_ENV=development` | Set to `true` to opt in in another non-production environment or `false` to disable; production rejects the route, and non-loopback clients must authenticate |
 
 **Example:**
 

@@ -1,7 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
-import {mkdtempSync, readFileSync, rmSync} from "node:fs";
+import {mkdtempSync, readFileSync, rmSync, statSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 import express from "express";
 import supertest from "supertest";
 import {addTerrenoDevBrowserLogsRoute} from "../browserLogsRoute";
@@ -67,6 +68,57 @@ describe("Terreno dev browser logs route", () => {
 
     const response = await supertest(app).post("/__terreno/browser-logs");
     expect(response.status).toBe(400);
+  });
+
+  it("rejects unauthenticated remote clients and accepts authenticated ones", async () => {
+    process.env.NODE_ENV = "development";
+    const remoteAddressMiddleware: express.RequestHandler = (req, _res, next) => {
+      Object.defineProperty(req.socket, "remoteAddress", {
+        configurable: true,
+        value: "10.0.0.5",
+      });
+      next();
+    };
+    const remoteApp = express();
+    remoteApp.use(remoteAddressMiddleware);
+    addTerrenoDevBrowserLogsRoute(remoteApp);
+
+    const rejected = await supertest(remoteApp)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "error", message: "remote"}]});
+    assert.equal(rejected.status, 403);
+
+    const authenticatedApp = express();
+    authenticatedApp.use(remoteAddressMiddleware);
+    authenticatedApp.use((req, _res, next) => {
+      Object.assign(req, {user: {_id: "dev-user"}});
+      next();
+    });
+    addTerrenoDevBrowserLogsRoute(authenticatedApp);
+    const accepted = await supertest(authenticatedApp)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "error", message: "authenticated"}]});
+    assert.equal(accepted.status, 204);
+  });
+
+  it("restarts the dev log before it exceeds the size cap", async () => {
+    process.env.NODE_ENV = "development";
+    const logDir = join(dir, ".terreno", "logs");
+    const logPath = join(logDir, "browser.log");
+    const app = express();
+    addTerrenoDevBrowserLogsRoute(app);
+    await supertest(app)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "info", message: "create directory"}]});
+    writeFileSync(logPath, Buffer.alloc(5 * 1024 * 1024));
+
+    const response = await supertest(app)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "error", message: "after rollover"}]});
+
+    assert.equal(response.status, 204);
+    assert.isBelow(statSync(logPath).size, 1024);
+    assert.include(readFileSync(logPath, "utf8"), "after rollover");
   });
 
   it("is not mounted outside development unless explicitly enabled", async () => {

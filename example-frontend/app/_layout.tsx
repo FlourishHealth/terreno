@@ -313,6 +313,7 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="verifyEmail" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 
@@ -372,9 +373,11 @@ const RootLayoutNav = (): React.ReactElement => {
               />
             )}
           />
+          {stack}
         </SyncDbProvider>
-      ) : null}
-      {stack}
+      ) : (
+        stack
+      )}
     </SyncConflictsProvider>
   );
 

@@ -75,7 +75,7 @@ describe("SyncConfig.adminBroadcast", () => {
     assert.strictEqual(getSyncRegistry()[0]?.config.adminBroadcast, false);
   });
 
-  it("rejects a second registerSync for the same route path", () => {
+  it("treats a second registerSync for the same model and route path as a no-op", () => {
     registerSync({
       config: {adminBroadcast: true, scope: {type: "owner"}},
       model: AdminBroadcastTodoModel,
@@ -83,13 +83,14 @@ describe("SyncConfig.adminBroadcast", () => {
       routePath: "/adminBroadcastTodos",
     });
 
-    assert.throws(() => {
-      registerSync({
-        config: {adminBroadcast: true, scope: {type: "owner"}},
-        model: AdminBroadcastTodoModel,
-        options: syncOptions,
-        routePath: "/adminBroadcastTodos",
-      });
-    }, /already registered/);
+    registerSync({
+      config: {adminBroadcast: true, scope: {type: "owner"}},
+      model: AdminBroadcastTodoModel,
+      options: syncOptions,
+      routePath: "/adminBroadcastTodos",
+    });
+
+    assert.equal(getSyncRegistry().length, 1);
+    assert.strictEqual(getSyncRegistry()[0]?.config.adminBroadcast, true);
   });
 });

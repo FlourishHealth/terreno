@@ -4,6 +4,7 @@ import {assert} from "chai";
 
 import {createLocalMcpServer} from "./localServer";
 import {resetMetroDevSessionForTests} from "./metro/metroDevSession";
+import {BrowserSession} from "./tools/browser";
 
 interface FakeMessageEvent {
   data: string;
@@ -114,7 +115,6 @@ const textFromToolResult = (result: unknown): string => {
 describe("local MCP server end-to-end", () => {
   const originalFetch = globalThis.fetch;
   const originalWebSocket = globalThis.WebSocket;
-  const originalWebViewDescriptor = Object.getOwnPropertyDescriptor(Bun, "WebView");
 
   beforeEach((): void => {
     FakeWebView.interactions = [];
@@ -130,10 +130,6 @@ describe("local MCP server end-to-end", () => {
           },
         ])
       )) as typeof fetch;
-    Object.defineProperty(Bun, "WebView", {
-      configurable: true,
-      value: FakeWebView,
-    });
   });
 
   afterEach((): void => {
@@ -142,15 +138,14 @@ describe("local MCP server end-to-end", () => {
     globalThis.WebSocket = originalWebSocket;
     Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
     Reflect.deleteProperty(process.env, "TERRENO_METRO_URL");
-    if (originalWebViewDescriptor) {
-      Object.defineProperty(Bun, "WebView", originalWebViewDescriptor);
-    } else {
-      Reflect.deleteProperty(Bun, "WebView");
-    }
   });
 
   it("drives app navigation and web interaction through the official MCP client", async (): Promise<void> => {
-    const server = createLocalMcpServer();
+    const browserSession = new BrowserSession(() => new FakeWebView());
+    const server = createLocalMcpServer({
+      browserRunner: async (args): Promise<string> =>
+        JSON.stringify(await browserSession.run(args), null, 2),
+    });
     const client = new Client(
       {name: "terreno-local-e2e", version: "1.0.0"},
       {versionNegotiation: {mode: "auto"}}
@@ -202,6 +197,7 @@ describe("local MCP server end-to-end", () => {
       ]);
     } finally {
       await client.callTool({arguments: {action: "close"}, name: "browser"}).catch(() => undefined);
+      browserSession.close();
       await client.close();
       await server.close();
     }

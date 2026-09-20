@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-20T06:25:13.654Z.
+> dates are promised. Last updated: 2026-09-20T22:10:53.919Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -27,10 +27,10 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### ui
 
-- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, Planned)
+- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, In progress)
 - [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review) — IP: [datatable-server-side-filtering](docs/implementationPlans/datatable-server-side-filtering.md)
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
-- [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review)
+- [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review) — IP: [notification-center](docs/implementationPlans/notification-center.md)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
 
 ### mcp
@@ -86,7 +86,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### examples
 
-- [Examples, demo, and test coverage](https://github.com/FlourishHealth/terreno/issues/1016) (Improvement, Planned) — IP: [examples-demo-coverage](docs/implementationPlans/examples-demo-coverage.md)
+- [Examples, demo, and test coverage](https://github.com/FlourishHealth/terreno/issues/1016) (Improvement, In review) — IP: [examples-demo-coverage](docs/implementationPlans/examples-demo-coverage.md)
 
 ## Target: Released
 
