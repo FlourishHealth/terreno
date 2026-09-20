@@ -2,9 +2,11 @@ import {describe, expect, it} from "bun:test";
 import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {assert} from "chai";
 
 import type {CliIo} from "./io";
 import {runCli} from "./runCli";
+import {readCliVersion} from "./version";
 
 const createIo = (cwd: string): CliIo & {stderrLines: string[]; stdoutLines: string[]} => {
   const stdoutLines: string[] = [];
@@ -63,7 +65,7 @@ describe("generate and validate commands", () => {
     const packageJson = JSON.parse(await readFile(join(out, "package.json"), "utf8")) as {
       dependencies: Record<string, string>;
     };
-    expect(packageJson.dependencies["@terreno/cli"]).toBe("^57.1.0");
+    assert.equal(packageJson.dependencies["@terreno/cli"], `^${await readCliVersion()}`);
     await rm(dir, {force: true, recursive: true});
   });
 
