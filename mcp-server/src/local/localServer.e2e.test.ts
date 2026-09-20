@@ -180,6 +180,10 @@ describe("local MCP server end-to-end", () => {
         name: "browser",
       });
       await client.callTool({
+        arguments: {action: "press", key: "Enter", modifiers: ["Shift", "invalid"]},
+        name: "browser",
+      });
+      await client.callTool({
         arguments: {action: "click", selector: "#save"},
         name: "browser",
       });
@@ -193,6 +197,7 @@ describe("local MCP server end-to-end", () => {
         "open:http://localhost:8082",
         "click:#name",
         "type:Ada",
+        "press:Enter",
         "click:#save",
       ]);
     } finally {
