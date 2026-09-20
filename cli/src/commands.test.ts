@@ -142,6 +142,20 @@ describe("generate and validate commands", () => {
     await rm(dir, {force: true, recursive: true});
   });
 
+  it("bootstraps default rules into a relative directory", async (): Promise<void> => {
+    const dir = await mkdtemp(join(tmpdir(), "terreno-cli-"));
+    const io = createIo(dir);
+
+    const code = await runCli(
+      ["bootstrap", "rules", "--name", "rules-app", "--dir", "rules", "--packages", " , "],
+      io
+    );
+
+    assert.equal(code, 0);
+    assert.include(io.stdoutLines.join("\n"), join(dir, "rules"));
+    await rm(dir, {force: true, recursive: true});
+  });
+
   it("prints usage errors for incomplete commands", async () => {
     const io = createIo("/tmp");
     expect(await runCli(["generate", "nope"], io)).toBe(1);

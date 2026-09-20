@@ -142,4 +142,22 @@ describe("mocked local tools and syncdb", () => {
     );
     await rm(dir, {force: true, recursive: true});
   });
+
+  it("validates WebView action files and numeric options", async (): Promise<void> => {
+    const dir = await mkdtemp(join(tmpdir(), "terreno-cli-web-errors-"));
+    await writeFile(join(dir, "not-actions.json"), JSON.stringify({action: "click"}), "utf8");
+    const io = createIo(dir);
+
+    assert.equal(await runCli(["web", "--width", "0"], io), 1);
+    assert.equal(await runCli(["web", "--wait", "-1"], io), 1);
+    assert.equal(await runCli(["web", "--action", "[]"], io), 1);
+    assert.equal(await runCli(["web", "--action", "{}"], io), 1);
+    assert.equal(await runCli(["web", "--actions-file", "not-actions.json"], io), 1);
+
+    io.stdoutLines.length = 0;
+    assert.equal(await runCli(["web"], io), 0);
+    assert.include(io.stdoutLines.join("\n"), '"ok": true');
+
+    await rm(dir, {force: true, recursive: true});
+  });
 });
