@@ -8,6 +8,7 @@ describe("io helpers", () => {
     const io = createProcessIo();
     expect(typeof io.stdout).toBe("function");
     printJson(io, {ok: true});
+    io.stderr("expected test output");
   });
 });
 

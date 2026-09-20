@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {assert} from "chai";
 import {
   installTerrenoDevConsoleLogger,
   resetTerrenoDevConsoleLoggerForTests,
@@ -105,5 +106,74 @@ describe("installTerrenoDevConsoleLogger", () => {
     }
 
     expect(fetchMock.mock.calls).toHaveLength(2);
+  });
+
+  it("captures native and web global errors and restores the native handler", async (): Promise<void> => {
+    type GlobalHandler = (error: unknown, isFatal?: boolean) => void;
+    const globalRecord = globalThis as typeof globalThis & Record<string, unknown>;
+    const originalErrorUtils = Object.getOwnPropertyDescriptor(globalThis, "ErrorUtils");
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    const previousHandler = mock((_error: unknown, _isFatal?: boolean): void => {});
+    let globalHandler: GlobalHandler = previousHandler;
+    const listeners = new Map<string, (event: unknown) => void>();
+    const fetchMock = mock((_input: RequestInfo | URL, _init?: RequestInit) =>
+      Promise.resolve(new Response(null, {status: 204}))
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    Object.defineProperty(globalThis, "ErrorUtils", {
+      configurable: true,
+      value: {
+        getGlobalHandler: (): GlobalHandler => previousHandler,
+        setGlobalHandler: (handler: GlobalHandler): void => {
+          globalHandler = handler;
+        },
+      },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        addEventListener: (name: string, listener: (event: unknown) => void): void => {
+          listeners.set(name, listener);
+        },
+      },
+    });
+
+    try {
+      installTerrenoDevConsoleLogger();
+      globalHandler(new Error("native error"), true);
+      globalHandler("native string");
+      listeners.get("unhandledrejection")?.({reason: "promise error"});
+      listeners.get("error")?.({error: new Error("web error"), message: "window error"});
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 450);
+      });
+
+      assert.equal(previousHandler.mock.calls.length, 2);
+      assert.equal(fetchMock.mock.calls.length, 1);
+      const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+        entries: Array<{message: string; stack?: string}>;
+      };
+      assert.deepEqual(
+        body.entries.map((entry) => entry.message),
+        ["native error", "native string", "promise error", "window error"]
+      );
+      assert.isString(body.entries[0]?.stack);
+
+      resetTerrenoDevConsoleLoggerForTests();
+      assert.equal(globalHandler, previousHandler);
+    } finally {
+      resetTerrenoDevConsoleLoggerForTests();
+      if (originalErrorUtils) {
+        Object.defineProperty(globalThis, "ErrorUtils", originalErrorUtils);
+      } else {
+        Reflect.deleteProperty(globalRecord, "ErrorUtils");
+      }
+      if (originalWindow) {
+        Object.defineProperty(globalThis, "window", originalWindow);
+      } else {
+        Reflect.deleteProperty(globalRecord, "window");
+      }
+    }
   });
 });
