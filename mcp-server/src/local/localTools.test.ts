@@ -95,7 +95,7 @@ describe("local MCP runtime tools", () => {
     const evaluation = await handleLocalToolCall("evaluate", {code: 42});
     const unknown = await handleLocalToolCall("unknown", {});
 
-    assert.include(application.content[0]?.text ?? "", "Terreno");
+    assert.include(application.content[0]?.text ?? "", "# Application info");
     assert.include(schema.content[0]?.text ?? "", "### todo.ts");
     assert.include(schema.content[0]?.text ?? "", "Live MongoDB");
     assert.include(query.content[0]?.text ?? "", "Unsupported operation");
