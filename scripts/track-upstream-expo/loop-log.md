@@ -11,18 +11,30 @@ Template: `.rulesync/skills/track-upstream-expo/references/loop-log.md`.
 - expoVersion: 58.0.0-preview.3
 - releaseBranch: release-58.0.0
 - loopStatus: open
-- updatedAt: 2026-09-19T12:08:48.000Z
+- updatedAt: 2026-09-20T12:05:07.678Z
 
 ## Next
 
-When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still peer `^57` as of 2026-09-19), drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
+When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.3` still peer `^57` as of 2026-09-20), drop the `unknown` cast in `syncdb/src/persisters/defaultPersisterFactory.native.ts`.
 
 ## Open
 
-- [ ] TinyBase still peers `expo-sqlite ^57` (latest 9.7.1 and `10.0.0-beta.2` both `expo-sqlite ^57`); `defaultPersisterFactory.native.ts` casts through `unknown`
+- [ ] TinyBase still peers `expo-sqlite ^57` (latest 9.7.1 and `10.0.0-beta.3` both `expo-sqlite ^57`); `defaultPersisterFactory.native.ts` casts through `unknown`
 - [ ] `create-terreno-app/src/generate.ts` still scaffolds Expo `~57.0.14` (published `@terreno/*` is still 57.x). Do not bump until Terreno 58 is cut.
 
 ## Tried (newest first)
+
+### 2026-09-20T12:05:07.678Z — 58.0.0-preview.3
+- Action: Resume loop. Merged `origin/master` (`ROADMAP.md`). Skipped Expo bump (catalog already `58.0.0-preview.3`). Skipped TinyBase 9.7.1 / `10.0.0-beta.3` (still peer `expo-sqlite ^57`). Did not retry nested Bun overrides, `tinybase>expo` keys, or TinyBase `10.0.0-beta.1` / `10.0.0-beta.2`. Catalog native packages still match Expo 58 `bundledNativeModules.json` (shared keys; catalog `@expo/vector-icons` `^15.1.1` and `react-native-web` `^0.21.2` stay newer than bundled). Did not bump `create-terreno-app` Expo 57 scaffold.
+- Result: worked
+- Evidence: `bun run compile` exit 0; `bun run lint` exit 0; `bun run frontend:lint` exit 0; `bun run ui:test` 2424 pass / 0 fail; `cd example-frontend && bunx expo-doctor` 20/20; `cd demo && bunx expo-doctor` 20/20; `bunx expo install --check` "Dependencies are up to date". `npm view tinybase version` 9.7.1 peers `expo-sqlite ^57.0.2`; dist-tag `beta` moved to `10.0.0-beta.3` peers `expo-sqlite ^57.0.3` / `expo ^57.0.24`. Catalog Expo stays `58.0.0-preview.3`. `npm view expo@next version` still `58.0.0-preview.3`.
+- Follow-up: see Open
+
+### 2026-09-20T12:01:30.000Z — probe
+- Action: `bun run expo:track-probe` from `origin/master`
+- Result: worked
+- Evidence: exit 0, `action: resume-loop`, `expoVersion: 58.0.0-preview.3`, `releaseBranch: release-58.0.0`, `loopStatus: open`. Merged `origin/master` into `release-58.0.0`.
+- Follow-up: see Open
 
 ### 2026-09-19T12:08:48.000Z — 58.0.0-preview.3
 - Action: Resume loop. Merged `origin/master` (announcements admin, org/RBAC, agent UI blocks, CI). Skipped Expo bump (catalog already `58.0.0-preview.3`). Skipped TinyBase 9.7.1 / `10.0.0-beta.2` (still peer `expo-sqlite ^57`). Did not retry nested Bun overrides or `tinybase>expo` keys. Catalog native packages match Expo 58 `bundledNativeModules.json` (including `@react-native-picker/picker` `2.11.4`).
@@ -169,6 +181,7 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still pe
 - pnpm-style `"tinybase>expo"` override keys: `npm explain` fails with `EINVALIDTAGNAME: Invalid tag name "tinybase>expo"`, which made expo-doctor's npm-explain checks error. Removed 2026-09-12.
 - TinyBase `10.0.0-beta.1` still peers `expo-sqlite ^57.0.3` / `expo ^57.0.22`. Do not bump TinyBase to 10 on this train to drop the `unknown` cast. Wait for a 9.x or 10.x that peers `expo-sqlite ^58`.
 - TinyBase `10.0.0-beta.2` (checked 2026-09-17 with Expo `58.0.0-preview.3`; rechecked 2026-09-19) still peers `expo-sqlite ^57.0.3` / `expo ^57.0.22`. Same skip.
+- TinyBase `10.0.0-beta.3` (checked 2026-09-20 with Expo `58.0.0-preview.3`) still peers `expo-sqlite ^57.0.3` / `expo ^57.0.24`. Same skip. Do not bump TinyBase to 10 on this train to drop the `unknown` cast.
 
 ## Worked
 
@@ -229,9 +242,10 @@ When TinyBase latest peers `expo-sqlite ^58` (9.7.1 and `10.0.0-beta.2` still pe
 
 ### Other
 
-- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0`; continued to `58.0.0-preview.3` on 2026-09-17 (`npmTag: next`). Resume-loop 2026-09-19 at the same preview. Do not merge to master until the loop is `ready`.
+- Created `release-58.0.0` from `origin/master` for Expo `58.0.0-preview.0`; continued to `58.0.0-preview.3` on 2026-09-17 (`npmTag: next`). Resume-loop 2026-09-20 at the same preview. Do not merge to master until the loop is `ready`.
 - `create-terreno-app` still emits Expo `~57.0.14` until Terreno 58 is cut.
-- TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.2`, rechecked 2026-09-19).
+- TinyBase still declares `expo-sqlite ^57` (9.7.1 and `10.0.0-beta.3`, rechecked 2026-09-20).
+- 2026-09-20: merged master `ROADMAP.md`; compile/lint/doctor stayed green with no new RN 0.88 type edits. TinyBase dist-tag `beta` moved to `10.0.0-beta.3` and still peers `expo-sqlite ^57`.
 - 2026-09-19: merged master announcements admin, org/RBAC, and agent UI blocks; compile/lint/doctor stayed green with no new RN 0.88 type edits.
 - Password `TextField` visibility toggle (merged from master) uses `TextInputInstance` on this train.
 - example-frontend / demo `expo.doctor.reactNativeDirectoryCheck.exclude`: `@react-native-community/blur`.
