@@ -21,7 +21,8 @@ const {execSync} = require("child_process");
 const DEP_TYPES = ["dependencies", "devDependencies", "peerDependencies"];
 const compiled = new Set();
 
-const isTerrenoMonorepoDep = (name) => name.startsWith("@terreno/");
+const isTerrenoMonorepoDep = (name) =>
+  name.startsWith("@terreno/") || name === "create-terreno-app";
 
 const PACKAGE_DIR_ALIASES = {
   "@terreno/mcp": "mcp-server",

@@ -776,7 +776,7 @@ jobs:
           name: Fetch coverage base
           command: git fetch origin master
       - compile_packages:
-          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa announcements syncdb mcp-server
+          packages: api ai api-health comms admin-backend feature-flags ui rtk admin-frontend admin-spa announcements syncdb create-terreno-app mcp-server
       - run:
           name: Check new source file coverage
           command: |

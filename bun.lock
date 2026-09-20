@@ -297,6 +297,7 @@
       "dependencies": {
         "@terreno/mcp": "workspace:*",
         "@terreno/syncdb": "workspace:*",
+        "create-terreno-app": "workspace:*",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",

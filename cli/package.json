@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@terreno/mcp": "workspace:*",
-    "@terreno/syncdb": "workspace:*"
+    "@terreno/syncdb": "workspace:*",
+    "create-terreno-app": "workspace:*"
   },
   "description": "Terreno CLI for docs, codegen, app scaffolding, and OpenAPI-driven REST clients",
   "devDependencies": {

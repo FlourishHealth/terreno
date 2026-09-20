@@ -47,7 +47,7 @@ export const bootstrapTools: Tool[] = [
   },
 ];
 
-interface BootstrapAiRulesArgs extends BootstrapArgs {
+export interface BootstrapAiRulesArgs extends BootstrapArgs {
   /** Optional `@terreno/*` package ids to include (e.g. `["api","ui"]`). Omits others from merged guidelines. */
   packages?: string[];
 }
@@ -391,7 +391,7 @@ interface AiRulesFile {
   content: string;
 }
 
-const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
+export const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
   const packageIds = resolveBootstrapGuidelinePackages(args.packages);
   // Strip frontmatter for direct output files
   const stripFrontmatter = (content: string): string => {

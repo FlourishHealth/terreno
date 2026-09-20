@@ -1,5 +1,6 @@
 import {isAbsolute, join} from "node:path";
-import {generateAiRulesFiles, generateAllFiles} from "@terreno/mcp/bootstrap";
+import {generateAiRulesFiles} from "@terreno/mcp/bootstrap";
+import {generateAllFiles} from "create-terreno-app";
 
 import type {CliIo} from "../io";
 import {printJson} from "../io";
