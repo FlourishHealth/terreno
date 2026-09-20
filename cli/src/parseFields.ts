@@ -65,11 +65,3 @@ export const parseFormField = (raw: string): ParsedFormField => {
     type,
   };
 };
-
-export const parseNameValue = (raw: string): {name: string; value: string} => {
-  const eq = raw.indexOf("=");
-  if (eq <= 0) {
-    throw new Error(`Expected name=value, got "${raw}"`);
-  }
-  return {name: raw.slice(0, eq), value: raw.slice(eq + 1)};
-};

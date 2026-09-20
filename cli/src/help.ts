@@ -1,5 +1,3 @@
-export const CLI_NAME = "terreno";
-
 export const HELP_TEXT = `Usage: terreno <command> [options]
 
 The Terreno CLI wraps docs search, generators, bootstrap, local project tools,

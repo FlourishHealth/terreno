@@ -30,6 +30,13 @@
     "api/src/migrations/fixtures/**": ["files", "exports", "types"],
     "example-backend/migrations/**": ["files", "exports", "types"],
     "example-backend/src/migrationsDir.ts": ["files", "exports", "types"],
+    // Runtime adapters expose these hooks only so deterministic tests can replace or
+    // reset process-global browser, Metro, log-path, and console state.
+    "mcp-server/src/local/localServer.ts": ["exports"],
+    "mcp-server/src/local/logPaths.ts": ["exports"],
+    "mcp-server/src/local/metro/metroDevSession.ts": ["exports"],
+    "mcp-server/src/local/tools/browser.ts": ["exports"],
+    "rtk/src/devConsoleLogger.ts": ["exports"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
     // Generated communications SDK may include hooks before an example screen adopts them.

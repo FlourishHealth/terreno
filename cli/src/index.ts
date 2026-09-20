@@ -5,8 +5,12 @@ export {invokeRestOperation} from "./rest/invoke";
 export {defaultBaseUrl, loadOpenApiDocument, parseOpenApiDocument} from "./rest/loadSpec";
 export {
   findRestOperation,
+  type HttpMethod,
   listRestOperations,
+  type OpenApiOperation,
+  type OpenApiParameter,
+  type OpenApiPathItem,
   sanitizeOperationId,
 } from "./rest/operations";
-export {runAppRestCli} from "./rest/runAppRestCli";
+export {type RunAppRestCliOptions, runAppRestCli} from "./rest/runAppRestCli";
 export {runCli} from "./runCli";

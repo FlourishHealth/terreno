@@ -3,7 +3,7 @@ import {dirname, isAbsolute, relative, resolve, sep} from "node:path";
 
 import {resolveTerrenoProjectRoot} from "../projectRoot.js";
 
-export const BROWSER_ACTIONS = [
+const BROWSER_ACTIONS = [
   "open",
   "click",
   "type",

@@ -23,7 +23,3 @@ export const createProcessIo = (): CliIo => {
 export const printJson = (io: CliIo, value: unknown): void => {
   io.stdout(JSON.stringify(value, null, 2));
 };
-
-export const printError = (io: CliIo, message: string): void => {
-  io.stderr(message);
-};
