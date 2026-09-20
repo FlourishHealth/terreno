@@ -71,6 +71,11 @@ const compile = (dir) => {
   const compileCmd = compileCommandForDir(resolved);
   console.log(`Compiling ${depPkg.name} (${resolved}) with ${compileCmd}`);
   execSync(compileCmd, {cwd: resolved, stdio: "inherit"});
+  if (depPkg.name === "@terreno/mcp") {
+    fs.cpSync(path.join(resolved, "src", "docs"), path.join(resolved, "dist", "docs"), {
+      recursive: true,
+    });
+  }
 };
 
 const run = () => {
