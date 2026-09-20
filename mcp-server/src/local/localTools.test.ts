@@ -101,7 +101,8 @@ describe("local MCP runtime tools", () => {
     assert.include(query.content[0]?.text ?? "", "Unsupported operation");
     assert.include(logs.content[0]?.text ?? "", '"entries"');
     assert.include(error.content[0]?.text ?? "", "No recent error-level entries");
-    assert.include(state.content[0]?.text ?? "", "Unable to connect");
+    assert.include(state.content[0]?.text ?? "", "CDP:");
+    assert.include(state.content[0]?.text ?? "", "Metro events: not connected");
     assert.include(evaluation.content[0]?.text ?? "", "Refused");
     assert.equal(unknown.content[0]?.text, "Unknown tool: unknown");
 
