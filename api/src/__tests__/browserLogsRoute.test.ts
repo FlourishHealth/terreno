@@ -61,6 +61,21 @@ describe("Terreno dev browser logs route", () => {
     expect(res.status).toBe(413);
   });
 
+  it("enforces the body cap after TerrenoApp's global JSON parser", async () => {
+    process.env.NODE_ENV = "development";
+
+    const app = express();
+    app.use(express.json({limit: "1mb"}));
+    addTerrenoDevBrowserLogsRoute(app);
+
+    const response = await supertest(app)
+      .post("/__terreno/browser-logs")
+      .send({entries: [{level: "error", message: "x".repeat(300 * 1024)}]});
+
+    assert.equal(response.status, 413);
+    assert.include(response.body.error, "256 kB");
+  });
+
   it("rejects an empty request body", async () => {
     process.env.NODE_ENV = "development";
     const app = express();

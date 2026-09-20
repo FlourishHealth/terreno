@@ -7,6 +7,7 @@ const MAX_BATCH_ENTRIES = 100;
 const MAX_LEVEL_LENGTH = 32;
 const MAX_MESSAGE_LENGTH = 8000;
 const MAX_STACK_LENGTH = 16_000;
+const BROWSER_LOG_BODY_LIMIT_BYTES = 256 * 1024;
 const BROWSER_LOG_BODY_LIMIT = "256kb";
 const MAX_BROWSER_LOG_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -52,6 +53,11 @@ export const addTerrenoDevBrowserLogsRoute = (app: express.Application): void =>
       res
         .status(403)
         .json({error: "Browser log ingestion requires a local or authenticated client"});
+      return;
+    }
+    const parsedBodySize = Buffer.byteLength(JSON.stringify(req.body ?? null));
+    if (parsedBodySize > BROWSER_LOG_BODY_LIMIT_BYTES) {
+      res.status(413).json({error: "Browser log payload may not exceed 256 kB"});
       return;
     }
     const body = req.body as {entries?: unknown} | undefined;
