@@ -573,6 +573,7 @@ jobs:
             --port=3000
             --memory=1Gi
             --cpu-boost
+            --no-cpu-throttling
             --min-instances=0
             --max-instances=10
             --concurrency=80
@@ -587,6 +588,16 @@ jobs:
             --region="${{ env.GCP_BACKEND_REGION }}" \
             --update-tags="pr-${{ github.event.pull_request.number }}=${{ env.GCP_BACKEND_SERVICE }}-pr${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}" \
             --quiet
+      - name: Wait for preview backend health
+        run: |
+          set -euo pipefail
+          SERVICE_URL="$(
+            gcloud run services describe "${{ env.GCP_BACKEND_SERVICE }}" \
+              --region="${{ env.GCP_BACKEND_REGION }}" \
+              --format='value(status.url)'
+          )"
+          TAG_URL="https://pr-${{ github.event.pull_request.number }}---${SERVICE_URL#https://}"
+          scripts/ci/wait-cloud-run-health.sh "$TAG_URL"
       - name: Print failed Cloud Run revision logs
         if: failure() && steps.deploy.outcome == 'failure'
         continue-on-error: true
