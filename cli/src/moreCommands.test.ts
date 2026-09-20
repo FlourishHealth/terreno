@@ -84,6 +84,7 @@ describe("additional command branches", () => {
           "Demo",
           "--dir",
           join(dir, "app"),
+          "--json",
         ],
         io
       )

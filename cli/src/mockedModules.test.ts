@@ -149,7 +149,7 @@ describe("mocked local tools and syncdb", () => {
     const io = createIo(dir);
 
     assert.equal(await runCli(["web", "--width", "0"], io), 1);
-    assert.equal(await runCli(["web", "--wait", "-1"], io), 1);
+    assert.equal(await runCli(["web", "--wait=-1"], io), 1);
     assert.equal(await runCli(["web", "--action", "[]"], io), 1);
     assert.equal(await runCli(["web", "--action", "{}"], io), 1);
     assert.equal(await runCli(["web", "--actions-file", "not-actions.json"], io), 1);
