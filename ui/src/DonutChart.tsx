@@ -48,7 +48,7 @@ export const DonutChart: FC<DonutChartProps> = ({
   const {theme} = useTheme();
   const paint = getChartPaint(theme);
   const [chartWidth, setChartWidth] = useState(DEFAULT_SIZE);
-  const [activePoint, setActivePoint] = useState<ChartPoint | undefined>(undefined);
+  const [activePointIndex, setActivePointIndex] = useState<number | undefined>(undefined);
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextWidth = event.nativeEvent.layout.width;
@@ -57,8 +57,8 @@ export const DonutChart: FC<DonutChartProps> = ({
     }
   }, []);
 
-  const handleMarkPress = useCallback((point: ChartPoint): void => {
-    setActivePoint(point);
+  const handleMarkPress = useCallback((pointIndex: number): void => {
+    setActivePointIndex(pointIndex);
   }, []);
 
   const size = getDonutSize({chartWidth, height, legendRowCount: data.length});
@@ -66,6 +66,7 @@ export const DonutChart: FC<DonutChartProps> = ({
   const outerRadius = Math.max(size / 2 - 8, 1);
   const innerRadius = outerRadius * 0.55;
   const slices = getSliceAngles(data);
+  const activePoint = activePointIndex === undefined ? undefined : data[activePointIndex];
   const tooltipText = activePoint
     ? formatChartTooltip({formatValue, point: activePoint})
     : undefined;
@@ -105,7 +106,7 @@ export const DonutChart: FC<DonutChartProps> = ({
           </Svg>
           {slices.map((slice, index) => {
             const onPress = (): void => {
-              handleMarkPress(slice.point);
+              handleMarkPress(index);
             };
             const mid = (slice.start + slice.end) / 2;
             const hitRadius = (innerRadius + outerRadius) / 2;

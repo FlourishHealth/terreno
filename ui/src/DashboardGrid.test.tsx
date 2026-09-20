@@ -31,6 +31,22 @@ describe("DashboardGrid", () => {
     expect(getByTestId("only")).toBeTruthy();
   });
 
+  it("omits falsy conditional children instead of reserving empty cells", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <DashboardGrid testID="grid">
+        {false}
+        {null}
+        {undefined}
+        <Box testID="tile-a">A</Box>
+        <Box testID="tile-b">B</Box>
+      </DashboardGrid>
+    );
+
+    expect(getByTestId("grid.cell.0")).toBeTruthy();
+    expect(getByTestId("grid.cell.1")).toBeTruthy();
+    expect(queryByTestId("grid.cell.2")).toBeNull();
+  });
+
   it("sizes cells so column widths plus gap fit the measured row", async () => {
     const {getByTestId} = renderWithTheme(
       <DashboardGrid columns={{lg: 3, md: 3, sm: 3}} gap={4} testID="grid">

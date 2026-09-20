@@ -3,6 +3,7 @@ import {spawn} from "node:child_process";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
 import {join, resolve} from "node:path";
 import {chromium} from "@playwright/test";
+import {DateTime} from "luxon";
 
 import {
   CHART_VISUAL_FIXTURES,
@@ -26,6 +27,26 @@ interface FixtureReport {
   status: "match" | "mismatch" | "missing" | "error";
   message?: string;
 }
+
+interface StartedDemo {
+  pid: number;
+}
+
+export const getSnapshotAction = ({
+  exists,
+  update,
+}: {
+  exists: boolean;
+  update: boolean;
+}): "compare" | "missing" | "write" => {
+  if (update) {
+    return "write";
+  }
+  if (!exists) {
+    return "missing";
+  }
+  return "compare";
+};
 
 const parseArgs = (argv: string[]): {only?: ChartVisualFixtureId; update: boolean} => {
   let update = false;
@@ -53,8 +74,8 @@ const isServerUp = async (baseUrl: string): Promise<boolean> => {
 };
 
 const waitForServer = async (baseUrl: string, timeoutMs: number): Promise<void> => {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
+  const deadline = DateTime.utc().plus({milliseconds: timeoutMs});
+  while (DateTime.utc().toMillis() < deadline.toMillis()) {
     if (await isServerUp(baseUrl)) {
       return;
     }
@@ -63,20 +84,37 @@ const waitForServer = async (baseUrl: string, timeoutMs: number): Promise<void> 
   throw new Error(`Demo web did not become ready at ${baseUrl} within ${timeoutMs}ms`);
 };
 
-const startDemoIfNeeded = async (baseUrl: string): Promise<{pid: number} | undefined> => {
+const stopDemo = ({pid}: StartedDemo): void => {
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+      throw error;
+    }
+  }
+};
+
+const startDemoIfNeeded = async (baseUrl: string): Promise<StartedDemo | undefined> => {
   if (await isServerUp(baseUrl)) {
     return undefined;
   }
   const child = spawn("bun", ["run", "demo:web"], {
     cwd: REPO_ROOT,
+    detached: true,
     env: {...process.env, RCT_METRO_PORT: String(DEFAULT_PORT)},
     stdio: "inherit",
   });
   if (child.pid === undefined) {
     throw new Error("Failed to start bun run demo:web");
   }
-  await waitForServer(baseUrl, 180_000);
-  return {pid: child.pid};
+  const startedDemo = {pid: child.pid};
+  try {
+    await waitForServer(baseUrl, 180_000);
+    return startedDemo;
+  } catch (error) {
+    stopDemo(startedDemo);
+    throw error;
+  }
 };
 
 const selectedFixtures = (only?: ChartVisualFixtureId) => {
@@ -101,11 +139,13 @@ export const compareChartRenderedSnapshots = async ({
   mkdirSync(join(OUTPUT_DIR, "actual"), {recursive: true});
   mkdirSync(join(OUTPUT_DIR, "diff"), {recursive: true});
 
-  const started = await startDemoIfNeeded(baseUrl);
-  const browser = await chromium.launch({args: ["--disable-animations"]});
+  let started: StartedDemo | undefined;
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   const reports: FixtureReport[] = [];
 
   try {
+    started = await startDemoIfNeeded(baseUrl);
+    browser = await chromium.launch({args: ["--disable-animations"]});
     const page = await browser.newPage({
       deviceScaleFactor: 1,
       viewport: VIEWPORT,
@@ -131,22 +171,33 @@ export const compareChartRenderedSnapshots = async ({
     for (const fixture of selectedFixtures(only)) {
       const locator = page.getByTestId(chartVisualFixtureTestId(fixture.id));
       await locator.scrollIntoViewIfNeeded();
-      await locator
-        .locator("svg")
-        .first()
-        .waitFor({state: "visible", timeout: 30_000})
-        .catch(() => undefined);
+      await Promise.race([
+        locator.locator("svg").first().waitFor({state: "visible", timeout: 30_000}),
+        locator.getByText("No signups yet").waitFor({state: "visible", timeout: 30_000}),
+      ]);
       const actual = await locator.screenshot({animations: "disabled", type: "png"});
       const snapshotPath = join(SNAPSHOT_DIR, `${fixture.id}.png`);
       const actualPath = join(OUTPUT_DIR, "actual", `${fixture.id}.png`);
       writeFileSync(actualPath, actual);
 
-      if (update || !existsSync(snapshotPath)) {
+      const snapshotAction = getSnapshotAction({
+        exists: existsSync(snapshotPath),
+        update,
+      });
+      if (snapshotAction === "write") {
         writeFileSync(snapshotPath, actual);
         reports.push({
           id: fixture.id,
-          message: update ? "updated rendered-snapshot" : "wrote missing rendered-snapshot",
+          message: "updated rendered-snapshot",
           status: "match",
+        });
+        continue;
+      }
+      if (snapshotAction === "missing") {
+        reports.push({
+          id: fixture.id,
+          message: "rendered-snapshot is missing; run ui:charts:update-snapshots to create it",
+          status: "missing",
         });
         continue;
       }
@@ -175,9 +226,9 @@ export const compareChartRenderedSnapshots = async ({
       }
     }
   } finally {
-    await browser.close();
-    if (started?.pid !== undefined) {
-      process.kill(started.pid);
+    await browser?.close();
+    if (started) {
+      stopDemo(started);
     }
   }
 

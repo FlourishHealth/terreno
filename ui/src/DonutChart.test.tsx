@@ -82,6 +82,29 @@ describe("DonutChart", () => {
     expect(getByText("B: 50")).toBeTruthy();
   });
 
+  it("updates or clears the active tooltip when data changes", async () => {
+    const {getByTestId, getByText, queryByTestId, rerender} = renderWithTheme(
+      <DonutChart data={POINTS} testID="chart" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("chart.point.1-clickable"));
+    });
+    rerender(
+      <DonutChart
+        data={[
+          {label: "A", value: 25},
+          {label: "B", value: 75},
+        ]}
+        testID="chart"
+      />
+    );
+    expect(getByText("B: 75")).toBeTruthy();
+
+    rerender(<DonutChart data={[{label: "A", value: 100}]} testID="chart" />);
+    expect(queryByTestId("chart.tooltip")).toBeNull();
+  });
+
   it("does not open URLs from slice legend labels", async () => {
     const openURLSpy = spyOn(Linking, "openURL").mockImplementation(() => Promise.resolve(true));
     const {getByText} = renderWithTheme(

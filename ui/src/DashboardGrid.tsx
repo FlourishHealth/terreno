@@ -32,6 +32,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
   gap = 4,
   testID,
 }) => {
+  const renderedChildren = Children.toArray(children);
   const breakpoint = useResponsiveBreakpoint({enabled: true});
   const [rowWidth, setRowWidth] = useState(0);
   const columnCount = Math.max(resolveColumnCount({breakpoint, columns}), 1);
@@ -50,7 +51,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
 
   return (
     <Box direction="row" gap={gap} onLayout={handleLayout} testID={testID} width="100%" wrap>
-      {Children.map(children, (child: ReactNode, index: number) => (
+      {renderedChildren.map((child: ReactNode, index: number) => (
         <Box
           dangerouslySetInlineStyle={{
             __style: cellStyle,

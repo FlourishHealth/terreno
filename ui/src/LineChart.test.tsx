@@ -83,6 +83,29 @@ describe("LineChart", () => {
     expect(getByText("B: 50")).toBeTruthy();
   });
 
+  it("updates or clears the active tooltip when data changes", async () => {
+    const {getByTestId, getByText, queryByTestId, rerender} = renderWithTheme(
+      <LineChart data={POINTS} testID="chart" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("chart.point.1-clickable"));
+    });
+    rerender(
+      <LineChart
+        data={[
+          {label: "A", value: 0},
+          {label: "B", value: 75},
+        ]}
+        testID="chart"
+      />
+    );
+    expect(getByText("B: 75")).toBeTruthy();
+
+    rerender(<LineChart data={[{label: "A", value: 0}]} testID="chart" />);
+    expect(queryByTestId("chart.tooltip")).toBeNull();
+  });
+
   it("renders the legend label", () => {
     const {getByText} = renderWithTheme(<LineChart data={POINTS} legendLabel="Sales" />);
 

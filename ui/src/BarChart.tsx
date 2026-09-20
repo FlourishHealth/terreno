@@ -48,7 +48,7 @@ export const BarChart: FC<BarChartProps> = ({
   const {theme} = useTheme();
   const paint = getChartPaint(theme);
   const [chartWidth, setChartWidth] = useState(DEFAULT_WIDTH);
-  const [activePoint, setActivePoint] = useState<ChartPoint | undefined>(undefined);
+  const [activePointIndex, setActivePointIndex] = useState<number | undefined>(undefined);
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextWidth = event.nativeEvent.layout.width;
@@ -57,8 +57,8 @@ export const BarChart: FC<BarChartProps> = ({
     }
   }, []);
 
-  const handleMarkPress = useCallback((point: ChartPoint): void => {
-    setActivePoint(point);
+  const handleMarkPress = useCallback((pointIndex: number): void => {
+    setActivePointIndex(pointIndex);
   }, []);
 
   const axisWidth = getChartAxisWidth(chartWidth);
@@ -69,6 +69,7 @@ export const BarChart: FC<BarChartProps> = ({
   const yTicks = getYTickValues(data);
   const baselineY = scales.y(0);
   const barWidth = Math.max(scales.bandwidth * BAR_FILL, 1);
+  const activePoint = activePointIndex === undefined ? undefined : data[activePointIndex];
   const tooltipText = activePoint
     ? formatChartTooltip({formatValue, point: activePoint})
     : undefined;
@@ -140,7 +141,7 @@ export const BarChart: FC<BarChartProps> = ({
             </Svg>
             {data.map((point, index) => {
               const onPress = (): void => {
-                handleMarkPress(point);
+                handleMarkPress(index);
               };
               const layout = getBarLayout({
                 barWidth,

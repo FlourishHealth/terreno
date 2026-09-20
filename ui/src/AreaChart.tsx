@@ -48,7 +48,7 @@ export const AreaChart: FC<AreaChartProps> = ({
   const {theme} = useTheme();
   const paint = getChartPaint(theme);
   const [chartWidth, setChartWidth] = useState(DEFAULT_WIDTH);
-  const [activePoint, setActivePoint] = useState<ChartPoint | undefined>(undefined);
+  const [activePointIndex, setActivePointIndex] = useState<number | undefined>(undefined);
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextWidth = event.nativeEvent.layout.width;
@@ -57,8 +57,8 @@ export const AreaChart: FC<AreaChartProps> = ({
     }
   }, []);
 
-  const handleMarkPress = useCallback((point: ChartPoint): void => {
-    setActivePoint(point);
+  const handleMarkPress = useCallback((pointIndex: number): void => {
+    setActivePointIndex(pointIndex);
   }, []);
 
   const axisWidth = getChartAxisWidth(chartWidth);
@@ -69,6 +69,7 @@ export const AreaChart: FC<AreaChartProps> = ({
   const linePath = getLinePath({points: data, scales});
   const areaPath = getAreaPath({baselineY: scales.y(0), points: data, scales});
   const yTicks = getYTickValues(data);
+  const activePoint = activePointIndex === undefined ? undefined : data[activePointIndex];
   const tooltipText = activePoint
     ? formatChartTooltip({formatValue, point: activePoint})
     : undefined;
@@ -133,7 +134,7 @@ export const AreaChart: FC<AreaChartProps> = ({
             </Svg>
             {data.map((point, index) => {
               const onPress = (): void => {
-                handleMarkPress(point);
+                handleMarkPress(index);
               };
               return (
                 <Box
