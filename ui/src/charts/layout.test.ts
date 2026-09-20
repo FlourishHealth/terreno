@@ -23,8 +23,8 @@ describe("chart layout", () => {
     expect(getPlotHeight({hasLegend: true, height: 20})).toBe(40);
   });
 
-  it("fits a donut inside the height left by its tooltip and legend rows", () => {
-    expect(getDonutSize({chartWidth: 400, height: 220, legendRowCount: 3})).toBe(148);
+  it("fits a donut inside the height left by tooltip and padded, gapped legend rows", () => {
+    expect(getDonutSize({chartWidth: 400, height: 220, legendRowCount: 3})).toBe(124);
   });
 
   it("keeps a donut square when the container is narrower than the height", () => {

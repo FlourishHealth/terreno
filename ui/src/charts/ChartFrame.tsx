@@ -18,7 +18,7 @@ export interface ChartFrameProps {
 }
 
 export const ChartFrame: FC<ChartFrameProps> = ({
-  accessibilityLabel: _accessibilityLabel,
+  accessibilityLabel,
   children,
   emptyText,
   isEmpty,
@@ -32,7 +32,13 @@ export const ChartFrame: FC<ChartFrameProps> = ({
   // alignSelf stretch keeps the frame full width even when a parent centers its children, so the
   // measured plot width comes from the container instead of the chart's own content.
   return (
-    <Box alignSelf="stretch" minWidth={0} width="100%" {...toTestProps(testID)}>
+    <Box
+      accessibilityLabel={accessibilityLabel}
+      alignSelf="stretch"
+      minWidth={0}
+      width="100%"
+      {...toTestProps(testID)}
+    >
       {loading ? (
         <Box padding={4}>
           <Spinner testID={resolveTestID(testID, "spinner")} />

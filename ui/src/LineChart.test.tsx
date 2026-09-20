@@ -23,6 +23,14 @@ describe("LineChart", () => {
     expect(queryByTestId("chart.point.3-clickable")).toBeNull();
   });
 
+  it("forwards the chart summary accessibility label to the frame", () => {
+    const {getByTestId} = renderWithTheme(
+      <LineChart accessibilityLabel="Weekly signups chart" data={POINTS} testID="chart" />
+    );
+
+    expect(getByTestId("chart").props.accessibilityLabel).toBe("Weekly signups chart");
+  });
+
   it("shows emptyText when data is empty", () => {
     const {getByText, queryByText} = renderWithTheme(
       <LineChart data={[]} emptyText="Nothing yet" />

@@ -9,6 +9,8 @@ const PLOT_INSET = 8;
 const Y_TICK_HALF_HEIGHT = 7;
 const MIN_PLOT_HEIGHT = 40;
 const MIN_DONUT_SIZE = 40;
+const DONUT_LEGEND_PADDING = 8;
+const DONUT_LEGEND_ROW_GAP = 4;
 
 export interface ChartTickStyle {
   [key: string]: unknown;
@@ -54,7 +56,10 @@ export const getDonutSize = ({
   height: number;
   legendRowCount: number;
 }): number => {
-  const footer = CHART_FOOTER_ROW_HEIGHT * (1 + legendRowCount);
+  const legendGaps = Math.max(legendRowCount - 1, 0) * DONUT_LEGEND_ROW_GAP;
+  const legendHeight =
+    legendRowCount * CHART_FOOTER_ROW_HEIGHT + DONUT_LEGEND_PADDING * 2 + legendGaps;
+  const footer = CHART_FOOTER_ROW_HEIGHT + legendHeight;
   return Math.max(Math.min(chartWidth, height - footer), MIN_DONUT_SIZE);
 };
 
