@@ -9,6 +9,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 - Display: `Text`, `Heading`, `Badge`, `DataTable`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
+- Notifications: `NotificationBell`, `NotificationInbox`, `NotificationPreferences`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
 - Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
@@ -57,6 +58,46 @@ const customStyle: StyleProp<ViewStyle> = {
 - Avoids version mismatches between your app's react-native and @terreno/ui's react-native
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
+
+## Notification components
+
+Presentational only — no syncdb import. Wire data from your app's sync layer.
+These components are not in the isolated UI component demo; see `example-frontend`.
+
+### `NotificationBell`
+
+| Prop | Type | Description |
+|---|---|---|
+| `unreadCount` | `number` | Badge hidden when `0` |
+| `onPress` | `() => void` | Opens the inbox (host owns visibility) |
+| `renderBadge` | `({unreadCount, testID}) => ReactNode` | Replaces the default unread-count badge |
+| `renderIcon` | `({testID}) => ReactNode` | Replaces the default bell icon |
+| `testID` | `string` | Default `notification-bell` |
+
+Custom renderers keep the built-in 40×40 tap target, positioning, toggle callback, and
+accessible unread-count label. `renderBadge` runs only when `unreadCount > 0`.
+
+### `NotificationInbox`
+
+List-only; wrap in `SideDrawer`, `Modal`, or a sheet in the host screen.
+
+| Prop | Type | Description |
+|---|---|---|
+| `items` | `NotificationInboxItem[]` | Rows to render |
+| `isLoading` | `boolean` | Shows spinner |
+| `onMarkRead` / `onMarkUnread` | `(item) => void` | Toggle `readAt` via syncdb |
+| `onDismiss` | `(item) => void` | Archive the row (`archivedAt` via syncdb) |
+| `onOpen` | `(item) => void` | Tap handler (e.g. Expo Router for `href`) |
+
+`NotificationInboxItem.archived` is optional. Archived rows receive an `Archived` label
+and do not expose dismiss or read-state actions.
+
+### `NotificationPreferences`
+
+| Prop | Type | Description |
+|---|---|---|
+| `preferences` | `{inapp, mail, push, sms}` | Current toggles |
+| `onChange` | `(channel, value) => void` | Per-channel updates |
 
 ## Component Behaviors
 

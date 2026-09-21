@@ -90,7 +90,7 @@ import {AnnouncementNavigator} from "@terreno/ui";
 </AnnouncementNavigator>
 ```
 
-Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The navigator sends the native platform (`ios` / `android` / `web`) and, when available, the app build number from `Constants.expoConfig.extra.buildNumber` (same source as `useUpgradeCheck`) on pending and feed requests. Only pending failures block the app — changelog feed errors are non-fatal.
+Place it after consent/onboarding wrappers if you use `ConsentNavigator`. The navigator sends the native platform (`ios` / `android` / `web`) and, when available, the app build number from `Constants.expoConfig.extra.buildNumber` (same source as `useUpgradeCheck`) on pending and feed requests. Only pending failures block the app — changelog feed errors are non-fatal. These surfaces are not in the `@terreno/ui` component demo; wire them in the app (`example-frontend`) the same way.
 
 ## Modal vs banner
 

@@ -25,7 +25,7 @@ const E2E_SHARDS: Record<string, string[]> = {
     "admin-custom-screens",
     "admin-comms-back",
   ],
-  app: ["todos", "profile", "realtime", "ai-chat", "pdf"],
+  app: ["todos", "profile", "realtime", "ai-chat", "pdf", "notifications"],
   auth: ["login", "signup", "consents", "forgot-password", "reset-password", "verify-email"],
   syncdb: [
     "syncdb-load-delta",
@@ -204,7 +204,7 @@ describe("CircleCI concurrency", () => {
     assert.match(coverage, /--skip-packages=/);
     const scripts = jobCommandBlock(continueConfig, "coverage-scripts");
     assert.ok(scripts);
-    assert.match(scripts, /scripts\/check-new-file-coverage\.test\.ts/);
+    assert.match(scripts, /scripts\/check-new-file-coverage.test.ts/);
     const apiCi = jobCommandBlock(continueConfig, "api-ci");
     assert.ok(apiCi);
     assert.match(apiCi, /check_new_file_lcov/);

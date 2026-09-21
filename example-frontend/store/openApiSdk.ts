@@ -5,6 +5,7 @@ export const addTagTypes = [
   "gpt",
   "ai",
   "settings",
+  "notifications",
   "todos",
   "loadtest",
   "exampleprojects",
@@ -15,7 +16,7 @@ export const addTagTypes = [
   "featureflags",
   "jobs",
   "mcpservicetokens",
-  "adminauditlogs",
+  "auditevents",
   "consentforms",
   "consentresponses",
   "announcements",
@@ -23,6 +24,7 @@ export const addTagTypes = [
   "announcementimpressions",
   "announcementclickevents",
   "adminMigrations",
+  "notificationpreferences",
   "organizations",
   "mcp",
 ] as const;
@@ -159,6 +161,26 @@ const injectedRtkApi = api
           }),
         }
       ),
+      deleteNotificationPreferencesById: build.mutation<
+        DeleteNotificationPreferencesByIdRes,
+        DeleteNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notification-preferences/${queryArg}`,
+        }),
+      }),
+      deleteNotificationsById: build.mutation<
+        DeleteNotificationsByIdRes,
+        DeleteNotificationsByIdArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notifications/${queryArg}`,
+        }),
+      }),
       deleteOrgsById: build.mutation<DeleteOrgsByIdRes, DeleteOrgsByIdArgs>({
         invalidatesTags: ["organizations"],
         query: (queryArg) => ({method: "DELETE", url: `/orgs/${queryArg}`}),
@@ -305,29 +327,30 @@ const injectedRtkApi = api
         providesTags: ["announcements"],
         query: (queryArg) => ({url: `/admin/announcements/${queryArg}`}),
       }),
-      getAdminAuditLogs: build.query<GetAdminAuditLogsRes, GetAdminAuditLogsArgs>({
-        providesTags: ["adminauditlogs"],
+      getAdminAuditEvents: build.query<GetAdminAuditEventsRes, GetAdminAuditEventsArgs>({
+        providesTags: ["auditevents"],
         query: (queryArg) => ({
           params: {
             _id: queryArg._id,
             actorId: queryArg.actorId,
-            createdAt: queryArg.createdAt,
+            created: queryArg.created,
             limit: queryArg.limit,
             modelName: queryArg.modelName,
             page: queryArg.page,
             q: queryArg.q,
-            recordId: queryArg.recordId,
             recordLabel: queryArg.recordLabel,
             sort: queryArg.sort,
             verb: queryArg.verb,
           },
-          url: `/admin/audit-logs/`,
+          url: `/admin/audit-events/`,
         }),
       }),
-      getAdminAuditLogsById: build.query<GetAdminAuditLogsByIdRes, GetAdminAuditLogsByIdArgs>({
-        providesTags: ["adminauditlogs"],
-        query: (queryArg) => ({url: `/admin/audit-logs/${queryArg}`}),
-      }),
+      getAdminAuditEventsById: build.query<GetAdminAuditEventsByIdRes, GetAdminAuditEventsByIdArgs>(
+        {
+          providesTags: ["auditevents"],
+          query: (queryArg) => ({url: `/admin/audit-events/${queryArg}`}),
+        }
+      ),
       getAdminConfig: build.query<GetAdminConfigRes, GetAdminConfigArgs>({
         providesTags: ["admin"],
         query: () => ({url: `/admin/config`}),
@@ -658,6 +681,49 @@ const injectedRtkApi = api
         providesTags: ["admin", "jobs"],
         query: () => ({url: `/jobs/stats`}),
       }),
+      getNotificationPreferences: build.query<
+        GetNotificationPreferencesRes,
+        GetNotificationPreferencesArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            sort: queryArg.sort,
+          },
+          url: `/notification-preferences/`,
+        }),
+      }),
+      getNotificationPreferencesById: build.query<
+        GetNotificationPreferencesByIdRes,
+        GetNotificationPreferencesByIdArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({url: `/notification-preferences/${queryArg}`}),
+      }),
+      getNotifications: build.query<GetNotificationsRes, GetNotificationsArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            archivedAt: queryArg.archivedAt,
+            kind: queryArg.kind,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            readAt: queryArg.readAt,
+            sort: queryArg.sort,
+          },
+          url: `/notifications/`,
+        }),
+      }),
+      getNotificationsById: build.query<GetNotificationsByIdRes, GetNotificationsByIdArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({url: `/notifications/${queryArg}`}),
+      }),
       getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
         providesTags: ["organizations"],
         query: () => ({url: `/orgs/`}),
@@ -850,6 +916,27 @@ const injectedRtkApi = api
           url: `/gpt/histories/${queryArg.id}/rating`,
         }),
       }),
+      patchNotificationPreferencesById: build.mutation<
+        PatchNotificationPreferencesByIdRes,
+        PatchNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/notification-preferences/${queryArg.id}`,
+        }),
+      }),
+      patchNotificationsById: build.mutation<PatchNotificationsByIdRes, PatchNotificationsByIdArgs>(
+        {
+          invalidatesTags: ["notifications"],
+          query: (queryArg) => ({
+            body: queryArg.body,
+            method: "PATCH",
+            url: `/notifications/${queryArg.id}`,
+          }),
+        }
+      ),
       patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
         invalidatesTags: ["organizations"],
         query: (queryArg) => ({
@@ -947,15 +1034,15 @@ const injectedRtkApi = api
           url: `/admin/announcements/bulk-patch`,
         }),
       }),
-      postAdminAuditLogsBulkPatch: build.mutation<
-        PostAdminAuditLogsBulkPatchRes,
-        PostAdminAuditLogsBulkPatchArgs
+      postAdminAuditEventsBulkPatch: build.mutation<
+        PostAdminAuditEventsBulkPatchRes,
+        PostAdminAuditEventsBulkPatchArgs
       >({
         invalidatesTags: ["admin"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
-          url: `/admin/audit-logs/bulk-patch`,
+          url: `/admin/audit-events/bulk-patch`,
         }),
       }),
       postAdminBackgroundTasks: build.mutation<
@@ -1176,6 +1263,35 @@ const injectedRtkApi = api
           method: "POST",
           url: `/jobs/schedules/${queryArg}/resume`,
         }),
+      }),
+      postNotificationPreferences: build.mutation<
+        PostNotificationPreferencesRes,
+        PostNotificationPreferencesArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/notification-preferences/`,
+        }),
+      }),
+      postNotificationsDevNotify: build.mutation<
+        PostNotificationsDevNotifyRes,
+        PostNotificationsDevNotifyArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/notifications/dev/notify`,
+        }),
+      }),
+      postNotificationsMarkAllRead: build.mutation<
+        PostNotificationsMarkAllReadRes,
+        PostNotificationsMarkAllReadArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: () => ({method: "POST", url: `/notifications/mark-all-read`}),
       }),
       postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
         invalidatesTags: ["organizations"],
@@ -1657,6 +1773,17 @@ export type SettingsGcsRes = /** status 200 Successful response */ {
   };
 };
 export type SettingsGcsArgs = undefined;
+export type PostNotificationsDevNotifyRes = /** status 200 Success */ {
+  data?: {
+    notificationId?: string;
+  };
+};
+export type PostNotificationsDevNotifyArgs = {
+  body?: string;
+  href?: string;
+  kind?: string;
+  title?: string;
+};
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
@@ -2892,111 +3019,6 @@ export type GetAdminMcpServiceTokensByIdRes = /** status 200 Successful read */ 
 export type GetAdminMcpServiceTokensByIdArgs = string;
 export type DeleteAdminMcpServiceTokensByIdRes = unknown;
 export type DeleteAdminMcpServiceTokensByIdArgs = string;
-export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
-  failures?: any;
-  updated?: number;
-};
-export type PostAdminAuditLogsBulkPatchArgs = {
-  /** Document ids to update */
-  ids: string[];
-  /** Partial document; keys must be allowlisted for this model */
-  patch: object;
-};
-export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
-  data?: {
-    /** User who performed the action */
-    actorId?: string;
-    /** Mongoose model name affected */
-    modelName: string;
-    /** Primary key of the affected document */
-    recordId?: string;
-    /** Human-readable label for the record */
-    recordLabel?: string;
-    /** Mutation kind */
-    verb: "created" | "deleted" | "updated";
-    _id: string;
-    createdAt?: string;
-    updatedAt?: string;
-    /** When this document was last updated */
-    updated: string;
-    /** When this document was created */
-    created: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
-  }[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-};
-export type GetAdminAuditLogsArgs = {
-  _id?: {
-    $in?: string[];
-  };
-  q?:
-    | any
-    | {
-        $in?: any[];
-      };
-  verb?:
-    | ("created" | "deleted" | "updated")
-    | {
-        $in?: string[];
-      };
-  modelName?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordLabel?:
-    | string
-    | {
-        $in?: string[];
-      };
-  recordId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  actorId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  createdAt?:
-    | string
-    | {
-        $gt?: string;
-        $gte?: string;
-        $lt?: string;
-        $lte?: string;
-      };
-  page?: number;
-  sort?: string;
-  limit?: number;
-};
-export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
-  /** User who performed the action */
-  actorId?: string;
-  /** Mongoose model name affected */
-  modelName: string;
-  /** Primary key of the affected document */
-  recordId?: string;
-  /** Human-readable label for the record */
-  recordLabel?: string;
-  /** Mutation kind */
-  verb: "created" | "deleted" | "updated";
-  _id: string;
-  createdAt?: string;
-  updatedAt?: string;
-  /** When this document was last updated */
-  updated: string;
-  /** When this document was created */
-  created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
-};
-export type GetAdminAuditLogsByIdArgs = string;
 export type PostAdminFeatureFlagsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3356,6 +3378,122 @@ export type PatchAdminFeatureFlagsByIdArgs = {
 };
 export type DeleteAdminFeatureFlagsByIdRes = unknown;
 export type DeleteAdminFeatureFlagsByIdArgs = string;
+export type PostAdminAuditEventsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAuditEventsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAuditEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** User who performed the mutation, when known */
+    actorId?: string;
+    /** Redacted changed fields after the mutation */
+    after?: any;
+    /** Redacted changed fields before the mutation */
+    before?: any;
+    /** Mongoose model name of the affected document */
+    modelName: string;
+    /** Fine-grained mutation kind */
+    operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+    /** Tenant organization id when known */
+    organizationId?: string;
+    /** Primary key of the affected document */
+    recordId?: string;
+    /** Short human-readable label for the affected record */
+    recordLabel?: string;
+    /** Which framework surface wrote this event */
+    source: "admin" | "modelRouter" | "rbac";
+    /** Widget-compatible mutation verb */
+    verb: "created" | "deleted" | "updated";
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAuditEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  verb?:
+    | ("created" | "deleted" | "updated")
+    | {
+        $in?: string[];
+      };
+  modelName?:
+    | string
+    | {
+        $in?: string[];
+      };
+  recordLabel?:
+    | string
+    | {
+        $in?: string[];
+      };
+  actorId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAuditEventsByIdRes = /** status 200 Successful read */ {
+  /** User who performed the mutation, when known */
+  actorId?: string;
+  /** Redacted changed fields after the mutation */
+  after?: any;
+  /** Redacted changed fields before the mutation */
+  before?: any;
+  /** Mongoose model name of the affected document */
+  modelName: string;
+  /** Fine-grained mutation kind */
+  operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+  /** Tenant organization id when known */
+  organizationId?: string;
+  /** Primary key of the affected document */
+  recordId?: string;
+  /** Short human-readable label for the affected record */
+  recordLabel?: string;
+  /** Which framework surface wrote this event */
+  source: "admin" | "modelRouter" | "rbac";
+  /** Widget-compatible mutation verb */
+  verb: "created" | "deleted" | "updated";
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+};
+export type GetAdminAuditEventsByIdArgs = string;
 export type PostAdminConsentFormsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -5024,6 +5162,355 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
+export type PostNotificationsMarkAllReadRes = /** status 200 Success */ {
+  data?: {
+    modified?: number;
+  };
+};
+export type PostNotificationsMarkAllReadArgs = undefined;
+export type GetNotificationsRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+    archivedAt?: string;
+    /** Main notification message text shown in the inbox */
+    body: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  readAt?:
+    | string
+    | {
+        /** When the owner marked this notification as read; null means unread */
+        $gt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $gte?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lte?: string;
+      };
+  archivedAt?:
+    | string
+    | {
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $gt?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $gte?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $lt?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $lte?: string;
+      };
+  kind?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationsByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+  archivedAt?: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationsByIdArgs = string;
+export type PatchNotificationsByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+  archivedAt?: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationsByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+    archivedAt?: string;
+    /** Main notification message text shown in the inbox */
+    body?: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId?: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationsByIdRes = unknown;
+export type DeleteNotificationsByIdArgs = string;
+export type PostNotificationPreferencesRes = /** status 201 Successful create */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PostNotificationPreferencesArgs = {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id?: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId?: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationPreferencesArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationPreferencesByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesByIdArgs = string;
+export type PatchNotificationPreferencesByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationPreferencesByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId?: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationPreferencesByIdRes = unknown;
+export type DeleteNotificationPreferencesByIdArgs = string;
 export type GetAnnouncementsConfigRes = /** status 200 Success */ {
   data?: {
     /** "required" or "dismiss-only" */
@@ -5379,14 +5866,6 @@ export type PatchAnnouncementsByIdArgs = {
 };
 export type DeleteAnnouncementsByIdRes = unknown;
 export type DeleteAnnouncementsByIdArgs = string;
-export type AdminMigrationsRunRes = /** status 201 Successful response */ {
-  data?: object;
-};
-export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
-export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
-  data?: object;
-};
-export type AdminMigrationsStatusArgs = undefined;
 export type PostOrgsRes = unknown;
 export type PostOrgsArgs = {
   /** Organization name */
@@ -5521,6 +6000,7 @@ export const {
   useSettingsClearGcsMutation,
   useSettingsConfigureGcsMutation,
   useSettingsGcsQuery,
+  usePostNotificationsDevNotifyMutation,
   useTodosMarkCompleteMutation,
   useLoadtestLoadtestChurnMutation,
   useLoadtestLoadtestClearMutation,
@@ -5572,15 +6052,15 @@ export const {
   useGetAdminMcpServiceTokensQuery,
   useGetAdminMcpServiceTokensByIdQuery,
   useDeleteAdminMcpServiceTokensByIdMutation,
-  usePostAdminAuditLogsBulkPatchMutation,
-  useGetAdminAuditLogsQuery,
-  useGetAdminAuditLogsByIdQuery,
   usePostAdminFeatureFlagsBulkPatchMutation,
   usePostAdminFeatureFlagsMutation,
   useGetAdminFeatureFlagsQuery,
   useGetAdminFeatureFlagsByIdQuery,
   usePatchAdminFeatureFlagsByIdMutation,
   useDeleteAdminFeatureFlagsByIdMutation,
+  usePostAdminAuditEventsBulkPatchMutation,
+  useGetAdminAuditEventsQuery,
+  useGetAdminAuditEventsByIdQuery,
   usePostAdminConsentFormsBulkPatchMutation,
   usePostAdminConsentFormsMutation,
   useGetAdminConsentFormsQuery,
@@ -5617,6 +6097,18 @@ export const {
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
+  usePostNotificationsMarkAllReadMutation,
+  useGetNotificationsQuery,
+  useGetNotificationsByIdQuery,
+  usePatchNotificationsByIdMutation,
+  useDeleteNotificationsByIdMutation,
+  usePostNotificationPreferencesMutation,
+  useGetNotificationPreferencesQuery,
+  useGetNotificationPreferencesByIdQuery,
+  usePatchNotificationPreferencesByIdMutation,
+  useDeleteNotificationPreferencesByIdMutation,
   useGetAnnouncementsConfigQuery,
   useGetAnnouncementsOverviewQuery,
   usePostAnnouncementsMutation,
@@ -5624,8 +6116,6 @@ export const {
   useGetAnnouncementsByIdQuery,
   usePatchAnnouncementsByIdMutation,
   useDeleteAnnouncementsByIdMutation,
-  useAdminMigrationsRunMutation,
-  useAdminMigrationsStatusQuery,
   usePostOrgsMutation,
   useGetOrgsQuery,
   useGetOrgsMineQuery,

@@ -159,7 +159,7 @@ Set these environment variables on the MCP server to include live announcements:
 
 ## Consumer UI
 
-`@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `AnnouncementBanner`, `useAnnouncements`, and `useAcknowledgeAnnouncement`.
+`@terreno/ui` exports `AnnouncementNavigator`, `AnnouncementScreen`, `AnnouncementBanner`, `useAnnouncements`, and `useAcknowledgeAnnouncement`. These are app-level product surfaces — they are not registered in the isolated UI component demo. Wire them in a consumer app (`example-frontend`) with a real API.
 
 - Pending and feed requests send the current client platform (`ios`, `android`, or `web`) and, when available, the app build number from `Constants.expoConfig.extra.buildNumber` (same source as `useUpgradeCheck`).
 - `requiresAcknowledgement` on pending/feed items is resolved server-side from `acknowledgementPolicy` and `defaultAcknowledgementPolicy`; the navigator trusts that flag.

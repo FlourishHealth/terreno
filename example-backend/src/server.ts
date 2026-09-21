@@ -16,6 +16,8 @@ import {
   Membership,
   type ModelRouterOptions,
   type ModelRouterRegistration,
+  NotificationsApp,
+  notificationsBeforeSend,
   RealtimeApp,
   rbacRouter,
   registerOrganizationSettings,
@@ -47,6 +49,7 @@ import {adminScripts} from "./adminScripts";
 import {addAiRoutes, aiModelsRouter} from "./api/ai";
 import {commsDevRouter} from "./api/commsDev";
 import {mcpServiceTokenAdminModel} from "./api/mcpServiceTokensAdmin";
+import {addDevNotificationRoutes} from "./api/notificationsDev";
 import {projectOrgContextPlugin, projectRouter} from "./api/projects";
 import {settingsRouter} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -75,6 +78,10 @@ import {createExampleInboundWebhooks} from "./webhooksExample";
 import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
+const notificationsApp = new NotificationsApp({
+  getComms: getCommsService,
+  userModel: User,
+});
 
 type RegisterRoutesWithOptions = (
   router: express.Router,
@@ -116,11 +123,6 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     userModel: User as unknown as TerrenoAuthUserModel,
     wetRun: process.env.RBAC_BACKFILL_ADMINS === "true",
   });
-
-  if (process.env.SEED_DEFAULTS === "true") {
-    logger.info("Seeding default example data");
-    await seedDefaultData();
-  }
 
   // Sync default consent forms on startup
   await syncConsents(consentDefinitions).catch((err: unknown) => {
@@ -226,6 +228,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(aiModelsRouter)
       .register(settingsRouter)
+      .register(createOpenApiAwareRouteRegistration(addDevNotificationRoutes))
       .register(todoRouter)
       .register(projectOrgContextPlugin)
       .register(projectRouter)
@@ -349,6 +352,16 @@ export const start = async (skipListen = false): Promise<express.Application> =>
         new CommsApp(
           isDeployed
             ? {
+                beforeSend: async (context) => {
+                  const notificationResult = await notificationsBeforeSend({
+                    channel: context.channel,
+                    userId: context.userId,
+                  });
+                  if (notificationResult?.cancel) {
+                    return {cancel: true};
+                  }
+                  return undefined;
+                },
                 ...(mailProvider ? {mail: mailProvider} : {}),
                 ...(smsProvider ? {sms: smsProvider} : {}),
                 ...(verificationProvider ? {verification: verificationProvider} : {}),
@@ -358,6 +371,16 @@ export const start = async (skipListen = false): Promise<express.Application> =>
                 ...(inboundWebhookPublicUrl ? {webhookPublicUrl: inboundWebhookPublicUrl} : {}),
               }
             : {
+                beforeSend: async (context) => {
+                  const notificationResult = await notificationsBeforeSend({
+                    channel: context.channel,
+                    userId: context.userId,
+                  });
+                  if (notificationResult?.cancel) {
+                    return {cancel: true};
+                  }
+                  return undefined;
+                },
                 defaultFrom: process.env.COMMS_DEFAULT_FROM,
                 mail: mailProvider ?? new ConsoleMailProvider(),
                 push: pushProvider,
@@ -425,6 +448,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           supportedLocales: ["en", "es"],
         })
       )
+      .register(notificationsApp)
       .register(
         new AnnouncementsApp({
           adminOverviewPermissions: [access.permission({adminAnnouncement: ["read"]})],
@@ -482,6 +506,11 @@ export const start = async (skipListen = false): Promise<express.Application> =>
           secretKey: process.env.LANGFUSE_SECRET_KEY,
         })
       );
+    }
+
+    if (process.env.SEED_DEFAULTS === "true") {
+      logger.info("Seeding default example data after sync collections are registered");
+      await seedDefaultData();
     }
 
     const app = terraApp.start();
