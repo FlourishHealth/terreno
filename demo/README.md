@@ -38,6 +38,7 @@ The demo serves on **port 8085**. Open the Expo web URL that the CLI prints (typ
 - `app/dev/` — developer playground routes
 - `assets/terreno-garden-banner.png` — two-card-wide banner at the upper-left of the demo grid
 - `assets/icon.png`, `adaptive-icon.png`, `favicon.png` — demo checklist branding
+- Product announcements (`AnnouncementNavigator`, `AnnouncementBanner`, `AnnouncementScreen`) and in-app notifications (`NotificationBell`, `NotificationInbox`, `NotificationPreferences`) are **not** demoed here — use `example-frontend`
 - From the repo root, `bun run check:demo-coverage` fails CI when a `@terreno/ui` export has no story and no allowlist reason
 - `bun run --filter terreno-demo test:ci` mounts every registered story with `renderWithTheme`
 
