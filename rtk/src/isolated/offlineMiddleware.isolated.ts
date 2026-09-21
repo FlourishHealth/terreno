@@ -835,6 +835,26 @@ describe("createOfflineMiddleware", () => {
       expect(headers["X-Unmodified-Since-ISO"]).toBe("2025-03-03T03:03:03.000Z");
     });
 
+    it("ignores get-by-id cache entries without a string updated value", async () => {
+      store.dispatch(
+        api.util.upsertQueryData(
+          "getTodosById",
+          {id: "123"},
+          {
+            data: {_id: "123", title: "No timestamp"},
+          }
+        )
+      );
+      await waitForEffects();
+      goOfflineAndQueue(store, {originalArgs: {body: {title: "Patched"}, id: "123"}});
+
+      await syncQueuedMutations(store);
+
+      const [, options] = getFetchCall();
+      const headers = options.headers as Record<string, string>;
+      expect(headers["X-Unmodified-Since-ISO"]).toBeUndefined();
+    });
+
     it("converts a list cache Date updated value to ISO", async () => {
       const updated = new Date("2025-04-04T04:04:04.000Z");
       await seedTodosCache(store, {}, [{id: "123", title: "Listed", updated}]);
