@@ -114,6 +114,22 @@ describe("openApiValidator", () => {
       const res = await admin.post("/required").send({about: "no name"}).expect(400);
       expect(res.body.title).toBe("Request validation failed");
     });
+
+    it("allows PATCH bodies that omit mongoose required fields", async () => {
+      configureOpenApiValidator();
+
+      const freshApp = await setupFreshApp();
+      freshApp.use("/required", modelRouter(RequiredModel, requiredRouterOptions));
+      const admin = await authAsUser(freshApp, "admin");
+      const created = await admin.post("/required").send({name: "Apple"}).expect(201);
+
+      const patched = await admin
+        .patch(`/required/${created.body.data._id}`)
+        .send({about: "partial"})
+        .expect(200);
+      expect(patched.body.data.name).toBe("Apple");
+      expect(patched.body.data.about).toBe("partial");
+    });
   });
 
   describe("onAdditionalPropertiesRemoved hook", () => {
@@ -845,6 +861,23 @@ describe("openApiValidator", () => {
       // Without 'name' required, empty body passes
       let nextCalled = false;
       const req = {body: {}, method: "POST", path: "/required"} as unknown as Request;
+      const res = {} as Response;
+      middleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(true);
+    });
+
+    it("does not require mongoose required fields when partial is true", () => {
+      const middleware = validateModelRequestBody(RequiredModel, {partial: true});
+
+      let nextCalled = false;
+      const req = {
+        body: {about: "only about"},
+        method: "PATCH",
+        path: "/required",
+      } as unknown as Request;
       const res = {} as Response;
       middleware(req, res, () => {
         nextCalled = true;

@@ -65,6 +65,7 @@ jobs:
           - ai-chat
           - realtime
           - pdf
+          - notifications
           - admin-title-update-depth
           - syncdb-load-delta
           - syncdb-offline

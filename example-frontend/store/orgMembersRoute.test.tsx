@@ -17,9 +17,15 @@ mock.module("@terreno/admin-frontend", () => ({
 }));
 mock.module("expo-router", () => ({
   useLocalSearchParams: () => searchParamsState,
+  // Include useRouter so this incomplete mock does not break sibling suites that
+  // import {useRouter} from "expo-router" under Bun's process-global mock.module.
+  useRouter: () => ({back: (): void => {}, push: (): void => {}}),
 }));
 mock.module("@/store/sdk", () => ({
   terrenoApi: mockTerrenoApi,
+  // Sibling suites import named RTK hooks from this module under Bun's
+  // process-global mock.module; keep stubs so those exports stay resolvable.
+  usePostNotificationsDevNotifyMutation: () => [async (): Promise<void> => {}, {isLoading: false}],
 }));
 
 let OrgMembersRoute: React.FC;

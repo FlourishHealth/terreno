@@ -1,5 +1,5 @@
 import {describe, it} from "bun:test";
-import {ConsentForm, Membership, Organization, runSeeds} from "@terreno/api";
+import {ConsentForm, Membership, Notification, Organization, runSeeds} from "@terreno/api";
 import {CommsMessage} from "@terreno/comms";
 import {assert} from "chai";
 import {DateTime} from "luxon";
@@ -56,6 +56,23 @@ describe("seedDefaultData", () => {
     );
     assert.equal(await Project.countDocuments({organizationId: String(alpha._id)}), 2);
     assert.equal(await Todo.countDocuments({ownerId: user._id}), 2);
+    assert.equal(await Notification.countDocuments({kind: "seed", ownerId: user._id}), 3);
+    assert.equal(
+      await Notification.countDocuments({
+        archivedAt: {$ne: null},
+        kind: "seed",
+        ownerId: user._id,
+      }),
+      1
+    );
+    const archivedExample = await Notification.findExactlyOne({
+      kind: "seed",
+      ownerId: user._id,
+      title: "Archived example",
+    });
+    assert.isOk(archivedExample.archivedAt);
+    assert.isFalse(archivedExample.deleted);
+    assert.isNumber(archivedExample.get("_syncSeq"));
     assert.equal(await ConsentForm.countDocuments({}), 3);
     assert.equal(await CommsMessage.countDocuments({"metadata.demoSeed": true}), 10);
     assert.equal(
