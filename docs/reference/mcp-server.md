@@ -120,6 +120,9 @@ agent can attach the rendered result as verification evidence. It keeps one head
 for the MCP connection. Call `open` first, perform interactions, call `snapshot` and `screenshot` to
 prove the final state, then call `close`.
 
+`open` accepts only `http:` and `https:` URLs. Snapshots redact password input values; use them for
+page structure and visible state, not credential inspection.
+
 ``````json
 {"name":"browser","arguments":{"action":"open","url":"http://localhost:8082","width":1280,"height":720}}
 {"name":"browser","arguments":{"action":"wait","timeout":1000}}

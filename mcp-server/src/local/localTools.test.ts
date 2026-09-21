@@ -201,6 +201,7 @@ describe("local MCP runtime tools", () => {
     devGlobal.__TERRENO_STORE__ = {
       getState: (): Record<string, unknown> => ({
         betterAuth: {
+          createdAt: new Date("2026-09-21T00:00:00.000Z"),
           sessionToken: "session-token",
           user: {id: "better-auth-user"},
         },
@@ -208,12 +209,14 @@ describe("local MCP runtime tools", () => {
     };
     expect(JSON.parse(await getRtkState({slice: "auth"}))).toEqual({
       auth: {
+        createdAt: "2026-09-21T00:00:00.000Z",
         sessionToken: "[REDACTED]",
         user: {id: "better-auth-user"},
       },
     });
     expect(JSON.parse(await getRtkState({slice: "betterAuth"}))).toEqual({
       betterAuth: {
+        createdAt: "2026-09-21T00:00:00.000Z",
         sessionToken: "[REDACTED]",
         user: {id: "better-auth-user"},
       },

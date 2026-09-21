@@ -23,6 +23,9 @@ const redactStateValue = (value: unknown, key?: string): unknown => {
   if (Array.isArray(value)) {
     return value.map((item) => redactStateValue(item));
   }
+  if (value instanceof Date) {
+    return value;
+  }
   if (typeof value !== "object" || value === null) {
     return value;
   }

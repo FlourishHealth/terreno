@@ -39,7 +39,11 @@ describe("Bun.WebView integration", () => {
       "<main><h1 id='status'>Ready</h1><button id='prove' " +
       "onclick=\"this.previousElementSibling.textContent='Proof passed'\">Prove</button>" +
       "<input aria-label='Name'></main>";
-    const url = `data:text/html,${encodeURIComponent(html)}`;
+    const server = Bun.serve({
+      fetch: (): Response => new Response(html, {headers: {"Content-Type": "text/html"}}),
+      port: 0,
+    });
+    const url = `http://127.0.0.1:${server.port}`;
 
     try {
       await session.run({action: "open", url});
@@ -56,6 +60,7 @@ describe("Bun.WebView integration", () => {
       assert.isAbove((await stat(output)).size, 0);
     } finally {
       session.close();
+      server.stop(true);
       await rm(projectRoot, {force: true, recursive: true});
       if (previousProjectRoot === undefined) {
         Reflect.deleteProperty(process.env, "TERRENO_PROJECT_ROOT");

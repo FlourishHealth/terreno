@@ -100,6 +100,7 @@ describe("BrowserSession", () => {
       snapshot: {text: "Rendered app"},
     });
     assert.include(calls.evaluations[0] ?? "", "document.querySelectorAll");
+    assert.include(calls.evaluations[0] ?? "", 'text: element.getAttribute("type") === "password"');
   });
 
   it("requires an open session and action inputs", async (): Promise<void> => {
@@ -117,6 +118,19 @@ describe("BrowserSession", () => {
       assert.fail("Expected an empty URL to fail");
     } catch (error) {
       assert.include(String(error), "requires url");
+    }
+  });
+
+  it("rejects unsafe browser schemes before opening a view", async (): Promise<void> => {
+    const session = new BrowserSession(() => createFakeView(createCalls()));
+
+    for (const url of ["data:text/html,hello", "file:///etc/passwd", "javascript:alert(1)"]) {
+      try {
+        await session.run({action: "open", url});
+        assert.fail(`Expected ${url} to be rejected`);
+      } catch (error) {
+        assert.include(String(error), "only supports http and https");
+      }
     }
   });
 

@@ -94,7 +94,9 @@ const PAGE_SNAPSHOT_EXPRESSION = `(() => {
       placeholder: element.getAttribute("placeholder"),
       role: element.getAttribute("role") || element.tagName.toLowerCase(),
       selector,
-      text: (element.innerText || element.value || "").trim().slice(0, 300),
+      text: element.getAttribute("type") === "password"
+        ? "[REDACTED]"
+        : (element.innerText || element.value || "").trim().slice(0, 300),
       type: element.getAttribute("type"),
     };
   });
@@ -160,6 +162,15 @@ const requireValue = (value: string | undefined, name: string): string => {
   return trimmed;
 };
 
+const requireBrowserUrl = (value: string | undefined): string => {
+  const url = requireValue(value, "url");
+  const parsed = new URL(url);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Browser open only supports http and https URLs.");
+  }
+  return url;
+};
+
 export const isBrowserAction = (value: unknown): value is BrowserAction => {
   return typeof value === "string" && BROWSER_ACTIONS.includes(value as BrowserAction);
 };
@@ -187,7 +198,7 @@ export class BrowserSession {
   async run(args: BrowserToolArgs): Promise<unknown> {
     switch (args.action) {
       case "open": {
-        const url = requireValue(args.url, "url");
+        const url = requireBrowserUrl(args.url);
         this.close();
         const backend = process.platform === "darwin" ? "webkit" : "chrome";
         const dataStore = args.dataDir
