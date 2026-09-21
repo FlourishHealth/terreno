@@ -94,7 +94,7 @@ Use the MCP tools and prompts for:
 };
 
 const generateMcpSettings = (args: BootstrapArgs): string => {
-  const mcpUrl = args.mcpServerUrl || "https://mcp.terreno.flourish.health";
+  const mcpUrl = args.mcpServerUrl || "https://mcp.terreno.app";
   return JSON.stringify(
     {
       mcpServers: {
