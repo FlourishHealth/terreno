@@ -48,6 +48,9 @@ The tool reads `globalThis.__TERRENO_STORE__` registered by the app, using CDP w
 cannot access the app heap directly. `slice: "auth"` prefers the Better Auth slice and falls back to
 legacy JWT auth; pass `betterAuth` to request that exact slice. The CLI equivalent is:
 
+Sensitive fields whose names include `password`, `token`, `secret`, `authorization`, or `cookie` are
+returned as `[REDACTED]`; use this summary to inspect cache state, never to retrieve credentials.
+
 ```bash
 terreno state --slice rtk --query todos
 ```

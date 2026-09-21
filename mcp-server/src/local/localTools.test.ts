@@ -147,7 +147,10 @@ describe("local MCP runtime tools", () => {
           mutations: {
             updateTodo: {
               endpointName: "updateTodo",
-              originalArgs: {id: "todo-1"},
+              originalArgs: {
+                id: "todo-1",
+                nested: {accessToken: "access-token", password: "plaintext-password"},
+              },
               status: "pending",
             },
           },
@@ -162,6 +165,13 @@ describe("local MCP runtime tools", () => {
       queries: Array<{endpoint?: string}>;
     };
     expect(state.queries[0]?.endpoint).toBe("getTodos");
+    const mutationState = JSON.parse(await getRtkState({slice: "rtk"})) as {
+      mutations: Array<{args?: {nested?: {accessToken?: string; password?: string}}}>;
+    };
+    expect(mutationState.mutations[0]?.args?.nested).toEqual({
+      accessToken: "[REDACTED]",
+      password: "[REDACTED]",
+    });
     const noMatch = JSON.parse(await getRtkState({query: "missing", slice: "rtk"})) as {
       mutations: unknown[];
       queries: unknown[];
@@ -190,14 +200,23 @@ describe("local MCP runtime tools", () => {
 
     devGlobal.__TERRENO_STORE__ = {
       getState: (): Record<string, unknown> => ({
-        betterAuth: {user: {id: "better-auth-user"}},
+        betterAuth: {
+          sessionToken: "session-token",
+          user: {id: "better-auth-user"},
+        },
       }),
     };
     expect(JSON.parse(await getRtkState({slice: "auth"}))).toEqual({
-      auth: {user: {id: "better-auth-user"}},
+      auth: {
+        sessionToken: "[REDACTED]",
+        user: {id: "better-auth-user"},
+      },
     });
     expect(JSON.parse(await getRtkState({slice: "betterAuth"}))).toEqual({
-      betterAuth: {user: {id: "better-auth-user"}},
+      betterAuth: {
+        sessionToken: "[REDACTED]",
+        user: {id: "better-auth-user"},
+      },
     });
   });
 

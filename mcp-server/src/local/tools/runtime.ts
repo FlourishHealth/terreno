@@ -8,9 +8,30 @@ interface TerrenoDevStore {
   getState: () => Record<string, unknown>;
 }
 
+const SENSITIVE_STATE_FIELD_PATTERN = /(authorization|cookie|password|secret|token)/i;
+const REDACTED_STATE_VALUE = "[REDACTED]";
+
 const getDevStore = (): TerrenoDevStore | undefined => {
   return (globalThis as typeof globalThis & {__TERRENO_STORE__?: TerrenoDevStore})
     .__TERRENO_STORE__;
+};
+
+const redactStateValue = (value: unknown, key?: string): unknown => {
+  if (key && SENSITIVE_STATE_FIELD_PATTERN.test(key)) {
+    return REDACTED_STATE_VALUE;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactStateValue(item));
+  }
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([entryKey, entryValue]) => [
+      entryKey,
+      redactStateValue(entryValue, entryKey),
+    ])
+  );
 };
 
 const summarizeRtkCache = (state: Record<string, unknown>): unknown => {
@@ -29,12 +50,12 @@ const summarizeRtkCache = (state: Record<string, unknown>): unknown => {
   const queries = apiState.queries ?? {};
   const mutations = apiState.mutations ?? {};
   const qList = Object.values(queries).map((q) => ({
-    args: q.originalArgs,
+    args: redactStateValue(q.originalArgs),
     endpoint: q.endpointName,
     status: q.status,
   }));
   const mList = Object.values(mutations).map((m) => ({
-    args: m.originalArgs,
+    args: redactStateValue(m.originalArgs),
     endpoint: m.endpointName,
     status: m.status,
   }));
@@ -74,18 +95,18 @@ const summarizeClientState = (
   slice: string | undefined,
   query: string | undefined
 ): unknown => {
-  const auth = state.betterAuth ?? state.auth;
+  const auth = redactStateValue(state.betterAuth ?? state.auth);
   if (slice === "auth") {
     return {auth};
   }
   if (slice === "betterAuth") {
-    return {betterAuth: state.betterAuth};
+    return {betterAuth: redactStateValue(state.betterAuth)};
   }
   if (slice === "terreno-rtk" || slice === "rtk") {
     return filterByQuery(summarizeRtkCache(state), query);
   }
   if (slice) {
-    return {[slice]: state[slice]};
+    return {[slice]: redactStateValue(state[slice])};
   }
   return {
     auth,
