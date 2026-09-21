@@ -3,8 +3,6 @@ import {ActionSheetConfiguration} from "@story-config/ActionSheet.config";
 import {AddressFieldConfiguration} from "@story-config/AddressField.config";
 import {AIRequestExplorerConfiguration} from "@story-config/AIRequestExplorer.config";
 import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
-import {AnnouncementBannerConfiguration} from "@story-config/AnnouncementBanner.config";
-import {AnnouncementScreenConfiguration} from "@story-config/AnnouncementScreen.config";
 import {AttachmentPreviewConfiguration} from "@story-config/AttachmentPreview.config";
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
@@ -49,7 +47,6 @@ import {MarkdownViewConfiguration} from "@story-config/MarkdownView.config";
 import {MobileAddressAutocompleteConfiguration} from "@story-config/MobileAddressAutocomplete.config";
 import {ModalConfiguration} from "@story-config/Modal.config";
 import {MultiselectFieldConfiguration} from "@story-config/MultiselectField.config";
-import {NotificationCenterConfiguration} from "@story-config/NotificationCenter.config";
 import {NumberFieldConfiguration} from "@story-config/NumberField.config";
 import {NumberPickerActionSheetConfiguration} from "@story-config/NumberPickerActionSheet.config";
 import {OAuthButtonsConfiguration} from "@story-config/OAuthButtons.config";
@@ -268,8 +265,6 @@ const Config: DemoConfigurationBase[] = [
   AiSuggestionBoxConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
-  AnnouncementBannerConfiguration,
-  AnnouncementScreenConfiguration,
   AttachmentPreviewConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
@@ -315,7 +310,6 @@ const Config: DemoConfigurationBase[] = [
   // MessageConfiguration,
   ModalConfiguration,
   MobileAddressAutocompleteConfiguration,
-  NotificationCenterConfiguration,
   MultiselectFieldConfiguration,
   NumberFieldConfiguration,
   NumberPickerActionSheetConfiguration,

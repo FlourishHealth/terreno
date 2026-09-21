@@ -62,6 +62,7 @@ const customStyle: StyleProp<ViewStyle> = {
 ## Notification components
 
 Presentational only — no syncdb import. Wire data from your app's sync layer.
+These components are not in the isolated UI component demo; see `example-frontend`.
 
 ### `NotificationBell`
 
