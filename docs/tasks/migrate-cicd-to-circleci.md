@@ -178,7 +178,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Description: Port `maestro-e2e` (Chrome + xvfb against example-frontend, optional demo smokes) to CircleCI `node22_browsers_mongo_rs`. Appium Android remains separate.
   - Files: `.circleci/continue-config.yml`, `.circleci/config.yml`, `.github/workflows/maestro-e2e.yml`
   - Depends on: Task 5.2
-  - Acceptance: CircleCI `maestro-e2e` is the writer; GHA workflow is `on: []`.
+  - Acceptance: CircleCI `maestro-e2e` is the writer; GHA workflow is `push.branches-ignore: ["**"]`.
 
 - [ ] **Task 8.2**: Port Appium iOS on CircleCI macOS
   - Description: Select macOS resource class/image with Working WDA; port iOS job; compare flake rate to GHA `macos-15`.
@@ -207,7 +207,7 @@ Research: [`docs/implementationPlans/migrate-cicd-to-circleci-research.md`](../i
   - Acceptance: each former workflow’s acceptance behavior has an owner on CircleCI; GHA files deleted.
 
 - [x] **Task 9.3a**: Port architectural PR review
-  - Description: CircleCI `architectural-pr-review` runs `.github/scripts/architectural-pr-review.ts` after checking out `origin/master`. Skips forks and missing `CURSOR_API_KEY` / `GITHUB_TOKEN`. GHA workflow is `on: []`.
+  - Description: CircleCI `architectural-pr-review` runs `.github/scripts/architectural-pr-review.ts` after checking out `origin/master`. Skips forks and missing `CURSOR_API_KEY` / `GITHUB_TOKEN`. GHA workflow is `push.branches-ignore: ["**"]`.
   - Files: `.circleci/continue-config.yml`, `.github/workflows/architectural-pr-review.yml`, `.github/scripts/architectural-pr-review.ts`
   - Depends on: Task 0.2
   - Acceptance: CircleCI job is the writer; Cursor Approval Agent stays on GitHub.

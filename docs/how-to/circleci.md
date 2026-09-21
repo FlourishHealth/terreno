@@ -9,7 +9,7 @@ CircleCI Netlify and GCP production/preview jobs, but those jobs **skip green**
 until `terreno-netlify` and `terreno-gcp` are filled. GitHub Actions still
 owns live Netlify/GCP deploys in this window. Do not leave both applying
 terraform once CircleCI GCP deploys succeed — set the GHA deploy workflows
-back to `on: []` in the same change. GitHub-native security, Cursor GitHub App
+back to `push.branches-ignore: ["**"]` in the same change. GitHub-native security, Cursor GitHub App
 checks (Approval / Security / Bugbot), and repository automation remain
 enabled. EAS PR updates and the fingerprint gate are temporarily disabled;
 manual EAS development dispatch remains available in CircleCI. Preview
@@ -186,7 +186,7 @@ fails. Fork PRs still present `repository: FlourishHealth/terreno` on the
 OIDC token, so
 WIF would accept them if those jobs ran. Netlify GHA jobs fail closed on
 forks (secrets withheld). After filling a context, confirm a CircleCI deploy
-URL, then set the matching GHA workflows to `on: []`. Turn off Netlify's
+URL, then set the matching GHA workflows to `push.branches-ignore: ["**"]`. Turn off Netlify's
 GitHub auto-build so only one system publishes.
 
 ## Contexts (create empty shells, then fill)
@@ -243,7 +243,7 @@ are included by that script. Published packages without a dedicated workflow
 the same commands through the parameterized `packages-ci` job, gated by
 `run-admin-backend`, `run-admin-frontend`, `run-api-health`,
 `run-feature-flags`, and `run-test-package`. The retained
-`.github/workflows/packages-ci.yml` matrix twin stays `on: []`.
+`.github/workflows/packages-ci.yml` matrix twin stays `push.branches-ignore: ["**"]`.
 
 | GHA job `name:` / workflow | CircleCI job |
 |----------------------------|--------------|
@@ -401,11 +401,11 @@ circleci config validate .circleci/continue-config.yml
 
 ## Disabled GitHub workflows
 
-Package CI, e2e, and npm tag workflows stay `on: []`. Netlify/GCP deploy
+Package CI, e2e, and npm tag workflows stay `push.branches-ignore: ["**"]`. Netlify/GCP deploy
 workflows are **re-enabled** until CircleCI contexts have the same secrets.
 After a successful CircleCI production or preview deploy, set
 `docs-deploy.yml`, `demo-deploy.yml`, `frontend-example-deploy.yml`, `cd.yml`,
-and `preview-cleanup.yml` back to `on: []` in the same PR. Never enable both
+and `preview-cleanup.yml` back to `push.branches-ignore: ["**"]` in the same PR. Never enable both
 npm tag publishers. Never leave both GCP terraform applies enabled.
 
 ## Cursor GitHub App checks

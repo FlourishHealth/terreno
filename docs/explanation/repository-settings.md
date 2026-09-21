@@ -43,7 +43,7 @@ Package CI, policy, Playwright, Maestro web, architectural review, deploy, and
 release workflows run under `.circleci/` (see
 [how-to/circleci.md](../how-to/circleci.md)). Require the path-filtered CircleCI
 check names. Remove required GitHub Action checks for workflow files whose
-trigger is `on: []`; those checks cannot report anymore. Do not require the
+trigger is `push.branches-ignore: ["**"]`; those checks cannot report anymore. Do not require the
 config-only `circleci-config` workflow. Keep Cursor Approval / Security / Bugbot
 as GitHub App checks; they are not CircleCI jobs.
 
