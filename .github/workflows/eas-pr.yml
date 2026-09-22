@@ -82,16 +82,6 @@ jobs:
         with:
           bun-version: 1.4.0
 
-      - name: Cache bun + node_modules
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
       - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
@@ -190,16 +180,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
-
-      - name: Cache bun + node_modules
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
 
       - uses: expo/expo-github-action@v9
         with:

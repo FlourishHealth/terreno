@@ -38,17 +38,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
-
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:

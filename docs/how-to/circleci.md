@@ -48,6 +48,25 @@ list pipelines on the slug above.
 | `.circleci/config.yml` | Setup workflow + `path-filtering` (this is the live config) |
 | `.circleci/continue-config.yml` | Real jobs/workflows gated by those params |
 
+## Bun install is uncached
+
+`install_bun_and_deps` runs `bun install --frozen-lockfile` with
+`node/install-packages` `with-cache: false`. Do not restore `~/.bun/install/cache`.
+Measured on CircleCI (pipeline 1968 miss, 1969 exact lockfile hit, branch
+`chore/update-dependencies`):
+
+| Path | Restore | `bun install` | Save | Restore + install |
+| --- | --- | --- | --- | --- |
+| Cold (cache miss) | ~0.3s | ~11–21s (2488 packages) | ~17s on one job; others skip | **~12–21s** |
+| Warm (exact lockfile hit) | ~15–17s | ~6–7s | skip | **~21–24s** |
+| Stale fallback hit | ~22–73s | ~8–9s | skip | **~30–81s** |
+
+Cache restore costs more than it saves. First jobs on a branch miss because
+`include-branch-in-cache-key` was true. Parallel jobs cannot reuse a cache
+saved later in the same pipeline. GitHub Actions twins use
+`.github/actions/setup-bun-workspace` the same way (Bun pin + install, no
+package cache). Keep Playwright, Docusaurus, and fingerprint caches.
+
 Fork-only `dco` and PR `architectural-pr-review` always start on continuation
 (review skips before checkout when the agentic/GitHub contexts are empty).
 `rulesync-check` runs only when generated-rule sources change (`run-rulesync`).
