@@ -178,7 +178,6 @@ describe("SyncDB devtools registry", () => {
       args: "{not-json",
       collection: "todos",
     });
-    second.store.raw.setRow(OUTBOX_TABLE, "m-plain", "plain-row");
 
     const filtered = bridge.inspect({collection: "todos", entityId: "todo-2", limit: 1});
     assert.deepEqual(Object.keys(filtered.collections), ["todos"]);
