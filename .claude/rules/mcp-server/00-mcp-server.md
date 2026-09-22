@@ -9,11 +9,17 @@ Model Context Protocol (MCP) server that provides tools, prompts, and resources 
 ## Commands
 
 ```bash
-bun run build            # Build the server
+bun run compile          # Type-check only (tsc) — no doc bundling; used by the monorepo build
+bun run build            # Full shippable artifact: sync docs + tsc + copy docs into dist/ (used by publish)
 bun run dev              # Development mode
-bun run start            # Start the server
+bun run start            # Start the server (needs dist/docs — run `bun run build` first)
 bun run lint             # Lint code
 ```
+
+> `compile` is type-check only so the monorepo `bun run compile` stays fast and free of the
+> `sync-versioned-docs` filesystem race under concurrent builds. The publish job runs
+> `bun run build`, which bundles `dist/docs` (versioned + guidelines + ui-types) for the
+> published server.
 
 ## Architecture
 

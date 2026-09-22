@@ -86,8 +86,8 @@
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "build": "bun run sync-ui-docs && bun run sync-versioned-docs && bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 tsc",
     "compile:watch": "tsc -w",
     "dev": "bun --watch src/index.ts",
     "lint": "biome check src/",

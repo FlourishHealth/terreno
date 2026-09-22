@@ -1478,7 +1478,7 @@ jobs:
         run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
-        run: bun run compile
+        run: bun run build
 
       - name: Run tests
         run: bun run test
