@@ -27,9 +27,10 @@ const authProvider = betterAuthAdapter(bridgeBetterAuthReactClient(betterAuthCli
  * Singleton local-first client. Started/stopped by the root layout when the user is
  * authenticated; wipe-on-user-change is handled internally.
  *
- * `debug` enables the in-memory sync event log in dev builds only — it powers the
- * `/syncdb-debug` debugger screen (and, in the future, MCP introspection). It is
- * off in production so there is zero recording overhead.
+ * `debug` enables the in-memory sync event log in dev builds only. It powers the
+ * `/syncdb-debug` screen and registers this client for terreno-mcp-local state,
+ * action, and snapshot tools. It is off in production so there is zero recording
+ * or MCP bridge overhead.
  */
 export const syncDb: SyncDb = createSyncDb({
   authProvider,

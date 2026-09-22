@@ -38,6 +38,8 @@
       "demo/components/**/*.tsx",
       "demo/stories/**/*.ts",
       "demo/stories/**/*.tsx",
+      "demo/chartVisual/**/*.ts",
+      "demo/chartVisual/**/*.tsx",
       "demo/demoConfig.tsx",
       "demo/story-config.tsx",
       "example-frontend/package.json",

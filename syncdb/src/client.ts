@@ -5,6 +5,7 @@ import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyPr
 import type {KeyProvider} from "./crypto/types";
 import {attachDebugChannel, type DebugChannelBridge} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
+import {registerSyncDbDevtools} from "./debug/devtools";
 import {getConflict, listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
@@ -437,6 +438,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       () => {}
     );
     return result;
+  };
+
+  const waitForLifecycleIdle = async (): Promise<void> => {
+    let pending = lifecycle;
+    await pending;
+    while (pending !== lifecycle) {
+      pending = lifecycle;
+      await pending;
+    }
   };
 
   const notifyStatusChange = (): void => {
@@ -929,6 +939,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // the ways a device diverges in the first place, so it cannot be trusted as
       // the authoritative list for a repair operation.
       const streams = await syncStreams({isSuperseded});
+      await waitForLifecycleIdle();
       if (isSuperseded()) {
         return skip("superseded");
       }
@@ -957,6 +968,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         purged += store.purgeStream({stream});
         store.addKnownStream({collection, stream});
         await bootstrapStream({channel: httpChannel, collection, store, stream});
+        await waitForLifecycleIdle();
         if (isSuperseded()) {
           return {ok: false, purged, reason: "superseded", repaired, streams: streamInfos.length};
         }
@@ -1941,7 +1953,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       }
     });
 
-  return {
+  const client: SyncDb = {
     debug: debugLog,
     forceResync,
     getSyncStatus,
@@ -1960,4 +1972,8 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     stop,
     store,
   };
+  if (debugLog) {
+    registerSyncDbDevtools({client, name: config.name});
+  }
+  return client;
 };

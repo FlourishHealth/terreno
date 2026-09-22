@@ -36,6 +36,7 @@ deploy.
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
 - **comms/** - Pluggable transactional communications (`@terreno/comms`)
+- **cli/** - Operator CLI (`@terreno/cli`, bin `terreno`) for docs, codegen, bootstrap, and OpenAPI REST
 - **jobs/** - Durable background jobs plugin for `@terreno/api` (`@terreno/jobs`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
@@ -406,6 +407,12 @@ Key imports:
 import {createSyncDb, betterAuthAdapter} from "@terreno/syncdb";
 import {SyncDbProvider, useQuery, useMutate} from "@terreno/syncdb/react";
 ```
+
+For running-app SyncDB bugs, invoke the `debug-syncdb-with-mcp` skill and use
+`get_syncdb_state`, `syncdb_snapshot`, and `syncdb_action` from
+`terreno-mcp-local`. Enable the client with `debug: true`; set
+`TERRENO_MCP_EVAL=1` only for state-changing actions. See
+`docs/how-to/debug-with-mcp.md`.
 
 ### @terreno/rtk (legacy data sync; still required for SDK + auth)
 

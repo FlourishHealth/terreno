@@ -83,6 +83,7 @@ jobs:
       - name: Commit roadmap changes
         env:
           GH_TOKEN: ${{ secrets.ROADMAP_PROJECT_TOKEN }}
+          ROADMAP_BRANCH: automation/roadmap-${{ github.run_id }}
         run: |
           if git diff --quiet ROADMAP.md; then
             echo "ROADMAP.md unchanged"
@@ -90,11 +91,14 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$ROADMAP_BRANCH"
           git add ROADMAP.md
           git commit -m "chore: regenerate ROADMAP.md from project board"
-          # master moves while this job runs, so a first push can be rejected as
-          # non-fast-forward; rebasing onto the new tip and retrying is safe
-          # because this job only ever touches ROADMAP.md.
           bash .github/scripts/git-auth-roadmap-pat.sh apply
           trap 'bash .github/scripts/git-auth-roadmap-pat.sh clear' EXIT
-          git push || (git pull --rebase origin "$GITHUB_REF_NAME" && git push)
+          git push --set-upstream origin "$ROADMAP_BRANCH"
+          gh pr create \
+            --base master \
+            --head "$ROADMAP_BRANCH" \
+            --title "chore: regenerate ROADMAP.md from project board" \
+            --body "Automated update generated from the Terreno Roadmap project board."

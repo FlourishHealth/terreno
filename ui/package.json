@@ -26,6 +26,8 @@
     "@react-native-picker/picker": "catalog:",
     "@react-navigation/native": "catalog:",
     "@shopify/react-native-skia": "catalog:",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "catalog:",
     "expo-constants": "catalog:",
@@ -78,6 +80,8 @@
     "@biomejs/biome": "catalog:",
     "@testing-library/react-native": "catalog:",
     "@types/bun": "catalog:",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.2.0",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/mdurl": "^2.0.0",
@@ -158,7 +162,7 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "57.3.0",
+  "version": "57.4.0",
   "bugs": {
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },

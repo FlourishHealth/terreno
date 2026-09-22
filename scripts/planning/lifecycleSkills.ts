@@ -73,6 +73,7 @@ const PLUGIN_APP_SKILL_DIRECTORIES = [
   "backend-test-env",
   "building-admin-interfaces",
   "building-terreno-apps",
+  "debug-syncdb-with-mcp",
   "deploy-gcp",
   "generate-sdk",
   "mongoose-schema-safety",

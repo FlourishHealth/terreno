@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, spyOn} from "bun:test";
 import {assert} from "chai";
 import jwt from "jsonwebtoken";
 import mongoose, {Schema} from "mongoose";
@@ -232,6 +232,39 @@ describe("extractUserFromHeaders", () => {
     const user = await extractUserFromHeaders({cookie: "session=1"}, {betterAuth, userModel});
 
     expect(user).toBeUndefined();
+  });
+
+  it("returns undefined when the JWT references a user that no longer exists", async () => {
+    const token = signToken({id: new mongoose.Types.ObjectId().toString()});
+
+    const user = await extractUserFromHeaders({authorization: `Bearer ${token}`}, {userModel});
+
+    assert.isUndefined(user);
+  });
+
+  it("still resolves the MCP service token owner when the last-used update fails", async () => {
+    const created = await UserTestModel.create({email: "last-used-fails@example.com"});
+    const issued = await McpServiceToken.issueFor({_id: created._id}, {name: "Flaky"});
+    const updateSpy = spyOn(McpServiceToken, "updateOne").mockImplementation(
+      () =>
+        ({
+          catch: (handler: (error: unknown) => void) => {
+            handler(new Error("write failed"));
+          },
+        }) as unknown as ReturnType<typeof McpServiceToken.updateOne>
+    );
+
+    try {
+      const user = await extractUserFromHeaders(
+        {authorization: `Bearer ${issued.token}`},
+        {mcpServiceTokens: true, userModel}
+      );
+
+      assert.equal(String((user as unknown as MCPAuthUserFields)?._id), created._id.toString());
+      assert.equal(updateSpy.mock.calls.length, 1);
+    } finally {
+      updateSpy.mockRestore();
+    }
   });
 
   it("returns undefined when Better Auth has no session and no JWT is present", async () => {

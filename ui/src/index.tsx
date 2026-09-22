@@ -17,10 +17,12 @@ export type * from "./AnnouncementNavigator";
 export * from "./AnnouncementNavigator";
 export type * from "./AnnouncementScreen";
 export * from "./AnnouncementScreen";
+export type * from "./AreaChart";
 export type * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";
 export {Banner, hideBanner} from "./Banner";
+export type * from "./BarChart";
 export * from "./Body";
 export * from "./BooleanField";
 export * from "./Box";
@@ -34,12 +36,14 @@ export type * from "./ConsentNavigator";
 export * from "./Constants";
 export * from "./CustomSelectField";
 export * from "./conflictFieldDiff";
+export * from "./DashboardGrid";
 export * from "./DataTable";
 export * from "./DateTimeActionSheet";
 export * from "./DateTimeField";
 export * from "./DateUtilities";
 export * from "./DecimalRangeActionSheet";
 export * from "./DismissButton";
+export type * from "./DonutChart";
 export * from "./dataTableListQuery";
 export * from "./EditableCard";
 export * from "./EmailField";
@@ -66,18 +70,23 @@ export * from "./ImageBackground";
 export * from "./InfoModalIcon";
 export * from "./InfoTooltipButton";
 export * from "./icons/BarsFilterIcon";
+export type * from "./LineChart";
 export * from "./Link";
 export {
   AIRequestExplorer,
   AiSuggestionBox,
+  AreaChart,
   AttachmentPreview,
+  BarChart,
   ConflictSheet,
   ConsentFormScreen,
   ConsentNavigator,
+  DonutChart,
   DraggableList,
   EmojiSelector,
   GPTChat,
   GPTMemoryModal,
+  LineChart,
   MarkdownEditor,
   MarkdownEditorField,
   UpgradeRequiredScreen,
@@ -177,7 +186,6 @@ export * from "./WebAddressAutocomplete";
 
 // export * from "./Layout";
 // export * from "./Drawer";
-// export * from "./Chart";
 
 // Lifted from react-native
 type ImageRequireSource = number;

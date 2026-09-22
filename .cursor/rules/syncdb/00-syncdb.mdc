@@ -128,6 +128,21 @@ See `docs/reference/syncdb.md` for `sync` scoping (`owner`, `tenant`, `broadcast
 - Use `createFakeTransport` from `@terreno/syncdb/testing` for unit tests
 - E2E: see `example-frontend/e2e/syncdb-*.spec.ts`
 
+## Runtime debugging
+
+Use the `debug-syncdb-with-mcp` skill for stale entities, outbox stalls,
+conflicts, cursor/stream drift, reconcile behavior, and offline replay. A client
+created with `debug: true` registers itself with `terreno-mcp-local`.
+
+- `get_syncdb_state` reads debugger events plus entities, outbox, conflicts,
+  cursors, streams, repair markers, and aggregate status.
+- `syncdb_snapshot` captures and compares state; captures can later be CRDT-merged.
+- `syncdb_action` mutates, flushes, reconciles, resyncs, resolves, retries, toggles
+  offline mode, directly edits local rows, or merges snapshots. State changes
+  require `TERRENO_MCP_EVAL=1`.
+
+See `docs/how-to/debug-with-mcp.md`.
+
 ## Environment variables
 
 | Variable | Description |

@@ -138,6 +138,23 @@ describe("bootstrap", () => {
       const fullText = full.content[0].text;
       expect(fullText).toContain("## Admin panel frontend");
     });
+
+    test("includes SyncDB MCP debugging guidance when syncdb is selected", () => {
+      const withSyncDb = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "Sync App",
+        appName: "sync-app",
+        packages: ["syncdb"],
+      });
+      assert.include(withSyncDb.content[0].text, "get_syncdb_state");
+      assert.include(withSyncDb.content[0].text, "debug-syncdb-with-mcp");
+
+      const withoutSyncDb = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "API App",
+        appName: "api-app",
+        packages: ["api"],
+      });
+      assert.notInclude(withoutSyncDb.content[0].text, "get_syncdb_state");
+    });
   });
 
   describe("handleBootstrapToolCall - unknown", () => {

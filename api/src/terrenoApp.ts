@@ -13,6 +13,7 @@ import {
   type BetterAuthInstance,
   createBetterAuthSessionMiddleware,
 } from "./betterAuthSetup";
+import {addTerrenoDevBrowserLogsRoute} from "./browserLogsRoute";
 import {
   ConfigurationApp,
   type ConfigurationAppOptions,
@@ -424,6 +425,8 @@ export class TerrenoApp {
       const store = createRateLimitStore(rateLimit);
       app.use(createRateLimitMiddleware(store, rateLimit));
     }
+
+    addTerrenoDevBrowserLogsRoute(app);
 
     if (!options.authOptions) {
       options.authOptions = {};

@@ -71,6 +71,17 @@ describe("CircleCI concurrency", () => {
     assert.deepEqual(duplicates, []);
   });
 
+  it("installs bun packages without a CircleCI dependency cache", () => {
+    const start = continueConfig.indexOf("  install_bun_and_deps:\n");
+    assert.ok(start >= 0);
+    const next = continueConfig.indexOf("\n  resolve_preview_pr_number:", start);
+    const slice = continueConfig.slice(start, next > start ? next : undefined);
+    assert.match(slice, /pkg-manager: bun/);
+    assert.match(slice, /with-cache: false/);
+    assert.doesNotMatch(continueConfig, /include-branch-in-cache-key/);
+    assert.doesNotMatch(continueConfig, /cache-version: v1/);
+  });
+
   it("runs repository policies as a single job", () => {
     const repoPolicies = jobCommandBlock(continueConfig, "repo-policies");
     assert.ok(repoPolicies);

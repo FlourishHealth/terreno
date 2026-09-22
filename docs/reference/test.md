@@ -164,7 +164,9 @@ line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,
 `src/types` type modules, demo `story-config/*.config.tsx`, and Expo Router route
 files (`index`, `_layout`, `+not-found`, `[param]`, plus example recovery screens
 `forgotPassword` / `resetPassword` / `verifyEmail`) are excluded. A new implementation
-file that is absent from LCOV is treated as 0% covered. Package CI jobs that
+file that is absent from LCOV is treated as 0% covered, except files listed in
+that package's `bunfig.toml` `coveragePathIgnorePatterns` (the same paths the
+95% package gate already omits). Package CI jobs that
 already produced `coverage/lcov.info` run the 90% check against that report
 (`--package` + `--lcov`) so the dedicated job does not rerun the suite.
 When the dedicated job does rerun a package, it prefers colocated

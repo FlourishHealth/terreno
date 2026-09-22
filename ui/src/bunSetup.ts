@@ -1,4 +1,5 @@
 import {beforeEach, mock} from "bun:test";
+import {DateTime} from "luxon";
 import React from "react";
 
 type MockComponentProps = Record<string, unknown> & {
@@ -11,11 +12,11 @@ type MockPresstoPressableProps = MockComponentProps & {
   onPress?: (...args: unknown[]) => unknown;
 };
 type MockStyleValue = unknown;
-type MockAnimation = {
+interface MockAnimation {
   start?: (callback?: (result: {finished: boolean}) => void) => void;
   stop?: () => void;
   reset?: () => void;
-};
+}
 type EasingFn = (t: number) => number;
 type MockColor = string | number | null | undefined;
 type MockAssetSource = {height?: number; uri?: string; width?: number} | null | undefined;
@@ -43,13 +44,13 @@ const rnGlobals = globalThis as typeof globalThis & {
   __BUNDLE_START_TIME__?: number;
 };
 rnGlobals.__DEV__ = true;
-rnGlobals.__BUNDLE_START_TIME__ = Date.now();
+rnGlobals.__BUNDLE_START_TIME__ = DateTime.now().toMillis();
 
-type MockFlatListRenderItemInfo = {
+interface MockFlatListRenderItemInfo {
   item: unknown;
   index: number;
   separators: {highlight: () => void; unhighlight: () => void};
-};
+}
 
 type MockFlatListProps = MockComponentProps & {
   data?: unknown[];
@@ -132,7 +133,7 @@ const createMockFlatListScrollRef = (
 };
 
 const createSimpleFlatList = () => {
-  return React.forwardRef(function SimpleFlatList(props: MockFlatListProps, ref) {
+  return React.forwardRef((props: MockFlatListProps, ref) => {
     const {data, renderItem, keyExtractor, onScroll, ...restProps} = props;
     const scrollRef = createMockFlatListScrollRef(onScroll);
     React.useImperativeHandle(ref, () => ({
@@ -157,7 +158,7 @@ const createSimpleFlatList = () => {
 const createVirtualizedFlatList = (): React.ForwardRefExoticComponent<
   MockFlatListProps & React.RefAttributes<unknown>
 > =>
-  React.forwardRef(function VirtualizedFlatList(props, ref) {
+  React.forwardRef((props, ref) => {
     const {
       data,
       renderItem,
@@ -210,7 +211,7 @@ const shouldUseVirtualizedFlatList = (props: MockFlatListProps): boolean => {
   return Boolean(props.getItemLayout && dataLength > 100);
 };
 
-const FlatListRouter = React.forwardRef(function FlatListRouter(props, ref) {
+const FlatListRouter = React.forwardRef((props, ref) => {
   if (shouldUseVirtualizedFlatList(props)) {
     return React.createElement(VirtualizedFlatList, {...props, ref});
   }
@@ -869,10 +870,7 @@ mock.module("./DateTimeActionSheet", () => ({
 // This keeps opened content assertable while still letting tests verify the closed/hidden state.
 mock.module("react-native-actions-sheet", () => ({
   __esModule: true,
-  default: React.forwardRef(function ActionSheetMock(
-    {children}: {children?: React.ReactNode},
-    ref: React.Ref<unknown>
-  ) {
+  default: React.forwardRef(({children}: {children?: React.ReactNode}, ref: React.Ref<unknown>) => {
     const [isVisible, setIsVisible] = React.useState(false);
     React.useImperativeHandle(ref, () => ({
       hide: () => setIsVisible(false),
@@ -1523,9 +1521,9 @@ mock.module("react-native/Libraries/Image/AssetSourceResolver", () => ({
 mock.module("react-native-gesture-handler", () => {
   const GestureHandler = ({children}: MockComponentProps) => children;
 
-  type ChainableGesture = {
+  interface ChainableGesture {
     [method: string]: (...args: unknown[]) => ChainableGesture;
-  };
+  }
   // Create a chainable gesture object that returns itself for all method calls
   const createChainableGesture = (): ChainableGesture => {
     const gesture = {} as ChainableGesture;
@@ -1719,6 +1717,6 @@ mock.module("expo-modules-core/src/uuid/uuid.web", () => ({
 // Reset mock date before each test
 beforeEach(() => {
   // Set a fixed date for testing
-  const fixedDate = new Date("2023-05-15T10:30:00.000Z");
-  global.Date.now = mock(() => fixedDate.getTime());
+  const fixedDate = DateTime.fromISO("2023-05-15T10:30:00.000Z");
+  global.Date.now = mock(() => fixedDate.toMillis());
 });

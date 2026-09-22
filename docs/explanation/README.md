@@ -24,6 +24,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [modelRouter actions](model-router-actions.md) — Named collection and instance operations on modelRouter
 - [Explicit `any` policy](explicit-any-policy.md) — Require rationale markers and ratchet usage per file
 - [No barrel imports](no-barrel-imports.md) — Import concrete modules, not `index` re-export barrels
+- [TypeScript configuration](typescript-configuration.md) — tsconfig profiles for Node, frontend, Expo, and Bun workspaces on TypeScript 6
 - [Production source rules](source-rules.md) — Arrow functions, Luxon, APIError, logging, findOne, `as any`
 - [Positioning](positioning.md) — Canonical copy blocks and the honest Django/Rails comparison
 - [Versioning policy](versioning-policy.md) — Lockstep `@terreno/*` versions, pre-1.0 breaks, deprecation window
@@ -33,4 +34,4 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
 - [Example app coverage](example-coverage.md) — Which framework capabilities the example apps exercise
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
-- [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs
+- [Why Terreno owns chart SVG](charts.md) — Owned `react-native-svg` vs victory-native
