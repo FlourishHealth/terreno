@@ -114,7 +114,7 @@
     "json5": "2.2.3"
   },
   "scripts": {
-    "compile": "node ../.github/scripts/compile-workspace-deps.js && bun tsc",
+    "compile": "bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "docs": "bunx typedoc@0.28.19 --out docs src/index.ts",

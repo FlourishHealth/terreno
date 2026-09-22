@@ -232,7 +232,7 @@
     "comms:lint": "bun run --filter '@terreno/comms' lint",
     "comms:sdk": "bun example-frontend/scripts/generate-sdk.ts comms-openapi-config.ts store/commsOpenApiSdk.ts",
     "comms:test": "bun run --filter '@terreno/comms' test",
-    "compile": "bun run --filter '@terreno/test' compile && bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
+    "compile": "bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
     "demo:android": "bun run --filter 'terreno-demo' android",
     "demo:compile": "bun run --filter 'terreno-demo' compile",
