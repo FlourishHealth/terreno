@@ -56,14 +56,6 @@ jobs:
         with:
           bun-version: 1.4.0
 
-      - name: Cache bun install cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-fp-${{ runner.os }}-${{ hashFiles('pr/bun.lock') }}
-          restore-keys: |
-            bun-fp-${{ runner.os }}-
-
       - uses: expo/expo-github-action@v9
         with:
           eas-version: latest

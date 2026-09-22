@@ -1,4 +1,4 @@
-# RTK CI workflow with dependency caching
+# RTK CI workflow
 name: RTK CI
 
 # Disabled after migration to CircleCI; retained for rollback.
