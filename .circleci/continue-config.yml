@@ -191,17 +191,12 @@ commands:
             sudo install /tmp/terraform/terraform /usr/local/bin/terraform
 
   install_bun_and_deps:
-    description: Install Bun (latest) and workspace deps with frozen lockfile + cache
-    parameters:
-      include-branch-in-cache-key:
-        type: boolean
-        default: true
+    description: Install Bun (latest) and workspace deps with frozen lockfile (no package cache)
     steps:
       - node/install-bun
       - node/install-packages:
           pkg-manager: bun
-          include-branch-in-cache-key: << parameters.include-branch-in-cache-key >>
-          cache-version: v1
+          with-cache: false
 
   resolve_preview_pr_number:
     description: Export PR_NUMBER for preview deploys; halt on forks or non-PR builds
@@ -1327,8 +1322,7 @@ jobs:
             set -euo pipefail
             git fetch origin master
             git checkout --force origin/master
-      - install_bun_and_deps:
-          include-branch-in-cache-key: false
+      - install_bun_and_deps
       - run:
           name: Install Cursor Agent CLI
           command: |
