@@ -18,6 +18,7 @@ export const PUBLISHED_PACKAGES = [
   "feature-flags",
   "jobs",
   "mcp-server",
+  "cli",
 ] as const;
 
 export type PublishedPackage = (typeof PUBLISHED_PACKAGES)[number];

@@ -7,6 +7,10 @@ const repoRoot = join(import.meta.dir, "../..");
 const waitScript = join(import.meta.dir, "wait-cloud-run-health.sh");
 const deployScript = readFileSync(join(import.meta.dir, "gcp-deploy.sh"), "utf8");
 const cdWorkflow = readFileSync(join(repoRoot, ".github/workflows/cd.yml"), "utf8");
+const deployRetryAction = readFileSync(
+  join(repoRoot, ".github/actions/deploy-cloudrun-wif-retry/action.yml"),
+  "utf8"
+);
 const frontendDeployWorkflow = readFileSync(
   join(repoRoot, ".github/workflows/frontend-example-deploy.yml"),
   "utf8"
@@ -109,6 +113,21 @@ describe("Cloud Run preview readiness", (): void => {
       deployScript,
       /if \[\[ "\$tag" == pr-\* \]\]; then[\s\S]*wait-cloud-run-health\.sh/
     );
+  });
+
+  it("selectively retries WIF timeouts for every GitHub Cloud Run deploy", (): void => {
+    const directDeployActionMatches = cdWorkflow.match(
+      /uses: google-github-actions\/deploy-cloudrun@/g
+    );
+    const retryActionMatches = cdWorkflow.match(
+      /uses: \.\/\.github\/actions\/deploy-cloudrun-wif-retry/g
+    );
+
+    assert.lengthOf(directDeployActionMatches ?? [], 0);
+    assert.lengthOf(retryActionMatches ?? [], 5);
+    assert.include(deployRetryAction, "scripts/ci/install-gcloud-wif-retry-shim.sh");
+    assert.include(deployRetryAction, "uses: google-github-actions/deploy-cloudrun@v3");
+    assert.include(deployRetryAction, ["value: $", "{{ steps.deploy.outputs.url }}"].join(""));
   });
 
   it("deploys an isolated backend for every frontend PR preview", (): void => {

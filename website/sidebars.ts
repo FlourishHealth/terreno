@@ -31,6 +31,7 @@ const sidebars: SidebarsConfig = {
         "reference/jobs",
         "reference/feature-flags",
         "reference/mcp-server",
+        "reference/cli",
         "reference/create-terreno-app",
         "reference/environment-variables",
         {

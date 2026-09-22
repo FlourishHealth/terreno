@@ -353,7 +353,7 @@ jobs:
           fi
       - name: Deploy to Cloud Run
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: ./.github/actions/deploy-cloudrun-wif-retry
         with:
           service: ${{ env.GCP_BACKEND_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
@@ -559,7 +559,7 @@ jobs:
             "${{ env.GCP_BACKEND_REGION }}"
       - name: Deploy to Cloud Run without a tag
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: ./.github/actions/deploy-cloudrun-wif-retry
         with:
           service: ${{ env.GCP_BACKEND_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
@@ -728,7 +728,7 @@ jobs:
             echo "JOBS_EOF"
           } >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloud Run with tag
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: ./.github/actions/deploy-cloudrun-wif-retry
         with:
           service: ${{ env.GCP_TASKS_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
@@ -822,7 +822,7 @@ jobs:
             echo "JOBS_EOF"
           } >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: ./.github/actions/deploy-cloudrun-wif-retry
         with:
           service: ${{ env.GCP_TASKS_SERVICE }}
           region: ${{ env.GCP_BACKEND_REGION }}
@@ -923,7 +923,7 @@ jobs:
           docker push ${{ env.GCP_MCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE }}/${{ env.GCP_MCP_SERVICE }}:latest
       - name: Deploy to Cloud Run
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
+        uses: ./.github/actions/deploy-cloudrun-wif-retry
         with:
           service: ${{ env.GCP_MCP_SERVICE }}
           region: ${{ env.GCP_MCP_REGION }}

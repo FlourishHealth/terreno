@@ -200,7 +200,7 @@ be passed to `betterAuthAdapter` directly.
 | `mutate({collection, operation, id?, data?})` | Optimistic local write + durable outbox enqueue + fire-and-forget replay. Returns `{mutationId, id}`. |
 | `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. Also runs automatically on (re)connect, on a rate-limited seq-jump hint, and on the periodic timer; each `sync:subscribed` confirmation additionally pages just the streams it names. |
 | `hydrateWindow({collection, ids, restRows?})` | Admin window upsert: REST rows (optional) land immediately; every requested id is also fetched from `GET /sync/entities` before this resolves so seq/deleted metadata is canonical for immediate update/delete. A `{collection}|admin` delta that lands while the fetch is in flight wins, so hydration never rewinds a row to an older seq. Unknown ids are ignored. |
-| `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. |
+| `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. After discovery and each stream bootstrap it waits for in-flight `start`/`stop`/auth-change work, then abandons with `reason: "superseded"` when that work switched users or generations. |
 | `replayOutbox()` | Drain queued mutations for the current user now. |
 | `resolveConflict({mutationId, strategy})` | Apply `"useServer"` or `"keepMine"` to a recorded conflict. |
 | `retryFailed({entityId})` | Re-enable an entity's queued successors after a terminal validation failure. |
@@ -210,6 +210,27 @@ be passed to `betterAuthAdapter` directly.
 | `store` | Read surface over the local MergeableStore (`SyncStore`). |
 | `outbox` | Durable mutation outbox (`Outbox`). |
 | `debug` | `SyncDebugLog` when `debug` is enabled; otherwise `undefined`. |
+
+### Local MCP debugging
+
+When `debug` is enabled, `createSyncDb` registers the client by `name` on the
+development runtime bridge used by `terreno-mcp-local`. Production clients stay
+unregistered when debug logging is off.
+
+| Tool | Operations |
+| --- | --- |
+| `get_syncdb_state` | Read status, entities/tombstones, decoded outbox, conflicts, cursors, known streams, repair markers, values, and debug events |
+| `syncdb_snapshot` | `capture`, `list`, `get`, `compare`, `delete` |
+| `syncdb_action` | `mutate`, `setLocalEntity`, `deleteLocalEntity`, `flush`, `reconcile`, `forceResync`, `resolveConflict`, `retryFailed`, `goOffline`, `goOnline`, `clearDebug`, `mergeSnapshot` |
+
+Read and snapshot tools redact sensitive field names. `syncdb_action` requires
+the local MCP process to start with `TERRENO_MCP_EVAL=1`. `flush` means “drain
+the durable outbox now.” `mergeSnapshot` CRDT-merges TinyBase mergeable content
+from a snapshot retained in the same MCP process. Later HLCs win, including
+deletes; it does not replace the live store. To force specific rows from a
+capture, use `setLocalEntity` from `syncdb_snapshot` `get`.
+
+See [Debug a Terreno app with MCP](../how-to/debug-with-mcp.md).
 
 ## React hooks
 

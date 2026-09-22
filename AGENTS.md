@@ -395,6 +395,12 @@ const {create, update, remove} = useMutate("todos");
 // const {data} = useGetTodosQuery();
 ```
 
+For running-app SyncDB bugs, invoke the `debug-syncdb-with-mcp` skill and use
+`get_syncdb_state`, `syncdb_snapshot`, and `syncdb_action` from
+`terreno-mcp-local`. Enable the client with `debug: true`; set
+`TERRENO_MCP_EVAL=1` only for state-changing actions. See
+`docs/how-to/debug-with-mcp.md`.
+
 ### @terreno/rtk (legacy data sync; still required for SDK + auth)
 
 Redux Toolkit Query integration for **non-synced** routes and session state:
