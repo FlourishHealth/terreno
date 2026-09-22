@@ -32,5 +32,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Consent admin migration](admin-consent-migration.md) — Which consent screens stay hand-written
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
 - [Example app coverage](example-coverage.md) — Which framework capabilities the example apps exercise
+- [Native TypeScript](native-typescript.md) — Why `tsgo` / TypeScript 7 is not a drop-in for compile CI
+- [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
 - [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs

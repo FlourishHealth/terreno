@@ -99,4 +99,8 @@ When CircleCI names a failed test, copy the file/case from the log and run the m
 row above. Record that command in Taste `checks.ev`. Re-run it after the fix and before
 `git push`. `bun run prepush` does not replace that re-verify.
 
+Compile is TypeScript 6 `tsc`. Do not swap in `tsgo` on current tsconfigs.
+Numbers and blockers: [Native TypeScript](../explanation/native-typescript.md).
+Re-run: [Benchmark tsgo](benchmark-tsgo.md).
+
 Appium Android/iOS is not in CircleCI (Maestro web covers those flows).

@@ -112,8 +112,10 @@ unneeded shard costs one container start instead of a full Playwright run.
 Run the same command locally to see what a branch would trigger.
 
 `e2e-prepare` always runs when a path filter starts the workflow: compiling the
-workspace and `bun expo export`ing the web bundle is the check that catches
-build breakage the shards would otherwise miss.
+workspace (~2 min of TypeScript 6 `tsc` today) and `bun expo export`ing the web
+bundle (~3 min) is the check that catches build breakage the shards would
+otherwise miss. Native `tsgo` is not a drop-in; see
+[Native TypeScript](../explanation/native-typescript.md).
 
 The gate **fails open** — it runs every shard when the base revision cannot be
 resolved, when a module cannot be resolved, or when the analysis throws. A

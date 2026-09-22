@@ -11,6 +11,9 @@ analysis:
 bun run prepush
 ```
 
+Compile uses TypeScript 6 `tsc`. Native `tsgo` / TypeScript 7 is not a drop-in
+for this repo; see [Native TypeScript](native-typescript.md).
+
 The reusable Taste stage checks for a root `prepush` script before every push and runs it
 in a fresh, no-context subagent. Repositories without one retain Taste's fallback:
 package-level lint, typecheck, and locally affected tests.
