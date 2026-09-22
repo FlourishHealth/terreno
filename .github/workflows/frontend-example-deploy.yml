@@ -390,6 +390,13 @@ jobs:
               description: 'Deploying example frontend preview to Netlify'
             });
 
+      - name: Wait for preview backend health
+        run: |
+          scripts/ci/wait-cloud-run-health.sh \
+            "https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app" \
+            1200
+        timeout-minutes: 25
+
       - name: Deploy to Netlify
         id: netlify
         uses: nwtgck/actions-netlify@v4.0

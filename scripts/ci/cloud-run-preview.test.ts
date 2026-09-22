@@ -130,6 +130,15 @@ describe("Cloud Run preview readiness", (): void => {
       frontendDeployWorkflow,
       /URL="https:\/\/pr-\$\{\{ github\.event\.pull_request\.number \}\}---terreno-backend-example-7knxlrnpqq-uc\.a\.run\.app"/
     );
+    const frontendPreviewJob = frontendDeployWorkflow.slice(
+      frontendDeployWorkflow.indexOf("  deploy-preview:"),
+      frontendDeployWorkflow.length
+    );
+    assert.include(frontendPreviewJob, "scripts/ci/wait-cloud-run-health.sh");
+    assert.isBelow(
+      frontendPreviewJob.indexOf("scripts/ci/wait-cloud-run-health.sh"),
+      frontendPreviewJob.indexOf("nwtgck/actions-netlify")
+    );
     assert.notInclude(frontendDeployWorkflow, "HAS_BACKEND_CHANGES");
   });
 });
