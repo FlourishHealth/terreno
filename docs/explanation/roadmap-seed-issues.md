@@ -626,7 +626,7 @@ delegating to it.
 **Title:** `Charts and dashboard primitives`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`charts-and-dashboards`, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`charts-and-dashboards`, Status=`In progress`
 
 `@terreno/ui` ships themed `LineChart`, `BarChart`, `AreaChart`, `DonutChart` on owned
 `react-native-svg` (not `victory-native`) plus `DashboardGrid`. Demo stories and Diátaxis
