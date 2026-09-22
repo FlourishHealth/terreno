@@ -93,7 +93,8 @@ describe("gcloud WIF retry", (): void => {
 
     assert.equal(result.exitCode, 0, result.stderr);
     assert.equal(result.invocationCount, 3);
-    assert.include(result.stdout, "deployed");
+    assert.equal(result.stdout, "deployed\n");
+    assert.include(result.stderr, "Unable to retrieve Identity Pool subject token");
     assert.include(result.stderr, "attempt 2/3");
   });
 
@@ -102,7 +103,8 @@ describe("gcloud WIF retry", (): void => {
 
     assert.equal(result.exitCode, 42);
     assert.equal(result.invocationCount, 1);
-    assert.include(result.stdout, "PERMISSION_DENIED");
+    assert.include(result.stderr, "PERMISSION_DENIED");
+    assert.notInclude(result.stdout, "PERMISSION_DENIED");
   });
 
   it("fails after the bounded number of transient retries", async (): Promise<void> => {

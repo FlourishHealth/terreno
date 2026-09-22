@@ -21,8 +21,8 @@ while [ "$attempt" -le "$max_attempts" ]; do
   trap 'rm -f "$output_file"' EXIT
 
   set +e
-  "$real_gcloud" "$@" 2>&1 | tee "$output_file"
-  exit_code="${PIPESTATUS[0]}"
+  "$real_gcloud" "$@" 2> >(tee "$output_file" >&2)
+  exit_code="$?"
   set -e
 
   if [ "$exit_code" -eq 0 ]; then
