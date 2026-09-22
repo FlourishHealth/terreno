@@ -43,11 +43,11 @@ interface SyncDbDevtoolsState {
   debug?: ReturnType<NonNullable<SyncDb["debug"]>["snapshot"]>;
 }
 
-export interface SyncDbDevtoolsSnapshot extends SyncDbDevtoolsState {
+interface SyncDbDevtoolsSnapshot extends SyncDbDevtoolsState {
   mergeableContent: unknown;
 }
 
-export interface SyncDbDevtoolsClient {
+interface SyncDbDevtoolsClient {
   inspect: (options?: SyncDbDevtoolsInspectOptions) => SyncDbDevtoolsState;
   snapshot: (options?: SyncDbDevtoolsInspectOptions) => SyncDbDevtoolsSnapshot;
   mutate: (args: SyncDbDevtoolsMutation) => ReturnType<SyncDb["mutate"]>;
@@ -71,7 +71,7 @@ export interface SyncDbDevtoolsClient {
   clearDebug: () => void;
 }
 
-export interface SyncDbDevtoolsRegistry {
+interface SyncDbDevtoolsRegistry {
   clients: Record<string, SyncDbDevtoolsClient>;
   list: () => string[];
 }
