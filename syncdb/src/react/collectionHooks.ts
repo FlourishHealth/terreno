@@ -75,7 +75,7 @@ export const createCollectionHooks = <
           id: args.id,
           ...(maxAttempts !== undefined ? {maxAttempts} : {}),
         }),
-      [maxAttempts, update]
+      [update]
     );
     return useMemo(() => [trigger], [trigger]);
   };
@@ -88,7 +88,7 @@ export const createCollectionHooks = <
           id: args.id,
           ...(maxAttempts !== undefined ? {maxAttempts} : {}),
         }),
-      [maxAttempts, remove]
+      [remove]
     );
     return useMemo(() => [trigger], [trigger]);
   };
