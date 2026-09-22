@@ -17,9 +17,9 @@ bun run lint             # Lint code
 ```
 
 > `compile` is type-check only so the monorepo `bun run compile` stays fast and free of the
-> `sync-versioned-docs` filesystem race under concurrent builds. The publish job runs
-> `bun run build`, which bundles `dist/docs` (versioned + guidelines + ui-types) for the
-> published server.
+> `sync-versioned-docs` filesystem race under concurrent builds. `prepublishOnly` runs
+> `bun run build` on every `npm publish` (GitHub Actions and CircleCI alike), so the
+> published `@terreno/mcp` always bundles `dist/docs` (versioned + guidelines + ui-types).
 
 ## Architecture
 

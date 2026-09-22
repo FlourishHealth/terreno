@@ -8,11 +8,13 @@ Slice: mcp-doc-sync-off-compile-path · Scan goal: reduce-cold-compile-time (305
 - Built current mcp `compile` (full pipeline) and snapshotted `dist/docs`
   (3224 versioned + 6 guidelines + ui-types) for parity diff.
 
-## T1 — Split compile/build + repoint publish (done)
+## T1 — Split compile/build + bundle docs at publish (done)
 
 - `mcp-server/package.json`: `compile` → `NODE_OPTIONS=--max-old-space-size=8192 tsc`;
   `build` keeps sync+tsc+cp, redundant `NODE_OPTIONS` dropped from the copy steps.
-- `.github/workflows/publish-on-tag.yml` publish-mcp Compile step → `bun run build`.
+- Added `prepublishOnly: "bun run build"` so **both** publish paths (GitHub Actions and
+  CircleCI `scripts/ci/publish-package.sh`) bundle docs via npm's lifecycle. No workflow
+  edit needed. (Fixes Bugbot: CircleCI publish also runs the tsc-only `compile`.)
 
 ## T2 — Verify (done)
 

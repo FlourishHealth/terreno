@@ -36,15 +36,22 @@ concurrently, and `sync-versioned-docs`'s recursive `cpSync` intermittently thro
 ENOENT/EEXIST under heavy parallel I/O. It passes 5/5 in isolation; the race only appears
 under full-build concurrency. Taking it off `compile` removes the race from `bun run compile`.
 
-## The change (2 files)
+## The change (1 file)
 
-1. `mcp-server/package.json`:
-   - `compile` → `NODE_OPTIONS=--max-old-space-size=8192 tsc` (type-check only).
-   - `build` → keep the full pipeline (sync-ui-docs + sync-versioned-docs +
-     sync-package-guidelines + tsc + cp), and drop the redundant `NODE_OPTIONS=8192` from
-     the three copy steps (keep it only on `tsc`).
-2. `.github/workflows/publish-on-tag.yml` (publish-mcp job, ~line 82):
-   - `bun run compile` → `bun run build`, so the published `@terreno/mcp` still bundles docs.
+`mcp-server/package.json`:
+- `compile` → `NODE_OPTIONS=--max-old-space-size=8192 tsc` (type-check only).
+- `build` → keep the full pipeline (sync-ui-docs + sync-versioned-docs +
+  sync-package-guidelines + tsc + cp), and drop the redundant `NODE_OPTIONS=8192` from the
+  three copy steps (keep it only on `tsc`).
+- **Add `prepublishOnly": "bun run build"`** so every publish path bundles docs via npm's
+  own lifecycle — no per-CI special-casing.
+
+**Why `prepublishOnly` instead of editing a workflow:** the package publishes through **two**
+independent CI paths — GitHub Actions (`publish-on-tag.yml`) and CircleCI lockstep
+(`scripts/ci/publish-package.sh`) — and both run `bun run compile` (now tsc-only) before
+`npm publish`. `npm publish` runs `prepublishOnly` automatically in both, so `bun run build`
+regenerates `dist/docs` right before packing regardless of caller. No workflow file is
+touched. (`prepublishOnly` fires only on publish — not on install or `npm pack`.)
 
 ## Non-goals
 
@@ -60,7 +67,7 @@ under full-build concurrency. Taking it off `compile` removes the race from `bun
 | 2 | `bun run build` in mcp-server still produces `dist/docs` with versioned + guidelines + ui-types | `bun run build` then assert `dist/docs/versioned/*`, `dist/docs/guidelines/*`, `dist/docs/ui-types-documentation.json` exist |
 | 3 | Published-artifact parity: `bun run build` output matches the pre-change `compile` output | `diff -r` new `build` dist vs a baseline `compile` dist snapshot → no differences |
 | 4 | Full cold `bun run compile` no longer runs mcp doc-sync and no longer flakes | Run `bun run compile` from clean 3× → exit 0 each time, zero mcp ENOENT/EEXIST |
-| 5 | Publish job bundles docs | publish-on-tag mcp job runs `bun run build`; grep the workflow to confirm |
+| 5 | Every publish path bundles docs | `prepublishOnly` runs `bun run build`; `npm publish --dry-run` shows it firing and regenerating `dist/docs`; both GH Actions and CircleCI `npm publish` trigger it |
 | 6 | Lint/type-check green | `bun run --filter '@terreno/mcp' compile` exits 0 |
 
 Criterion #4 is the metric + reliability tie-back.
