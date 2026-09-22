@@ -4,6 +4,7 @@ preload = ["./src/__tests__/preload.ts"]
 # `databaseQuery` and the Metro/CDP session are external-driver adapters. Focused tests
 # cover validation, connection sharing, event capture, and evaluation; driver-heavy
 # tails are excluded so the 95% gate measures deterministic application logic.
+# `scripts/check-new-file-coverage.ts` skips these same paths so absent LCOV is not 0%.
 coveragePathIgnorePatterns = ["**/__tests__/**", "**/dist/**", "**/local/tools/databaseQuery.ts", "**/local/metro/metroDevSession.ts"]
 # Enforced by scripts/check-coverage.ts; Bun parses this key but does not
 # fail the run when coverage is below threshold. See

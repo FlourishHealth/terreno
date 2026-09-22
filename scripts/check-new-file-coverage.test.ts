@@ -11,10 +11,12 @@ import {
   expandCoverageRunArgs,
   findColocatedTests,
   groupFilesByWorkspace,
+  isCoveragePathIgnored,
   isCoverageSourceFile,
   PACKAGE_CI_LCOV_SKIP,
   packageNeedsCompiledDistDeps,
   parseNewFileCoverageArgs,
+  readCoveragePathIgnorePatterns,
   workspaceDepsCompileArgs,
 } from "./check-new-file-coverage";
 
@@ -178,6 +180,23 @@ describe("evaluateNewFileCoverage", () => {
         threshold: 90,
       }),
       [{path: "api/src/new.ts", summary: null}]
+    );
+  });
+
+  it("skips files listed in bunfig coveragePathIgnorePatterns", () => {
+    const mcpRoot = resolve(import.meta.dir, "../mcp-server");
+    const patterns = readCoveragePathIgnorePatterns(mcpRoot);
+    assert.include(patterns, "**/local/metro/metroDevSession.ts");
+    assert.isTrue(isCoveragePathIgnored("src/local/metro/metroDevSession.ts", patterns));
+    assert.deepEqual(
+      evaluateNewFileCoverage({
+        coverage: new Map(),
+        files: ["mcp-server/src/local/metro/metroDevSession.ts"],
+        packageRoot: mcpRoot,
+        repoRoot: resolve(import.meta.dir, ".."),
+        threshold: 90,
+      }),
+      []
     );
   });
 });

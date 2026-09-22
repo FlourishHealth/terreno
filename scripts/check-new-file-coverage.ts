@@ -206,6 +206,34 @@ const findFileCoverage = (
   return null;
 };
 
+const globToRegExp = (pattern: string): RegExp => {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "@@GLOBSTAR@@")
+    .replace(/\*/g, "[^/]*")
+    .replace(/@@GLOBSTAR@@/g, ".*");
+  return new RegExp(`(?:^|/)${escaped}$`);
+};
+
+export const readCoveragePathIgnorePatterns = (packageRoot: string): string[] => {
+  const bunfigPath = join(packageRoot, "bunfig.toml");
+  if (!existsSync(bunfigPath)) {
+    return [];
+  }
+  const match = readFileSync(bunfigPath, "utf8").match(
+    /coveragePathIgnorePatterns\s*=\s*\[([^\]]*)\]/
+  );
+  if (!match?.[1]) {
+    return [];
+  }
+  return [...match[1].matchAll(/"([^"]+)"/g)].map((entry) => entry[1] ?? "").filter(Boolean);
+};
+
+export const isCoveragePathIgnored = (packageRelativePath: string, patterns: string[]): boolean => {
+  const normalized = normalizePath(packageRelativePath);
+  return patterns.some((pattern) => globToRegExp(pattern).test(normalized));
+};
+
 export const evaluateNewFileCoverage = ({
   coverage,
   files,
@@ -219,9 +247,14 @@ export const evaluateNewFileCoverage = ({
   repoRoot: string;
   threshold: number;
 }): NewFileCoverageFailure[] => {
+  const ignorePatterns = readCoveragePathIgnorePatterns(packageRoot);
   const failures: NewFileCoverageFailure[] = [];
   for (const file of files) {
     const absoluteFile = resolve(repoRoot, file);
+    const packageRelativePath = normalizePath(relative(packageRoot, absoluteFile));
+    if (isCoveragePathIgnored(packageRelativePath, ignorePatterns)) {
+      continue;
+    }
     const fileCoverage = findFileCoverage(coverage, packageRoot, absoluteFile);
     if (!fileCoverage) {
       failures.push({path: file, summary: null});

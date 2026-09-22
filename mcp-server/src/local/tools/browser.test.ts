@@ -1,4 +1,7 @@
 import {describe, it} from "bun:test";
+import {mkdtempSync, rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
 import {assert} from "chai";
 
 import {BrowserSession} from "./browser";
@@ -158,6 +161,59 @@ describe("BrowserSession", () => {
       Reflect.deleteProperty(process.env, "TERRENO_MCP_EVAL");
     } else {
       process.env.TERRENO_MCP_EVAL = previousEval;
+    }
+  });
+
+  it("writes jpeg and webp screenshots under the project root", async (): Promise<void> => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "terreno-browser-shot-"));
+    const previousProjectRoot = process.env.TERRENO_PROJECT_ROOT;
+    process.env.TERRENO_PROJECT_ROOT = projectRoot;
+    const session = new BrowserSession(() => createFakeView(createCalls()));
+    try {
+      await session.run({action: "open", url: "http://localhost:8082"});
+      const jpeg = await session.run({action: "screenshot", output: "proof.jpeg"});
+      const webp = await session.run({action: "screenshot", output: "proof.webp"});
+      assert.deepEqual(jpeg, {
+        action: "screenshot",
+        ok: true,
+        output: join(projectRoot, "proof.jpeg"),
+        title: "Test app",
+        url: "http://localhost:8082/",
+      });
+      assert.deepEqual(webp, {
+        action: "screenshot",
+        ok: true,
+        output: join(projectRoot, "proof.webp"),
+        title: "Test app",
+        url: "http://localhost:8082/",
+      });
+    } finally {
+      rmSync(projectRoot, {force: true, recursive: true});
+      if (previousProjectRoot === undefined) {
+        Reflect.deleteProperty(process.env, "TERRENO_PROJECT_ROOT");
+      } else {
+        process.env.TERRENO_PROJECT_ROOT = previousProjectRoot;
+      }
+    }
+  });
+
+  it("constructs Bun.WebView when no factory is injected", async (): Promise<void> => {
+    const previousWebView = Bun.WebView;
+    let constructed = 0;
+    const fakeView = createFakeView(createCalls());
+    Bun.WebView = class FakeWebView {
+      constructor() {
+        constructed += 1;
+        Object.assign(this, fakeView);
+      }
+    } as unknown as typeof Bun.WebView;
+    try {
+      const session = new BrowserSession();
+      await session.run({action: "open", url: "http://localhost:8082"});
+      assert.equal(constructed, 1);
+      session.close();
+    } finally {
+      Bun.WebView = previousWebView;
     }
   });
 });
