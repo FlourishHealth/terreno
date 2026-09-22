@@ -1,23 +1,20 @@
 {
   "compilerOptions": {
+    "customConditions": ["bun"],
     "declaration": true,
     "declarationMap": true,
-    "customConditions": ["bun"],
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "ignoreDeprecations": "6.0",
-    "lib": ["ES2022"],
-    "module": "ESNext",
+    "isolatedModules": true,
+    "lib": ["es2022"],
+    "module": "esnext",
     "moduleResolution": "bundler",
-    "noEmit": false,
     "outDir": "./dist",
     "rootDir": "./src",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2022",
+    "target": "es2022",
     "types": ["bun", "node"]
   },
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.isolated.ts"],
-  "include": ["src/**/*.ts"]
+  "include": ["src"]
 }

@@ -11,6 +11,7 @@ TypeScript 7 removes.
 | Node library | `api`, `ai`, `admin-backend`, `announcements`, `api-health`, `comms`, `feature-flags`, `jobs`, `test`, `admin-spa` server (`tsconfig.server.json`) | `nodenext` | `es2023` | CommonJS `dist/` |
 | Node ESM tool | `mcp-server`, `create-terreno-app` | `nodenext` | `es2023` | ESM `dist/` (`"type": "module"`) |
 | Frontend library | `ui`, `admin-frontend`, `rtk`, `syncdb` | `esnext` + `moduleResolution: bundler` | `es2022` | ESM `dist/` for Metro |
+| Bun CLI | `cli` | `esnext` + `moduleResolution: bundler` + `customConditions: ["bun"]` | `es2022` | ESM `dist/` for Bun |
 | Expo app | `example-frontend`, `demo`, `admin-spa` | extends `expo/tsconfig.base` | from Expo | nothing (`noEmit`) |
 | Bun app | `example-backend` | `preserve` | `esnext` | nothing (`noEmit`) |
 | Docs site | `website` | extends `@docusaurus/tsconfig` | from Docusaurus | nothing (`noEmit`) |
