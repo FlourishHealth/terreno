@@ -86,13 +86,14 @@
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "build": "bun run sync-ui-docs && bun run sync-versioned-docs && bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 tsc",
     "compile:watch": "tsc -w",
     "dev": "bun --watch src/index.ts",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
+    "prepublishOnly": "bun run build",
     "start": "bun dist/index.js",
     "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
     "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
