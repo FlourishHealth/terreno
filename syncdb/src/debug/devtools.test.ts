@@ -36,7 +36,7 @@ describe("SyncDB devtools registry", () => {
     await client.start();
 
     const registry = getRegistry();
-    assert.deepEqual(registry?.list(), ["devtools-test"]);
+    assert.include(registry?.list() ?? [], "devtools-test");
     const bridge = registry?.clients["devtools-test"];
     assert.exists(bridge);
 

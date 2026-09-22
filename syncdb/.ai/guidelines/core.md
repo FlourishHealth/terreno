@@ -3,8 +3,8 @@
 Use SyncDB for collection CRUD. Reads come from the local TinyBase store; writes
 use `useMutate` or `client.mutate` and enter the durable outbox.
 
-When debugging a running app, use the local Terreno MCP before arbitrary runtime
-evaluation:
+When debugging a running app, invoke the `debug-syncdb-with-mcp` skill and use
+the local Terreno MCP before arbitrary runtime evaluation:
 
 1. Create the client with `debug: true` in development.
 2. Call `get_syncdb_state` for entities, tombstones, pending mutations, outbox,
