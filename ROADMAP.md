@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-22T06:27:53.405Z.
+> dates are promised. Last updated: 2026-09-22T17:21:05.507Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -30,12 +30,11 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
 - [One collection registry](https://github.com/FlourishHealth/terreno/issues/1191) (Improvement, Shipped) — IP: [collection-registry](docs/implementationPlans/collection-registry.md)
 - [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Shipped) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
-- [Organizations, teams, and multi-tenant scoping](https://github.com/FlourishHealth/terreno/issues/1024) (Feature, Shipped) — IP: [orgs-and-teams](docs/implementationPlans/orgs-and-teams.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
 
 ### ui
 
-- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, In progress)
+- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, In progress) — IP: [charts-and-dashboards](docs/implementationPlans/charts-and-dashboards.md)
 - [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review) — IP: [datatable-server-side-filtering](docs/implementationPlans/datatable-server-side-filtering.md)
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
 - [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review) — IP: [notification-center](docs/implementationPlans/notification-center.md)
@@ -77,10 +76,8 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### api
 
-- [Feature flags (pre-OpenFeature) — declined](https://github.com/FlourishHealth/terreno/issues/1098) (Feature, Shipped) — IP: [feature-flags](docs/implementationPlans/feature-flags.md)
 - [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
 - [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
-- [modelRouter actions — declined](https://github.com/FlourishHealth/terreno/issues/1097) (Feature, Shipped) — IP: [model-router-actions](docs/implementationPlans/model-router-actions.md)
 - [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Shipped) — IP: [mongodb-migrations-tooling](docs/implementationPlans/mongodb-migrations-tooling.md)
 - [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
 
@@ -91,18 +88,10 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 - [Rich text (WYSIWYG) editor](https://github.com/FlourishHealth/terreno/issues/1182) (Feature, Planned)
 - [Web SSR and admin SPA](https://github.com/FlourishHealth/terreno/issues/1017) (Feature, Planned) — IP: [web-ssr-and-admin-spa](docs/implementationPlans/web-ssr-and-admin-spa.md)
 
-### syncdb
-
-- [Offline mode (RTK) — declined](https://github.com/FlourishHealth/terreno/issues/1096) (Feature, Shipped) — IP: [offline-mode](docs/implementationPlans/offline-mode.md)
-
 ### auth
 
 - [Enterprise SSO (SAML / OIDC)](https://github.com/FlourishHealth/terreno/issues/1184) (Feature, Planned)
 - [MFA and biometric step-up auth](https://github.com/FlourishHealth/terreno/issues/1185) (Feature, Planned)
-
-### admin
-
-- [Admin improvements (v1) — declined](https://github.com/FlourishHealth/terreno/issues/1099) (Improvement, Shipped) — IP: [admin-improvements](docs/implementationPlans/admin-improvements.md)
 
 ### ai
 

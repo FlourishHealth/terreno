@@ -45,6 +45,7 @@ Canonical copy, language rules, and the Django/Rails comparison:
 | [@terreno/comms](reference/comms.md) | Pluggable communications providers |
 | [@terreno/feature-flags](reference/feature-flags.md) | Feature flags and A/B testing plugin for `@terreno/api` |
 | [@terreno/mcp](reference/mcp-server.md) | MCP server that gives coding agents Terreno docs, codegen tools, and prompts |
+| [@terreno/cli](reference/cli.md) | `terreno` CLI for docs, codegen, bootstrap, and OpenAPI REST |
 | [create-terreno-app](reference/create-terreno-app.md) | CLI to scaffold a deployable full-stack Terreno app (`bunx create-terreno-app`) |
 
 ### Legacy
@@ -58,6 +59,8 @@ Canonical copy, language rules, and the Django/Rails comparison:
 ## Quick links
 
 - [Getting started](tutorials/getting-started.md)
+- [Set up Terreno MCP](how-to/set-up-terreno-mcp.md)
+- [Debug with MCP](how-to/debug-with-mcp.md)
 - [Create a Terreno app](how-to/create-a-terreno-app.md)
 - [Positioning](explanation/positioning.md)
 - [How admin interfaces are shaped](explanation/admin-interface.md)

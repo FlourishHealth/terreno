@@ -11,12 +11,14 @@ export const PUBLISHED_PACKAGES = [
   "admin-frontend",
   "admin-spa",
   "ai",
+  "announcements",
   "api-health",
   "comms",
   "create-terreno-app",
   "feature-flags",
   "jobs",
   "mcp-server",
+  "cli",
 ] as const;
 
 export type PublishedPackage = (typeof PUBLISHED_PACKAGES)[number];

@@ -40,6 +40,17 @@ src/
 
 Each tool returns generated code wrapped with file path instructions and additional setup steps.
 
+The local stdio server also exposes runtime diagnostics. For SyncDB use:
+
+| Tool | Description |
+|------|-------------|
+| `get_syncdb_state` | Read entities, outbox, conflicts, cursors, streams, repair markers, status, and debug events |
+| `syncdb_snapshot` | Capture, list, read, compare, and delete in-memory snapshots |
+| `syncdb_action` | Mutate or directly edit local state, flush, reconcile/resync, resolve/retry, toggle offline, clear events, and merge snapshots |
+
+SyncDB state changes require `TERRENO_MCP_EVAL=1`. Read and snapshot operations
+remain available without that opt-in. Follow `docs/how-to/debug-with-mcp.md`.
+
 ## Available Prompts
 
 | Prompt | Description |

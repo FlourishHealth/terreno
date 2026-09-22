@@ -13,16 +13,54 @@
     "@sentry/bun": "catalog:",
     "@terreno/api": "workspace:*",
     "express": "catalog:",
+    "luxon": "catalog:",
     "minisearch": "^7.2.0",
-    "mongoose": "catalog:"
+    "mongoose": "9.7.4"
   },
   "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@modelcontextprotocol/client": "catalog:",
     "@types/bun": "catalog:",
+    "@types/luxon": "catalog:",
     "@types/node": "catalog:",
     "chai": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "exports": {
+    ".": {
+      "bun": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./bootstrap": {
+      "bun": "./dist/bootstrap.js",
+      "default": "./dist/bootstrap.js",
+      "types": "./dist/bootstrap.d.ts"
+    },
+    "./local-tools": {
+      "bun": "./dist/local/localTools.js",
+      "default": "./dist/local/localTools.js",
+      "types": "./dist/local/localTools.d.ts"
+    },
+    "./search": {
+      "bun": "./dist/search/docIndex.js",
+      "default": "./dist/search/docIndex.js",
+      "types": "./dist/search/docIndex.d.ts"
+    },
+    "./tools": {
+      "bun": "./dist/tools.js",
+      "default": "./dist/tools.js",
+      "types": "./dist/tools.d.ts"
+    },
+    "./upgrade": {
+      "bun": "./dist/upgradeGuide.js",
+      "default": "./dist/upgradeGuide.js",
+      "types": "./dist/upgradeGuide.d.ts"
+    }
   },
   "files": [
     "LICENSE",
@@ -65,5 +103,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "type": "module",
-  "version": "57.3.0"
+  "version": "57.4.0"
 }

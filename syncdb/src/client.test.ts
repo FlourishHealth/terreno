@@ -3206,7 +3206,12 @@ describe("createSyncDb", () => {
       harness.http.channel.fetchStreams = async () => {
         harness.auth.setUserId("other-user");
         harness.auth.emitAuthChange();
-        await flush();
+        for (let attempt = 0; attempt < 50; attempt += 1) {
+          if (client.store.getLastUserId() === "other-user") {
+            break;
+          }
+          await flush();
+        }
         return originalFetch();
       };
       const result = await client.forceResync();

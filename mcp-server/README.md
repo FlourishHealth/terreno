@@ -32,6 +32,17 @@ Code generation tools:
 - `terreno_validate_model_schema` - Validate a Mongoose schema follows conventions
 - `terreno_install_admin` - Generate admin panel integration files and instructions
 
+Local runtime tools (`terreno-mcp-local`):
+
+- `get_syncdb_state` - Inspect live SyncDB entities, outbox, conflicts, cursors,
+  streams, repair markers, status, and debugger events
+- `syncdb_snapshot` - Capture, list, read, compare, and delete SyncDB snapshots
+- `syncdb_action` - Mutate/edit local state, flush, reconcile/resync,
+  resolve/retry, toggle offline mode, clear events, and merge snapshots
+
+Create the SyncDB client with `debug: true`. State changes require
+`TERRENO_MCP_EVAL=1`; reads and snapshots do not.
+
 ### Prompts
 
 Code generation prompts:

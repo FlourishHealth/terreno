@@ -34,4 +34,4 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Public roadmap process](roadmap-process.md) — GitHub roadmap vs Linear execution
 - [Example app coverage](example-coverage.md) — Which framework capabilities the example apps exercise
 - [Repository settings](repository-settings.md) — Maintainer GitHub settings that cannot be committed
-- [Roadmap seed issues](roadmap-seed-issues.md) — Ready-to-paste GitHub issue bodies for IPs
+- [Why Terreno owns chart SVG](charts.md) — Owned `react-native-svg` vs victory-native
