@@ -74,7 +74,7 @@ const customStyle: StyleProp<ViewStyle> = {
 ## Component Categories
 
 ### Layout
-Box, Page, SplitPage, Card, Body, ImageBackground
+Box, Page, SplitPage, Card, Body, ImageBackground, DashboardGrid
 
 ### Text
 Text, Heading, Link, Hyperlink
@@ -86,7 +86,7 @@ TextField, TextArea, SelectField, CustomSelectField, MultiselectField, DateTimeF
 Button, IconButton, DismissButton, SocialLoginButton
 
 ### Data Display
-DataTable, Pagination, Badge, SelectBadge, Avatar
+DataTable, Pagination, Badge, SelectBadge, Avatar, LineChart, BarChart, AreaChart, DonutChart
 
 ### Feedback
 Modal, Toast, Spinner, ErrorPage, ErrorBoundary, Banner
