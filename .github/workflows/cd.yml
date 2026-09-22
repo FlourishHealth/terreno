@@ -10,15 +10,20 @@ on:
     paths:
       - "terraform/**"
       - "example-backend/**"
+      - "example-frontend/**"
       - "api/**"
       - "api-health/**"
       - "admin-backend/**"
+      - "admin-frontend/**"
       - "ai/**"
       - "comms/**"
       - "jobs/**"
       - "mcp-server/**"
+      - "rtk/**"
       - "ui/**"
+      - "bun.lock"
       - ".github/workflows/cd.yml"
+      - ".github/workflows/frontend-example-deploy.yml"
   workflow_dispatch:
     inputs:
       run_terraform:
@@ -75,13 +80,19 @@ jobs:
               - '.github/workflows/cd.yml'
             backend:
               - 'example-backend/**'
+              - 'example-frontend/**'
               - 'api/**'
               - 'api-health/**'
               - 'admin-backend/**'
+              - 'admin-frontend/**'
               - 'ai/**'
               - 'comms/**'
               - 'jobs/**'
+              - 'rtk/**'
+              - 'ui/**'
+              - 'bun.lock'
               - '.github/workflows/cd.yml'
+              - '.github/workflows/frontend-example-deploy.yml'
             tasks:
               - 'example-backend/**'
               - 'api/**'

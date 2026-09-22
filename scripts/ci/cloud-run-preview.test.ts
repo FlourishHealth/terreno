@@ -7,6 +7,18 @@ const repoRoot = join(import.meta.dir, "../..");
 const waitScript = join(import.meta.dir, "wait-cloud-run-health.sh");
 const deployScript = readFileSync(join(import.meta.dir, "gcp-deploy.sh"), "utf8");
 const cdWorkflow = readFileSync(join(repoRoot, ".github/workflows/cd.yml"), "utf8");
+const frontendDeployWorkflow = readFileSync(
+  join(repoRoot, ".github/workflows/frontend-example-deploy.yml"),
+  "utf8"
+);
+const FRONTEND_PREVIEW_PATHS = [
+  "example-frontend/**",
+  "ui/**",
+  "rtk/**",
+  "admin-frontend/**",
+  "bun.lock",
+  ".github/workflows/frontend-example-deploy.yml",
+];
 
 interface WaitResult {
   exitCode: number;
@@ -97,5 +109,27 @@ describe("Cloud Run preview readiness", (): void => {
       deployScript,
       /if \[\[ "\$tag" == pr-\* \]\]; then[\s\S]*wait-cloud-run-health\.sh/
     );
+  });
+
+  it("deploys an isolated backend for every frontend PR preview", (): void => {
+    const pullRequestPaths = cdWorkflow.slice(
+      cdWorkflow.indexOf("  pull_request:"),
+      cdWorkflow.indexOf("  workflow_dispatch:")
+    );
+    const backendPaths = cdWorkflow.slice(
+      cdWorkflow.indexOf("            backend:"),
+      cdWorkflow.indexOf("            tasks:")
+    );
+
+    for (const path of FRONTEND_PREVIEW_PATHS) {
+      assert.include(pullRequestPaths, path);
+      assert.include(backendPaths, path);
+    }
+
+    assert.include(
+      frontendDeployWorkflow,
+      'URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"'
+    );
+    assert.notInclude(frontendDeployWorkflow, "HAS_BACKEND_CHANGES");
   });
 });

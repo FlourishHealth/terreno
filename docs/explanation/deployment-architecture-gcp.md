@@ -80,6 +80,11 @@ service tags. An old callback then fails closed instead of reaching production o
 PR. A failed backend preview tag cannot stay on a not-Ready revision: CD rebuilds traffic
 from Ready tags, deploys the new revision without `--tag`, then tags it.
 
+Every example-frontend PR preview is paired with this isolated backend, including
+frontend-only PRs. The exported Netlify bundle targets the matching `pr-<number>` Cloud
+Run tag, whose CORS configuration trusts only that preview origin. Preview clients never
+fall back to the production backend or production database.
+
 Queue IAM grants `cloudtasks.enqueuer` and `iam.serviceAccountUser` on
 `terreno-jobs-invoker` only to `terreno-backend-runtime`, the example API Cloud Run
 identity. The project default Compute Engine SA (MCP and any other service that omits a
