@@ -1,4 +1,6 @@
 import {DateTime} from "luxon";
+import type {MergeableContent} from "tinybase";
+
 import type {SyncDb} from "../client";
 import {listConflicts} from "../mutations/conflicts";
 import {CURSORS_TABLE, KNOWN_STREAMS_TABLE, OUTBOX_TABLE} from "../storage/types";
@@ -175,9 +177,7 @@ export const registerSyncDbDevtools = ({client, name}: {client: SyncDb; name: st
     goOnline: client.goOnline,
     inspect,
     merge: (content): void => {
-      client.store.raw.setMergeableContent(
-        content as Parameters<typeof client.store.raw.setMergeableContent>[0]
-      );
+      client.store.raw.applyMergeableChanges(content as MergeableContent);
     },
     mutate: client.mutate,
     reconcile: client.reconcile,

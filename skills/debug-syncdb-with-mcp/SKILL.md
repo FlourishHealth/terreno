@@ -52,7 +52,7 @@ Restart `terreno-mcp-local` with `TERRENO_MCP_EVAL=1`, then use
 | `reconcile` / `forceResync` | Catch up or purge and rebuild from server snapshots |
 | `resolveConflict` / `retryFailed` | Unblock conflicted or terminally failed entities |
 | `goOffline` / `goOnline` | Exercise queueing and reconnect behavior |
-| `mergeSnapshot` | CRDT-merge a prior capture into the current TinyBase store |
+| `mergeSnapshot` | CRDT-merge a prior capture into the current TinyBase store; later HLCs win, including deletes |
 | `clearDebug` | Reset retained debugger events and counters |
 
 Prefer `mutate` over direct local edits. Capture another snapshot before

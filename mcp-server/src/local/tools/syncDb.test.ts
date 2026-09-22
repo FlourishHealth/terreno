@@ -132,4 +132,88 @@ describe("SyncDB local MCP tools", () => {
     const listed = JSON.parse(await syncDbSnapshot({action: "list"})) as unknown[];
     assert.lengthOf(listed, 2);
   });
+
+  it("covers remaining inspect, action, and snapshot branches", async (): Promise<void> => {
+    process.env.TERRENO_MCP_EVAL = "1";
+    const filtered = JSON.parse(
+      await getSyncDbState({
+        collection: "todos",
+        entityId: "todo-1",
+        includeDebugEvents: false,
+        limit: 1,
+        name: "app",
+      })
+    ) as FakeSyncDbState;
+    assert.equal(filtered.collections.todos.entities[0]?.id, "todo-1");
+    assert.include(await getSyncDbState({name: "missing"}), "Unknown SyncDB client");
+
+    const actions = [
+      "mutate",
+      "setLocalEntity",
+      "deleteLocalEntity",
+      "reconcile",
+      "forceResync",
+      "resolveConflict",
+      "retryFailed",
+      "goOffline",
+      "goOnline",
+      "clearDebug",
+    ] as const;
+    for (const action of actions) {
+      const result = JSON.parse(
+        await syncDbAction({
+          action,
+          collection: "todos",
+          data: {title: "x"},
+          deleted: false,
+          entityId: "todo-1",
+          id: "todo-1",
+          maxAttempts: 2,
+          mutationId: "mutation-1",
+          operation: "update",
+          seq: 1,
+          strategy: "keepLocal",
+          stream: "todos|owner:user-1",
+        })
+      ) as {action: string};
+      assert.equal(result.action, action);
+    }
+    assert.include(await syncDbAction({action: "unknown"}), "Unknown SyncDB action");
+    assert.include(await syncDbAction({action: "mergeSnapshot"}), "Unknown or missing snapshotId");
+
+    const captured = JSON.parse(await syncDbSnapshot({action: "capture"})) as {
+      id: string;
+      state: FakeSyncDbState;
+    };
+    const gotten = JSON.parse(await syncDbSnapshot({action: "get", snapshotId: captured.id})) as {
+      id: string;
+    };
+    assert.equal(gotten.id, captured.id);
+    assert.include(await syncDbSnapshot({action: "get"}), "Unknown or missing snapshotId");
+    assert.include(
+      await syncDbSnapshot({action: "compare", snapshotId: captured.id}),
+      "Both snapshotId and otherSnapshotId"
+    );
+    assert.include(await syncDbSnapshot({action: "unknown"}), "Unknown snapshot action");
+    const deleted = JSON.parse(
+      await syncDbSnapshot({action: "delete", snapshotId: captured.id})
+    ) as {deleted: boolean};
+    assert.isTrue(deleted.deleted);
+    const emptyDelete = JSON.parse(await syncDbSnapshot({action: "delete"})) as {
+      deleted: boolean;
+    };
+    assert.isFalse(emptyDelete.deleted);
+  });
+
+  it("reports when no client is registered", async (): Promise<void> => {
+    (
+      globalThis as typeof globalThis & {
+        __TERRENO_SYNCDB__?: unknown;
+      }
+    ).__TERRENO_SYNCDB__ = {
+      clients: {},
+      list: (): string[] => [],
+    };
+    assert.include(await getSyncDbState({}), "No SyncDB client is registered");
+  });
 });

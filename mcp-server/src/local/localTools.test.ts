@@ -97,6 +97,38 @@ describe("local MCP runtime tools", () => {
     const state = await handleLocalToolCall("get_rtk_state", {slice: 42});
     const evaluation = await handleLocalToolCall("evaluate", {code: 42});
     const unknown = await handleLocalToolCall("unknown", {});
+    const syncdbMissing = await handleLocalToolCall("get_syncdb_state", {
+      collection: "todos",
+      entityId: "todo-1",
+      includeDebugEvents: false,
+      limit: 1,
+      name: "app",
+    });
+    const syncdbAction = await handleLocalToolCall("syncdb_action", {
+      action: "flush",
+      collection: "todos",
+      data: {title: "x"},
+      deleted: false,
+      entityId: "todo-1",
+      id: "todo-1",
+      maxAttempts: 1,
+      mutationId: "m1",
+      operation: "update",
+      seq: 1,
+      snapshotId: "snap",
+      strategy: "keepLocal",
+      stream: "todos",
+    });
+    const syncdbSnapshot = await handleLocalToolCall("syncdb_snapshot", {
+      action: "list",
+      collection: "todos",
+      entityId: "todo-1",
+      includeDebugEvents: true,
+      limit: 10,
+      name: "app",
+      otherSnapshotId: "b",
+      snapshotId: "a",
+    });
 
     assert.include(application.content[0]?.text ?? "", "# Application info");
     assert.include(schema.content[0]?.text ?? "", "### todo.ts");
@@ -108,6 +140,9 @@ describe("local MCP runtime tools", () => {
     assert.include(state.content[0]?.text ?? "", "Metro events: not connected");
     assert.include(evaluation.content[0]?.text ?? "", "Refused");
     assert.equal(unknown.content[0]?.text, "Unknown tool: unknown");
+    assert.include(syncdbMissing.content[0]?.text ?? "", "CDP:");
+    assert.include(syncdbAction.content[0]?.text ?? "", "Refused");
+    assert.include(syncdbSnapshot.content[0]?.text ?? "", "[");
 
     const summary = await handleLocalToolCall("database_schema", {summary: true});
     assert.include(summary.content[0]?.text ?? "", "Found 1 model file(s)");

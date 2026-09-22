@@ -77,8 +77,10 @@ Capture state before and after reproduction, then compare it:
 ```
 
 Snapshots live in the local MCP process. Each capture privately retains the
-TinyBase mergeable content so it can be merged back later; `get` and `compare`
-never return that merge payload.
+TinyBase mergeable content so `mergeSnapshot` can CRDT-merge it back later
+without wiping newer local rows (later HLCs win, including deletes). `get` and
+`compare` never return that merge payload. To restore a specific captured row,
+use `setLocalEntity` from `syncdb_snapshot` `get`.
 
 State changes require an explicit local opt-in:
 
@@ -97,9 +99,10 @@ outbox, and `reconcile` catches up from server snapshots:
 
 Other actions are `forceResync`, `resolveConflict`, `retryFailed`, `goOffline`,
 `goOnline`, `clearDebug`, `setLocalEntity`, `deleteLocalEntity`, and
-`mergeSnapshot`. Direct local edits and snapshot merges bypass server validation
-and outbox semantics; capture a baseline first and use them only for fault
-injection or repair.
+`mergeSnapshot`. Direct local edits bypass server validation and outbox
+semantics. `mergeSnapshot` CRDT-merges the captured TinyBase content into the
+live store (later HLCs win) instead of replacing it. Capture a baseline first
+and use these only for fault injection or repair.
 
 ## 4. Prove the web fix
 

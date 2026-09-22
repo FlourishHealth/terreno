@@ -225,8 +225,10 @@ unregistered when debug logging is off.
 
 Read and snapshot tools redact sensitive field names. `syncdb_action` requires
 the local MCP process to start with `TERRENO_MCP_EVAL=1`. `flush` means “drain
-the durable outbox now.” `mergeSnapshot` uses TinyBase mergeable content from a
-snapshot retained inside the same MCP process.
+the durable outbox now.” `mergeSnapshot` CRDT-merges TinyBase mergeable content
+from a snapshot retained in the same MCP process. Later HLCs win, including
+deletes; it does not replace the live store. To force specific rows from a
+capture, use `setLocalEntity` from `syncdb_snapshot` `get`.
 
 See [Debug a Terreno app with MCP](../how-to/debug-with-mcp.md).
 
