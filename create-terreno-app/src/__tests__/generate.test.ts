@@ -464,17 +464,35 @@ describe("generated frontend Terreno 57 compatibility", () => {
     assert.notInclude(sdk, "data: {");
   });
 
-  test("tsconfig omits deprecated baseUrl for TypeScript 6", () => {
-    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
-      compilerOptions: {
-        baseUrl?: string;
-        ignoreDeprecations?: string;
-        paths: Record<string, string[]>;
+  test("tsconfigs use no TypeScript 6 deprecated options", () => {
+    const tsconfigPaths = [
+      "backend/tsconfig.json",
+      "frontend/tsconfig.codegen.json",
+      "frontend/tsconfig.json",
+    ];
+
+    for (const tsconfigPath of tsconfigPaths) {
+      const {compilerOptions} = JSON.parse(read(tsconfigPath)) as {
+        compilerOptions: Record<string, unknown>;
       };
+      const moduleResolution = String(compilerOptions.moduleResolution ?? "").toLowerCase();
+      const target = String(compilerOptions.target ?? "").toLowerCase();
+
+      assert.notProperty(compilerOptions, "baseUrl", tsconfigPath);
+      assert.notProperty(compilerOptions, "downlevelIteration", tsconfigPath);
+      assert.notProperty(compilerOptions, "ignoreDeprecations", tsconfigPath);
+      assert.notInclude(["node", "node10", "classic"], moduleResolution, tsconfigPath);
+      assert.notEqual(target, "es5", tsconfigPath);
+    }
+  });
+
+  test("frontend tsconfig resolves path aliases from its own directory", () => {
+    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
+      compilerOptions: {paths: Record<string, string[]>};
+      extends: string;
     };
 
-    assert.isUndefined(tsconfig.compilerOptions.baseUrl);
-    assert.equal(tsconfig.compilerOptions.ignoreDeprecations, "6.0");
+    assert.equal(tsconfig.extends, "expo/tsconfig.base");
     assert.deepEqual(tsconfig.compilerOptions.paths["@/*"], ["./*"]);
   });
 
@@ -494,7 +512,7 @@ describe("generated frontend Terreno 57 compatibility", () => {
     assert.include(sdk, 'providesTags: ["profile"]');
     assert.isTrue(sdk.indexOf('addTagTypes: ["profile"]') < sdk.indexOf("injectEndpoints"));
     assert.include(generateSdk, "execFile");
-    assert.include(tsconfig.compilerOptions.types ?? [], "bun-types");
+    assert.include(tsconfig.compilerOptions.types ?? [], "bun");
     assert.property(frontendPackageJson.devDependencies, "@types/bun");
     assert.property(frontendPackageJson.devDependencies, "ts-node");
   });
