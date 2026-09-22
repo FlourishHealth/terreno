@@ -211,6 +211,25 @@ be passed to `betterAuthAdapter` directly.
 | `outbox` | Durable mutation outbox (`Outbox`). |
 | `debug` | `SyncDebugLog` when `debug` is enabled; otherwise `undefined`. |
 
+### Local MCP debugging
+
+When `debug` is enabled, `createSyncDb` registers the client by `name` on the
+development runtime bridge used by `terreno-mcp-local`. Production clients stay
+unregistered when debug logging is off.
+
+| Tool | Operations |
+| --- | --- |
+| `get_syncdb_state` | Read status, entities/tombstones, decoded outbox, conflicts, cursors, known streams, repair markers, values, and debug events |
+| `syncdb_snapshot` | `capture`, `list`, `get`, `compare`, `delete` |
+| `syncdb_action` | `mutate`, `setLocalEntity`, `deleteLocalEntity`, `flush`, `reconcile`, `forceResync`, `resolveConflict`, `retryFailed`, `goOffline`, `goOnline`, `clearDebug`, `mergeSnapshot` |
+
+Read and snapshot tools redact sensitive field names. `syncdb_action` requires
+the local MCP process to start with `TERRENO_MCP_EVAL=1`. `flush` means “drain
+the durable outbox now.” `mergeSnapshot` uses TinyBase mergeable content from a
+snapshot retained inside the same MCP process.
+
+See [Debug a Terreno app with MCP](../how-to/debug-with-mcp.md).
+
 ## React hooks
 
 Import from `@terreno/syncdb/react`:

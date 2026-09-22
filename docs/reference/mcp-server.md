@@ -3,7 +3,7 @@
 Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
 
 - **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
-- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs` (JSONL + optional Metro `/events` + Hermes CDP console ring), `last_error`, `get_rtk_state` (local `__TERRENO_STORE__` or CDP), `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (expo-router via CDP, same gate), and `browser` (Bun 1.4 WebView automation and proof capture). Metro URL defaults from `frontend/package.json` `--port` or `TERRENO_METRO_URL`. `application_info` reads bootstrap `backend/` + `frontend/`, or this monorepo's `example-backend/` + `example-frontend/` (bootstrap names win when both exist).
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): app/database/log/browser diagnostics, Redux/RTK inspection, and SyncDB state/action/snapshot tools. `evaluate`, `navigate`, and SyncDB state changes are gated by `TERRENO_MCP_EVAL`. Metro URL defaults from `frontend/package.json` `--port` or `TERRENO_METRO_URL`. `application_info` reads bootstrap `backend/` + `frontend/`, or this monorepo's `example-backend/` + `example-frontend/` (bootstrap names win when both exist).
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 For editor configuration and runtime prerequisites, see
@@ -138,6 +138,26 @@ Chrome, Chromium, or Edge through the Chrome DevTools Protocol. Browser storage 
 action. Screenshot paths must stay under the project root or `/opt/cursor/artifacts`; persistent
 browser data must stay under the project root. Calls are serialized around the one session owned by
 the local MCP process.
+
+### SyncDB runtime tools
+
+Create the app client with `debug: true` so it registers by its configured
+`name`. The local MCP uses the in-process registry when available and Hermes CDP
+for a separately running app.
+
+| Tool | Purpose |
+| --- | --- |
+| `get_syncdb_state` | Read status, entities/tombstones, outbox, conflicts, cursors, streams, repair markers, values, and debugger events |
+| `syncdb_snapshot` | Capture, list, get, compare, or delete snapshots held by this MCP process |
+| `syncdb_action` | Mutate or directly edit local state, flush, reconcile/resync, resolve/retry, toggle offline, clear debug events, or merge a snapshot |
+
+State and snapshot responses redact fields containing `password`, `token`,
+`secret`, `authorization`, or `cookie`. Snapshot merge payloads are retained
+privately and are not returned. Start the local MCP with
+`TERRENO_MCP_EVAL=1` before calling `syncdb_action`.
+
+See [Debug a Terreno app with MCP](../how-to/debug-with-mcp.md) for examples and
+safety guidance.
 
 ### terreno_search_docs
 
@@ -547,7 +567,7 @@ Returns comprehensive code style guide from project documentation.
 | `TERRENO_MCP_DOCS_DIR` | `../docs` | Path to documentation directory (relative to dist/) |
 | `TERRENO_PROJECT_ROOT` | nearest Terreno project root | Override local package, database, and log discovery |
 | `TERRENO_METRO_URL` | Frontend script port or `http://localhost:8082` | Metro origin used for `/events` and CDP discovery |
-| `TERRENO_MCP_EVAL` | Disabled | Set to `1` to enable local MCP `evaluate` and `navigate` |
+| `TERRENO_MCP_EVAL` | Disabled | Set to `1` to enable local MCP `evaluate`, `navigate`, and SyncDB state-changing actions |
 | `TERRENO_BROWSER_LOGS` | Enabled only when `NODE_ENV=development` | Set to `true` to opt in in another non-production environment or `false` to disable; production rejects the route, and non-loopback clients must authenticate |
 
 **Example:**

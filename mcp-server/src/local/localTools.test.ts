@@ -66,6 +66,9 @@ describe("local MCP runtime tools", () => {
 
   it("publishes browser automation for agent proof", async (): Promise<void> => {
     assert.isTrue(localMcpTools.some((tool) => tool.name === "browser"));
+    assert.isTrue(localMcpTools.some((tool) => tool.name === "get_syncdb_state"));
+    assert.isTrue(localMcpTools.some((tool) => tool.name === "syncdb_action"));
+    assert.isTrue(localMcpTools.some((tool) => tool.name === "syncdb_snapshot"));
     const result = await handleLocalToolCall("browser", {action: "close"});
     assert.include(result.content[0]?.text ?? "", '"ok": true');
     try {

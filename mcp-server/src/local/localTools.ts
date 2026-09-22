@@ -6,6 +6,7 @@ import {databaseQuery} from "./tools/databaseQuery.js";
 import {databaseSchema} from "./tools/databaseSchema.js";
 import {lastError, readLogs} from "./tools/readLogs.js";
 import {evaluate, getRtkState, navigate} from "./tools/runtime.js";
+import {getSyncDbState, syncDbAction, syncDbSnapshot} from "./tools/syncDb.js";
 
 export const localMcpTools: Tool[] = [
   {
@@ -97,6 +98,93 @@ export const localMcpTools: Tool[] = [
       type: "object",
     },
     name: "get_rtk_state",
+  },
+  {
+    description:
+      "Inspect a live SyncDB client registered by createSyncDb({debug: true}): status, entities (including tombstones/pending metadata), decoded outbox, conflicts, cursors, streams, repairs, values, and debugger events. Sensitive fields are redacted.",
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        collection: {description: "Optional collection filter", type: "string"},
+        entityId: {description: "Optional entity id filter", type: "string"},
+        includeDebugEvents: {
+          description: "Set false to return debug stats without event bodies",
+          type: "boolean",
+        },
+        limit: {
+          description: "Entity limit per collection (default 500, max 2000)",
+          type: "number",
+        },
+        name: {
+          description: "Client/store name; defaults to the first registered client",
+          type: "string",
+        },
+      },
+      type: "object",
+    },
+    name: "get_syncdb_state",
+  },
+  {
+    description:
+      "Change a live SyncDB client (requires TERRENO_MCP_EVAL=1): mutate, directly edit local rows, flush the outbox, reconcile/resync, resolve conflicts, retry failures, toggle offline, clear debug events, or merge a captured snapshot.",
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        action: {
+          enum: [
+            "mutate",
+            "setLocalEntity",
+            "deleteLocalEntity",
+            "flush",
+            "reconcile",
+            "forceResync",
+            "resolveConflict",
+            "retryFailed",
+            "goOffline",
+            "goOnline",
+            "clearDebug",
+            "mergeSnapshot",
+          ],
+          type: "string",
+        },
+        collection: {type: "string"},
+        data: {additionalProperties: true, type: "object"},
+        deleted: {type: "boolean"},
+        entityId: {type: "string"},
+        id: {type: "string"},
+        maxAttempts: {type: "number"},
+        mutationId: {type: "string"},
+        name: {type: "string"},
+        operation: {enum: ["create", "update", "delete"], type: "string"},
+        seq: {type: "number"},
+        snapshotId: {type: "string"},
+        strategy: {enum: ["useServer", "keepMine"], type: "string"},
+        stream: {type: "string"},
+      },
+      required: ["action"],
+      type: "object",
+    },
+    name: "syncdb_action",
+  },
+  {
+    description:
+      "Capture, list, read, compare, or delete in-memory SyncDB snapshots. Captures include the full mergeable TinyBase content for later mergeSnapshot, while returned state redacts sensitive fields.",
+    inputSchema: {
+      additionalProperties: false,
+      properties: {
+        action: {enum: ["capture", "list", "get", "compare", "delete"], type: "string"},
+        collection: {type: "string"},
+        entityId: {type: "string"},
+        includeDebugEvents: {type: "boolean"},
+        limit: {type: "number"},
+        name: {type: "string"},
+        otherSnapshotId: {type: "string"},
+        snapshotId: {type: "string"},
+      },
+      required: ["action"],
+      type: "object",
+    },
+    name: "syncdb_snapshot",
   },
   {
     description:
@@ -232,6 +320,54 @@ export const createLocalToolCallHandler = (
         const text = await getRtkState({
           query: typeof args.query === "string" ? args.query : undefined,
           slice: typeof args.slice === "string" ? args.slice : undefined,
+        });
+        return {content: [{text, type: "text"}]};
+      }
+      case "get_syncdb_state": {
+        const text = await getSyncDbState({
+          collection: typeof args.collection === "string" ? args.collection : undefined,
+          entityId: typeof args.entityId === "string" ? args.entityId : undefined,
+          includeDebugEvents:
+            typeof args.includeDebugEvents === "boolean" ? args.includeDebugEvents : undefined,
+          limit: typeof args.limit === "number" ? args.limit : undefined,
+          name: typeof args.name === "string" ? args.name : undefined,
+        });
+        return {content: [{text, type: "text"}]};
+      }
+      case "syncdb_action": {
+        const text = await syncDbAction({
+          action: typeof args.action === "string" ? args.action : "",
+          collection: typeof args.collection === "string" ? args.collection : undefined,
+          data:
+            typeof args.data === "object" && args.data !== null
+              ? (args.data as Record<string, unknown>)
+              : undefined,
+          deleted: typeof args.deleted === "boolean" ? args.deleted : undefined,
+          entityId: typeof args.entityId === "string" ? args.entityId : undefined,
+          id: typeof args.id === "string" ? args.id : undefined,
+          maxAttempts: typeof args.maxAttempts === "number" ? args.maxAttempts : undefined,
+          mutationId: typeof args.mutationId === "string" ? args.mutationId : undefined,
+          name: typeof args.name === "string" ? args.name : undefined,
+          operation: typeof args.operation === "string" ? args.operation : undefined,
+          seq: typeof args.seq === "number" ? args.seq : undefined,
+          snapshotId: typeof args.snapshotId === "string" ? args.snapshotId : undefined,
+          strategy: typeof args.strategy === "string" ? args.strategy : undefined,
+          stream: typeof args.stream === "string" ? args.stream : undefined,
+        });
+        return {content: [{text, type: "text"}]};
+      }
+      case "syncdb_snapshot": {
+        const text = await syncDbSnapshot({
+          action: typeof args.action === "string" ? args.action : "",
+          collection: typeof args.collection === "string" ? args.collection : undefined,
+          entityId: typeof args.entityId === "string" ? args.entityId : undefined,
+          includeDebugEvents:
+            typeof args.includeDebugEvents === "boolean" ? args.includeDebugEvents : undefined,
+          limit: typeof args.limit === "number" ? args.limit : undefined,
+          name: typeof args.name === "string" ? args.name : undefined,
+          otherSnapshotId:
+            typeof args.otherSnapshotId === "string" ? args.otherSnapshotId : undefined,
+          snapshotId: typeof args.snapshotId === "string" ? args.snapshotId : undefined,
         });
         return {content: [{text, type: "text"}]};
       }

@@ -5,6 +5,7 @@ import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyPr
 import type {KeyProvider} from "./crypto/types";
 import {attachDebugChannel, type DebugChannelBridge} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
+import {registerSyncDbDevtools} from "./debug/devtools";
 import {getConflict, listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
@@ -1941,7 +1942,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       }
     });
 
-  return {
+  const client: SyncDb = {
     debug: debugLog,
     forceResync,
     getSyncStatus,
@@ -1960,4 +1961,8 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     stop,
     store,
   };
+  if (debugLog) {
+    registerSyncDbDevtools({client, name: config.name});
+  }
+  return client;
 };

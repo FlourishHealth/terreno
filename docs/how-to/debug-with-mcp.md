@@ -38,7 +38,7 @@ terreno logs --entries 100 --level error --sources backend,browser,metro,app
 
 ## 2. Inspect client state
 
-Check authentication and RTK Query cache state:
+Check authentication and non-synced RTK Query cache state:
 
 ```json
 {"name":"get_rtk_state","arguments":{"slice":"rtk","query":"todos"}}
@@ -55,7 +55,53 @@ returned as `[REDACTED]`; use this summary to inspect cache state, never to retr
 terreno state --slice rtk --query todos
 ```
 
-## 3. Prove the web fix
+## 3. Inspect and change SyncDB state
+
+Create the app client with `debug: true`, then inspect the same state that powers
+the SyncDB debugger:
+
+```json
+{"name":"get_syncdb_state","arguments":{"collection":"todos"}}
+```
+
+The result includes entities (including tombstones, seq/stream, and pending ids),
+decoded outbox rows, conflicts, cursors, known streams, repair markers, aggregate
+status, and debugger events. Sensitive fields are returned as `[REDACTED]`.
+
+Capture state before and after reproduction, then compare it:
+
+```json
+{"name":"syncdb_snapshot","arguments":{"action":"capture"}}
+{"name":"syncdb_snapshot","arguments":{"action":"capture"}}
+{"name":"syncdb_snapshot","arguments":{"action":"compare","snapshotId":"syncdb-...-1","otherSnapshotId":"syncdb-...-2"}}
+```
+
+Snapshots live in the local MCP process. Each capture privately retains the
+TinyBase mergeable content so it can be merged back later; `get` and `compare`
+never return that merge payload.
+
+State changes require an explicit local opt-in:
+
+```bash
+TERRENO_MCP_EVAL=1 bunx terreno-mcp-local
+```
+
+Then use `syncdb_action`. Normal writes should use `mutate`; `flush` drains the
+outbox, and `reconcile` catches up from server snapshots:
+
+```json
+{"name":"syncdb_action","arguments":{"action":"mutate","collection":"todos","operation":"update","id":"todo-1","data":{"completed":true}}}
+{"name":"syncdb_action","arguments":{"action":"flush"}}
+{"name":"syncdb_action","arguments":{"action":"reconcile"}}
+```
+
+Other actions are `forceResync`, `resolveConflict`, `retryFailed`, `goOffline`,
+`goOnline`, `clearDebug`, `setLocalEntity`, `deleteLocalEntity`, and
+`mergeSnapshot`. Direct local edits and snapshot merges bypass server validation
+and outbox semantics; capture a baseline first and use them only for fault
+injection or repair.
+
+## 4. Prove the web fix
 
 Use Bun 1.4's built-in WebView through the local `browser` tool:
 
@@ -84,7 +130,7 @@ terreno web http://localhost:8082 \
   --screenshot /opt/cursor/artifacts/save-result.png
 ```
 
-## 4. Verify the native fix in the running app
+## 5. Verify the native fix in the running app
 
 Navigation and arbitrary evaluation are disabled by default. Opt in only for local debugging:
 

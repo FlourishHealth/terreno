@@ -35,7 +35,7 @@ export const bootstrapTools: Tool[] = [
         },
         packages: {
           description:
-            'Optional list of Terreno packages to include in merged guidelines (e.g. ["api","ui","rtk"]). Use names like `api`, `ui`, `rtk`, `admin-backend`, `admin-frontend`, or `@terreno/api`. Omit admin packages if the app does not use the admin panel.',
+            'Optional list of Terreno packages to include in merged guidelines (e.g. ["api","ui","rtk","syncdb"]). Use names like `api`, `ui`, `rtk`, `syncdb`, `admin-backend`, `admin-frontend`, or `@terreno/api`. Omit admin packages if the app does not use the admin panel.',
           items: {type: "string"},
           type: "array",
         },
