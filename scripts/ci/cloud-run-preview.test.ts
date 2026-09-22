@@ -126,9 +126,9 @@ describe("Cloud Run preview readiness", (): void => {
       assert.include(backendPaths, path);
     }
 
-    assert.include(
+    assert.match(
       frontendDeployWorkflow,
-      'URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"'
+      /URL="https:\/\/pr-\$\{\{ github\.event\.pull_request\.number \}\}---terreno-backend-example-7knxlrnpqq-uc\.a\.run\.app"/
     );
     assert.notInclude(frontendDeployWorkflow, "HAS_BACKEND_CHANGES");
   });
