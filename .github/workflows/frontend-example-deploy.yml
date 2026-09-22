@@ -24,6 +24,10 @@ on:
       - ".github/workflows/frontend-example-deploy.yml"
   workflow_dispatch:
 
+concurrency:
+  group: example-frontend-deploy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-changes:
     name: Check for relevant changes
