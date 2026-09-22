@@ -20,10 +20,13 @@ while [ "$attempt" -le "$max_attempts" ]; do
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' EXIT
 
+  # Capture stderr synchronously so the retry check never inspects a partial
+  # buffer, and leave stdout untouched for the deploy action's JSON parser.
   set +e
-  "$real_gcloud" "$@" 2> >(tee "$output_file" >&2)
+  "$real_gcloud" "$@" 2>"$output_file"
   exit_code="$?"
   set -e
+  cat "$output_file" >&2
 
   if [ "$exit_code" -eq 0 ]; then
     exit 0

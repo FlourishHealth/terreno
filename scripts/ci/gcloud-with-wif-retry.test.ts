@@ -17,7 +17,7 @@ interface RetryResult {
 const runRetry = async ({
   mode,
 }: {
-  mode: "recover" | "permission" | "exhaust";
+  mode: "recover" | "permission" | "exhaust" | "noisy";
 }): Promise<RetryResult> => {
   const directory = mkdtempSync(join(tmpdir(), "gcloud-wif-retry-"));
   temporaryDirectories.push(directory);
@@ -49,6 +49,16 @@ case "$GCLOUD_FAKE_MODE" in
   exhaust)
     echo "Unable to retrieve Identity Pool subject token: upstream request timeout" >&2
     exit 7
+    ;;
+  noisy)
+    if [ "$count" -lt 2 ]; then
+      for index in $(seq 1 4000); do
+        echo "Deploying revision progress line $index" >&2
+      done
+      echo "Unable to retrieve Identity Pool subject token: upstream request timeout" >&2
+      exit 1
+    fi
+    echo '{"status":{"url":"https://example.run.app"}}'
     ;;
 esac
 `
@@ -105,6 +115,15 @@ describe("gcloud WIF retry", (): void => {
     assert.equal(result.invocationCount, 1);
     assert.include(result.stderr, "PERMISSION_DENIED");
     assert.notInclude(result.stdout, "PERMISSION_DENIED");
+  });
+
+  it("detects a transient timeout buried in high-volume deploy progress output", async (): Promise<void> => {
+    const result = await runRetry({mode: "noisy"});
+
+    assert.equal(result.exitCode, 0, result.stderr);
+    assert.equal(result.invocationCount, 2);
+    assert.equal(result.stdout, '{"status":{"url":"https://example.run.app"}}\n');
+    assert.include(result.stderr, "Deploying revision progress line 4000");
   });
 
   it("fails after the bounded number of transient retries", async (): Promise<void> => {
