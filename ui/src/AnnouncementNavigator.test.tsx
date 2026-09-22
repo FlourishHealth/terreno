@@ -1,10 +1,11 @@
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Linking, Text} from "react-native";
 import {AnnouncementNavigator} from "./AnnouncementNavigator";
+import * as announcementFrequency from "./announcementFrequency";
 import {
   buildFrequencyStorageKey,
   resetFrequencySessionStateForTests,
@@ -34,16 +35,24 @@ const createMockApi = (
   pending: PendingAnnouncementsResponse | (() => PendingAnnouncementsResponse),
   refetchOverride?: () => Promise<void>,
   feedItems: AnnouncementPublic[] = [],
-  clickUnwrap: () => Promise<unknown> = async () => ({data: {recorded: true}})
+  clickUnwrap: () => Promise<unknown> = async () => ({data: {recorded: true}}),
+  overrides: {
+    acknowledgeUnwrap?: () => Promise<unknown>;
+    impressionUnwrap?: () => Promise<unknown>;
+  } = {}
 ) => {
   const getPending =
     typeof pending === "function" ? pending : (): PendingAnnouncementsResponse => pending;
   const refetch = refetchOverride ?? mock(() => Promise.resolve());
+  const acknowledgeUnwrap =
+    overrides.acknowledgeUnwrap ?? (async (): Promise<unknown> => ({data: {acknowledged: true}}));
+  const impressionUnwrap =
+    overrides.impressionUnwrap ?? (async (): Promise<unknown> => ({data: {recorded: true}}));
   const acknowledgeMutation = mock(() => ({
-    unwrap: mock(() => Promise.resolve({data: {acknowledged: true}})),
+    unwrap: mock(acknowledgeUnwrap),
   }));
   const impressionMutation = mock(() => ({
-    unwrap: mock(() => Promise.resolve({data: {recorded: true}})),
+    unwrap: mock(impressionUnwrap),
   }));
   const clickMutation = mock(() => ({
     unwrap: mock(clickUnwrap),
@@ -734,6 +743,201 @@ describe("AnnouncementNavigator", () => {
     expect(openUrl).toHaveBeenCalledWith("https://example.com/docs");
 
     console.warn = originalWarn;
+  });
+
+  it("renders children when the pending request is unauthorized", () => {
+    const innerApi = {
+      injectEndpoints: mock(() => ({
+        useAcknowledgeAnnouncementMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+        useGetAnnouncementFeedQuery: mock(() => ({
+          data: {data: []},
+          error: undefined,
+          isLoading: false,
+          refetch: mock(() => Promise.resolve()),
+        })),
+        useGetPendingAnnouncementsQuery: mock(() => ({
+          data: undefined,
+          error: {status: 401},
+          isLoading: false,
+          refetch: mock(() => Promise.resolve()),
+        })),
+        useRecordAnnouncementClickMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+        useRecordAnnouncementImpressionMutation: mock(() => [
+          mock(),
+          {error: undefined, isLoading: false},
+        ]),
+      })),
+    };
+    const onError = mock(() => undefined);
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={{enhanceEndpoints: mock(() => innerApi)}} onError={onError}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    expect(result.getByTestId("app-content")).toBeTruthy();
+    assert.isNull(result.queryByTestId("announcement-navigator-error"));
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("calls onError when acknowledging fails", async () => {
+    const {api} = createMockApi(
+      {
+        current: makeAnnouncement(),
+        remainingCount: 0,
+      },
+      undefined,
+      [],
+      undefined,
+      {
+        acknowledgeUnwrap: async () => {
+          throw new Error("ack failed");
+        },
+      }
+    );
+    const onError = mock(() => undefined);
+    const result = renderWithTheme(
+      <AnnouncementNavigator api={api} onError={onError}>
+        <Box testID="app-content">
+          <Text>App</Text>
+        </Box>
+      </AnnouncementNavigator>
+    );
+
+    await waitForFrequencyCheck();
+    await act(async () => {
+      fireEvent.press(result.getByText("Got it"));
+      await Promise.resolve();
+    });
+
+    assert.strictEqual(onError.mock.calls.length, 1);
+    assert.instanceOf(onError.mock.calls[0][0], Error);
+  });
+
+  it("keeps showing the announcement when recording the impression fails", async () => {
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => undefined);
+    const {api} = createMockApi(
+      {
+        current: makeAnnouncement({title: "Impression failure"}),
+        remainingCount: 0,
+      },
+      undefined,
+      [],
+      undefined,
+      {
+        impressionUnwrap: async () => {
+          throw new Error("impression failed");
+        },
+      }
+    );
+
+    try {
+      const result = renderWithTheme(
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+      await waitForFrequencyCheck();
+      await waitForFrequencyCheck();
+
+      expect(result.getByText("Impression failure")).toBeTruthy();
+      const warned = warnSpy.mock.calls.some((call) =>
+        String(call[0]).includes("Failed to record impression")
+      );
+      assert.isTrue(warned);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("warns when opening the primary action URL throws", async () => {
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => undefined);
+    Linking.canOpenURL = mock(() => Promise.reject(new Error("no handler")));
+    Linking.openURL = mock(() => Promise.resolve());
+
+    const {api} = createMockApi({
+      current: makeAnnouncement({
+        primaryAction: {label: "Read docs", url: "https://example.com/docs"},
+      }),
+      remainingCount: 0,
+    });
+
+    try {
+      const result = renderWithTheme(
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+
+      await waitForFrequencyCheck();
+      await act(async () => {
+        fireEvent.press(result.getByText("Read docs"));
+        await Promise.resolve();
+      });
+
+      const warned = warnSpy.mock.calls.some((call) =>
+        String(call[0]).includes("Failed to open primary-action URL")
+      );
+      assert.isTrue(warned);
+      expect(Linking.openURL).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("fails open when the frequency check itself throws", async () => {
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => undefined);
+    const suppressSpy = spyOn(announcementFrequency, "shouldSuppressInterrupt").mockImplementation(
+      async () => {
+        throw new Error("frequency exploded");
+      }
+    );
+    const recordSpy = spyOn(announcementFrequency, "recordInterruptShown").mockImplementation(
+      async () => {
+        throw new Error("record exploded");
+      }
+    );
+
+    const {api, impressionMutation} = createMockApi({
+      current: makeAnnouncement({title: "Still shown"}),
+      remainingCount: 0,
+    });
+
+    try {
+      const result = renderWithTheme(
+        <AnnouncementNavigator api={api}>
+          <Box testID="app-content">
+            <Text>App</Text>
+          </Box>
+        </AnnouncementNavigator>
+      );
+      await waitForFrequencyCheck();
+      await waitForFrequencyCheck();
+
+      expect(result.getByText("Still shown")).toBeTruthy();
+      expect(impressionMutation).toHaveBeenCalledTimes(1);
+      const messages = warnSpy.mock.calls.map((call) => String(call[0]));
+      assert.isTrue(messages.some((message) => message.includes("Frequency check failed")));
+      assert.isTrue(
+        messages.some((message) => message.includes("Failed to record interrupt for frequency"))
+      );
+    } finally {
+      suppressSpy.mockRestore();
+      recordSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
   });
 
   it("does not record a click when the announcement has no primary action", async () => {
