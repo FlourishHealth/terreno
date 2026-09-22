@@ -440,6 +440,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     return result;
   };
 
+  const waitForLifecycleIdle = async (): Promise<void> => {
+    let pending = lifecycle;
+    await pending;
+    while (pending !== lifecycle) {
+      pending = lifecycle;
+      await pending;
+    }
+  };
+
   const notifyStatusChange = (): void => {
     for (const listener of statusListeners) {
       listener();
@@ -930,6 +939,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // the ways a device diverges in the first place, so it cannot be trusted as
       // the authoritative list for a repair operation.
       const streams = await syncStreams({isSuperseded});
+      await waitForLifecycleIdle();
       if (isSuperseded()) {
         return skip("superseded");
       }
@@ -958,6 +968,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         purged += store.purgeStream({stream});
         store.addKnownStream({collection, stream});
         await bootstrapStream({channel: httpChannel, collection, store, stream});
+        await waitForLifecycleIdle();
         if (isSuperseded()) {
           return {ok: false, purged, reason: "superseded", repaired, streams: streamInfos.length};
         }
