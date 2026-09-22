@@ -349,7 +349,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         "@types/bun": "^1.4.0",
         "@types/express": "^4.17.21",
         "@types/luxon": "^3.7.1",
-        typescript: "~5.9.2",
+        typescript: "~6.0.3",
       },
       name: `@${appName}/backend`,
       overrides: {
@@ -381,21 +381,18 @@ const generateBackendTsConfig = (): string => {
   return JSON.stringify(
     {
       compilerOptions: {
-        allowSyntheticDefaultImports: true,
-        esModuleInterop: true,
-        lib: ["ESNext"],
-        module: "ESNext",
-        moduleResolution: "bundler",
+        lib: ["esnext"],
+        module: "preserve",
+        moduleDetection: "force",
         noEmit: true,
-        outDir: "./dist",
-        resolveJsonModule: true,
         skipLibCheck: true,
         strict: true,
-        target: "ESNext",
-        types: ["bun-types"],
+        target: "esnext",
+        types: ["bun"],
+        verbatimModuleSyntax: true,
       },
       exclude: ["node_modules", "dist"],
-      include: ["src/**/*"],
+      include: ["src"],
     },
     null,
     2
@@ -1224,18 +1221,10 @@ const generateFrontendAppJson = (args: BootstrapArgs): string => {
 const generateFrontendTsConfig = (): string => {
   // No `baseUrl`: it is deprecated as of TypeScript 6 and makes `tsc` abort with TS5101
   // before checking a single file. `paths` entries are relative to this tsconfig instead.
+  // Module, target, JSX, and lib settings come from `expo/tsconfig.base`.
   return JSON.stringify(
     {
       compilerOptions: {
-        allowJs: true,
-        allowSyntheticDefaultImports: true,
-        esModuleInterop: true,
-        ignoreDeprecations: "6.0",
-        jsx: "react-jsx",
-        lib: ["DOM", "ESNext"],
-        module: "esnext",
-        moduleResolution: "bundler",
-        noEmit: true,
         paths: {
           "@/*": ["./*"],
           "@components/*": ["./components/*"],
@@ -1244,11 +1233,8 @@ const generateFrontendTsConfig = (): string => {
           "@utils": ["./utils/index"],
           "@utils/*": ["./utils/*"],
         },
-        resolveJsonModule: true,
-        skipLibCheck: true,
         strict: true,
-        target: "ESNext",
-        types: ["bun-types", "react-native", "@types/react"],
+        types: ["bun", "react-native", "@types/react"],
       },
       extends: "expo/tsconfig.base",
       include: ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
@@ -1301,14 +1287,11 @@ const generateFrontendTsConfigCodegen = (): string => {
   return JSON.stringify(
     {
       compilerOptions: {
-        esModuleInterop: true,
-        ignoreDeprecations: "6.0",
         module: "commonjs",
-        moduleResolution: "node",
-        resolveJsonModule: true,
+        moduleResolution: "bundler",
         skipLibCheck: true,
         strict: true,
-        target: "ES2020",
+        target: "es2022",
       },
     },
     null,
