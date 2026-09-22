@@ -134,6 +134,7 @@ actions.
 
 See `example-frontend/components/NotificationCenter.tsx` and
 `example-frontend/app/notifications.tsx` for the drawer and complete history page.
+These components are not in the `@terreno/ui` component demo.
 
 The example todo router also demonstrates lifecycle-generated activity notifications:
 `postCreate` reports added todos, `postUpdate` reports a false-to-true `completed`
