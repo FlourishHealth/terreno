@@ -1959,7 +1959,7 @@ jobs:
             fi
             packages=(
               api test ui rtk admin-backend admin-frontend admin-spa ai
-              api-health comms feature-flags jobs create-terreno-app mcp-server syncdb
+              api-health announcements comms feature-flags jobs create-terreno-app mcp-server syncdb
             )
             for package in "${packages[@]}"; do
               echo "=== Publishing ${package}@${version} ==="
@@ -1977,7 +1977,7 @@ jobs:
             git config user.email "josh@nang.io"
             git fetch origin master
             git checkout -B release-master origin/master
-            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health comms feature-flags jobs create-terreno-app mcp-server syncdb; do
+            for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health announcements comms feature-flags jobs create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
                 const fs=require('fs');

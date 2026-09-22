@@ -2,7 +2,7 @@
 
 > **Generated** from the [Terreno Roadmap](https://github.com/orgs/FlourishHealth/projects/3) GitHub Project. The board is the source of
 > truth; this file is refreshed by CI. **Target** versions are directional — no calendar
-> dates are promised. Last updated: 2026-09-20T22:10:53.919Z.
+> dates are promised. Last updated: 2026-09-22T17:21:05.507Z.
 
 Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
 See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.
@@ -17,26 +17,42 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### api
 
+- [API rate limiting](https://github.com/FlourishHealth/terreno/issues/1187) (Feature, Shipped) — IP: [rate-limiting](docs/implementationPlans/rate-limiting.md)
 - [B2B platform program](https://github.com/FlourishHealth/terreno/issues/1095) (Feature, Planned) — IP: [b2b-platform-program](docs/implementationPlans/b2b-platform-program.md)
+- [can() as the permission seam](https://github.com/FlourishHealth/terreno/issues/1192) (Improvement, Shipped) — IP: [can-as-permission-seam](docs/implementationPlans/can-as-permission-seam.md)
 - [Comms adapter — Expo push notifications](https://github.com/FlourishHealth/terreno/issues/1019) (Feature, In progress) — IP: [comms-adapter-expo-push](docs/implementationPlans/comms-adapter-expo-push.md)
 - [Comms adapter — transactional email (SendGrid)](https://github.com/FlourishHealth/terreno/issues/1022) (Feature, In progress) — IP: [comms-adapter-sendgrid](docs/implementationPlans/comms-adapter-sendgrid.md)
+- [Comms adapter — Twilio SMS](https://github.com/FlourishHealth/terreno/issues/1020) (Feature, Shipped) — IP: [comms-adapter-twilio-sms](docs/implementationPlans/comms-adapter-twilio-sms.md)
+- [Comms adapter — Twilio Verify (OTP)](https://github.com/FlourishHealth/terreno/issues/1021) (Feature, Shipped) — IP: [comms-adapter-twilio-verify](docs/implementationPlans/comms-adapter-twilio-verify.md)
+- [describeModel() schema metadata](https://github.com/FlourishHealth/terreno/issues/1193) (Improvement, Shipped) — IP: [describe-model-schema](docs/implementationPlans/describe-model-schema.md)
 - [Framework-level audit log](https://github.com/FlourishHealth/terreno/issues/1186) (Feature, In review) — IP: [framework-audit-log](docs/implementationPlans/framework-audit-log.md)
+- [Inbound webhook framework](https://github.com/FlourishHealth/terreno/issues/1172) (Feature, Shipped) — IP: [inbound-webhooks](docs/implementationPlans/inbound-webhooks.md)
 - [Invitations and seat management](https://github.com/FlourishHealth/terreno/issues/1173) (Feature, Planned)
-- [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, In review) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
+- [One collection registry](https://github.com/FlourishHealth/terreno/issues/1191) (Improvement, Shipped) — IP: [collection-registry](docs/implementationPlans/collection-registry.md)
+- [Organizations as a first-class primitive (admin UI + RBAC)](https://github.com/FlourishHealth/terreno/issues/1135) (Feature, Shipped) — IP: [org-management-ui](docs/implementationPlans/org-management-ui.md)
 - [Stripe billing and subscriptions](https://github.com/FlourishHealth/terreno/issues/1025) (Feature, Planned) — IP: [billing-stripe](docs/implementationPlans/billing-stripe.md)
 
 ### ui
 
-- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, In progress)
+- [Charts and dashboard primitives](https://github.com/FlourishHealth/terreno/issues/1175) (Feature, In progress) — IP: [charts-and-dashboards](docs/implementationPlans/charts-and-dashboards.md)
 - [DataTable server-side filtering and search](https://github.com/FlourishHealth/terreno/issues/1177) (Feature, In review) — IP: [datatable-server-side-filtering](docs/implementationPlans/datatable-server-side-filtering.md)
 - [First-class dark mode](https://github.com/FlourishHealth/terreno/issues/1176) (Feature, Planned)
 - [In-app notification center](https://github.com/FlourishHealth/terreno/issues/1179) (Feature, In review) — IP: [notification-center](docs/implementationPlans/notification-center.md)
 - [Native module baseline for the next major release](https://github.com/FlourishHealth/terreno/issues/1026) (Breaking, Shipped)
 
+### auth
+
+- [Password reset and email verification](https://github.com/FlourishHealth/terreno/issues/1023) (Feature, Shipped) — IP: [password-reset-and-email-verification](docs/implementationPlans/password-reset-and-email-verification.md)
+
+### admin
+
+- [Comms admin dashboard](https://github.com/FlourishHealth/terreno/issues/1091) (Feature, Shipped) — IP: [comms-admin-dashboard](docs/implementationPlans/comms-admin-dashboard.md)
+
 ### mcp
 
 - [AI development loop (MCP Boost)](https://github.com/FlourishHealth/terreno/issues/1014) (Feature, In review) — IP: [ai-dev-loop-boost](docs/implementationPlans/ai-dev-loop-boost.md)
 - [MCP Boost parity](https://github.com/FlourishHealth/terreno/issues/1085) (Feature, In progress) — IP: [mcp-boost-parity](docs/implementationPlans/mcp-boost-parity.md)
+- [Upgrade guides and upgrading-terreno skill](https://github.com/FlourishHealth/terreno/issues/1013) (Improvement, Shipped) — IP: [upgrade-guides-and-skill](docs/implementationPlans/upgrade-guides-and-skill.md)
 
 ### docs
 
@@ -62,6 +78,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [Global search across entities](https://github.com/FlourishHealth/terreno/issues/1183) (Feature, Planned)
 - [Mobile in-app purchases (RevenueCat)](https://github.com/FlourishHealth/terreno/issues/1178) (Feature, Planned)
+- [MongoDB migrations tooling](https://github.com/FlourishHealth/terreno/issues/1189) (Feature, Shipped) — IP: [mongodb-migrations-tooling](docs/implementationPlans/mongodb-migrations-tooling.md)
 - [Pluggable database layer and SQLite adapter](https://github.com/FlourishHealth/terreno/issues/1194) (Feature, Planned) — IP: [pluggable-database-sqlite](docs/implementationPlans/pluggable-database-sqlite.md)
 
 ### ui
@@ -93,10 +110,12 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 ### api
 
 - [APIError standards-first redesign](https://github.com/FlourishHealth/terreno/issues/1080) (Breaking, Shipped) — IP: [apierror-standard-error-redesign](docs/implementationPlans/apierror-standard-error-redesign.md)
+- [Durable background jobs](https://github.com/FlourishHealth/terreno/issues/1188) (Feature, Shipped) — IP: [job-queues](docs/implementationPlans/job-queues.md)
 - [Modular API (TerrenoApp)](https://github.com/FlourishHealth/terreno/issues/1084) (Feature, Shipped) — IP: [ModularAPI](docs/implementationPlans/ModularAPI.md)
 - [OpenFeature adoption for feature flags](https://github.com/FlourishHealth/terreno/issues/1082) (Feature, Shipped) — IP: [feature-flags-openfeature](docs/implementationPlans/feature-flags-openfeature.md)
 - [Pluggable communications layer (@terreno/comms)](https://github.com/FlourishHealth/terreno/issues/1018) (Feature, Shipped) — IP: [comms-abstraction](docs/implementationPlans/comms-abstraction.md)
 - [RBAC permissions for Terreno](https://github.com/FlourishHealth/terreno/issues/1089) (Feature, Shipped) — IP: [rbac-permissions](docs/implementationPlans/rbac-permissions.md)
+- [Unified mutation executors (MCP to executors)](https://github.com/FlourishHealth/terreno/issues/1190) (Improvement, Shipped) — IP: [unified-mutation-executors](docs/implementationPlans/unified-mutation-executors.md)
 
 ### ui
 
@@ -105,6 +124,7 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 ### syncdb
 
+- [OpenAPI codegen for typed syncdb hooks (@terreno/syncdb-codegen)](https://github.com/FlourishHealth/terreno/issues/1110) (Feature, Shipped) — IP: [syncdb-codegen](docs/implementationPlans/syncdb-codegen.md)
 - [RTK deprecation and syncdb migration docs](https://github.com/FlourishHealth/terreno/issues/1007) (Improvement, Shipped) — IP: [rtk-to-syncdb-migration-docs](docs/implementationPlans/rtk-to-syncdb-migration-docs.md)
 - [SyncDB local-first data layer](https://github.com/FlourishHealth/terreno/issues/1081) (Feature, Shipped) — IP: [syncdb-local-first](docs/implementationPlans/syncdb-local-first.md)
 
@@ -122,7 +142,13 @@ See [roadmap process](docs/explanation/roadmap-process.md) for how work is triag
 
 - [Positioning — Django/Rails for TypeScript](https://github.com/FlourishHealth/terreno/issues/1008) (Improvement, Shipped) — IP: [positioning-django-rails-universal](docs/implementationPlans/positioning-django-rails-universal.md)
 
+### deploy
+
+- [Deployment foundation](https://github.com/FlourishHealth/terreno/issues/1011) (Improvement, Shipped) — IP: [deployment-foundation](docs/implementationPlans/deployment-foundation.md)
+
 ### dx
 
+- [Agentic SDLC plugin (/terreno-*)](https://github.com/FlourishHealth/terreno/issues/1006) (Feature, Shipped) — IP: [agentic-sdlc-plugin](docs/implementationPlans/agentic-sdlc-plugin.md)
 - [design-blend skill](https://github.com/FlourishHealth/terreno/issues/1083) (Feature, Shipped) — IP: [design-blend-skill](docs/implementationPlans/design-blend-skill.md)
 - [OSS governance baseline](https://github.com/FlourishHealth/terreno/issues/1003) (Improvement, Shipped) — IP: [oss-governance-baseline](docs/implementationPlans/oss-governance-baseline.md)
+- [Public roadmap on GitHub](https://github.com/FlourishHealth/terreno/issues/1004) (Improvement, Shipped) — IP: [public-roadmap-github](docs/implementationPlans/public-roadmap-github.md)

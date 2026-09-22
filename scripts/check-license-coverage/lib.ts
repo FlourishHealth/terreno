@@ -11,6 +11,7 @@ export const PUBLISHED_PACKAGES = [
   "admin-frontend",
   "admin-spa",
   "ai",
+  "announcements",
   "api-health",
   "comms",
   "create-terreno-app",

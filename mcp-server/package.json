@@ -15,7 +15,7 @@
     "express": "catalog:",
     "luxon": "catalog:",
     "minisearch": "^7.2.0",
-    "mongoose": "catalog:"
+    "mongoose": "9.7.4"
   },
   "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
@@ -103,5 +103,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "type": "module",
-  "version": "57.3.0"
+  "version": "57.4.0"
 }

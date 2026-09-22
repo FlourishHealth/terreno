@@ -128,6 +128,16 @@ Test UI package component changes only in the demo app.
    - Run `cd ui && bun run types && bun run website:generate`
    - Check the docs deploy preview (or `bun run website:build` locally) for the component page and embedded demo iframe.
 
+When the change is `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, `DashboardGrid`, or
+chart layout/paint helpers:
+
+1. Run `bun run ui:charts:compare` (starts demo web on port 8085 unless it is already up).
+2. If any fixture fails, follow the `review-chart-visuals` skill: open
+   `demo/rendered-snapshots/<id>.png`, `demo/chart-visual-output/actual/<id>.png`, and
+   `demo/chart-visual-output/diff/<id>.png` and describe the visual delta. Do not treat
+   React test-renderer JSON snapshots as proof of chart paint.
+   Operator steps: [Compare rendered chart snapshots](../../docs/how-to/compare-chart-rendered-snapshots.md).
+
 Do not launch the example app to validate isolated `@terreno/ui` component changes unless the change also affects an app-level integration.
 
 #### Driving the `/demo` prop controls
