@@ -124,6 +124,10 @@ describe("SyncDB local MCP tools", () => {
     process.env.TERRENO_MCP_EVAL = "true";
     await syncDbAction({action: "mergeSnapshot", snapshotId: first.id});
     assert.deepEqual(mergedContent, ["tinybase-content"]);
+    assert.include(
+      await syncDbAction({action: "mergeSnapshot", name: "other", snapshotId: first.id}),
+      'belongs to SyncDB client "app"'
+    );
 
     const listed = JSON.parse(await syncDbSnapshot({action: "list"})) as unknown[];
     assert.lengthOf(listed, 2);

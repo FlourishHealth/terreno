@@ -261,6 +261,11 @@ const actionCall = (args: SyncDbActionArgs): {method: keyof SyncDbBridgeClient; 
       if (!snapshot) {
         throw new Error(`Unknown or missing snapshotId "${args.snapshotId ?? ""}".`);
       }
+      if (args.name && args.name !== snapshot.clientName) {
+        throw new Error(
+          `Snapshot "${snapshot.id}" belongs to SyncDB client "${snapshot.clientName}", not "${args.name}".`
+        );
+      }
       return {input: snapshot.mergeableContent, method: "merge"};
     }
     default:
@@ -275,7 +280,15 @@ export const syncDbAction = async (args: SyncDbActionArgs): Promise<string> => {
   }
   try {
     const call = actionCall(args);
-    const actionResult = await callBridge({args: call.input, method: call.method, name: args.name});
+    const snapshotClientName =
+      args.action === "mergeSnapshot" && args.snapshotId
+        ? snapshots.get(args.snapshotId)?.clientName
+        : undefined;
+    const actionResult = await callBridge({
+      args: call.input,
+      method: call.method,
+      name: args.name ?? snapshotClientName,
+    });
     const state = await callBridge({
       args: {includeDebugEvents: false},
       method: "inspect",
