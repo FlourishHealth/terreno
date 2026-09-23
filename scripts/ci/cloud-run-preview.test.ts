@@ -161,8 +161,11 @@ describe("Cloud Run preview readiness", (): void => {
     assert.notInclude(frontendDeployWorkflow, "HAS_BACKEND_CHANGES");
     assert.match(
       frontendDeployWorkflow,
-      /group: example-frontend-deploy-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/
+      /group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/
     );
-    assert.include(frontendDeployWorkflow, "cancel-in-progress: true");
+    assert.include(
+      frontendDeployWorkflow,
+      "cancel-in-progress: ${{ github.event_name == 'pull_request' }}"
+    );
   });
 });
