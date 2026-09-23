@@ -37,7 +37,7 @@ Optional flags:
 | `appName` (positional) | yes | — kebab-case directory and package name (`^[a-z][a-z0-9-]*$`) |
 | `--display-name` | unless `--yes` | derived from `appName` when `--yes` |
 | `--description` | no | empty |
-| `--mcp-server-url` | no | `https://mcp.terreno.flourish.health` |
+| `--mcp-server-url` | no | `https://mcp.terreno.app` |
 | `--yes` | no | off |
 
 The CLI creates `<cwd>/<appName>/`. Package source: [`create-terreno-app/`](https://github.com/FlourishHealth/terreno/tree/master/create-terreno-app) in the Terreno monorepo.

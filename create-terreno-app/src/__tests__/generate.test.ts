@@ -136,7 +136,7 @@ describe("generateAllFiles", () => {
       mcpServers: Record<string, {args?: string[]; command?: string; type?: string; url?: string}>;
     };
 
-    assert.equal(mcpJson.mcpServers.terreno.url, "https://mcp.terreno.flourish.health/mcp");
+    assert.equal(mcpJson.mcpServers.terreno.url, "https://mcp.terreno.app/mcp");
     assert.deepEqual(mcpJson.mcpServers.expo, {
       type: "http",
       url: "https://mcp.expo.dev/mcp",
