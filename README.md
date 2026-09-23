@@ -9,6 +9,7 @@
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/FlourishHealth/terreno/graph/badge.svg)](https://codecov.io/gh/FlourishHealth/terreno)
+[![Deploys by Netlify](https://www.netlify.com/assets/badges/netlify-badge-color-accent.svg)](https://www.netlify.com)
 
 **Terreno is Django/Rails for TypeScript — with universal app support.**
 
