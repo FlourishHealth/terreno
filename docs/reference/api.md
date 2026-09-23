@@ -1878,4 +1878,4 @@ SENTRY_DSN=https://...@sentry.io/...
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
-- [API package source](https://github.com/flourishhealth/terreno/tree/master/api/src)
+- [API package source](https://github.com/TerrenoLabs/terreno/tree/master/api/src)

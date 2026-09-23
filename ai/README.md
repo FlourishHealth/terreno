@@ -43,8 +43,8 @@ This mounts GPT chat (`POST /gpt/prompt`), history CRUD (`/gpt/histories`), proj
 
 ## Documentation
 
-Full API reference: [docs/reference/ai.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/ai.md)
+Full API reference: [docs/reference/ai.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/reference/ai.md)
 
 ## License and Contributing
 
-Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.
+Licensed under the [MIT License](https://github.com/TerrenoLabs/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/TerrenoLabs/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

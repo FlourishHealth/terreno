@@ -2,7 +2,7 @@
 
 Admin panel backend plugin for @terreno/api.
 
-See [Add a model to the admin](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/admin-add-model.md) for the recommended
+See [Add a model to the admin](https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/admin-add-model.md) for the recommended
 `modelRouter({admin: ...})` setup.
 
 Admin panel backend plugin for `@terreno/api` that auto-generates admin CRUD endpoints and metadata for Mongoose models.
@@ -58,8 +58,8 @@ This creates `GET /admin/config` plus full CRUD at `/admin/users` and `/admin/to
 
 ## Documentation
 
-Full API reference: [docs/reference/admin-backend.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/admin-backend.md)
+Full API reference: [docs/reference/admin-backend.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/reference/admin-backend.md)
 
 ## License and Contributing
 
-Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.
+Licensed under the [MIT License](https://github.com/TerrenoLabs/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/TerrenoLabs/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

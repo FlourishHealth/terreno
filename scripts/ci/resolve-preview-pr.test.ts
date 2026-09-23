@@ -7,13 +7,7 @@ import {join} from "node:path";
 
 const script = join(import.meta.dir, "resolve-preview-pr.sh");
 
-const run = ({
-  env,
-  extraPath,
-}: {
-  env: NodeJS.ProcessEnv;
-  extraPath?: string;
-}): string => {
+const run = ({env, extraPath}: {env: NodeJS.ProcessEnv; extraPath?: string}): string => {
   const pathValue = extraPath ? `${extraPath}:${process.env.PATH ?? ""}` : process.env.PATH;
   const result = spawnSync("bash", [script], {
     encoding: "utf8",
@@ -28,10 +22,10 @@ describe("resolve-preview-pr.sh", () => {
     assert.equal(
       run({
         env: {
-          CIRCLE_PULL_REQUEST: "https://github.com/FlourishHealth/terreno/pull/1222",
           CIRCLE_PR_NUMBER: "",
           CIRCLE_PR_REPONAME: "",
           CIRCLE_PROJECT_REPONAME: "terreno",
+          CIRCLE_PULL_REQUEST: "https://github.com/TerrenoLabs/terreno/pull/1222",
         },
       }),
       "1222"
@@ -42,10 +36,10 @@ describe("resolve-preview-pr.sh", () => {
     assert.equal(
       run({
         env: {
-          CIRCLE_PULL_REQUEST: "",
           CIRCLE_PR_NUMBER: "88",
           CIRCLE_PR_REPONAME: "",
           CIRCLE_PROJECT_REPONAME: "terreno",
+          CIRCLE_PULL_REQUEST: "",
         },
       }),
       "88"
@@ -56,10 +50,10 @@ describe("resolve-preview-pr.sh", () => {
     assert.equal(
       run({
         env: {
-          CIRCLE_PULL_REQUEST: "https://github.com/other/terreno/pull/9",
           CIRCLE_PR_NUMBER: "9",
           CIRCLE_PR_REPONAME: "fork-terreno",
           CIRCLE_PROJECT_REPONAME: "terreno",
+          CIRCLE_PULL_REQUEST: "https://github.com/other/terreno/pull/9",
         },
       }),
       "skip-fork"
@@ -70,12 +64,12 @@ describe("resolve-preview-pr.sh", () => {
     assert.equal(
       run({
         env: {
-          CIRCLE_PULL_REQUEST: "",
+          CIRCLE_BRANCH: "feature",
           CIRCLE_PR_NUMBER: "",
           CIRCLE_PR_REPONAME: "",
-          CIRCLE_PROJECT_USERNAME: "",
           CIRCLE_PROJECT_REPONAME: "terreno",
-          CIRCLE_BRANCH: "feature",
+          CIRCLE_PROJECT_USERNAME: "",
+          CIRCLE_PULL_REQUEST: "",
         },
       }),
       "skip-missing"
@@ -95,16 +89,16 @@ echo '[{"number":1225}]'
     mkdirSync(dir, {recursive: true});
     assert.equal(
       run({
-        extraPath: dir,
         env: {
-          CIRCLE_PULL_REQUEST: "",
+          CIRCLE_BRANCH: "cursor/circleci-auto-deploys-5c49",
           CIRCLE_PR_NUMBER: "",
           CIRCLE_PR_REPONAME: "",
-          CIRCLE_PROJECT_USERNAME: "FlourishHealth",
           CIRCLE_PROJECT_REPONAME: "terreno",
-          CIRCLE_BRANCH: "cursor/circleci-auto-deploys-5c49",
+          CIRCLE_PROJECT_USERNAME: "FlourishHealth",
+          CIRCLE_PULL_REQUEST: "",
           GITHUB_API_URL: "http://example.invalid",
         },
+        extraPath: dir,
       }),
       "1225"
     );

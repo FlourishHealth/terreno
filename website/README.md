@@ -45,8 +45,8 @@ The site runs on **port 3001**. Generated API and component pages are produced b
 
 ## Documentation
 
-Docs index: [docs/README.md](https://github.com/flourishhealth/terreno/blob/master/docs/README.md)
+Docs index: [docs/README.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/README.md)
 
 ## License and Contributing
 
-Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.
+Licensed under the [MIT License](https://github.com/TerrenoLabs/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/TerrenoLabs/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

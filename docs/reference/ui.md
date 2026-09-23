@@ -697,7 +697,7 @@ declare module "@terreno/ui" {
 }
 ``````
 
-See [`demo/components/customIcons.tsx`](https://github.com/flourishhealth/terreno/blob/master/demo/components/customIcons.tsx) for a full working example.
+See [`demo/components/customIcons.tsx`](https://github.com/TerrenoLabs/terreno/blob/master/demo/components/customIcons.tsx) for a full working example.
 
 ### Built-in Status Icons
 
@@ -831,4 +831,4 @@ Demo: `FilterableDataTable` story in the component demo (`demo:start`, port 8085
 ## Related Documentation
 
 - [UI performance benchmarks](ui-performance.md)
-- [UI package source](https://github.com/flourishhealth/terreno/tree/master/ui/src)
+- [UI package source](https://github.com/TerrenoLabs/terreno/tree/master/ui/src)

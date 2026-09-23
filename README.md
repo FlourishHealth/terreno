@@ -8,7 +8,7 @@
 [![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![codecov](https://codecov.io/gh/FlourishHealth/terreno/graph/badge.svg)](https://codecov.io/gh/FlourishHealth/terreno)
+[![codecov](https://codecov.io/gh/TerrenoLabs/terreno/graph/badge.svg)](https://codecov.io/gh/TerrenoLabs/terreno)
 
 **Terreno is Django/Rails for TypeScript — with universal app support.**
 
@@ -42,7 +42,7 @@ Canonical wording, language rules, and an honest Django/Rails comparison live in
 ## Quickstart
 
 ```bash
-git clone https://github.com/FlourishHealth/terreno.git
+git clone https://github.com/TerrenoLabs/terreno.git
 cd terreno
 bun run bootstrap
 ```
@@ -173,7 +173,7 @@ consumer-installable `/terreno-*` packaging are not shipped yet.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and pull request expectations.
 Read our [Code of Conduct](CODE_OF_CONDUCT.md) and report security issues via
 [SECURITY.md](SECURITY.md) (do not open public issues for vulnerabilities).
-Community: [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).
+Community: [GitHub Discussions](https://github.com/TerrenoLabs/terreno/discussions).
 
 ## License
 

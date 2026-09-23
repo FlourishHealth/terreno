@@ -18,7 +18,7 @@ CircleCI `run-preview-cleanup` parameter.
 
 ## Project setup (maintainers)
 
-1. Link `FlourishHealth/terreno` in CircleCI (GitHub App).
+1. Link `TerrenoLabs/terreno` in CircleCI (GitHub App).
 2. Default branch: `master`.
 3. Enable **dynamic config** / setup workflows for the project (required for
    `.circleci/config.yml` `setup: true`).
@@ -36,7 +36,7 @@ CircleCI `run-preview-cleanup` parameter.
 GitHub App org/project slug (API and CLI):
 `circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.
 
-Do not query `gh/FlourishHealth/terreno` — that slug returns `404 Project not found`.
+Do not query `gh/TerrenoLabs/terreno` — that slug returns `404 Project not found`.
 Cloud agents use `CIRCLECI_TOKEN` (accepted alias of CircleCI's `CIRCLE_TOKEN`). Send
 it as the `Circle-Token` header. Confirm with `GET https://circleci.com/api/v2/me`, then
 list pipelines on the slug above.
@@ -182,7 +182,7 @@ applies to `gcp-cd-*` when `terreno-gcp` lacks WIF or SA emails, so GitHub
 `github.event.pull_request.head.repo.full_name == github.repository`.
 Terraform preview always describes the Infra Manager preview (state,
 `errorCode`, `errorLogs`) before delete, including when `previews create`
-fails. Fork PRs still present `repository: FlourishHealth/terreno` on the
+fails. Fork PRs still present `repository: TerrenoLabs/terreno` on the
 OIDC token, so
 WIF would accept them if those jobs ran. Netlify GHA jobs fail closed on
 forks (secrets withheld). After filling a context, confirm a CircleCI deploy
