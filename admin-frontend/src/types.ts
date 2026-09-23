@@ -90,6 +90,8 @@ export interface AdminModelConfig {
    * is true. Omitted on other models.
    */
   syncCollection?: string;
+  /** True when the admin host enables organizations and the model has `organizationId`. */
+  organizationScoped?: boolean;
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
@@ -114,6 +116,7 @@ export interface AdminModelConfig {
   bulkPatchAllowlist?: string[];
   fieldsets?: {fields: string[]; title: string}[];
   filters?: {
+    allowEmpty?: boolean;
     choices?: {label: string; value: string}[];
     field: string;
     kind: string;
@@ -134,7 +137,7 @@ export interface AdminModelConfig {
 export interface AdminCustomScreen {
   description?: string;
   displayName: string;
-  /** Sidebar heading. Screens without a group stay under "Screens". */
+  /** Sidebar group label; grouped screens render with matching model groups in AdminShell. */
   group?: string;
   icon?: string;
   name: string;
@@ -181,6 +184,8 @@ export interface AdminConfigResponse {
   };
   schemaVersion?: number;
   scripts: AdminScriptConfig[];
+  /** Present when AdminApp was given `migrations.dir`. */
+  migrations?: {enabled: boolean};
   /** Plugin home widget ids merged from admin contributions (informational). */
   widgetIds?: string[];
 }

@@ -33,6 +33,17 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/admin/todos/{id}"].delete).toBeDefined();
   });
 
+  it("omits admin AuditEvent create, update, and delete", async () => {
+    const server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+
+    expect(res.body.paths["/admin/audit-events/"].get).toBeDefined();
+    expect(res.body.paths["/admin/audit-events/"].post).toBeUndefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].get).toBeDefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].patch).toBeUndefined();
+    expect(res.body.paths["/admin/audit-events/{id}"].delete).toBeUndefined();
+  });
+
   it("includes admin user routes", async () => {
     const server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
@@ -122,6 +133,19 @@ describe("OpenAPI spec generation", () => {
     expect(res.body.paths["/settings/clearGcs"]).toBeDefined();
     expect(res.body.paths["/todos/loadtestGenerate"]).toBeDefined();
     expect(res.body.paths["/users/{id}/password"]).toBeDefined();
+  });
+
+  it("includes jobs admin routes", async (): Promise<void> => {
+    const server = supertest(app);
+    const res = await server.get("/openapi.json").expect(200);
+
+    assert.property(res.body.paths, "/jobs");
+    assert.property(res.body.paths, "/jobs/{id}");
+    assert.property(res.body.paths, "/jobs/stats");
+    assert.property(res.body.paths, "/jobs/schedules");
+    assert.property(res.body.paths["/jobs/{id}/retry"], "post");
+    assert.property(res.body.paths["/jobs/{id}/requeue"], "post");
+    assert.property(res.body.paths["/jobs/{id}/cancel"], "post");
   });
 
   it("has list/create/read/patch operations on admin todo routes", async () => {

@@ -21,6 +21,9 @@ Code generation tools:
 - `terreno_search_docs` - Search bundled Terreno documentation (call before guessing APIs). Optional `version` selects a retained docs snapshot; omit for current `next` docs.
 - `terreno_get_component_docs` - Full `@terreno/ui` props table for one component
 - `terreno_get_upgrade_guide` - Lockstep upgrade notes between two `@terreno/*` versions
+- `terreno_search_update_notes` - Search bundled upgrade markdown and optional backend announcement help API
+- `terreno_get_update_note` - Fetch one full update note by id (`upgrade:<semver>` or `announcement:<mongoId>`)
+- `terreno_ask_update_help` - Ask a natural-language question; returns ranked matches with full update bodies
 - `terreno_bootstrap_ai_rules` - Scaffold AI assistant rules files for Cursor, Claude Code, etc.
 - `terreno_generate_model` - Generate a Mongoose model with proper Terreno conventions
 - `terreno_generate_route` - Generate a modelRouter route configuration
@@ -28,6 +31,17 @@ Code generation tools:
 - `terreno_generate_form_fields` - Generate form field components
 - `terreno_validate_model_schema` - Validate a Mongoose schema follows conventions
 - `terreno_install_admin` - Generate admin panel integration files and instructions
+
+Local runtime tools (`terreno-mcp-local`):
+
+- `get_syncdb_state` - Inspect live SyncDB entities, outbox, conflicts, cursors,
+  streams, repair markers, status, and debugger events
+- `syncdb_snapshot` - Capture, list, read, compare, and delete SyncDB snapshots
+- `syncdb_action` - Mutate/edit local state, flush, reconcile/resync,
+  resolve/retry, toggle offline mode, clear events, and merge snapshots
+
+Create the SyncDB client with `debug: true`. State changes require
+`TERRENO_MCP_EVAL=1`; reads and snapshots do not.
 
 ### Prompts
 
@@ -82,6 +96,10 @@ Add to your project's `.claude/settings.json`:
   }
 }
 ```
+
+### Update help (optional)
+
+When `TERRENO_HELP_API_URL` points at a Terreno backend with `AnnouncementsApp({help: {enabled: true}})`, the update-note tools also search live product announcements (published by default; pass `includeArchived: true` for archived notes). Set `TERRENO_HELP_API_TOKEN` when the help routes require authentication.
 
 ## Development
 

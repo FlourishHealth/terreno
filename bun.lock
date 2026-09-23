@@ -6,13 +6,18 @@
       "name": "@terreno/root",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
+        "@playwright/test": "catalog:",
         "@rtk-query/codegen-openapi": "catalog:",
         "@types/chai": "^5.2.3",
+        "@types/pixelmatch": "^5.2.6",
+        "@types/pngjs": "^6.0.5",
         "bun-types": "^1.4.0",
         "chai": "catalog:",
         "dependency-cruiser": "^18.2.0",
         "knip": "^6.34.0",
         "luxon": "catalog:",
+        "pixelmatch": "^5.3.0",
+        "pngjs": "^7.0.0",
         "rulesync": "^9.6.3",
         "simple-git-hooks": "^2.14.0",
         "ts-node": "^10.9.2",
@@ -21,10 +26,11 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@google-cloud/storage": "catalog:",
         "@terreno/api": "workspace:*",
+        "@terreno/jobs": "workspace:*",
         "express": "catalog:",
         "luxon": "catalog:",
         "multer": "catalog:",
@@ -46,13 +52,14 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
         "jspdf": "catalog:",
         "lodash": "catalog:",
         "luxon": "catalog:",
+        "qs": "catalog:",
         "react-native": "catalog:",
         "react-native-safe-area-context": "catalog:",
       },
@@ -63,6 +70,7 @@
         "@testing-library/react-native": "catalog:",
         "@types/lodash": "catalog:",
         "@types/luxon": "catalog:",
+        "@types/qs": "catalog:",
         "@types/react": "catalog:",
         "react": "catalog:",
         "react-redux": "catalog:",
@@ -80,7 +88,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -131,7 +139,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "catalog:",
@@ -171,9 +179,35 @@
         "@ai-sdk/google-vertex",
       ],
     },
+    "announcements": {
+      "name": "@terreno/announcements",
+      "version": "57.4.0",
+      "dependencies": {
+        "@terreno/api": "workspace:*",
+        "express": "catalog:",
+        "luxon": "catalog:",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@terreno/test": "workspace:*",
+        "@types/bun": "catalog:",
+        "@types/express": "catalog:",
+        "@types/supertest": "catalog:",
+        "chai": "catalog:",
+        "passport-local-mongoose": "catalog:",
+        "supertest": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "mongoose": "^8.0.0 || ^9.0.0",
+      },
+    },
     "api": {
       "name": "@terreno/api",
-      "version": "57.3.0",
+      "version": "57.4.0",
+      "bin": {
+        "terreno-migrate": "./src/migrations/cli.ts",
+      },
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@modelcontextprotocol/node": "catalog:",
@@ -249,7 +283,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "catalog:",
@@ -263,9 +297,27 @@
         "typescript": "catalog:",
       },
     },
+    "cli": {
+      "name": "@terreno/cli",
+      "version": "57.3.0",
+      "bin": {
+        "terreno": "./dist/bin.js",
+      },
+      "dependencies": {
+        "@terreno/mcp": "workspace:*",
+        "@terreno/syncdb": "workspace:*",
+        "create-terreno-app": "workspace:*",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+        "@types/bun": "catalog:",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "comms": {
       "name": "@terreno/comms",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "libphonenumber-js": "catalog:",
@@ -296,16 +348,16 @@
     },
     "create-terreno-app": {
       "name": "create-terreno-app",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "bin": {
         "create-terreno-app": "./dist/cli.js",
       },
       "devDependencies": {
-        "@biomejs/biome": "catalog:",
-        "@types/bun": "catalog:",
-        "@types/node": "catalog:",
-        "chai": "catalog:",
-        "typescript": "catalog:",
+        "@biomejs/biome": "^2.3.6",
+        "@types/bun": "^1.4.0",
+        "@types/node": "^25.3.0",
+        "chai": "^6.2.2",
+        "typescript": "~6.0.3",
       },
     },
     "demo": {
@@ -402,14 +454,17 @@
         "@terreno/admin-backend": "workspace:*",
         "@terreno/admin-spa": "workspace:*",
         "@terreno/ai": "workspace:*",
+        "@terreno/announcements": "workspace:*",
         "@terreno/api": "workspace:*",
         "@terreno/api-health": "workspace:*",
         "@terreno/comms": "workspace:*",
         "@terreno/feature-flags": "workspace:*",
+        "@terreno/jobs": "workspace:*",
         "@thream/socketio-jwt": "catalog:",
         "ai": "catalog:",
         "expo-server-sdk": "^6.0.0",
         "express": "catalog:",
+        "google-auth-library": "catalog:",
         "ioredis": "^5.11.0",
         "luxon": "catalog:",
         "mongoose": "catalog:",
@@ -489,30 +544,60 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
-        "@openfeature/server-sdk": "catalog:",
-        "@terreno/api": "workspace:*",
-        "express": "catalog:",
-        "lodash": "catalog:",
+        "@openfeature/server-sdk": "^1.22.0",
+        "@terreno/api": "57.4.0",
+        "express": "^5.2.1",
+        "lodash": "^4.18.1",
       },
       "devDependencies": {
-        "@biomejs/biome": "catalog:",
-        "@terreno/test": "workspace:*",
-        "@types/bun": "catalog:",
-        "@types/express": "catalog:",
-        "@types/lodash": "catalog:",
-        "@types/supertest": "catalog:",
-        "supertest": "catalog:",
-        "typescript": "catalog:",
+        "@biomejs/biome": "^2.3.6",
+        "@terreno/test": "57.4.0",
+        "@types/bun": "^1.4.0",
+        "@types/express": "^5.0.6",
+        "@types/lodash": "^4.17.17",
+        "@types/supertest": "^7.2.0",
+        "supertest": "^7.2.2",
+        "typescript": "~6.0.3",
       },
       "peerDependencies": {
         "mongoose": "^8.0.0 || ^9.0.0",
       },
     },
+    "jobs": {
+      "name": "@terreno/jobs",
+      "version": "57.4.0",
+      "dependencies": {
+        "@terreno/api": "57.4.0",
+        "cron": "^4.3.4",
+        "express": "^5.2.1",
+        "luxon": "^3.7.2",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "^2.3.6",
+        "@terreno/test": "57.4.0",
+        "@types/bun": "^1.4.0",
+        "@types/express": "^5.0.6",
+        "@types/luxon": "^3.7.1",
+        "@types/supertest": "^7.2.0",
+        "chai": "^6.2.2",
+        "supertest": "^7.2.2",
+        "typescript": "~6.0.3",
+      },
+      "peerDependencies": {
+        "@google-cloud/tasks": "7.1.0",
+        "@vercel/queue": "^0.5.1",
+        "mongoose": "^8.0.0 || ^9.0.0",
+      },
+      "optionalPeers": [
+        "@google-cloud/tasks",
+        "@vercel/queue",
+      ],
+    },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -524,12 +609,15 @@
         "@sentry/bun": "catalog:",
         "@terreno/api": "workspace:*",
         "express": "catalog:",
+        "luxon": "catalog:",
         "minisearch": "^7.2.0",
-        "mongoose": "catalog:",
+        "mongoose": "9.7.4",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
+        "@modelcontextprotocol/client": "catalog:",
         "@types/bun": "catalog:",
+        "@types/luxon": "catalog:",
         "@types/node": "catalog:",
         "chai": "catalog:",
         "typescript": "catalog:",
@@ -537,7 +625,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@ai-sdk/react": "^3.0.118",
         "@better-auth/expo": "^1.6.25",
@@ -584,32 +672,32 @@
     },
     "syncdb": {
       "name": "@terreno/syncdb",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "bin": {
         "terreno-syncdb-codegen": "./src/codegen/cli.ts",
       },
       "dependencies": {
-        "luxon": "catalog:",
-        "socket.io-client": "catalog:",
+        "luxon": "^3.7.2",
+        "socket.io-client": "^4.8.1",
         "tinybase": "^9.5.1",
       },
       "devDependencies": {
-        "@biomejs/biome": "catalog:",
-        "@testing-library/react-native": "catalog:",
-        "@types/bun": "catalog:",
-        "@types/luxon": "catalog:",
-        "@types/node": "catalog:",
-        "@types/react": "catalog:",
-        "expo-sqlite": "catalog:",
+        "@biomejs/biome": "^2.3.6",
+        "@testing-library/react-native": "^13.2.0",
+        "@types/bun": "^1.4.0",
+        "@types/luxon": "^3.7.1",
+        "@types/node": "^25.3.0",
+        "@types/react": "~19.2.14",
+        "expo-sqlite": "~57.0.1",
         "fake-indexeddb": "^6.0.0",
-        "react": "catalog:",
-        "react-test-renderer": "catalog:",
-        "socket.io": "catalog:",
-        "typescript": "catalog:",
+        "react": "19.2.3",
+        "react-test-renderer": "19.2.3",
+        "socket.io": "^4.8.1",
+        "typescript": "~6.0.3",
       },
       "peerDependencies": {
         "expo-sqlite": "*",
-        "react": "catalog:",
+        "react": "19.2.3",
       },
       "optionalPeers": [
         "expo-sqlite",
@@ -618,7 +706,7 @@
     },
     "test": {
       "name": "@terreno/test",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "express": "catalog:",
         "luxon": "catalog:",
@@ -644,7 +732,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "57.3.0",
+      "version": "57.4.0",
       "dependencies": {
         "@expo-google-fonts/caveat": "^0.4.2",
         "@expo-google-fonts/dancing-script": "^0.4.2",
@@ -660,8 +748,11 @@
         "@react-native-picker/picker": "catalog:",
         "@react-navigation/native": "catalog:",
         "@shopify/react-native-skia": "catalog:",
+        "d3-scale": "^4.0.2",
+        "d3-shape": "^3.2.0",
         "emoji-datasource": "^16.0.0",
         "expo-clipboard": "catalog:",
+        "expo-constants": "catalog:",
         "expo-document-picker": "catalog:",
         "expo-font": "catalog:",
         "expo-haptics": "catalog:",
@@ -710,6 +801,8 @@
         "@biomejs/biome": "catalog:",
         "@testing-library/react-native": "catalog:",
         "@types/bun": "catalog:",
+        "@types/d3-scale": "^4.0.9",
+        "@types/d3-shape": "^3.2.0",
         "@types/lodash": "catalog:",
         "@types/luxon": "catalog:",
         "@types/mdurl": "^2.0.0",
@@ -785,6 +878,7 @@
     "@expo/metro-runtime": "~57.0.11",
     "@expo/vector-icons": "^15.1.1",
     "@google-cloud/storage": "^7.15.0",
+    "@google-cloud/tasks": "^7.1.0",
     "@happy-dom/global-registrator": "^17.4.4",
     "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/node": "^2.0.0",
@@ -850,6 +944,7 @@
     "expo-updates": "~57.0.15",
     "expo-web-browser": "~57.0.2",
     "express": "^5.2.1",
+    "google-auth-library": "^11.0.2",
     "jspdf": "^4.2.0",
     "libphonenumber-js": "^1.13.8",
     "linkify-it": "^5.0.2",
@@ -2256,9 +2351,13 @@
 
     "@terreno/ai": ["@terreno/ai@workspace:ai"],
 
+    "@terreno/announcements": ["@terreno/announcements@workspace:announcements"],
+
     "@terreno/api": ["@terreno/api@workspace:api"],
 
     "@terreno/api-health": ["@terreno/api-health@workspace:api-health"],
+
+    "@terreno/cli": ["@terreno/cli@workspace:cli"],
 
     "@terreno/comms": ["@terreno/comms@workspace:comms"],
 
@@ -2267,6 +2366,8 @@
     "@terreno/example-frontend": ["@terreno/example-frontend@workspace:example-frontend"],
 
     "@terreno/feature-flags": ["@terreno/feature-flags@workspace:feature-flags"],
+
+    "@terreno/jobs": ["@terreno/jobs@workspace:jobs"],
 
     "@terreno/mcp": ["@terreno/mcp@workspace:mcp-server"],
 
@@ -2319,6 +2420,14 @@
     "@types/cookiejar": ["@types/cookiejar@2.1.5", "", {}, "sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q=="],
 
     "@types/cors": ["@types/cors@2.8.19", "", { "dependencies": { "@types/node": "*" } }, "sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg=="],
+
+    "@types/d3-path": ["@types/d3-path@3.1.1", "", {}, "sha512-VMZBYyQvbGmWyWVea0EHs/BwLgxc+MKi1zLDCONksozI4YJMcTt8ZEuIR4Sb1MMTE8MMW49v0IwI5+b7RmfWlg=="],
+
+    "@types/d3-scale": ["@types/d3-scale@4.0.9", "", { "dependencies": { "@types/d3-time": "*" } }, "sha512-dLmtwB8zkAeO/juAMfnV+sItKjlsw2lKdZVVy6LRr0cBmegxSABiLEpGVmSJJ8O08i4+sGR6qQtb6WtuwJdvVw=="],
+
+    "@types/d3-shape": ["@types/d3-shape@3.2.0", "", { "dependencies": { "@types/d3-path": "*" } }, "sha512-kVd74ta9eof3eJOvbNd1vGKS/XERRyQbT26Og63hIsvDO84cjD5gEOhsXf26w3FSoNlPVz84DOFcKv/oou+fMw=="],
+
+    "@types/d3-time": ["@types/d3-time@3.0.4", "", {}, "sha512-yuzZug1nkAAaBlBBikKZTgzCeA+k1uy4ZFwWANOfKw5z5LRhV0gNA7gNkKm7HoK+HRN0wX3EkxGk0fpbWhmB7g=="],
 
     "@types/debug": ["@types/debug@4.1.13", "", { "dependencies": { "@types/ms": "*" } }, "sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw=="],
 
@@ -2401,6 +2510,10 @@
     "@types/passport-oauth2": ["@types/passport-oauth2@1.8.0", "", { "dependencies": { "@types/express": "*", "@types/oauth": "*", "@types/passport": "*" } }, "sha512-6//z+4orIOy/g3zx17HyQ71GSRK4bs7Sb+zFasRoc2xzlv7ZCJ+vkDBYFci8U6HY+or6Zy7ajf4mz4rK7nsWJQ=="],
 
     "@types/passport-strategy": ["@types/passport-strategy@0.2.38", "", { "dependencies": { "@types/express": "*", "@types/passport": "*" } }, "sha512-GC6eMqqojOooq993Tmnmp7AUTbbQSgilyvpCYQjT+H6JfG/g6RGc7nXEniZlp0zyKJ0WUdOiZWLBZft9Yug1uA=="],
+
+    "@types/pixelmatch": ["@types/pixelmatch@5.2.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg=="],
+
+    "@types/pngjs": ["@types/pngjs@6.0.5", "", { "dependencies": { "@types/node": "*" } }, "sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ=="],
 
     "@types/prismjs": ["@types/prismjs@1.26.6", "", {}, "sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw=="],
 
@@ -2951,6 +3064,24 @@
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
     "csv-parse": ["csv-parse@6.2.1", "", {}, "sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ=="],
+
+    "d3-array": ["d3-array@3.2.4", "", { "dependencies": { "internmap": "1 - 2" } }, "sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg=="],
+
+    "d3-color": ["d3-color@3.1.0", "", {}, "sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA=="],
+
+    "d3-format": ["d3-format@3.1.2", "", {}, "sha512-AJDdYOdnyRDV5b6ArilzCPPwc1ejkHcoyFarqlPqT7zRYjhavcT3uSrqcMvsgh2CgoPbK3RCwyHaVyxYcP2Arg=="],
+
+    "d3-interpolate": ["d3-interpolate@3.0.1", "", { "dependencies": { "d3-color": "1 - 3" } }, "sha512-3bYs1rOD33uo8aqJfKP3JWPAibgw8Zm2+L9vBKEHJ2Rg+viTR7o5Mmv5mZcieN+FRYaAOWX5SJATX6k1PWz72g=="],
+
+    "d3-path": ["d3-path@3.1.0", "", {}, "sha512-p3KP5HCf/bvjBSSKuXid6Zqijx7wIfNW+J/maPs+iwR35at5JCbLUT0LzF1cnjbCHWhqzQTIN2Jpe8pRebIEFQ=="],
+
+    "d3-scale": ["d3-scale@4.0.2", "", { "dependencies": { "d3-array": "2.10.0 - 3", "d3-format": "1 - 3", "d3-interpolate": "1.2.0 - 3", "d3-time": "2.1.1 - 3", "d3-time-format": "2 - 4" } }, "sha512-GZW464g1SH7ag3Y7hXjf8RoUuAFIqklOAq3MRl4OaWabTFJY9PN/E1YklhXLh+OQ3fM9yS2nOkCoS+WLZ6kvxQ=="],
+
+    "d3-shape": ["d3-shape@3.2.0", "", { "dependencies": { "d3-path": "^3.1.0" } }, "sha512-SaLBuwGm3MOViRq2ABk3eLoxwZELpH6zhl3FbAoJ7Vm1gofKx6El1Ib5z23NUEhF9AsGl7y+dzLe5Cw2AArGTA=="],
+
+    "d3-time": ["d3-time@3.1.0", "", { "dependencies": { "d3-array": "2 - 3" } }, "sha512-VqKjzBLejbSMT4IgbmVgDjpkYrNWUYJnbCGo874u7MMKIWsILRX+OpX/gTk8MqjpT1A/c6HY2dCA77ZN0lkQ2Q=="],
+
+    "d3-time-format": ["d3-time-format@4.1.0", "", { "dependencies": { "d3-time": "1 - 3" } }, "sha512-dJxPBlzC7NugB2PDLwo9Q8JiTR3M3e4/XANkreKSUxF8vvXKqm1Yfq4Q5dl8budlunRVlUUaDUgFt7eA8D6NLg=="],
 
     "data-uri-to-buffer": ["data-uri-to-buffer@4.0.1", "", {}, "sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A=="],
 
@@ -3593,6 +3724,8 @@
     "inline-style-parser": ["inline-style-parser@0.2.7", "", {}, "sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA=="],
 
     "inline-style-prefixer": ["inline-style-prefixer@7.0.1", "", { "dependencies": { "css-in-js-utils": "^3.1.0" } }, "sha512-lhYo5qNTQp3EvSSp3sRvXMbVQTLrvGV6DycRMJ5dm2BLMiJ30wpXKdDdgX+GmJZ5uQMucwRKHamXSst3Sj/Giw=="],
+
+    "internmap": ["internmap@2.0.3", "", {}, "sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg=="],
 
     "interpret": ["interpret@3.1.1", "", {}, "sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ=="],
 
@@ -4336,6 +4469,8 @@
 
     "pipenet": ["pipenet@1.4.3", "", { "dependencies": { "axios": "^1.7.3", "debug": "^4.3.6", "human-readable-ids": "^1.0.4", "koa": "^3.1.1", "koa-router": "^14.0.0", "pump": "^3.0.3", "tldjs": "^2.3.2", "yargs": "^18.0.0" }, "bin": { "pipenet": "dist/cli.js" } }, "sha512-cZB6xkS2chaUO1h4z2zw3GI0I/Mn3OSMiT9Gc90kbCiiiFFXxvYtE7KQTbeMEpjno1aN8m/03nzs172pjPQ6IQ=="],
 
+    "pixelmatch": ["pixelmatch@5.3.0", "", { "dependencies": { "pngjs": "^6.0.0" }, "bin": { "pixelmatch": "bin/pixelmatch" } }, "sha512-o8mkY4E/+LNUf6LzX96ht6k6CEDi65k9G2rjMtBe9Oo+VPKSvl+0GKHuH/AlG+GA5LPG/i5hrekkxUc3s2HU+Q=="],
+
     "pkce-challenge": ["pkce-challenge@5.0.1", "", {}, "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="],
 
     "pkg-dir": ["pkg-dir@4.2.0", "", { "dependencies": { "find-up": "^4.0.0" } }, "sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ=="],
@@ -4350,7 +4485,7 @@
 
     "plist": ["plist@3.1.1", "", { "dependencies": { "@xmldom/xmldom": "^0.9.10", "base64-js": "^1.5.1", "xmlbuilder": "^15.1.1" } }, "sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA=="],
 
-    "pngjs": ["pngjs@3.4.0", "", {}, "sha512-NCrCHhWmnQklfH4MtJMRjZ2a8c80qXeMlQMv2uVp9ISJMTt562SbGd6n2oq0PaPgKm7Z6pL9E2UlLIhC+SHL3w=="],
+    "pngjs": ["pngjs@7.0.0", "", {}, "sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow=="],
 
     "possible-typed-array-names": ["possible-typed-array-names@1.1.0", "", {}, "sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg=="],
 
@@ -5706,6 +5841,8 @@
 
     "@terreno/example-backend/@opentelemetry/sdk-node": ["@opentelemetry/sdk-node@0.218.0", "", { "dependencies": { "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/configuration": "0.218.0", "@opentelemetry/context-async-hooks": "2.7.1", "@opentelemetry/core": "2.7.1", "@opentelemetry/exporter-logs-otlp-grpc": "0.218.0", "@opentelemetry/exporter-logs-otlp-http": "0.218.0", "@opentelemetry/exporter-logs-otlp-proto": "0.218.0", "@opentelemetry/exporter-metrics-otlp-grpc": "0.218.0", "@opentelemetry/exporter-metrics-otlp-http": "0.218.0", "@opentelemetry/exporter-metrics-otlp-proto": "0.218.0", "@opentelemetry/exporter-prometheus": "0.218.0", "@opentelemetry/exporter-trace-otlp-grpc": "0.218.0", "@opentelemetry/exporter-trace-otlp-http": "0.218.0", "@opentelemetry/exporter-trace-otlp-proto": "0.218.0", "@opentelemetry/exporter-zipkin": "2.7.1", "@opentelemetry/instrumentation": "0.218.0", "@opentelemetry/otlp-exporter-base": "0.218.0", "@opentelemetry/propagator-b3": "2.7.1", "@opentelemetry/propagator-jaeger": "2.7.1", "@opentelemetry/resources": "2.7.1", "@opentelemetry/sdk-logs": "0.218.0", "@opentelemetry/sdk-metrics": "2.7.1", "@opentelemetry/sdk-trace-base": "2.7.1", "@opentelemetry/sdk-trace-node": "2.7.1", "@opentelemetry/semantic-conventions": "^1.29.0" }, "peerDependencies": { "@opentelemetry/api": ">=1.3.0 <1.10.0" } }, "sha512-tPMjHrLV5gsfNdYqoRHjeGbCAZBXXD9c1Qo/2ut7VwnUABDNh76xNxrT0SEhkIIJuCN45bbN1vZnYL1gY0IkOg=="],
 
+    "@terreno/example-backend/google-auth-library": ["google-auth-library@11.0.2", "", { "dependencies": { "base64-js": "^1.3.0", "ecdsa-sig-formatter": "^1.0.11", "gaxios": "^7.1.4", "gcp-metadata": "^9.0.0", "google-logging-utils": "^2.0.0", "jws": "^4.0.0" } }, "sha512-vzpgPutxrghPsnjrjpzLX2bdv8IOL719Rh0oEjGnQu8YCIbnbMuTTQ5zU9LcKvLdOPgCxBwppbvnhgW90Qna5Q=="],
+
     "@terreno/website/@types/node": ["@types/node@22.20.2", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw=="],
 
     "@thream/socketio-jwt/jsonwebtoken": ["jsonwebtoken@9.0.2", "", { "dependencies": { "jws": "^3.2.2", "lodash.includes": "^4.3.0", "lodash.isboolean": "^3.0.3", "lodash.isinteger": "^4.0.4", "lodash.isnumber": "^3.0.3", "lodash.isplainobject": "^4.0.6", "lodash.isstring": "^4.0.1", "lodash.once": "^4.0.0", "ms": "^2.1.1", "semver": "^7.5.4" } }, "sha512-PRp66vJ865SSqOlgqS8hujT5U4AOgMfhrwYIuIhfKaoSCZcirrmASQr8CX7cUg+RMih+hgznrjp99o+W4pJLHQ=="],
@@ -6086,6 +6223,8 @@
 
     "parse-entities/@types/unist": ["@types/unist@2.0.11", "", {}, "sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA=="],
 
+    "parse-png/pngjs": ["pngjs@3.4.0", "", {}, "sha512-NCrCHhWmnQklfH4MtJMRjZ2a8c80qXeMlQMv2uVp9ISJMTt562SbGd6n2oq0PaPgKm7Z6pL9E2UlLIhC+SHL3w=="],
+
     "parse5/entities": ["entities@6.0.1", "", {}, "sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g=="],
 
     "passport-oauth2/uid2": ["uid2@0.0.4", "", {}, "sha512-IevTus0SbGwQzYh3+fRsAMTVVPOoIVufzacXcHPmdlle1jUpq7BRL+mw3dgeLanvGZdwwbWhRV6XrcFNdBmjWA=="],
@@ -6095,6 +6234,8 @@
     "pdf-lib/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
     "pipenet/yargs": ["yargs@18.1.0", "", { "dependencies": { "cliui": "^9.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "string-width": "^8.2.1", "y18n": "^5.0.5", "yargs-parser": "^22.0.0" } }, "sha512-2rAgRKu54VsHkqI0/tYkmluGXHD4KW7yZoycuqDQ15QOTnc2VVfy0nN/1eMhnQLO00A+dwtK20xuCnc1YGeUyg=="],
+
+    "pixelmatch/pngjs": ["pngjs@6.0.0", "", {}, "sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg=="],
 
     "pkg-dir/find-up": ["find-up@4.1.0", "", { "dependencies": { "locate-path": "^5.0.0", "path-exists": "^4.0.0" } }, "sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw=="],
 
@@ -6496,6 +6637,12 @@
 
     "@terreno/example-backend/@opentelemetry/sdk-node/@opentelemetry/sdk-trace-base": ["@opentelemetry/sdk-trace-base@2.7.1", "", { "dependencies": { "@opentelemetry/core": "2.7.1", "@opentelemetry/resources": "2.7.1", "@opentelemetry/semantic-conventions": "^1.29.0" }, "peerDependencies": { "@opentelemetry/api": ">=1.3.0 <1.10.0" } }, "sha512-NAYIlsF8MPUsKqJMiDQJTMPOmlbawC1Iz/omMLygZ1C9am8fTKYjTaI+OZM+WTY3t3Glo0wnOg/6/pac6RGPPw=="],
 
+    "@terreno/example-backend/google-auth-library/gaxios": ["gaxios@7.3.1", "", { "dependencies": { "extend": "^3.0.2", "https-proxy-agent": "^7.0.1", "node-fetch": "^3.3.2" } }, "sha512-kB3rzJV7d9juLZh8/56QTXCwQfxyhdOMdyYk1HdQKFtF8TJTDTZQJtixWIwXdE9Jji91mC41DUNpjleo4L4eAQ=="],
+
+    "@terreno/example-backend/google-auth-library/gcp-metadata": ["gcp-metadata@9.0.3", "", { "dependencies": { "gaxios": "^7.1.3", "google-logging-utils": "^2.0.0", "json-bigint": "^1.0.0" } }, "sha512-2YYnIlHaKBGT2IPg3G2M57hia9Galz15zsEOvw9T3oRf0lSn6KN6VcHQLqby7x8ksYKnjXvp3rp2KJyLCN6zfQ=="],
+
+    "@terreno/example-backend/google-auth-library/google-logging-utils": ["google-logging-utils@2.0.1", "", {}, "sha512-HMhaQghlOTvbcb3c4T5jmmOMtG3JUF1iOQMezaJXL86CDS+Tm2vHd0IeLFRAx3+ewd+bo9E1HFHoy17X5aJa9A=="],
+
     "@terreno/website/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@thream/socketio-jwt/jsonwebtoken/jws": ["jws@3.2.3", "", { "dependencies": { "jwa": "^1.4.2", "safe-buffer": "^5.0.1" } }, "sha512-byiJ0FLRdLdSVSReO/U4E7RoEyOCKnEnEPMjq3HxWtvzLsV08/i5RQKsFVNkCldrCaPr2vDNAOMsfs8T/Hze7g=="],
@@ -6878,6 +7025,10 @@
 
     "@terreno/example-backend/@opentelemetry/sdk-node/@opentelemetry/instrumentation/require-in-the-middle": ["require-in-the-middle@8.0.1", "", { "dependencies": { "debug": "^4.3.5", "module-details-from-path": "^1.0.3" } }, "sha512-QT7FVMXfWOYFbeRBF6nu+I6tr2Tf3u0q8RIEjNob/heKY/nh7drD/k7eeMFmSQgnTtCzLDcCu/XEnpW2wk4xCQ=="],
 
+    "@terreno/example-backend/google-auth-library/gaxios/https-proxy-agent": ["https-proxy-agent@7.0.6", "", { "dependencies": { "agent-base": "^7.1.2", "debug": "4" } }, "sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw=="],
+
+    "@terreno/example-backend/google-auth-library/gaxios/node-fetch": ["node-fetch@3.3.2", "", { "dependencies": { "data-uri-to-buffer": "^4.0.0", "fetch-blob": "^3.1.4", "formdata-polyfill": "^4.0.10" } }, "sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA=="],
+
     "@thream/socketio-jwt/jsonwebtoken/jws/jwa": ["jwa@1.4.2", "", { "dependencies": { "buffer-equal-constant-time": "^1.0.1", "ecdsa-sig-formatter": "1.0.11", "safe-buffer": "^5.0.1" } }, "sha512-eeH5JO+21J78qMvTIDdBXidBd6nG2kZjg5Ohz/1fpa28Z4CcsWUzJ1ZZyFq/3z3N17aZy+ZuBoHljASbL1WfOw=="],
 
     "@types/request/form-data/mime-types/mime-db": ["mime-db@1.52.0", "", {}, "sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg=="],
@@ -7023,6 +7174,8 @@
     "@react-native/metro-config/metro-config/metro/metro-source-map/ob1": ["ob1@0.87.0", "", { "dependencies": { "flow-enums-runtime": "^0.0.6" } }, "sha512-8Q8sKCiUwsxgSmjDtVWyRgmxsgeJXXam3oQH6Id8ADfNaJMV6GZKyeAl8+pGVVdgwAZabfk5+aExle7AP/nZiA=="],
 
     "@react-native/metro-config/metro-config/metro/metro-transform-worker/metro-minify-terser": ["metro-minify-terser@0.87.0", "", { "dependencies": { "flow-enums-runtime": "^0.0.6", "terser": "^5.15.0" } }, "sha512-tPa0O983PDutFu3LXbArRH5NduogcKrvW6fs9VHhksTKUA1iqDyoD1ZSj/Me52xJ6T9/9pOwIVyj9ulKc/zMkg=="],
+
+    "@terreno/example-backend/google-auth-library/gaxios/https-proxy-agent/agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
     "babel-loader/find-cache-dir/pkg-dir/find-up/locate-path": ["locate-path@7.2.0", "", { "dependencies": { "p-locate": "^6.0.0" } }, "sha512-gvVijfZvn7R+2qyPX8mAuKcFGDf6Nc61GdvGafQsHL0sBIxfKzA+usWn4GFC/bk+QdwPUD4kWFJLhElipq+0VA=="],
 

@@ -539,6 +539,15 @@
   },
   {
     "type": "module",
+    "from": "announcements/src/types.ts",
+    "to": "announcements/src/types.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
     "from": "api/src/mcp/types.ts",
     "to": "api/src/mcp/types.ts",
     "rule": {
@@ -586,6 +595,24 @@
     "type": "module",
     "from": "api/src/types/mcpServiceToken.ts",
     "to": "api/src/types/mcpServiceToken.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
+    "from": "api/src/types/notification.ts",
+    "to": "api/src/types/notification.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
+    "from": "api/src/types/notificationPreference.ts",
+    "to": "api/src/types/notificationPreference.ts",
     "rule": {
       "severity": "warn",
       "name": "no-orphans"
@@ -730,6 +757,15 @@
     "type": "module",
     "from": "feature-flags/src/types.ts",
     "to": "feature-flags/src/types.ts",
+    "rule": {
+      "severity": "warn",
+      "name": "no-orphans"
+    }
+  },
+  {
+    "type": "module",
+    "from": "jobs/src/types.ts",
+    "to": "jobs/src/types.ts",
     "rule": {
       "severity": "warn",
       "name": "no-orphans"

@@ -7,6 +7,7 @@ import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import {ADMIN_SEARCH_DEBOUNCE_MS} from "./Constants";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
@@ -44,30 +45,10 @@ const patchFn = mock(() => ({unwrap: async () => ({})}));
 const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 0})}));
 const enqueueBackgroundFn = mock(() => ({unwrap: async () => ({taskId: "t1"})}));
 
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [deleteFn, {isLoading: false}],
-    useListQuery: (params: unknown) => {
-      listQueryArgs.push(params);
-      return {
-        data: listState.data,
-        error: null,
-        isLoading: listState.isLoading,
-        refetch: async () => ({data: listState.data}),
-      };
-    },
-    useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [patchFn, {isLoading: false}],
-  }),
-}));
-
 mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [enqueueBackgroundFn, {isLoading: false}],
 }));
 
-import {AdminFilterDrawer} from "./AdminFilterDrawer";
 import {AdminModelTable} from "./AdminModelTable";
 
 const fullConfig = {
@@ -143,6 +124,23 @@ describe("AdminModelTable", () => {
   const originalConsoleError = console.error;
 
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
+      useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useDeleteMutation: () => [deleteFn, {isLoading: false}],
+      useListQuery: (params: unknown) => {
+        listQueryArgs.push(params);
+        return {
+          data: listState.data,
+          error: null,
+          isLoading: listState.isLoading,
+          refetch: async () => ({data: listState.data}),
+        };
+      },
+      useReadQuery: () => ({data: null, error: null, isLoading: false}),
+      useUpdateMutation: () => [patchFn, {isLoading: false}],
+    });
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();
@@ -188,13 +186,86 @@ describe("AdminModelTable", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders empty state when no data present", () => {
-    configState.config = fullConfig;
-    const {toJSON} = renderWithTheme(
+  it("keeps search and filters available when a query returns no rows", () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean" as const}],
+          searchFields: ["email"],
+        },
+      ],
+    };
+    const {getByTestId, getByText} = renderWithTheme(
       <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    expect(toJSON()).toBeDefined();
+    expect(getByTestId("data-table-search")).toBeTruthy();
+    expect(getByTestId("data-table-filters-trigger")).toBeTruthy();
+    expect(getByText("No items found.")).toBeTruthy();
     expect(setOptions).toHaveBeenCalled();
+  });
+
+  it("keeps declared filters available when their fields are not table columns", async () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean" as const}],
+          listFields: ["email"],
+        },
+      ],
+    };
+    const {getByTestId} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("data-table-filters-trigger"));
+    });
+    expect(getByTestId("data-table-filter-active.switch")).toBeTruthy();
+  });
+
+  it("maps reference filters into DataTable additional filters", () => {
+    configState.config = {
+      ...fullConfig,
+      models: [
+        {
+          ...fullConfig.models[0],
+          fields: {
+            ...fullConfig.models[0].fields,
+            ownerId: {ref: "Group", required: false, type: "objectid"},
+          },
+          filters: [{field: "ownerId", kind: "ref" as const, refModel: "Group"}],
+          listFields: ["email"],
+        },
+        {
+          displayName: "Groups",
+          fields: {},
+          listFields: ["name"],
+          name: "Group",
+          routePath: "/admin/groups",
+        },
+      ],
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    const [refFilter] = findDataTable(UNSAFE_root).props.additionalFilters;
+    const onChange = mock(() => {});
+    const rendered = refFilter.renderFilter({
+      field: "ownerId",
+      onChange,
+      value: "group-1",
+    }) as React.ReactElement<{
+      onChange: (next: string) => void;
+      routePath: string;
+    }>;
+
+    assert.equal(rendered.props.routePath, "/admin/groups");
+    rendered.props.onChange("group-2");
+    assert.equal(onChange.mock.calls[0]?.[0], "group-2");
   });
 
   it("renders loading state when the list query is loading", () => {
@@ -523,6 +594,28 @@ describe("AdminModelTable", () => {
     expect(activeCol?.sortable).toBe(false);
   });
 
+  it("renders search on DataTable and does not mount AdminFilterDrawer", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          filters: [{field: "active", kind: "boolean", label: "Active"}],
+          searchFields: ["email"],
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", active: true, email: "a@b.com"}], total: 1};
+    const {queryByTestId, UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    expect(queryByTestId("admin-filter-drawer")).toBeNull();
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
+    expect((tables[0] as ReactTestInstance).props.searchFields).toEqual(["email"]);
+    expect(queryByTestId("data-table-search")).toBeTruthy();
+  });
+
   it("uses pageSize from model config for pagination", () => {
     configState.config = {
       customScreens: [],
@@ -792,7 +885,7 @@ describe("AdminModelTable", () => {
     expectSelectionCount(getByTestId, 1);
 
     await act(async () => {
-      fireEvent.changeText(getByTestId("admin-table-search"), "query");
+      findDataTable(UNSAFE_root).props.onSearchChange("query");
     });
     await act(async () => {
       await new Promise((r) => setTimeout(r, ADMIN_SEARCH_DEBOUNCE_MS + 50));
@@ -802,7 +895,7 @@ describe("AdminModelTable", () => {
     expectSelectionCount(getByTestId, 0);
   });
 
-  it("applies filters through the drawer and resets pagination", async () => {
+  it("applies DataTable filters and resets pagination", async () => {
     configState.config = interactiveConfig;
     listState.data = {data: interactiveListRows, total: 40};
     const {UNSAFE_root} = renderWithTheme(
@@ -815,7 +908,7 @@ describe("AdminModelTable", () => {
     assert.equal(findDataTable(UNSAFE_root).props.page, 2);
 
     await act(async () => {
-      UNSAFE_root.findByType(AdminFilterDrawer).props.onApply({active: true});
+      findDataTable(UNSAFE_root).props.onFilterValuesChange({active: true});
     });
 
     assert.equal(findDataTable(UNSAFE_root).props.page, 1);

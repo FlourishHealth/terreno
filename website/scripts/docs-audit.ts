@@ -12,7 +12,7 @@ export interface DriftItem {
   message: string;
 }
 
-export const INTERNAL_LEAKAGE_REGEX =
+const INTERNAL_LEAKAGE_REGEX =
   /\.cursor\/rules|\.claude\/rules|\.claude\/skills|\.cursor\/skills|flourish-terreno|flourish-backend|mcp\.terreno\.flourish\.health|a\.run\.app|\bPRO-\d+\b|\bFH-\d+\b/gi;
 
 export const parsePublishWorkingDirectories = (yaml: string): string[] => {
@@ -59,7 +59,7 @@ const walkMarkdownFiles = (dir: string, collected: string[]): void => {
   }
 };
 
-export const collectPublicDocPaths = (repoRoot: string): string[] => {
+const collectPublicDocPaths = (repoRoot: string): string[] => {
   const paths: string[] = [];
   for (const section of ["reference", "how-to", "tutorials", "explanation"]) {
     walkMarkdownFiles(join(repoRoot, "docs", section), paths);
@@ -110,7 +110,7 @@ export const checkPublishedPackageDocs = ({
   return issues;
 };
 
-export const checkInternalLeakage = ({
+const checkInternalLeakage = ({
   filePaths,
   repoRoot,
 }: {
@@ -165,7 +165,7 @@ const parseStoryConfigs = (): {name: string; interfaceName: string}[] =>
     })
     .filter((entry): entry is {name: string; interfaceName: string} => Boolean(entry));
 
-export const runDocsAudit = (repoRoot = REPO_ROOT): DriftItem[] => {
+const runDocsAudit = (repoRoot = REPO_ROOT): DriftItem[] => {
   const issues: DriftItem[] = [];
   const typesPath = join(repoRoot, "demo/ui-types-documentation.json");
   if (!existsSync(typesPath)) {

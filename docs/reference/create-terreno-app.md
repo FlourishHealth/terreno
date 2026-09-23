@@ -37,7 +37,7 @@ Writes `<cwd>/<appName>/`. Refuses a non-empty target except `.git` / `.gitignor
 
 Printed next steps install, seed, then start the backend. SDK and web run in a second terminal while the backend is up.
 
-The generated Profile tab uses `@terreno/ui` `TapToEdit` with `PATCH /auth/me`. Fonts come from `@terreno/ui`. `app.json` leaves icon/splash/favicon unset. `metro.config.js` pins `jspdf` so Metro can bundle admin PDF export. `tsconfig.json` has no `baseUrl` (TypeScript 6). Auth routes use `<Stack.Protected>`.
+The generated Profile tab uses `@terreno/ui` `TapToEdit` with `PATCH /auth/me`. Fonts come from `@terreno/ui`. `app.json` leaves icon/splash/favicon unset. `metro.config.js` pins `jspdf` so Metro can bundle admin PDF export. Generated tsconfigs use no TypeScript 6 deprecated options and no `ignoreDeprecations` (see [TypeScript configuration](../explanation/typescript-configuration.md)). Auth routes use `<Stack.Protected>`.
 
 ## Library
 

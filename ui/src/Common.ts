@@ -493,8 +493,17 @@ export interface FilterProps extends WithTestID {
   children: React.ReactNode;
   /** Trigger button label. */
   label?: string;
+  /** Accessible name when the visible trigger label is empty or abbreviated. */
+  triggerAccessibilityLabel?: string;
   /** Trigger button icon. Defaults to the built-in `bars-filter` glyph. */
   iconName?: IconName;
+  /**
+   * Render the trigger as a compact `IconButton` instead of a labeled button.
+   * Use for dense chrome such as table column headers. `label` is ignored.
+   */
+  iconOnly?: boolean;
+  /** Trigger size when `iconOnly` is set. Defaults to `sm`. */
+  triggerSize?: "sm" | "default";
   /** Controlled open state. Omit to use `defaultOpen`. */
   isOpen?: boolean;
   /** Initial open state when uncontrolled. */
@@ -934,6 +943,13 @@ export interface AiSuggestionProps {
 
 export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
   type?: "email" | "password" | "phoneNumber" | "search" | "text" | "url";
+
+  /**
+   * Renders the show/hide eye control on `type="password"`. Set to `false` for fields where
+   * revealing the value is not acceptable, such as a shared or on-camera screen.
+   * @default true
+   */
+  showVisibilityToggle?: boolean;
 
   autoComplete?: "current-password" | "on" | "off" | "username";
   returnKeyType?: "done" | "go" | "next" | "search" | "send";
@@ -1892,6 +1908,8 @@ export interface BodyProps {
 export type ButtonPressAnimation = "scale" | "opacity" | "none";
 
 export interface ButtonProps extends WithTestID {
+  /** Accessible name. Defaults to `text`. */
+  accessibilityLabel?: string;
   /**
    * The text content of the confirmation modal.
    * @default "Are you sure you want to continue?"
@@ -2625,6 +2643,35 @@ export interface PaginationProps extends WithTestID {
   totalPages: number;
 }
 
+export interface LineChartProps extends WithTestID {
+  /** Summary announced for the whole chart. */
+  accessibilityLabel?: string;
+  /** Single series of labeled numeric points. */
+  data: Array<{color?: string; label: string; value: number}>;
+  /** Copy shown when `data` is empty. */
+  emptyText?: string;
+  /** Formats the numeric value in tooltips. */
+  formatValue?: (value: number) => string;
+  /** Plot height in pixels. */
+  height?: number;
+  /** Series name shown under the plot. */
+  legendLabel?: string;
+  /** When true, shows a spinner instead of the plot. */
+  loading?: boolean;
+}
+
+export interface AreaChartProps extends LineChartProps {}
+export interface BarChartProps extends LineChartProps {}
+
+export interface DonutChartProps extends LineChartProps {}
+
+export interface DashboardGridProps extends WithTestID {
+  children?: React.ReactNode;
+  /** Column counts by breakpoint. Defaults to `{sm: 1, md: 2, lg: 3}`. */
+  columns?: {lg: number; md: number; sm: number};
+  gap?: UnsignedUpTo12;
+}
+
 /**
  * Data Table
  */
@@ -2638,6 +2685,33 @@ export type DataTableCustomComponentMap = Record<
   string,
   React.ComponentType<{column: DataTableColumn; cellData: DataTableCellData}>
 >;
+
+export interface DataTableColumnFilterChoiceOption {
+  label: string;
+  value: string;
+}
+
+export interface DataTableColumnFilterRenderArgs {
+  field: string;
+  onChange: (value: unknown) => void;
+  value: unknown;
+}
+
+export interface DataTableColumnFilter {
+  field: string;
+  kind: "text" | "boolean" | "numberRange" | "dateRange" | "choice";
+  label?: string;
+  /** When true, choice filters include an Empty option for null/unset field values. */
+  allowEmpty?: boolean;
+  options?: DataTableColumnFilterChoiceOption[];
+  renderFilter?: (args: DataTableColumnFilterRenderArgs) => React.ReactNode;
+}
+
+export interface DataTableQueryParams {
+  [field: string]: unknown;
+  $or?: Array<Record<string, unknown>>;
+}
+
 export interface DataTableColumn {
   title: string;
   columnType: "text" | "number" | "date" | "boolean" | string;
@@ -2645,12 +2719,17 @@ export interface DataTableColumn {
   highlight?: SurfaceColor;
   sortable?: boolean;
   infoModalText?: string;
+  filter?: DataTableColumnFilter;
 }
 
 export interface DataTableProps extends WithTestID {
   testIDs?: DataTableTestIDs;
   data: DataTableCellData[][];
   columns: DataTableColumn[];
+  /** Filter definitions that are not attached to a visible column. */
+  additionalFilters?: DataTableColumnFilter[];
+  /** Content shown below the header when `data` is empty. */
+  emptyContent?: React.ReactNode;
   alternateRowBackground?: boolean;
   totalPages?: number;
   page?: number;
@@ -2679,6 +2758,16 @@ export interface DataTableProps extends WithTestID {
    * Returns a stable key for row test ids. Defaults to row index when omitted.
    */
   getRowTestID?: (row: DataTableCellData[], rowIndex: number) => string | number;
+  /** Toolbar search string (controlled). Omit with `searchFields` to hide search. */
+  search?: string;
+  /** Fields included in generic `$or` search params. */
+  searchFields?: string[];
+  onSearchChange?: (search: string) => void;
+  /** Controlled column filter draft/applied values keyed by field (and `field_gte` / `field_lte`). */
+  filterValues?: Record<string, unknown>;
+  onFilterValuesChange?: (next: Record<string, unknown>) => void;
+  /** Fires when debounced search or applied filters change. Excludes page, limit, and sort. */
+  onQueryChange?: (params: DataTableQueryParams) => void;
 }
 
 export interface DataTableCellProps {

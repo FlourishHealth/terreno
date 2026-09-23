@@ -158,6 +158,21 @@ export const evaluateDemoCoverage = ({
  */
 export const DEMO_COVERAGE_ALLOWLIST: AllowlistEntry[] = [
   {
+    name: "AnnouncementBanner",
+    reason:
+      "Product announcement surfaces live in example-frontend via AnnouncementNavigator, not the isolated UI demo",
+  },
+  {
+    name: "AnnouncementNavigator",
+    reason:
+      "Requires a consumer RTK Query `api` and pending queue; exercise in example-frontend, not the isolated UI demo",
+  },
+  {
+    name: "AnnouncementScreen",
+    reason:
+      "Product announcement surfaces live in example-frontend via AnnouncementNavigator, not the isolated UI demo",
+  },
+  {
     name: "BarsFilterIcon",
     reason: "SVG used inside Filter; the Icon and Filter stories already show the glyph",
   },
@@ -196,6 +211,21 @@ export const DEMO_COVERAGE_ALLOWLIST: AllowlistEntry[] = [
   },
   {name: "Host", reason: "Portal host is application shell, not a visual story"},
   {name: "IconRegistryProvider", reason: "Icon registry is application shell"},
+  {
+    name: "NotificationBell",
+    reason:
+      "In-app notification UI lives in example-frontend (bell, inbox, preferences), not the isolated UI demo",
+  },
+  {
+    name: "NotificationInbox",
+    reason:
+      "In-app notification UI lives in example-frontend (bell, inbox, preferences), not the isolated UI demo",
+  },
+  {
+    name: "NotificationPreferences",
+    reason:
+      "In-app notification UI lives in example-frontend (bell, inbox, preferences), not the isolated UI demo",
+  },
   {name: "Portal", reason: "Portal is a host primitive, not a visual story"},
   {name: "PortalContext", reason: "React context object, not a visual component"},
   {

@@ -3,10 +3,12 @@ import {ActionSheetConfiguration} from "@story-config/ActionSheet.config";
 import {AddressFieldConfiguration} from "@story-config/AddressField.config";
 import {AIRequestExplorerConfiguration} from "@story-config/AIRequestExplorer.config";
 import {AiSuggestionBoxConfiguration} from "@story-config/AiSuggestionBox.config";
+import {AreaChartConfiguration} from "@story-config/AreaChart.config";
 import {AttachmentPreviewConfiguration} from "@story-config/AttachmentPreview.config";
 import {AvatarConfiguration} from "@story-config/Avatar.config";
 import {BadgeConfiguration} from "@story-config/Badge.config";
 import {BannerConfiguration} from "@story-config/Banner.config";
+import {BarChartConfiguration} from "@story-config/BarChart.config";
 import {BodyConfiguration} from "@story-config/Body.config";
 import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
 import {BoxConfiguration} from "@story-config/Box.config";
@@ -16,10 +18,12 @@ import {CheckBoxConfiguration} from "@story-config/CheckBox.config";
 import {ConflictSheetConfiguration} from "@story-config/ConflictSheet.config";
 import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
+import {DashboardGridConfiguration} from "@story-config/DashboardGrid.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
 import {DecimalRangeActionSheetConfiguration} from "@story-config/DecimalRangeActionSheet.config";
 import {DismissButtonConfiguration} from "@story-config/DismissButton.config";
+import {DonutChartConfiguration} from "@story-config/DonutChart.config";
 import {DraggableListConfiguration} from "@story-config/DraggableList.config";
 import {EditableCardConfiguration} from "@story-config/EditableCard.config";
 import {EmailFieldConfiguration} from "@story-config/EmailField.config";
@@ -39,6 +43,7 @@ import {ImageConfiguration} from "@story-config/Image.config";
 import {ImageBackgroundConfiguration} from "@story-config/ImageBackground.config";
 import {InfoModalIconConfiguration} from "@story-config/InfoModalIcon.config";
 import {InfoTooltipButtonConfiguration} from "@story-config/InfoTooltipButton.config";
+import {LineChartConfiguration} from "@story-config/LineChart.config";
 import {LinkConfiguration} from "@story-config/Link.config";
 import {LoginScreenConfiguration} from "@story-config/LoginScreen.config";
 import {MarkdownEditorConfiguration} from "@story-config/MarkdownEditor.config";
@@ -263,11 +268,13 @@ const Config: DemoConfigurationBase[] = [
   ActionSheetConfiguration,
   AIRequestExplorerConfiguration,
   AiSuggestionBoxConfiguration,
+  AreaChartConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
   AttachmentPreviewConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
+  BarChartConfiguration,
   BodyConfiguration,
   BooleanFieldConfiguration,
   BoxConfiguration,
@@ -279,10 +286,12 @@ const Config: DemoConfigurationBase[] = [
   ConflictSheetConfiguration,
   ConsentFormScreenConfiguration,
   CustomSelectFieldConfiguration,
+  DashboardGridConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
   DecimalRangeActionSheetConfiguration,
   DismissButtonConfiguration,
+  DonutChartConfiguration,
   DraggableListConfiguration,
   EditableCardConfiguration,
   EmailFieldConfiguration,
@@ -301,6 +310,7 @@ const Config: DemoConfigurationBase[] = [
   ImageBackgroundConfiguration,
   InfoModalIconConfiguration,
   InfoTooltipButtonConfiguration,
+  LineChartConfiguration,
   LinkConfiguration,
   LoginScreenConfiguration,
   MarkdownEditorConfiguration,

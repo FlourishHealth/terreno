@@ -3,9 +3,9 @@
 All notable changes to this project are documented in this file.
 
 All `@terreno/*` packages (`api`, `test`, `ui`, `rtk`, `admin-backend`,
-`admin-frontend`, `admin-spa`, `ai`, `api-health`, `comms`, `feature-flags`, `mcp`,
-`syncdb`) and the unscoped `create-terreno-app` CLI are versioned in lockstep and
-published at the same version.
+`admin-frontend`, `admin-spa`, `ai`, `announcements`, `api-health`, `comms`,
+`feature-flags`, `jobs`, `mcp`, `syncdb`) and the unscoped `create-terreno-app` CLI are versioned in lockstep
+and published at the same version.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -19,6 +19,276 @@ Upgrade notes for consumer action live in [`mcp-server/src/docs/upgrades/`](mcp-
 ## [Unreleased]
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
+
+## [57.4.0] - 2026-09-22
+
+Upgrade note: [`mcp-server/src/docs/upgrades/57.4.0.md`](mcp-server/src/docs/upgrades/57.4.0.md).
+
+### Added
+
+- CircleCI Playwright now shards `admin-home`, `admin-form`, `admin-table-search-filter`, `admin-table-bulk-actions`, `admin-custom-screens`, and `admin-comms-back` alongside `admin`.
+- CircleCI now runs `admin-backend-ci` and `admin-frontend-ci` (lint, compile, 95% coverage) when those packages change. Use `bun run admin-frontend:test` and `bun run admin-backend:test` from the repo root.
+- `@terreno/admin-frontend` now ships `adminRequest`, a native `fetch` helper (timeout, JSON/`FormData`, credentials) for admin RPC that is leaving RTK `injectEndpoints`.
+- Example admin Todos now allow admin delete, and Playwright covers Todo create → edit → delete on embedded `/admin` and SPA `/console`.
+- Built-in admin String-`_id` model CRUD can now run windowed local-first through
+  `@terreno/syncdb`: REST supplies membership, TinyBase supplies live rows,
+  create/update/delete use the durable outbox, bulk patch stays server-side, and
+  `ConflictSheet` resolves admin-loaded records. The embedded example and
+  standalone admin SPA demonstrate Bearer and same-origin cookie hosts.
+- `GET /admin/config` model meta includes `adminBroadcast` (always) and `syncCollection` when the app sync registry has `adminBroadcast: true`. `AdminProvider` accepts optional `syncDb`. `AdminModelTable` then uses REST membership + a live TinyBase overlay with a visible Refresh control; hosts that pass only `api` keep the RTK list. Refresh treats RTK `refetch` error envelopes as failures, drops in-flight Refresh when list params change, and toasts rejected `hydrateWindow` calls. Fetch-RPC mutations invalidate mounted comms, scripts, and configuration queries just like their RTK counterparts.
+- `BetterAuthConfig.disableRateLimit` turns off Better Auth's built-in limiter on a throwaway in-process seed instance. Preview container seeds that create several users no longer 429 on the fourth signup when `NODE_ENV=production`.
+- `@terreno/ui` now ships owned-SVG `LineChart`, `BarChart`, `AreaChart`, and `DonutChart`
+  plus an eager `DashboardGrid` for wrapping caller `Card`s. Charts use `react-native-svg`
+  and private d3 helpers — not `victory-native`. Each chart sizes itself to its container
+  and clips to it, so a chart never widens the card it sits in, and `height` covers the whole
+  chart including its tick and tooltip rows. `bun run ui:charts:compare` diffs actually
+  rendered gallery PNGs against `demo/rendered-snapshots/` (not JSON snapshots).
+  Conditional `DashboardGrid` children no longer reserve blank cells, and an open chart
+  tooltip now updates or closes when live data changes.
+- `create-terreno-app` — unscoped npm CLI (`bunx create-terreno-app` /
+  `npm create terreno-app`) that scaffolds a deployable full-stack Terreno app.
+  Published in lockstep with `@terreno/*`; generated scaffolds pin
+  `^<create-terreno-app version>` on Terreno dependencies.
+- **@terreno/ui `DataTable`**: optional server-side search and column filters emit
+  modelRouter-shaped query params via `onQueryChange` and `buildDataTableListQuery`
+  (web per-column `Filter` popovers; native Filters sheet).
+- **@terreno/admin-frontend `AdminModelTable`**: adopts DataTable filter/search UI;
+  list search still uses `q`; choice filters support multi-value `$in`. Admin list
+  URLs use `qs` bracket serialization so nested filters work with any RTK base query.
+- **@terreno/admin-backend**: `parseAdminListFilters` accepts choice `{$in: string[]}`
+  and escaped-literal text `{$regex, $options: "i"}` while rejecting extra operators.
+  Optional choice filters auto-enable an **Empty** option (`__empty__` wire sentinel → Mongo
+  `null`) when the Mongoose field is not required; explicit `allowEmpty` overrides.
+  Empty and Empty-plus-value filters remain normalized when combined with toolbar search.
+- **@terreno/api**: OpenAPI query validation accepts choice scalars, `{$in: [...]}`, and
+  the empty sentinel alongside enum values. Nested query operators reject extra keys and
+  executable regex patterns; `queryFilter` can remove consumed wire keys with `undefined`.
+- **@terreno/ui `buildDataTableListQuery`**: single concrete choice values emit scalar
+  equality (validator-friendly); empty-only and empty+concrete use `$in` with `__empty__`.
+- **@terreno/ui `Filter`**: new `iconOnly` and `triggerSize` props render a compact
+  icon trigger for dense chrome; DataTable column headers use it.
+- **@terreno/ui `DataTable`**: single-column filter popovers no longer duplicate the
+  popover's own Clear with a per-field **Clear filter**; the boolean per-field clear
+  now appears only where one surface hosts several filters.
+- **@terreno/ui `DataTable`**: date range filters use date inputs, so entering a
+  calendar date filters immediately and either bound works on its own. Previously the
+  datetime input emitted nothing until an hour and minute were also entered. The **to**
+  bound now closes the chosen UTC day instead of landing on midnight, so rows recorded
+  later that day stay in range.
+- Opt-in append-only `AuditEvent` log. Register `AuditApp` and set `audit: true` (or
+  `{redact: ["ssn"]}`) on `modelRouter` so successful HTTP CRUD and array mutations
+  persist redacted changed-field diffs. Default redaction includes compound keys such as
+  `tokenHash`. AdminApp writes the same collection when the plugin is registered and omits
+  each model's `hiddenFields` / `excludeFields`; RBAC uses
+  `persistRbacAuditToAuditEvent`. List/read is admin-only at `GET /audit-events` and
+  `/admin/audit-events`; create/update/delete over HTTP return 405. Persist is
+  fire-and-forget; a non-24-hex `actorId` (including 12-character strings mongoose would
+  accept) is dropped from the event instead of dropping the event. Update/delete snapshots
+  run only when `audit` is on, and a throwing `toJSON` does not fail the mutation. Set `GCP_TASKS_AUDIT_QUEUE` and `AUDIT_TASKS_URL` to enqueue Cloud Tasks
+  instead of writing Mongo on the request. Default retention is forever; `retentionDays`
+  adds a Mongo TTL index on `created`. See `docs/how-to/audit-log.md`.
+- # GCP durable-jobs worker infrastructure
+
+  Infra Manager now owns the example Cloud Tasks queue `terreno-example-jobs-v2`, the
+  private `terreno-backend-example-tasks` Cloud Run service, the
+  `terreno-backend-runtime` API identity (sole queue enqueuer / jobs-invoker
+  `actAs`), and the `terreno-jobs-invoker` OIDC callback identity. CD deploys
+  matching PR tags for the API and tasks services. The example API still uses
+  `MongoJobRunner` until a follow-up selects `JOBS_RUNNER=gcp-cloud-tasks`. The
+  example image compiles `@terreno/jobs` before `@terreno/admin-backend`.
+- `GPTChat` accepts an optional `mascot` React node from the consumer. Terreno does not
+  ship a default character. The node renders on an empty chat and hides once messages
+  exist. The empty state (mascot plus suggested prompts) stays centered in the chat
+  panel inside a scrollable message area, and the composer row centers the
+  attachment, tools, and Send controls vertically against the input. The example
+  consumer bundles four plant-robot mascots and chooses one on each AI screen mount.
+- Unattended agents can claim one unstarted GitHub issue labeled
+  `status:ready-for-dev`, Pick ⇄ Roast a posted plan, and Brew a draft PR via the
+  `implement-ready-for-dev` skill. Pickup skips open linked PRs via GraphQL (not
+  `linked:<number>`) and aborts if an untrusted author edits the issue body after
+  the label. Dashboard paste lives in that skill's `references/cursor-automation.md`.
+  Interactive `/work-github-issues` still requires chat confirmation.
+- `@terreno/jobs` adds durable background work for Terreno backends: MongoDB-persisted jobs
+  with retries, dead-lettering, cron schedules (IANA timezones), admin list/detail/retry/requeue/cancel,
+  and pluggable runners (`MongoJobRunner`, GCP Cloud Tasks, Vercel Queues, custom). Workers start
+  only via explicit `startWorker()` — register `JobsApp` on `TerrenoApp`, define handlers, enqueue
+  with `getJobsService()`, and choose in-process or standalone worker processes. Admin UI widgets
+  ship in `@terreno/admin-frontend`. See `docs/how-to/background-jobs.md` and
+  `docs/reference/jobs.md`.
+- MongoDB migrations tooling: `terreno-migrate` (`check` / `generate` / `status` / `up` / `down`), `TerrenoApp` `migrations.runOnStart`, admin **Migrations** page, and `example-backend/migrations/`. Admin HTTP is `modelRouter` collection actions `GET /admin/migrations/status` and `POST /admin/migrations/run` (`{data: ...}`), documented in `/openapi.json` under the `adminMigrations` tag. Production wet apply requires `ALLOW_MIGRATIONS=true`. History lives in `terreno_migrations` and is not wiped by seed `--reset`.
+- The in-app notification center adds `NotificationsApp` in `@terreno/api` with
+  owner-scoped `Notification` and `NotificationPreference`
+    models, `getNotificationService().notify()`, `notificationsBeforeSend`, mark-all-read, and
+    optional `retainDays` tombstone sweep. `@terreno/ui` provides presentational
+  `NotificationBell`, `NotificationInbox`, and `NotificationPreferences` components.
+  The example app demonstrates syncdb collections, a todos-header bell that toggles a
+  right-side drawer, a full active and archived history page, notification preferences,
+  seeded notification examples, todo activity notifications, and a development notify
+  route. Inbox list, mark-read, and dismiss (archive via `archivedAt`) use syncdb only;
+  `POST /notifications/dev-notify` remains the development send path. `terreno-syncdb-codegen` now accepts hyphenated collection names such as
+  `notification-preferences`. Consumers can replace the bell icon and unread bubble with
+  `NotificationBell` render props while retaining its layout and accessibility behavior.
+- Optional organization management: `OrgsApp` adds `Organization` / `Membership`, org context, isolation filters, and membership-scoped `org-admin` plus operator RBAC. Existing single-tenant apps stay unchanged. Admin hosts get an operator directory, org switcher, settings, and members screens. Newly bootstrapped apps enable an org by default.
+- `terreno-pick-roast-loop` drives an approved plan through all actionable Pick/Roast
+  cycles without stopping on ordinary engineering failures. It accumulates task, attempt,
+  verification, artifact, docs, and risk evidence into one final report. When a genuine
+  human decision is required, it first explains the overall plan state, completed work,
+  decisive evidence, options and impact, and its recommendation, then asks one exact
+  question. The loop excludes Grow, Brew, Taste, and product-CI monitoring. Cursor,
+  Codex, Claude Code, and `npx skills` expose the loop.
+- `@terreno/announcements` ships `AnnouncementsApp` for admin-managed modal, banner, and feed product updates. Targeting covers staff, patients, and all users, plus custom `audience` segments. Acknowledgements, impressions, frequency caps, minimum-build gates, and CTA click tracking are first-class. Admin screens include a guided overview with aggregate and per-row analytics. Frontend surfaces are `AnnouncementNavigator`, `AnnouncementBanner`, and `AnnouncementScreen` in `@terreno/ui`. See `docs/how-to/product-announcements.md`.
+- CircleCI `publish-release` and the GitHub `publish-on-tag.yml` fallback now publish `@terreno/announcements` in lockstep with the other `@terreno/*` packages.
+- `SyncConfig.adminBroadcast` (default `false`) is stored on collection registration. When `true`, change-stream `sync:delta` emission also targets `{collection}|admin`. Admin clients join that stream with `sync:subscribe {mode: "window"}` (`createSyncDb({windowCollections})`) and skip `GET /sync/snapshot` paging for those collections. Window subscribe requires admin panel and model-list access. `hydrateWindow` renders REST rows immediately, then refreshes canonical seq/deleted metadata for every requested id through `GET /sync/entities` (unknown ids ignored). AdminApp list/read permissions and `queryFilter` apply to hydrate and live deltas. `{collection}|admin` deltas apply only to ids already in the local window; Refresh is REST + `hydrateWindow`.
+- Admin-window sync writes use an explicit `mutationMode: "adminWindow"` marker on `POST /sync/mutate`, `POST /sync/mutate/batch`, `sync:mutate`, and `sync:mutateBatch`. `createSyncDb({windowCollections})` tags matching outbox rows automatically. The server validates the marker together with `adminBroadcast`, admin-window access, and a registered AdminApp write scope, then runs the shared sync executor with AdminApp pre/post hooks (not product `modelRouter` hooks), applying the same permission, stripping, User admin-flag/role gates, and audit semantics as REST. Product clients without the marker keep existing product sync permissions and hooks.
+- `@terreno/syncdb` exports `bridgeBetterAuthReactClient`, which adapts a Better Auth
+  **react** client to the session-subscription surface `betterAuthAdapter` watches. Without
+  it the adapter cannot see the client's nanostore session atom and falls back to polling
+  `getSession()`. The example app and the admin SPA both use it.
+- `TextField` with `type="password"` now renders a show/hide eye control so users can check what
+  they typed. The value starts masked, a disabled field cannot be revealed, and
+  `showVisibilityToggle={false}` removes the control. The toggle is reachable in tests at
+  `{testID}.visibility-toggle` (override with `testIDs.visibilityToggle`). `Field`, `LoginScreen`,
+  and `SignUpScreen` password fields inherit it.
+- Dependency updates go through the daily `update-dependencies` skill: one trusted,
+  same-repository rolling PR with a landed/failed ledger, a test that imports each
+  bumped package, and a freeze on Expo fingerprint changes until a release.
+
+### Changed
+
+- `AdminProvider` accepts host-injected `credentials` and `getAuthHeaders` for native `adminRequest`. The admin SPA uses cookie `same-origin` credentials; the example app sends a Bearer token.
+- Admin RPC hooks dual-run: hosts that inject `credentials` / `getAuthHeaders` on `AdminProvider` use native `adminRequest`; hosts that pass only `api` keep RTK `injectEndpoints`.
+- Admin panel HTTP script runs enqueue durable job `admin/script` when `JobsApp` is registered.
+  The Scripts UI still polls `BackgroundTask`. If runner enqueue throws, the HTTP handler
+  marks that `BackgroundTask` failed and returns 500. CLI script runs stay in-process. See
+  `docs/how-to/background-jobs.md`.
+- CircleCI starts fewer concurrent jobs: repository policies share one `repo-policies` check, Playwright runs five shards instead of one container per spec, and path filters no longer start example-backend / new-file-coverage for unrelated UI, RTK, or e2e-spec-only changes. `repo-policies` uses Node 22.14 for Knip. Require `repo-policies`; treat `e2e-*` shard names as path-filtered (config-only PRs post `e2e-auth`).
+- CircleCI uses smaller Docker classes for Playwright e2e shards, skips empty
+  Netlify/GCP contexts before `bun install`, and turns off Docker Layer Caching.
+- The `terreno-planning` plugin now includes reusable Terreno backend/API, UI, data,
+  schema, SDK, admin, prompt-governance, documentation, upgrade, deployment, and UI
+  verification skills alongside the lifecycle. It also ships `pre-commit` and
+  `ui-verifier` agents. The redundant `commit` and `create-pr` skills are removed in
+  favor of Brew. Conflicting or unused Expo skills (`native-data-fetching`,
+  `building-native-ui`, `expo-ui`, App Clip, brownfield, Observe, Tailwind setup,
+  EAS update insights, and Expo module authoring) are no longer distributed. Taste's
+  pre-push gate runs lint, typecheck, and affected tests for every supported host.
+  Rulesync now also generates native stop hooks for Cursor, Claude Code, GitHub Copilot,
+  and Devin that run repository lint and typecheck, emit each host's blocking JSON
+  protocol, and avoid repeated checks on structured Stop-hook retries. Plugin
+  `terreno-planning` is `2.8.0`.
+- CircleCI Playwright shards now run only when a changed file can reach them. `e2e-prepare` resolves the affected shards with `bun run check:e2e-affected` (import graph with barrel, lazy-registry, and lockfile resolution) and each shard halts before `bun install` when it is unaffected. The gate fails open on anything it cannot resolve. See [circleci.md](../../docs/how-to/circleci.md#e2e-affected-gate).
+- The deployed example backend selects `JOBS_RUNNER=gcp-cloud-tasks`, verifies Cloud
+  Tasks OIDC on `POST /jobs/execute`, and points each PR preview at its matching
+  tasks-service tag. GitHub Actions and CircleCI both deploy that tag, and production
+  deploys overwrite env vars so preview `MONGO_DB_NAME` / `PR_NUMBER` cannot stick.
+  The API
+  process starts the schedule ticker; the tasks service does not. The compiled Cloud Run binary enqueues through the Cloud Tasks REST
+  API (`google-auth-library`) because `@google-cloud/tasks` cannot load its JSON
+  config from a `bun build --compile` image. Enqueued HTTP tasks set
+  `dispatchDeadline` to protobuf `{seconds: 1800}` (REST JSON `"1800s"`) so Cloud
+  Tasks does not retry a still-running 30-minute handler at the 10-minute HTTP
+  default. The REST client encodes that Duration; the optional `@google-cloud/tasks`
+  peer receives the protobuf object. Queue and worker service resources live in Infra
+  Manager.
+- Grow now ends with a standalone approval brief instead of a 15-line index. It opens
+  with a paragraph on where the repository is and where the change takes it, adds
+  background on current state when a reviewer needs it, then lays out the idea and the
+  plan (tasks, tracer, verification, out of scope, risks). The Decisions table follows
+  the plan and now pairs every settled human decision with the question that prompted
+  it, so a reviewer can see what was asked as well as what was chosen; it is still
+  omitted when grilling settled none. A reviewer should be able to approve from the
+  brief alone, without opening the IP, the ticket, or the interview history.
+- `implement-ready-for-dev` now Grow-shapes the claimed issue without a chat pause
+  (assume answers unless a genuine human gate), then Pick ⇄ Roast, Brew, and Taste
+  to a mergeable PR. Dashboard paste is in that skill's `references/cursor-automation.md`.
+  There is no separate `autobot-ready-for-dev` skill.
+- `new-file-coverage` no longer reruns a package's full test suite when that package's CI already produced LCOV. The 90% new-file gate runs against the package report instead. Remaining reruns use colocated tests, compile `@terreno/*` dist deps only when imported, and coverage-script unit tests run in a separate `coverage-scripts` job.
+- Planning Brew titles are `[ticket] Short feature title`. The ticket uses the attached
+  Linear id (`[FH-1632]`) or GitHub issue (`[#412]`); the rest names the feature only.
+  Titles must not use `feat:` / `docs:` prefixes or lifecycle labels such as
+  `IP Approved` and `Task list`.
+
+  PR bodies now preserve the IP's initial justification and a brief overview of its
+  intended outcomes. Verification always includes reproducible testing instructions;
+  Brew updates that section as testing changes while keeping the rationale and overview
+  stable.
+- Planning stages and outer loops now close every wait-for-human or done chat with the
+  current PR's GitHub Deployment demo URLs as the last visible section when those URLs
+  exist. Plugin `terreno-planning` is `2.11.0`.
+- Removed the `terreno_bootstrap_app` MCP tool. The only supported scaffold path
+  is `bunx create-terreno-app` / `npm create terreno-app`. MCP still offers
+  `terreno_bootstrap_ai_rules` for editor rules after the CLI runs.
+- Roast no longer asks two unconstrained subagents to each rediscover the repository
+  (full-branch diff plus skill catalog). Pick, Roast, and Brew pass a task-scoped
+  briefing (`plugins/terreno-planning/references/subagent-briefing.md`): this task's
+  criteria, file list, and patch. Roast may spawn at most one UI/runtime verifier when
+  this task lists UI files, and must not spawn a conventions reviewer. Installable
+  lifecycle skills copy only the plugin references they link.
+- Taste records failed tests from the last product-CI run and re-verifies those exact
+  local commands before any GitHub push. `prepush` does not substitute for that
+  re-verify. Example-frontend now exposes `test:ci` so root `bun run test` includes it.
+  Cursor Cloud test mapping lives in `docs/how-to/run-tests-locally.md`. Plugin
+  `terreno-planning` is `2.12.0`.
+- Taste now runs a repository root's `prepush` package script, when present, in its fresh
+  no-context subagent before pushing. Repositories own the exact local gate; when the
+  script is absent, Taste retains its affected-package lint, typecheck, and test fallback.
+  Terreno's root `prepush` gate runs workspace lint, TypeScript compilation, and full
+  Knip/dependency-cruiser static analysis. Plugin `terreno-planning` is `2.10.0`.
+- The component demo and documentation site now use distinct Terreno Garden app
+  icons. The demo home screen also shows a Terreno Garden banner that flows inline
+  with the component grid, filling the first two card slots.
+
+### Deprecated
+
+- `@terreno/admin-frontend`'s `useAdminApi` RTK `injectEndpoints` path and required
+  `api` prop are deprecated. Terreno 57 retains them for ObjectId/API-only
+  compatibility; Terreno 58 removes them. New admin RPC uses the host-bound fetch
+  client, and eligible String-`_id` model CRUD uses windowed syncdb.
+
+### Removed
+
+- The UI component demo no longer includes announcement or in-app notification
+  stories. Exercise those surfaces in `example-frontend` instead.
+
+### Fixed
+
+- The `cloud_run_service` Terraform module no longer ignores `template.revision`.
+  Ignoring it pinned the live revision name in state, so any structural change
+  failed with Cloud Run 409 `Revision named '<name>' with different configuration
+  already exists`. The Cloud Tasks queue now also waits on the IAM module so the
+  first apply cannot 403 on `cloudtasks.queues.create`.
+- `compile-workspace-deps` uses `tsconfig.server.json` when present so
+  `@terreno/admin-spa` emits `src/dist` for example-backend coverage.
+- Compiled example-backend images (`bun build --compile`) no longer point admin migrations at `$bunfs`. The Docker image copies `migrations/` to `/app/migrations` and sets `MIGRATIONS_DIR`. A missing directory returns 404 `Migration directory not found` instead of a generic 500.
+- `test:coverage` and new-file coverage no longer fail when Bun 1.4.2+ exits 1 for bunfig `coverageThreshold` after every test passed. Isolated LCOV merges still enforce the 95% / 90% gates.
+- Terraform preview CI now prints Infra Manager `errorCode` / `errorLogs` when
+  `previews create` fails, and `terraform-admin` gains `roles/logging.logWriter`
+  so Cloud Build can write regional logs.
+- Admin Migrations re-enables Dry run / Apply when task polling fails. `terreno-migrate generate` keeps safe index operations as comments in fail-closed stubs that also include unsafe ops.
+- `terreno-pick-roast-loop` resumes only Pick or Roast. A stored `next: brew` finishes
+  the loop without launching Brew, Taste, or Grow.
+- example-backend listens on `PORT` before connecting to MongoDB and attaching
+  the Terreno Express app. If that boot later throws, the process closes the
+  holder and exits so Cloud Run does not keep a 503 listener. GitHub Actions
+  preview deploys overwrite Cloud Run revision secrets, smoke-test the same
+  `JOBS_*` env as the revision, rebuild traffic from Ready revisions (omitting
+  failed tags), deploy `--no-traffic` without `--tag`, then tag the new revision.
+- RBAC permission resolution now keys the in-memory grant cache by user id and
+  sorted role names, so promoting a user (for example e2e `setUserAdmin`) takes
+  effect on the next `/auth/me` instead of serving a 30s stale set.
+- Conflict resolution with **Keep mine** now preserves the admin-window mutation marker
+  when cloning a durable outbox row, so its retry retains AdminApp authorization,
+  protected-field stripping, hooks, and audit handling.
+- `Tooltip` no longer disappears the instant it opens on web. The portal layer that
+  renders overlays (tooltips, modals, toasts) declared `pointerEvents: "box-none"` in an
+  inline style, which react-native-web drops, so every mounted portal covered the app with
+  a full-screen overlay that swallowed hover and press events. The portal layer now uses a
+  registered `StyleSheet` style, and `Tooltip` stays off screen until its trigger has been
+  measured instead of flashing in the top-left corner.
+- `TextField` on React Native Web no longer enters an update-depth loop when
+  browser autocorrect alternates controlled values. Web autocorrect/spellcheck is
+  disabled, the input handler stays stable, and rapid synthetic A→B→A reversals
+  are suppressed without blocking normal typing or delayed backspace/retype.
 
 ## [57.3.0] - 2026-09-02
 

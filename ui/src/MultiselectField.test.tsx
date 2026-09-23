@@ -56,6 +56,27 @@ describe("MultiselectField", () => {
     expect(handleChange).toHaveBeenCalledWith(["b"]);
   });
 
+  it("uses the latest controlled value when options are toggled in sequence", () => {
+    const handleChange = mock((_values: string[]) => {});
+    const {getByLabelText, rerender} = renderWithTheme(
+      <MultiselectField onChange={handleChange} options={defaultOptions} title="Title" value={[]} />
+    );
+
+    fireEvent.press(getByLabelText("Option A"));
+    expect(handleChange).toHaveBeenLastCalledWith(["a"]);
+
+    rerender(
+      <MultiselectField
+        onChange={handleChange}
+        options={defaultOptions}
+        title="Title"
+        value={["a"]}
+      />
+    );
+    fireEvent.press(getByLabelText("Option B"));
+    expect(handleChange).toHaveBeenLastCalledWith(["a", "b"]);
+  });
+
   it("removes option when deselected", () => {
     const handleChange = mock((_values: string[]) => {});
     const {getByLabelText} = renderWithTheme(

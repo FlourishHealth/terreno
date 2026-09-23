@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {groupAdminCustomScreens, groupAdminModelsByGroup} from "./adminShellNav";
+import {buildAdminSidebarGroups, groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminModelConfig} from "./types";
 
 const stubModel = (name: string, displayName: string, group?: string): AdminModelConfig =>
@@ -45,24 +45,76 @@ describe("groupAdminModelsByGroup", () => {
   });
 });
 
-describe("groupAdminCustomScreens", () => {
-  it("keeps ungrouped screens separate from named groups", () => {
-    const result = groupAdminCustomScreens([
-      {displayName: "AI Requests", name: "ai-requests"},
-      {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
-      {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
-    ]);
+describe("buildAdminSidebarGroups", () => {
+  it("places grouped custom screens in matching model groups before models", () => {
+    const {groups, ungroupedScreens} = buildAdminSidebarGroups({
+      customScreens: [
+        {displayName: "Overview", group: "Announcements", name: "announcements"},
+        {displayName: "Reports", name: "reports"},
+      ],
+      models: [
+        stubModel("Announcement", "All announcements", "Announcements"),
+        stubModel("User", "Users", "Accounts"),
+      ],
+    });
+
     assert.deepEqual(
-      result.ungrouped.map((screen) => screen.name),
+      ungroupedScreens.map((screen) => screen.name),
+      ["reports"]
+    );
+    assert.deepEqual(
+      groups.map((entry) => entry.group),
+      ["Accounts", "Announcements"]
+    );
+    const announcements = groups.find((entry) => entry.group === "Announcements");
+    assert.deepEqual(
+      announcements?.customScreens.map((screen) => screen.name),
+      ["announcements"]
+    );
+    assert.deepEqual(
+      announcements?.models.map((model) => model.name),
+      ["Announcement"]
+    );
+  });
+
+  it("creates a sidebar group for grouped screens without matching models", () => {
+    const {groups, ungroupedScreens} = buildAdminSidebarGroups({
+      customScreens: [{displayName: "Insights", group: "Analytics", name: "insights"}],
+      models: [],
+    });
+
+    assert.deepEqual(ungroupedScreens, []);
+    assert.deepEqual(groups, [
+      {
+        customScreens: [{displayName: "Insights", group: "Analytics", name: "insights"}],
+        group: "Analytics",
+        models: [],
+      },
+    ]);
+  });
+
+  it("keeps AI Observability screens in their own sidebar group", () => {
+    const {groups, ungroupedScreens} = buildAdminSidebarGroups({
+      customScreens: [
+        {displayName: "AI Requests", name: "ai-requests"},
+        {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
+        {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
+      ],
+      models: [],
+    });
+
+    assert.deepEqual(
+      ungroupedScreens.map((screen) => screen.name),
       ["ai-requests"]
     );
-    assert.deepEqual(result.grouped, [
+    assert.deepEqual(groups, [
       {
-        group: "AI Observability",
-        screens: [
+        customScreens: [
           {displayName: "Prompts", group: "AI Observability", name: "ai-prompts"},
           {displayName: "Review queue", group: "AI Observability", name: "ai-review"},
         ],
+        group: "AI Observability",
+        models: [],
       },
     ]);
   });

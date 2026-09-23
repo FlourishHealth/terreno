@@ -240,6 +240,28 @@ exports[`Field renders password field 1`] = `
               },
               "type": "TextInput",
             },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityLabel": "Show password",
+                "accessibilityRole": "button",
+                "accessibilityState": {
+                  "disabled": undefined,
+                  "expanded": false,
+                },
+                "disabled": undefined,
+                "hitSlop": 8,
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "marginLeft": 8,
+                  "width": 20,
+                },
+                "testID": undefined,
+              },
+              "type": "Pressable",
+            },
           ],
           "props": {
             "style": {

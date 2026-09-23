@@ -125,8 +125,8 @@ describe("lifecycle skill architecture", (): void => {
   it("rejects Taste without a no-push emit path", (): void => {
     const errors = validateStageContent({
       content: readStage("terreno-5-taste").replace(
-        "If step 9 did not push",
-        "After step 9 pushed"
+        "If step 10 did not push",
+        "After step 10 pushed"
       ),
       definition: {
         directory: "terreno-5-taste",
@@ -178,6 +178,28 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("required CI host")));
   });
 
+  it("rejects Brew that rewrites the PR body as a turn summary", (): void => {
+    const content = readStage("terreno-4-brew")
+      .replace("IP's original justification", "latest implementation summary")
+      .replace("reproducible testing instructions", "test status")
+      .replace(
+        "without rewriting the body around the latest turn",
+        "by rewriting the body around the latest turn"
+      );
+    const errors = validateStageContent({
+      content,
+      definition: {
+        directory: "terreno-4-brew",
+        nextMarkers: ["next: taste"],
+        stage: "brew",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("original justification")));
+    assert.isTrue(errors.some((error) => error.includes("testing instructions")));
+    assert.isTrue(errors.some((error) => error.includes("overview stable")));
+  });
+
   it("rejects Taste that skips prepush, fallback checks, or the product-CI wait loop", (): void => {
     const content = readStage("terreno-5-taste")
       .replaceAll("fresh subagent", "same conversation")
@@ -191,6 +213,9 @@ describe("lifecycle skill architecture", (): void => {
       .replaceAll("locally affected tests", "the full suite")
       .replaceAll("latest `master`", "latest origin")
       .replaceAll("Before any push, in this order", "Before any push, optionally")
+      .replaceAll("re-verify last-run failed tests", "skip local tests")
+      .replaceAll("last-run failed tests", "some failing jobs")
+      .replaceAll("If step 10 did not push", "Always emit after push")
       .replaceAll("gh pr checks <pr> --watch", "poll GitHub later")
       .replaceAll("circleci run watch --sha <sha>", "poll CircleCI later")
       .replaceAll("watch → snapshot cycle in a loop", "one snapshot then exit");
@@ -215,7 +240,13 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("circleci run watch")));
     assert.isTrue(errors.some((error) => error.includes("watch loop")));
     assert.isTrue(errors.some((error) => error.includes("latest master")));
-    assert.isTrue(errors.some((error) => error.includes("pull, then local gate, then watch")));
+    assert.isTrue(
+      errors.some((error) => error.includes("re-verify last-run failed tests, then local gate"))
+    );
+    assert.isTrue(errors.some((error) => error.includes("last-run failed tests from the CI")));
+    assert.isTrue(
+      errors.some((error) => error.includes("re-verify last-run failed tests locally"))
+    );
   });
 
   it("rejects Taste that observes only GitHub checks", (): void => {
@@ -401,6 +432,14 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("default PR comments to silence")));
     assert.isTrue(errors.some((error) => error.includes("behind disclosure")));
     assert.isTrue(errors.some((error) => error.includes("preview URLs")));
+    assert.isTrue(errors.some((error) => error.includes("[FH-1632]")));
+    assert.isTrue(errors.some((error) => error.includes("[#412]")));
+    assert.isTrue(errors.some((error) => error.includes("IP Approved")));
+    assert.isTrue(errors.some((error) => error.includes("feat:")));
+    assert.isTrue(errors.some((error) => error.includes("initial justification")));
+    assert.isTrue(errors.some((error) => error.includes("overview of the approved IP")));
+    assert.isTrue(errors.some((error) => error.includes("testing instructions")));
+    assert.isTrue(errors.some((error) => error.includes("stable across turns")));
   });
 
   it("rejects a documentation contract that does not require reading and updating docs", (): void => {
@@ -422,6 +461,7 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("final fallback")));
     assert.isTrue(errors.some((error) => error.includes("untriggered hosts")));
     assert.isTrue(errors.some((error) => error.includes("non-applicable hosts")));
+    assert.isTrue(errors.some((error) => error.includes("last-run failed tests")));
   });
 
   it("rejects review-bot waits that watch every PR check", (): void => {

@@ -6,6 +6,7 @@
   "dependencies": {
     "@google-cloud/storage": "catalog:",
     "@terreno/api": "workspace:*",
+    "@terreno/jobs": "workspace:*",
     "express": "catalog:",
     "luxon": "catalog:",
     "multer": "catalog:"
@@ -43,7 +44,7 @@
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
-    "compile": "bun tsc",
+    "compile": "node ../.github/scripts/compile-workspace-deps.js && bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
@@ -54,5 +55,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.3.0"
+  "version": "57.4.0"
 }

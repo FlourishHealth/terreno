@@ -5,6 +5,24 @@ export interface AdminModelGroup {
   models: AdminModelConfig[];
 }
 
+export interface AdminSidebarGroup {
+  customScreens: AdminCustomScreen[];
+  group: string;
+  models: AdminModelConfig[];
+}
+
+const sortSidebarGroupKeys = (keys: string[]): string[] => {
+  return [...keys].sort((a, b) => {
+    if (a === "General") {
+      return 1;
+    }
+    if (b === "General") {
+      return -1;
+    }
+    return a.localeCompare(b);
+  });
+};
+
 /**
  * Groups admin models by {@link AdminModelConfig.group} for sidebar navigation.
  * Models without a group go under "General", which is sorted last.
@@ -23,65 +41,42 @@ export const groupAdminModelsByGroup = (models: AdminModelConfig[]): AdminModelG
       map.set(group, [model]);
     }
   }
-  const keys = [...map.keys()].sort((a, b) => {
-    if (a === "General") {
-      return 1;
-    }
-    if (b === "General") {
-      return -1;
-    }
-    return a.localeCompare(b);
-  });
+  const keys = sortSidebarGroupKeys([...map.keys()]);
   return keys.map((group) => ({group, models: map.get(group) ?? []}));
 };
 
-export interface AdminScreenNavGroup {
-  group: string;
-  screens: AdminCustomScreen[];
-}
-
-export interface GroupedAdminCustomScreens {
-  grouped: AdminScreenNavGroup[];
-  ungrouped: AdminCustomScreen[];
-}
-
-const screenGroupSlug = (group: string): string => {
-  return group.trim().toLowerCase().replace(/\s+/g, "-");
-};
-
 /**
- * Groups custom screens by {@link AdminCustomScreen.group}.
- * Screens without a group stay under the ungrouped "Screens" heading.
+ * Merges grouped custom screens into model sidebar groups (screens first), leaving
+ * ungrouped screens for the separate Screens section.
  */
-export const groupAdminCustomScreens = (
-  screens: AdminCustomScreen[]
-): GroupedAdminCustomScreens => {
-  const groupedMap = new Map<string, AdminCustomScreen[]>();
-  const ungrouped: AdminCustomScreen[] = [];
-  for (const screen of screens) {
-    const group = screen.group?.trim();
-    if (!group) {
-      ungrouped.push(screen);
-      continue;
-    }
-    const list = groupedMap.get(group);
-    if (list) {
-      list.push(screen);
-    } else {
-      groupedMap.set(group, [screen]);
-    }
+export const buildAdminSidebarGroups = ({
+  customScreens,
+  models,
+}: {
+  customScreens: AdminCustomScreen[];
+  models: AdminModelConfig[];
+}): {groups: AdminSidebarGroup[]; ungroupedScreens: AdminCustomScreen[]} => {
+  const modelGroups = groupAdminModelsByGroup(models);
+  const groupedScreens = customScreens.filter((screen) => Boolean(screen.group?.trim()));
+  const ungroupedScreens = customScreens.filter((screen) => !screen.group?.trim());
+
+  const groupNames = new Set<string>();
+  for (const {group} of modelGroups) {
+    groupNames.add(group);
   }
-  const grouped = [...groupedMap.keys()]
-    .sort((a, b) => {
-      return a.localeCompare(b);
-    })
-    .map((group) => ({
-      group,
-      screens: groupedMap.get(group) ?? [],
-    }));
-  return {grouped, ungrouped};
+  for (const screen of groupedScreens) {
+    groupNames.add(screen.group?.trim() ?? "General");
+  }
+
+  const groups = sortSidebarGroupKeys([...groupNames]).map((group) => ({
+    customScreens: groupedScreens.filter((screen) => (screen.group?.trim() || "General") === group),
+    group,
+    models: modelGroups.find((entry) => entry.group === group)?.models ?? [],
+  }));
+
+  return {groups, ungroupedScreens};
 };
 
 export const adminScreenGroupTestId = (group: string): string => {
-  return `admin-shell-nav-group-${screenGroupSlug(group)}`;
+  return `admin-shell-nav-group-${group.trim().toLowerCase().replace(/\s+/g, "-")}`;
 };

@@ -1,7 +1,9 @@
+import type express from "express";
 import type {Server} from "socket.io";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
+import {ORGANIZATION_ID_HEADER} from "../orgs/orgContext";
 import {checkPermissions} from "../permissions";
 import {awaitSocketFullUser, type SocketWithDecodedToken} from "../realtime/socketUser";
 import {canListAdminBroadcastScope, getAdminBroadcastScope} from "./adminBroadcastScope";
@@ -21,6 +23,33 @@ import type {
   SyncMutateRequest,
   SyncNack,
 } from "./types";
+
+const requestFromOrganizationId = ({
+  organizationId,
+  user,
+}: {
+  organizationId?: string;
+  user: User;
+}): express.Request => {
+  const trimmed = organizationId?.trim();
+  if (!trimmed) {
+    return {user} as unknown as express.Request;
+  }
+  return {
+    header: (name: string): string | undefined => {
+      return String(name).toLowerCase() === ORGANIZATION_ID_HEADER ? trimmed : undefined;
+    },
+    user,
+  } as unknown as express.Request;
+};
+
+const organizationIdFromPayload = (payload: unknown): string | undefined => {
+  if (typeof payload !== "object" || payload === null) {
+    return undefined;
+  }
+  const organizationId = (payload as {organizationId?: unknown}).organizationId;
+  return typeof organizationId === "string" ? organizationId : undefined;
+};
 
 /**
  * Socket handlers for the SyncDB local-first protocol:
@@ -307,6 +336,10 @@ export const installSyncSocketHandlers = (
         // USER's window, so opening more sockets no longer multiplies the budget.
         const {outcome, stage} = await runSyncMutation({
           mutation: payload,
+          req: requestFromOrganizationId({
+            organizationId: organizationIdFromPayload(payload),
+            user,
+          }),
           scopeResolver: options.getUserScopes,
           syncOptions: options,
           user,
@@ -356,6 +389,10 @@ export const installSyncSocketHandlers = (
         // Task 9.20: validate -> rate limit -> apply, shared with POST /sync/mutate/batch.
         const {response, stage} = await runSyncBatch({
           mutations,
+          req: requestFromOrganizationId({
+            organizationId: organizationIdFromPayload(payload),
+            user,
+          }),
           scopeResolver: options.getUserScopes,
           syncOptions: options,
           user,

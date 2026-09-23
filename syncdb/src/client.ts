@@ -5,6 +5,7 @@ import {createServerKeyProvider, DEFAULT_KEY_CACHE_DB_NAME} from "./crypto/keyPr
 import type {KeyProvider} from "./crypto/types";
 import {attachDebugChannel, type DebugChannelBridge} from "./debug/debugChannel";
 import {resolveDebugLog, type SyncDebugLog, type SyncDebugLogOptions} from "./debug/debugLog";
+import {registerSyncDbDevtools} from "./debug/devtools";
 import {getConflict, listConflicts, pruneGhostConflicts} from "./mutations/conflicts";
 import {createOutbox, generateMutationId, type Outbox} from "./mutations/outbox";
 import {resolveConflict as applyConflictResolution} from "./mutations/resolveConflict";
@@ -68,6 +69,12 @@ export interface SyncDbConfig {
   baseUrl?: string;
   /** Transport override (tests inject a fake; default is the socket transport). */
   transport?: SyncTransport;
+  /**
+   * Optional selected organization id for `X-Organization-Id` on HTTP sync
+   * calls and the `organizationId` field on socket mutate payloads. Read at
+   * send time so admin org switches apply without reconnecting.
+   */
+  organizationIdProvider?: () => string | undefined;
   /** HTTP channel override (default is built from baseUrl when present). */
   httpChannel?: HttpChannel;
   /** Persister factory override (default is the platform default factory). */
@@ -311,11 +318,16 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       authProvider: config.authProvider,
       // biome-ignore lint/style/noNonNullAssertion: guarded above — no transport implies baseUrl.
       baseUrl: config.baseUrl!,
+      organizationIdProvider: config.organizationIdProvider,
     });
   const httpChannel =
     config.httpChannel ??
     (config.baseUrl
-      ? createHttpChannel({authProvider: config.authProvider, baseUrl: config.baseUrl})
+      ? createHttpChannel({
+          authProvider: config.authProvider,
+          baseUrl: config.baseUrl,
+          organizationIdProvider: config.organizationIdProvider,
+        })
       : undefined);
 
   const store = createSyncStore({
@@ -426,6 +438,15 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       () => {}
     );
     return result;
+  };
+
+  const waitForLifecycleIdle = async (): Promise<void> => {
+    let pending = lifecycle;
+    await pending;
+    while (pending !== lifecycle) {
+      pending = lifecycle;
+      await pending;
+    }
   };
 
   const notifyStatusChange = (): void => {
@@ -918,6 +939,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       // the ways a device diverges in the first place, so it cannot be trusted as
       // the authoritative list for a repair operation.
       const streams = await syncStreams({isSuperseded});
+      await waitForLifecycleIdle();
       if (isSuperseded()) {
         return skip("superseded");
       }
@@ -946,6 +968,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
         purged += store.purgeStream({stream});
         store.addKnownStream({collection, stream});
         await bootstrapStream({channel: httpChannel, collection, store, stream});
+        await waitForLifecycleIdle();
         if (isSuperseded()) {
           return {ok: false, purged, reason: "superseded", repaired, streams: streamInfos.length};
         }
@@ -1295,13 +1318,32 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
   const bindDeltaHandler = (): void => {
     const myEpoch = connectionEpoch;
     const unbindPrevious = unbindDeltaHandler;
-    unbindDeltaHandler = transport.onDelta((delta: SyncDelta): void => {
+    const isCurrentEpoch = (): boolean => {
       if (myEpoch !== connectionEpoch) {
         // A stale connection's delta arriving after a bounce for a new user.
-        return;
+        return false;
       }
-      handleDelta(delta);
-    });
+      return true;
+    };
+    if (transport.onDeltaBatch) {
+      unbindDeltaHandler = transport.onDeltaBatch((deltas: SyncDelta[]): void => {
+        if (!isCurrentEpoch()) {
+          return;
+        }
+        store.raw.transaction(() => {
+          for (const delta of deltas) {
+            handleDelta(delta);
+          }
+        });
+      });
+    } else {
+      unbindDeltaHandler = transport.onDelta((delta: SyncDelta): void => {
+        if (!isCurrentEpoch()) {
+          return;
+        }
+        handleDelta(delta);
+      });
+    }
     unbindPrevious?.();
   };
 
@@ -1930,7 +1972,7 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
       }
     });
 
-  return {
+  const client: SyncDb = {
     debug: debugLog,
     forceResync,
     getSyncStatus,
@@ -1949,4 +1991,8 @@ export const createSyncDb = (config: SyncDbConfig): SyncDb => {
     stop,
     store,
   };
+  if (debugLog) {
+    registerSyncDbDevtools({client, name: config.name});
+  }
+  return client;
 };

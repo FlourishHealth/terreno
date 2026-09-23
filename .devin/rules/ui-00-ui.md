@@ -74,7 +74,7 @@ const customStyle: StyleProp<ViewStyle> = {
 ## Component Categories
 
 ### Layout
-Box, Page, SplitPage, Card, Body, ImageBackground
+Box, Page, SplitPage, Card, Body, ImageBackground, DashboardGrid
 
 ### Text
 Text, Heading, Link, Hyperlink
@@ -86,7 +86,7 @@ TextField, TextArea, SelectField, CustomSelectField, MultiselectField, DateTimeF
 Button, IconButton, DismissButton, SocialLoginButton
 
 ### Data Display
-DataTable, Pagination, Badge, SelectBadge, Avatar
+DataTable, Pagination, Badge, SelectBadge, Avatar, LineChart, BarChart, AreaChart, DonutChart
 
 ### Feedback
 Modal, Toast, Spinner, ErrorPage, ErrorBoundary, Banner
@@ -258,6 +258,9 @@ interface BaseFieldProps {
   trimOnBlur={true}      // Trim whitespace on blur
 />
 ```
+
+`type="password"` masks the value and adds a show/hide eye control (test id
+`{testID}.visibility-toggle`). Pass `showVisibilityToggle={false}` to remove it.
 
 ### SelectField
 

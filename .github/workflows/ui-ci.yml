@@ -1,7 +1,11 @@
 name: UI CI
 
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  # Retained for rollback without registering failed zero-job runs.
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   ui-lint-and-test:
@@ -22,17 +26,6 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
-
-      - name: Cache Bun dependencies
-        id: cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
 
       - name: Install UI dependencies
         run: bun install --frozen-lockfile
@@ -61,6 +54,11 @@ jobs:
           directory: ui
           flag: ui
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Gate new files from LCOV
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/check-new-file-coverage-lcov.sh ui
+        working-directory: .
 
   demo-typecheck:
     name: Demo TypeScript Check (UI dependency)
@@ -80,17 +78,6 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
-
-      - name: Cache Bun dependencies
-        id: cache2
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
 
       - name: Install root dependencies (workspace)
         run: bun install --frozen-lockfile

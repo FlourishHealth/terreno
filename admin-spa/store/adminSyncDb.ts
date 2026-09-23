@@ -20,6 +20,12 @@ export const resolveAdminSyncCollections = (models: AdminModelConfig[]): string[
     ),
   ].sort();
 
+let spaAdminOrganizationId: string | undefined;
+
+export const setSpaAdminOrganizationId = (organizationId?: string): void => {
+  spaAdminOrganizationId = organizationId;
+};
+
 /** Admin window rows get their own origin-scoped store, separate from any product client. */
 export const createAdminSpaSyncDbConfig = ({
   authClient,
@@ -34,5 +40,6 @@ export const createAdminSpaSyncDbConfig = ({
   baseUrl: origin,
   collections,
   name: `terreno-admin-spa:${origin}`,
+  organizationIdProvider: () => spaAdminOrganizationId,
   windowCollections: collections,
 });

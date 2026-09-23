@@ -13,6 +13,7 @@ import {idbGet} from "./storage/idb";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {CURSORS_TABLE} from "./storage/types";
 import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
+import type {SyncTransport} from "./sync/transport";
 import {createFakeTransport, type FakeTransport} from "./testing/fakeTransport";
 import type {AuthProvider, SyncDelta, SyncSnapshotResponse, SyncStreamInfo} from "./types";
 
@@ -24,6 +25,16 @@ const uniqueName = (): string => {
 
 const flush = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 5));
+};
+
+const waitUntil = async (predicate: () => boolean, maxAttempts = 20): Promise<void> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    await flush();
+  }
+  throw new Error("waitUntil timed out");
 };
 
 interface FakeAuth {
@@ -413,6 +424,62 @@ describe("createSyncDb", () => {
       title: "from server",
     });
     expect(client.getSyncStatus().streams["todos|owner:u1"]).toBe(1);
+    await client.stop();
+  });
+
+  it("batches an inbound delta burst into one store notification while retaining per-delta debug and reconcile behavior", async () => {
+    const harness = makeHarness({debug: true});
+    const batchTransport: SyncTransport = {
+      ...harness.transport,
+      onDeltaBatch: (callback: (deltas: SyncDelta[]) => void): (() => void) => {
+        const pending: SyncDelta[] = [];
+        let isScheduled = false;
+        return harness.transport.onDelta((delta: SyncDelta): void => {
+          pending.push(delta);
+          if (isScheduled) {
+            return;
+          }
+          isScheduled = true;
+          queueMicrotask(() => {
+            isScheduled = false;
+            callback(pending.splice(0));
+          });
+        });
+      },
+    };
+    const client = createSyncDb({...harness.config, transport: batchTransport});
+    await client.start();
+    await flush();
+    const baselineFetchCount = harness.http.state.fetchCount;
+    let tableListenerCount = 0;
+    const listenerId = client.store.raw.addTableListener("todos", () => {
+      tableListenerCount += 1;
+    });
+
+    harness.transport.deliverDelta(makeDelta({id: "t1", seq: 1}));
+    harness.transport.deliverDelta(makeDelta({id: "t2", seq: 2}));
+    // This jump must retain the existing reconcile hint behavior.
+    harness.transport.deliverDelta(makeDelta({id: "t3", seq: 4}));
+    await flush();
+
+    client.store.raw.delListener(listenerId);
+    expect(tableListenerCount).toBe(1);
+    expect(client.store.listEntities({collection: "todos"}).map((entity) => entity.id)).toEqual([
+      "t1",
+      "t2",
+      "t3",
+    ]);
+    expect(
+      client.debug
+        ?.getEvents()
+        .filter((event) => event.type === "delta")
+        .map((event) => ({entityId: event.entityId, seq: event.seq}))
+    ).toEqual([
+      {entityId: "t1", seq: 1},
+      {entityId: "t2", seq: 2},
+      {entityId: "t3", seq: 4},
+    ]);
+    expect(harness.http.state.fetchCount).toBe(baselineFetchCount + 1);
     await client.stop();
   });
 
@@ -868,7 +935,7 @@ describe("createSyncDb", () => {
 
       harness.auth.setUserId("u2");
       harness.auth.emitAuthChange();
-      await flush();
+      await waitUntil(() => client.store.getLastUserId() === "u2");
       expect(client.store.listEntities({collection: "todos"})).toEqual([]);
       expect(client.store.getLastUserId()).toBe("u2");
       await client.stop();
@@ -3206,7 +3273,12 @@ describe("createSyncDb", () => {
       harness.http.channel.fetchStreams = async () => {
         harness.auth.setUserId("other-user");
         harness.auth.emitAuthChange();
-        await flush();
+        for (let attempt = 0; attempt < 50; attempt += 1) {
+          if (client.store.getLastUserId() === "other-user") {
+            break;
+          }
+          await flush();
+        }
         return originalFetch();
       };
       const result = await client.forceResync();

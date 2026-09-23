@@ -71,6 +71,10 @@ of inserting a duplicate. If more than one document already shares the key,
 the survivor. Use `context.deleteMany()` only inside reset handlers.
 Custom writes must check `context.dryRun` themselves.
 
+The example backend seeds active, read, and archived notification rows for the default
+test user. This keeps the notification drawer and full history page populated for local
+development and browser tests.
+
 For Better Auth credentials, call `seedBetterAuthUser({auth, user, userModel})`.
 It creates a missing credential account, signs in when the account already
 exists, and reconciles the application user document.
@@ -84,5 +88,6 @@ are true:
 2. `allowProductionReset` returns `true` (normally from a dedicated environment variable).
 
 Reset handlers should delete only records owned by the seed plan. Preserve
-authentication, migration history, and operator-created data unless the plan
-explicitly manages them.
+authentication, migration history (`terreno_migrations`), and operator-created
+data unless the plan explicitly manages them. Do not `dropDatabase` or delete
+the history collection in seed `--reset`.

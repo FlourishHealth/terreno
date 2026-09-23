@@ -128,6 +128,37 @@ describe("AdminShell", () => {
     expect(queryByTestId("admin-shell-mobile-header")).toBeNull();
   });
 
+  it("shows organization directory navigation only to operators", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    const operator = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        isOrganizationOperator
+        organizationDirectoryPath="/orgs"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(operator.getByTestId("admin-shell-nav-organizations-clickable")).toBeTruthy();
+    operator.unmount();
+
+    const orgAdmin = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        isOrganizationOperator={false}
+        organizationDirectoryPath="/orgs"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+    expect(orgAdmin.queryByTestId("admin-shell-nav-organizations-clickable")).toBeNull();
+  });
+
   it("shows a forbidden state when admin config returns 403", () => {
     configState.config = null;
     configState.error = {status: 403} as unknown as Error;
@@ -303,6 +334,87 @@ describe("AdminShell", () => {
     expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AdminAuditLog");
   });
 
+  it("lifts AuditEvent into Platform Audit Log", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      models: [
+        ...buildConfig().models,
+        platformModel({
+          displayName: "Audit Log",
+          name: "AuditEvent",
+          routePath: "/admin/audit-events",
+        }),
+      ],
+    };
+
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-audit-log-clickable"));
+    expect(queryByTestId("admin-shell-nav-model-AuditEvent")).toBeNull();
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/AuditEvent");
+  });
+
+  it("shows Migrations in Platform when config.migrations.enabled", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      migrations: {enabled: true},
+    };
+
+    const {getByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-migrations-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/__migrations");
+  });
+
+  it("hides Migrations when config.migrations.enabled is omitted", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = buildConfig();
+
+    const {queryByTestId} = renderWithTheme(
+      <AdminShell
+        api={mockApi}
+        apiBase="/admin"
+        configurationPath="/admin/configuration"
+        rolesPath="/admin/roles"
+        routeBase="/admin"
+      >
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    expect(queryByTestId("admin-shell-nav-migrations")).toBeNull();
+  });
+
   it("renders top chrome and navigates every desktop sidebar section", async () => {
     restoreWindowWidth?.();
     restoreWindowWidth = setWindowWidth(1024);
@@ -452,6 +564,35 @@ describe("AdminShell", () => {
     expect(queryByText("Screens")).toBeNull();
     expect(queryByText("Tools")).toBeNull();
     expect(getByText("Platform")).toBeTruthy();
+  });
+
+  it("lifts the jobs custom screen into Platform and keeps other screens", async () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "Comms", name: "comms"},
+        {displayName: "Jobs", name: "jobs"},
+      ],
+      scripts: [],
+    };
+
+    const {getByTestId, queryByTestId, queryByText} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-jobs-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-comms-clickable"));
+    assert.isNull(queryByTestId("admin-shell-nav-screen-jobs"));
+    assert.isNotNull(queryByText("Screens"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-shell-nav-jobs-clickable"));
+    });
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/admin/jobs");
   });
 
   it("shows a loading spinner while admin config is loading", () => {
@@ -732,6 +873,41 @@ describe("AdminShell", () => {
       fireEvent.press(getByTestId("admin-shell-nav-audit-log-clickable"));
     });
     assert.equal(mockRouterPush.mock.calls.at(-1)?.[0], "/admin/Trail");
+  });
+
+  it("renders grouped custom screens inside matching model groups before model links", () => {
+    restoreWindowWidth?.();
+    restoreWindowWidth = setWindowWidth(1024);
+    configState.config = {
+      ...buildConfig(),
+      customScreens: [
+        {displayName: "Overview", group: "Work", name: "announcements"},
+        {displayName: "Ungrouped", name: "ungrouped"},
+      ],
+      models: [
+        {
+          ...buildConfig().models[0],
+          group: "Work",
+        },
+      ],
+      platformTools: {
+        configuration: false,
+        roles: false,
+        scripts: false,
+        version: false,
+      },
+      scripts: [],
+    };
+
+    const {getByTestId} = renderWithTheme(
+      <AdminShell api={mockApi} apiBase="/admin" routeBase="/admin">
+        <React.Fragment />
+      </AdminShell>
+    );
+
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-announcements-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-model-Todo-clickable"));
+    assert.isNotNull(getByTestId("admin-shell-nav-screen-ungrouped-clickable"));
   });
 
   it("groups models under their configured sidebar group labels", () => {

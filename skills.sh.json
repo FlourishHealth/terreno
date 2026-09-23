@@ -22,6 +22,7 @@
         "model-router-actions",
         "terreno-ui",
         "terreno-data-fetching",
+        "debug-syncdb-with-mcp",
         "mongoose-schema-safety",
         "generate-sdk",
         "building-terreno-apps",
@@ -51,6 +52,7 @@
         "implement-ready-for-dev",
         "respond-to-review",
         "verify-ui-changes",
+        "review-chart-visuals",
         "work-github-issues",
         "fix-conflicts",
         "release",
@@ -71,6 +73,19 @@
         "claude-design-to-linear"
       ],
       "title": "Roadmap"
+    },
+    {
+      "description": "Charter a measurable long-term goal, map-reduce the repository into findings, and drive each routed PR through the lifecycle.",
+      "skills": [
+        "terreno-scan-1-aim",
+        "terreno-scan-2-sweep",
+        "terreno-scan-3-sift",
+        "terreno-scan-4-plot",
+        "terreno-scan-5-track",
+        "terreno-scan-campaign",
+        "terreno-scan-loop"
+      ],
+      "title": "Code scans"
     },
     {
       "description": "Non-conflicting Expo deployment and platform workflows.",

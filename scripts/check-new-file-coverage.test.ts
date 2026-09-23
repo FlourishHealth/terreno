@@ -1,26 +1,32 @@
 import {describe, it} from "bun:test";
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from "node:fs";
-import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import {assert} from "chai";
 
 import {parseLcov} from "./check-coverage";
 import {
   bunTestFileArgs,
+  colocatedTestCandidates,
   coverageRunArgs,
   evaluateNewFileCoverage,
   expandCoverageRunArgs,
-  filterCoverageSourceFiles,
+  findColocatedTests,
   groupFilesByWorkspace,
+  isCoveragePathIgnored,
   isCoverageSourceFile,
-  isInterfaceOnlySourceFile,
+  PACKAGE_CI_LCOV_SKIP,
+  packageNeedsCompiledDistDeps,
   parseNewFileCoverageArgs,
+  readCoveragePathIgnorePatterns,
+  workspaceDepsCompileArgs,
 } from "./check-new-file-coverage";
 
 describe("parseNewFileCoverageArgs", () => {
   it("requires callers to provide a base and defaults to 90 percent", () => {
     assert.deepEqual(parseNewFileCoverageArgs(["--base=abc123"]), {
       base: "abc123",
+      lcovPath: null,
+      packageName: null,
+      skipPackages: [],
       threshold: 90,
     });
   });
@@ -28,8 +34,29 @@ describe("parseNewFileCoverageArgs", () => {
   it("accepts a custom threshold", () => {
     assert.deepEqual(parseNewFileCoverageArgs(["--base=abc123", "--threshold=95"]), {
       base: "abc123",
+      lcovPath: null,
+      packageName: null,
+      skipPackages: [],
       threshold: 95,
     });
+  });
+
+  it("accepts lcov reuse, package filter, and skip list", () => {
+    assert.deepEqual(
+      parseNewFileCoverageArgs([
+        "--base=abc123",
+        "--package=api",
+        "--lcov=api/coverage/lcov.info",
+        "--skip-packages=api, ui",
+      ]),
+      {
+        base: "abc123",
+        lcovPath: "api/coverage/lcov.info",
+        packageName: "api",
+        skipPackages: ["api", "ui"],
+        threshold: 90,
+      }
+    );
   });
 });
 
@@ -39,13 +66,19 @@ describe("isCoverageSourceFile", () => {
     assert.isTrue(isCoverageSourceFile("ui/src/NewComponent.tsx"));
   });
 
-  it("excludes tests, stories, generated SDKs, and non-source files", () => {
+  it("excludes tests, stories, e2e helpers, generated SDKs, and non-source files", () => {
     assert.isFalse(isCoverageSourceFile("api/src/newRoute.test.ts"));
     assert.isFalse(isCoverageSourceFile("ui/src/NewComponent.stories.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/e2e/helpers/auditEvents.ts"));
     assert.isFalse(isCoverageSourceFile("example-frontend/store/openApiSdk.ts"));
     assert.isFalse(isCoverageSourceFile("api/src/readme.md"));
     assert.isFalse(isCoverageSourceFile("api/src/types/authToken.ts"));
+    assert.isFalse(isCoverageSourceFile("announcements/src/types.ts"));
+    assert.isFalse(isCoverageSourceFile("admin-frontend/src/testing/useAdminApiDouble.ts"));
+    assert.isFalse(isCoverageSourceFile("jobs/src/types.ts"));
+    assert.isFalse(isCoverageSourceFile("example-backend/src/jobsWorker.ts"));
     assert.isFalse(isCoverageSourceFile("demo/story-config/LoginScreen.config.tsx"));
+    assert.isFalse(isCoverageSourceFile("api/src/migrations/fixtures/bad-name/not-a-migration.ts"));
   });
 
   it("excludes Expo Router route-structural entry files but keeps other app modules", () => {
@@ -58,59 +91,8 @@ describe("isCoverageSourceFile", () => {
     assert.isFalse(isCoverageSourceFile("example-frontend/app/forgotPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/resetPassword.tsx"));
     assert.isFalse(isCoverageSourceFile("example-frontend/app/verifyEmail.tsx"));
+    assert.isFalse(isCoverageSourceFile("example-frontend/app/admin/announcements/create.tsx"));
     assert.isTrue(isCoverageSourceFile("example-frontend/store/index.ts"));
-  });
-});
-
-describe("isInterfaceOnlySourceFile", () => {
-  it("detects interface-only modules and keeps executable controllers", () => {
-    const interfaceOnly = `
-      import type mongoose from "mongoose";
-      export interface WidgetDocument {
-        name: string;
-      }
-    `;
-    const executable = `
-      export const listWidgets = async (): Promise<string[]> => {
-        return ["ok"];
-      };
-    `;
-    assert.isTrue(isInterfaceOnlySourceFile("types/widget.ts", interfaceOnly));
-    assert.isFalse(isInterfaceOnlySourceFile("api/widgets.ts", executable));
-  });
-});
-
-describe("filterCoverageSourceFiles", () => {
-  it("drops interface-only added files but keeps implementation modules", () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), "terreno-coverage-filter-"));
-    try {
-      mkdirSync(join(repoRoot, "ai", "src", "types"), {recursive: true});
-      mkdirSync(join(repoRoot, "ai", "src", "observability"), {recursive: true});
-      writeFileSync(
-        join(repoRoot, "ai/src/types/observability.ts"),
-        "export interface ObsPrompt { name: string; }\n"
-      );
-      writeFileSync(
-        join(repoRoot, "ai/src/observability/datasetImport.ts"),
-        "export const parseDatasetJsonImport = () => [];\n"
-      );
-      assert.deepEqual(
-        filterCoverageSourceFiles({
-          files: ["ai/src/types/observability.ts", "ai/src/observability/datasetImport.ts"],
-          repoRoot,
-        }),
-        ["ai/src/observability/datasetImport.ts"]
-      );
-      assert.deepEqual(
-        filterCoverageSourceFiles({
-          files: ["ai/src/observability/deleted.ts"],
-          repoRoot,
-        }),
-        []
-      );
-    } finally {
-      rmSync(repoRoot, {force: true, recursive: true});
-    }
   });
 });
 
@@ -200,6 +182,23 @@ describe("evaluateNewFileCoverage", () => {
       [{path: "api/src/new.ts", summary: null}]
     );
   });
+
+  it("skips files listed in bunfig coveragePathIgnorePatterns", () => {
+    const mcpRoot = resolve(import.meta.dir, "../mcp-server");
+    const patterns = readCoveragePathIgnorePatterns(mcpRoot);
+    assert.include(patterns, "**/local/metro/metroDevSession.ts");
+    assert.isTrue(isCoveragePathIgnored("src/local/metro/metroDevSession.ts", patterns));
+    assert.deepEqual(
+      evaluateNewFileCoverage({
+        coverage: new Map(),
+        files: ["mcp-server/src/local/metro/metroDevSession.ts"],
+        packageRoot: mcpRoot,
+        repoRoot: resolve(import.meta.dir, ".."),
+        threshold: 90,
+      }),
+      []
+    );
+  });
 });
 
 describe("coverageRunArgs", () => {
@@ -223,17 +222,10 @@ describe("coverageRunArgs", () => {
     assert.deepEqual(bunTestFileArgs("bun test && bun test ./src/isolated/*.isolated.ts"), []);
   });
 
-  it("reads file arguments after leading environment assignments", () => {
-    assert.deepEqual(
-      bunTestFileArgs("AGENT=1 bun test --only-failures --preload ./src/tests/bunSetup.ts"),
-      []
-    );
-  });
-
-  it("runs package test scripts as declared and otherwise falls back to test globs", () => {
+  it("falls back to src or unit-test globs when the script has no paths", () => {
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "api", testScript: "bun test"}),
-      []
+      ["src"]
     );
     assert.deepEqual(coverageRunArgs({hasSrcDir: false, packageName: "example-frontend"}), [
       "./**/*.test.ts",
@@ -241,7 +233,72 @@ describe("coverageRunArgs", () => {
     ]);
     assert.deepEqual(
       coverageRunArgs({hasSrcDir: true, packageName: "mcp-server", testScript: "bun test"}),
-      ["--max-concurrency=1"]
+      ["--max-concurrency=1", "src"]
+    );
+  });
+
+  it("prefers colocated tests over the full package suite", () => {
+    assert.deepEqual(
+      coverageRunArgs({
+        colocatedTests: ["src/new.ts"].flatMap(() => ["src/new.test.ts"]),
+        hasSrcDir: true,
+        packageName: "api",
+        testScript: "bun test",
+      }),
+      ["src/new.test.ts"]
+    );
+  });
+});
+
+describe("findColocatedTests", () => {
+  const repoRoot = resolve(import.meta.dir, "..");
+
+  it("maps a source file to sibling test files", () => {
+    assert.deepEqual(colocatedTestCandidates("api/src/errors.ts"), [
+      "api/src/errors.test.ts",
+      "api/src/errors.test.tsx",
+      "api/src/errors.spec.ts",
+      "api/src/errors.spec.tsx",
+    ]);
+    assert.deepEqual(
+      findColocatedTests({
+        files: ["api/src/errors.ts"],
+        packageRoot: join(repoRoot, "api"),
+        repoRoot,
+      }),
+      ["src/errors.test.ts"]
+    );
+  });
+
+  it("returns null when any new file lacks a colocated test", () => {
+    assert.isNull(
+      findColocatedTests({
+        files: ["api/src/errors.ts", "api/src/does-not-exist-for-coverage.ts"],
+        packageRoot: join(repoRoot, "api"),
+        repoRoot,
+      })
+    );
+  });
+});
+
+describe("packageNeedsCompiledDistDeps", () => {
+  const repoRoot = resolve(import.meta.dir, "..");
+
+  it("is true when workspace deps publish from dist", () => {
+    assert.isTrue(packageNeedsCompiledDistDeps(join(repoRoot, "admin-backend")));
+    assert.isTrue(packageNeedsCompiledDistDeps(join(repoRoot, "api")));
+  });
+});
+
+describe("PACKAGE_CI_LCOV_SKIP", () => {
+  it("covers every published package with a coverage CI job", () => {
+    assert.include(
+      PACKAGE_CI_LCOV_SKIP.map((entry) => entry.packageName),
+      "api"
+    );
+    assert.include(
+      PACKAGE_CI_LCOV_SKIP.map((entry) => entry.pipelineParameter),
+      "run-jobs"
     );
   });
 });
@@ -270,5 +327,16 @@ describe("expandCoverageRunArgs", () => {
       assert.notInclude(path, "*");
       assert.notInclude(path, "node_modules");
     }
+  });
+});
+
+describe("workspaceDepsCompileArgs", () => {
+  it("points compile-workspace-deps at the gated package", () => {
+    const repoRoot = "/repo";
+    const packageRoot = "/repo/admin-backend";
+    assert.deepEqual(workspaceDepsCompileArgs({packageRoot, repoRoot}), [
+      "/repo/.github/scripts/compile-workspace-deps.js",
+      "/repo/admin-backend",
+    ]);
   });
 });

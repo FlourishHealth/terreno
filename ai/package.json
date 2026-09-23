@@ -4,8 +4,6 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "ajv": "catalog:",
-    "csv-parse": "catalog:",
     "@ai-sdk/mcp": "^1.0.21",
     "@google-cloud/storage": "catalog:",
     "@langfuse/client": "^5.0.1",
@@ -13,6 +11,8 @@
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "0.217.0",
     "ai": "catalog:",
+    "ajv": "catalog:",
+    "csv-parse": "catalog:",
     "google-auth-library": "^10.5.0",
     "luxon": "catalog:",
     "multer": "catalog:"
@@ -20,7 +20,6 @@
   "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "chai": "catalog:",
     "@terreno/api": "workspace:*",
     "@terreno/test": "workspace:*",
     "@types/bun": "catalog:",
@@ -28,6 +27,7 @@
     "@types/luxon": "catalog:",
     "@types/multer": "catalog:",
     "@types/supertest": "catalog:",
+    "chai": "catalog:",
     "express": "catalog:",
     "mongoose": "catalog:",
     "passport-local-mongoose": "catalog:",
@@ -100,5 +100,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "57.3.0"
+  "version": "57.4.0"
 }

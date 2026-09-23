@@ -10,11 +10,13 @@ export const SCAN_ROOTS = [
   "ai/src",
   "api/src",
   "api-health/src",
+  "cli/src",
   "comms/src",
   "demo",
   "example-backend/src",
   "example-frontend",
   "feature-flags/src",
+  "jobs/src",
   "mcp-server/src",
   "rtk/src",
   "test/src",
@@ -33,15 +35,17 @@ const IGNORED_DIR_NAMES = new Set([
 ]);
 
 /** Package name → absolute path to the package public entry index file. */
-const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
+export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/admin-backend": resolve(REPO_ROOT, "admin-backend/src/index.ts"),
   "@terreno/admin-frontend": resolve(REPO_ROOT, "admin-frontend/src/index.tsx"),
   "@terreno/admin-spa": resolve(REPO_ROOT, "admin-spa/src/index.ts"),
   "@terreno/ai": resolve(REPO_ROOT, "ai/src/index.ts"),
   "@terreno/api": resolve(REPO_ROOT, "api/src/index.ts"),
   "@terreno/api-health": resolve(REPO_ROOT, "api-health/src/index.ts"),
+  "@terreno/cli": resolve(REPO_ROOT, "cli/src/index.ts"),
   "@terreno/comms": resolve(REPO_ROOT, "comms/src/index.ts"),
   "@terreno/feature-flags": resolve(REPO_ROOT, "feature-flags/src/index.ts"),
+  "@terreno/jobs": resolve(REPO_ROOT, "jobs/src/index.ts"),
   "@terreno/mcp": resolve(REPO_ROOT, "mcp-server/src/index.ts"),
   "@terreno/rtk": resolve(REPO_ROOT, "rtk/src/index.ts"),
   "@terreno/test": resolve(REPO_ROOT, "test/src/index.ts"),

@@ -20,6 +20,7 @@ variable "services" {
   default = [
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
+    "cloudtasks.googleapis.com",
     "config.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",

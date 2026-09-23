@@ -38,6 +38,8 @@
       "demo/components/**/*.tsx",
       "demo/stories/**/*.ts",
       "demo/stories/**/*.tsx",
+      "demo/chartVisual/**/*.ts",
+      "demo/chartVisual/**/*.tsx",
       "demo/demoConfig.tsx",
       "demo/story-config.tsx",
       "example-frontend/package.json",
@@ -60,7 +62,8 @@
       "!!**/generated",
       "!!**/expo-env.d.ts",
       "!!**/.git",
-      "!!api/src/populate.ts"
+      "!!api/src/populate.ts",
+      "!!example-frontend/expo-env.d.ts"
     ]
   },
   "formatter": {

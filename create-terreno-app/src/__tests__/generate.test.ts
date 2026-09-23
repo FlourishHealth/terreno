@@ -24,16 +24,19 @@ const EXPECTED_PATHS = [
   "backend/.env.example",
   "backend/biome.jsonc",
   "backend/package.json",
+  "backend/src/access.ts",
   "backend/src/api/users.ts",
   "backend/src/index.ts",
   "backend/src/models/appConfiguration.ts",
   "backend/src/models/index.ts",
   "backend/src/models/modelPlugins.ts",
+  "backend/src/models/organizationSettings.ts",
   "backend/src/models/user.ts",
   "backend/src/scripts/seed.ts",
   "backend/src/server.ts",
   "backend/src/types/index.ts",
   "backend/src/types/models/index.ts",
+  "backend/src/types/models/organizationSettingsTypes.ts",
   "backend/src/types/models/userTypes.ts",
   "backend/src/utils/betterAuthConfig.ts",
   "backend/src/utils/database.ts",
@@ -133,7 +136,7 @@ describe("generateAllFiles", () => {
       mcpServers: Record<string, {args?: string[]; command?: string; type?: string; url?: string}>;
     };
 
-    assert.equal(mcpJson.mcpServers.terreno.url, "https://mcp.terreno.flourish.health/mcp");
+    assert.equal(mcpJson.mcpServers.terreno.url, "https://mcp.terreno.app/mcp");
     assert.deepEqual(mcpJson.mcpServers.expo, {
       type: "http",
       url: "https://mcp.expo.dev/mcp",
@@ -310,6 +313,23 @@ describe("generateAllFiles", () => {
     assert.include(server, "process.env.PORT");
   });
 
+  test("generated backend enables organizations with typed settings", () => {
+    const files = generateAllFiles({
+      appDisplayName: "Org App",
+      appName: "org-app",
+    });
+    const access = files.find((file) => file.path === "backend/src/access.ts")?.content ?? "";
+    const server = files.find((file) => file.path === "backend/src/server.ts")?.content ?? "";
+    const settings =
+      files.find((file) => file.path === "backend/src/models/organizationSettings.ts")?.content ??
+      "";
+
+    assert.include(access, "organizations: true");
+    assert.include(server, "settingsSchema: organizationSettingsSchema");
+    assert.include(server, "Membership.findActiveForUser");
+    assert.include(settings, "createOrganizationSettingsSchema");
+  });
+
   test("generated backend server returns express.Application from TerrenoApp.start()", () => {
     const server = generateAllFiles({
       appDisplayName: "Start App",
@@ -444,17 +464,35 @@ describe("generated frontend Terreno 57 compatibility", () => {
     assert.notInclude(sdk, "data: {");
   });
 
-  test("tsconfig omits deprecated baseUrl for TypeScript 6", () => {
-    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
-      compilerOptions: {
-        baseUrl?: string;
-        ignoreDeprecations?: string;
-        paths: Record<string, string[]>;
+  test("tsconfigs use no TypeScript 6 deprecated options", () => {
+    const tsconfigPaths = [
+      "backend/tsconfig.json",
+      "frontend/tsconfig.codegen.json",
+      "frontend/tsconfig.json",
+    ];
+
+    for (const tsconfigPath of tsconfigPaths) {
+      const {compilerOptions} = JSON.parse(read(tsconfigPath)) as {
+        compilerOptions: Record<string, unknown>;
       };
+      const moduleResolution = String(compilerOptions.moduleResolution ?? "").toLowerCase();
+      const target = String(compilerOptions.target ?? "").toLowerCase();
+
+      assert.notProperty(compilerOptions, "baseUrl", tsconfigPath);
+      assert.notProperty(compilerOptions, "downlevelIteration", tsconfigPath);
+      assert.notProperty(compilerOptions, "ignoreDeprecations", tsconfigPath);
+      assert.notInclude(["node", "node10", "classic"], moduleResolution, tsconfigPath);
+      assert.notEqual(target, "es5", tsconfigPath);
+    }
+  });
+
+  test("frontend tsconfig resolves path aliases from its own directory", () => {
+    const tsconfig = JSON.parse(read("frontend/tsconfig.json")) as {
+      compilerOptions: {paths: Record<string, string[]>};
+      extends: string;
     };
 
-    assert.isUndefined(tsconfig.compilerOptions.baseUrl);
-    assert.equal(tsconfig.compilerOptions.ignoreDeprecations, "6.0");
+    assert.equal(tsconfig.extends, "expo/tsconfig.base");
     assert.deepEqual(tsconfig.compilerOptions.paths["@/*"], ["./*"]);
   });
 
@@ -474,7 +512,7 @@ describe("generated frontend Terreno 57 compatibility", () => {
     assert.include(sdk, 'providesTags: ["profile"]');
     assert.isTrue(sdk.indexOf('addTagTypes: ["profile"]') < sdk.indexOf("injectEndpoints"));
     assert.include(generateSdk, "execFile");
-    assert.include(tsconfig.compilerOptions.types ?? [], "bun-types");
+    assert.include(tsconfig.compilerOptions.types ?? [], "bun");
     assert.property(frontendPackageJson.devDependencies, "@types/bun");
     assert.property(frontendPackageJson.devDependencies, "ts-node");
   });

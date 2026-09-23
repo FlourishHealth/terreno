@@ -23,6 +23,9 @@ interface SkillGroup {
 
 const SHARED_PLUGIN_REFERENCE_PREFIX = "../../references/";
 
+/** Plugin trees whose skills install through `npx skills add`; later entries win on name. */
+const INSTALLABLE_PLUGIN_DIRECTORIES = ["plugins/terreno-planning", "plugins/terreno-scan"];
+
 export const SKILL_GROUPS: SkillGroup[] = [
   {
     description:
@@ -46,6 +49,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "model-router-actions",
       "terreno-ui",
       "terreno-data-fetching",
+      "debug-syncdb-with-mcp",
       "mongoose-schema-safety",
       "generate-sdk",
       "building-terreno-apps",
@@ -75,6 +79,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "implement-ready-for-dev",
       "respond-to-review",
       "verify-ui-changes",
+      "review-chart-visuals",
       "work-github-issues",
       "fix-conflicts",
       "release",
@@ -95,6 +100,20 @@ export const SKILL_GROUPS: SkillGroup[] = [
       "claude-design-to-linear",
     ],
     title: "Roadmap",
+  },
+  {
+    description:
+      "Charter a measurable long-term goal, map-reduce the repository into findings, and drive each routed PR through the lifecycle.",
+    skills: [
+      "terreno-scan-1-aim",
+      "terreno-scan-2-sweep",
+      "terreno-scan-3-sift",
+      "terreno-scan-4-plot",
+      "terreno-scan-5-track",
+      "terreno-scan-campaign",
+      "terreno-scan-loop",
+    ],
+    title: "Code scans",
   },
   {
     description: "Non-conflicting Expo deployment and platform workflows.",
@@ -349,20 +368,22 @@ export const buildInstallableSkillsTree = ({
     });
   }
 
-  const pluginSkills = join(rootDirectory, "plugins/terreno-planning/skills");
-  const pluginReferences = join(rootDirectory, "plugins/terreno-planning/references");
-  for (const skillName of listSkillDirectories(pluginSkills)) {
-    const skillDestination = join(destination, skillName);
-    writeCopiedTree({
-      destination: skillDestination,
-      source: join(pluginSkills, skillName),
-      transformMarkdown: rewritePluginLinksForInstallable,
-    });
-    copyLinkedPluginReferences({
-      destination: join(skillDestination, "references"),
-      pluginReferences,
-      skillSource: join(pluginSkills, skillName),
-    });
+  for (const pluginDirectory of INSTALLABLE_PLUGIN_DIRECTORIES) {
+    const pluginSkills = join(rootDirectory, pluginDirectory, "skills");
+    const pluginReferences = join(rootDirectory, pluginDirectory, "references");
+    for (const skillName of listSkillDirectories(pluginSkills)) {
+      const skillDestination = join(destination, skillName);
+      writeCopiedTree({
+        destination: skillDestination,
+        source: join(pluginSkills, skillName),
+        transformMarkdown: rewritePluginLinksForInstallable,
+      });
+      copyLinkedPluginReferences({
+        destination: join(skillDestination, "references"),
+        pluginReferences,
+        skillSource: join(pluginSkills, skillName),
+      });
+    }
   }
 
   writeFileSync(join(destination, "README.md"), INSTALLABLE_README);

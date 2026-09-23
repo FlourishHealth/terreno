@@ -5,7 +5,11 @@ name: Packages CI
 # Disabled after migration to CircleCI; retained for rollback.
 # Intended paths (live mapping is .circleci/config.yml):
 #   admin-backend/**, admin-frontend/**, api-health/**, feature-flags/**, test/**
-on: []
+on:
+  # Retained for rollback without registering failed zero-job runs.
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   lint-compile-coverage:
@@ -16,7 +20,7 @@ jobs:
       matrix:
         include:
           - package: admin-backend
-            compile_deps: api
+            compile_deps: api jobs
           - package: admin-frontend
             compile_deps: ui
           - package: api-health
@@ -65,3 +69,8 @@ jobs:
           directory: ${{ matrix.package }}
           flag: ${{ matrix.package }}
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Gate new files from LCOV
+        env:
+          COVERAGE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci/check-new-file-coverage-lcov.sh ${{ matrix.package }}
+        working-directory: .

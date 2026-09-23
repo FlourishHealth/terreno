@@ -4,17 +4,21 @@ import {
   AdminShellLayout,
   AiPromptEditorScreenWidget,
   AiTracesScreenWidget,
+  OrgContextProvider,
+  OrgSwitcher,
+  organizationFromPath,
+  useOptionalOrgContext,
 } from "@terreno/admin-frontend";
 import {baseUrl, canOpenAdminPage, selectBetterAuthUserId} from "@terreno/rtk";
 import {SyncDbProvider, useConflicts} from "@terreno/syncdb/react";
 import {Box, Spinner, Text, useStoredState} from "@terreno/ui";
-import {Stack} from "expo-router";
-import React, {useEffect, useState} from "react";
+import {Stack, usePathname} from "expo-router";
+import React, {useEffect, useMemo, useState} from "react";
 import {useSelector} from "react-redux";
 import {ADMIN_ROUTE} from "@/constants/adminConstants";
 import {getAdminAuthHeaders} from "@/store/betterAuthApi";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
-import {adminSyncDb} from "@/store/syncdb";
+import {adminSyncDb, setAdminSyncOrganizationId} from "@/store/syncdb";
 import SyncLabScreen from "./SyncLabScreen";
 
 const PLAYGROUND_GEMINI_KEY_HINT =
@@ -47,6 +51,20 @@ const ExampleTracesScreen: React.FC<AdminScreenWidgetProps> = (props) => {
   );
 };
 
+const BindAdminSyncOrganization: React.FC = () => {
+  const organizationId = useOptionalOrgContext()?.organizationId;
+
+  // Keep admin-window mutate payloads on the currently selected organization.
+  useEffect(() => {
+    setAdminSyncOrganizationId(organizationId);
+    return (): void => {
+      setAdminSyncOrganizationId(undefined);
+    };
+  }, [organizationId]);
+
+  return null;
+};
+
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main
  * column (stack navigator). `admin:access` is the only permission that opens this page.
@@ -61,6 +79,10 @@ const AdminLayoutContent: React.FC = () => {
     admin: profile?.admin,
     permissions: profile?.permissions,
   });
+  const roles = profile?.roles ?? [];
+  const isOrganizationOperator = roles.includes("operator") || roles.includes("superadmin");
+  const pathname = usePathname();
+  const routeOrganization = useMemo(() => organizationFromPath(pathname), [pathname]);
 
   // Admin uses a separate window-mode client so admin rows never pollute the
   // owner-scoped product store and the socket can join `{collection}|admin`.
@@ -143,29 +165,39 @@ const AdminLayoutContent: React.FC = () => {
         },
       }}
     >
-      <AdminShellLayout
-        api={terrenoApi}
-        apiBase={ADMIN_ROUTE}
-        configurationPath="/admin/configuration"
-        rolesPath="/roles"
-        routeBase={ADMIN_ROUTE}
-        versionConfigPath="/version-config"
-      >
-        <Stack
-          screenOptions={{
-            contentStyle: {flex: 1},
-            headerShown: false,
-          }}
+      <OrgContextProvider initialOrganization={routeOrganization}>
+        <BindAdminSyncOrganization />
+        <AdminShellLayout
+          api={terrenoApi}
+          apiBase={ADMIN_ROUTE}
+          configurationPath="/admin/configuration"
+          isOrganizationOperator={isOrganizationOperator}
+          organizationDirectoryPath="/orgs"
+          organizationSwitcher={<OrgSwitcher api={terrenoApi} routeBase={ADMIN_ROUTE} />}
+          rolesPath="/roles"
+          routeBase={ADMIN_ROUTE}
+          versionConfigPath="/version-config"
         >
-          <Stack.Screen name="index" options={{title: "Admin"}} />
-          <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
-          <Stack.Screen name="configuration" options={{title: "Configuration"}} />
-          <Stack.Screen name="roles" options={{title: "Roles"}} />
-          <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
-          <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
-          <Stack.Screen name="[model]" options={{title: "Model"}} />
-        </Stack>
-      </AdminShellLayout>
+          <Stack
+            screenOptions={{
+              contentStyle: {flex: 1},
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="index" options={{title: "Admin"}} />
+            <Stack.Screen name="showcase" options={{title: "Admin UI v2 map"}} />
+            <Stack.Screen name="configuration" options={{title: "Configuration"}} />
+            <Stack.Screen name="roles" options={{title: "Roles"}} />
+            <Stack.Screen name="announcements/index" options={{title: "Announcements"}} />
+            <Stack.Screen name="consent-forms/index" options={{title: "Consent forms"}} />
+            <Stack.Screen name="consent-responses/index" options={{title: "Consent responses"}} />
+            <Stack.Screen name="orgs/index" options={{title: "Organizations"}} />
+            <Stack.Screen name="orgs/[orgId]/index" options={{title: "Organization settings"}} />
+            <Stack.Screen name="orgs/[orgId]/members" options={{title: "Organization members"}} />
+            <Stack.Screen name="[model]" options={{title: "Model"}} />
+          </Stack>
+        </AdminShellLayout>
+      </OrgContextProvider>
     </AdminProvider>
   );
 };

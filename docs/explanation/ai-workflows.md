@@ -27,11 +27,11 @@ Analyzes code diffs after each merge to identify:
 **Trigger:** Push to master  
 **Purpose:** Keeps AI assistant rules synchronized with codebase changes
 
-Maintains the single source of truth in `.rulesync/rules/` and ensures:
-- `.cursor/rules/`, skills, agents, and hooks (Cursor)
-- `CLAUDE.md`, `.claude/rules/`, skills, agents, and hooks (Claude Code)
-- `.github/copilot-instructions.md` (GitHub Copilot)
-- Native hooks for Codex CLI, Copilot CLI, Antigravity CLI, and Devin
+Maintains centralized agent guidance and generates the matching configuration for:
+- Cursor
+- Claude Code
+- GitHub Copilot
+- Codex CLI, Copilot CLI, Antigravity CLI, and Devin
 
 **Workflow:**
 1. Detects package changes, new APIs, or convention updates

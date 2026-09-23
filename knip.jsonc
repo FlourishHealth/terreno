@@ -27,6 +27,16 @@
     "package.json": ["catalog"],
     "**/generated/**": ["exports", "types"],
     "**/openApiSdk.ts": ["exports", "types"],
+    "api/src/migrations/fixtures/**": ["files", "exports", "types"],
+    "example-backend/migrations/**": ["files", "exports", "types"],
+    "example-backend/src/migrationsDir.ts": ["files", "exports", "types"],
+    // Runtime adapters expose these hooks only so deterministic tests can replace or
+    // reset process-global browser, Metro, log-path, and console state.
+    "mcp-server/src/local/localServer.ts": ["exports"],
+    "mcp-server/src/local/logPaths.ts": ["exports"],
+    "mcp-server/src/local/metro/metroDevSession.ts": ["exports"],
+    "mcp-server/src/local/tools/browser.ts": ["exports"],
+    "rtk/src/devConsoleLogger.ts": ["exports"],
     // Generated syncdb SDK surface may include hooks before an example screen adopts them.
     "example-frontend/store/syncDbSdk.ts": ["exports", "types"],
     // Generated communications SDK may include hooks before an example screen adopts them.
@@ -47,7 +57,9 @@
     // Backwards-compatible public aliases intentionally point at the same implementation.
     "api/src/api.ts": ["duplicates"],
     "api/src/rbac/middleware.ts": ["duplicates"],
-    "mcp-server/src/docs/templates/**": ["files", "exports", "types"]
+    "mcp-server/src/docs/templates/**": ["files", "exports", "types"],
+    // Tests load this CLI through createRequire(); Knip does not see those CJS exports.
+    ".github/scripts/prune-cloud-run-not-ready-traffic.js": ["exports"]
   },
   "ignoreFiles": [
     // Generated communications SDK is retained as a codegen contract even before a
@@ -70,7 +82,8 @@
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "scripts/**/*.test.ts",
         ".github/scripts/**/*.test.ts",
-        "scripts/ci/prepare-package-publish.mjs"
+        "scripts/ci/prepare-package-publish.mjs",
+        "scripts/charts/compareRenderedSnapshots.ts"
       ],
       // Policy/release scripts are development entries, not production modules.
       "project": [
@@ -91,8 +104,11 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/**/*.test.{ts,tsx}",
         "src/*.isolated.{ts,tsx}",
-        "src/isolated/**/*.isolated.{ts,tsx}"
+        "src/isolated/**/*.isolated.{ts,tsx}",
+        // `bunfig.toml` test preload for shared RTK doubles; not imported from package entry.
+        "src/testing/useAdminApiDouble.ts"
       ]
     },
     "admin-backend": {
@@ -125,7 +141,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/tests/fixtures/compileAuthEntry.ts"
+        "src/tests/fixtures/compileAuthEntry.ts",
+        "src/migrations/cli.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
@@ -237,7 +254,24 @@
         "**/*.test.ts",
         "collectRegisteredStoryRenders.ts",
         "jspdf-native-stub.js",
-        "fingerprint.config.js"
+        "fingerprint.config.js",
+        "chartVisual/ChartVisualGallery.tsx",
+        "chartVisual/fixtureCatalog.ts",
+        "chartVisual/**/*.test.ts",
+        "chartVisual/fixtures.tsx",
+        "app/demo/chart-visual-gallery.tsx"
+      ]
+    },
+    "announcements": {
+      "entry": [
+        "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        // `bunfig.toml` test preload; not imported from the package entry graph.
+        "src/tests/bunSetup.ts"
+      ],
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
       ]
     },
     "comms": {
@@ -300,14 +334,17 @@
         "@terreno/admin-backend!",
         "@terreno/admin-spa!",
         "@terreno/ai!",
+        "@terreno/announcements!",
         "@terreno/api!",
         "@terreno/api-health!",
         "@terreno/comms!",
         "@terreno/feature-flags!",
+        "@terreno/jobs!",
         "@thream/socketio-jwt!",
         "ai!",
         "expo-server-sdk!",
         "express!",
+        "google-auth-library!",
         "ioredis!",
         "luxon!",
         "mongoose!",
@@ -319,6 +356,7 @@
       ],
       "entry": [
         "src/index.ts!",
+        "src/jobsWorker.ts!",
         "src/**/*.test.ts",
         "src/tests/setup.ts",
         "src/scripts/runAdminScript.ts",
@@ -339,6 +377,16 @@
         "!src/tests/**!"
       ]
     },
+    "jobs": {
+      // Cloud runner SDKs are optional peers loaded only when an app supplies them.
+      "ignoreDependencies": ["@google-cloud/tasks", "@vercel/queue"],
+      // Mongoose method/static interfaces and runner option types are used in-file.
+      "ignoreExportsUsedInFile": {"interface": true, "type": true},
+      "project": [
+        "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
+        "!src/tests/**!"
+      ]
+    },
     "mcp-server": {
       // Knip 6.34 expects Bun's `test.preload` to be an array. This package uses
       // the array form in bunfig.toml; with bun: false Knip cannot discover that
@@ -347,6 +395,7 @@
       "entry": [
         "src/index.ts",
         "src/local/index.ts",
+        "src/**/*.test.ts",
         "src/__tests__/**/*.test.ts",
         "src/__tests__/preload.ts"
       ],
@@ -396,7 +445,8 @@
       "entry": [
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
-        "src/theme/DocItem/Footer/index.tsx"
+        "src/theme/DocItem/Footer/index.tsx",
+        "scripts/docs-audit.test.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

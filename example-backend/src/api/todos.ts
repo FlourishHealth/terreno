@@ -1,5 +1,12 @@
 import {adminOwnedBy} from "@terreno/admin-backend";
-import {APIError, modelRouter, OwnerQueryFilter, Permissions, z} from "@terreno/api";
+import {
+  APIError,
+  getNotificationService,
+  modelRouter,
+  OwnerQueryFilter,
+  Permissions,
+  z,
+} from "@terreno/api";
 import {Todo} from "../models/todo";
 import type {TodoDocument} from "../types/models/todoTypes";
 import type {UserDocument} from "../types/models/userTypes";
@@ -10,6 +17,27 @@ const bulkCompleteBodySchema = z
     ids: z.array(z.string()).min(1),
   })
   .strict();
+
+type TodoNotificationAction = "added" | "completed" | "deleted";
+
+const TODO_NOTIFICATION_TITLES: Record<TodoNotificationAction, string> = {
+  added: "Todo added",
+  completed: "Todo completed",
+  deleted: "Todo deleted",
+};
+
+const notifyTodoAction = async (
+  todo: TodoDocument,
+  action: TodoNotificationAction
+): Promise<void> => {
+  await getNotificationService().notify({
+    body: `"${todo.title}" was ${action}.`,
+    href: "/",
+    kind: "todo",
+    title: TODO_NOTIFICATION_TITLES[action],
+    userId: String(todo.ownerId),
+  });
+};
 
 export const todoRouter = modelRouter("/todos", Todo, {
   access: {resource: "todo"},
@@ -56,6 +84,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
     searchFields: ["title", "tags"],
     sortableFields: ["title", "completed", "created", "priority"],
   },
+  audit: true,
   collectionActions: {
     ...todoLoadTestCollectionActions,
     bulkComplete: {
@@ -122,6 +151,18 @@ export const todoRouter = modelRouter("/todos", Todo, {
     list: [Permissions.IsAuthenticated],
     read: [Permissions.IsOwner],
     update: [Permissions.IsOwner],
+  },
+  postCreate: async (todo) => {
+    await notifyTodoAction(todo, "added");
+  },
+  postDelete: async (_request, todo) => {
+    await notifyTodoAction(todo, "deleted");
+  },
+  postUpdate: async (todo, _cleanedBody, _request, previousTodo) => {
+    if (previousTodo.completed || !todo.completed) {
+      return;
+    }
+    await notifyTodoAction(todo, "completed");
   },
   preCreate: (body, req) => {
     return {

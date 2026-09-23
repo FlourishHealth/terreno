@@ -5,6 +5,7 @@ import {assert} from "chai";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi, AdminConfigResponse, AdminSyncConflicts, AdminSyncDb} from "./types";
 
 const setOptions = mock((_: unknown) => {});
@@ -30,21 +31,6 @@ const listState: {data: {data: Array<Record<string, unknown>>; total: number}} =
 };
 const listRefetch = mock(async () => ({data: listState.data}));
 const bulkPatchFn = mock(() => ({unwrap: async () => ({updated: 1})}));
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
-    useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-    useListQuery: () => ({
-      data: listState.data,
-      error: null,
-      isLoading: false,
-      refetch: listRefetch,
-    }),
-    useReadQuery: () => ({data: null, error: null, isLoading: false}),
-    useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
-  }),
-}));
 
 mock.module("./useAdminBackgroundTask", () => ({
   useAdminBackgroundTaskMutation: () => [
@@ -198,6 +184,20 @@ describe("AdminModelTable windowed path", () => {
   });
 
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useBulkPatchMutation: () => [bulkPatchFn, {isLoading: false}],
+      useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useDeleteMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+      useListQuery: () => ({
+        data: listState.data,
+        error: null,
+        isLoading: false,
+        refetch: listRefetch,
+      }),
+      useReadQuery: () => ({data: null, error: null, isLoading: false}),
+      useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
+    });
     setOptions.mockClear();
     listRefetch.mockClear();
     bulkPatchFn.mockClear();

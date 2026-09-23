@@ -4,11 +4,12 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 ## Key exports
 
-- Layout: `Box`, `Page`, `SplitPage`, `Card`
+- Layout: `Box`, `Page`, `SplitPage`, `Card`, `DashboardGrid`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
+- Notifications: `NotificationBell`, `NotificationInbox`, `NotificationPreferences`
 - Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
 - Theming: `TerrenoProvider`, `useTheme`, custom icon registry (`icons` prop)
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
@@ -31,8 +32,9 @@ supported and is convenient when startup cost is not material:
 import {Box, DataTable, Icon} from "@terreno/ui";
 ```
 
-Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, and related admin tools) are
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
 re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
+their implementation modules load on first render instead of during the initial root import. `DashboardGrid` stays eager.
 their implementation modules load on first render instead of during the initial root import. `MarkdownView` and
 `DataTable` header info defer `react-native-markdown-display`; `EmojiSelector` defers `emoji-datasource` until open.
 
@@ -58,6 +60,115 @@ const customStyle: StyleProp<ViewStyle> = {
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
 
+### DashboardGrid
+
+Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s. Cell width is `(rowWidth - gap × (columns - 1)) / columns` so flex `gap` does not wrap extra columns.
+
+```tsx
+<DashboardGrid>
+  <Card>
+    <LineChart data={points} legendLabel="Signups" />
+  </Card>
+</DashboardGrid>
+```
+
+### LineChart
+
+Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`. Press or hover a point for `{label}: {value}`.
+
+```tsx
+<LineChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups"
+/>
+```
+
+Hit targets use `Box` `onClick`, so testIDs are `{testID}.point.{index}-clickable`.
+
+### BarChart
+
+Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, loading, legend, tooltip).
+
+```tsx
+<BarChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-bar"
+/>
+```
+
+### AreaChart
+
+Filled area plus line on the same owned-SVG contract as `LineChart`.
+
+```tsx
+<AreaChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  legendLabel="Signups"
+  testID="signups-area"
+/>
+```
+
+### DonutChart
+
+One slice per `{label, value}` point. Per-slice `color` overrides the theme paint. Legend is one row per slice (`legendLabel` is ignored).
+
+```tsx
+<DonutChart
+  data={[{label: "Open", value: 3}, {color: "#112233", label: "Closed", value: 5}]}
+  testID="status-donut"
+/>
+```
+
+### Chart visual regression
+
+`bun run ui:charts:compare` screenshots `http://localhost:8085/demo/chart-visual-gallery`
+and diffs each fixture against `demo/rendered-snapshots/<id>.png`.
+`bun run ui:charts:update-snapshots` rewrites those goldens. Fixture ids live in
+`demo/chartVisual/fixtureCatalog.ts`. Operator steps:
+[Compare rendered chart snapshots](../how-to/compare-chart-rendered-snapshots.md).
+
+## Notification components
+
+Presentational only — no syncdb import. Wire data from your app's sync layer.
+These components are not in the isolated UI component demo; see `example-frontend`.
+
+### `NotificationBell`
+
+| Prop | Type | Description |
+|---|---|---|
+| `unreadCount` | `number` | Badge hidden when `0` |
+| `onPress` | `() => void` | Opens the inbox (host owns visibility) |
+| `renderBadge` | `({unreadCount, testID}) => ReactNode` | Replaces the default unread-count badge |
+| `renderIcon` | `({testID}) => ReactNode` | Replaces the default bell icon |
+| `testID` | `string` | Default `notification-bell` |
+
+Custom renderers keep the built-in 40×40 tap target, positioning, toggle callback, and
+accessible unread-count label. `renderBadge` runs only when `unreadCount > 0`.
+
+### `NotificationInbox`
+
+List-only; wrap in `SideDrawer`, `Modal`, or a sheet in the host screen.
+
+| Prop | Type | Description |
+|---|---|---|
+| `items` | `NotificationInboxItem[]` | Rows to render |
+| `isLoading` | `boolean` | Shows spinner |
+| `onMarkRead` / `onMarkUnread` | `(item) => void` | Toggle `readAt` via syncdb |
+| `onDismiss` | `(item) => void` | Archive the row (`archivedAt` via syncdb) |
+| `onOpen` | `(item) => void` | Tap handler (e.g. Expo Router for `href`) |
+
+`NotificationInboxItem.archived` is optional. Archived rows receive an `Archived` label
+and do not expose dismiss or read-state actions.
+
+### `NotificationPreferences`
+
+| Prop | Type | Description |
+|---|---|---|
+| `preferences` | `{inapp, mail, push, sms}` | Current toggles |
+| `onChange` | `(channel, value) => void` | Per-channel updates |
+
 ## Component Behaviors
 
 ### Button Layout Behavior
@@ -77,6 +188,71 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 ``````
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
+
+### TextField password visibility
+
+`type="password"` masks the value and renders a show/hide eye control at the end of the field.
+The control is uncontrolled — the field tracks whether the value is revealed and starts hidden.
+A disabled field cannot be revealed.
+
+``````typescript
+<TextField
+  title="Password"
+  type="password"
+  value={password}
+  onChange={setPassword}
+  autoComplete="current-password"
+/>
+``````
+
+Pass `showVisibilityToggle={false}` where revealing the value is unacceptable, such as a shared or
+on-camera screen:
+
+``````typescript
+<TextField showVisibilityToggle={false} title="Password" type="password" value={password} onChange={setPassword} />
+``````
+
+`Field` with `type="password"` renders the same control, and so do `LoginScreen` and `SignUpScreen`
+password fields.
+
+The toggle's test id defaults to `{testID}.visibility-toggle`, and `testIDs.visibilityToggle`
+overrides it:
+
+| Element | test id |
+| --- | --- |
+| Input | `{testID}` |
+| Label | `{testID}.label` |
+| Error | `{testID}.error` |
+| Helper | `{testID}.helper` |
+| Show/hide toggle | `{testID}.visibility-toggle` |
+
+### GPTChat
+
+Streaming chat surface for `@terreno/ai`. Histories, messages, submit, and optional MCP/tools stay under consumer control.
+
+Pass `mascot` when the app owns a character. Terreno ships none. The node renders only while `currentMessages` is empty, centered in the chat panel above the suggested prompts. The empty hero uses the message viewport height as a minimum so short content stays centered, while taller mascots still scroll. Streaming feedback shares that centered hero instead of creating a second pane. Omit the prop for the default empty chat.
+
+The composer row (attachment picker, tools, input, Send) is vertically centered, so controls stay aligned with the input as it grows. The attachment cell is omitted when `onAttachFiles` is not provided.
+
+```tsx
+<GPTChat
+  currentMessages={[]}
+  histories={histories}
+  mascot={
+    <Box alignItems="center">
+      <Heading size="lg">🦊</Heading>
+    </Box>
+  }
+  onCreateHistory={onCreateHistory}
+  onDeleteHistory={onDeleteHistory}
+  onSelectHistory={onSelectHistory}
+  onSubmit={onSubmit}
+/>
+```
+
+Operator steps: [Add a GPT chat mascot](../how-to/add-gpt-chat-mascot.md). Demo story: `GPTChat` → `Mascot`.
+The example AI screen demonstrates a consumer selecting one of four bundled mascot
+images once per mount.
 
 ### SplitPage
 
@@ -589,6 +765,68 @@ import {TerrenoProvider} from "@terreno/ui";
   {children}
 </TerrenoProvider>
 ``````
+
+## DataTable server-side filtering
+
+`DataTable` is data-layer agnostic. Optional filter and search props emit a
+modelRouter-shaped JavaScript object through `onQueryChange`. The parent merges
+that object with `page`, `limit`, and `sort` before calling a list endpoint.
+
+Import the pure helper when building params outside the component:
+
+```typescript
+import {buildDataTableListQuery} from "@terreno/ui/dataTableListQuery";
+```
+
+### Query contract
+
+| UI | Wire param |
+| --- | --- |
+| Toolbar search (`search` + `searchFields`) | `$or: [{field: {$regex, $options: "i"}}, ...]` (user text escaped) |
+| Text column filter | `{field: {$regex, $options: "i"}}` |
+| Boolean column filter | `{field: true \| false}`; unset omits the key |
+| Date range | `field_gte` / `field_lte` ISO strings; either bound may be sent alone |
+| Number range | `{field: {$gte?, $lte?}}` |
+| Choice (one value) | `{field: string}` scalar equality |
+| Choice (many values) | `{field: {$in: string[]}}` |
+| Choice **Empty** (optional fields) | `{field: {$in: ["__empty__"]}}` on the wire; server maps to `null` (matches missing and null) |
+| Choice **Empty** + concrete | `{field: {$in: [...values, "__empty__"]}}` |
+
+`onQueryChange` never includes `page`, `limit`, or `sort`. Search is debounced
+(250ms, same delay as admin list search).
+
+The server accepts only the documented nested operator keys. Text `$regex` values
+must be escaped literals; executable patterns and extra Mongo operators are rejected.
+
+Date range filters collect calendar days, so a range covers whole UTC days: **from**
+opens the chosen day (`00:00:00.000Z`) and **to** closes it (`23:59:59.999Z`), which
+keeps rows recorded later on the end day inside the range.
+
+Pass `emptyContent` to keep the table header, search, and filter controls mounted
+while showing an application-specific empty state below the header.
+Use `additionalFilters` for declared server filters whose fields are not visible
+columns; web shows one **More filters** popover and native includes them in the same sheet.
+
+### Platform chrome
+
+| Platform | Chrome |
+| --- | --- |
+| Web | Toolbar search + per-column `Filter` popovers (`column.filter`) |
+| Native | Toolbar search + one **Filters** sheet (`Modal`) with the same fields |
+
+Column headers use `Filter` with `iconOnly`, which renders a compact icon trigger
+(24px at the default `triggerSize="sm"`, 32px with `triggerSize="default"`) instead
+of a labeled button. Give it an accessible name with `triggerAccessibilityLabel`.
+
+A single-column popover offers only its own **Clear**, so it needs no per-field clear.
+The surfaces that host several filters at once — the **More filters** popover and the
+native **Filters** sheet — add a per-field **Clear filter** for booleans, whose toggle
+cannot otherwise express "unset".
+
+Omit `column.filter`, `searchFields`, and the related callbacks to keep today's
+sort/page-only table.
+
+Demo: `FilterableDataTable` story in the component demo (`demo:start`, port 8085).
 
 ## Related Documentation
 

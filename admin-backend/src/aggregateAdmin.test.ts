@@ -77,6 +77,26 @@ describe("aggregateAdminContributions", () => {
     expect(aggregated.widgetIds).toEqual(["feature-flags-overrides"]);
   });
 
+  it("forwards custom screen group metadata from plugin contributions", () => {
+    const aggregated = aggregateAdminContributions({
+      pluginContributions: [
+        {
+          customScreens: [
+            {
+              displayName: "Overview",
+              group: "Announcements",
+              icon: "bullhorn",
+              name: "announcements",
+            },
+          ],
+        },
+      ],
+    });
+
+    assert.equal(aggregated.customScreens[0]?.group, "Announcements");
+    assert.equal(aggregated.customScreens[0]?.icon, "bullhorn");
+  });
+
   it("merges unique scripts, screens, and widget ids and skips duplicates", () => {
     const runner = async (): Promise<void> => {};
     const aggregated = aggregateAdminContributions({

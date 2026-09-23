@@ -110,13 +110,18 @@ Defaults: `TOKEN_SECRET`, `TOKEN_ISSUER`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRE
 ## Coverage gates
 
 Package CI uses `scripts/check-coverage.ts` (`bun run test:coverage`, default 95%
-functions and lines) as the live gate. Dedicated CircleCI jobs (`api-ci`, `ai-ci`,
+functions and lines) as the live gate. Bun 1.4.2+ may exit 1 on bunfig
+`coverageThreshold` before isolated LCOV merges; the script continues when tests
+reported `0 fail` and then enforces 95% on the merged report. Dedicated CircleCI
+jobs (`api-ci`, `ai-ci`,
 `rtk-ci`, `ui-ci`, `syncdb-ci`, `comms-ci`, `mcp-server-ci`, `admin-spa-ci`) run
 that script. Published packages without a dedicated workflow
 (`admin-backend`, `admin-frontend`, `api-health`, `feature-flags`, `@terreno/test`)
 run the same lint, compile, and coverage commands via the parameterized
-`packages-ci` job. Retained GitHub Actions twins stay in lockstep (`on: []`),
-including `.github/workflows/packages-ci.yml`.
+`packages-ci` job. Retained GitHub Actions twins stay in lockstep (`push.branches-ignore: ["**"]`),
+including `.github/workflows/packages-ci.yml`. Those twins run
+`scripts/ci/check-new-file-coverage-lcov.sh` with `working-directory: .` and
+pass `secrets.CODECOV_TOKEN` into `upload-codecov`.
 
 Each of those jobs then uploads `coverage/lcov.info` to Codecov with a distinct
 flag (`api`, `ui`, `rtk`, …) via `scripts/upload-codecov.sh`. The script
@@ -142,8 +147,10 @@ The `demo_lint_and_typecheck` CircleCI command (and the retained
 the demo compiles. Add a story plus `demoConfig.tsx` registration for new
 components, or an allowlist entry with a specific reason — not "hard to demo".
 The allowlist is limited to shell/providers, React context objects, thin RN
-list wrappers, and subcomponents already exercised by a parent story
-(Filter, Table, DateTimeField, HeightField, ConsentFormScreen).
+list wrappers, subcomponents already exercised by a parent story
+(Filter, Table, DateTimeField, HeightField, ConsentFormScreen), and
+product surfaces that belong in `example-frontend` rather than the isolated
+UI demo (announcements and in-app notifications).
 Standalone picker sheets (`NumberPickerActionSheet`, `DecimalRangeActionSheet`)
 have their own demo stories.
 
@@ -157,10 +164,17 @@ line coverage. Test, spec, story, generated OpenAPI SDK, `dist`, isolated-test,
 `src/types` type modules, demo `story-config/*.config.tsx`, and Expo Router route
 files (`index`, `_layout`, `+not-found`, `[param]`, plus example recovery screens
 `forgotPassword` / `resetPassword` / `verifyEmail`) are excluded. A new implementation
-file that is absent from LCOV is treated as 0% covered. The gate runs each package's `bun test` file arguments (or `src` / `*.test.ts`
-globs) so Playwright `*.spec.ts` files are not collected. Globs are expanded in
-the coverage process before `bun test` is spawned, because spawn does not pass
-them through a shell. A glob that matches no files is omitted.
+file that is absent from LCOV is treated as 0% covered, except files listed in
+that package's `bunfig.toml` `coveragePathIgnorePatterns` (the same paths the
+95% package gate already omits). Package CI jobs that
+already produced `coverage/lcov.info` run the 90% check against that report
+(`--package` + `--lcov`) so the dedicated job does not rerun the suite.
+When the dedicated job does rerun a package, it prefers colocated
+`foo.test.ts` / `foo.test.tsx` next to each new `foo.ts` and falls back to
+the package `bun test` paths only when a new file has no sibling test.
+It compiles `@terreno/*` workspace dist deps only when the package imports
+them. The gate still expands globs before spawn so Playwright `*.spec.ts`
+files are not collected. A glob that matches no files is omitted.
 
 Run the same check locally against a base commit:
 

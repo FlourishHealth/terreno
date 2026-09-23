@@ -27,9 +27,10 @@ const authProvider = betterAuthAdapter(bridgeBetterAuthReactClient(betterAuthCli
  * Singleton local-first client. Started/stopped by the root layout when the user is
  * authenticated; wipe-on-user-change is handled internally.
  *
- * `debug` enables the in-memory sync event log in dev builds only — it powers the
- * `/syncdb-debug` debugger screen (and, in the future, MCP introspection). It is
- * off in production so there is zero recording overhead.
+ * `debug` enables the in-memory sync event log in dev builds only. It powers the
+ * `/syncdb-debug` screen and registers this client for terreno-mcp-local state,
+ * action, and snapshot tools. It is off in production so there is zero recording
+ * or MCP bridge overhead.
  */
 export const syncDb: SyncDb = createSyncDb({
   authProvider,
@@ -50,6 +51,13 @@ export const syncDb: SyncDb = createSyncDb({
   name: SYNC_DB_NAME,
 });
 
+let adminOrganizationId: string | undefined;
+
+/** Bind the admin window client's mutate payloads to the selected organization. */
+export const setAdminSyncOrganizationId = (organizationId?: string): void => {
+  adminOrganizationId = organizationId;
+};
+
 /**
  * Admin windows use a separate store/socket so `{collection}|admin` rows never
  * enter the owner-scoped product store for the same collection.
@@ -59,6 +67,7 @@ export const adminSyncDb: SyncDb = createSyncDb({
   baseUrl,
   collections: [...SYNC_COLLECTIONS],
   name: ADMIN_SYNC_DB_NAME,
+  organizationIdProvider: () => adminOrganizationId,
   windowCollections: [...SYNC_COLLECTIONS],
 });
 
