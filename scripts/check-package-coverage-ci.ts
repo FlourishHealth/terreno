@@ -191,7 +191,7 @@ export const findMatrixPackagesMissingCoverage = ({
   setupConfig: string;
 }): string[] => {
   const missing: string[] = [];
-  if (!ghaSource.includes("on: []")) {
+  if (!ghaSource.includes("branches-ignore:") || !ghaSource.includes('- "**"')) {
     missing.push("gha:packages-ci.yml:on");
   }
   if (

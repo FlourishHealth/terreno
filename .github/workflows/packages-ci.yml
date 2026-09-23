@@ -5,7 +5,11 @@ name: Packages CI
 # Disabled after migration to CircleCI; retained for rollback.
 # Intended paths (live mapping is .circleci/config.yml):
 #   admin-backend/**, admin-frontend/**, api-health/**, feature-flags/**, test/**
-on: []
+on:
+  # Retained for rollback without registering failed zero-job runs.
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   lint-compile-coverage:
