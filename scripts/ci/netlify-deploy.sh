@@ -39,9 +39,8 @@ fi
 
 export NETLIFY_SITE_ID="$site_id"
 if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] || [ -z "${NETLIFY_SITE_ID:-}" ]; then
-  echo "Skipping Netlify ${target} ${mode} deploy: terreno-netlify is missing NETLIFY_AUTH_TOKEN or the site id."
-  echo "GitHub Actions still owns live deploys until that CircleCI context is populated."
-  exit 0
+  echo "Cannot run Netlify ${target} ${mode} deploy: terreno-netlify is missing NETLIFY_AUTH_TOKEN or the site id." >&2
+  exit 1
 fi
 
 case "$target" in
@@ -79,6 +78,11 @@ case "$target" in
     publish_dir="website/build"
     ;;
 esac
+
+# gcp-cd-preview runs in a separate workflow; publish only once its backend answers.
+if [ -n "${NETLIFY_WAIT_FOR_HEALTH_URL:-}" ]; then
+  scripts/ci/wait-cloud-run-health.sh "$NETLIFY_WAIT_FOR_HEALTH_URL" 1200
+fi
 
 args=(deploy --dir "$publish_dir" --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN")
 if [ "$mode" = "production" ]; then

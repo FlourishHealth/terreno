@@ -492,47 +492,53 @@ commands:
               circleci step halt
             fi
 
-  skip_if_netlify_unconfigured:
-    description: Halt before checkout/install when terreno-netlify has no token or site id
+  skip_if_fork_deploy:
+    description: Halt deploys on fork pull requests (CircleCI withholds contexts from forks)
+    steps:
+      - run:
+          name: Skip deploys on fork pull requests
+          command: |
+            set -euo pipefail
+            if [ -n "${CIRCLE_PR_REPONAME:-}" ] || [ -n "${CIRCLE_PR_USERNAME:-}" ]; then
+              echo "Fork PR detected; skipping deploy (contexts are not passed to forks)"
+              circleci step halt
+            fi
+
+  require_netlify_context:
+    description: Fail before checkout/install when terreno-netlify is missing the token or site id
     parameters:
       site-id-var:
         type: string
     steps:
       - run:
-          name: Skip when terreno-netlify is empty
+          name: Validate terreno-netlify context
           command: |
             set -euo pipefail
             site_id_var="<< parameters.site-id-var >>"
-            site_id="${!site_id_var-}"
-            if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] || [ -z "$site_id" ]; then
-              echo "Skipping: terreno-netlify is missing NETLIFY_AUTH_TOKEN or ${site_id_var}."
-              echo "GitHub Actions still owns live deploys until that context is populated."
-              circleci step halt
+            missing=()
+            if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then missing+=("NETLIFY_AUTH_TOKEN"); fi
+            if [ -z "${!site_id_var-}" ]; then missing+=("$site_id_var"); fi
+            if [ ${#missing[@]} -ne 0 ]; then
+              echo "terreno-netlify is missing required variables: ${missing[*]}"
+              echo "CircleCI is the only Netlify deployer; fill the context and rerun."
+              exit 1
             fi
 
-  skip_if_gcp_unconfigured:
-    description: Halt before checkout/install when terreno-gcp cannot authenticate
+  require_gcp_context:
+    description: Fail before checkout/install when terreno-gcp cannot authenticate
     steps:
       - run:
-          name: Skip when terreno-gcp is empty
+          name: Validate terreno-gcp context
           command: |
             set -euo pipefail
-            if [ -z "${GCP_WIF_PROVIDER_PROD:-}" ] || [ -z "${GCP_TF_ADMIN_SA_PROD:-}${GCP_CD_DEPLOYER_SA_PROD:-}" ]; then
-              echo "Skipping: terreno-gcp is missing GCP_WIF_PROVIDER_PROD or deployer SA emails."
-              echo "GitHub Actions still owns live CD until that context is populated."
-              circleci step halt
-            fi
-
-  skip_if_no_deploy_context:
-    description: Halt manual preview deploys when both Netlify and GCP contexts are empty
-    steps:
-      - run:
-          name: Skip when no deploy context is configured
-          command: |
-            set -euo pipefail
-            if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] && [ -z "${GCP_WIF_PROVIDER_PROD:-}" ]; then
-              echo "Skipping: terreno-netlify and terreno-gcp are empty."
-              circleci step halt
+            missing=()
+            for name in GCP_WIF_PROVIDER_PROD GCP_TF_ADMIN_SA_PROD GCP_CD_DEPLOYER_SA_PROD; do
+              if [ -z "${!name:-}" ]; then missing+=("$name"); fi
+            done
+            if [ ${#missing[@]} -ne 0 ]; then
+              echo "terreno-gcp is missing required variables: ${missing[*]}"
+              echo "CircleCI is the only GCP deployer; fill the context and rerun."
+              exit 1
             fi
 
   resolve_affected_e2e_shards:
@@ -1695,7 +1701,7 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - require_netlify_context:
           site-id-var: NETLIFY_DEMO_SITE_ID
       - checkout
       - install_bun_and_deps
@@ -1707,7 +1713,7 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - require_netlify_context:
           site-id-var: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
       - checkout
       - install_bun_and_deps
@@ -1719,7 +1725,7 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - require_netlify_context:
           site-id-var: NETLIFY_DOCS_SITE_ID
       - checkout
       - install_bun_and_deps
@@ -1731,7 +1737,7 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_gcp_unconfigured
+      - require_gcp_context
       - checkout
       - install_terraform
       - gcp-cli/install
@@ -1771,6 +1777,15 @@ jobs:
               - << pipeline.parameters.run-cd-mcp >>
               - << pipeline.parameters.force-cd >>
           steps:
+            - install_bun_and_deps
+            - run:
+                name: Test MCP server before deploy
+                environment:
+                  CI: "true"
+                command: |
+                  set -euo pipefail
+                  bun run compile
+                  (cd mcp-server && bun run test:ci)
             - run:
                 name: Deploy MCP service
                 command: scripts/ci/gcp-deploy.sh mcp-prod
@@ -1779,7 +1794,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - skip_if_fork_deploy
+      - require_netlify_context:
           site-id-var: NETLIFY_DEMO_SITE_ID
       - checkout
       - install_bun_and_deps
@@ -1792,28 +1808,29 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - skip_if_fork_deploy
+      - require_netlify_context:
           site-id-var: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
       - checkout
       - install_bun_and_deps
       - resolve_preview_pr_number
       - run:
           name: Deploy example frontend preview to Netlify
+          no_output_timeout: 25m
           command: |
             set -euo pipefail
-            prod_url="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
-            if [ "<< pipeline.parameters.run-cd-backend >>" = "true" ]; then
-              export EXPO_PUBLIC_API_URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
-            else
-              export EXPO_PUBLIC_API_URL="$prod_url"
-            fi
+            # Frontend paths also set run-cd-backend, so gcp-cd-preview deploys
+            # this PR's isolated backend; the prod backend rejects preview CORS.
+            export EXPO_PUBLIC_API_URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            export NETLIFY_WAIT_FOR_HEALTH_URL="$EXPO_PUBLIC_API_URL"
             scripts/ci/netlify-deploy.sh frontend preview "pr-${PR_NUMBER}"
 
   deploy-docs-preview:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_netlify_unconfigured:
+      - skip_if_fork_deploy
+      - require_netlify_context:
           site-id-var: NETLIFY_DOCS_SITE_ID
       - checkout
       - install_bun_and_deps
@@ -1826,7 +1843,8 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_gcp_unconfigured
+      - skip_if_fork_deploy
+      - require_gcp_context
       - checkout
       - gcp-cli/install
       - resolve_preview_pr_number
@@ -1848,7 +1866,13 @@ jobs:
     executor: node22
     resource_class: large
     steps:
-      - skip_if_no_deploy_context
+      - require_gcp_context
+      - require_netlify_context:
+          site-id-var: NETLIFY_DEMO_SITE_ID
+      - require_netlify_context:
+          site-id-var: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
+      - require_netlify_context:
+          site-id-var: NETLIFY_DOCS_SITE_ID
       - checkout
       - install_bun_and_deps
       - install_terraform
@@ -1876,7 +1900,7 @@ jobs:
   preview-cleanup:
     executor: node22
     steps:
-      - skip_if_gcp_unconfigured
+      - require_gcp_context
       - checkout
       - install_bun_and_deps
       - gcp-cli/install
@@ -2236,6 +2260,7 @@ workflows:
     jobs:
       - deploy-demo:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-demo-production
           filters:
             branches:
               only: master
@@ -2250,6 +2275,7 @@ workflows:
     jobs:
       - deploy-frontend:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-frontend-production
           filters:
             branches:
               only: master
@@ -2264,6 +2290,7 @@ workflows:
     jobs:
       - deploy-docs:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-docs-production
           filters:
             branches:
               only: master
@@ -2282,6 +2309,7 @@ workflows:
     jobs:
       - gcp-cd-prod:
           context: [terreno-gcp]
+          serial-group: << pipeline.project.slug >>/gcp-production
           filters:
             branches:
               only: master
@@ -2293,6 +2321,7 @@ workflows:
     jobs:
       - deploy-demo-preview:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-demo-preview-<< pipeline.git.branch >>
           filters:
             branches:
               ignore: master
@@ -2304,6 +2333,7 @@ workflows:
     jobs:
       - deploy-frontend-preview:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-frontend-preview-<< pipeline.git.branch >>
           filters:
             branches:
               ignore: master
@@ -2315,6 +2345,7 @@ workflows:
     jobs:
       - deploy-docs-preview:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-docs-preview-<< pipeline.git.branch >>
           filters:
             branches:
               ignore: master
@@ -2329,6 +2360,7 @@ workflows:
     jobs:
       - gcp-cd-preview:
           context: [terreno-gcp]
+          serial-group: << pipeline.project.slug >>/gcp-preview-<< pipeline.git.branch >>
           filters:
             branches:
               ignore: master
@@ -2340,6 +2372,7 @@ workflows:
     jobs:
       - deploy-demo:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-demo-production
 
   deploy-preview-manual:
     when:
@@ -2348,6 +2381,7 @@ workflows:
     jobs:
       - deploy-preview-manual:
           context: [terreno-gcp, terreno-netlify]
+          serial-group: << pipeline.project.slug >>/gcp-preview-manual
 
   preview-cleanup-manual:
     when:
@@ -2356,6 +2390,7 @@ workflows:
     jobs:
       - preview-cleanup:
           context: [terreno-gcp]
+          serial-group: << pipeline.project.slug >>/gcp-preview-cleanup
 
   eas-dev-manual:
     when:
@@ -2384,6 +2419,7 @@ workflows:
               only: /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$/
       - deploy-demo:
           context: [terreno-netlify]
+          serial-group: << pipeline.project.slug >>/netlify-demo-production
           requires:
             - publish-release
           filters:

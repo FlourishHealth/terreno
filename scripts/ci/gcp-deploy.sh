@@ -10,11 +10,7 @@ action="$1"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-if [ -z "${GCP_WIF_PROVIDER_PROD:-}" ] || [ -z "${GCP_TF_ADMIN_SA_PROD:-}${GCP_CD_DEPLOYER_SA_PROD:-}" ]; then
-  echo "Skipping GCP ${action}: terreno-gcp is missing GCP_WIF_PROVIDER_PROD or deployer SA emails."
-  echo "GitHub Actions still owns live CD until that CircleCI context is populated."
-  exit 0
-fi
+scripts/ci/validate-env.sh GCP_WIF_PROVIDER_PROD GCP_TF_ADMIN_SA_PROD GCP_CD_DEPLOYER_SA_PROD
 
 export GCP_PROJECT_ID="${GCP_PROJECT_ID:-flourish-terreno}"
 export GCP_BACKEND_REGION="${GCP_BACKEND_REGION:-us-central1}"
@@ -90,9 +86,7 @@ deploy_backend() {
     "--project=$GCP_PROJECT_ID"
     "--region=$GCP_BACKEND_REGION"
     "--image=$image"
-    "--tag=$tag"
     "--port=3000"
-    "--memory=512Mi"
     "--min-instances=0"
     "--max-instances=10"
     "--concurrency=80"
@@ -115,15 +109,26 @@ deploy_backend() {
     env_vars+=",AUTH_PROVIDER=better-auth,BETTER_AUTH_URL=${better_auth_url}"
   fi
 
+  local revision_suffix=""
   if [ "$tag" = "prod" ]; then
+    args+=("--tag=$tag" "--memory=512Mi")
     env_vars+=",CORS_ORIGINS=https://terreno-frontend.netlify.app"
   else
-    args+=(--no-traffic --no-cpu-throttling)
+    # Deploy untagged, then tag the new revision: tagging during deploy fails
+    # when an older pr-* tag points at a revision that never became Ready.
+    revision_suffix="pr${PR_NUMBER}-${CIRCLE_BUILD_NUM:-$(date +%s)}"
+    args+=(--no-traffic --no-cpu-throttling --cpu-boost "--memory=1Gi" "--revision-suffix=$revision_suffix")
     env_vars+=",CORS_ORIGINS=https://pr-${PR_NUMBER}--terreno-frontend.netlify.app,MONGO_DB_NAME=terreno-example-pr-${PR_NUMBER},SEED_DEFAULTS=true"
+    .github/workflows/scripts/rebuild-cloud-run-ready-traffic.sh "$GCP_BACKEND_SERVICE" "$GCP_BACKEND_REGION"
   fi
   args+=("--set-secrets=$secrets" "--set-env-vars=$env_vars")
   gcloud "${args[@]}"
   if [[ "$tag" == pr-* ]]; then
+    gcloud run services update-traffic "$GCP_BACKEND_SERVICE" \
+      "--project=$GCP_PROJECT_ID" \
+      "--region=$GCP_BACKEND_REGION" \
+      "--update-tags=${tag}=${GCP_BACKEND_SERVICE}-${revision_suffix}" \
+      --quiet
     scripts/ci/wait-cloud-run-health.sh "$(tagged_service_url "$GCP_BACKEND_SERVICE" "$tag")"
   fi
 }
