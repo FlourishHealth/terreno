@@ -7,6 +7,20 @@ hook_input="$(cat)"
 repository_root="$(git rev-parse --show-toplevel)"
 cd "$repository_root"
 
+if ! command -v bun >/dev/null 2>&1 && [[ -x "${HOME}/.bun/bin/bun" ]]; then
+  export PATH="${HOME}/.bun/bin:${PATH}"
+fi
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Quality checks failed: bun not found on PATH (install: https://bun.sh)" >&2
+  if [[ "$hook_host" == "cursor" ]]; then
+    printf '{"followup_message":"Quality checks failed because bun is not installed or not on PATH. Run bun bootstrap from the repo root, then retry."}\n'
+    exit 0
+  fi
+  printf '{"decision":"block","reason":"Quality checks failed because bun is not installed or not on PATH."}\n'
+  exit 0
+fi
+
 if [[ "$hook_host" != "cursor" ]] && grep -Eq '"stop_hook_active"[[:space:]]*:[[:space:]]*true' <<<"$hook_input"; then
   printf '{}\n'
   exit 0
