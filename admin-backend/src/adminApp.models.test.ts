@@ -1636,8 +1636,8 @@ describe("AdminApp onAdminAudit is best-effort", () => {
 });
 
 const deleteAuditEventModel = (): void => {
-  if (mongoose.connection.models.AuditEvent) {
-    mongoose.connection.deleteModel("AuditEvent");
+  if (mongoose.connection.models.TerrenoAuditEvent) {
+    mongoose.connection.deleteModel("TerrenoAuditEvent");
   }
 };
 
@@ -1726,7 +1726,7 @@ describe("AdminApp AuditEvent auto-write", () => {
 
   it("returns 201 on POST when AuditEvent persistence throws", async () => {
     const localApp = buildAppWithAuditPlugin();
-    const AuditEvent = mongoose.connection.models.AuditEvent;
+    const AuditEvent = mongoose.connection.models.TerrenoAuditEvent;
     const createSpy = spyOn(AuditEvent, "create").mockImplementation(() => {
       throw new Error("recorder boom");
     });
